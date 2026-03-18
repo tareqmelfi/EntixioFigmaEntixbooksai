@@ -330,7 +330,7 @@ export function AssetDetail() {
             <CardContent>
               <div dir="ltr">
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={depChartData} accessibilityLayer={false}>
+                  <BarChart data={depChartData}>
                     <CartesianGrid {...gridStyle} />
                     <XAxis dataKey="year" {...xAxisStyle} reversed />
                     <YAxis {...yAxisStyle} orientation="right" />

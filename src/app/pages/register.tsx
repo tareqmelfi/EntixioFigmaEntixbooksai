@@ -11,30 +11,27 @@ export function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (authStore.getState().isAuthenticated) navigate("/");
+    if (authStore.getState().isAuthenticated) navigate("/app");
   }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    if (password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
-      return;
-    }
+    setError(null);
     setLoading(true);
+
     setTimeout(() => {
       const result = authStore.register(email, password, name, company);
       if (result.success) {
-        navigate("/");
+        navigate("/app");
       } else {
         setError(result.error || "حدث خطأ");
       }
       setLoading(false);
-    }, 600);
+    }, 1000);
   };
 
   return (

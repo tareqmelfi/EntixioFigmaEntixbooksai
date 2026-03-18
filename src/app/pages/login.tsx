@@ -9,27 +9,29 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
-    if (authStore.getState().isAuthenticated) navigate("/");
+    if (authStore.getState().isAuthenticated) navigate("/app");
   }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     setLoading(true);
+
+    // Simulate API call
     setTimeout(() => {
       const result = authStore.login(email, password);
       if (result.success) {
-        navigate("/");
+        navigate("/app");
       } else {
         setError(result.error || "حدث خطأ");
       }
       setLoading(false);
-    }, 600);
+    }, 800);
   };
 
   return (
@@ -120,15 +122,6 @@ export function Login() {
           <div className="mt-6 text-center">
             <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>ليس لديك حساب؟ </span>
             <Link to="/register" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>إنشاء حساب جديد</Link>
-          </div>
-
-          {/* Demo credentials */}
-          <div className="mt-8 bg-gradient-to-l from-[#F0F7FF] to-[#E8F4FD] border border-[#1276E3]/10 rounded-xl p-4">
-            <p className="text-[#0B1A47] mb-2" style={{ fontSize: "13px", fontWeight: 600 }}>بيانات الدخول التجريبية:</p>
-            <div dir="ltr" className="space-y-1" style={{ fontSize: "13px", fontFamily: "Inter", color: "#6B7280" }}>
-              <p>Email: <span className="text-[#0B1A47]" style={{ fontWeight: 500 }}>tareq@fc.sa</span></p>
-              <p>Password: <span className="text-[#0B1A47]" style={{ fontWeight: 500 }}>Hh8787965</span></p>
-            </div>
           </div>
         </motion.div>
       </div>

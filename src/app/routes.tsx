@@ -36,6 +36,7 @@ import { Templates } from "./pages/templates";
 import { PortalLogin } from "./pages/portal-login";
 import { PortalHome } from "./pages/portal-home";
 import { AuthGuard } from "./components/auth-guard";
+import { ErrorBoundary, NotFound } from "./components/error-boundary";
 
 // Wrap app routes with auth guard
 function ProtectedRoot() {
@@ -47,60 +48,63 @@ function ProtectedRoot() {
 }
 
 export const router = createBrowserRouter([
-  // Public routes
-  { path: "/landing", element: <Landing /> },
-  { path: "/login", element: <Login /> },
-  { path: "/register", element: <Register /> },
+  // Public routes - Landing as main page
+  { path: "/", element: <Landing />, errorElement: <ErrorBoundary /> },
+  { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },
+  { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
   // Protected app routes
   {
-    path: "/",
+    path: "/app",
     element: <ProtectedRoot />,
+    errorElement: <ErrorBoundary />,
     children: [
-      { index: true, element: <Dashboard /> },
-      { path: "ai", element: <AI /> },
+      { index: true, element: <Dashboard />, errorElement: <ErrorBoundary /> },
+      { path: "ai", element: <AI />, errorElement: <ErrorBoundary /> },
       // Sales
-      { path: "sales", element: <SalesDashboard /> },
-      { path: "invoices", element: <Invoices /> },
-      { path: "quotes", element: <Quotes /> },
-      { path: "receipts", element: <Receipts /> },
-      { path: "credit-notes", element: <CreditNotes /> },
+      { path: "sales", element: <SalesDashboard />, errorElement: <ErrorBoundary /> },
+      { path: "invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "quotes", element: <Quotes />, errorElement: <ErrorBoundary /> },
+      { path: "receipts", element: <Receipts />, errorElement: <ErrorBoundary /> },
+      { path: "credit-notes", element: <CreditNotes />, errorElement: <ErrorBoundary /> },
       // Purchases
-      { path: "purchases", element: <PurchasesDashboard /> },
-      { path: "purchases/bills", element: <PurchaseBills /> },
-      { path: "payments", element: <Payments /> },
-      { path: "expenses", element: <Expenses /> },
+      { path: "purchases", element: <PurchasesDashboard />, errorElement: <ErrorBoundary /> },
+      { path: "purchases/bills", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
+      { path: "payments", element: <Payments />, errorElement: <ErrorBoundary /> },
+      { path: "expenses", element: <Expenses />, errorElement: <ErrorBoundary /> },
       // Accounting
-      { path: "chart-of-accounts", element: <ChartOfAccounts /> },
-      { path: "journal-entries", element: <JournalEntries /> },
-      { path: "taxes", element: <Taxes /> },
+      { path: "chart-of-accounts", element: <ChartOfAccounts />, errorElement: <ErrorBoundary /> },
+      { path: "journal-entries", element: <JournalEntries />, errorElement: <ErrorBoundary /> },
+      { path: "taxes", element: <Taxes />, errorElement: <ErrorBoundary /> },
       // Bank Accounts
-      { path: "bank-accounts", element: <BankAccounts /> },
+      { path: "bank-accounts", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       // Assets
-      { path: "assets", element: <FixedAssets /> },
-      { path: "assets/:id", element: <AssetDetail /> },
+      { path: "assets", element: <FixedAssets />, errorElement: <ErrorBoundary /> },
+      { path: "assets/:id", element: <AssetDetail />, errorElement: <ErrorBoundary /> },
       // Cost Centers, Projects, Branches
-      { path: "cost-centers", element: <CostCenters /> },
-      { path: "projects", element: <Projects /> },
-      { path: "branches", element: <Branches /> },
+      { path: "cost-centers", element: <CostCenters />, errorElement: <ErrorBoundary /> },
+      { path: "projects", element: <Projects />, errorElement: <ErrorBoundary /> },
+      { path: "branches", element: <Branches />, errorElement: <ErrorBoundary /> },
       // Products & Services
-      { path: "products", element: <Inventory /> },
-      { path: "products/:id", element: <ProductDetail /> },
-      { path: "inventory", element: <Inventory /> },
+      { path: "products", element: <Inventory />, errorElement: <ErrorBoundary /> },
+      { path: "products/:id", element: <ProductDetail />, errorElement: <ErrorBoundary /> },
+      { path: "inventory", element: <Inventory />, errorElement: <ErrorBoundary /> },
       // Payroll
-      { path: "payroll", element: <Payroll /> },
+      { path: "payroll", element: <Payroll />, errorElement: <ErrorBoundary /> },
       // Contacts
-      { path: "contacts", element: <Contacts /> },
-      { path: "contacts/:id", element: <ContactDetail /> },
+      { path: "contacts", element: <Contacts />, errorElement: <ErrorBoundary /> },
+      { path: "contacts/:id", element: <ContactDetail />, errorElement: <ErrorBoundary /> },
       // Developer
-      { path: "integrations", element: <Integrations /> },
-      { path: "templates", element: <Templates /> },
+      { path: "integrations", element: <Integrations />, errorElement: <ErrorBoundary /> },
+      { path: "templates", element: <Templates />, errorElement: <ErrorBoundary /> },
       // Analytics & Settings
-      { path: "reports", element: <Reports /> },
-      { path: "settings", element: <Settings /> },
-      { path: "roadmap", element: <FeatureRoadmap /> },
+      { path: "reports", element: <Reports />, errorElement: <ErrorBoundary /> },
+      { path: "settings", element: <Settings />, errorElement: <ErrorBoundary /> },
+      { path: "roadmap", element: <FeatureRoadmap />, errorElement: <ErrorBoundary /> },
     ],
   },
   // Portal routes (standalone, no sidebar)
-  { path: "/portal/login", element: <PortalLogin /> },
-  { path: "/portal", element: <PortalHome /> },
+  { path: "/portal/login", element: <PortalLogin />, errorElement: <ErrorBoundary /> },
+  { path: "/portal", element: <PortalHome />, errorElement: <ErrorBoundary /> },
+  // Error handling
+  { path: "*", element: <NotFound /> },
 ]);

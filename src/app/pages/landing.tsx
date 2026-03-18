@@ -3,12 +3,14 @@ import {
   Shield, BarChart3, Globe, Zap, Cloud, Smartphone, 
   FileText, Users, ArrowLeft, CheckCircle2, ChevronDown,
   Database, Wifi, WifiOff, Server, Menu, X,
-  Receipt, Calculator, TrendingUp, Clock, Play
+  Receipt, Calculator, TrendingUp, Clock, Play, Sparkles
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { motion } from "motion/react";
+import Balancer from "react-wrap-balancer";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { authStore } from "../components/auth-store";
+import { Hero3DBackground } from "../components/hero-3d-background";
 
 // ─── Animated counter ───
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -535,6 +537,9 @@ export function Landing() {
               </div>
               <p className="text-[#94A3B8] max-w-sm" style={{ fontSize: "14px", lineHeight: 1.8 }}>
                 نظام محاسبة سحابي متكامل للسوق السعودي والأمريكي. يعمل أونلاين وأوفلاين مع مزامنة ذكية.
+              </p>
+              <p className="text-[#F59E0B]/80 mt-3 max-w-sm" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+                ⚠ الموقع حالياً تحت التطوير — لا يمكن الاشتراك في الوقت الحالي. سيتم الإعلان عن التشغيل الكامل قريباً.
               </p>
             </div>
             {/* Links */}

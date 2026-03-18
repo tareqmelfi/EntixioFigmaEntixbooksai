@@ -599,7 +599,7 @@ export function Contacts() {
                       <tr
                         key={party.id}
                         className={`border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] cursor-pointer transition-colors ${isSelected ? "bg-[#EFF6FF]" : ""}`}
-                        onClick={() => navigate(`/contacts/${party.id}`)}
+                        onClick={() => navigate(`/app/contacts/${party.id}`)}
                       >
                         <td className="py-3 pe-2" onClick={(e) => e.stopPropagation()}>
                           <input
@@ -663,7 +663,7 @@ export function Contacts() {
                             </button>
                             {actionMenuId === party.id && (
                               <div className="absolute end-0 z-40 mt-1 w-40 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                                <button onClick={() => { setActionMenuId(null); navigate(`/contacts/${party.id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</button>
+                                <button onClick={() => { setActionMenuId(null); navigate(`/app/contacts/${party.id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</button>
                                 <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Edit2 className="h-3.5 w-3.5 text-[#6B7280]" />تعديل سريع</button>
                                 <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Copy className="h-3.5 w-3.5 text-[#6B7280]" />نسخ</button>
                                 <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Merge className="h-3.5 w-3.5 text-[#6B7280]" />دمج مع...</button>

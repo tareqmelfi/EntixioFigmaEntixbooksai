@@ -120,7 +120,7 @@ export function Dashboard() {
           <CardContent>
             <div dir="ltr">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={profitLossData} accessibilityLayer={false}>
+              <BarChart data={profitLossData}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" {...xAxisStyle} reversed />
                 <YAxis {...yAxisStyle} orientation="right" />
@@ -146,7 +146,7 @@ export function Dashboard() {
           <CardContent>
             <div dir="ltr">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueBreakdownData} layout="vertical" accessibilityLayer={false}>
+              <BarChart data={revenueBreakdownData} layout="vertical">
                 <CartesianGrid {...gridStyle} />
                 <XAxis type="number" {...xAxisNumericStyle} />
                 <YAxis
@@ -173,7 +173,7 @@ export function Dashboard() {
           <CardContent>
             <div dir="ltr">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={cashFlowData} accessibilityLayer={false}>
+              <LineChart data={cashFlowData}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" {...xAxisStyle} reversed />
                 <YAxis {...yAxisStyle} orientation="right" />
@@ -215,7 +215,7 @@ export function Dashboard() {
           <CardContent>
             <div dir="ltr">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueExpensesData} accessibilityLayer={false}>
+              <BarChart data={revenueExpensesData}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" {...xAxisStyle} reversed />
                 <YAxis {...yAxisStyle} orientation="right" />

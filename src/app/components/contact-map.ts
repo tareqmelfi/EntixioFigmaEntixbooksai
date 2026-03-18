@@ -1,7 +1,7 @@
 /**
  * Central Contact Name → Contact ID Mapping
  * Used across all pages for "everything clickable" navigation.
- * Any customer/vendor/supplier name links to their contact profile at /contacts/:id
+ * Any customer/vendor/supplier name links to their contact profile at /app/contacts/:id
  */
 export const contactMap: Record<string, string> = {
   // Customers
@@ -28,5 +28,5 @@ export const contactMap: Record<string, string> = {
 /** Helper: get contact link path */
 export const contactLink = (name: string): string => {
   const id = contactMap[name];
-  return id ? `/contacts/${id}` : "/contacts";
+  return id ? `/app/contacts/${id}` : "/app/contacts";
 };

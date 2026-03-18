@@ -178,7 +178,7 @@ export function ContactDetail() {
     <div className="space-y-6">
       {/* Back Button */}
       <button
-        onClick={() => navigate("/contacts")}
+        onClick={() => navigate("/app/contacts")}
         className="flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#0B1B49] transition-colors"
         style={{ fontWeight: 500 }}
       >

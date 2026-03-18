@@ -262,7 +262,7 @@ export function PurchasesDashboard() {
           <CardContent>
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monthlyData} accessibilityLayer={false}>
+                <BarChart data={monthlyData}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" {...xAxisStyle} reversed />
                   <YAxis {...yAxisStyle} orientation="right" />
@@ -281,7 +281,7 @@ export function PurchasesDashboard() {
           <CardContent>
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={280}>
-                <PieChart accessibilityLayer={false}>
+                <PieChart>
                   <Pie data={vendorData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value"
                     label={({ name }) => `${name}`} labelLine={{ stroke: "#D1D5DB", strokeWidth: 1 }}
                     style={{ fontSize: "11px", fontFamily: "Noto Sans Arabic", fill: "#9CA3AF" }}>

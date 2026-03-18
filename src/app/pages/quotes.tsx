@@ -99,7 +99,7 @@ export function Quotes() {
             <div>
               <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>عرض سعر <span className="font-english">{q.id}</span></h1>
               <Link
-                to={`/contacts/${clientContactMap[q.client] || ""}`}
+                to={`/app/contacts/${clientContactMap[q.client] || ""}`}
                 className="text-[#6B7280] text-sm hover:text-[#1276E3] hover:underline transition-colors"
               >
                 {q.client}
@@ -319,7 +319,7 @@ export function Quotes() {
                       {/* Client — clickable to contact */}
                       <td className="py-3.5 pe-4">
                         <Link
-                          to={`/contacts/${clientContactMap[q.client] || ""}`}
+                          to={`/app/contacts/${clientContactMap[q.client] || ""}`}
                           className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline transition-colors"
                         >
                           {q.client}

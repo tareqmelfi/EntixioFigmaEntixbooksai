@@ -354,7 +354,7 @@ export function SalesDashboard() {
           <CardContent>
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monthlyData} accessibilityLayer={false}>
+                <BarChart data={monthlyData}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" {...xAxisStyle} reversed />
                   <YAxis {...yAxisStyle} orientation="right" />
@@ -374,7 +374,7 @@ export function SalesDashboard() {
           <CardContent>
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={280}>
-                <PieChart accessibilityLayer={false}>
+                <PieChart>
                   <Pie
                     data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={100}
                     dataKey="value" label={({ name, value }) => `${name} (${value})`}
