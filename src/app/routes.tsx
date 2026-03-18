@@ -3,6 +3,35 @@ import { Root } from "./layouts/root";
 import { Landing } from "./pages/landing";
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
+import { Features } from "./pages/features";
+import { Integration } from "./pages/integration";
+import { PricingPage } from "./pages/pricing-page";
+import { Privacy } from "./pages/privacy";
+import { Terms } from "./pages/terms";
+import { Blog } from "./pages/blog";
+import { Help } from "./pages/help";
+import { Docs } from "./pages/docs";
+import { Videos } from "./pages/videos";
+import { About } from "./pages/about";
+import { 
+  SolutionsAccountants, 
+  SolutionsSmallBusiness, 
+  SolutionsEnterprises,
+  SolutionsRestaurants,
+  SolutionsEcommerce
+} from "./pages/solutions";
+import { 
+  Team, 
+  Careers, 
+  Contact, 
+  Partners, 
+  Changelog, 
+  Roadmap,
+  CaseStudies,
+  Glossary,
+  Refund,
+  SLA
+} from "./pages/other-pages";
 import { Dashboard } from "./pages/dashboard";
 import { AI } from "./pages/ai";
 import { SalesDashboard } from "./pages/sales-dashboard";
@@ -52,6 +81,31 @@ export const router = createBrowserRouter([
   { path: "/", element: <Landing />, errorElement: <ErrorBoundary /> },
   { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },
   { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
+  { path: "/features", element: <Features />, errorElement: <ErrorBoundary /> },
+  { path: "/integration", element: <Integration />, errorElement: <ErrorBoundary /> },
+  { path: "/pricing", element: <PricingPage />, errorElement: <ErrorBoundary /> },
+  { path: "/privacy", element: <Privacy />, errorElement: <ErrorBoundary /> },
+  { path: "/terms", element: <Terms />, errorElement: <ErrorBoundary /> },
+  { path: "/blog", element: <Blog />, errorElement: <ErrorBoundary /> },
+  { path: "/help", element: <Help />, errorElement: <ErrorBoundary /> },
+  { path: "/docs", element: <Docs />, errorElement: <ErrorBoundary /> },
+  { path: "/videos", element: <Videos />, errorElement: <ErrorBoundary /> },
+  { path: "/about", element: <About />, errorElement: <ErrorBoundary /> },
+  { path: "/solutions/accountants", element: <SolutionsAccountants />, errorElement: <ErrorBoundary /> },
+  { path: "/solutions/small-business", element: <SolutionsSmallBusiness />, errorElement: <ErrorBoundary /> },
+  { path: "/solutions/enterprises", element: <SolutionsEnterprises />, errorElement: <ErrorBoundary /> },
+  { path: "/solutions/restaurants", element: <SolutionsRestaurants />, errorElement: <ErrorBoundary /> },
+  { path: "/solutions/ecommerce", element: <SolutionsEcommerce />, errorElement: <ErrorBoundary /> },
+  { path: "/team", element: <Team />, errorElement: <ErrorBoundary /> },
+  { path: "/careers", element: <Careers />, errorElement: <ErrorBoundary /> },
+  { path: "/contact", element: <Contact />, errorElement: <ErrorBoundary /> },
+  { path: "/partners", element: <Partners />, errorElement: <ErrorBoundary /> },
+  { path: "/changelog", element: <Changelog />, errorElement: <ErrorBoundary /> },
+  { path: "/roadmap", element: <Roadmap />, errorElement: <ErrorBoundary /> },
+  { path: "/case-studies", element: <CaseStudies />, errorElement: <ErrorBoundary /> },
+  { path: "/glossary", element: <Glossary />, errorElement: <ErrorBoundary /> },
+  { path: "/refund", element: <Refund />, errorElement: <ErrorBoundary /> },
+  { path: "/sla", element: <SLA />, errorElement: <ErrorBoundary /> },
   // Protected app routes
   {
     path: "/app",

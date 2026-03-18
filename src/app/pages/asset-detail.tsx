@@ -67,7 +67,7 @@ export function AssetDetail() {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Building2 className="h-12 w-12 text-[#D1D5DB]" />
         <p className="text-[#6B7280]">الأصل غير موجود</p>
-        <Button variant="outline" onClick={() => navigate("/assets")}>العودة للقائمة</Button>
+        <Button variant="outline" onClick={() => navigate("/app/assets")}>العودة للقائمة</Button>
       </div>
     );
   }
@@ -107,7 +107,7 @@ export function AssetDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate("/assets")} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+          <button onClick={() => navigate("/app/assets")} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{a.name}</h1>

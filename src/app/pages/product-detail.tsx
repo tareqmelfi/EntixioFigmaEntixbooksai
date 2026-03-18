@@ -66,7 +66,7 @@ export function ProductDetail() {
         <Package className="h-16 w-16 text-[#D1D5DB] mb-4" />
         <h2 className="text-[#0B1B49] mb-2" style={{ fontSize: "1.25rem", fontWeight: 700 }}>العنصر غير موجود</h2>
         <p className="text-[#6B7280] mb-4">لم يتم العثور على العنصر المطلوب</p>
-        <Button onClick={() => navigate("/products")} className="bg-[#1276E3] hover:bg-[#1060C0]">العودة للقائمة</Button>
+        <Button onClick={() => navigate("/app/products")} className="bg-[#1276E3] hover:bg-[#1060C0]">العودة للقائمة</Button>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function ProductDetail() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <button onClick={() => navigate("/products")} className="mt-1 rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
+          <button onClick={() => navigate("/app/products")} className="mt-1 rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
             <X className="h-5 w-5" />
           </button>
           <div>
@@ -346,7 +346,7 @@ export function ProductDetail() {
                   {transactions.map((t) => (
                     <tr key={t.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
                       <td className="py-3.5 pe-3">
-                        <Link to={t.id.startsWith("INV") ? "/invoices" : "/purchases/bills"} className="font-english text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{t.id}</Link>
+                        <Link to={t.id.startsWith("INV") ? "/app/invoices" : "/app/purchases/bills"} className="font-english text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{t.id}</Link>
                       </td>
                       <td className="py-3.5 pe-3">
                         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] border ${t.type.includes("بيع") ? "bg-[#ECEEF5] text-[#0B1A47] border-[#0B1A47]/20" : "bg-[#E4F4F9] text-[#2A7F9E] border-[#349FC4]/20"}`} style={{ fontWeight: 600 }}>
@@ -418,7 +418,7 @@ export function ProductDetail() {
                         </span>
                       </td>
                       <td className="py-3.5 pe-3">
-                        <Link to={m.reference.startsWith("INV") ? "/invoices" : m.reference.startsWith("BILL") ? "/purchases/bills" : "#"} className="font-english text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{m.reference}</Link>
+                        <Link to={m.reference.startsWith("INV") ? "/app/invoices" : m.reference.startsWith("BILL") ? "/app/purchases/bills" : "#"} className="font-english text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{m.reference}</Link>
                       </td>
                       <td className="py-3.5 pe-3"><span className="text-sm text-[#6B7280]">{m.warehouse}</span></td>
                       <td className="py-3.5 pe-3">

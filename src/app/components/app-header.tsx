@@ -139,7 +139,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
                 {/* Menu Items */}
                 <div className="py-1">
-                  <Link to="/settings" onClick={() => setShowProfile(false)}>
+                  <Link to="/app/settings" onClick={() => setShowProfile(false)}>
                     <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
                       <Building2 className="h-4 w-4 text-[#6B7280]" />إعدادات المنشأة
                     </button>
@@ -159,7 +159,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
                     <Settings className="h-4 w-4 text-[#6B7280]" />إدارة جميع اشتراكاتي
                   </button>
-                  <Link to="/roadmap" onClick={() => setShowProfile(false)}>
+                  <Link to="/app/roadmap" onClick={() => setShowProfile(false)}>
                     <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
                       <Star className="h-4 w-4 text-[#6B7280]" />الطلب أو التصويت على ميزة
                     </button>
@@ -174,7 +174,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
                 <div className="border-t border-[#F3F4F6] py-1">
                   <button 
-                    onClick={() => { authStore.logout(); navigate("/landing"); }}
+                    onClick={() => { authStore.logout(); navigate("/"); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start transition-colors cursor-pointer"
                   >
                     <LogOut className="h-4 w-4" />تسجيل الخروج

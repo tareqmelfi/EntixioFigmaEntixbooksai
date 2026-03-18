@@ -38,7 +38,7 @@ export function Expenses() {
               <div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date}</span></div>
               <div><span className="text-[#6B7280]">التصنيف:</span> <span>{selected.category}</span></div>
               <div><span className="text-[#6B7280]">طريقة الدفع:</span> <span>{selected.method}</span></div>
-              <div><span className="text-[#6B7280]">الحساب:</span> <Link to="/chart-of-accounts" className="text-[#1276E3] hover:underline">{selected.account}</Link></div>
+              <div><span className="text-[#6B7280]">الحساب:</span> <Link to="/app/chart-of-accounts" className="text-[#1276E3] hover:underline">{selected.account}</Link></div>
             </div>
           </CardContent></Card>
           <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">

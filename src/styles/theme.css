@@ -184,8 +184,16 @@
   }
 
   /* ── RTL-safe Recharts: force LTR inside chart containers ── */
-  .recharts-wrapper {
+  .recharts-wrapper,
+  .recharts-responsive-container {
     direction: ltr !important;
+    outline: none !important;
+  }
+  .recharts-wrapper *:focus,
+  .recharts-responsive-container:focus,
+  .recharts-wrapper:focus,
+  .recharts-surface:focus {
+    outline: none !important;
   }
 
   /* ── Muted chart typography: axes, ticks, legend ── */

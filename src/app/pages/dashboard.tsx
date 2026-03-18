@@ -1,12 +1,14 @@
-import { Activity, FileText, Users, DollarSign } from "lucide-react";
+import { DollarSign, FileText, ShoppingBag, Gauge } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useNavigate } from "react-router";
+import { useState, useMemo } from "react";
 import {
   gridStyle, xAxisStyle, xAxisNumericStyle, yAxisStyle, yAxisCategoryStyle,
-  tooltipStyle, formatSAR, chartColors
+  tooltipStyle, formatSAR, chartColors, statusColors
 } from "../components/chart-styles";
 
-// Custom legend rendered outside Recharts to avoid internal duplicate key bug
+// Custom legend rendered outside Recharts
 function ChartLegend({ items }: { items: { label: string; color: string; type?: "rect" | "line" }[] }) {
   return (
     <div className="flex justify-center gap-4 pt-2" style={{ fontFamily: "Noto Sans Arabic", fontSize: "11px", color: "#9CA3AF" }}>
@@ -24,7 +26,7 @@ function ChartLegend({ items }: { items: { label: string; color: string; type?: 
   );
 }
 
-// Mock data for charts
+// Mock data
 const cashFlowData = [
   { month: "أكتوبر", inflow: 210000, outflow: 180000 },
   { month: "نوفمبر", inflow: 240000, outflow: 200000 },
@@ -44,12 +46,12 @@ const revenueExpensesData = [
 ];
 
 const profitLossData = [
-  { month: "أكتوبر", profit: 70000, loss: 0 },
-  { month: "نوفمبر", profit: 80000, loss: 0 },
-  { month: "ديسمبر", profit: 90000, loss: 0 },
-  { month: "يناير", profit: 60000, loss: 0 },
-  { month: "فبراير", profit: 70000, loss: 0 },
-  { month: "مارس", profit: 90000, loss: 0 },
+  { month: "أكتوبر", profit: 70000, loss: 12000 },
+  { month: "نوفمبر", profit: 80000, loss: 5000 },
+  { month: "ديسمبر", profit: 90000, loss: 18000 },
+  { month: "يناير", profit: 60000, loss: 25000 },
+  { month: "فبراير", profit: 70000, loss: 8000 },
+  { month: "مارس", profit: 90000, loss: 3000 },
 ];
 
 const revenueBreakdownData = [
@@ -61,7 +63,116 @@ const revenueBreakdownData = [
   { category: "مركز تكلفة 2", value: 42000 },
 ];
 
+// VAT data
+const vatCollected = 44250; // VAT on sales (لصالح الضريبة)
+const vatPaid = 30750;      // VAT on purchases (لصالحنا)
+const vatNet = vatCollected - vatPaid; // net payable
+
+function VATGauge() {
+  const total = vatCollected + vatPaid;
+  const ratio = vatPaid / total;
+  const collectedRatio = vatCollected / total;
+  
+  // Severity based on net payable ratio
+  const netRatio = vatNet / vatCollected;
+  let severity: "normal" | "warning" | "danger" = "normal";
+  if (netRatio > 0.5) severity = "danger";
+  else if (netRatio > 0.3) severity = "warning";
+
+  // Bar always uses brand colors (teal for tax side, navy for our side)
+  const barColorTax = chartColors.teal;
+  const barColorOurs = chartColors.navy;
+
+  // Net amount uses status colors like invoice statuses
+  const netStatus = severity === "danger"
+    ? statusColors.red
+    : severity === "warning"
+    ? statusColors.amber
+    : statusColors.green;
+
+  // Critical glow effect
+  const glowStyle = severity === "danger"
+    ? { boxShadow: `0 0 20px 4px ${statusColors.red.border}, 0 0 40px 8px rgba(239,68,68,0.1)` }
+    : severity === "warning"
+    ? { boxShadow: `0 0 16px 3px ${statusColors.amber.border}, 0 0 32px 6px rgba(217,119,6,0.08)` }
+    : {};
+
+  return (
+    <Card
+      className="border-[#E5E7EB] transition-all duration-300 active:scale-[0.98]"
+      style={glowStyle}
+    >
+      <CardContent className="pt-5 pb-4 px-5">
+        <div className="flex justify-center mb-3">
+          <div className="rounded-xl bg-[#EFF6FF] p-2.5">
+            <Gauge className="h-5 w-5 text-[#1276E3]" />
+          </div>
+        </div>
+        <p className="text-xs text-[#6B7280] text-center mb-3">ضريبة القيمة المضافة</p>
+        
+        {/* Gauge bar — teal (tax) + navy (ours), matching revenue/expenses palette */}
+        <div className="flex rounded-full overflow-hidden h-3 mb-3" style={{ direction: "ltr" }}>
+          <div
+            className="transition-all duration-500"
+            style={{ width: `${collectedRatio * 100}%`, backgroundColor: barColorTax }}
+          />
+          <div
+            className="transition-all duration-500"
+            style={{ width: `${ratio * 100}%`, backgroundColor: barColorOurs }}
+          />
+        </div>
+        
+        {/* Labels */}
+        <div className="flex justify-between text-[11px]">
+          <div className="text-center">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorTax }} />
+              <span className="text-[#6B7280]">لصالح الضريبة</span>
+            </div>
+            <span dir="ltr" className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
+              {vatCollected.toLocaleString()} SR
+            </span>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorOurs }} />
+              <span className="text-[#6B7280]">لصالحنا</span>
+            </div>
+            <span dir="ltr" className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
+              {vatPaid.toLocaleString()} SR
+            </span>
+          </div>
+        </div>
+        
+        {/* Net — status-colored like invoice badges (green/amber/red) */}
+        <div className="mt-2 pt-2 border-t border-[#E5E7EB] text-center">
+          <span className="text-[10px] text-[#6B7280]">صافي المستحق: </span>
+          <span
+            dir="ltr"
+            className="font-english inline-block rounded-md px-2 py-0.5 text-[11px]"
+            style={{
+              fontWeight: 700,
+              color: netStatus.text,
+              backgroundColor: netStatus.bg,
+              border: `1px solid ${netStatus.border}`,
+            }}
+          >
+            {vatNet.toLocaleString()} SR
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function Dashboard() {
+  const navigate = useNavigate();
+  const [activeBar, setActiveBar] = useState<number | null>(null);
+
+  const handleBarClick = (month: string) => {
+    navigate("/app/reports");
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -71,7 +182,10 @@ export function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+        <Card
+          className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
+          onClick={() => navigate("/app/reports")}
+        >
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><DollarSign className="h-5 w-5 text-[#1276E3]" /></div></div>
             <div className="flex items-baseline justify-center gap-1.5">
@@ -84,29 +198,39 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><Users className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>2,350</div>
-            <p className="text-xs text-[#6B7280] mt-1">الاشتراكات</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+        <Card
+          className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
+          onClick={() => navigate("/app/sales")}
+        >
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><FileText className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>12,234</div>
+            <div className="flex items-baseline justify-center gap-1.5">
+              <span dir="ltr" className="inline-flex items-baseline gap-1.5">
+                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
+                <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>184,500.00</span>
+              </span>
+            </div>
             <p className="text-xs text-[#6B7280] mt-1">المبيعات</p>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+        <Card
+          className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
+          onClick={() => navigate("/app/purchases")}
+        >
           <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#ECEEF5] p-2.5"><Activity className="h-5 w-5 text-[#0B1A47]" /></div></div>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>573</div>
-            <p className="text-xs text-[#6B7280] mt-1">النشطون الآن</p>
+            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><ShoppingBag className="h-5 w-5 text-[#1276E3]" /></div></div>
+            <div className="flex items-baseline justify-center gap-1.5">
+              <span dir="ltr" className="inline-flex items-baseline gap-1.5">
+                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
+                <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>110,500.00</span>
+              </span>
+            </div>
+            <p className="text-xs text-[#6B7280] mt-1">المشتريات</p>
           </CardContent>
         </Card>
+
+        <VATGauge />
       </div>
 
       {/* Charts Grid */}
@@ -120,19 +244,45 @@ export function Dashboard() {
           <CardContent>
             <div dir="ltr">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={profitLossData}>
+              <BarChart data={profitLossData} style={{ cursor: "pointer" }}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" {...xAxisStyle} reversed />
                 <YAxis {...yAxisStyle} orientation="right" />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} />
-                <Bar dataKey="profit" fill={chartColors.navySoft} name="الأرباح" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="loss" fill={chartColors.tealSoft} name="الخسائر" radius={[8, 8, 0, 0]} />
+                <Tooltip
+                  {...tooltipStyle}
+                  formatter={(value: number) => formatSAR(value)}
+                  cursor={false}
+                />
+                <Bar
+                  dataKey="profit"
+                  fill={chartColors.navySoft}
+                  name="الأرباح"
+                  radius={[8, 8, 0, 0]}
+                  onClick={(data: any) => handleBarClick(data.month)}
+                  onMouseEnter={(_, index) => setActiveBar(index)}
+                  onMouseLeave={() => setActiveBar(null)}
+                >
+                  {profitLossData.map((_, index) => (
+                    <Cell
+                      key={`profit-${index}`}
+                      fill={activeBar === index ? chartColors.navy : chartColors.navySoft}
+                      style={{ transition: "all 0.2s ease", transform: activeBar === index ? "scaleY(1.02)" : "scaleY(1)", transformOrigin: "bottom" }}
+                    />
+                  ))}
+                </Bar>
+                <Bar
+                  dataKey="loss"
+                  fill={chartColors.red}
+                  name="الخسائر"
+                  radius={[8, 8, 0, 0]}
+                  onClick={(data: any) => handleBarClick(data.month)}
+                />
               </BarChart>
             </ResponsiveContainer>
             </div>
             <ChartLegend items={[
               { label: "الأرباح", color: chartColors.navy },
-              { label: "الخسائر", color: chartColors.teal },
+              { label: "الخسائر", color: chartColors.red },
             ]} />
           </CardContent>
         </Card>
@@ -156,8 +306,15 @@ export function Dashboard() {
                   {...yAxisCategoryStyle}
                   orientation="right"
                 />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} />
-                <Bar dataKey="value" fill={chartColors.navySoft} name="القيمة" radius={[0, 8, 8, 0]} />
+                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} cursor={false} />
+                <Bar
+                  dataKey="value"
+                  fill={chartColors.navySoft}
+                  name="القيمة"
+                  radius={[0, 8, 8, 0]}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => navigate("/app/reports")}
+                />
               </BarChart>
             </ResponsiveContainer>
             </div>
@@ -177,7 +334,7 @@ export function Dashboard() {
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" {...xAxisStyle} reversed />
                 <YAxis {...yAxisStyle} orientation="right" />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} />
+                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} cursor={false} />
                 <Line
                   type="monotone"
                   dataKey="inflow"
@@ -215,13 +372,25 @@ export function Dashboard() {
           <CardContent>
             <div dir="ltr">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueExpensesData}>
+              <BarChart data={revenueExpensesData} style={{ cursor: "pointer" }}>
                 <CartesianGrid {...gridStyle} />
                 <XAxis dataKey="month" {...xAxisStyle} reversed />
                 <YAxis {...yAxisStyle} orientation="right" />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} />
-                <Bar dataKey="revenue" fill={chartColors.navySoft} name="الإيرادات" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="expenses" fill={chartColors.tealSoft} name="المصروفات" radius={[8, 8, 0, 0]} />
+                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} cursor={false} />
+                <Bar
+                  dataKey="revenue"
+                  fill={chartColors.navySoft}
+                  name="الإيرادات"
+                  radius={[8, 8, 0, 0]}
+                  onClick={() => navigate("/app/reports")}
+                />
+                <Bar
+                  dataKey="expenses"
+                  fill={chartColors.tealSoft}
+                  name="المصروفات"
+                  radius={[8, 8, 0, 0]}
+                  onClick={() => navigate("/app/reports")}
+                />
               </BarChart>
             </ResponsiveContainer>
             </div>

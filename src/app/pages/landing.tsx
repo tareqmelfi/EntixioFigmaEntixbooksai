@@ -5,12 +5,15 @@ import {
   Database, Wifi, WifiOff, Server, Menu, X,
   Receipt, Calculator, TrendingUp, Clock, Play, Sparkles
 } from "lucide-react";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import Balancer from "react-wrap-balancer";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { authStore } from "../components/auth-store";
 import { Hero3DBackground } from "../components/hero-3d-background";
+import { InteractiveDashboard3D } from "../components/interactive-dashboard-3d";
+import { SharedNavbar } from "../components/shared-navbar";
+import { SharedFooter } from "../components/shared-footer";
 
 // ─── Animated counter ───
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -124,62 +127,7 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
-      {/* ─── Navbar ─── */}
-      <nav className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-lg shadow-sm" : "bg-white/80 backdrop-blur-md"} border-b border-gray-100/80`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-sm">
-              <span className="text-white" style={{ fontSize: "15px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
-            </div>
-            <span className="text-[#0B1A47]" style={{ fontSize: "19px", fontWeight: 700 }}>Entix Books</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            {[
-              { href: "#features", label: "المميزات" },
-              { href: "#sync", label: "المزامنة" },
-              { href: "#pricing", label: "الأسعار" },
-              { href: "#faq", label: "الأسئلة الشائعة" },
-            ].map(link => (
-              <a key={link.href} href={link.href} className="text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>{link.label}</a>
-            ))}
-          </div>
-          <div className="hidden md:flex items-center gap-3">
-            <button 
-              onClick={() => navigate("/login")}
-              className="text-[#0B1A47] hover:text-[#1276E3] transition-colors cursor-pointer px-4 py-2" 
-              style={{ fontSize: "14px", fontWeight: 500 }}
-            >
-              تسجيل الدخول
-            </button>
-            <button 
-              onClick={() => navigate("/register")}
-              className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
-              style={{ fontSize: "14px", fontWeight: 600 }}
-            >
-              ابدأ مجاناً
-            </button>
-          </div>
-          {/* Mobile hamburger */}
-          <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden p-2 text-[#0B1A47] cursor-pointer">
-            {mobileNav ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-        {/* Mobile nav */}
-        {mobileNav && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
-            className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-lg"
-          >
-            {["المميزات", "المزامنة", "الأسعار", "الأسئلة الشائعة"].map((label, i) => (
-              <a key={label} href={["#features", "#sync", "#pricing", "#faq"][i]} onClick={() => setMobileNav(false)}
-                className="block text-[#374151] py-2" style={{ fontSize: "15px" }}>{label}</a>
-            ))}
-            <hr className="border-gray-100" />
-            <button onClick={() => handleNavigate("/login")} className="w-full text-right text-[#0B1A47] py-2 cursor-pointer" style={{ fontSize: "15px", fontWeight: 500 }}>تسجيل الدخول</button>
-            <button onClick={() => handleNavigate("/register")} className="w-full bg-[#1276E3] text-white py-3 rounded-xl cursor-pointer" style={{ fontSize: "15px", fontWeight: 600 }}>ابدأ مجاناً</button>
-          </motion.div>
-        )}
-      </nav>
+      <SharedNavbar />
 
       {/* ─── Hero Section ─── */}
       <section className="pt-28 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
@@ -237,18 +185,12 @@ export function Landing() {
             <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#1276E3]/10 rounded-full blur-3xl" />
             <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-[#349FC4]/10 rounded-full blur-3xl" />
             
-            <div className="relative bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] rounded-2xl p-1.5 shadow-2xl shadow-[#0B1A47]/30">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1759159347934-1cdc38dd1f3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhY2NvdW50aW5nJTIwc29mdHdhcmUlMjBkYXNoYm9hcmQlMjBkYXJrJTIwYmx1ZXxlbnwxfHx8fDE3NzM4MDA5NzN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="Entix Books Dashboard"
-                className="rounded-xl w-full"
-              />
-            </div>
+            <InteractiveDashboard3D />
 
             {/* Floating stat cards */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-              className="absolute -bottom-6 -right-4 sm:right-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
+              className="hidden sm:block absolute -bottom-6 right-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#ECFDF5] flex items-center justify-center">
@@ -263,7 +205,7 @@ export function Landing() {
 
             <motion.div 
               initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
-              className="absolute -top-4 -left-4 sm:left-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
+              className="hidden sm:block absolute -top-4 left-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
@@ -425,21 +367,27 @@ export function Landing() {
                 <ul className="space-y-3">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-center gap-2.5" style={{ fontSize: "14px" }}>
-                      <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${plan.highlighted ? "text-[#349FC4]" : "text-[#22C55E]"}`} />
+                      <CheckCircle2 
+                        className={
+                          plan.highlighted 
+                            ? "w-4 h-4 flex-shrink-0 text-[#349FC4]"
+                            : "w-4 h-4 flex-shrink-0 text-[#22C55E]"
+                        } 
+                      />
                       <span className={plan.highlighted ? "text-gray-300" : "text-[#6B7280]"}>{f}</span>
                     </li>
                   ))}
                 </ul>
                 <button
                   onClick={() => navigate("/register")}
-                  className={`w-full mt-7 py-3 rounded-xl transition-all cursor-pointer ${
+                  className={
                     plan.highlighted
-                      ? "bg-[#1276E3] hover:bg-[#0B5FBF] text-white hover:shadow-lg"
-                      : "bg-[#F0F7FF] hover:bg-[#1276E3] hover:text-white text-[#1276E3]"
-                  }`}
+                      ? "w-full mt-7 py-3 rounded-xl transition-all cursor-pointer bg-[#1276E3] hover:bg-[#0B5FBF] text-white hover:shadow-lg"
+                      : "w-full mt-7 py-3 rounded-xl transition-all cursor-pointer bg-[#F0F7FF] hover:bg-[#1276E3] hover:text-white text-[#1276E3]"
+                  }
                   style={{ fontSize: "14px", fontWeight: 600 }}
                 >
-                  ابدأ الآن
+                  ابأ الآن
                 </button>
               </motion.div>
             ))}
@@ -507,7 +455,13 @@ export function Landing() {
                   className="w-full flex items-center justify-between p-5 text-right hover:bg-gray-50/50 transition-colors cursor-pointer"
                 >
                   <span className="text-[#0B1A47]" style={{ fontSize: "15px", fontWeight: 500 }}>{faq.q}</span>
-                  <ChevronDown className={`w-5 h-5 text-[#6B7280] flex-shrink-0 ms-3 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} />
+                  <ChevronDown 
+                    className={
+                      openFaq === i 
+                        ? "w-5 h-5 text-[#6B7280] flex-shrink-0 ms-3 transition-transform duration-300 rotate-180"
+                        : "w-5 h-5 text-[#6B7280] flex-shrink-0 ms-3 transition-transform duration-300"
+                    } 
+                  />
                 </button>
                 <div 
                   className="overflow-hidden transition-all duration-300"
@@ -524,55 +478,7 @@ export function Landing() {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="bg-[#0B1A47] py-14 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-10 mb-12">
-            {/* Brand */}
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
-                  <span className="text-white" style={{ fontSize: "15px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
-                </div>
-                <span className="text-white" style={{ fontSize: "19px", fontWeight: 700 }}>Entix Books</span>
-              </div>
-              <p className="text-[#94A3B8] max-w-sm" style={{ fontSize: "14px", lineHeight: 1.8 }}>
-                نظام محاسبة سحابي متكامل للسوق السعودي والأمريكي. يعمل أونلاين وأوفلاين مع مزامنة ذكية.
-              </p>
-              <p className="text-[#F59E0B]/80 mt-3 max-w-sm" style={{ fontSize: "12px", lineHeight: 1.7 }}>
-                ⚠ الموقع حالياً تحت التطوير — لا يمكن الاشتراك في الوقت الحالي. سيتم الإعلان عن التشغيل الكامل قريباً.
-              </p>
-            </div>
-            {/* Links */}
-            <div>
-              <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>المنتج</h4>
-              <ul className="space-y-2.5">
-                {["المميزات", "الأسعار", "المزامنة", "الأمان"].map(l => (
-                  <li key={l}><a href="#" className="text-[#94A3B8] hover:text-white transition-colors" style={{ fontSize: "14px" }}>{l}</a></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>الدعم</h4>
-              <ul className="space-y-2.5">
-                {["مركز المساعدة", "التوثيق", "تواصل معنا", "الأسئلة الشائعة"].map(l => (
-                  <li key={l}><a href="#" className="text-[#94A3B8] hover:text-white transition-colors" style={{ fontSize: "14px" }}>{l}</a></li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <hr className="border-white/10 mb-8" />
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-[#64748B]" style={{ fontSize: "13px", fontFamily: "Inter" }}>
-              &copy; 2026 Entix Books. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6">
-              {["سياسة الخصوصية", "الشروط والأحكام"].map(l => (
-                <a key={l} href="#" className="text-[#64748B] hover:text-[#94A3B8] transition-colors" style={{ fontSize: "13px" }}>{l}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SharedFooter />
     </div>
   );
 }

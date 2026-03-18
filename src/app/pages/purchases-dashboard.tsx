@@ -80,16 +80,16 @@ export function PurchasesDashboard() {
           <p className="text-[#6B7280] mt-1">نظرة شاملة على مشترياتك وفواتير الموردين</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/purchases/bills"><Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />فاتورة شراء جديدة</Button></Link>
-          <Link to="/payments"><Button variant="outline" className="border-[#1276E3] text-[#1276E3]"><Plus className="me-2 h-4 w-4" />سند دفع</Button></Link>
-          <Link to="/expenses"><Button variant="outline" className="border-[#E5E7EB]"><Plus className="me-2 h-4 w-4" />مصروف</Button></Link>
+          <Link to="/app/purchases/bills"><Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />فاتورة شراء جديدة</Button></Link>
+          <Link to="/app/payments"><Button variant="outline" className="border-[#1276E3] text-[#1276E3]"><Plus className="me-2 h-4 w-4" />سند دفع</Button></Link>
+          <Link to="/app/expenses"><Button variant="outline" className="border-[#E5E7EB]"><Plus className="me-2 h-4 w-4" />مصروف</Button></Link>
           <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
         </div>
       </div>
 
       {/* ── KPI Cards — Assets style ── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div onClick={() => navigate("/purchases/bills")} className="cursor-pointer">
+        <div onClick={() => navigate("/app/purchases/bills")} className="cursor-pointer">
           <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
             <CardContent className="pt-5 pb-4 px-5 text-center">
               <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><FileText className="h-5 w-5 text-[#1276E3]" /></div></div>
@@ -98,7 +98,7 @@ export function PurchasesDashboard() {
             </CardContent>
           </Card>
         </div>
-        <div onClick={() => navigate("/purchases/bills")} className="cursor-pointer">
+        <div onClick={() => navigate("/app/purchases/bills")} className="cursor-pointer">
           <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
             <CardContent className="pt-5 pb-4 px-5 text-center">
               <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><DollarSign className="h-5 w-5 text-[#1276E3]" /></div></div>
@@ -110,7 +110,7 @@ export function PurchasesDashboard() {
             </CardContent>
           </Card>
         </div>
-        <div onClick={() => navigate("/purchases/bills?status=paid")} className="cursor-pointer">
+        <div onClick={() => navigate("/app/purchases/bills?status=paid")} className="cursor-pointer">
           <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#349FC4]/30 transition-all">
             <CardContent className="pt-5 pb-4 px-5 text-center">
               <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#E4F4F9] p-2.5"><TrendingUp className="h-5 w-5 text-[#349FC4]" /></div></div>
@@ -122,7 +122,7 @@ export function PurchasesDashboard() {
             </CardContent>
           </Card>
         </div>
-        <div onClick={() => navigate("/purchases/bills?status=overdue")} className="cursor-pointer">
+        <div onClick={() => navigate("/app/purchases/bills?status=overdue")} className="cursor-pointer">
           <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#0B1A47]/30 transition-all">
             <CardContent className="pt-5 pb-4 px-5 text-center">
               <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#ECEEF5] p-2.5"><AlertCircle className="h-5 w-5 text-[#0B1A47]" /></div></div>
@@ -160,7 +160,7 @@ export function PurchasesDashboard() {
             </CardContent>
           </Card>
         </div>
-        <div onClick={() => navigate("/fixed-assets")} className="cursor-pointer">
+        <div onClick={() => navigate("/app/assets")} className="cursor-pointer">
           <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export function PurchasesDashboard() {
               <tbody>
                 {filteredBills.map((b) => (
                   <tr key={b.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
-                    <td className="py-3.5 pe-4"><Link to="/purchases/bills" className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{b.id}</Link></td>
+                    <td className="py-3.5 pe-4"><Link to="/app/purchases/bills" className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{b.id}</Link></td>
                     <td className="py-3.5 pe-4"><Link to={contactLink(b.vendor)} className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline transition-colors">{b.vendor}</Link></td>
                     <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#6B7280]">{b.date}</span></td>
                     <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 600 }}>{b.amount}</span></td>
@@ -232,7 +232,7 @@ export function PurchasesDashboard() {
                         <button onClick={() => setActionMenuId(actionMenuId === b.id ? null : b.id)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"><MoreVertical className="h-4 w-4" /></button>
                         {actionMenuId === b.id && (
                           <div className="absolute end-0 z-40 mt-1 w-36 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                            <Link to="/purchases/bills" className="flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB]" onClick={() => setActionMenuId(null)}><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</Link>
+                            <Link to="/app/purchases/bills" className="flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB]" onClick={() => setActionMenuId(null)}><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</Link>
                             <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start" onClick={() => setActionMenuId(null)}><Edit2 className="h-3.5 w-3.5 text-[#6B7280]" />تعديل</button>
                             <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start" onClick={() => setActionMenuId(null)}><Copy className="h-3.5 w-3.5 text-[#6B7280]" />نسخ</button>
                             <div className="border-t border-[#F3F4F6] my-1" />
@@ -247,7 +247,7 @@ export function PurchasesDashboard() {
             </table>
           </div>
           <div className="mt-4 text-center">
-            <Link to="/purchases/bills" className="text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>عرض جميع فواتير المشتريات ←</Link>
+            <Link to="/app/purchases/bills" className="text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>عرض جميع فواتير المشتريات ←</Link>
           </div>
         </CardContent>
       </Card>

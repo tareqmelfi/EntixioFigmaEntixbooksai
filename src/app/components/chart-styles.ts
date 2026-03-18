@@ -86,5 +86,22 @@ export const chartColors = {
   teal: "#179FC5",
   tealSoft: "rgba(23,159,197,0.75)",
   green: "#22C55E",
+  /** Official loss / danger color — use for losses, overdue, critical states */
   red: "#EF4444",
+  redSoft: "rgba(239,68,68,0.80)",
+} as const;
+
+/**
+ * Status colors — consistent across invoices, reports, and dashboard indicators.
+ * green  = paid / safe / low
+ * blue   = sent / moderate / neutral
+ * red    = overdue / critical / loss
+ * gray   = draft / inactive
+ */
+export const statusColors = {
+  green:     { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+  blue:      { text: "#1276E3", bg: "#EFF6FF", border: "#BFDBFE" },
+  red:       { text: "#EF4444", bg: "#FEF2F2", border: "#FECACA" },
+  amber:     { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+  gray:      { text: "#6B7280", bg: "#F9FAFB", border: "#E5E7EB" },
 } as const;

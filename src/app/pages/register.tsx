@@ -42,7 +42,7 @@ export function Register() {
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           className="w-full max-w-md py-8"
         >
-          <Link to="/landing" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] mb-8 transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
+          <Link to="/" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] mb-8 transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </Link>

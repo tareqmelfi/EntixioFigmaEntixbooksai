@@ -94,13 +94,13 @@ export function SalesDashboard() {
           <p className="text-[#6B7280] mt-1">نظرة شاملة على مبيعاتك وفواتيرك</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/invoices?create=true">
+          <Link to="/app/invoices?create=true">
             <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
           </Link>
-          <Link to="/quotes">
+          <Link to="/app/quotes">
             <Button variant="outline" className="border-[#1276E3] text-[#1276E3]"><Plus className="me-2 h-4 w-4" />عرض سعر</Button>
           </Link>
-          <Link to="/receipts">
+          <Link to="/app/receipts">
             <Button variant="outline" className="border-[#E5E7EB]"><Plus className="me-2 h-4 w-4" />سند قبض</Button>
           </Link>
           <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
@@ -110,7 +110,7 @@ export function SalesDashboard() {
       {/* ── KPI Cards — Unified center-icon style ── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* إجمالي الفواتير */}
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer" onClick={() => navigate("/invoices")}>
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer" onClick={() => navigate("/app/invoices")}>
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><FileText className="h-5 w-5 text-[#1276E3]" /></div></div>
             <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>8</div>
@@ -119,7 +119,7 @@ export function SalesDashboard() {
         </Card>
 
         {/* إجمالي المبالغ */}
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer" onClick={() => navigate("/invoices")}>
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer" onClick={() => navigate("/app/invoices")}>
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><DollarSign className="h-5 w-5 text-[#1276E3]" /></div></div>
             <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
@@ -131,7 +131,7 @@ export function SalesDashboard() {
         </Card>
 
         {/* المحصّل (إيراد = Navy) */}
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#0B1A47]/30 transition-all cursor-pointer" onClick={() => navigate("/invoices?status=paid")}>
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#0B1A47]/30 transition-all cursor-pointer" onClick={() => navigate("/app/invoices?status=paid")}>
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#ECEEF5] p-2.5"><TrendingUp className="h-5 w-5 text-[#0B1A47]" /></div></div>
             <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
@@ -143,7 +143,7 @@ export function SalesDashboard() {
         </Card>
 
         {/* المتأخر (مصروف/خارج = Teal) */}
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#349FC4]/30 transition-all cursor-pointer" onClick={() => navigate("/invoices?status=overdue")}>
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#349FC4]/30 transition-all cursor-pointer" onClick={() => navigate("/app/invoices?status=overdue")}>
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#E4F4F9] p-2.5"><AlertCircle className="h-5 w-5 text-[#349FC4]" /></div></div>
             <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
@@ -297,7 +297,7 @@ export function SalesDashboard() {
                 {filteredInvoices.map((inv) => (
                   <tr key={inv.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
                     <td className="py-3.5 pe-3">
-                      <Link to="/invoices" className="font-english text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{inv.id}</Link>
+                      <Link to="/app/invoices" className="font-english text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{inv.id}</Link>
                     </td>
                     <td className="py-3.5 pe-3">
                       <Link to={contactLink(inv.customer)} className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline transition-colors">{inv.customer}</Link>
@@ -310,7 +310,7 @@ export function SalesDashboard() {
                       </span>
                     </td>
                     <td className="py-3.5 pe-3">
-                      <Link to={`/invoices?status=${statusFilterMap[inv.status] || ""}`}>
+                      <Link to={`/app/invoices?status=${statusFilterMap[inv.status] || ""}`}>
                         <span className={`inline-flex rounded-md px-2.5 py-1 text-xs cursor-pointer border transition-colors ${statusBadgeClass(inv.status)}`} style={{ fontWeight: 600 }}>{inv.status}</span>
                       </Link>
                     </td>
@@ -324,7 +324,7 @@ export function SalesDashboard() {
                         </button>
                         {actionMenuId === inv.id && (
                           <div className="absolute end-0 z-40 mt-1 w-36 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                            <Link to="/invoices" className="flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB]" onClick={() => setActionMenuId(null)}><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</Link>
+                            <Link to="/app/invoices" className="flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB]" onClick={() => setActionMenuId(null)}><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</Link>
                             <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start" onClick={() => setActionMenuId(null)}><Edit2 className="h-3.5 w-3.5 text-[#6B7280]" />تعديل</button>
                             <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start" onClick={() => setActionMenuId(null)}><Copy className="h-3.5 w-3.5 text-[#6B7280]" />نسخ</button>
                             <div className="border-t border-[#F3F4F6] my-1" />
@@ -339,7 +339,7 @@ export function SalesDashboard() {
             </table>
           </div>
           <div className="mt-4 text-center">
-            <Link to="/invoices" className="text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>عرض جميع الفواتير ←</Link>
+            <Link to="/app/invoices" className="text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>عرض جميع الفواتير ←</Link>
           </div>
         </CardContent>
       </Card>

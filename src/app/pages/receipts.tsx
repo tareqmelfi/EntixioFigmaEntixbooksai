@@ -38,7 +38,7 @@ export function Receipts() {
               <div><span className="text-[#6B7280]">رقم:</span> <span className="font-english">{selected.id}</span></div>
               <div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date}</span></div>
               <div><span className="text-[#6B7280]">طريقة الدفع:</span> <span>{selected.method}</span></div>
-              <div><span className="text-[#6B7280]">المرجع:</span> <Link to="/invoices" className="font-english text-[#1276E3] hover:underline">{selected.ref}</Link></div>
+              <div><span className="text-[#6B7280]">المرجع:</span> <Link to="/app/invoices" className="font-english text-[#1276E3] hover:underline">{selected.ref}</Link></div>
             </div>
           </CardContent></Card>
           <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">

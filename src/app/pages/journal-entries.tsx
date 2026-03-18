@@ -93,7 +93,7 @@ export function JournalEntries() {
               </tr></thead>
               <tbody>
                 {selected.lines.map((l, i) => (<tr key={i} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF]">
-                  <td className="py-2.5 pe-4 text-sm"><Link to="/chart-of-accounts" className="text-[#374151] hover:text-[#1276E3] hover:underline">{l.account}</Link></td>
+                  <td className="py-2.5 pe-4 text-sm"><Link to="/app/chart-of-accounts" className="text-[#374151] hover:text-[#1276E3] hover:underline">{l.account}</Link></td>
                   <td className="py-2.5 pe-4 text-sm text-[#6B7280]">{l.costCenter}</td>
                   <td className="py-2.5 pe-4 text-sm font-english">{l.debit > 0 ? l.debit.toLocaleString() : "—"}</td>
                   <td className="py-2.5 text-sm font-english">{l.credit > 0 ? l.credit.toLocaleString() : "—"}</td>

@@ -34,8 +34,8 @@ interface MenuSection {
 const sections: MenuSection[] = [
   {
     items: [
-      { title: "لوحة التحكم", icon: LayoutDashboard, path: "/" },
-      { title: "الذكاء الاصطناعي", icon: Sparkles, path: "/ai", badge: "جديد" },
+      { title: "لوحة التحكم", icon: LayoutDashboard, path: "/app" },
+      { title: "الذكاء الاصطناعي", icon: Sparkles, path: "/app/ai", badge: "جديد" },
     ],
   },
   {
@@ -44,41 +44,41 @@ const sections: MenuSection[] = [
       {
         title: "المبيعات",
         icon: ShoppingCart,
-        path: "/sales",
+        path: "/app/sales",
         children: [
-          { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/quotes" },
-          { title: "فواتير المبيعات", icon: FileText, path: "/invoices" },
-          { title: "سندات القبض", icon: Receipt, path: "/receipts" },
-          { title: "الإشعارات الدائنة", icon: ScrollText, path: "/credit-notes" },
+          { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
+          { title: "فواتير المبيعات", icon: FileText, path: "/app/invoices" },
+          { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
+          { title: "الإشعارات الدائنة", icon: ScrollText, path: "/app/credit-notes" },
         ],
       },
       {
         title: "المشتريات",
         icon: ShoppingCart,
-        path: "/purchases",
+        path: "/app/purchases",
         children: [
-          { title: "فواتير المشتريات", icon: FileText, path: "/purchases/bills" },
-          { title: "سندات الدفع", icon: CreditCard, path: "/payments" },
-          { title: "المصروفات النقدية", icon: Receipt, path: "/expenses" },
+          { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
+          { title: "سندات الدفع", icon: CreditCard, path: "/app/payments" },
+          { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
         ],
       },
-      { title: "العملاء والموردين", icon: Users, path: "/contacts" },
+      { title: "العملاء والموردين", icon: Users, path: "/app/contacts" },
       {
         title: "الرواتب والموظفين",
         icon: Wallet,
-        path: "/payroll",
+        path: "/app/payroll",
         children: [
-          { title: "الرواتب", icon: Wallet, path: "/payroll" },
-          { title: "الموظفين", icon: Users2, path: "/payroll" },
+          { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
+          { title: "الموظفين", icon: Users2, path: "/app/payroll" },
         ],
       },
       {
         title: "منتجات، خدمات، مخزون",
         icon: Package,
-        path: "/products",
+        path: "/app/products",
         children: [
-          { title: "المنتجات والخدمات", icon: Layers, path: "/products" },
-          { title: "المخزون والمستودعات", icon: Warehouse, path: "/inventory" },
+          { title: "المنتجات والخدمات", icon: Layers, path: "/app/products" },
+          { title: "المخزون والمستودعات", icon: Warehouse, path: "/app/inventory" },
         ],
       },
     ],
@@ -90,62 +90,62 @@ const sections: MenuSection[] = [
         title: "المحاسبة",
         icon: Calculator,
         children: [
-          { title: "القيود اليدوية", icon: CalculatorIcon, path: "/journal-entries" },
-          { title: "شجرة الحسابات", icon: BookOpen, path: "/chart-of-accounts" },
-          { title: "الضرائب", icon: FolderOpen, path: "/taxes" },
+          { title: "القيود اليدوية", icon: CalculatorIcon, path: "/app/journal-entries" },
+          { title: "شجرة الحسابات", icon: BookOpen, path: "/app/chart-of-accounts" },
+          { title: "الضرائب", icon: FolderOpen, path: "/app/taxes" },
         ],
       },
-      { title: "الحسابات البنكية", icon: Landmark, path: "/bank-accounts" },
-      { title: "الأصول الثابتة", icon: Building2, path: "/assets" },
-      { title: "مراكز التكلفة", icon: Target, path: "/cost-centers" },
-      { title: "المشاريع", icon: FolderKanban, path: "/projects" },
-      { title: "الفروع", icon: GitBranch, path: "/branches" },
+      { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
+      { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
+      { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
+      { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
+      { title: "الفروع", icon: GitBranch, path: "/app/branches" },
     ],
   },
   {
     label: "للمطورين",
     items: [
-      { title: "التكاملات", icon: Plug, path: "/integrations" },
-      { title: "القوالب", icon: FileCode, path: "/templates", badge: "محدّث" },
+      { title: "التكاملات", icon: Plug, path: "/app/integrations" },
+      { title: "القوالب", icon: FileCode, path: "/app/templates", badge: "محدّث" },
     ],
   },
   {
     items: [
-      { title: "التعاقد مع محاسب", icon: Handshake, path: "/roadmap" },
+      { title: "التعاقد مع محاسب", icon: Handshake, path: "/app/roadmap" },
     ],
   },
 ];
 
 /* Quick‐search pages list */
 const searchPages = [
-  { label: "لوحة التحكم", path: "/" },
-  { label: "الذكاء الاصطناعي", path: "/ai" },
-  { label: "المبيعات", path: "/sales" },
-  { label: "عروض الأسعار", path: "/quotes" },
-  { label: "فواتير المبيعات", path: "/invoices" },
-  { label: "سندات القبض", path: "/receipts" },
-  { label: "الإشعارات الدائنة", path: "/credit-notes" },
-  { label: "المشتريات", path: "/purchases" },
-  { label: "فواتير المشتريات", path: "/purchases/bills" },
-  { label: "سندات الدفع", path: "/payments" },
-  { label: "المصروفات النقدية", path: "/expenses" },
-  { label: "العملاء والموردين", path: "/contacts" },
-  { label: "الرواتب والموظفين", path: "/payroll" },
-  { label: "المنتجات والخدمات", path: "/products" },
-  { label: "المخزون والمستودعات", path: "/inventory" },
-  { label: "القيود اليدوية", path: "/journal-entries" },
-  { label: "شجرة الحسابات", path: "/chart-of-accounts" },
-  { label: "الضرائب", path: "/taxes" },
-  { label: "الحسابات البنكية", path: "/bank-accounts" },
-  { label: "الأصول الثابتة", path: "/assets" },
-  { label: "مراكز التكلفة", path: "/cost-centers" },
-  { label: "المشاريع", path: "/projects" },
-  { label: "الفروع", path: "/branches" },
-  { label: "التكاملات", path: "/integrations" },
-  { label: "القوالب", path: "/templates" },
-  { label: "التقارير", path: "/reports" },
-  { label: "الإعدادات", path: "/settings" },
-  { label: "خارطة المزايا", path: "/roadmap" },
+  { label: "لوحة التحكم", path: "/app" },
+  { label: "الذكاء الاصطناعي", path: "/app/ai" },
+  { label: "المبيعات", path: "/app/sales" },
+  { label: "عروض الأسعار", path: "/app/quotes" },
+  { label: "فواتير المبيعات", path: "/app/invoices" },
+  { label: "سندات القبض", path: "/app/receipts" },
+  { label: "الإشعارات الدائنة", path: "/app/credit-notes" },
+  { label: "المشتريات", path: "/app/purchases" },
+  { label: "فواتير المشتريات", path: "/app/purchases/bills" },
+  { label: "سندات الدفع", path: "/app/payments" },
+  { label: "المصروفات النقدية", path: "/app/expenses" },
+  { label: "العملاء والموردين", path: "/app/contacts" },
+  { label: "الرواتب والموظفين", path: "/app/payroll" },
+  { label: "المنتجات والخدمات", path: "/app/products" },
+  { label: "المخزون والمستودعات", path: "/app/inventory" },
+  { label: "القيود اليدوية", path: "/app/journal-entries" },
+  { label: "شجرة الحسابات", path: "/app/chart-of-accounts" },
+  { label: "الضرائب", path: "/app/taxes" },
+  { label: "الحسابات البنكية", path: "/app/bank-accounts" },
+  { label: "الأصول الثابتة", path: "/app/assets" },
+  { label: "مراكز التكلفة", path: "/app/cost-centers" },
+  { label: "المشاريع", path: "/app/projects" },
+  { label: "الفروع", path: "/app/branches" },
+  { label: "التكاملات", path: "/app/integrations" },
+  { label: "القوالب", path: "/app/templates" },
+  { label: "التقارير", path: "/app/reports" },
+  { label: "الإعدادات", path: "/app/settings" },
+  { label: "خارطة المزايا", path: "/app/roadmap" },
 ];
 
 export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -191,8 +191,9 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     <aside 
       className={`
         flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white
-        fixed lg:static inset-y-0 end-0 z-50 transition-transform duration-300
-        ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        lg:static lg:translate-x-0
+        fixed inset-y-0 end-0 z-50 transition-transform duration-300
+        ${isOpen ? 'translate-x-0' : 'translate-x-full'}
       `}
     >
       {/* ── Logo & Company ── */}
@@ -281,10 +282,10 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
       {/* ── Bottom ── */}
       <div className="border-t border-[#E5E7EB] p-3 space-y-0.5">
-        <Link to="/reports">
+        <Link to="/app/reports">
           <button
             className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive("/reports")
+              isActive("/app/reports")
                 ? "bg-[#1276E3] text-white"
                 : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
             }`}
@@ -294,10 +295,10 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </button>
         </Link>
 
-        <Link to="/roadmap">
+        <Link to="/app/roadmap">
           <button
             className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive("/roadmap")
+              isActive("/app/roadmap")
                 ? "bg-[#1276E3] text-white"
                 : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
             }`}
@@ -307,10 +308,10 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </button>
         </Link>
 
-        <Link to="/settings">
+        <Link to="/app/settings">
           <button
             className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive("/settings")
+              isActive("/app/settings")
                 ? "bg-[#1276E3] text-white"
                 : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
             }`}
