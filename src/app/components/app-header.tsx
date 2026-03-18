@@ -1,16 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   Bell, Globe, Settings, LogOut, User, Building2,
   CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { authStore } from "./auth-store";
 
 export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const authState = authStore.getState();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -96,8 +99,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               className="flex items-center gap-3 rounded-md border border-transparent px-2 py-1 hover:bg-[#F3F4F6] transition-colors"
             >
               <div className="text-end">
-                <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>طارق ملفي</div>
-                <div className="text-xs text-[#6B7280] font-english">tareq@entix.io</div>
+                <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>{authState.user?.name || "طارق ملفي"}</div>
+                <div className="text-xs text-[#6B7280] font-english">{authState.user?.email || "tareq@entix.io"}</div>
               </div>
               <Avatar>
                 <AvatarFallback className="bg-[#1276E3] text-white">ط</AvatarFallback>
@@ -115,8 +118,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                     </Avatar>
                     <div>
                       <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>حسابي</div>
-                      <div className="text-xs text-[#6B7280]">طارق ملفي</div>
-                      <div className="text-xs text-[#9CA3AF] font-english">tareq@entix.io</div>
+                      <div className="text-xs text-[#6B7280]">{authState.user?.name || "طارق ملفي"}</div>
+                      <div className="text-xs text-[#9CA3AF] font-english">{authState.user?.email || "tareq@entix.io"}</div>
                     </div>
                   </div>
                 </div>
@@ -170,7 +173,10 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                 </div>
 
                 <div className="border-t border-[#F3F4F6] py-1">
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start transition-colors">
+                  <button 
+                    onClick={() => { authStore.logout(); navigate("/landing"); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start transition-colors cursor-pointer"
+                  >
                     <LogOut className="h-4 w-4" />تسجيل الخروج
                   </button>
                 </div>

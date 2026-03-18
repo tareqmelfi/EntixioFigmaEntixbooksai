@@ -2,18 +2,56 @@ import { useNavigate } from "react-router";
 import { 
   Shield, BarChart3, Globe, Zap, Cloud, Smartphone, 
   FileText, Users, ArrowLeft, CheckCircle2, ChevronDown,
-  Database, Wifi, WifiOff, Server
+  Database, Wifi, WifiOff, Server, Menu, X,
+  Receipt, Calculator, TrendingUp, Clock, Play
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { authStore } from "../components/auth-store";
+
+// ─── Animated counter ───
+function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && !started) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [started]);
+
+  useEffect(() => {
+    if (!started) return;
+    const duration = 1500;
+    const steps = 40;
+    const increment = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.floor(current));
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [started, target]);
+
+  return <div ref={ref} style={{ fontFamily: "Inter", fontWeight: 700 }}>{count.toLocaleString("en-US")}{suffix}</div>;
+}
 
 const FEATURES = [
-  { icon: FileText, title: "فواتير احترافية", desc: "إنشاء وإدارة الفواتير بمعايير هيئة الزكاة والضريبة والجمارك ZATCA" },
-  { icon: BarChart3, title: "تقارير مالية متقدمة", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء" },
-  { icon: Shield, title: "أمان وموثوقية", desc: "تشفير البيانات وحماية متعددة الطبقات مع نسخ احتياطي تلقائي" },
-  { icon: Globe, title: "دعم متعدد اللغات", desc: "واجهة عربية كاملة مع دعم RTL واللغة الإنجليزية" },
-  { icon: Cloud, title: "سحابي + محلي", desc: "اعمل أونلاين أو أوفلاين مع مزامنة تلقائية للبيانات" },
-  { icon: Smartphone, title: "متوافق مع الجوال", desc: "تصميم متجاوب يعمل على جميع الأجهزة والشاشات" },
+  { icon: FileText, title: "فواتير احترافية", desc: "إنشاء وإدارة الفواتير بمعايير ZATCA مع QR Code وتوقيع رقمي" },
+  { icon: BarChart3, title: "تقارير مالية متقدمة", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء رئيسية" },
+  { icon: Shield, title: "أمان وموثوقية", desc: "تشفير AES-256 وحماية متعددة الطبقات مع نسخ احتياطي تلقائي" },
+  { icon: Globe, title: "دعم متعدد اللغات", desc: "واجهة عربية كاملة RTL مع دعم اللغة الإنجليزية والعملات المتعددة" },
+  { icon: Cloud, title: "سحابي + محلي", desc: "اعمل أونلاين أو أوفلاين مع مزامنة ذكية تلقائية للبيانات" },
+  { icon: Smartphone, title: "متوافق مع الجوال", desc: "تصميم متجاوب يعمل بسلاسة على جميع الأجهزة والشاشات" },
+  { icon: Receipt, title: "إدارة المصروفات", desc: "تتبع المصروفات والمشتريات مع تصنيف تلقائي ومراكز تكلفة" },
+  { icon: Calculator, title: "ضريبة القيمة المضافة", desc: "حساب تلقائي للضريبة مع تقارير جاهزة للتقديم لهيئة الزكاة" },
+  { icon: TrendingUp, title: "تحليلات ذكية", desc: "تنبؤات مالية مدعومة بالذكاء الاصطناعي مع توصيات لتحسين الأداء" },
 ];
 
 const PRICING = [
@@ -21,6 +59,7 @@ const PRICING = [
     name: "أساسي", 
     price: "0", 
     period: "مجاني للأبد",
+    desc: "للمشاريع الصغيرة والفردية",
     features: ["5 فواتير شهرياً", "مستخدم واحد", "تقارير أساسية", "دعم بالبريد"],
     highlighted: false 
   },
@@ -28,6 +67,7 @@ const PRICING = [
     name: "احترافي", 
     price: "99", 
     period: "ريال / شهرياً",
+    desc: "للشركات الصغيرة والمتوسطة",
     features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "ZATCA متوافق", "دعم مباشر", "تطبيق جوال"],
     highlighted: true 
   },
@@ -35,79 +75,131 @@ const PRICING = [
     name: "مؤسسي", 
     price: "299", 
     period: "ريال / شهرياً",
+    desc: "للمؤسسات الكبيرة",
     features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم مخصص 24/7"],
     highlighted: false 
   },
 ];
 
+const STATS = [
+  { value: 2500, suffix: "+", label: "شركة تستخدم Entix" },
+  { value: 150, suffix: "K+", label: "فاتورة صدرت" },
+  { value: 99.9, suffix: "%", label: "وقت التشغيل" },
+  { value: 24, suffix: "/7", label: "دعم فني متواصل" },
+];
+
 export function Landing() {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (authStore.getState().isAuthenticated) {
+      // Don't redirect - let them browse landing if they want
+    }
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const faqs = [
-    { q: "هل Entix Books متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", a: "نعم، Entix Books متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code." },
-    { q: "هل يمكنني العمل بدون إنترنت؟", a: "نعم، يدعم Entix Books العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً وتتم المزامنة تلقائياً عند عودة الاتصال." },
-    { q: "هل يمكن تثبيته على سيرفر خاص؟", a: "نعم، في الباقة المؤسسية يمكنك تثبيت Entix Books على VPS الخاص بك مع قاعدة بيانات PostgreSQL محلية." },
-    { q: "كيف يتم تأمين البيانات؟", a: "نستخدم تشفير AES-256 للبيانات المخزنة و TLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي." },
+    { q: "هل Entix Books متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", a: "نعم، Entix Books متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي المطلوب." },
+    { q: "هل يمكنني العمل بدون إنترنت؟", a: "نعم، يدعم Entix Books العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً على الجهاز وتتم المزامنة تلقائياً عند عودة الاتصال بالإنترنت. يمكنك جدولة المزامنة نهاية اليوم أو القيام بها يدوياً." },
+    { q: "هل يمكن تثبيته على سيرفر خاص؟", a: "نعم، في الباقة المؤسسية يمكنك تثبيت Entix Books على VPS الخاص بك مع قاعدة بيانات PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي المحلي." },
+    { q: "كيف يتم تأمين البيانات؟", a: "نستخدم تشفير AES-256 للبيانات المخزنة وTLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي وإمكانية تصدير البيانات في أي وقت بصيغة JSON." },
+    { q: "هل يدعم العملات المتعددة؟", a: "نعم، يدعم Entix Books الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً." },
   ];
+
+  const handleNavigate = (path: string) => {
+    setMobileNav(false);
+    navigate(path);
+  };
 
   return (
     <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
-      {/* Navbar */}
-      <nav className="fixed top-0 right-0 left-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+      {/* ─── Navbar ─── */}
+      <nav className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-lg shadow-sm" : "bg-white/80 backdrop-blur-md"} border-b border-gray-100/80`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#0B1A47] flex items-center justify-center">
-              <span className="text-white" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-sm">
+              <span className="text-white" style={{ fontSize: "15px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
             </div>
-            <span className="text-[#0B1A47]" style={{ fontSize: "18px", fontWeight: 700 }}>Entix Books</span>
+            <span className="text-[#0B1A47]" style={{ fontSize: "19px", fontWeight: 700 }}>Entix Books</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px" }}>المميزات</a>
-            <a href="#pricing" className="text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px" }}>الأسعار</a>
-            <a href="#sync" className="text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px" }}>المزامنة</a>
-            <a href="#faq" className="text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px" }}>الأسئلة الشائعة</a>
+            {[
+              { href: "#features", label: "المميزات" },
+              { href: "#sync", label: "المزامنة" },
+              { href: "#pricing", label: "الأسعار" },
+              { href: "#faq", label: "الأسئلة الشائعة" },
+            ].map(link => (
+              <a key={link.href} href={link.href} className="text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>{link.label}</a>
+            ))}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <button 
               onClick={() => navigate("/login")}
-              className="text-[#0B1A47] hover:text-[#1276E3] transition-colors cursor-pointer" 
+              className="text-[#0B1A47] hover:text-[#1276E3] transition-colors cursor-pointer px-4 py-2" 
               style={{ fontSize: "14px", fontWeight: 500 }}
             >
               تسجيل الدخول
             </button>
             <button 
               onClick={() => navigate("/register")}
-              className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-5 py-2 rounded-lg transition-colors cursor-pointer"
-              style={{ fontSize: "14px", fontWeight: 500 }}
+              className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
+              style={{ fontSize: "14px", fontWeight: 600 }}
             >
               ابدأ مجاناً
             </button>
           </div>
+          {/* Mobile hamburger */}
+          <button onClick={() => setMobileNav(!mobileNav)} className="md:hidden p-2 text-[#0B1A47] cursor-pointer">
+            {mobileNav ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+        {/* Mobile nav */}
+        {mobileNav && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
+            className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-lg"
+          >
+            {["المميزات", "المزامنة", "الأسعار", "الأسئلة الشائعة"].map((label, i) => (
+              <a key={label} href={["#features", "#sync", "#pricing", "#faq"][i]} onClick={() => setMobileNav(false)}
+                className="block text-[#374151] py-2" style={{ fontSize: "15px" }}>{label}</a>
+            ))}
+            <hr className="border-gray-100" />
+            <button onClick={() => handleNavigate("/login")} className="w-full text-right text-[#0B1A47] py-2 cursor-pointer" style={{ fontSize: "15px", fontWeight: 500 }}>تسجيل الدخول</button>
+            <button onClick={() => handleNavigate("/register")} className="w-full bg-[#1276E3] text-white py-3 rounded-xl cursor-pointer" style={{ fontSize: "15px", fontWeight: 600 }}>ابدأ مجاناً</button>
+          </motion.div>
+        )}
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-[#1276E3] px-3 py-1.5 rounded-full mb-6" style={{ fontSize: "13px", fontWeight: 500 }}>
+      {/* ─── Hero Section ─── */}
+      <section className="pt-28 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+            <div className="inline-flex items-center gap-2 bg-gradient-to-l from-[#EFF6FF] to-[#E0F2FE] text-[#1276E3] px-4 py-2 rounded-full mb-6" style={{ fontSize: "13px", fontWeight: 600 }}>
               <Zap className="w-4 h-4" />
-              نظام محاسبة سحابي متكامل
+              <span>نظام محاسبة سحابي متكامل للسوق السعودي</span>
             </div>
-            <h1 className="text-[#0B1A47] mb-6" style={{ fontSize: "clamp(28px, 5vw, 48px)", fontWeight: 700, lineHeight: 1.3 }}>
+            <h1 className="text-[#0B1A47] mb-6" style={{ fontSize: "clamp(30px, 5vw, 52px)", fontWeight: 800, lineHeight: 1.2 }}>
               أدر حساباتك المالية
               <br />
-              <span className="text-[#1276E3]">بذكاء وسهولة</span>
+              <span className="bg-gradient-to-l from-[#1276E3] to-[#349FC4] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>بذكاء وسهولة</span>
             </h1>
-            <p className="text-[#6B7280] mb-8 max-w-lg" style={{ fontSize: "16px", lineHeight: 1.8 }}>
-              Entix Books نظام محاسبة سحابي مصمم للسوق السعودي والأمريكي. 
-              يعمل أونلاين وأوفلاين مع مزامنة ذكية، متوافق مع ZATCA، ويدعم العربية بالكامل.
+            <p className="text-[#6B7280] mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
+              Entix Books نظام محاسبة سحابي يعمل أونلاين وأوفلاين. 
+              متوافق مع ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.
             </p>
             <div className="flex flex-wrap gap-3">
               <button 
                 onClick={() => navigate("/register")}
-                className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-8 py-3 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-[#1276E3]/25 flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 ابدأ تجربتك المجانية
@@ -115,140 +207,222 @@ export function Landing() {
               </button>
               <button 
                 onClick={() => navigate("/login")}
-                className="border border-[#E5E7EB] hover:border-[#1276E3] text-[#0B1A47] px-8 py-3 rounded-lg transition-colors cursor-pointer"
+                className="border-2 border-[#E5E7EB] hover:border-[#1276E3] text-[#0B1A47] px-8 py-3.5 rounded-xl transition-all cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
                 تسجيل الدخول
               </button>
             </div>
-            <div className="flex items-center gap-6 mt-8">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8">
               {[
-                "متوافق مع ZATCA",
-                "يعمل أوفلاين",
-                "تجربة مجانية",
+                { icon: CheckCircle2, text: "متوافق مع ZATCA" },
+                { icon: WifiOff, text: "يعمل أوفلاين" },
+                { icon: Clock, text: "تجربة مجانية 14 يوم" },
               ].map(t => (
-                <div key={t} className="flex items-center gap-1.5 text-[#6B7280]" style={{ fontSize: "13px" }}>
-                  <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
-                  {t}
+                <div key={t.text} className="flex items-center gap-1.5 text-[#6B7280]" style={{ fontSize: "13px", fontWeight: 500 }}>
+                  <t.icon className="w-4 h-4 text-[#22C55E]" />
+                  {t.text}
                 </div>
               ))}
             </div>
-          </div>
-          <div className="relative">
-            <div className="bg-gradient-to-br from-[#0B1A47] to-[#1276E3] rounded-2xl p-1 shadow-2xl shadow-[#1276E3]/20">
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+            className="relative"
+          >
+            {/* Decorative blobs */}
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#1276E3]/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-[#349FC4]/10 rounded-full blur-3xl" />
+            
+            <div className="relative bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] rounded-2xl p-1.5 shadow-2xl shadow-[#0B1A47]/30">
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1759159347934-1cdc38dd1f3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhY2NvdW50aW5nJTIwc29mdHdhcmUlMjBkYXNoYm9hcmQlMjBkYXJrJTIwYmx1ZXxlbnwxfHx8fDE3NzM4MDA5NzN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
                 alt="Entix Books Dashboard"
                 className="rounded-xl w-full"
               />
             </div>
-          </div>
+
+            {/* Floating stat cards */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+              className="absolute -bottom-6 -right-4 sm:right-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#ECFDF5] flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-[#22C55E]" />
+                </div>
+                <div>
+                  <div className="text-[#22C55E]" style={{ fontSize: "13px", fontWeight: 600 }}>+23.5%</div>
+                  <div className="text-[#6B7280]" style={{ fontSize: "11px" }}>نمو الإيرادات</div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
+              className="absolute -top-4 -left-4 sm:left-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[#1276E3]" />
+                </div>
+                <div>
+                  <div className="text-[#0B1A47]" style={{ fontSize: "13px", fontWeight: 600, fontFamily: "Inter" }}>1,247</div>
+                  <div className="text-[#6B7280]" style={{ fontSize: "11px" }}>فاتورة هذا الشهر</div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-20 bg-[#F8FAFC] px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-[#0B1A47] mb-3" style={{ fontSize: "32px", fontWeight: 700 }}>كل ما تحتاجه في مكان واحد</h2>
-            <p className="text-[#6B7280]" style={{ fontSize: "16px" }}>أدوات محاسبية متكاملة مصممة لتسهيل عملك اليومي</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map(f => (
-              <div key={f.title} className="bg-white rounded-xl p-6 border border-gray-100 hover:border-[#1276E3]/30 hover:shadow-lg transition-all cursor-pointer group">
-                <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] flex items-center justify-center mb-4 group-hover:bg-[#1276E3] transition-colors">
-                  <f.icon className="w-6 h-6 text-[#1276E3] group-hover:text-white transition-colors" />
+      {/* ─── Stats ─── */}
+      <section className="py-12 bg-[#0B1A47]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {STATS.map(stat => (
+              <div key={stat.label} className="text-center">
+                <div className="text-white mb-1" style={{ fontSize: "clamp(28px, 4vw, 40px)" }}>
+                  <AnimatedNumber target={stat.value} suffix={stat.suffix} />
                 </div>
-                <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "17px", fontWeight: 600 }}>{f.title}</h3>
-                <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.7 }}>{f.desc}</p>
+                <p className="text-[#94A3B8]" style={{ fontSize: "14px" }}>{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Sync Architecture Section */}
-      <section id="sync" className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* ─── Features ─── */}
+      <section id="features" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-[#0B1A47] mb-3" style={{ fontSize: "32px", fontWeight: 700 }}>يعمل بدون إنترنت</h2>
-            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              صُمم Entix Books لحل مشكلة الاتصال في القطاعات المختلفة. 
-              اعمل محلياً وزامن بياناتك عند توفر الاتصال.
-            </p>
+          <div className="text-center mb-16">
+            <span className="inline-block bg-[#EFF6FF] text-[#1276E3] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>المميزات</span>
+            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>كل ما تحتاجه في مكان واحد</h2>
+            <p className="text-[#6B7280] max-w-xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>أدوات محاسبية متكاملة مصممة لتسهيل عملك اليومي وتحسين أداءك المالي</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-b from-[#F0F7FF] to-white border border-[#E5E7EB]">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-[#0B1A47] flex items-center justify-center mb-5">
-                <WifiOff className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "18px", fontWeight: 600 }}>العمل أوفلاين</h3>
-              <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.7 }}>
-                جميع البيانات تُحفظ محلياً على الجهاز. لا حاجة لاتصال مستمر بالإنترنت.
-              </p>
-            </div>
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-b from-[#F0F7FF] to-white border border-[#1276E3]/20 shadow-lg">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-[#1276E3] flex items-center justify-center mb-5">
-                <Wifi className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "18px", fontWeight: 600 }}>مزامنة ذكية</h3>
-              <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.7 }}>
-                مزامنة تلقائية نهاية اليوم أو يدوية في أي وقت. دون فقد أي بيانات.
-              </p>
-            </div>
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-b from-[#F0F7FF] to-white border border-[#E5E7EB]">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-[#349FC4] flex items-center justify-center mb-5">
-                <Server className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "18px", fontWeight: 600 }}>سيرفر خاص VPS</h3>
-              <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.7 }}>
-                ثبّت على سيرفرك الخاص مع PostgreSQL. تحكم كامل ببياناتك.
-              </p>
-            </div>
-          </div>
-          <div className="mt-12 bg-[#0B1A47] rounded-2xl p-8 text-center">
-            <div className="flex justify-center gap-4 mb-4">
-              <Database className="w-6 h-6 text-[#349FC4]" />
-              <span className="text-white" style={{ fontSize: "13px", fontFamily: "Inter" }}>PostgreSQL + LocalStorage + REST API</span>
-            </div>
-            <p className="text-[#94A3B8] max-w-2xl mx-auto" style={{ fontSize: "14px", lineHeight: 1.7 }}>
-              بنية تقنية مرنة تدعم التخزين المحلي والسحابي والسيرفر الخاص، مع إمكانية التبديل بينها دون الحاجة لتعديل الكود.
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((f, i) => (
+              <motion.div 
+                key={f.title} 
+                initial={{ opacity: 0, y: 20 }} 
+                whileInView={{ opacity: 1, y: 0 }} 
+                viewport={{ once: true }} 
+                transition={{ delay: i * 0.05, duration: 0.4 }}
+                className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-[#1276E3]/20 hover:shadow-xl hover:shadow-[#1276E3]/5 transition-all duration-300 cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] flex items-center justify-center mb-4 group-hover:bg-[#1276E3] transition-colors duration-300">
+                  <f.icon className="w-5 h-5 text-[#1276E3] group-hover:text-white transition-colors duration-300" />
+                </div>
+                <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "17px", fontWeight: 600 }}>{f.title}</h3>
+                <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.8 }}>{f.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20 bg-[#F8FAFC] px-4 sm:px-6 lg:px-8">
+      {/* ─── Sync Architecture ─── */}
+      <section id="sync" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-[#0B1A47] mb-3" style={{ fontSize: "32px", fontWeight: 700 }}>خطط أسعار مرنة</h2>
-            <p className="text-[#6B7280]" style={{ fontSize: "16px" }}>اختر الخطة المناسبة لحجم أعمالك</p>
+          <div className="text-center mb-16">
+            <span className="inline-block bg-[#F0FDF4] text-[#22C55E] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>بدون إنترنت</span>
+            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>يعمل بدون إنترنت</h2>
+            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.8 }}>
+              صُمم Entix Books لحل مشكلة الاتصال في القطاعات المختلفة.
+              اعمل محلياً وزامن بياناتك عند توفر الاتصال.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+            {[
+              { icon: WifiOff, color: "#0B1A47", title: "العمل أوفلاين", desc: "جميع البيانات تُحفظ محلياً على الجهاز. لا حاجة لاتصال مستمر بالإنترنت. أدخل فواتيرك وسجل معاملاتك في أي وقت." },
+              { icon: Wifi, color: "#1276E3", title: "مزامنة ذكية", desc: "مزامنة تلقائية نهاية اليوم أو يدوية في أي وقت. حل ذكي للتعارضات مع ضمان عدم فقد أي بيانات." },
+              { icon: Server, color: "#349FC4", title: "سيرفر خاص VPS", desc: "ثبّت على سيرفرك الخاص مع PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي والتصدير." },
+            ].map((item, i) => (
+              <motion.div 
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }} 
+                whileInView={{ opacity: 1, y: 0 }} 
+                viewport={{ once: true }} 
+                transition={{ delay: i * 0.1 }}
+                className={`text-center p-8 rounded-2xl bg-gradient-to-b from-[#F8FAFC] to-white border ${i === 1 ? "border-[#1276E3]/20 shadow-xl shadow-[#1276E3]/5 scale-[1.02]" : "border-gray-100"} hover:shadow-lg transition-all`}
+              >
+                <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: item.color }}>
+                  <item.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-[#0B1A47] mb-3" style={{ fontSize: "19px", fontWeight: 600 }}>{item.title}</h3>
+                <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.8 }}>{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* Architecture diagram */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="mt-12 bg-gradient-to-br from-[#0B1A47] to-[#122354] rounded-2xl p-8 sm:p-10"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6">
+              {[
+                { icon: Database, label: "PostgreSQL", sub: "قاعدة البيانات" },
+                { icon: Cloud, label: "LocalStorage", sub: "تخزين محلي" },
+                { icon: Globe, label: "REST API", sub: "واجهة برمجية" },
+              ].map((item, i) => (
+                <div key={item.label} className="flex items-center gap-3">
+                  {i > 0 && <div className="hidden sm:block w-12 h-[2px] bg-[#349FC4]/40 rounded" />}
+                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                    <item.icon className="w-5 h-5 text-[#349FC4]" />
+                    <div>
+                      <div className="text-white" style={{ fontSize: "13px", fontFamily: "Inter", fontWeight: 600 }}>{item.label}</div>
+                      <div className="text-[#94A3B8]" style={{ fontSize: "11px" }}>{item.sub}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[#94A3B8] max-w-2xl mx-auto text-center" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+              بنية تقنية مرنة تدعم التخزين المحلي والسحابي والسيرفر الخاص، مع إمكانية التبديل بينها بدون تعديل أي كود في التطبيق.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Pricing ─── */}
+      <section id="pricing" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <span className="inline-block bg-[#FFF7ED] text-[#F59E0B] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>الأسعار</span>
+            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>خطط أسعار مرنة</h2>
+            <p className="text-[#6B7280]" style={{ fontSize: "16px" }}>اختر الخطة المناسبة لحجم أعمالك — يمكنك الترقية في أي وقت</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {PRICING.map(plan => (
-              <div
+            {PRICING.map((plan, i) => (
+              <motion.div
                 key={plan.name}
-                className={`rounded-2xl p-6 border ${
+                initial={{ opacity: 0, y: 20 }} 
+                whileInView={{ opacity: 1, y: 0 }} 
+                viewport={{ once: true }} 
+                transition={{ delay: i * 0.1 }}
+                className={`rounded-2xl p-7 border relative ${
                   plan.highlighted
-                    ? "bg-[#0B1A47] border-[#0B1A47] text-white shadow-xl scale-105"
-                    : "bg-white border-gray-200"
+                    ? "bg-[#0B1A47] border-[#0B1A47] text-white shadow-2xl shadow-[#0B1A47]/20 scale-105 z-10"
+                    : "bg-white border-gray-200 hover:border-[#1276E3]/20 hover:shadow-lg"
                 } transition-all`}
               >
                 {plan.highlighted && (
-                  <div className="text-center mb-3">
-                    <span className="bg-[#1276E3] text-white px-3 py-1 rounded-full" style={{ fontSize: "12px", fontWeight: 500 }}>الأكثر شعبية</span>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-gradient-to-l from-[#1276E3] to-[#349FC4] text-white px-4 py-1 rounded-full whitespace-nowrap" style={{ fontSize: "12px", fontWeight: 600 }}>الأكثر شعبية</span>
                   </div>
                 )}
-                <h3 style={{ fontSize: "20px", fontWeight: 600 }} className={plan.highlighted ? "text-white" : "text-[#0B1A47]"}>{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mt-3 mb-1" dir="ltr">
-                  <span style={{ fontSize: "36px", fontWeight: 700, fontFamily: "Inter" }} className={plan.highlighted ? "text-white" : "text-[#0B1A47]"}>{plan.price}</span>
+                <h3 style={{ fontSize: "20px", fontWeight: 600 }} className={plan.highlighted ? "text-white mt-2" : "text-[#0B1A47]"}>{plan.name}</h3>
+                <p style={{ fontSize: "13px" }} className={`mt-1 ${plan.highlighted ? "text-[#94A3B8]" : "text-[#9CA3AF]"}`}>{plan.desc}</p>
+                <div className="flex items-baseline gap-1 mt-4 mb-1" dir="ltr">
+                  <span style={{ fontSize: "40px", fontWeight: 700, fontFamily: "Inter" }} className={plan.highlighted ? "text-white" : "text-[#0B1A47]"}>{plan.price}</span>
                 </div>
                 <p style={{ fontSize: "13px" }} className={plan.highlighted ? "text-[#94A3B8]" : "text-[#6B7280]"}>{plan.period}</p>
-                <hr className={`my-5 ${plan.highlighted ? "border-white/10" : "border-gray-100"}`} />
+                <hr className={`my-6 ${plan.highlighted ? "border-white/10" : "border-gray-100"}`} />
                 <ul className="space-y-3">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-2" style={{ fontSize: "14px" }}>
+                    <li key={f} className="flex items-center gap-2.5" style={{ fontSize: "14px" }}>
                       <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${plan.highlighted ? "text-[#349FC4]" : "text-[#22C55E]"}`} />
                       <span className={plan.highlighted ? "text-gray-300" : "text-[#6B7280]"}>{f}</span>
                     </li>
@@ -256,61 +430,142 @@ export function Landing() {
                 </ul>
                 <button
                   onClick={() => navigate("/register")}
-                  className={`w-full mt-6 py-2.5 rounded-lg transition-colors cursor-pointer ${
+                  className={`w-full mt-7 py-3 rounded-xl transition-all cursor-pointer ${
                     plan.highlighted
-                      ? "bg-[#1276E3] hover:bg-[#0B5FBF] text-white"
+                      ? "bg-[#1276E3] hover:bg-[#0B5FBF] text-white hover:shadow-lg"
                       : "bg-[#F0F7FF] hover:bg-[#1276E3] hover:text-white text-[#1276E3]"
                   }`}
                   style={{ fontSize: "14px", fontWeight: 600 }}
                 >
                   ابدأ الآن
                 </button>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* ─── CTA Section ─── */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+            className="bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden"
+          >
+            {/* Decorative circles */}
+            <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/5 rounded-full translate-x-1/2 translate-y-1/2" />
+            
+            <div className="relative z-10">
+              <h2 className="text-white mb-4" style={{ fontSize: "clamp(24px, 4vw, 34px)", fontWeight: 700, lineHeight: 1.3 }}>
+                جاهز لتحويل إدارتك المالية؟
+              </h2>
+              <p className="text-[#94A3B8] max-w-xl mx-auto mb-8" style={{ fontSize: "16px", lineHeight: 1.8 }}>
+                انضم لآلاف الشركات السعودية التي تثق في Entix Books لإدارة حساباتها بكفاءة وأمان.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button 
+                  onClick={() => navigate("/register")}
+                  className="bg-white hover:bg-gray-50 text-[#0B1A47] px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                  style={{ fontSize: "15px", fontWeight: 600 }}
+                >
+                  ابدأ تجربتك المجانية
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => navigate("/login")}
+                  className="border border-white/20 hover:border-white/40 text-white px-8 py-3.5 rounded-xl transition-all cursor-pointer flex items-center gap-2"
+                  style={{ fontSize: "15px", fontWeight: 500 }}
+                >
+                  <Play className="w-4 h-4" />
+                  شاهد العرض التوضيحي
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ─── */}
+      <section id="faq" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-[#0B1A47] mb-3" style={{ fontSize: "32px", fontWeight: 700 }}>الأسئلة الشائعة</h2>
+            <span className="inline-block bg-[#F3E8FF] text-[#9333EA] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>مساعدة</span>
+            <h2 className="text-[#0B1A47] mb-3" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>الأسئلة الشائعة</h2>
           </div>
           <div className="space-y-3">
             {faqs.map((faq, i) => (
-              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-[#1276E3]/20 transition-colors"
+              >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-5 text-right hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between p-5 text-right hover:bg-gray-50/50 transition-colors cursor-pointer"
                 >
                   <span className="text-[#0B1A47]" style={{ fontSize: "15px", fontWeight: 500 }}>{faq.q}</span>
-                  <ChevronDown className={`w-5 h-5 text-[#6B7280] flex-shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`w-5 h-5 text-[#6B7280] flex-shrink-0 ms-3 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} />
                 </button>
-                {openFaq === i && (
+                <div 
+                  className="overflow-hidden transition-all duration-300"
+                  style={{ maxHeight: openFaq === i ? "200px" : "0px", opacity: openFaq === i ? 1 : 0 }}
+                >
                   <div className="px-5 pb-5">
-                    <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.8 }}>{faq.a}</p>
+                    <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.9 }}>{faq.a}</p>
                   </div>
-                )}
-              </div>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#0B1A47] py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-              <span className="text-white" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+      {/* ─── Footer ─── */}
+      <footer className="bg-[#0B1A47] py-14 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-10 mb-12">
+            {/* Brand */}
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                  <span className="text-white" style={{ fontSize: "15px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+                </div>
+                <span className="text-white" style={{ fontSize: "19px", fontWeight: 700 }}>Entix Books</span>
+              </div>
+              <p className="text-[#94A3B8] max-w-sm" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+                نظام محاسبة سحابي متكامل للسوق السعودي والأمريكي. يعمل أونلاين وأوفلاين مع مزامنة ذكية.
+              </p>
             </div>
-            <span className="text-white" style={{ fontSize: "18px", fontWeight: 700 }}>Entix Books</span>
+            {/* Links */}
+            <div>
+              <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>المنتج</h4>
+              <ul className="space-y-2.5">
+                {["المميزات", "الأسعار", "المزامنة", "الأمان"].map(l => (
+                  <li key={l}><a href="#" className="text-[#94A3B8] hover:text-white transition-colors" style={{ fontSize: "14px" }}>{l}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>الدعم</h4>
+              <ul className="space-y-2.5">
+                {["مركز المساعدة", "التوثيق", "تواصل معنا", "الأسئلة الشائعة"].map(l => (
+                  <li key={l}><a href="#" className="text-[#94A3B8] hover:text-white transition-colors" style={{ fontSize: "14px" }}>{l}</a></li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <p className="text-[#94A3B8] mb-6" style={{ fontSize: "14px" }}>نظام محاسبة سحابي متكامل للسوق السعودي والأمريكي</p>
-          <p className="text-[#64748B]" style={{ fontSize: "12px", fontFamily: "Inter" }}>
-            &copy; 2026 Entix Books. All rights reserved.
-          </p>
+          <hr className="border-white/10 mb-8" />
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-[#64748B]" style={{ fontSize: "13px", fontFamily: "Inter" }}>
+              &copy; 2026 Entix Books. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              {["سياسة الخصوصية", "الشروط والأحكام"].map(l => (
+                <a key={l} href="#" className="text-[#64748B] hover:text-[#94A3B8] transition-colors" style={{ fontSize: "13px" }}>{l}</a>
+              ))}
+            </div>
+          </div>
         </div>
       </footer>
     </div>
