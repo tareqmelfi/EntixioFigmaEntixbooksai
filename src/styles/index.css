@@ -1,0 +1,21 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+html {
+  direction: rtl;
+}
+
+body {
+  font-family: 'Noto Sans Arabic', 'Inter', system-ui, -apple-system, sans-serif;
+  direction: rtl;
+}
+
+.font-arabic {
+  font-family: 'Noto Sans Arabic', sans-serif;
+}
+
+.font-english {
+  font-family: 'Inter', sans-serif;
+  direction: ltr;
+}
