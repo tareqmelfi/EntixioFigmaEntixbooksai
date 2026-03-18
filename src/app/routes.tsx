@@ -1,5 +1,8 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Root } from "./layouts/root";
+import { Landing } from "./pages/landing";
+import { Login } from "./pages/login";
+import { Register } from "./pages/register";
 import { Dashboard } from "./pages/dashboard";
 import { AI } from "./pages/ai";
 import { SalesDashboard } from "./pages/sales-dashboard";
@@ -24,21 +27,34 @@ import { ContactDetail } from "./pages/contact-detail";
 import { Reports } from "./pages/reports";
 import { Settings } from "./pages/settings";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
-// New pages
 import { BankAccounts } from "./pages/bank-accounts";
 import { CostCenters } from "./pages/cost-centers";
 import { Projects } from "./pages/projects";
 import { Branches } from "./pages/branches";
 import { Integrations } from "./pages/integrations";
 import { Templates } from "./pages/templates";
-// Portal pages
 import { PortalLogin } from "./pages/portal-login";
 import { PortalHome } from "./pages/portal-home";
+import { AuthGuard } from "./components/auth-guard";
+
+// Wrap app routes with auth guard
+function ProtectedRoot() {
+  return (
+    <AuthGuard>
+      <Root />
+    </AuthGuard>
+  );
+}
 
 export const router = createBrowserRouter([
+  // Public routes
+  { path: "/landing", element: <Landing /> },
+  { path: "/login", element: <Login /> },
+  { path: "/register", element: <Register /> },
+  // Protected app routes
   {
     path: "/",
-    element: <Root />,
+    element: <ProtectedRoot />,
     children: [
       { index: true, element: <Dashboard /> },
       { path: "ai", element: <AI /> },
