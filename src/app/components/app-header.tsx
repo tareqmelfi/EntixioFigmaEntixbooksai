@@ -44,10 +44,6 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          
-          <button className="hidden sm:block rounded-md p-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]">
-            <Globe className="h-5 w-5" />
-          </button>
         </div>
 
         {/* Right side in RTL = notifications + profile */}

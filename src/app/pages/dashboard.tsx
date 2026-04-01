@@ -66,7 +66,7 @@ const revenueBreakdownData = [
 // VAT data
 const vatCollected = 44250; // VAT on sales (لصالح الضريبة)
 const vatPaid = 30750;      // VAT on purchases (لصالحنا)
-const vatNet = vatCollected - vatPaid; // net payable
+const vatNet = vatCollected - vatPaid; // net payable to tax authority
 
 function VATGauge() {
   const total = vatCollected + vatPaid;
@@ -90,12 +90,17 @@ function VATGauge() {
     ? statusColors.amber
     : statusColors.green;
 
-  // Critical glow effect
+  // Very subtle glow — barely visible hint
   const glowStyle = severity === "danger"
-    ? { boxShadow: `0 0 20px 4px ${statusColors.red.border}, 0 0 40px 8px rgba(239,68,68,0.1)` }
+    ? { boxShadow: `0 0 12px 2px rgba(239,68,68,0.06)` }
     : severity === "warning"
-    ? { boxShadow: `0 0 16px 3px ${statusColors.amber.border}, 0 0 32px 6px rgba(217,119,6,0.08)` }
+    ? { boxShadow: `0 0 10px 2px rgba(217,119,6,0.04)` }
     : {};
+
+  // Net display: positive = علينا (we owe tax), negative = لصالحنا (tax owes us)
+  const isWeOwe = vatNet > 0;
+  const displayAmount = Math.abs(vatNet);
+  const netLabel = isWeOwe ? "علينا" : "لصالحنا";
 
   return (
     <Card
@@ -122,17 +127,8 @@ function VATGauge() {
           />
         </div>
         
-        {/* Labels */}
+        {/* Labels — swapped: لصالحنا right (matches teal bar start), لصالح الضريبة left (matches navy bar end) */}
         <div className="flex justify-between text-[11px]">
-          <div className="text-center">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorTax }} />
-              <span className="text-[#6B7280]">لصالح الضريبة</span>
-            </div>
-            <span dir="ltr" className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
-              {vatCollected.toLocaleString()} SR
-            </span>
-          </div>
           <div className="text-center">
             <div className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorOurs }} />
@@ -142,23 +138,39 @@ function VATGauge() {
               {vatPaid.toLocaleString()} SR
             </span>
           </div>
+          <div className="text-center">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorTax }} />
+              <span className="text-[#6B7280]">لصالح الضريبة</span>
+            </div>
+            <span dir="ltr" className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
+              {vatCollected.toLocaleString()} SR
+            </span>
+          </div>
         </div>
         
-        {/* Net — status-colored like invoice badges (green/amber/red) */}
-        <div className="mt-2 pt-2 border-t border-[#E5E7EB] text-center">
-          <span className="text-[10px] text-[#6B7280]">صافي المستحق: </span>
-          <span
-            dir="ltr"
-            className="font-english inline-block rounded-md px-2 py-0.5 text-[11px]"
-            style={{
-              fontWeight: 700,
-              color: netStatus.text,
-              backgroundColor: netStatus.bg,
-              border: `1px solid ${netStatus.border}`,
-            }}
-          >
-            {vatNet.toLocaleString()} SR
-          </span>
+        {/* Net — single row: label right, number center, badge left */}
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[10px] text-[#6B7280]">صافي المستحق</span>
+          <div dir="ltr" className="flex items-baseline gap-1">
+            <span
+              className="font-english"
+              style={{
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                fontVariantNumeric: "tabular-nums",
+                color: isWeOwe ? "#F59E0B" : "#22C55E",
+              }}
+            >
+              {isWeOwe ? "" : "-"}{displayAmount.toLocaleString()}
+            </span>
+            <span className="text-xs text-[#6B7280] font-english" style={{ fontWeight: 500 }}>SR</span>
+          </div>
+          {isWeOwe ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-[#FEE2E2] px-2 py-0.5 text-[10px] text-[#991B1B]" style={{ fontWeight: 600 }}>علينا</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-2 py-0.5 text-[10px] text-[#166534]" style={{ fontWeight: 600 }}>لصالحنا ✓</span>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -184,7 +196,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card
           className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
-          onClick={() => navigate("/app/reports")}
+          onDoubleClick={() => navigate("/app/reports")}
         >
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><DollarSign className="h-5 w-5 text-[#1276E3]" /></div></div>
@@ -200,7 +212,7 @@ export function Dashboard() {
 
         <Card
           className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
-          onClick={() => navigate("/app/sales")}
+          onDoubleClick={() => navigate("/app/sales")}
         >
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><FileText className="h-5 w-5 text-[#1276E3]" /></div></div>
@@ -216,7 +228,7 @@ export function Dashboard() {
 
         <Card
           className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
-          onClick={() => navigate("/app/purchases")}
+          onDoubleClick={() => navigate("/app/purchases")}
         >
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><ShoppingBag className="h-5 w-5 text-[#1276E3]" /></div></div>

@@ -4,6 +4,11 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
 
 const CUR = "SR";
 
@@ -25,9 +30,24 @@ const statusStyle = (s: string) => {
 
 export function Branches() {
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    address: "",
+    manager: "",
+    status: "قيد التأسيس"
+  });
 
   const totalEmployees = branches.reduce((s, b) => s + b.employees, 0);
   const totalRevenue = branches.reduce((s, b) => s + b.revenue, 0);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // هنا يمكن إضافة المنطق لحفظ البيانات
+    console.log("New Branch:", formData);
+    setIsDialogOpen(false);
+    setFormData({ name: "", address: "", manager: "", status: "قيد التأسيس" });
+  };
 
   return (
     <div className="space-y-6">
@@ -36,7 +56,7 @@ export function Branches() {
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الفروع</h1>
           <p className="text-[#6B7280] mt-1">إدارة فروع الشركة والمواقع</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />فرع جديد</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />فرع جديد</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -115,6 +135,72 @@ export function Branches() {
           </Card>
         ))}
       </div>
+
+      {/* Dialog for New Branch */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">فرع جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-[#374151]">اسم الفرع *</Label>
+                <Input
+                  id="name"
+                  placeholder="مثال: فرع مكة المكرمة"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-[#374151]">العنوان *</Label>
+                <Textarea
+                  id="address"
+                  placeholder="مثال: مكة المكرمة، حي العزيزية، شارع الحرمين"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
+                  className="border-[#E5E7EB] min-h-[80px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="manager" className="text-[#374151]">المدير (اختياري)</Label>
+                <Input
+                  id="manager"
+                  placeholder="مثال: عبدالله السالم"
+                  value={formData.manager}
+                  onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status" className="text-[#374151]">الحالة *</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger className="border-[#E5E7EB]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="نشط">نشط</SelectItem>
+                    <SelectItem value="قيد التأسيس">قيد التأسيس</SelectItem>
+                    <SelectItem value="مغلق">مغلق</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

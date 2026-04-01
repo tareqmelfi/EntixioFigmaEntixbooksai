@@ -357,7 +357,7 @@ export function FixedAssets() {
                     </td>
                     <td className="py-3.5 pe-3">
                       <button
-                        onClick={() => navigate(`/assets/${a.id}`)}
+                        onClick={() => navigate(`/app/assets/${a.id}`)}
                         className="font-english text-sm text-[#1276E3] hover:underline cursor-pointer"
                         style={{ fontWeight: 600 }}
                       >
@@ -366,7 +366,7 @@ export function FixedAssets() {
                     </td>
                     <td className="py-3.5 pe-3">
                       <button
-                        onClick={() => navigate(`/assets/${a.id}`)}
+                        onClick={() => navigate(`/app/assets/${a.id}`)}
                         className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline cursor-pointer text-start"
                       >
                         {a.name}
@@ -412,7 +412,7 @@ export function FixedAssets() {
                         </button>
                         {actionMenuId === a.id && (
                           <div className="absolute end-0 z-40 mt-1 w-36 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                            <button onClick={() => { navigate(`/assets/${a.id}`); setActionMenuId(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</button>
+                            <button onClick={() => { navigate(`/app/assets/${a.id}`); setActionMenuId(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</button>
                             <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Edit2 className="h-3.5 w-3.5 text-[#6B7280]" />تعديل</button>
                             <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Copy className="h-3.5 w-3.5 text-[#6B7280]" />نسخ</button>
                             <div className="border-t border-[#F3F4F6] my-1" />

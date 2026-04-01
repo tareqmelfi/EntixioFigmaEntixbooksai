@@ -6,6 +6,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
 
 const CUR = "SR";
 
@@ -44,6 +48,17 @@ const statusStyle = (s: string) => {
 export function Projects() {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    client: "",
+    manager: "",
+    startDate: "",
+    endDate: "",
+    budget: "",
+    revenue: "",
+    status: "جاري"
+  });
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +74,14 @@ export function Projects() {
   const totalRevenue = projects.reduce((s, p) => s + p.revenue, 0);
   const activeProjects = projects.filter((p) => p.status === "جاري").length;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // هنا يمكن إضافة المنطق لحفظ البيانات
+    console.log("New Project:", formData);
+    setIsDialogOpen(false);
+    setFormData({ name: "", client: "", manager: "", startDate: "", endDate: "", budget: "", revenue: "", status: "جاري" });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -67,7 +90,7 @@ export function Projects() {
           <p className="text-[#6B7280] mt-1">إدارة المشاريع وتتبع الربحية</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />مشروع جديد</Button>
+          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />مشروع جديد</Button>
           <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
         </div>
       </div>
@@ -202,6 +225,126 @@ export function Projects() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog for New Project */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">مشروع جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="name" className="text-[#374151]">اسم المشروع *</Label>
+                  <Input
+                    id="name"
+                    placeholder="مثال: مشروع التحول الرقمي"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    className="border-[#E5E7EB]"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="client" className="text-[#374151]">اسم العميل *</Label>
+                  <Input
+                    id="client"
+                    placeholder="مثال: شركة التقنية المتقدمة"
+                    value={formData.client}
+                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                    required
+                    className="border-[#E5E7EB]"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="manager" className="text-[#374151]">مدير المشروع *</Label>
+                  <Input
+                    id="manager"
+                    placeholder="مثال: أحمد الحربي"
+                    value={formData.manager}
+                    onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
+                    required
+                    className="border-[#E5E7EB]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="startDate" className="text-[#374151]">تاريخ البداية *</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate" className="text-[#374151]">تاريخ الانتهاء *</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="budget" className="text-[#374151]">الميزانية ({CUR}) *</Label>
+                  <Input
+                    id="budget"
+                    type="number"
+                    placeholder="0"
+                    value={formData.budget}
+                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="revenue" className="text-[#374151]">الإيرادات المتوقعة ({CUR}) *</Label>
+                  <Input
+                    id="revenue"
+                    type="number"
+                    placeholder="0"
+                    value={formData.revenue}
+                    onChange={(e) => setFormData({ ...formData, revenue: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="status" className="text-[#374151]">الحالة *</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="جاري">جاري</SelectItem>
+                      <SelectItem value="مكتمل">مكتمل</SelectItem>
+                      <SelectItem value="مُعلّق">مُعلّق</SelectItem>
+                      <SelectItem value="ملغي">ملغي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

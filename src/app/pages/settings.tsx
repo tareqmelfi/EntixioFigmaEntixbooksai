@@ -10,14 +10,14 @@ import { Badge } from "../components/ui/badge";
 
 export function Settings() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div>
         <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإعدادات</h1>
         <p className="text-[#6B7280] mt-1">إدارة إعدادات الحساب والشركة</p>
       </div>
 
-      <Tabs defaultValue="company" className="space-y-4">
-        <TabsList className="flex-wrap">
+      <Tabs defaultValue="company" className="space-y-4" dir="rtl">
+        <TabsList className="flex-wrap justify-start overflow-x-auto">
           <TabsTrigger value="company" className="gap-2"><Building2 className="h-4 w-4" />بيانات الشركة</TabsTrigger>
           <TabsTrigger value="fiscal" className="gap-2"><Calendar className="h-4 w-4" />السنة المالية</TabsTrigger>
           <TabsTrigger value="numbering" className="gap-2"><Hash className="h-4 w-4" />الترقيم</TabsTrigger>
@@ -190,8 +190,8 @@ export function Settings() {
 
               <div>
                 <Label className="mb-3 block">الفترات المالية — 2026</Label>
-                <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-lg border border-[#E5E7EB] overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: "600px" }}>
                     <thead>
                       <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                         <th className="py-2.5 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الفترة</th>
@@ -261,8 +261,8 @@ export function Settings() {
               <CardDescription>تخصيص بادئة وصيغة الترقيم لكل نوع مستند</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-lg border border-[#E5E7EB] overflow-x-auto">
+                <table className="w-full text-sm" style={{ minWidth: "700px" }}>
                   <thead>
                     <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                       <th className="py-2.5 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>نوع المستند</th>
@@ -355,8 +355,8 @@ export function Settings() {
                     <Button variant="outline" size="sm" className="border-[#E5E7EB] text-xs">تحديث تلقائي</Button>
                   </div>
                 </div>
-                <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-lg border border-[#E5E7EB] overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: "600px" }}>
                     <thead>
                       <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                         <th className="py-2.5 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>العملة</th>

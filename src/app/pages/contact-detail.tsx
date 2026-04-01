@@ -252,35 +252,39 @@ export function ContactDetail() {
         </CardContent>
       </Card>
 
-      {/* KPI Cards — Phase A: colored side strips + progress bars */}
+      {/* KPI Cards — unified navy+teal palette matching dashboard */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {hasCustomerRole && (
           <Card className="border-[#E5E7EB] overflow-hidden hover:shadow-md transition-all cursor-pointer relative">
-            {/* Colored start strip */}
-            <div className="absolute inset-y-0 start-0 w-1 bg-[#1276E3] rounded-s-xl" />
+            {/* Colored start strip — navy for customer */}
+            <div className="absolute inset-y-0 start-0 w-1 bg-[#0B1B49] rounded-s-xl" />
             <CardContent className="pt-4 pb-4 ps-5 pe-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[13px] text-[#6B7280]" style={{ fontWeight: 600 }}>كعميل لنا</p>
-                <div className="rounded-lg bg-[#EFF6FF] p-1.5"><Receipt className="h-[18px] w-[18px] text-[#1276E3]" /></div>
+                <div className="rounded-lg bg-[#ECEEF5] p-1.5"><Receipt className="h-[18px] w-[18px] text-[#0B1B49]" /></div>
               </div>
               <div dir="ltr" className="flex items-baseline gap-1.5">
                 <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{party.asCustomer.total.toLocaleString()}</span>
                 <span className="text-sm text-[#6B7280] font-english" style={{ fontWeight: 500 }}>SR</span>
               </div>
               <p className="text-xs text-[#6B7280] mt-1"><span className="font-english">{party.asCustomer.invoiceCount}</span> فاتورة</p>
-              {/* Progress bar */}
+              {/* Progress bar — navy (paid) + teal (overdue) */}
               {party.asCustomer.total > 0 && (
                 <div className="mt-3">
                   <div className="flex h-1.5 rounded-full overflow-hidden bg-[#F3F4F6]">
-                    <div className="bg-[#22C55E] rounded-s-full" style={{ width: `${(party.asCustomer.paid / party.asCustomer.total) * 100}%` }} />
+                    <div className="bg-[#0B1B49] rounded-s-full" style={{ width: `${(party.asCustomer.paid / party.asCustomer.total) * 100}%` }} />
                     {party.asCustomer.overdue > 0 && (
-                      <div className="bg-[#EF4444] rounded-e-full" style={{ width: `${(party.asCustomer.overdue / party.asCustomer.total) * 100}%` }} />
+                      <div className="bg-[#179FC5] rounded-e-full" style={{ width: `${(party.asCustomer.overdue / party.asCustomer.total) * 100}%` }} />
                     )}
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-[11px] text-[#22C55E]" style={{ fontWeight: 500 }}>مدفوع <span dir="ltr" className="font-english">SR {party.asCustomer.paid.toLocaleString()}</span></span>
+                    <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-1.5 py-0.5 text-[10px] text-[#166534]" style={{ fontWeight: 600 }}>
+                      لصالحنا ✓ <span dir="ltr" className="font-english">SR {party.asCustomer.paid.toLocaleString()}</span>
+                    </span>
                     {party.asCustomer.overdue > 0 && (
-                      <span className="text-[11px] text-[#EF4444]" style={{ fontWeight: 500 }}>متأخر <span dir="ltr" className="font-english">SR {party.asCustomer.overdue.toLocaleString()}</span></span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#FEE2E2] px-1.5 py-0.5 text-[10px] text-[#991B1B]" style={{ fontWeight: 600 }}>
+                        علينا <span dir="ltr" className="font-english">SR {party.asCustomer.overdue.toLocaleString()}</span>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -291,11 +295,12 @@ export function ContactDetail() {
 
         {hasVendorRole && (
           <Card className="border-[#E5E7EB] overflow-hidden hover:shadow-md transition-all cursor-pointer relative">
-            <div className="absolute inset-y-0 start-0 w-1 bg-[#22C55E] rounded-s-xl" />
+            {/* Colored start strip — teal for vendor */}
+            <div className="absolute inset-y-0 start-0 w-1 bg-[#179FC5] rounded-s-xl" />
             <CardContent className="pt-4 pb-4 ps-5 pe-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[13px] text-[#6B7280]" style={{ fontWeight: 600 }}>كمورد لنا</p>
-                <div className="rounded-lg bg-[#DCFCE7] p-1.5"><ShoppingBag className="h-[18px] w-[18px] text-[#22C55E]" /></div>
+                <div className="rounded-lg bg-[#E6F7FB] p-1.5"><ShoppingBag className="h-[18px] w-[18px] text-[#179FC5]" /></div>
               </div>
               <div dir="ltr" className="flex items-baseline gap-1.5">
                 <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{party.asVendor.total.toLocaleString()}</span>
@@ -305,15 +310,19 @@ export function ContactDetail() {
               {party.asVendor.total > 0 && (
                 <div className="mt-3">
                   <div className="flex h-1.5 rounded-full overflow-hidden bg-[#F3F4F6]">
-                    <div className="bg-[#22C55E] rounded-s-full" style={{ width: `${(party.asVendor.paid / party.asVendor.total) * 100}%` }} />
+                    <div className="bg-[#0B1B49] rounded-s-full" style={{ width: `${(party.asVendor.paid / party.asVendor.total) * 100}%` }} />
                     {party.asVendor.overdue > 0 && (
-                      <div className="bg-[#EF4444] rounded-e-full" style={{ width: `${(party.asVendor.overdue / party.asVendor.total) * 100}%` }} />
+                      <div className="bg-[#179FC5] rounded-e-full" style={{ width: `${(party.asVendor.overdue / party.asVendor.total) * 100}%` }} />
                     )}
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-[11px] text-[#22C55E]" style={{ fontWeight: 500 }}>مدفوع <span dir="ltr" className="font-english">SR {party.asVendor.paid.toLocaleString()}</span></span>
+                    <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-1.5 py-0.5 text-[10px] text-[#166534]" style={{ fontWeight: 600 }}>
+                      لصالحنا ✓ <span dir="ltr" className="font-english">SR {party.asVendor.paid.toLocaleString()}</span>
+                    </span>
                     {party.asVendor.overdue > 0 && (
-                      <span className="text-[11px] text-[#EF4444]" style={{ fontWeight: 500 }}>متأخر <span dir="ltr" className="font-english">SR {party.asVendor.overdue.toLocaleString()}</span></span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#FEE2E2] px-1.5 py-0.5 text-[10px] text-[#991B1B]" style={{ fontWeight: 600 }}>
+                        علينا <span dir="ltr" className="font-english">SR {party.asVendor.overdue.toLocaleString()}</span>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -337,11 +346,11 @@ export function ContactDetail() {
             </div>
             <div className="mt-2">
               {party.netBalance > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[11px] text-[#166534]" style={{ fontWeight: 600 }}>لصالحنا ✓</span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-2.5 py-0.5 text-[11px] text-[#166534]" style={{ fontWeight: 600 }}>لصالحنا ✓</span>
               ) : party.netBalance < 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] text-[#991B1B]" style={{ fontWeight: 600 }}>علينا</span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] text-[#991B1B]" style={{ fontWeight: 600 }}>علينا</span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] px-2.5 py-0.5 text-[11px] text-[#6B7280]" style={{ fontWeight: 600 }}>متساوي</span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#F3F4F6] px-2.5 py-0.5 text-[11px] text-[#6B7280]" style={{ fontWeight: 600 }}>متساوي</span>
               )}
             </div>
           </CardContent>

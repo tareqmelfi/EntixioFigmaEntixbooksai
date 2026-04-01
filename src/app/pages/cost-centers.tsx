@@ -6,6 +6,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 const CUR = "SR";
 
@@ -41,6 +44,14 @@ const statusStyle = (s: string) => {
 export function CostCenters() {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    parent: "",
+    budget: "",
+    status: "نشط"
+  });
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +70,14 @@ export function CostCenters() {
   const totalActual = costCenters.reduce((s, c) => s + c.actual, 0);
   const utilization = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // هنا يمكن إضافة المنطق لحفظ البيانات
+    console.log("New Cost Center:", formData);
+    setIsDialogOpen(false);
+    setFormData({ name: "", code: "", parent: "", budget: "", status: "نشط" });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -67,7 +86,7 @@ export function CostCenters() {
           <p className="text-[#6B7280] mt-1">إدارة وتتبع مراكز التكلفة والميزانيات</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />مركز تكلفة جديد</Button>
+          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />مركز تكلفة جديد</Button>
           <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
         </div>
       </div>
@@ -205,6 +224,88 @@ export function CostCenters() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog for New Cost Center */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">مركز تكلفة جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-[#374151]">اسم المركز *</Label>
+                <Input
+                  id="name"
+                  placeholder="مثال: قسم التسويق"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="code" className="text-[#374151]">الكود *</Label>
+                <Input
+                  id="code"
+                  placeholder="مثال: MKT"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  required
+                  className="border-[#E5E7EB] font-english"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="parent" className="text-[#374151]">المركز الأب (اختياري)</Label>
+                <Select value={formData.parent} onValueChange={(value) => setFormData({ ...formData, parent: value })}>
+                  <SelectTrigger className="border-[#E5E7EB]">
+                    <SelectValue placeholder="اختر المركز الأب" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {costCenters.map((cc) => (
+                      <SelectItem key={cc.id} value={cc.name}>{cc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="budget" className="text-[#374151]">الميزانية ({CUR}) *</Label>
+                <Input
+                  id="budget"
+                  type="number"
+                  placeholder="0"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  required
+                  className="border-[#E5E7EB] font-english"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status" className="text-[#374151]">الحالة *</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger className="border-[#E5E7EB]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="نشط">نشط</SelectItem>
+                    <SelectItem value="مُعلّق">مُعلّق</SelectItem>
+                    <SelectItem value="مغلق">مغلق</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

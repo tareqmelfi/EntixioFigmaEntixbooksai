@@ -9,6 +9,7 @@ import {
   Landmark, Target, FolderKanban, GitBranch,
   Plug, FileCode, Handshake, HelpCircle, Globe,
   Mail, UserCheck, Briefcase, ClipboardList, Users2,
+  Pin, PinOff, MousePointer, EyeOff,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -116,7 +117,6 @@ const sections: MenuSection[] = [
   },
 ];
 
-/* Quick‐search pages list */
 const searchPages = [
   { label: "لوحة التحكم", path: "/app" },
   { label: "الذكاء الاصطناعي", path: "/app/ai" },
@@ -148,7 +148,23 @@ const searchPages = [
   { label: "خارطة المزايا", path: "/app/roadmap" },
 ];
 
-export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export type SidebarMode = "pinned" | "auto" | "hidden";
+
+export function AppSidebar({
+  isOpen,
+  onClose,
+  mode,
+  onModeChange,
+  isStatic = false,
+  className = "",
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  mode: SidebarMode;
+  onModeChange: (mode: SidebarMode) => void;
+  isStatic?: boolean;
+  className?: string;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
@@ -166,20 +182,14 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const toggleMenu = (title: string) => {
     setOpenMenus((prev) => {
-      if (prev.has(title)) {
-        // Clicking the same one → close it
-        return new Set();
-      }
-      // Opening a new one → close all others, open only this
+      if (prev.has(title)) return new Set();
       return new Set([title]);
     });
   };
 
   const isActive = (path?: string) => path === location.pathname;
-
   const hasActiveChild = (children?: SubItem[]) =>
     children?.some((c) => location.pathname === c.path || location.pathname.startsWith(c.path + "/")) ?? false;
-
   const isParentPathActive = (path?: string) =>
     path ? location.pathname === path || location.pathname.startsWith(path + "/") : false;
 
@@ -187,22 +197,123 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     ? searchPages.filter((p) => p.label.includes(searchQuery))
     : [];
 
+  const cycleMode = () => {
+    if (mode === "pinned") onModeChange("auto");
+    else if (mode === "auto") onModeChange("hidden");
+    else onModeChange("pinned");
+  };
+
+  const modeLabel = mode === "pinned" ? "ثابت" : mode === "auto" ? "تلقائي" : "مخفي";
+  const ModeIcon = mode === "pinned" ? Pin : mode === "auto" ? MousePointer : EyeOff;
+
+  // Static sidebar (pinned mode, desktop only)
+  if (isStatic) {
+    return (
+      <aside className="flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white">
+        <SidebarContent
+          mode={mode}
+          onModeChange={onModeChange}
+          cycleMode={cycleMode}
+          modeLabel={modeLabel}
+          ModeIcon={ModeIcon}
+          openMenus={openMenus}
+          toggleMenu={toggleMenu}
+          isActive={isActive}
+          hasActiveChild={hasActiveChild}
+          isParentPathActive={isParentPathActive}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchFocused={searchFocused}
+          setSearchFocused={setSearchFocused}
+          searchRef={searchRef}
+          searchResults={searchResults}
+          navigate={navigate}
+        />
+      </aside>
+    );
+  }
+
+  // Floating sidebar (mobile + auto/hidden modes on desktop)
   return (
-    <aside 
+    <aside
       className={`
         flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white
-        lg:static lg:translate-x-0
-        fixed inset-y-0 end-0 z-50 transition-transform duration-300
-        ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+        fixed inset-y-0 end-0 z-50 transition-transform duration-300 shadow-xl
+        ${isOpen ? "translate-x-0" : "translate-x-full"}
+        ${className}
       `}
+      onMouseLeave={() => {
+        if (mode === "auto") onClose();
+      }}
     >
+      <SidebarContent
+        mode={mode}
+        onModeChange={onModeChange}
+        cycleMode={cycleMode}
+        modeLabel={modeLabel}
+        ModeIcon={ModeIcon}
+        openMenus={openMenus}
+        toggleMenu={toggleMenu}
+        isActive={isActive}
+        hasActiveChild={hasActiveChild}
+        isParentPathActive={isParentPathActive}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        searchFocused={searchFocused}
+        setSearchFocused={setSearchFocused}
+        searchRef={searchRef}
+        searchResults={searchResults}
+        navigate={navigate}
+        onClose={onClose}
+      />
+    </aside>
+  );
+}
+
+/* ─── Shared sidebar content ─── */
+function SidebarContent({
+  mode, onModeChange, cycleMode, modeLabel, ModeIcon,
+  openMenus, toggleMenu, isActive, hasActiveChild, isParentPathActive,
+  searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
+  navigate, onClose,
+}: {
+  mode: SidebarMode;
+  onModeChange: (m: SidebarMode) => void;
+  cycleMode: () => void;
+  modeLabel: string;
+  ModeIcon: React.ElementType;
+  openMenus: Set<string>;
+  toggleMenu: (t: string) => void;
+  isActive: (p?: string) => boolean;
+  hasActiveChild: (c?: SubItem[]) => boolean;
+  isParentPathActive: (p?: string) => boolean;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  searchFocused: boolean;
+  setSearchFocused: (f: boolean) => void;
+  searchRef: React.RefObject<HTMLDivElement | null>;
+  searchResults: { label: string; path: string }[];
+  navigate: (p: string) => void;
+  onClose?: () => void;
+}) {
+  return (
+    <>
       {/* ── Logo & Company ── */}
       <div className="border-b border-[#E5E7EB] p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1276E3]">
-            <span className="font-english text-lg text-white" style={{ fontWeight: 700 }}>EB</span>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1276E3]">
+              <span className="font-english text-lg text-white" style={{ fontWeight: 700 }}>EB</span>
+            </div>
+            <h1 className="font-english text-lg text-[#0B1B49]" style={{ fontWeight: 700 }}>Entix Books</h1>
           </div>
-          <h1 className="font-english text-lg text-[#0B1B49]" style={{ fontWeight: 700 }}>Entix Books</h1>
+          <button
+            onClick={cycleMode}
+            className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#0B1B49] transition-colors"
+            title={`الوضع: ${modeLabel}`}
+          >
+            <ModeIcon className="h-4 w-4" />
+          </button>
         </div>
 
         <button className="mb-2 flex w-full items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F9FAFB]">
@@ -210,7 +321,6 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           <ChevronDown className="h-4 w-4 shrink-0 text-[#6B7280]" />
         </button>
 
-        {/* Quick Search */}
         <div className="relative" ref={searchRef}>
           <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
           <input
@@ -231,7 +341,7 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               {searchResults.map((r) => (
                 <button
                   key={r.path}
-                  onClick={() => { navigate(r.path); setSearchQuery(""); setSearchFocused(false); }}
+                  onClick={() => { navigate(r.path); setSearchQuery(""); setSearchFocused(false); onClose?.(); }}
                   className="w-full text-start px-3 py-2 text-sm text-[#374151] hover:bg-[#EFF6FF] hover:text-[#1276E3] transition-colors"
                 >
                   {r.label}
@@ -251,7 +361,6 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 {section.label}
               </div>
             )}
-
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 if (item.children) {
@@ -263,16 +372,12 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       onToggle={() => toggleMenu(item.title)}
                       isActive={isActive}
                       isParentActive={hasActiveChild(item.children) || isParentPathActive(item.path)}
+                      onNavigate={onClose}
                     />
                   );
                 }
-
                 return (
-                  <SidebarLink
-                    key={item.title}
-                    item={item}
-                    active={isActive(item.path)}
-                  />
+                  <SidebarLink key={item.title} item={item} active={isActive(item.path)} onClick={onClose} />
                 );
               })}
             </div>
@@ -282,46 +387,25 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
       {/* ── Bottom ── */}
       <div className="border-t border-[#E5E7EB] p-3 space-y-0.5">
-        <Link to="/app/reports">
-          <button
-            className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive("/app/reports")
-                ? "bg-[#1276E3] text-white"
-                : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
-            }`}
-          >
+        <Link to="/app/reports" onClick={onClose}>
+          <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/reports") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
             <BarChart3 className="h-5 w-5 shrink-0" />
             <span className="flex-1 text-start">التقارير</span>
           </button>
         </Link>
-
-        <Link to="/app/roadmap">
-          <button
-            className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive("/app/roadmap")
-                ? "bg-[#1276E3] text-white"
-                : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
-            }`}
-          >
+        <Link to="/app/roadmap" onClick={onClose}>
+          <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
             <Map className="h-5 w-5 shrink-0" />
             <span className="flex-1 text-start">خارطة المزايا</span>
           </button>
         </Link>
-
-        <Link to="/app/settings">
-          <button
-            className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive("/app/settings")
-                ? "bg-[#1276E3] text-white"
-                : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
-            }`}
-          >
+        <Link to="/app/settings" onClick={onClose}>
+          <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/settings") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
             <Settings className="h-5 w-5 shrink-0" />
             <span className="flex-1 text-start">الإعدادات</span>
           </button>
         </Link>
 
-        {/* Help & Language */}
         <div className="flex items-center gap-1 pt-1">
           <button className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
             <HelpCircle className="h-4 w-4 shrink-0" />
@@ -332,21 +416,30 @@ export function AppSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <span className="font-english">English</span>
           </button>
         </div>
+
+        {/* Mode indicator */}
+        <div className="hidden lg:flex items-center justify-center pt-1">
+          <button
+            onClick={cycleMode}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-[#9CA3AF] hover:bg-[#F3F4F6] transition-colors"
+          >
+            <ModeIcon className="h-3 w-3" />
+            <span>{modeLabel}</span>
+          </button>
+        </div>
       </div>
-    </aside>
+    </>
   );
 }
 
-/* ─── Link item (no children) ─── */
-function SidebarLink({ item, active }: { item: MenuItem; active: boolean }) {
+/* ─── Link item ─── */
+function SidebarLink({ item, active, onClick }: { item: MenuItem; active: boolean; onClick?: () => void }) {
   const Icon = item.icon;
   return (
-    <Link to={item.path!}>
+    <Link to={item.path!} onClick={onClick}>
       <button
         className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-          active
-            ? "bg-[#1276E3] text-white"
-            : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+          active ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
         }`}
       >
         <Icon className="h-5 w-5 shrink-0" />
@@ -363,28 +456,22 @@ function SidebarLink({ item, active }: { item: MenuItem; active: boolean }) {
 
 /* ─── Collapsible parent item ─── */
 function CollapsibleMenu({
-  item,
-  isOpen,
-  onToggle,
-  isActive,
-  isParentActive,
+  item, isOpen, onToggle, isActive, isParentActive, onNavigate,
 }: {
   item: MenuItem;
   isOpen: boolean;
   onToggle: () => void;
   isActive: (path?: string) => boolean;
   isParentActive: boolean;
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
   const navigate = useNavigate();
 
-  /** Click on main label → navigate (if path) + ALWAYS open children */
-  const handleMainClick = (e: React.MouseEvent) => {
-    // Always open the submenu (if closed)
+  // Click main label → navigate to parent path + open submenu
+  const handleMainClick = () => {
     if (!isOpen) onToggle();
-    // Navigate if there's a path
     if (item.path) {
-      e.preventDefault();
       navigate(item.path);
     }
   };
@@ -392,7 +479,6 @@ function CollapsibleMenu({
   return (
     <div>
       <div className="flex">
-        {/* Main button — always handles click manually */}
         <button
           onClick={handleMainClick}
           className={`flex flex-1 items-center gap-3 rounded-s-md px-3 py-2 text-sm transition-colors ${
@@ -407,7 +493,7 @@ function CollapsibleMenu({
           <span className="flex-1 text-start">{item.title}</span>
         </button>
         <button
-          onClick={onToggle}
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
           className={`rounded-e-md px-2 py-2 text-sm transition-colors ${
             isParentActive && isOpen
               ? "bg-[#0B1B49] text-white"
@@ -417,25 +503,28 @@ function CollapsibleMenu({
           }`}
         >
           <ChevronLeft
-            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-              isOpen ? "-rotate-90" : ""
-            }`}
+            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? "-rotate-90" : ""}`}
           />
         </button>
       </div>
 
-      {isOpen && (
+      {/* Animated children */}
+      <div
+        className="overflow-hidden transition-all duration-200 ease-in-out"
+        style={{
+          maxHeight: isOpen ? `${(item.children?.length || 0) * 44}px` : "0px",
+          opacity: isOpen ? 1 : 0,
+        }}
+      >
         <div className="mt-0.5 space-y-0.5">
           {item.children!.map((child) => {
             const ChildIcon = child.icon;
             const active = isActive(child.path);
             return (
-              <Link key={child.path + child.title} to={child.path}>
+              <Link key={child.path + child.title} to={child.path} onClick={onNavigate}>
                 <button
                   className={`flex w-full items-center gap-3 rounded-md ps-10 pe-3 py-2 text-sm transition-colors ${
-                    active
-                      ? "bg-[#1276E3] text-white"
-                      : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+                    active ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
                   }`}
                 >
                   <ChildIcon className="h-4 w-4 shrink-0" />
@@ -445,7 +534,7 @@ function CollapsibleMenu({
             );
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
