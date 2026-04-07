@@ -51,6 +51,7 @@ import { AssetDetail } from "./pages/asset-detail";
 import { Inventory } from "./pages/inventory";
 import { ProductDetail } from "./pages/product-detail";
 import { Payroll } from "./pages/payroll";
+import { Employees } from "./pages/employees";
 import { Contacts } from "./pages/contacts";
 import { ContactDetail } from "./pages/contact-detail";
 import { Reports } from "./pages/reports";
@@ -142,9 +143,10 @@ export const router = createBrowserRouter([
       { path: "products", element: <Inventory />, errorElement: <ErrorBoundary /> },
       { path: "products/:id", element: <ProductDetail />, errorElement: <ErrorBoundary /> },
       { path: "inventory", element: <Inventory />, errorElement: <ErrorBoundary /> },
-      // Payroll
+      // Payroll & Employees
       { path: "payroll", element: <Payroll />, errorElement: <ErrorBoundary /> },
-      // Contacts
+      { path: "employees", element: <Employees />, errorElement: <ErrorBoundary /> },
+      // Contacts (formerly العملاء والموردين)
       { path: "contacts", element: <Contacts />, errorElement: <ErrorBoundary /> },
       { path: "contacts/:id", element: <ContactDetail />, errorElement: <ErrorBoundary /> },
       // Developer
