@@ -8,6 +8,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
 
 /* ════════════════════════════════════════════════════════
    CURRENCY
@@ -82,6 +86,21 @@ export function Inventory() {
   const [perPage, setPerPage] = useState(20);
   const [showPerPageDropdown, setShowPerPageDropdown] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"منتج" | "خدمة">("منتج");
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "منتج" as ItemType,
+    category: "إلكترونيات",
+    warehouse: "المستودع الرئيسي",
+    unit: "قطعة",
+    costPrice: "",
+    sellPrice: "",
+    reorderLevel: "",
+    stock: "",
+    barcode: "",
+    description: ""
+  });
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +117,31 @@ export function Inventory() {
   const typeFilterLabels: Record<string, string> = { "": "الكل", product: "منتج", service: "خدمة", asset: "أصل" };
   const statusToFilter: Record<string, string> = { "متاح": "available", "منخفض": "low", "نفذ": "out" };
   const typeToFilter: Record<string, string> = { "منتج": "product", "خدمة": "service", "أصل": "asset" };
+
+  const handleOpenDialog = (type: "منتج" | "خدمة") => {
+    setDialogType(type);
+    setFormData({ ...formData, type });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("New Item:", formData);
+    setIsDialogOpen(false);
+    setFormData({
+      name: "",
+      type: "منتج",
+      category: "إلكترونيات",
+      warehouse: "المستودع الرئيسي",
+      unit: "قطعة",
+      costPrice: "",
+      sellPrice: "",
+      reorderLevel: "",
+      stock: "",
+      barcode: "",
+      description: ""
+    });
+  };
 
   const filteredProducts = productsData.filter((p) => {
     const matchesSearch = p.name.includes(searchQuery) || p.sku.includes(searchQuery) || p.category.includes(searchQuery);
@@ -138,10 +182,10 @@ export function Inventory() {
           <p className="text-[#6B7280] mt-1">إدارة المنتجات والخدمات والمخزون</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => {}}>
+          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => handleOpenDialog("منتج")}>
             <Plus className="me-2 h-4 w-4" />منتج جديد
           </Button>
-          <Button variant="outline" className="border-[#1276E3] text-[#1276E3]" onClick={() => {}}>
+          <Button variant="outline" className="border-[#1276E3] text-[#1276E3]" onClick={() => handleOpenDialog("خدمة")}>
             <Plus className="me-2 h-4 w-4" />خدمة جديدة
           </Button>
           <Button variant="outline" className="border-[#E5E7EB]">
@@ -440,6 +484,173 @@ export function Inventory() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog for New Product/Service */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">{dialogType} جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-[#374151]">الاسم *</Label>
+                <Input
+                  id="name"
+                  placeholder={dialogType === "منتج" ? "مثال: لابتوب Dell Latitude" : "مثال: خدمة استشارات"}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-[#374151]">التصنيف *</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dialogType === "منتج" ? (
+                        <>
+                          <SelectItem value="إلكترونيات">إلكترونيات</SelectItem>
+                          <SelectItem value="قرطاسية">قرطاسية</SelectItem>
+                          <SelectItem value="أثاث">أثاث</SelectItem>
+                          <SelectItem value="إكسسوارات">إكسسوارات</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="خدمات تقنية">خدمات تقنية</SelectItem>
+                          <SelectItem value="خدمات مهنية">خدمات مهنية</SelectItem>
+                          <SelectItem value="استشارات">استشارات</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unit" className="text-[#374151]">الوحدة *</Label>
+                  <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="قطعة">قطعة</SelectItem>
+                      <SelectItem value="جهاز">جهاز</SelectItem>
+                      <SelectItem value="حزمة">حزمة</SelectItem>
+                      <SelectItem value="خدمة">خدمة</SelectItem>
+                      <SelectItem value="ساعة">ساعة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {dialogType === "منتج" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="warehouse" className="text-[#374151]">المستودع *</Label>
+                    <Select value={formData.warehouse} onValueChange={(value) => setFormData({ ...formData, warehouse: value })}>
+                      <SelectTrigger className="border-[#E5E7EB]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="المستودع الرئيسي">المستودع الرئيسي</SelectItem>
+                        <SelectItem value="المستودع الفرعي">المستودع الفرعي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="stock" className="text-[#374151]">الكمية</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      placeholder="0"
+                      value={formData.stock}
+                      onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                      className="border-[#E5E7EB] font-english"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="costPrice" className="text-[#374151]">سعر التكلفة (SR)</Label>
+                  <Input
+                    id="costPrice"
+                    type="number"
+                    placeholder="0"
+                    value={formData.costPrice}
+                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sellPrice" className="text-[#374151]">سعر البيع (SR) *</Label>
+                  <Input
+                    id="sellPrice"
+                    type="number"
+                    placeholder="0"
+                    value={formData.sellPrice}
+                    onChange={(e) => setFormData({ ...formData, sellPrice: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              {dialogType === "منتج" && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reorderLevel" className="text-[#374151]">حد إعادة الطلب</Label>
+                      <Input
+                        id="reorderLevel"
+                        type="number"
+                        placeholder="0"
+                        value={formData.reorderLevel}
+                        onChange={(e) => setFormData({ ...formData, reorderLevel: e.target.value })}
+                        className="border-[#E5E7EB] font-english"
+                        dir="ltr"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="barcode" className="text-[#374151]">الباركود</Label>
+                      <Input
+                        id="barcode"
+                        placeholder="6281000001010"
+                        value={formData.barcode}
+                        onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                        className="border-[#E5E7EB] font-english"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-[#374151]">الوصف</Label>
+                <Textarea
+                  id="description"
+                  placeholder="وصف تفصيلي..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="border-[#E5E7EB] min-h-[80px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

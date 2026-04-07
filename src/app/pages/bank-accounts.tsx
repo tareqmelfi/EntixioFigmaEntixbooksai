@@ -8,6 +8,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 const CUR = "SR";
 
@@ -46,6 +49,15 @@ export function BankAccounts() {
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [perPage, setPerPage] = useState(20);
   const [showPerPageDropdown, setShowPerPageDropdown] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    bank: "",
+    iban: "",
+    type: "جاري",
+    currency: "SAR",
+    status: "نشط"
+  });
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,6 +75,13 @@ export function BankAccounts() {
   const totalBalance = accounts.filter(a => a.currency === "SAR").reduce((s, a) => s + a.balance, 0);
   const activeCount = accounts.filter(a => a.status === "نشط").length;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("New Bank Account:", formData);
+    setIsDialogOpen(false);
+    setFormData({ name: "", bank: "", iban: "", type: "جاري", currency: "SAR", status: "نشط" });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -71,7 +90,7 @@ export function BankAccounts() {
           <p className="text-[#6B7280] mt-1">إدارة الحسابات البنكية والصناديق</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />حساب بنكي جديد</Button>
+          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />حساب بنكي جديد</Button>
           <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
         </div>
       </div>
@@ -197,6 +216,102 @@ export function BankAccounts() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog for New Bank Account */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">حساب بنكي جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-[#374151]">اسم الحساب *</Label>
+                <Input
+                  id="name"
+                  placeholder="مثال: الحساب الجاري الرئيسي"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank" className="text-[#374151]">البنك *</Label>
+                <Input
+                  id="bank"
+                  placeholder="مثال: البنك الأهلي السعودي"
+                  value={formData.bank}
+                  onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="iban" className="text-[#374151]">رقم IBAN *</Label>
+                <Input
+                  id="iban"
+                  placeholder="SA00 0000 0000 0000 0000 0000"
+                  value={formData.iban}
+                  onChange={(e) => setFormData({ ...formData, iban: e.target.value })}
+                  required
+                  className="border-[#E5E7EB] font-english"
+                  dir="ltr"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="type" className="text-[#374151]">نوع الحساب *</Label>
+                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="جاري">جاري</SelectItem>
+                      <SelectItem value="توفير">توفير</SelectItem>
+                      <SelectItem value="صندوق">صندوق</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency" className="text-[#374151]">العملة *</Label>
+                  <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SAR">SAR - ريال سعودي</SelectItem>
+                      <SelectItem value="USD">USD - دولار أمريكي</SelectItem>
+                      <SelectItem value="EUR">EUR - يورو</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status" className="text-[#374151]">الحالة *</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger className="border-[#E5E7EB]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="نشط">نشط</SelectItem>
+                    <SelectItem value="مجمّد">مجمّد</SelectItem>
+                    <SelectItem value="مغلق">مغلق</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

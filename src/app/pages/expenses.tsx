@@ -4,6 +4,9 @@ import { Receipt, Plus, Search, Eye, X, MoreVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 interface Expense { id: string; category: string; date: string; amount: string; amountNum: number; method: string; account: string; }
 
@@ -16,9 +19,24 @@ const expensesData: Expense[] = [
 export function Expenses() {
   const [selected, setSelected] = useState<Expense | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    category: "",
+    date: "",
+    amount: "",
+    method: "نقداً",
+    account: "5006 مصاريف إدارية"
+  });
 
   const filtered = expensesData.filter((e) => !searchQuery || e.category.includes(searchQuery) || e.id.includes(searchQuery));
   const total = expensesData.reduce((s, e) => s + e.amountNum, 0);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("New Expense:", formData);
+    setIsDialogOpen(false);
+    setFormData({ category: "", date: "", amount: "", method: "نقداً", account: "5006 مصاريف إدارية" });
+  };
 
   if (selected) {
     return (
@@ -54,7 +72,7 @@ export function Expenses() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المصروفات النقدية</h1><p className="text-[#6B7280] mt-1">إدارة المصروفات اليومية</p></div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -80,34 +98,119 @@ export function Expenses() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse" style={{ minWidth: "600px" }}>
-              <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>رقم المصروف</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>التصنيف</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>التاريخ</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>المبلغ (SR)</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>طريقة الدفع</th>
-                  <th className="py-2.5 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "80px" }}>إجراءات</th>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>رقم</th>
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>التصنيف</th>
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>التاريخ</th>
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المبلغ</th>
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الطريقة</th>
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>⋮</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((e) => (
+                <tr key={e.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] transition-colors">
+                  <td className="py-3 px-4"><span className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{e.id}</span></td>
+                  <td className="py-3 px-4"><span className="text-sm text-[#374151]">{e.category}</span></td>
+                  <td className="py-3 px-4"><span className="font-english text-sm text-[#6B7280]">{e.date}</span></td>
+                  <td className="py-3 px-4"><span className="font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{e.amount} SR</span></td>
+                  <td className="py-3 px-4"><span className="text-sm text-[#6B7280]">{e.method}</span></td>
+                  <td className="py-3 px-4">
+                    <button onClick={() => setSelected(e)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><Eye className="h-4 w-4" /></button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((expense) => (
-                  <tr key={expense.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
-                    <td className="py-3.5 pe-4"><button onClick={() => setSelected(expense)} className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{expense.id}</button></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm text-[#374151]">{expense.category}</span></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#6B7280]">{expense.date}</span></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 600 }}>{expense.amount}</span></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm text-[#6B7280]">{expense.method}</span></td>
-                    <td className="py-3.5"><button onClick={() => setSelected(expense)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"><MoreVertical className="h-4 w-4" /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
+
+      {/* Dialog for New Expense */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">مصروف جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-[#374151]">التصنيف *</Label>
+                <Input
+                  id="category"
+                  placeholder="مثال: إيجار المكتب"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date" className="text-[#374151]">التاريخ *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                  className="border-[#E5E7EB] font-english"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount" className="text-[#374151]">المبلغ (SR) *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="0"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  required
+                  className="border-[#E5E7EB] font-english"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="method" className="text-[#374151]">طريقة الدفع *</Label>
+                <Select value={formData.method} onValueChange={(value) => setFormData({ ...formData, method: value })}>
+                  <SelectTrigger className="border-[#E5E7EB]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="نقداً">نقداً</SelectItem>
+                    <SelectItem value="تحويل بنكي">تحويل بنكي</SelectItem>
+                    <SelectItem value="بطاقة ائتمان">بطاقة ائتمان</SelectItem>
+                    <SelectItem value="شيك">شيك</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="account" className="text-[#374151]">حساب المصروف *</Label>
+                <Select value={formData.account} onValueChange={(value) => setFormData({ ...formData, account: value })}>
+                  <SelectTrigger className="border-[#E5E7EB]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5003 الإيجار">5003 - الإيجار</SelectItem>
+                    <SelectItem value="5004 المرافق">5004 - المرافق</SelectItem>
+                    <SelectItem value="5005 الصيانة">5005 - الصيانة</SelectItem>
+                    <SelectItem value="5006 مصاريف إدارية">5006 - مصاريف إدارية</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

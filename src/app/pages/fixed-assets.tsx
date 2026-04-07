@@ -9,6 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -92,6 +96,20 @@ export function FixedAssets() {
   const [perPage, setPerPage] = useState(20);
   const [showPerPageDropdown, setShowPerPageDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "أجهزة حاسب",
+    purchaseDate: "",
+    cost: "",
+    usefulLife: "5",
+    salvageValue: "",
+    method: "قسط ثابت",
+    location: "",
+    serialNumber: "",
+    vendor: "",
+    description: ""
+  });
 
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -133,6 +151,25 @@ export function FixedAssets() {
 
   const activeFilterCount = (categoryFilter ? 1 : 0) + (statusFilter ? 1 : 0);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("New Asset:", formData);
+    setIsDialogOpen(false);
+    setFormData({
+      name: "",
+      category: "أجهزة حاسب",
+      purchaseDate: "",
+      cost: "",
+      usefulLife: "5",
+      salvageValue: "",
+      method: "قسط ثابت",
+      location: "",
+      serialNumber: "",
+      vendor: "",
+      description: ""
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -141,7 +178,7 @@ export function FixedAssets() {
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الأصول الثابتة</h1>
           <p className="text-[#6B7280] mt-1">إدارة الأصول والإهلاك</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />تسجيل أصل جديد</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />تسجيل أصل جديد</Button>
       </div>
 
       {/* KPIs */}
@@ -509,6 +546,163 @@ export function FixedAssets() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog for New Asset */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#0B1B49]">تسجيل أصل ثابت جديد</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-[#374151]">اسم الأصل *</Label>
+                <Input
+                  id="name"
+                  placeholder="مثال: سيرفر Dell PowerEdge"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-[#374151]">التصنيف *</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="purchaseDate" className="text-[#374151]">تاريخ الشراء *</Label>
+                  <Input
+                    id="purchaseDate"
+                    type="date"
+                    value={formData.purchaseDate}
+                    onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cost" className="text-[#374151]">التكلفة (SR) *</Label>
+                  <Input
+                    id="cost"
+                    type="number"
+                    placeholder="0"
+                    value={formData.cost}
+                    onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="salvageValue" className="text-[#374151]">القيمة الخردة (SR)</Label>
+                  <Input
+                    id="salvageValue"
+                    type="number"
+                    placeholder="0"
+                    value={formData.salvageValue}
+                    onChange={(e) => setFormData({ ...formData, salvageValue: e.target.value })}
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="usefulLife" className="text-[#374151]">العمر الإنتاجي (سنوات) *</Label>
+                  <Input
+                    id="usefulLife"
+                    type="number"
+                    placeholder="5"
+                    value={formData.usefulLife}
+                    onChange={(e) => setFormData({ ...formData, usefulLife: e.target.value })}
+                    required
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="method" className="text-[#374151]">طريقة الإهلاك *</Label>
+                  <Select value={formData.method} onValueChange={(value) => setFormData({ ...formData, method: value })}>
+                    <SelectTrigger className="border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="قسط ثابت">قسط ثابت</SelectItem>
+                      <SelectItem value="قسط متناقص">قسط متناقص</SelectItem>
+                      <SelectItem value="وحدات الإنتاج">وحدات الإنتاج</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-[#374151]">الموقع</Label>
+                <Input
+                  id="location"
+                  placeholder="مثال: المكتب الرئيسي - الطابق الثالث"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  className="border-[#E5E7EB]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="serialNumber" className="text-[#374151]">الرقم التسلسلي</Label>
+                  <Input
+                    id="serialNumber"
+                    placeholder="SN-123456"
+                    value={formData.serialNumber}
+                    onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                    className="border-[#E5E7EB] font-english"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vendor" className="text-[#374151]">المورد</Label>
+                  <Input
+                    id="vendor"
+                    placeholder="اسم المورد"
+                    value={formData.vendor}
+                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                    className="border-[#E5E7EB]"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-[#374151]">الوصف</Label>
+                <Textarea
+                  id="description"
+                  placeholder="وصف تفصيلي للأصل..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="border-[#E5E7EB] min-h-[80px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
+                إلغاء
+              </Button>
+              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
