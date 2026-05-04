@@ -1,14 +1,13 @@
-import { DollarSign, FileText, ShoppingBag, Gauge } from "lucide-react";
+/**
+ * Dashboard · org-scoped financial overview
+ * All numbers from /api/dashboard/summary · zero mock data
+ */
+import { DollarSign, FileText, ShoppingBag, Gauge, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { useNavigate } from "react-router";
-import { useState, useMemo } from "react";
-import {
-  gridStyle, xAxisStyle, xAxisNumericStyle, yAxisStyle, yAxisCategoryStyle,
-  tooltipStyle, formatSAR, chartColors, statusColors
-} from "../components/chart-styles";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useEffect, useState, useCallback } from "react";
+import { api, ApiError, DashboardSummary } from "../lib/api";
 
-// Custom legend rendered outside Recharts
 function ChartLegend({ items }: { items: { label: string; color: string; type?: "rect" | "line" }[] }) {
   return (
     <div className="flex justify-center gap-4 pt-2" style={{ fontFamily: "Noto Sans Arabic", fontSize: "11px", color: "#9CA3AF" }}>
@@ -26,390 +25,183 @@ function ChartLegend({ items }: { items: { label: string; color: string; type?: 
   );
 }
 
-// Mock data
-const cashFlowData = [
-  { month: "أكتوبر", inflow: 210000, outflow: 180000 },
-  { month: "نوفمبر", inflow: 240000, outflow: 200000 },
-  { month: "ديسمبر", inflow: 300000, outflow: 220000 },
-  { month: "يناير", inflow: 180000, outflow: 160000 },
-  { month: "فبراير", inflow: 220000, outflow: 190000 },
-  { month: "مارس", inflow: 285000, outflow: 205000 },
-];
-
-const revenueExpensesData = [
-  { month: "أكتوبر", revenue: 250000, expenses: 180000 },
-  { month: "نوفمبر", revenue: 280000, expenses: 200000 },
-  { month: "ديسمبر", revenue: 310000, expenses: 220000 },
-  { month: "يناير", revenue: 240000, expenses: 180000 },
-  { month: "فبراير", revenue: 260000, expenses: 190000 },
-  { month: "مارس", revenue: 295000, expenses: 205000 },
-];
-
-const profitLossData = [
-  { month: "أكتوبر", profit: 70000, loss: 12000 },
-  { month: "نوفمبر", profit: 80000, loss: 5000 },
-  { month: "ديسمبر", profit: 90000, loss: 18000 },
-  { month: "يناير", profit: 60000, loss: 25000 },
-  { month: "فبراير", profit: 70000, loss: 8000 },
-  { month: "مارس", profit: 90000, loss: 3000 },
-];
-
-const revenueBreakdownData = [
-  { category: "فرع أ", value: 95000 },
-  { category: "فرع ب", value: 85000 },
-  { category: "مشروع ص", value: 75000 },
-  { category: "مشروع س", value: 68000 },
-  { category: "مركز تكلفة 1", value: 55000 },
-  { category: "مركز تكلفة 2", value: 42000 },
-];
-
-// VAT data
-const vatCollected = 44250; // VAT on sales (لصالح الضريبة)
-const vatPaid = 30750;      // VAT on purchases (لصالحنا)
-const vatNet = vatCollected - vatPaid; // net payable to tax authority
-
-function VATGauge() {
-  const total = vatCollected + vatPaid;
-  const ratio = vatPaid / total;
-  const collectedRatio = vatCollected / total;
-  
-  // Severity based on net payable ratio
-  const netRatio = vatNet / vatCollected;
-  let severity: "normal" | "warning" | "danger" = "normal";
-  if (netRatio > 0.5) severity = "danger";
-  else if (netRatio > 0.3) severity = "warning";
-
-  // Bar always uses brand colors (teal for tax side, navy for our side)
-  const barColorTax = chartColors.teal;
-  const barColorOurs = chartColors.navy;
-
-  // Net amount uses status colors like invoice statuses
-  const netStatus = severity === "danger"
-    ? statusColors.red
-    : severity === "warning"
-    ? statusColors.amber
-    : statusColors.green;
-
-  // Very subtle glow — barely visible hint
-  const glowStyle = severity === "danger"
-    ? { boxShadow: `0 0 12px 2px rgba(239,68,68,0.06)` }
-    : severity === "warning"
-    ? { boxShadow: `0 0 10px 2px rgba(217,119,6,0.04)` }
-    : {};
-
-  // Net display: positive = علينا (we owe tax), negative = لصالحنا (tax owes us)
-  const isWeOwe = vatNet > 0;
-  const displayAmount = Math.abs(vatNet);
-  const netLabel = isWeOwe ? "علينا" : "لصالحنا";
-
-  return (
-    <Card
-      className="border-[#E5E7EB] transition-all duration-300 active:scale-[0.98]"
-      style={glowStyle}
-    >
-      <CardContent className="pt-5 pb-4 px-5">
-        <div className="flex justify-center mb-3">
-          <div className="rounded-xl bg-[#EFF6FF] p-2.5">
-            <Gauge className="h-5 w-5 text-[#1276E3]" />
-          </div>
-        </div>
-        <p className="text-xs text-[#6B7280] text-center mb-3">ضريبة القيمة المضافة</p>
-        
-        {/* Gauge bar — teal (tax) + navy (ours), matching revenue/expenses palette */}
-        <div className="flex rounded-full overflow-hidden h-3 mb-3" style={{ direction: "ltr" }}>
-          <div
-            className="transition-all duration-500"
-            style={{ width: `${collectedRatio * 100}%`, backgroundColor: barColorTax }}
-          />
-          <div
-            className="transition-all duration-500"
-            style={{ width: `${ratio * 100}%`, backgroundColor: barColorOurs }}
-          />
-        </div>
-        
-        {/* Labels — swapped: لصالحنا right (matches teal bar start), لصالح الضريبة left (matches navy bar end) */}
-        <div className="flex justify-between text-[11px]">
-          <div className="text-center">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorOurs }} />
-              <span className="text-[#6B7280]">لصالحنا</span>
-            </div>
-            <span dir="ltr" className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
-              {vatPaid.toLocaleString()} SR
-            </span>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: barColorTax }} />
-              <span className="text-[#6B7280]">لصالح الضريبة</span>
-            </div>
-            <span dir="ltr" className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
-              {vatCollected.toLocaleString()} SR
-            </span>
-          </div>
-        </div>
-        
-        {/* Net — single row: label right, number center, badge left */}
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-[10px] text-[#6B7280]">صافي المستحق</span>
-          <div dir="ltr" className="flex items-baseline gap-1">
-            <span
-              className="font-english"
-              style={{
-                fontSize: "1.1rem",
-                fontWeight: 700,
-                fontVariantNumeric: "tabular-nums",
-                color: isWeOwe ? "#F59E0B" : "#22C55E",
-              }}
-            >
-              {isWeOwe ? "" : "-"}{displayAmount.toLocaleString()}
-            </span>
-            <span className="text-xs text-[#6B7280] font-english" style={{ fontWeight: 500 }}>SR</span>
-          </div>
-          {isWeOwe ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-[#FEE2E2] px-2 py-0.5 text-[10px] text-[#991B1B]" style={{ fontWeight: 600 }}>علينا</span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-2 py-0.5 text-[10px] text-[#166534]" style={{ fontWeight: 600 }}>لصالحنا ✓</span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function Dashboard() {
-  const navigate = useNavigate();
-  const [activeBar, setActiveBar] = useState<number | null>(null);
+  const [data, setData] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleBarClick = (month: string) => {
-    navigate("/app/reports");
-  };
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await api.dashboard.summary();
+      setData(d);
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "فشل تحميل البيانات");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1276E3]" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error || "تعذّر تحميل بيانات لوحة التحكم"}
+      </div>
+    );
+  }
+
+  const cur = data.org.baseCurrency;
+  const fmt = (n: number) => `${n.toLocaleString()} ${cur}`;
+  const k = data.kpi;
+  const isEmpty = k.revenue === 0 && k.expenses === 0 && k.invoiceCount === 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
-        <p className="text-muted-foreground mt-1">نظرة شاملة على أداءك المالي</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>لوحة التحكم</h1>
+          <p className="text-[#6B7280] mt-1">{data.org.name} · <span className="font-english">{cur}</span></p>
+        </div>
       </div>
+
+      {isEmpty && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-[#1276E3]">
+          مرحباً بك في {data.org.name}! · لا توجد بيانات بعد · ابدأ بإنشاء فاتورة أو مصروف · أو اضغط <strong>المساعد الذكي</strong> ليساعدك
+        </div>
+      )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card
-          className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
-          onDoubleClick={() => navigate("/app/reports")}
-        >
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><DollarSign className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="flex items-baseline justify-center gap-1.5">
-              <span dir="ltr" className="inline-flex items-baseline gap-1.5">
-                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
-                <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>295,000.00</span>
-              </span>
-            </div>
-            <p className="text-xs text-[#6B7280] mt-1">إجمالي الإيرادات</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-[#6B7280] text-sm">
+              <DollarSign className="h-4 w-4" /> إجمالي الإيرادات
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{fmt(k.revenue)}</div>
+            <p className="text-xs text-[#6B7280] mt-1"><span className="font-english">{k.invoiceCount}</span> فاتورة</p>
           </CardContent>
         </Card>
 
-        <Card
-          className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
-          onDoubleClick={() => navigate("/app/sales")}
-        >
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><FileText className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="flex items-baseline justify-center gap-1.5">
-              <span dir="ltr" className="inline-flex items-baseline gap-1.5">
-                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
-                <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>184,500.00</span>
-              </span>
-            </div>
-            <p className="text-xs text-[#6B7280] mt-1">المبيعات</p>
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-[#6B7280] text-sm">
+              <ShoppingBag className="h-4 w-4" /> المشتريات + المصروفات
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{fmt(k.purchases + k.expenses)}</div>
+            <p className="text-xs text-[#6B7280] mt-1">مشتريات <span className="font-english">{k.purchases.toLocaleString()}</span> + مصروفات <span className="font-english">{k.expenses.toLocaleString()}</span></p>
           </CardContent>
         </Card>
 
-        <Card
-          className="border-[#E5E7EB] transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-[#1276E3]/30"
-          onDoubleClick={() => navigate("/app/purchases")}
-        >
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><ShoppingBag className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="flex items-baseline justify-center gap-1.5">
-              <span dir="ltr" className="inline-flex items-baseline gap-1.5">
-                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
-                <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>110,500.00</span>
-              </span>
-            </div>
-            <p className="text-xs text-[#6B7280] mt-1">المشتريات</p>
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-[#6B7280] text-sm">
+              <Gauge className="h-4 w-4" /> ضريبة القيمة المضافة
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{fmt(Math.abs(k.vatNet))}</div>
+            <p className="text-xs mt-1">
+              {k.vatNet >= 0 ? <span className="text-amber-600">علينا للهيئة</span> : <span className="text-green-600">لصالحنا (استرداد)</span>}
+              {" · "}<span className="font-english">{k.vatOutput.toLocaleString()}</span> مخرجات / <span className="font-english">{k.vatInput.toLocaleString()}</span> مدخلات
+            </p>
           </CardContent>
         </Card>
 
-        <VATGauge />
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-[#6B7280] text-sm">
+              <FileText className="h-4 w-4" /> صافي التدفق النقدي
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{fmt(k.receipts - k.payments)}</div>
+            <p className="text-xs text-[#6B7280] mt-1"><span className="font-english">{k.receipts.toLocaleString()}</span> داخل · <span className="font-english">{k.payments.toLocaleString()}</span> خارج</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {/* Profit & Loss Chart */}
-        <Card>
+      {/* Monthly trend chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="border-[#E5E7EB]">
           <CardHeader>
-            <CardTitle className="text-[#0B1B49]">الأرباح والخسائر</CardTitle>
-            <CardDescription className="text-[#B0B7C3]" style={{ fontSize: "12px" }}>ملخص الأرباح والخسائر لآخر ٦ أشهر</CardDescription>
+            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>الإيرادات مقابل المصروفات</CardTitle>
+            <CardDescription className="text-[#6B7280] text-xs">آخر 6 أشهر</CardDescription>
           </CardHeader>
           <CardContent>
-            <div dir="ltr">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={profitLossData} style={{ cursor: "pointer" }}>
-                <CartesianGrid {...gridStyle} />
-                <XAxis dataKey="month" {...xAxisStyle} reversed />
-                <YAxis {...yAxisStyle} orientation="right" />
-                <Tooltip
-                  {...tooltipStyle}
-                  formatter={(value: number) => formatSAR(value)}
-                  cursor={false}
-                />
-                <Bar
-                  dataKey="profit"
-                  fill={chartColors.navySoft}
-                  name="الأرباح"
-                  radius={[8, 8, 0, 0]}
-                  onClick={(data: any) => handleBarClick(data.month)}
-                  onMouseEnter={(_, index) => setActiveBar(index)}
-                  onMouseLeave={() => setActiveBar(null)}
-                >
-                  {profitLossData.map((_, index) => (
-                    <Cell
-                      key={`profit-${index}`}
-                      fill={activeBar === index ? chartColors.navy : chartColors.navySoft}
-                      style={{ transition: "all 0.2s ease", transform: activeBar === index ? "scaleY(1.02)" : "scaleY(1)", transformOrigin: "bottom" }}
-                    />
-                  ))}
-                </Bar>
-                <Bar
-                  dataKey="loss"
-                  fill={chartColors.red}
-                  name="الخسائر"
-                  radius={[8, 8, 0, 0]}
-                  onClick={(data: any) => handleBarClick(data.month)}
-                />
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data.monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ECEEF1" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9CA3AF" }} />
+                <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
+                <Bar dataKey="revenue" fill="#1276E3" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" fill="#0B1B49" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            </div>
-            <ChartLegend items={[
-              { label: "الأرباح", color: chartColors.navy },
-              { label: "الخسائر", color: chartColors.red },
-            ]} />
+            <ChartLegend items={[{ label: "إيرادات", color: "#1276E3" }, { label: "مصروفات", color: "#0B1B49" }]} />
           </CardContent>
         </Card>
 
-        {/* Revenue Breakdown Chart */}
-        <Card>
+        <Card className="border-[#E5E7EB]">
           <CardHeader>
-            <CardTitle className="text-[#0B1B49]">تفصيل الإيرادات</CardTitle>
-            <CardDescription className="text-[#B0B7C3]" style={{ fontSize: "12px" }}>توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة</CardDescription>
+            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>التدفق النقدي</CardTitle>
+            <CardDescription className="text-[#6B7280] text-xs">القبض والصرف · آخر 6 أشهر</CardDescription>
           </CardHeader>
           <CardContent>
-            <div dir="ltr">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueBreakdownData} layout="vertical">
-                <CartesianGrid {...gridStyle} />
-                <XAxis type="number" {...xAxisNumericStyle} />
-                <YAxis
-                  dataKey="category"
-                  type="category"
-                  width={100}
-                  {...yAxisCategoryStyle}
-                  orientation="right"
-                />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} cursor={false} />
-                <Bar
-                  dataKey="value"
-                  fill={chartColors.navySoft}
-                  name="القيمة"
-                  radius={[0, 8, 8, 0]}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => navigate("/app/reports")}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Cash Flow Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[#0B1B49]">التدفق النقدي</CardTitle>
-            <CardDescription className="text-[#B0B7C3]" style={{ fontSize: "12px" }}>تحليل التدفقات النقدية الداخلة والخارجة</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div dir="ltr">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={cashFlowData}>
-                <CartesianGrid {...gridStyle} />
-                <XAxis dataKey="month" {...xAxisStyle} reversed />
-                <YAxis {...yAxisStyle} orientation="right" />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} cursor={false} />
-                <Line
-                  type="monotone"
-                  dataKey="inflow"
-                  stroke={chartColors.navy}
-                  strokeWidth={2}
-                  name="التدفق الداخل"
-                  dot={{ fill: chartColors.navy, r: 3, strokeWidth: 0 }}
-                  activeDot={{ r: 5, strokeWidth: 0 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="outflow"
-                  stroke={chartColors.teal}
-                  strokeWidth={2}
-                  name="التدفق الخارج"
-                  dot={{ fill: chartColors.teal, r: 3, strokeWidth: 0 }}
-                  activeDot={{ r: 5, strokeWidth: 0 }}
-                />
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={data.cashFlowTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ECEEF1" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9CA3AF" }} />
+                <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
+                <Line type="monotone" dataKey="in" stroke="#179FC5" strokeWidth={2} />
+                <Line type="monotone" dataKey="out" stroke="#0B1B49" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
-            </div>
-            <ChartLegend items={[
-              { label: "التدفق الداخل", color: chartColors.navy, type: "line" },
-              { label: "التدفق الخارج", color: chartColors.teal, type: "line" },
-            ]} />
+            <ChartLegend items={[{ label: "تدفق داخل", color: "#179FC5", type: "line" }, { label: "تدفق خارج", color: "#0B1B49", type: "line" }]} />
           </CardContent>
         </Card>
+      </div>
 
-        {/* Revenue vs Expenses Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[#0B1B49]">الإيرادات مقابل المصروفات</CardTitle>
-            <CardDescription className="text-[#B0B7C3]" style={{ fontSize: "12px" }}>مقارنة الإيرادات بالمصروفات لآخر ٦ أشهر</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div dir="ltr">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueExpensesData} style={{ cursor: "pointer" }}>
-                <CartesianGrid {...gridStyle} />
-                <XAxis dataKey="month" {...xAxisStyle} reversed />
-                <YAxis {...yAxisStyle} orientation="right" />
-                <Tooltip {...tooltipStyle} formatter={(value: number) => formatSAR(value)} cursor={false} />
-                <Bar
-                  dataKey="revenue"
-                  fill={chartColors.navySoft}
-                  name="الإيرادات"
-                  radius={[8, 8, 0, 0]}
-                  onClick={() => navigate("/app/reports")}
-                />
-                <Bar
-                  dataKey="expenses"
-                  fill={chartColors.tealSoft}
-                  name="المصروفات"
-                  radius={[8, 8, 0, 0]}
-                  onClick={() => navigate("/app/reports")}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-            </div>
-            <ChartLegend items={[
-              { label: "الإيرادات", color: chartColors.navy },
-              { label: "المصروفات", color: chartColors.teal },
-            ]} />
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="text-[#6B7280] text-xs mb-1">عدد العملاء/الموردين</div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.contactCount}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="text-[#6B7280] text-xs mb-1">فواتير متأخرة</div>
+            <div className={`font-english ${k.overdueCount > 0 ? "text-red-600" : "text-[#0B1B49]"}`} style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.overdueCount}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="text-[#6B7280] text-xs mb-1">إجمالي القبض</div>
+            <div className="font-english text-green-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.receipts.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="text-[#6B7280] text-xs mb-1">إجمالي الصرف</div>
+            <div className="font-english text-amber-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.payments.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>

@@ -166,6 +166,12 @@ export const api = {
       request<{ invoice: Invoice; quoteId: string }>(`/api/quotes/${id}/convert-to-invoice`, { method: 'POST' }),
   },
 
+  // Dashboard — real org-scoped numbers
+  dashboard: {
+    summary: () =>
+      request<DashboardSummary>('/api/dashboard/summary'),
+  },
+
   // OCR — Claude Vision via OpenRouter
   ocr: {
     extract: (data: { fileBase64: string; mimeType: string; docType?: 'receipt' | 'invoice' | 'bill' }) =>
@@ -353,6 +359,25 @@ export interface ExpenseInput {
   taxAmount?: number
   receiptUrl?: string | null
   notes?: string | null
+}
+
+export interface DashboardSummary {
+  org: { id: string; name: string; baseCurrency: string; country: string }
+  kpi: {
+    revenue: number
+    purchases: number
+    expenses: number
+    receipts: number
+    payments: number
+    vatOutput: number
+    vatInput: number
+    vatNet: number
+    invoiceCount: number
+    overdueCount: number
+    contactCount: number
+  }
+  monthlyTrend: Array<{ month: string; revenue: number; expenses: number }>
+  cashFlowTrend: Array<{ month: string; in: number; out: number }>
 }
 
 export interface OcrResult {
