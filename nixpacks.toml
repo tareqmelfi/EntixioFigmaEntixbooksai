@@ -1,0 +1,16 @@
+# nixpacks build config for Coolify
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-9_x"]
+
+[phases.install]
+cmds = ["npm install --legacy-peer-deps --no-audit --no-fund"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "echo 'static build · served via nginx by Coolify' && sleep infinity"
+
+[staticAssets]
+"dist" = "/dist"

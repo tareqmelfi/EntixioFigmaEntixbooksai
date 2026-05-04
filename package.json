@@ -1,5 +1,5 @@
 {
-  "name": "entix-books-app",
+  "name": "@figma/my-make-file",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -67,6 +67,8 @@
     "recharts": "3.8.0",
     "slick-carousel": "^1.8.1",
     "sonner": "2.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "tailwind-merge": "3.2.0",
     "three": "^0.183.2",
     "tw-animate-css": "1.3.8",
@@ -74,21 +76,14 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5"
   },
-  "peerDependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
+  "engines": {
+    "node": ">=22.0.0"
   },
   "pnpm": {
     "overrides": {
