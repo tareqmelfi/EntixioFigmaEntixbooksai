@@ -12,6 +12,7 @@ import {
   Pin, PinOff, MousePointer, EyeOff,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { OrgSwitcher } from "./org-switcher";
 
 interface SubItem {
   title: string;
@@ -316,10 +317,8 @@ function SidebarContent({
           </button>
         </div>
 
-        <button className="mb-2 flex w-full items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F9FAFB]">
-          <span>شركة Entix Books العالمية</span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-[#6B7280]" />
-        </button>
+        <OrgSwitcher />
+
 
         <div className="relative" ref={searchRef}>
           <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />

@@ -300,7 +300,7 @@ export function PurchaseBills() {
           <div className="flex gap-2">
             <Button variant="outline" className="border-[#E5E7EB]" onClick={() => { setView("list"); resetForm(); }}>إلغاء</Button>
             <Button variant="outline" className="border-[#E5E7EB]" onClick={() => handleSave(true)}>حفظ كمسودة</Button>
-            <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => handleSave(false)}>إصدار الفاتورة</Button>
+            <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => handleSave(false)}>إصدار فاتورة المشتريات</Button>
           </div>
         </div>
 
