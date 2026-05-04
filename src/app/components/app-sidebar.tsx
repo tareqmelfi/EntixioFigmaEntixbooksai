@@ -113,7 +113,7 @@ const sections: MenuSection[] = [
   },
   {
     items: [
-      { title: "التعاقد مع محاسب", icon: Handshake, path: "/app/roadmap" },
+      { title: "التعاقد مع محاسب", icon: Handshake, path: "/app/marketplace/accountants" },
     ],
   },
 ];

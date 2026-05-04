@@ -68,16 +68,20 @@ class AuthStore {
         // Pull org info via /me
         const meRes = await fetch(`${API_BASE}/me`, { credentials: 'include' })
         const me = meRes.ok ? await meRes.json() : null
-        const firstOrg = me?.memberships?.[0]
-        if (firstOrg?.org?.id) setOrgId(firstOrg.org.id)
+        const memberships = me?.memberships || []
+        // Respect user's previously-selected org if still valid · fallback to first
+        const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('entix_org_id') : null
+        const matched = stored ? memberships.find((m: any) => m.org?.id === stored) : null
+        const activeMembership = matched || memberships[0]
+        if (activeMembership?.org?.id) setOrgId(activeMembership.org.id)
 
         this.state = {
           user: {
             id: data.user.id,
             email: data.user.email,
             name: data.user.name || '',
-            company: firstOrg?.org?.name || '',
-            role: firstOrg?.role?.toLowerCase?.() === 'owner' ? 'admin' : (firstOrg?.role?.toLowerCase?.() || 'viewer'),
+            company: activeMembership?.org?.name || '',
+            role: activeMembership?.role?.toLowerCase?.() === 'owner' ? 'admin' : (activeMembership?.role?.toLowerCase?.() || 'viewer'),
             avatar: data.user.image || undefined,
             createdAt: data.user.createdAt,
           },

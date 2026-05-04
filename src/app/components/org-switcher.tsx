@@ -120,6 +120,53 @@ export function OrgSwitcher({ className }: Props) {
   );
 }
 
+// Country-specific tax/registration fields
+type CountrySpec = {
+  defaultCurrency: string;
+  fields: { key: string; label: string; placeholder: string; ltr?: boolean; help?: string }[];
+};
+const COUNTRY_SPECS: Record<string, CountrySpec> = {
+  SA: {
+    defaultCurrency: "SAR",
+    fields: [
+      { key: "vatNumber", label: "الرقم الضريبي (ZATCA)", placeholder: "300xxxxxxxxxxxx", ltr: true, help: "15 رقم · يبدأ بـ 3" },
+      { key: "crNumber", label: "السجل التجاري", placeholder: "10xxxxxxxx", ltr: true, help: "10 أرقام · من وزارة التجارة" },
+    ],
+  },
+  AE: {
+    defaultCurrency: "AED",
+    fields: [
+      { key: "vatNumber", label: "رقم التسجيل الضريبي (TRN)", placeholder: "100xxxxxxxxxxxx", ltr: true, help: "15 رقم من FTA" },
+      { key: "crNumber", label: "رقم الرخصة التجارية", placeholder: "DED-xxxxxx", ltr: true },
+    ],
+  },
+  KW: {
+    defaultCurrency: "KWD",
+    fields: [
+      { key: "crNumber", label: "السجل التجاري", placeholder: "xxxxxxx", ltr: true },
+      { key: "vatNumber", label: "الرقم الضريبي (إن وجد)", placeholder: "اختياري", ltr: true },
+    ],
+  },
+  QA: {
+    defaultCurrency: "QAR",
+    fields: [
+      { key: "crNumber", label: "السجل التجاري (CR)", placeholder: "xxxxxx", ltr: true },
+      { key: "vatNumber", label: "الرقم الضريبي (إن وجد)", placeholder: "اختياري", ltr: true },
+    ],
+  },
+  BH: { defaultCurrency: "BHD", fields: [{ key: "crNumber", label: "السجل التجاري (CR)", placeholder: "xxxxx-1", ltr: true }, { key: "vatNumber", label: "الرقم الضريبي", placeholder: "200xxxxxxxxxxxx", ltr: true }] },
+  OM: { defaultCurrency: "OMR", fields: [{ key: "crNumber", label: "السجل التجاري", placeholder: "xxxxxxx", ltr: true }, { key: "vatNumber", label: "الرقم الضريبي", placeholder: "OMxxxxxxxxxx", ltr: true }] },
+  EG: { defaultCurrency: "EGP", fields: [{ key: "crNumber", label: "السجل التجاري", placeholder: "xxxxx", ltr: true }, { key: "vatNumber", label: "البطاقة الضريبية", placeholder: "xxx-xxx-xxx", ltr: true }] },
+  US: {
+    defaultCurrency: "USD",
+    fields: [
+      { key: "vatNumber", label: "EIN (Federal Tax ID)", placeholder: "XX-XXXXXXX", ltr: true, help: "9 digits from IRS · format XX-XXXXXXX" },
+      { key: "crNumber", label: "State / Filing Number", placeholder: "WY · 2026-001234567", ltr: true, help: "ولاية + رقم الـfiling من Secretary of State" },
+    ],
+  },
+  GB: { defaultCurrency: "GBP", fields: [{ key: "crNumber", label: "Companies House Number", placeholder: "12345678", ltr: true }, { key: "vatNumber", label: "VAT Number", placeholder: "GB123456789", ltr: true }] },
+};
+
 function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated: (o: Org) => void }) {
   const [form, setForm] = useState({
     name: "",
@@ -131,6 +178,14 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const spec = COUNTRY_SPECS[form.country] || COUNTRY_SPECS.SA;
+
+  // Auto-set currency when country changes
+  const setCountry = (c: string) => {
+    const newSpec = COUNTRY_SPECS[c];
+    setForm({ ...form, country: c, baseCurrency: newSpec ? newSpec.defaultCurrency : form.baseCurrency });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,19 +252,20 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <label className="text-sm text-[#374151]">الدولة</label>
               <select
                 value={form.country}
-                onChange={(e) => setForm({ ...form, country: e.target.value, baseCurrency: e.target.value === "SA" ? "SAR" : e.target.value === "US" ? "USD" : form.baseCurrency })}
+                onChange={(e) => setCountry(e.target.value)}
                 className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white focus:border-[#1276E3] focus:outline-none"
               >
-                <option value="SA">السعودية</option>
-                <option value="AE">الإمارات</option>
+                <option value="SA">السعودية (KSA)</option>
+                <option value="AE">الإمارات (UAE)</option>
                 <option value="KW">الكويت</option>
                 <option value="QA">قطر</option>
                 <option value="BH">البحرين</option>
                 <option value="OM">عُمان</option>
                 <option value="EG">مصر</option>
-                <option value="US">الولايات المتحدة</option>
-                <option value="GB">المملكة المتحدة</option>
+                <option value="US">الولايات المتحدة (USA)</option>
+                <option value="GB">المملكة المتحدة (UK)</option>
               </select>
+              <p className="text-xs text-[#6B7280]">حقول الضريبة والتسجيل تتغير حسب الدولة</p>
             </div>
             <div className="space-y-1">
               <label className="text-sm text-[#374151]">العملة الأساسية</label>
@@ -231,29 +287,22 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </select>
             </div>
           </div>
+          {/* Country-aware tax/registration fields */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-sm text-[#374151]">الرقم الضريبي</label>
-              <input
-                type="text"
-                value={form.vatNumber}
-                onChange={(e) => setForm({ ...form, vatNumber: e.target.value })}
-                placeholder="300xxxxxxxxxxxx"
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm font-english focus:border-[#1276E3] focus:outline-none"
-                dir="ltr"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm text-[#374151]">السجل التجاري</label>
-              <input
-                type="text"
-                value={form.crNumber}
-                onChange={(e) => setForm({ ...form, crNumber: e.target.value })}
-                placeholder="10xxxxxxxx"
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm font-english focus:border-[#1276E3] focus:outline-none"
-                dir="ltr"
-              />
-            </div>
+            {spec.fields.map((f) => (
+              <div key={f.key} className="space-y-1">
+                <label className="text-sm text-[#374151]">{f.label}</label>
+                <input
+                  type="text"
+                  value={(form as any)[f.key] || ""}
+                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  placeholder={f.placeholder}
+                  className={`w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none ${f.ltr ? "font-english" : ""}`}
+                  dir={f.ltr ? "ltr" : "rtl"}
+                />
+                {f.help && <p className="text-xs text-[#9CA3AF]">{f.help}</p>}
+              </div>
+            ))}
           </div>
           <div className="flex justify-end gap-2 border-t border-[#E5E7EB] pt-3">
             <button type="button" onClick={onClose} className="rounded border border-[#E5E7EB] px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F3F4F6]">
