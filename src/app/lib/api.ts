@@ -151,6 +151,37 @@ export const api = {
       request<void>(`/api/expenses/${id}`, { method: 'DELETE' }),
   },
 
+  // Quotes
+  quotes: {
+    list: (params?: { status?: string }) =>
+      request<{ items: Quote[]; total: number }>('/api/quotes', { query: params }),
+    get: (id: string) => request<Quote>(`/api/quotes/${id}`),
+    create: (data: QuoteInput) =>
+      request<Quote>('/api/quotes', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<QuoteInput>) =>
+      request<Quote>(`/api/quotes/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) =>
+      request<void>(`/api/quotes/${id}`, { method: 'DELETE' }),
+    convertToInvoice: (id: string) =>
+      request<{ invoice: Invoice; quoteId: string }>(`/api/quotes/${id}/convert-to-invoice`, { method: 'POST' }),
+  },
+
+  // Vouchers (سند قبض / سند صرف)
+  vouchers: {
+    list: (params?: { type?: 'RECEIPT' | 'PAYMENT' }) =>
+      request<{ items: Voucher[]; total: number; summary: { sumAmount: string; avgAmount: string } }>(
+        '/api/vouchers',
+        { query: params },
+      ),
+    get: (id: string) => request<Voucher>(`/api/vouchers/${id}`),
+    create: (data: VoucherInput) =>
+      request<Voucher>('/api/vouchers', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<VoucherInput>) =>
+      request<Voucher>(`/api/vouchers/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) =>
+      request<void>(`/api/vouchers/${id}`, { method: 'DELETE' }),
+  },
+
   // Invoices
   invoices: {
     list: (params?: { status?: string; contactId?: string; page?: number; limit?: number }) =>
@@ -307,6 +338,86 @@ export interface ExpenseInput {
   taxAmount?: number
   receiptUrl?: string | null
   notes?: string | null
+}
+
+export interface Quote {
+  id: string
+  orgId: string
+  contactId: string
+  quoteNumber: string
+  status: 'DRAFT' | 'SENT' | 'VIEWED' | 'ACCEPTED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED'
+  issueDate: string
+  validUntil: string
+  currency: string
+  subtotal: string
+  taxTotal: string
+  discountTotal: string
+  total: string
+  notes?: string | null
+  termsConditions?: string | null
+  convertedInvoiceId?: string | null
+  contact?: { id: string; displayName: string; email?: string | null }
+  lines?: Array<{
+    id?: string
+    productId?: string | null
+    description: string
+    quantity: string | number
+    unitPrice: string | number
+    discount?: string | number
+    taxRateId?: string | null
+    subtotal?: string | number
+  }>
+}
+
+export interface QuoteInput {
+  contactId: string
+  quoteNumber?: string
+  status?: Quote['status']
+  issueDate: string
+  validUntil: string
+  currency?: string
+  exchangeRate?: number
+  notes?: string | null
+  termsConditions?: string | null
+  lines: Array<{
+    productId?: string | null
+    description: string
+    quantity: number
+    unitPrice: number
+    discount?: number
+    taxRateId?: string | null
+  }>
+}
+
+export interface Voucher {
+  id: string
+  orgId: string
+  type: 'RECEIPT' | 'PAYMENT'
+  number: string
+  date: string
+  contactId?: string | null
+  amount: string
+  currency: string
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'CARD' | 'STC_PAY' | 'MADA' | 'CHECK' | 'OTHER'
+  reference?: string | null
+  notes?: string | null
+  invoiceId?: string | null
+  billId?: string | null
+  contact?: { id: string; displayName: string }
+}
+
+export interface VoucherInput {
+  type: 'RECEIPT' | 'PAYMENT'
+  number?: string
+  date: string
+  contactId?: string | null
+  amount: number
+  currency?: string
+  paymentMethod: Voucher['paymentMethod']
+  reference?: string | null
+  notes?: string | null
+  invoiceId?: string | null
+  billId?: string | null
 }
 
 export interface Invoice {
