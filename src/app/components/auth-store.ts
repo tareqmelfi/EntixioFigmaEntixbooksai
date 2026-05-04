@@ -144,12 +144,34 @@ class AuthStore {
     }
   }
 
+  /** Cached `/auth-providers` response */
+  private providers: { emailPassword: boolean; google: boolean } | null = null
+
+  async getProviders() {
+    if (this.providers) return this.providers
+    try {
+      const res = await fetch(`${API_BASE}/auth-providers`)
+      this.providers = await res.json()
+    } catch {
+      this.providers = { emailPassword: true, google: false }
+    }
+    return this.providers!
+  }
+
   /** Google OAuth sign-in (browser redirect) */
-  async loginWithGoogle(): Promise<void> {
+  async loginWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    const p = await this.getProviders()
+    if (!p.google) {
+      return {
+        success: false,
+        error: 'تسجيل الدخول عبر Google غير مفعّل بعد · يرجى استخدام البريد وكلمة المرور',
+      }
+    }
     await authClient.signIn.social({
       provider: 'google',
       callbackURL: `${window.location.origin}/app`,
     })
+    return { success: true }
   }
 
   /** Sign out · clears server session + cookie */

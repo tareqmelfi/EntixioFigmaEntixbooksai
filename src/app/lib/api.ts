@@ -135,6 +135,22 @@ export const api = {
       request<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
   },
 
+  // Expenses
+  expenses: {
+    list: (params?: { category?: string; from?: string; to?: string; page?: number; limit?: number }) =>
+      request<PaginatedResponse<Expense> & { summary: { sumTotal: string; avgTotal: string } }>(
+        '/api/expenses',
+        { query: params },
+      ),
+    get: (id: string) => request<Expense>(`/api/expenses/${id}`),
+    create: (data: ExpenseInput) =>
+      request<Expense>('/api/expenses', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<ExpenseInput>) =>
+      request<Expense>(`/api/expenses/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) =>
+      request<void>(`/api/expenses/${id}`, { method: 'DELETE' }),
+  },
+
   // Invoices
   invoices: {
     list: (params?: { status?: string; contactId?: string; page?: number; limit?: number }) =>
@@ -254,6 +270,43 @@ export interface AccountInput {
   type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
   subtype?: string | null
   parentId?: string | null
+}
+
+export interface Expense {
+  id: string
+  orgId: string
+  number: string
+  date: string
+  category: string
+  description?: string | null
+  amount: string
+  currency: string
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'CARD' | 'STC_PAY' | 'MADA' | 'CHECK' | 'OTHER'
+  vendorName?: string | null
+  reference?: string | null
+  taxRateId?: string | null
+  taxAmount: string
+  total: string
+  receiptUrl?: string | null
+  notes?: string | null
+  createdAt: string
+  taxRate?: { name: string; rate: string } | null
+}
+
+export interface ExpenseInput {
+  number?: string
+  date: string
+  category: string
+  description?: string | null
+  amount: number
+  currency?: string
+  paymentMethod: Expense['paymentMethod']
+  vendorName?: string | null
+  reference?: string | null
+  taxRateId?: string | null
+  taxAmount?: number
+  receiptUrl?: string | null
+  notes?: string | null
 }
 
 export interface Invoice {

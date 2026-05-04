@@ -39,12 +39,21 @@ export function Register() {
     setError(null);
     setGoogleLoading(true);
     try {
-      await authStore.loginWithGoogle();
+      const r = await authStore.loginWithGoogle();
+      if (!r.success) {
+        setError(r.error || "تعذّر الاتصال بـGoogle");
+        setGoogleLoading(false);
+      }
     } catch (e: any) {
       setError(e?.message || "تعذّر الاتصال بـGoogle");
       setGoogleLoading(false);
     }
   };
+
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  useEffect(() => {
+    authStore.getProviders().then(p => setGoogleEnabled(p.google));
+  }, []);
 
   return (
     <div className="min-h-screen flex" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
@@ -164,14 +173,15 @@ export function Register() {
             </button>
           </form>
 
-          {/* Divider */}
+          {googleEnabled && (
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-[#E5E7EB]" />
             <span className="text-[#9CA3AF]" style={{ fontSize: "12px" }}>أو</span>
             <div className="flex-1 h-px bg-[#E5E7EB]" />
           </div>
+          )}
 
-          {/* Google OAuth */}
+          {googleEnabled && (
           <button
             type="button"
             onClick={handleGoogle}
@@ -191,6 +201,7 @@ export function Register() {
             )}
             التسجيل عبر Google
           </button>
+          )}
 
           <div className="mt-6 text-center">
             <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>لديك حساب بالفعل؟ </span>
