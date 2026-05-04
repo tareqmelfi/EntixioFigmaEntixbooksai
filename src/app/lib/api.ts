@@ -166,6 +166,21 @@ export const api = {
       request<{ invoice: Invoice; quoteId: string }>(`/api/quotes/${id}/convert-to-invoice`, { method: 'POST' }),
   },
 
+  // OCR — Claude Vision via OpenRouter
+  ocr: {
+    extract: (data: { fileBase64: string; mimeType: string; docType?: 'receipt' | 'invoice' | 'bill' }) =>
+      request<{ extracted: OcrResult; cost?: any; model?: string }>('/api/ocr/extract', { method: 'POST', body: data }),
+  },
+
+  // Agent — Claude with tool calling
+  agent: {
+    chat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+      request<{ message: string; toolResults: Array<{ tool: string; args: any; result: any }> }>(
+        '/api/agent/chat',
+        { method: 'POST', body: { messages } },
+      ),
+  },
+
   // Vouchers (سند قبض / سند صرف)
   vouchers: {
     list: (params?: { type?: 'RECEIPT' | 'PAYMENT' }) =>
@@ -338,6 +353,27 @@ export interface ExpenseInput {
   taxAmount?: number
   receiptUrl?: string | null
   notes?: string | null
+}
+
+export interface OcrResult {
+  vendor: string | null
+  vendorVat: string | null
+  buyer: string | null
+  documentNumber: string | null
+  issueDate: string | null
+  dueDate: string | null
+  currency: string | null
+  subtotal: number | null
+  taxRate: number | null
+  taxAmount: number | null
+  discount: number | null
+  total: number
+  paymentMethod: string | null
+  category: string | null
+  lineItems: Array<{ description: string; quantity: number; unitPrice: number; taxRate: number | null; subtotal: number }>
+  confidence: number
+  language: 'ar' | 'en' | 'mixed'
+  warnings: string[]
 }
 
 export interface Quote {
