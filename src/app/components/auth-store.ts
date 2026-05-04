@@ -19,16 +19,18 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-// Default registered user
+// Default demo user (V0.1 only · localStorage demo · NOT real auth)
+// 🔒 V0.2 will replace this with Logto JWT verification (auth.entix.io)
+// Demo password is intentionally weak and visible — DO NOT reuse anywhere else.
 const DEFAULT_USERS: (User & { password: string })[] = [
   {
-    id: 'usr_001',
-    email: 'tareq@fc.sa',
-    password: 'Hh8787965',
-    name: 'طارق',
+    id: 'usr_demo',
+    email: 'demo@entix.io',
+    password: 'EntixDemo2026!',
+    name: 'مستخدم تجريبي',
     company: 'Entix Books',
     role: 'admin',
-    createdAt: '2025-01-01T00:00:00Z',
+    createdAt: '2026-01-01T00:00:00Z',
   },
 ];
 
