@@ -108,6 +108,10 @@ export const api = {
     create: (data: CreateOrgInput) =>
       request<Org>('/orgs', { method: 'POST', body: data, skipOrg: true }),
     get: (id: string) => request<Org>(`/orgs/${id}`, { skipOrg: true }),
+    update: (id: string, data: Partial<Org>) =>
+      request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
+    members: (id: string) =>
+      request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),
   },
 
   // Contacts
