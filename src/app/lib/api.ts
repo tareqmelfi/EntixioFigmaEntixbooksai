@@ -183,6 +183,44 @@ export const api = {
     remove: (id: string) => request<void>(`/api/bills/${id}`, { method: 'DELETE' }),
   },
 
+  // Branches
+  branches: {
+    list: () => request<{ items: any[]; total: number }>('/api/branches'),
+    create: (data: { name: string; code?: string; address?: string }) =>
+      request<any>('/api/branches', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/branches/${id}`, { method: 'DELETE' }),
+  },
+
+  // Cost Centers
+  costCenters: {
+    list: () => request<{ items: any[]; total: number }>('/api/cost-centers'),
+    create: (data: { code: string; name: string }) =>
+      request<any>('/api/cost-centers', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/cost-centers/${id}`, { method: 'DELETE' }),
+  },
+
+  // Projects
+  projects: {
+    list: () => request<{ items: any[]; total: number }>('/api/projects'),
+    create: (data: any) => request<any>('/api/projects', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
+  },
+
+  // Fixed Assets
+  fixedAssets: {
+    list: () => request<{ items: any[]; total: number; totalCost: number; netBookValue: number; totalDepreciation: number }>('/api/fixed-assets'),
+    create: (data: any) => request<any>('/api/fixed-assets', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/fixed-assets/${id}`, { method: 'DELETE' }),
+  },
+
+  // Products
+  products: {
+    list: (params?: { type?: 'SERVICE' | 'GOOD' | 'INVENTORY' }) =>
+      request<{ items: any[]; total: number }>('/api/products', { query: params }),
+    create: (data: any) => request<any>('/api/products', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/products/${id}`, { method: 'DELETE' }),
+  },
+
   // Bank Accounts
   bankAccounts: {
     list: () => request<{ items: BankAccount[]; total: number; totalBalance: number }>('/api/bank-accounts'),
