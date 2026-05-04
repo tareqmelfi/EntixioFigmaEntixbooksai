@@ -168,8 +168,27 @@ export const api = {
 
   // Dashboard — real org-scoped numbers
   dashboard: {
-    summary: () =>
-      request<DashboardSummary>('/api/dashboard/summary'),
+    summary: () => request<DashboardSummary>('/api/dashboard/summary'),
+    sales: () => request<SalesDashboard>('/api/dashboard/sales'),
+    purchases: () => request<PurchasesDashboard>('/api/dashboard/purchases'),
+  },
+
+  // Bills (purchase invoices)
+  bills: {
+    list: (params?: { status?: string }) =>
+      request<{ items: any[]; total: number }>('/api/bills', { query: params }),
+    get: (id: string) => request<any>(`/api/bills/${id}`),
+    create: (data: any) => request<any>('/api/bills', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/bills/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void>(`/api/bills/${id}`, { method: 'DELETE' }),
+  },
+
+  // Bank Accounts
+  bankAccounts: {
+    list: () => request<{ items: BankAccount[]; total: number; totalBalance: number }>('/api/bank-accounts'),
+    create: (data: BankAccountInput) => request<BankAccount>('/api/bank-accounts', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<BankAccountInput>) => request<BankAccount>(`/api/bank-accounts/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void>(`/api/bank-accounts/${id}`, { method: 'DELETE' }),
   },
 
   // OCR — Claude Vision via OpenRouter
@@ -359,6 +378,46 @@ export interface ExpenseInput {
   taxAmount?: number
   receiptUrl?: string | null
   notes?: string | null
+}
+
+export interface SalesDashboard {
+  org: { name: string; baseCurrency: string }
+  thisMonth: { total: number; paid: number; count: number }
+  ytd: { total: number; paid: number; count: number }
+  allTime: { total: number; paid: number; count: number; outstanding: number }
+  byStatus: Array<{ status: string; count: number; total: number }>
+  recentInvoices: Array<{ id: string; number: string; contact: string; status: string; total: number; paid: number; date: string }>
+  topCustomers: Array<{ contactId: string; name: string; total: number }>
+}
+
+export interface PurchasesDashboard {
+  org: { name: string; baseCurrency: string }
+  thisMonth: { bills: number; billCount: number }
+  ytd: { bills: number; billCount: number; expenses: number; expenseCount: number; total: number }
+  expensesByCategory: Array<{ category: string; total: number }>
+  topSuppliers: Array<{ contactId: string; name: string; total: number }>
+  recentBills: Array<{ id: string; number: string; contact: string; status: string; total: number; date: string }>
+}
+
+export interface BankAccount {
+  id: string
+  orgId: string
+  name: string
+  bankName?: string | null
+  accountNumber?: string | null
+  iban?: string | null
+  currency: string
+  balance: string
+  isActive: boolean
+}
+
+export interface BankAccountInput {
+  name: string
+  bankName?: string | null
+  accountNumber?: string | null
+  iban?: string | null
+  currency?: string
+  balance?: number
 }
 
 export interface DashboardSummary {

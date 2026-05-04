@@ -1,291 +1,184 @@
-import { useState } from "react";
-import { BookOpen, Plus, Search, ChevronDown, ChevronLeft, MoreHorizontal, Edit2, Trash2, X, Eye } from "lucide-react";
+/**
+ * Chart of Accounts · wired to /api/accounts
+ */
+import { useEffect, useState, useCallback } from "react";
+import { BookOpen, Plus, Search, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
-import { Badge } from "../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { api, ApiError, Account } from "../lib/api";
 
-interface Account {
-  code: string;
-  name: string;
-  type: string;
-  balance: number;
-  children?: Account[];
-}
-
-const typeBadge = (t: string) => {
-  const m: Record<string, string> = { "أصل": "bg-[#DBEAFE] text-[#1E40AF]", "التزام": "bg-[#E4F4F9] text-[#349FC4]", "حقوق الملكية": "bg-[#FEF3C7] text-[#92400E]", "إيراد": "bg-[#ECEEF5] text-[#0B1A47]", "مصروف": "bg-[#F3F4F6] text-[#374151]" };
-  return m[t] || "";
+const TYPE_LABELS: Record<string, string> = {
+  ASSET: "أصل", LIABILITY: "التزام", EQUITY: "حقوق ملكية", REVENUE: "إيراد", EXPENSE: "مصروف",
 };
-
-const accountTree: Account[] = [
-  { code: "1000", name: "الأصول", type: "أصل", balance: 920000, children: [
-    { code: "1100", name: "الأصول المتداولة", type: "أصل", balance: 680000, children: [
-      { code: "1101", name: "النقدية", type: "أصل", balance: 230000 },
-      { code: "1102", name: "البنك", type: "أصل", balance: 450000 },
-      { code: "1103", name: "الذمم المدينة", type: "أصل", balance: 240000 },
-    ]},
-    { code: "1200", name: "الأصول الثابتة", type: "أصل", balance: 240000, children: [
-      { code: "1201", name: "المعدات", type: "أصل", balance: 120000 },
-      { code: "1202", name: "الأثاث", type: "أصل", balance: 35000 },
-      { code: "1203", name: "أجهزة الحاسب", type: "أصل", balance: 53000 },
-      { code: "1204", name: "المركبات", type: "أصل", balance: 80000 },
-    ]},
-  ]},
-  { code: "2000", name: "الخصوم", type: "التزام", balance: 310000, children: [
-    { code: "2100", name: "الخصوم المتداولة", type: "التزام", balance: 310000, children: [
-      { code: "2101", name: "الذمم الدائنة", type: "التزام", balance: 260000 },
-      { code: "2102", name: "ضريبة القيمة المضافة المستحقة", type: "التزام", balance: 50000 },
-    ]},
-  ]},
-  { code: "3000", name: "حقوق الملكية", type: "حقوق الملكية", balance: 1270000, children: [
-    { code: "3001", name: "رأس المال", type: "حقوق الملكية", balance: 1000000 },
-    { code: "3002", name: "الأرباح المبقاة", type: "حقوق الملكية", balance: 270000 },
-  ]},
-  { code: "4000", name: "الإيرادات", type: "إيراد", balance: 1250000, children: [
-    { code: "4001", name: "إيرادات المبيعات", type: "إيراد", balance: 1180000 },
-    { code: "4002", name: "إيرادات أخرى", type: "إيراد", balance: 70000 },
-  ]},
-  { code: "5000", name: "المصروفات", type: "مصروف", balance: 980000, children: [
-    { code: "5001", name: "تكلفة المبيعات", type: "مصروف", balance: 650000 },
-    { code: "5002", name: "الرواتب والأجور", type: "مصروف", balance: 180000 },
-    { code: "5003", name: "الإيجار", type: "مصروف", balance: 60000 },
-    { code: "5004", name: "المرافق", type: "مصروف", balance: 25000 },
-    { code: "5005", name: "الصيانة", type: "مصروف", balance: 15000 },
-    { code: "5006", name: "مصاريف إدارية", type: "مصروف", balance: 50000 },
-  ]},
-];
-
-// Map KPI label → account tree code for filtering
-const kpiCodeMap: Record<string, string> = {
-  "الأصول": "1000",
-  "الالتزامات": "2000",
-  "حقوق الملكية": "3000",
-  "الإيرادات": "4000",
-  "المصروفات": "5000",
+const TYPE_COLORS: Record<string, string> = {
+  ASSET: "bg-blue-100 text-blue-700",
+  LIABILITY: "bg-red-100 text-red-700",
+  EQUITY: "bg-purple-100 text-purple-700",
+  REVENUE: "bg-green-100 text-green-700",
+  EXPENSE: "bg-amber-100 text-amber-700",
 };
 
 export function ChartOfAccounts() {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["1000", "2000", "3000", "4000", "5000"]));
+  const [items, setItems] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [filterType, setFilterType] = useState<string>("ALL");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ code: "", name: "", nameAr: "", type: "ASSET" as Account["type"] });
 
-  const toggle = (code: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      next.has(code) ? next.delete(code) : next.add(code);
-      return next;
-    });
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const d = await api.accounts.list();
+      setItems(d.items);
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "فشل التحميل");
+    } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const filtered = items.filter(a => {
+    if (filterType !== "ALL" && a.type !== filterType) return false;
+    if (searchQuery) return a.code.includes(searchQuery) || a.name.includes(searchQuery) || (a.nameAr || "").includes(searchQuery);
+    return true;
+  });
+
+  const counts = items.reduce((acc: Record<string, number>, a) => {
+    acc[a.type] = (acc[a.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const resetForm = () => setForm({ code: "", name: "", nameAr: "", type: "ASSET" });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!form.code.trim() || !form.name.trim()) { setError("الرمز والاسم مطلوبان"); return; }
+    setBusy(true);
+    try {
+      const a = await api.accounts.create({
+        code: form.code.trim(), name: form.name.trim(),
+        nameAr: form.nameAr.trim() || null,
+        type: form.type,
+      });
+      setItems(prev => [...prev, a].sort((a, b) => a.code.localeCompare(b.code)));
+      setOpen(false); resetForm();
+    } catch (e: any) {
+      setError(e instanceof ApiError ? (e.message === "code_already_exists" ? "الرمز موجود مسبقاً" : e.message) : "فشل الحفظ");
+    } finally { setBusy(false); }
   };
 
-  // Filter: when a KPI card is clicked, expand only that category
-  const handleKpiClick = (label: string) => {
-    const code = kpiCodeMap[label];
-    if (activeFilter === code) {
-      // Reset: show all
-      setActiveFilter(null);
-      setExpanded(new Set(["1000", "2000", "3000", "4000", "5000"]));
-    } else {
-      setActiveFilter(code);
-      // Expand this category and its children
-      const newExpanded = new Set<string>();
-      const expandAll = (accts: Account[]) => {
-        accts.forEach((a) => { newExpanded.add(a.code); if (a.children) expandAll(a.children); });
-      };
-      const target = accountTree.find((a) => a.code === code);
-      if (target) { newExpanded.add(target.code); if (target.children) expandAll(target.children); }
-      setExpanded(newExpanded);
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm("هل تريد إخفاء الحساب؟")) return;
+    try {
+      await api.accounts.remove(id);
+      setItems(prev => prev.filter(x => x.id !== id));
+    } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
-
-  const filteredTree = activeFilter ? accountTree.filter((a) => a.code === activeFilter) : accountTree;
-
-  const kpis = [
-    { label: "الأصول", value: 920000, color: "#1276E3" },
-    { label: "الالتزامات", value: 310000, color: "#349FC4" },
-    { label: "حقوق الملكية", value: 1270000, color: "#F59E0B" },
-    { label: "الإيرادات", value: 1250000, color: "#0B1A47" },
-    { label: "المصروفات", value: 980000, color: "#6B7280" },
-  ];
-
-  // Detail view for a selected leaf account
-  if (selectedAccount) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setSelectedAccount(null)} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
-          <div>
-            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}><span className="font-english">{selectedAccount.code}</span> — {selectedAccount.name}</h1>
-            <Badge className={`text-xs ${typeBadge(selectedAccount.type)}`}>{selectedAccount.type}</Badge>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-            <h3 className="text-[#0B1B49] mb-3" style={{ fontWeight: 600 }}>معلومات الحساب</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-[#6B7280]">رمز الحساب:</span><span className="font-english">{selectedAccount.code}</span></div>
-              <div className="flex justify-between"><span className="text-[#6B7280]">اسم الحساب:</span><span>{selectedAccount.name}</span></div>
-              <div className="flex justify-between"><span className="text-[#6B7280]">النوع:</span><Badge className={`text-xs ${typeBadge(selectedAccount.type)}`}>{selectedAccount.type}</Badge></div>
-            </div>
-          </CardContent></Card>
-          <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-            <h3 className="text-[#0B1B49] mb-3" style={{ fontWeight: 600 }}>الرصيد</h3>
-            <div className="font-english" style={{ fontSize: "2rem", fontWeight: 700, color: selectedAccount.type === "إيراد" ? "#0B1A47" : selectedAccount.type === "مصروف" ? "#6B7280" : "#0B1B49" }}>
-              {selectedAccount.balance.toLocaleString()} SR
-            </div>
-          </CardContent></Card>
-        </div>
-        {/* Sample transactions */}
-        <Card className="border-[#E5E7EB]">
-          <CardHeader><CardTitle className="text-[#0B1B49]">آخر الحركات</CardTitle></CardHeader>
-          <CardContent>
-            <table className="w-full border-collapse" style={{ minWidth: "500px" }}>
-              <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>التاريخ</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المرجع</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الوصف</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>مدين</th>
-                  <th className="py-2.5 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>دائن</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                  <td className="py-2.5 pe-4 text-sm font-english text-[#6B7280]">2026-03-01</td>
-                  <td className="py-2.5 pe-4"><button className="text-sm font-english text-[#1276E3] hover:underline">JE-001</button></td>
-                  <td className="py-2.5 pe-4 text-sm text-[#374151]">قيد افتتاحي</td>
-                  <td className="py-2.5 pe-4 text-sm font-english">{selectedAccount.balance > 100000 ? "140,000" : "—"}</td>
-                  <td className="py-2.5 text-sm font-english">{selectedAccount.balance > 100000 ? "—" : "140,000"}</td>
-                </tr>
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>دليل الحسابات</h1><p className="text-[#6B7280] mt-1">إدارة شجرة الحسابات المحاسبية</p></div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setShowCreateForm(!showCreateForm)}><Plus className="me-2 h-4 w-4" />حساب جديد</Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>دليل الحسابات</h1>
+          <p className="text-[#6B7280] mt-1">شجرة الحسابات حسب التصنيف</p>
+        </div>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />حساب جديد</Button>
       </div>
 
-      {/* KPI Cards — Clickable to filter */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} onClick={() => handleKpiClick(kpi.label)} className="cursor-pointer">
-            <Card className={`border-[#E5E7EB] hover:shadow-md transition-all ${activeFilter === kpiCodeMap[kpi.label] ? "ring-2" : ""}`} style={{ borderColor: activeFilter === kpiCodeMap[kpi.label] ? kpi.color + "40" : undefined }}>
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">{kpi.label}</CardTitle></CardHeader>
-              <CardContent><div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, color: kpi.color }}>{kpi.value.toLocaleString()} SR</div></CardContent>
-            </Card>
-          </div>
+      {error && !open && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {(["ALL", "ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as const).slice(0, 6).map(t => (
+          <button
+            key={t}
+            onClick={() => setFilterType(t)}
+            className={`rounded-lg border px-4 py-3 text-start transition-colors ${filterType === t ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] hover:bg-[#F9FAFB]"}`}
+          >
+            <div className="text-xs text-[#6B7280] mb-1">{t === "ALL" ? "الكل" : TYPE_LABELS[t]}</div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t === "ALL" ? items.length : (counts[t] || 0)}</div>
+          </button>
         ))}
       </div>
 
-      {activeFilter && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#6B7280]">تصفية حسب:</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-xs text-[#1E40AF]" style={{ fontWeight: 600 }}>
-            {kpis.find((k) => kpiCodeMap[k.label] === activeFilter)?.label}
-            <button onClick={() => { setActiveFilter(null); setExpanded(new Set(["1000", "2000", "3000", "4000", "5000"])); }} className="ms-1 hover:opacity-70"><X className="h-3 w-3" /></button>
-          </span>
-        </div>
-      )}
-
-      {showCreateForm && (
-        <Card className="border-[#1276E3] bg-[#1276E3]/5">
-          <CardHeader><CardTitle className="text-[#0B1B49]">إضافة حساب جديد</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div className="space-y-2"><Label>رمز الحساب</Label><Input placeholder="مثال: 1104" className="font-english" dir="ltr" /></div>
-              <div className="space-y-2"><Label>اسم الحساب</Label><Input placeholder="اسم الحساب" /></div>
-              <div className="space-y-2"><Label>النوع</Label>
-                <select className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5 text-sm focus:border-[#1276E3] focus:outline-none">
-                  <option>أصل</option><option>التزام</option><option>حقوق الملكية</option><option>إيراد</option><option>مصروف</option>
-                </select>
-              </div>
-              <div className="space-y-2"><Label>الحساب الأب</Label>
-                <select className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5 text-sm focus:border-[#1276E3] focus:outline-none">
-                  <option>بدون (حساب رئيسي)</option>
-                  {accountTree.map((a) => <option key={a.code} value={a.code}>{a.code} {a.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setShowCreateForm(false)}>حفظ</Button>
-              <Button variant="outline" className="border-[#E5E7EB]" onClick={() => setShowCreateForm(false)}>إلغاء</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <Card className="border-[#E5E7EB]">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-[#0B1B49]">شجرة الحسابات</CardTitle>
-            <div className="relative w-full sm:w-64"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-full ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[#0B1B49]">الحسابات</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-64 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6">
-          <div className="space-y-0">
-            {filteredTree.map((account) => (
-              <AccountRow key={account.code} account={account} level={0} expanded={expanded} onToggle={toggle} searchQuery={searchQuery} onSelect={setSelectedAccount} />
-            ))}
-          </div>
+        <CardContent>
+          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+           filtered.length === 0 ? (
+            <div className="py-12 text-center"><BookOpen className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد حسابات</p></div>
+          ) : (
+            <table className="w-full">
+              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التصنيف</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+              </tr></thead>
+              <tbody>
+                {filtered.map(a => (
+                  <tr key={a.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                    <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{a.code}</td>
+                    <td className="py-3 px-4 text-sm">
+                      <div className="text-[#0B1B49]" style={{ fontWeight: 500 }}>{a.nameAr || a.name}</div>
+                      {a.nameAr && <div className="text-xs text-[#6B7280] font-english">{a.name}</div>}
+                    </td>
+                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${TYPE_COLORS[a.type]}`}>{TYPE_LABELS[a.type]}</span></td>
+                    <td className="py-3 px-4">
+                      <button onClick={() => handleDelete(a.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); resetForm(); } }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader><DialogTitle className="text-[#0B1B49]">حساب جديد</DialogTitle></DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="text-[#374151]">الرمز *</Label>
+                  <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="61000" required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <div className="space-y-2"><Label className="text-[#374151]">التصنيف *</Label>
+                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as Account["type"] })}>
+                    <SelectTrigger className="border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ASSET">أصل (Asset)</SelectItem>
+                      <SelectItem value="LIABILITY">التزام (Liability)</SelectItem>
+                      <SelectItem value="EQUITY">حقوق ملكية (Equity)</SelectItem>
+                      <SelectItem value="REVENUE">إيراد (Revenue)</SelectItem>
+                      <SelectItem value="EXPENSE">مصروف (Expense)</SelectItem>
+                    </SelectContent>
+                  </Select></div>
+              </div>
+              <div className="space-y-2"><Label className="text-[#374151]">الاسم بالإنجليزية *</Label>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Office Supplies" required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">الاسم بالعربية</Label>
+                <Input value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} placeholder="مستلزمات مكتبية" className="border-[#E5E7EB]" /></div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
-}
-
-function AccountRow({ account, level, expanded, onToggle, searchQuery, onSelect }: {
-  account: Account; level: number; expanded: Set<string>; onToggle: (code: string) => void; searchQuery: string; onSelect: (a: Account) => void;
-}) {
-  const hasChildren = account.children && account.children.length > 0;
-  const isExpanded = expanded.has(account.code);
-  const matchesSearch = !searchQuery || account.name.includes(searchQuery) || account.code.includes(searchQuery);
-
-  if (!matchesSearch && !hasChildren) return null;
-
-  return (
-    <>
-      <div
-        className="flex items-center gap-3 border-b border-[#F3F4F6] py-3 hover:bg-[#F4FCFF] transition-colors"
-        style={{ paddingInlineStart: `${level * 24 + 16}px` }}
-      >
-        {hasChildren ? (
-          <button onClick={() => onToggle(account.code)} className="rounded p-0.5 hover:bg-[#E5E7EB]">
-            {isExpanded ? <ChevronDown className="h-4 w-4 text-[#6B7280]" /> : <ChevronLeft className="h-4 w-4 text-[#6B7280]" />}
-          </button>
-        ) : (
-          <span className="w-5" />
-        )}
-        <span className="font-english text-sm text-[#6B7280] w-12" style={{ fontWeight: 500 }}>{account.code}</span>
-        <button
-          onClick={() => hasChildren ? onToggle(account.code) : onSelect(account)}
-          className={`flex-1 text-start text-sm transition-colors ${hasChildren ? "text-[#0B1B49]" : "text-[#374151] hover:text-[#1276E3] hover:underline"}`}
-          style={{ fontWeight: hasChildren ? 600 : 400 }}
-        >
-          {account.name}
-        </button>
-        <Badge className={`text-xs ${typeBadge(account.type)}`}>{account.type}</Badge>
-        <button
-          onClick={() => onSelect(account)}
-          className="font-english text-sm min-w-[100px] text-end hover:text-[#1276E3] hover:underline transition-colors cursor-pointer"
-          style={{ fontWeight: 500 }}
-        >
-          {account.balance.toLocaleString()} SR
-        </button>
-        <button className="rounded p-1 text-[#6B7280] hover:bg-[#F3F4F6]"><MoreHorizontal className="h-4 w-4" /></button>
-      </div>
-      {hasChildren && isExpanded && account.children!.map((child) => (
-        <AccountRow key={child.code} account={child} level={level + 1} expanded={expanded} onToggle={onToggle} searchQuery={searchQuery} onSelect={onSelect} />
-      ))}
-    </>
   );
 }
