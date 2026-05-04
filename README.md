@@ -205,3 +205,11 @@ Tenant Schemas (Per Company):
 **المرحلة الحالية**: MVP (Phase 1)
 
 </div>
+
+## Deployment
+
+- **Production:** https://entix.io (Netlify · Cloudflare proxy)
+- **Build:** `npm install --legacy-peer-deps && npm run build`
+- **Output:** `dist/`
+- **Database:** Coolify Postgres `entix-books-db` on USFC-LAB-INT-VPS-MAIN-01
+- **Auth (planned):** Logto via auth.entix.io
