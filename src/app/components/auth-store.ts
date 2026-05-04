@@ -1,119 +1,168 @@
 /**
- * Entix Books — Auth Store
- * Simple auth state management with localStorage persistence.
- * Future: Replace with VPS JWT/session-based auth.
+ * Entix Books · Auth Store (better-auth backed)
+ *
+ * Same public API as the old localStorage-based store · same hook signature.
+ * Internally uses better-auth REST endpoints + cookie sessions on api.entix.io.
+ *
+ * Pages don't need to change. Login/Register pages should use the async login()/register() instead of the old sync versions.
  */
 
+import { authClient } from '../lib/auth-client'
+import { setOrgId } from '../lib/api'
+
+const API_BASE =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
+  'https://api.entix.io'
+
 export interface User {
-  id: string;
-  email: string;
-  name: string;
-  company: string;
-  role: 'admin' | 'accountant' | 'viewer';
-  avatar?: string;
-  createdAt: string;
+  id: string
+  email: string
+  name: string
+  company: string
+  role: 'admin' | 'accountant' | 'viewer'
+  avatar?: string
+  createdAt: string
 }
 
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
+export interface AuthState {
+  user: User | null
+  isAuthenticated: boolean
+  loading: boolean
 }
-
-// Default demo user (V0.1 only · localStorage demo · NOT real auth)
-// 🔒 V0.2 will replace this with Logto JWT verification (auth.entix.io)
-// Demo password is intentionally weak and visible — DO NOT reuse anywhere else.
-const DEFAULT_USERS: (User & { password: string })[] = [
-  {
-    id: 'usr_demo',
-    email: 'demo@entix.io',
-    password: 'EntixDemo2026!',
-    name: 'مستخدم تجريبي',
-    company: 'Entix Books',
-    role: 'admin',
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-];
 
 class AuthStore {
-  private state: AuthState = { user: null, isAuthenticated: false };
-  private listeners = new Set<(state: AuthState) => void>();
+  private state: AuthState = { user: null, isAuthenticated: false, loading: true }
+  private listeners = new Set<(state: AuthState) => void>()
 
   constructor() {
-    // Load stored users into localStorage if not present
-    const storedUsers = localStorage.getItem('entix_users');
-    if (!storedUsers) {
-      localStorage.setItem('entix_users', JSON.stringify(DEFAULT_USERS));
-    }
-    // Restore session
-    const session = localStorage.getItem('entix_session');
-    if (session) {
-      try {
-        const user = JSON.parse(session);
-        this.state = { user, isAuthenticated: true };
-      } catch { /* invalid session */ }
-    }
+    // Hydrate session from server on app boot
+    this.refresh()
   }
 
   private notify() {
-    this.listeners.forEach(fn => fn(this.state));
+    this.listeners.forEach(fn => fn(this.state))
   }
 
   subscribe(listener: (state: AuthState) => void) {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
   }
 
   getState(): AuthState {
-    return this.state;
+    return this.state
   }
 
-  private getUsers(): (User & { password: string })[] {
+  /** Reload session from /api/auth/get-session */
+  async refresh(): Promise<void> {
     try {
-      return JSON.parse(localStorage.getItem('entix_users') || '[]');
-    } catch { return []; }
-  }
+      const res = await fetch(`${API_BASE}/api/auth/get-session`, {
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        this.state = { user: null, isAuthenticated: false, loading: false }
+        this.notify()
+        return
+      }
+      const data = await res.json()
+      if (data?.user?.id) {
+        // Pull org info via /me
+        const meRes = await fetch(`${API_BASE}/me`, { credentials: 'include' })
+        const me = meRes.ok ? await meRes.json() : null
+        const firstOrg = me?.memberships?.[0]
+        if (firstOrg?.org?.id) setOrgId(firstOrg.org.id)
 
-  login(email: string, password: string): { success: boolean; error?: string } {
-    const users = this.getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
-    if (!user) {
-      return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' };
+        this.state = {
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name || '',
+            company: firstOrg?.org?.name || '',
+            role: firstOrg?.role?.toLowerCase?.() === 'owner' ? 'admin' : (firstOrg?.role?.toLowerCase?.() || 'viewer'),
+            avatar: data.user.image || undefined,
+            createdAt: data.user.createdAt,
+          },
+          isAuthenticated: true,
+          loading: false,
+        }
+      } else {
+        this.state = { user: null, isAuthenticated: false, loading: false }
+      }
+      this.notify()
+    } catch (e) {
+      console.error('[auth] refresh failed', e)
+      this.state = { user: null, isAuthenticated: false, loading: false }
+      this.notify()
     }
-    const { password: _, ...userData } = user;
-    this.state = { user: userData, isAuthenticated: true };
-    localStorage.setItem('entix_session', JSON.stringify(userData));
-    this.notify();
-    return { success: true };
   }
 
-  register(email: string, password: string, name: string, company: string): { success: boolean; error?: string } {
-    const users = this.getUsers();
-    if (users.find(u => u.email === email)) {
-      return { success: false, error: 'البريد الإلكتروني مسجل مسبقاً' };
+  /** Email + password sign-in */
+  async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await authClient.signIn.email({ email, password })
+      if (error) return { success: false, error: error.message || 'فشل تسجيل الدخول' }
+      if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
+      await this.refresh()
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
     }
-    const newUser = {
-      id: `usr_${crypto.randomUUID().slice(0, 8)}`,
-      email,
-      password,
-      name,
-      company,
-      role: 'admin' as const,
-      createdAt: new Date().toISOString(),
-    };
-    users.push(newUser);
-    localStorage.setItem('entix_users', JSON.stringify(users));
-    const { password: _, ...userData } = newUser;
-    this.state = { user: userData, isAuthenticated: true };
-    localStorage.setItem('entix_session', JSON.stringify(userData));
-    this.notify();
-    return { success: true };
   }
 
-  logout(): void {
-    this.state = { user: null, isAuthenticated: false };
-    localStorage.removeItem('entix_session');
-    this.notify();
+  /** Email + password sign-up · auto-creates first org */
+  async register(
+    email: string,
+    password: string,
+    name: string,
+    company: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await authClient.signUp.email({ email, password, name })
+      if (error) {
+        if (error.code === 'USER_ALREADY_EXISTS' || (error.message || '').toLowerCase().includes('already')) {
+          return { success: false, error: 'البريد الإلكتروني مسجل مسبقاً' }
+        }
+        return { success: false, error: error.message || 'فشل إنشاء الحساب' }
+      }
+      if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
+
+      // Bootstrap first org for the new user
+      const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName: company }),
+      })
+      if (bootstrapRes.ok) {
+        const json = await bootstrapRes.json()
+        if (json?.org?.id) setOrgId(json.org.id)
+      }
+
+      await this.refresh()
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+    }
+  }
+
+  /** Google OAuth sign-in (browser redirect) */
+  async loginWithGoogle(): Promise<void> {
+    await authClient.signIn.social({
+      provider: 'google',
+      callbackURL: `${window.location.origin}/app`,
+    })
+  }
+
+  /** Sign out · clears server session + cookie */
+  async logout(): Promise<void> {
+    try {
+      await authClient.signOut()
+    } catch (e) {
+      console.error('[auth] logout failed', e)
+    }
+    setOrgId(null)
+    this.state = { user: null, isAuthenticated: false, loading: false }
+    this.notify()
   }
 }
 
-export const authStore = new AuthStore();
+export const authStore = new AuthStore()
