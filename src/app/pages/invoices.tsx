@@ -1,6 +1,6 @@
 /**
  * Sales Invoices · wired to /api/invoices · org-scoped
- * UX RULE UX-1: NO Dialog · NO alert/confirm/prompt. Uses SidePanel + InlineConfirm + Toasts.
+ * UX-1: NO modal · NO slide-over. Uses InlinePanel (inline form) + InlineConfirm + Toasts.
  */
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
@@ -9,7 +9,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { InlinePanel } from "../components/inline-panel";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -220,6 +221,116 @@ export function Invoices() {
         </CardContent></Card>
       </div>
 
+      {/* Inline create panel · UX-1 inline form (NOT modal · NOT slide-over) */}
+      {createOpen && (
+        <InlinePanel
+          title="فاتورة جديدة"
+          description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+          onClose={closeCreate}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit(false)} className="border-[#E5E7EB]">{busy ? "..." : "حفظ كمسودة"}</Button>
+              <Button type="button" disabled={busy} onClick={() => handleSubmit(true)} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ وإرسال"}</Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+
+            {/* Quick-create customer · nested inline expand */}
+            {quickCustOpen && (
+              <div className="rounded-lg border border-[#1276E3]/30 bg-[#F4FCFF] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>عميل جديد · إضافة سريعة</h3>
+                  <button type="button" onClick={closeQuickCust} className="text-xs text-[#6B7280] hover:text-[#0B1B49]">إغلاق</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1"><Label className="text-xs">الاسم *</Label>
+                    <Input value={quickCust.displayName} onChange={(e) => setQuickCust({ ...quickCust, displayName: e.target.value })} placeholder="شركة الفجر" autoFocus /></div>
+                  <div className="space-y-1"><Label className="text-xs">البريد</Label>
+                    <Input type="email" value={quickCust.email} onChange={(e) => setQuickCust({ ...quickCust, email: e.target.value })} dir="ltr" className="font-english" placeholder="contact@example.com" /></div>
+                  <div className="space-y-1"><Label className="text-xs">الجوال</Label>
+                    <Input value={quickCust.phone} onChange={(e) => setQuickCust({ ...quickCust, phone: e.target.value })} dir="ltr" className="font-english" placeholder="+966 ..." /></div>
+                </div>
+                {quickCustError && <div className="mt-2 text-xs text-red-700">{quickCustError}</div>}
+                <div className="flex items-center justify-end gap-2 mt-3">
+                  <Button type="button" variant="outline" size="sm" onClick={closeQuickCust} className="border-[#E5E7EB]">إلغاء</Button>
+                  <Button type="button" size="sm" disabled={busy} onClick={handleQuickCust} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ + اختيار"}</Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[#374151]">العميل *</Label>
+                {!quickCustOpen && (
+                  <button type="button" onClick={openQuickCust} className="text-xs text-[#1276E3] hover:underline flex items-center gap-1">
+                    <Plus className="h-3 w-3" /> إضافة عميل جديد
+                  </button>
+                )}
+              </div>
+              <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
+                <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
+                <SelectContent>
+                  {customers.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · اضغط <strong>إضافة عميل جديد</strong> أعلاه</div>
+                  )}
+                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">تاريخ الاستحقاق *</Label>
+                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+            </div>
+            <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
+              <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة · خدمة · بضاعة ..." className="border-[#E5E7EB]" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
+                <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
+                <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
+                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
+            </div>
+            <p className="text-xs text-[#6B7280]">💡 احفظ كمسودة أولاً ثم عدّل · أو احفظ وأرسل مباشرة.</p>
+          </div>
+        </InlinePanel>
+      )}
+
+      {/* Inline sign-capture panel */}
+      {signFor && (
+        <InlinePanel
+          title={`إرسال ${signFor.invoiceNumber} للتوقيع`}
+          description="DocuSeal · sign.fc.sa"
+          onClose={closeSign}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+                <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>اسم الموقّع *</Label>
+                <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
+              <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
+                <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
+            </div>
+            <div className="space-y-2"><Label>الرسالة المرفقة</Label>
+              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
+            <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
+          </div>
+        </InlinePanel>
+      )}
+
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -285,115 +396,6 @@ export function Invoices() {
           )}
         </CardContent>
       </Card>
-
-      {/* Create panel · slide-over from start edge · NOT a modal */}
-      <SidePanel
-        open={createOpen}
-        onClose={closeCreate}
-        title="فاتورة جديدة"
-        description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
-        width="md"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
-            <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit(false)} className="border-[#E5E7EB]">{busy ? "..." : "حفظ كمسودة"}</Button>
-            <Button type="button" disabled={busy} onClick={() => handleSubmit(true)} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ وإرسال"}</Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-[#374151]">العميل *</Label>
-              <button type="button" onClick={openQuickCust} className="text-xs text-[#1276E3] hover:underline flex items-center gap-1">
-                <Plus className="h-3 w-3" /> إضافة عميل جديد
-              </button>
-            </div>
-            <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
-              <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 && (
-                  <div className="px-3 py-2 text-xs text-[#6B7280]">
-                    لا يوجد عملاء · اضغط <strong>إضافة عميل جديد</strong> أعلاه
-                  </div>
-                )}
-                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
-              <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-            <div className="space-y-2"><Label className="text-[#374151]">تاريخ الاستحقاق *</Label>
-              <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-          </div>
-          <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
-            <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة · خدمة · بضاعة ..." className="border-[#E5E7EB]" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
-              <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-            <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
-              <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-          </div>
-          <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
-            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
-          <p className="text-xs text-[#6B7280]">💡 احفظ كمسودة أولاً ثم عدّل · أو احفظ وأرسل مباشرة.</p>
-        </div>
-      </SidePanel>
-
-      {/* Sign-for-signature capture panel */}
-      <SidePanel
-        open={!!signFor}
-        onClose={closeSign}
-        title={signFor ? `إرسال ${signFor.invoiceNumber} للتوقيع` : ""}
-        description="DocuSeal · sign.fc.sa"
-        width="md"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
-            <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
-              <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
-          <div className="space-y-2"><Label>اسم الموقّع *</Label>
-            <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
-          <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
-            <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
-          <div className="space-y-2"><Label>الرسالة المرفقة</Label>
-            <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
-          <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
-        </div>
-      </SidePanel>
-
-      {/* Nested Quick-Create Customer · UX-5 part 1 */}
-      <SidePanel
-        open={quickCustOpen}
-        onClose={closeQuickCust}
-        title="عميل جديد · إضافة سريعة"
-        description="الاسم فقط مطلوب · يمكن استكمال التفاصيل لاحقاً من صفحة العملاء"
-        width="sm"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeQuickCust} className="border-[#E5E7EB]">إلغاء</Button>
-            <Button type="button" disabled={busy} onClick={handleQuickCust} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ + اختيار"}</Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {quickCustError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{quickCustError}</div>}
-          <div className="space-y-2"><Label>الاسم *</Label>
-            <Input value={quickCust.displayName} onChange={(e) => setQuickCust({ ...quickCust, displayName: e.target.value })} placeholder="شركة الفجر · أو فلان فلان" autoFocus /></div>
-          <div className="space-y-2"><Label>البريد الإلكتروني</Label>
-            <Input type="email" value={quickCust.email} onChange={(e) => setQuickCust({ ...quickCust, email: e.target.value })} dir="ltr" className="font-english" placeholder="contact@example.com" /></div>
-          <div className="space-y-2"><Label>الجوال</Label>
-            <Input value={quickCust.phone} onChange={(e) => setQuickCust({ ...quickCust, phone: e.target.value })} dir="ltr" className="font-english" placeholder="+966 5x xxx xxxx" /></div>
-        </div>
-      </SidePanel>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
