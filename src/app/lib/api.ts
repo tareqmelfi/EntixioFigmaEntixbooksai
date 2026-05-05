@@ -119,12 +119,22 @@ export const api = {
     list: (params?: { type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'; q?: string; page?: number; limit?: number }) =>
       request<PaginatedResponse<Contact>>('/api/contacts', { query: params }),
     get: (id: string) => request<Contact>(`/api/contacts/${id}`),
+    summary: (id: string) => request<ContactSummary>(`/api/contacts/${id}/summary`),
     create: (data: ContactInput) =>
       request<Contact>('/api/contacts', { method: 'POST', body: data }),
     update: (id: string, data: Partial<ContactInput>) =>
       request<Contact>(`/api/contacts/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/contacts/${id}`, { method: 'DELETE' }),
+  },
+
+  // Inbox (email-to-invoice)
+  inbox: {
+    list: (status?: string) => request<{ items: InboxMessageRow[]; total: number }>('/api/inbox', { query: status ? { status } : undefined }),
+    get: (id: string) => request<InboxMessageDetail>(`/api/inbox/${id}`),
+    approve: (id: string) => request<{ ok: true; billId: string; billNumber: string }>(`/api/inbox/${id}/approve`, { method: 'POST' }),
+    reject: (id: string) => request<{ ok: true }>(`/api/inbox/${id}/reject`, { method: 'POST' }),
+    reprocess: (id: string) => request<{ ok: true; kind: string; lines: number }>(`/api/inbox/${id}/reprocess`, { method: 'POST' }),
   },
 
   // Accounts (chart of accounts)
@@ -518,6 +528,54 @@ export interface Contact {
   updatedAt: string
 }
 
+export interface InboxMessageRow {
+  id: string
+  from: string
+  subject: string
+  status: 'RECEIVED' | 'EXTRACTED' | 'APPROVED' | 'REJECTED' | 'ERROR'
+  attachmentCount: number
+  extractedKind: string | null
+  extractedTotal: number | null
+  extractedCurrency: string | null
+  createdAt: string
+  processedAt: string | null
+  billId: string | null
+}
+
+export interface InboxMessageDetail extends InboxMessageRow {
+  fromAddress: string
+  toAddress: string
+  bodyText: string
+  bodyHtml: string
+  messageId: string | null
+  extractedJson: any
+  attachments: Array<{
+    id: string
+    filename: string
+    contentType: string
+    sizeBytes: number
+  }>
+}
+
+export interface ContactSummary {
+  contact: Contact
+  totals: {
+    invoices: { count: number; total: number; paid: number; outstanding: number }
+    bills: { count: number; total: number; paid: number; outstanding: number }
+    quotes: { count: number; total: number }
+    receipts: { count: number; total: number }
+    payments: { count: number; total: number }
+    arOpen: number
+    apOpen: number
+    balance: number
+  }
+  invoices: Array<{ id: string; invoiceNumber: string; issueDate: string; dueDate: string | null; total: string; amountPaid: string; status: string; currency: string }>
+  bills: Array<{ id: string; billNumber: string; issueDate: string; dueDate: string | null; total: string; amountPaid: string; status: string; currency: string }>
+  quotes: Array<{ id: string; quoteNumber: string; issueDate: string; validUntil: string | null; total: string; status: string; currency: string }>
+  vouchers: Array<{ id: string; number: string; type: string; date: string; amount: string; currency: string; paymentMethod: string | null; reference: string | null; notes: string | null }>
+  expenses: Array<{ id: string; date: string; total: string; category: string | null; description: string | null; currency: string }>
+}
+
 export interface ContactInput {
   type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
   displayName: string
@@ -647,9 +705,35 @@ export interface DashboardSummary {
     invoiceCount: number
     overdueCount: number
     contactCount: number
+    accountsReceivable: number
+    accountsPayable: number
+    cashOnHand: number
   }
   monthlyTrend: Array<{ month: string; revenue: number; expenses: number }>
-  cashFlowTrend: Array<{ month: string; in: number; out: number }>
+  cashFlowTrend: Array<{ month: string; in: number; out: number; net: number }>
+  profitLoss: Array<{ month: string; revenue: number; expenses: number; net: number }>
+  expenseBreakdown: Array<{ category: string; total: number }>
+  overdueInvoices: Array<{
+    id: string
+    number: string
+    contact: string
+    total: number
+    remaining: number
+    dueDate: string | null
+    daysOverdue: number
+  }>
+  bankAccounts: Array<{
+    id: string
+    name: string
+    bankName: string | null
+    accountNumber: string | null
+    currency: string
+    balance: number
+  }>
+  periodCompare: {
+    thisMonth: { revenue: number; expenses: number; net: number }
+    lastMonth: { revenue: number; expenses: number; net: number }
+  }
 }
 
 export interface OcrResult {

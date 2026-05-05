@@ -101,8 +101,9 @@ export function DocumentDropZone({
     setSuccess(null);
     setError(null);
     try {
-      if (file.size > 15 * 1024 * 1024) {
-        throw new Error("الملف أكبر من 15MB");
+      // 100MB limit · large PDFs are downscaled by the AI extractor
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error("الملف أكبر من 100MB · جرّب ملف أصغر أو قسّمه");
       }
       const base64 = await fileToBase64(file);
       const data: ExtractedDocument = await (api as any).agent.extractDocument({

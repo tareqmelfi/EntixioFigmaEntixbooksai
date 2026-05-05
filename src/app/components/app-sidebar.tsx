@@ -8,7 +8,7 @@ import {
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch,
   Plug, FileCode, Handshake, HelpCircle, Globe,
-  Mail, UserCheck, Briefcase, ClipboardList, Users2,
+  Mail, UserCheck, Briefcase, ClipboardList, Users2, Inbox,
   Pin, PinOff, MousePointer, EyeOff,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -62,6 +62,7 @@ const sections: MenuSection[] = [
           { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
           { title: "سندات الدفع", icon: CreditCard, path: "/app/payments" },
           { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
+          { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
         ],
       },
       { title: "العملاء والموردين", icon: Users, path: "/app/contacts" },

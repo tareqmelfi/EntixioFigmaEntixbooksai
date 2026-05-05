@@ -187,7 +187,7 @@ export function ItemsTable({
     }
   };
 
-  const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
+  const handlePaste = async (e: ClipboardEvent<HTMLDivElement>) => {
     const text = e.clipboardData.getData("text/plain");
     if (!text) return;
     const rows = text.split(/\r?\n/).filter((r) => r.trim());
@@ -195,23 +195,73 @@ export function ItemsTable({
 
     e.preventDefault();
     const inclusive = mode === "all-inclusive";
-    const newRows: InvoiceLine[] = [];
-    for (const row of rows) {
-      const cols = row.includes("\t") ? row.split("\t") : row.split(",");
-      const description = (cols[0] || "").trim();
-      if (!description) continue;
-      let quantity = "1", unitPrice = "";
-      if (cols.length >= 3) {
-        quantity = normalizeDigits((cols[1] || "1").trim());
-        unitPrice = normalizeDigits((cols[2] || "").trim());
-      } else if (cols.length === 2) {
-        unitPrice = normalizeDigits((cols[1] || "").trim());
+
+    // Detect if pasted text has clear column structure (tabs OR consistent comma columns)
+    const hasTabs = text.includes("\t");
+    const looksLikeCsv = rows.length >= 2 && rows.every((r) => (r.match(/,/g) || []).length === (rows[0].match(/,/g) || []).length);
+
+    if (hasTabs || looksLikeCsv) {
+      // Deterministic split (current path)
+      const newRows: InvoiceLine[] = [];
+      for (const row of rows) {
+        const cols = hasTabs ? row.split("\t") : row.split(",");
+        const description = (cols[0] || "").trim();
+        if (!description) continue;
+        let quantity = "1", unitPrice = "";
+        if (cols.length >= 3) {
+          quantity = normalizeDigits((cols[1] || "1").trim());
+          unitPrice = normalizeDigits((cols[2] || "").trim());
+        } else if (cols.length === 2) {
+          unitPrice = normalizeDigits((cols[1] || "").trim());
+        }
+        newRows.push({ ...newLine(defaultTaxRate, inclusive), description, quantity, unitPrice });
       }
-      newRows.push({ ...newLine(defaultTaxRate, inclusive), description, quantity, unitPrice });
+      if (newRows.length > 0) {
+        const startEmpty = lines.length === 1 && !lines[0].description && !lines[0].unitPrice;
+        setLines(startEmpty ? newRows : [...lines, ...newRows]);
+      }
+      return;
     }
-    if (newRows.length > 0) {
-      const startEmpty = lines.length === 1 && !lines[0].description && !lines[0].unitPrice;
-      setLines(startEmpty ? newRows : [...lines, ...newRows]);
+
+    // Fallback · send to AI parse-paste API · works for messy text without clear columns
+    // Show a placeholder row that says "جارٍ التحليل..." while AI works
+    const aiPlaceholder: InvoiceLine = {
+      ...newLine(defaultTaxRate, inclusive),
+      description: "⏳ جارٍ تحليل النص بالذكاء الاصطناعي...",
+    };
+    setLines([...lines, aiPlaceholder]);
+    try {
+      const api = (window as any).__entixApi;
+      const result: any = api?.agent?.parsePaste
+        ? await api.agent.parsePaste({ text, hint: "invoice" })
+        : await fetch("/api/agent/parse-paste", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ text, hint: "invoice" }),
+          }).then((r) => r.json());
+
+      if (result?.rows && result.rows.length > 0) {
+        const aiRows: InvoiceLine[] = result.rows.map((r: any) => ({
+          ...newLine(defaultTaxRate, inclusive),
+          description: r.description || "",
+          quantity: String(r.quantity || 1),
+          unitPrice: String(r.unitPrice || 0),
+          taxRate: r.taxRate ?? defaultTaxRate,
+          taxInclusive: r.taxInclusive ?? inclusive,
+        }));
+        setLines((prev) => prev.filter((l) => l.id !== aiPlaceholder.id).concat(aiRows));
+      } else {
+        // AI couldn't parse · keep first line as the entire blob
+        setLines((prev) =>
+          prev.map((l) => (l.id === aiPlaceholder.id ? { ...l, description: text.slice(0, 200) } : l)),
+        );
+      }
+    } catch (err) {
+      // On error · just put the raw text in description
+      setLines((prev) =>
+        prev.map((l) => (l.id === aiPlaceholder.id ? { ...l, description: text.slice(0, 200) } : l)),
+      );
     }
   };
 

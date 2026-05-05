@@ -59,6 +59,7 @@ import { ContactDetail } from "./pages/contact-detail";
 import { Reports } from "./pages/reports";
 import { Settings } from "./pages/settings";
 import { Notifications } from "./pages/notifications";
+import { InboxPage } from "./pages/inbox";
 import { AdminDashboard } from "./pages/admin";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
@@ -132,6 +133,7 @@ export const router = createBrowserRouter([
       { path: "purchases/bills", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
       { path: "payments", element: <Payments />, errorElement: <ErrorBoundary /> },
       { path: "expenses", element: <Expenses />, errorElement: <ErrorBoundary /> },
+      { path: "inbox", element: <InboxPage />, errorElement: <ErrorBoundary /> },
       // Accounting
       { path: "chart-of-accounts", element: <ChartOfAccounts />, errorElement: <ErrorBoundary /> },
       { path: "journal-entries", element: <JournalEntries />, errorElement: <ErrorBoundary /> },
