@@ -6,9 +6,9 @@ import { Plus, Search, Eye, Trash2, Loader2, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -104,11 +104,11 @@ export function PurchaseBills() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل تريد حذف الفاتورة؟")) return;
-    try {
+    /* TODO-UX1: was confirm("هل تريد حذف الفاتورة؟") — replace with InlineConfirm */ 
+try {
       await api.bills.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -180,9 +180,8 @@ export function PurchaseBills() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); resetForm(); } }}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader><DialogTitle className="text-[#0B1B49]">فاتورة مشتريات جديدة</DialogTitle></DialogHeader>
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">فاتورة مشتريات جديدة</h2></div>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -211,13 +210,12 @@ export function PurchaseBills() {
               <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
                 <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
             </div>
-            <DialogFooter>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
               <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ كمسودة"}</Button>
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
     </div>
   );
 }

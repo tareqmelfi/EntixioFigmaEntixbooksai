@@ -3,8 +3,8 @@ import { Target, Plus, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 
 export function CostCenters() {
@@ -36,9 +36,9 @@ export function CostCenters() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف مركز التكلفة؟")) return;
-    try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
-    catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+    /* TODO-UX1: was confirm("حذف مركز التكلفة؟") — replace with InlineConfirm */ 
+try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -67,16 +67,15 @@ export function CostCenters() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setError(null); }}>
-        <DialogContent className="sm:max-w-[450px]"><DialogHeader><DialogTitle>مركز تكلفة جديد</DialogTitle></DialogHeader>
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">مركز تكلفة جديد</h2></div>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <div className="space-y-2"><Label>الرمز *</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CC-001" dir="ltr" className="font-english" /></div>
             <div className="space-y-2"><Label>الاسم *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="قسم المبيعات" /></div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></DialogFooter>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
     </div>
   );
 }

@@ -257,10 +257,16 @@ export const api = {
     remove: (id: string) => request<void>(`/api/bank-accounts/${id}`, { method: 'DELETE' }),
   },
 
-  // OCR — Claude Vision via OpenRouter
+  // OCR — Claude Vision via OpenRouter · ANY file type · multi-file
   ocr: {
-    extract: (data: { fileBase64: string; mimeType: string; docType?: 'receipt' | 'invoice' | 'bill' }) =>
+    extract: (data: { fileBase64: string; mimeType: string; fileName?: string; rawText?: string; docType?: string }) =>
       request<{ extracted: OcrResult; cost?: any; model?: string }>('/api/ocr/extract', { method: 'POST', body: data }),
+    extractBatch: (data: { files: Array<{ fileBase64: string; mimeType: string; fileName?: string; rawText?: string }>; hint?: string }) =>
+      request<{
+        files: Array<{ fileName?: string; mimeType: string; ok: boolean; extracted?: OcrResult; error?: string; model?: string }>;
+        summary: { totalFiles: number; successful: number; failed: number; totalAmount: number; currency: string | null };
+        index: { byDocType: Record<string, number>; byVendor: Record<string, number>; byMonth: Record<string, number>; byTag: Record<string, number> };
+      }>('/api/ocr/extract-batch', { method: 'POST', body: data }),
   },
 
   // Agent — Claude with tool calling

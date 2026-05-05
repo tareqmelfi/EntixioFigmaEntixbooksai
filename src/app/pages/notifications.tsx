@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { Bell, CheckCheck, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, NotificationItem } from "../lib/api";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -59,11 +60,11 @@ export function Notifications() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف الإشعار؟")) return;
-    try {
+    /* TODO-UX1: was confirm("حذف الإشعار؟") — replace with InlineConfirm */ 
+try {
       await api.notifications.remove(id);
       setItems(arr => arr.filter(x => x.id !== id));
-    } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   const handleMarkAll = async () => {

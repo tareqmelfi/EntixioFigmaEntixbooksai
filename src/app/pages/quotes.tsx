@@ -1,14 +1,15 @@
 /**
- * Quotes (عروض الأسعار) · wired to /api/quotes · with convert-to-invoice
+ * Quotes (عروض الأسعار) · wired to /api/quotes · with convert-to-invoice + sign
+ * UX-1 compliant: NO Dialog · NO alert/confirm/prompt
  */
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Quote, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,26 +26,37 @@ const STATUS_COLORS: Record<string, string> = {
   EXPIRED: "bg-gray-100 text-gray-500",
 };
 
+const EMPTY_FORM = {
+  contactId: "",
+  issueDate: new Date().toISOString().slice(0, 10),
+  validUntil: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+  description: "",
+  quantity: "1",
+  unitPrice: "",
+  notes: "",
+};
+
 export function Quotes() {
   const [items, setItems] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    contactId: "",
-    issueDate: new Date().toISOString().slice(0, 10),
-    validUntil: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-    description: "",
-    quantity: "1",
-    unitPrice: "",
-    notes: "",
-  });
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const [signFor, setSignFor] = useState<Quote | null>(null);
+  const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
+  const [signError, setSignError] = useState<string | null>(null);
+
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [pendingConvert, setPendingConvert] = useState<string | null>(null);
+  const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
     try {
       const [quotesRes, contactsRes] = await Promise.all([
         api.quotes.list(),
@@ -53,9 +65,9 @@ export function Quotes() {
       setItems(quotesRes.items);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
     } finally { setLoading(false); }
-  }, []);
+  }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const filtered = items.filter(q =>
@@ -67,17 +79,13 @@ export function Quotes() {
   const accepted = items.filter(q => q.status === "ACCEPTED").length;
   const pending = items.filter(q => q.status === "SENT" || q.status === "VIEWED").length;
 
-  const resetForm = () => setForm({
-    contactId: "", issueDate: new Date().toISOString().slice(0, 10),
-    validUntil: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-    description: "", quantity: "1", unitPrice: "", notes: "",
-  });
+  const openCreate = () => { setForm(EMPTY_FORM); setCreateError(null); setCreateOpen(true); };
+  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!form.contactId) { setError("اختر العميل"); return; }
-    if (!form.description.trim() || !form.unitPrice) { setError("الوصف والسعر مطلوبان"); return; }
+  const handleSubmit = async () => {
+    setCreateError(null);
+    if (!form.contactId) { setCreateError("اختر العميل"); return; }
+    if (!form.description.trim() || !form.unitPrice) { setCreateError("الوصف والسعر مطلوبان"); return; }
     setBusy(true);
     try {
       const q = await api.quotes.create({
@@ -93,54 +101,69 @@ export function Quotes() {
         }],
       });
       setItems(prev => [q, ...prev]);
-      setOpen(false); resetForm();
+      push("success", `تم حفظ ${q.quoteNumber} كمسودة`);
+      closeCreate();
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل الحفظ");
+      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
     } finally { setBusy(false); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل تريد حذف عرض السعر؟")) return;
+    setPendingDelete(null);
     try {
       await api.quotes.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+      push("success", "تم حذف العرض");
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   const handleConvert = async (q: Quote) => {
-    if (!confirm(`تحويل ${q.quoteNumber} إلى فاتورة؟ سيتم إنشاء فاتورة جديدة بنفس البنود.`)) return;
+    setPendingConvert(null);
     try {
       const r = await api.quotes.convertToInvoice(q.id);
-      alert(`✅ تم إنشاء الفاتورة ${r.invoice.invoiceNumber}`);
+      push("success", `تم إنشاء الفاتورة ${r.invoice.invoiceNumber}`);
       setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: "CONVERTED", convertedInvoiceId: r.invoice.id } : x));
     } catch (e: any) {
-      alert(e instanceof ApiError ? (e.message === "already_converted" ? "هذا العرض محوّل سابقاً" : e.message) : "فشل التحويل");
+      push("error", e instanceof ApiError ? (e.message === "already_converted" ? "هذا العرض محوّل سابقاً" : e.message) : "فشل التحويل");
     }
   };
 
-  const handleSendForSignature = async (q: Quote) => {
+  const openSign = (q: Quote) => {
     const customer = customers.find((c) => c.id === q.contactId);
-    const defaultEmail = customer?.email || "";
-    const email = prompt(`إرسال عرض السعر ${q.quoteNumber} للتوقيع · أدخل بريد الموقّع:`, defaultEmail);
-    if (!email) return;
-    const name = prompt("اسم الموقّع:", customer?.displayName || "") || email;
+    setSignFor(q);
+    setSignForm({
+      name: customer?.displayName || "",
+      email: customer?.email || "",
+      message: `يرجى مراجعة وتوقيع عرض السعر رقم ${q.quoteNumber}`,
+    });
+    setSignError(null);
+  };
+  const closeSign = () => { setSignFor(null); setSignError(null); };
+
+  const handleSignSubmit = async () => {
+    if (!signFor) return;
+    setSignError(null);
+    if (!signForm.email.trim()) { setSignError("البريد الإلكتروني مطلوب"); return; }
+    if (!signForm.name.trim()) { setSignError("اسم الموقّع مطلوب"); return; }
+    setBusy(true);
     try {
-      const r = await api.sign.sendQuote(q.id, {
-        signers: [{ name, email, role: "Customer" }],
-        message: `يرجى مراجعة وتوقيع عرض السعر رقم ${q.quoteNumber}`,
+      const r = await api.sign.sendQuote(signFor.id, {
+        signers: [{ name: signForm.name, email: signForm.email, role: "Customer" }],
+        message: signForm.message,
         expiresInDays: 30,
       });
       if (r.error) {
-        alert(`⚠️ تم حفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
+        push("error", `حُفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
       } else {
-        alert(`✅ تم إرسال عرض السعر للتوقيع إلى ${email}\n\nرابط متابعة: ${r.docuseal?.embed_src || "تم الإرسال بالبريد"}`);
-        if (q.status === "DRAFT") {
-          setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: "SENT" } : x));
+        push("success", `تم إرسال العرض للتوقيع إلى ${signForm.email}`);
+        if (signFor.status === "DRAFT") {
+          setItems(prev => prev.map(x => x.id === signFor.id ? { ...x, status: "SENT" } : x));
         }
       }
+      closeSign();
     } catch (e: any) {
-      alert(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذا العرض" : e.message) : "فشل الإرسال");
-    }
+      setSignError(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذا العرض" : e.message) : "فشل الإرسال");
+    } finally { setBusy(false); }
   };
 
   return (
@@ -150,10 +173,8 @@ export function Quotes() {
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>عروض الأسعار</h1>
           <p className="text-[#6B7280] mt-1">إدارة عروض الأسعار للعملاء</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />عرض سعر جديد</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />عرض سعر جديد</Button>
       </div>
-
-      {error && !open && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
@@ -208,16 +229,24 @@ export function Quotes() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
                         {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
-                          <button onClick={() => handleSendForSignature(q)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
+                          <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
                           </button>
                         )}
                         {q.status !== "CONVERTED" && (
-                          <button onClick={() => handleConvert(q)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1" title="تحويل لفاتورة">
-                            <ArrowLeftRight className="h-3.5 w-3.5" /> تحويل
-                          </button>
+                          pendingConvert === q.id ? (
+                            <InlineConfirm onConfirm={() => handleConvert(q)} onCancel={() => setPendingConvert(null)} label="تحويل لفاتورة؟" />
+                          ) : (
+                            <button onClick={() => setPendingConvert(q.id)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1" title="تحويل لفاتورة">
+                              <ArrowLeftRight className="h-3.5 w-3.5" /> تحويل
+                            </button>
+                          )
                         )}
-                        <button onClick={() => handleDelete(q.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                        {pendingDelete === q.id ? (
+                          <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
+                        ) : (
+                          <button onClick={() => setPendingDelete(q.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -228,44 +257,76 @@ export function Quotes() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); resetForm(); } }}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader><DialogTitle className="text-[#0B1B49]">عرض سعر جديد</DialogTitle></DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-              <div className="space-y-2"><Label className="text-[#374151]">العميل *</Label>
-                <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
-                  <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
-                  <SelectContent>
-                    {customers.length === 0 && <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · أضف من صفحة العملاء/الموردين</div>}
-                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
-                  </SelectContent>
-                </Select></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">تاريخ العرض *</Label>
-                  <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                <div className="space-y-2"><Label className="text-[#374151]">صالح حتى *</Label>
-                  <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-              </div>
-              <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
-                <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة تقنية · تطوير برمجي ..." required className="border-[#E5E7EB]" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
-                  <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
-                  <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-              </div>
-              <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
-                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ كمسودة"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <SidePanel
+        open={createOpen}
+        onClose={closeCreate}
+        title="عرض سعر جديد"
+        description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+        width="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+            <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ كمسودة"}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+          <div className="space-y-2"><Label className="text-[#374151]">العميل *</Label>
+            <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
+              <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
+              <SelectContent>
+                {customers.length === 0 && <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · أضف من صفحة العملاء/الموردين</div>}
+                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
+              </SelectContent>
+            </Select></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label className="text-[#374151]">تاريخ العرض *</Label>
+              <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+            <div className="space-y-2"><Label className="text-[#374151]">صالح حتى *</Label>
+              <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+          </div>
+          <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
+            <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة تقنية · تطوير برمجي ..." className="border-[#E5E7EB]" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
+              <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+            <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
+              <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+          </div>
+          <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
+        </div>
+      </SidePanel>
+
+      <SidePanel
+        open={!!signFor}
+        onClose={closeSign}
+        title={signFor ? `إرسال ${signFor.quoteNumber} للتوقيع` : ""}
+        description="DocuSeal · sign.fc.sa"
+        width="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
+            <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
+          <div className="space-y-2"><Label>اسم الموقّع *</Label>
+            <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
+          <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
+            <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
+          <div className="space-y-2"><Label>الرسالة المرفقة</Label>
+            <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
+          <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة العرض وتوقيعه · صلاحية الرابط 30 يوم.</p>
+        </div>
+      </SidePanel>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

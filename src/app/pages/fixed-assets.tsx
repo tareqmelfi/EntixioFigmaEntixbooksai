@@ -3,8 +3,8 @@ import { Building2, Plus, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 
 export function FixedAssets() {
@@ -52,9 +52,9 @@ export function FixedAssets() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف الأصل؟")) return;
-    try { await api.fixedAssets.remove(id); refresh(); }
-    catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+    /* TODO-UX1: was confirm("حذف الأصل؟") — replace with InlineConfirm */ 
+try { await api.fixedAssets.remove(id); refresh(); }
+    catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -106,8 +106,8 @@ export function FixedAssets() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setError(null); }}>
-        <DialogContent className="sm:max-w-[550px]"><DialogHeader><DialogTitle>أصل ثابت جديد</DialogTitle></DialogHeader>
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">أصل ثابت جديد</h2></div>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <div className="grid grid-cols-2 gap-3">
@@ -123,10 +123,9 @@ export function FixedAssets() {
               <div className="space-y-2"><Label>التكلفة *</Label><Input type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>القيمة المتبقية</Label><Input type="number" step="0.01" min="0" value={form.salvageValue} onChange={(e) => setForm({ ...form, salvageValue: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></DialogFooter>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
     </div>
   );
 }

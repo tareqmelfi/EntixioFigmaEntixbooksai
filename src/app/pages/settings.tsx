@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Org } from "../lib/api";
 import { authStore } from "../components/auth-store";
 
@@ -67,8 +68,8 @@ export function Settings() {
   };
 
   const handleSignOut = async () => {
-    if (!confirm("هل تريد تسجيل الخروج؟")) return;
-    await authStore.logout();
+    /* TODO-UX1: was confirm("هل تريد تسجيل الخروج؟") — replace with InlineConfirm */ 
+await authStore.logout();
     window.location.href = "/login";
   };
 

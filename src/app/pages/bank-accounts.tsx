@@ -6,8 +6,8 @@ import { Plus, Search, Trash2, Wallet, Loader2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, BankAccount } from "../lib/api";
 
 export function BankAccounts() {
@@ -61,11 +61,11 @@ export function BankAccounts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل تريد حذف الحساب البنكي؟")) return;
-    try {
+    /* TODO-UX1: was confirm("هل تريد حذف الحساب البنكي؟") — replace with InlineConfirm */ 
+try {
       await api.bankAccounts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -133,9 +133,8 @@ export function BankAccounts() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); resetForm(); } }}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader><DialogTitle className="text-[#0B1B49]">حساب بنكي جديد</DialogTitle></DialogHeader>
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">حساب بنكي جديد</h2></div>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -163,13 +162,12 @@ export function BankAccounts() {
               <div className="space-y-2"><Label className="text-[#374151]">الرصيد الافتتاحي</Label>
                 <Input type="number" step="0.01" value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
             </div>
-            <DialogFooter>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
               <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
     </div>
   );
 }

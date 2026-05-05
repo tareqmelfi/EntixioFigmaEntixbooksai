@@ -3,9 +3,9 @@ import { FolderKanban, Plus, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = { ACTIVE: "نشط", ON_HOLD: "متوقف", COMPLETED: "مكتمل", CANCELLED: "ملغي" };
@@ -47,9 +47,9 @@ export function Projects() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف المشروع؟")) return;
-    try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
-    catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+    /* TODO-UX1: was confirm("حذف المشروع؟") — replace with InlineConfirm */ 
+try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -84,8 +84,8 @@ export function Projects() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setError(null); }}>
-        <DialogContent className="sm:max-w-[500px]"><DialogHeader><DialogTitle>مشروع جديد</DialogTitle></DialogHeader>
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">مشروع جديد</h2></div>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <div className="grid grid-cols-2 gap-3">
@@ -107,10 +107,9 @@ export function Projects() {
               <div className="space-y-2"><Label>تاريخ البداية</Label><Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>تاريخ النهاية</Label><Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></DialogFooter>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
     </div>
   );
 }

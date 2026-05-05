@@ -4,9 +4,9 @@ import { Receipt, Plus, Search, Eye, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, Expense as ApiExpense, ExpenseInput, ApiError } from "../lib/api";
 
 const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
@@ -102,13 +102,13 @@ export function Expenses() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المصروف؟")) return;
-    try {
+    /* TODO-UX1: was confirm("هل أنت متأكد من حذف هذا المصروف؟") — replace with InlineConfirm */ 
+try {
       await api.expenses.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       if (selected?.id === id) setSelected(null);
     } catch (e: any) {
-      alert(e instanceof ApiError ? e.message : "فشل الحذف");
+      console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف");
     }
   };
 
@@ -223,11 +223,10 @@ export function Expenses() {
       )}
 
       {/* Dialog for New Expense */}
-      <Dialog open={isDialogOpen} onOpenChange={(o) => { setIsDialogOpen(o); if (!o) { setError(null); resetForm(); } }}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-[#0B1B49]">مصروف جديد</DialogTitle>
-          </DialogHeader>
+      <SidePanel open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+        <div className="mb-3">
+            <h2 className="text-[#0B1B49] text-lg font-semibold">مصروف جديد</h2>
+          </div>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               {error && (
@@ -309,17 +308,16 @@ export function Expenses() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
                 إلغاء
               </Button>
               <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
                 {busy ? "جارٍ الحفظ..." : "حفظ"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
     </div>
   );
 }
