@@ -17,6 +17,7 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { InvoicePreviewPane } from "../components/invoice-preview-pane";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
+import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-create-modals";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
@@ -88,6 +89,18 @@ export function Invoices() {
   // Multi-line items · UX-5 · Excel paste + bulk tax mode
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+
+  // Quick-create modals (UX-77) · open promise-based · resolve when user saves
+  const [quickProductReq, setQuickProductReq] = useState<{
+    name: string;
+    resolve: (p: any) => void;
+    reject: () => void;
+  } | null>(null);
+  const [quickAccountReq, setQuickAccountReq] = useState<{
+    name: string;
+    resolve: (a: any) => void;
+    reject: () => void;
+  } | null>(null);
 
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
@@ -453,11 +466,12 @@ export function Invoices() {
                 name: a.nameAr || a.name,
                 type: a.type,
               }))}
-              onCreateProduct={async (name) => {
-                const p = await (api as any).products.create({ name, type: "SERVICE", unitPrice: 0 });
-                setProducts((prev) => [p, ...prev]);
-                return { id: p.id, name: p.name, unitPrice: Number(p.unitPrice) || 0 };
-              }}
+              onCreateProduct={(name) => new Promise((resolve, reject) => {
+                setQuickProductReq({ name, resolve, reject });
+              })}
+              onCreateAccount={(name) => new Promise((resolve, reject) => {
+                setQuickAccountReq({ name, resolve, reject });
+              })}
               minRows={10}
             />
 
@@ -537,6 +551,58 @@ export function Invoices() {
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+        {/* Quick-create Product modal · opens when user types unknown item name */}
+        {quickProductReq && (
+          <QuickCreateProduct
+            initialName={quickProductReq.name}
+            accounts={accounts.map((a: any) => ({ id: a.id, name: a.nameAr || a.name, code: a.code, type: a.type }))}
+            onCreate={async (input) => {
+              const p = await (api as any).products.create(input);
+              setProducts((prev) => [p, ...prev]);
+              return {
+                id: p.id,
+                name: p.nameAr || p.name,
+                sku: p.sku,
+                unitPrice: Number(p.unitPrice) || 0,
+                taxRate: Number(p.taxRate) || 0.15,
+                incomeAccountId: p.incomeAccountId,
+              };
+            }}
+            onClose={() => { quickProductReq.reject(); setQuickProductReq(null); }}
+            onCreated={(p) => {
+              quickProductReq.resolve({
+                id: p.id,
+                name: p.name,
+                sku: p.sku,
+                unitPrice: Number(p.unitPrice) || 0,
+                taxRate: p.taxRate,
+                accountId: p.incomeAccountId,
+              });
+              setQuickProductReq(null);
+              push("success", `تم إنشاء المنتج · ${p.name}`);
+            }}
+          />
+        )}
+
+        {/* Quick-create Account modal · opens when user types unknown account name */}
+        {quickAccountReq && (
+          <QuickCreateAccount
+            initialName={quickAccountReq.name}
+            defaultType="EXPENSE"
+            onCreate={async (input) => {
+              const a = await (api as any).accounts.create({ ...input, type: input.type === 'INCOME' ? 'REVENUE' : input.type });
+              setAccounts((prev) => [a, ...prev]);
+              return { id: a.id, name: a.nameAr || a.name, code: a.code, type: a.type };
+            }}
+            onClose={() => { quickAccountReq.reject(); setQuickAccountReq(null); }}
+            onCreated={(a) => {
+              quickAccountReq.resolve(a);
+              setQuickAccountReq(null);
+              push("success", `تم إنشاء الحساب · ${a.name}`);
+            }}
+          />
+        )}
       </>
     );
   }

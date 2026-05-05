@@ -24,6 +24,7 @@ import { useRef, useState, useMemo, KeyboardEvent, ClipboardEvent } from "react"
 import { Plus, Trash2, GripVertical, Settings2 } from "lucide-react";
 import { Input } from "./ui/input";
 import { SearchableCombobox } from "./searchable-combobox";
+import { BarcodeScannerButton } from "./barcode-scanner";
 import { normalizeDigits } from "../lib/digits";
 
 export interface InvoiceLine {
@@ -381,15 +382,48 @@ export function ItemsTable({
           </table>
         </div>
 
-        {/* Footer · add row + columns toggle */}
+        {/* Footer · add row + barcode + columns toggle */}
         <div className="border-t border-[#F3F4F6] px-3 py-2 bg-[#F9FAFB] flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={addRow}
-            className="text-sm text-[#1276E3] hover:underline flex items-center gap-1"
-          >
-            <Plus className="h-3.5 w-3.5" /> إضافة سطر
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={addRow}
+              className="text-sm text-[#1276E3] hover:underline flex items-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" /> إضافة سطر
+            </button>
+            {products.length > 0 && (
+              <BarcodeScannerButton
+                onScanned={(code) => {
+                  // Find product by SKU/barcode match · case-insensitive
+                  const match = products.find(
+                    (p) => (p.sku || "").toLowerCase() === code.toLowerCase(),
+                  );
+                  if (match) {
+                    // Find first empty line · or add new
+                    const emptyIdx = lines.findIndex((l) => !l.description.trim() && !l.unitPrice);
+                    if (emptyIdx >= 0) {
+                      onProductPick(emptyIdx, match);
+                    } else {
+                      const inclusive = mode === "all-inclusive";
+                      const newLineWithProduct: InvoiceLine = {
+                        ...newLine(defaultTaxRate, inclusive),
+                        productId: match.id,
+                        description: match.name,
+                        unitPrice: String(match.unitPrice),
+                        accountId: match.accountId,
+                        taxRate: match.taxRate ?? defaultTaxRate,
+                      };
+                      setLines([...lines, newLineWithProduct]);
+                    }
+                  } else {
+                    // Could trigger product creation with SKU pre-filled · for now alert via toast pattern
+                    console.warn("[barcode] no product matched SKU:", code);
+                  }
+                }}
+              />
+            )}
+          </div>
           <div className="relative">
             <button
               type="button"
