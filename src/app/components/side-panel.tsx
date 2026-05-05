@@ -1,9 +1,8 @@
 /**
- * SidePanel · slide-over from the right edge (RTL: from the left edge)
+ * SidePanel · slide-over component (UX-1 compliant · NOT a modal)
  *
- * UX RULE UX-1: This is NOT a modal. It does NOT have a backdrop overlay
- * that blocks the rest of the UI. It pushes/floats over content but the
- * underlying page stays interactive (background scroll allowed).
+ * Desktop (≥ sm/640px): slides from start edge (RTL=right · LTR=left), keeps page reachable.
+ * Mobile (< sm/640px):   bottom-sheet · slides UP from bottom, max-h 85vh, drag-handle.
  *
  * Approved replacement for shadcn <Dialog>.
  *
@@ -12,7 +11,7 @@
  *     <form>...</form>
  *   </SidePanel>
  */
-import { useEffect, ReactNode } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { X } from "lucide-react";
 
 interface SidePanelProps {
@@ -26,14 +25,30 @@ interface SidePanelProps {
 }
 
 const WIDTH_MAP = {
-  sm: "w-[400px]",
-  md: "w-[520px]",
-  lg: "w-[640px]",
-  xl: "w-[800px]",
+  sm: "sm:w-[400px]",
+  md: "sm:w-[520px]",
+  lg: "sm:w-[640px]",
+  xl: "sm:w-[800px]",
 };
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 639px)").matches : false
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
 export function SidePanel({ open, onClose, title, description, width = "md", children, footer }: SidePanelProps) {
-  // Close on ESC · but no backdrop click (intentional — page must stay reachable)
+  const isMobile = useIsMobile();
+
+  // Close on ESC
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -41,14 +56,26 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Mobile: bottom-sheet. Desktop: side slide-over.
+  // Both: NO backdrop · page stays interactive (UX-1).
+  const containerClass = isMobile
+    ? `fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E5E7EB] rounded-t-2xl shadow-2xl transition-transform duration-200 ease-out max-h-[85vh] ${open ? "translate-y-0" : "translate-y-full"}`
+    : `fixed top-0 start-0 h-full z-40 bg-white border-e border-[#E5E7EB] shadow-xl transition-transform duration-200 ease-out ${WIDTH_MAP[width]} w-full ${open ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}`;
+
   return (
     <div
       aria-hidden={!open}
-      className={`fixed top-0 start-0 h-full z-40 bg-white border-e border-[#E5E7EB] shadow-xl transition-transform duration-200 ease-out ${WIDTH_MAP[width]} max-w-[92vw] ${open ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}`}
+      className={containerClass}
       style={{ pointerEvents: open ? "auto" : "none" }}
     >
-      <div className="flex h-full flex-col">
-        <div className="flex items-start justify-between px-6 py-4 border-b border-[#E5E7EB]">
+      <div className="flex h-full max-h-[85vh] sm:max-h-none flex-col">
+        {/* Mobile drag-handle indicator */}
+        {isMobile && (
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="h-1 w-10 rounded-full bg-[#E5E7EB]" aria-hidden="true" />
+          </div>
+        )}
+        <div className="flex items-start justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#E5E7EB]">
           <div className="min-w-0">
             <h2 className="text-[#0B1B49] truncate" style={{ fontSize: "1.125rem", fontWeight: 600 }}>{title}</h2>
             {description && <p className="text-xs text-[#6B7280] mt-0.5">{description}</p>}
@@ -57,8 +84,8 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer && <div className="px-6 py-3 border-t border-[#E5E7EB] bg-[#F9FAFB]">{footer}</div>}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">{children}</div>
+        {footer && <div className="px-4 sm:px-6 py-3 border-t border-[#E5E7EB] bg-[#F9FAFB] safe-area-inset-bottom">{footer}</div>}
       </div>
     </div>
   );
