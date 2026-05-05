@@ -2,8 +2,10 @@
  * Sales Dashboard · org-scoped · zero mock
  */
 import { useEffect, useState, useCallback } from "react";
-import { Loader2, FileText, TrendingUp, Users } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Loader2, FileText, TrendingUp, Users, Plus, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { api, ApiError, SalesDashboard as Data } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -21,6 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function SalesDashboard() {
+  const navigate = useNavigate();
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +44,26 @@ export function SalesDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>لوحة المبيعات</h1>
-        <p className="text-[#6B7280] mt-1">{data.org.name}</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>لوحة المبيعات</h1>
+          <p className="text-[#6B7280] mt-1">نظرة شاملة على مبيعاتك وفواتيرك</p>
+        </div>
+        {/* Quick-create row · always visible */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => navigate("/app/invoices?new=1")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+            <Plus className="me-1 h-4 w-4" /> فاتورة جديدة
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/app/quotes?new=1")} className="border-[#E5E7EB] text-[#1276E3]">
+            <Plus className="me-1 h-4 w-4" /> عرض سعر
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/app/receipts?new=1")} className="border-[#E5E7EB] text-[#1276E3]">
+            <Plus className="me-1 h-4 w-4" /> سند قبض
+          </Button>
+          <Button variant="outline" className="border-[#E5E7EB] text-[#6B7280]">
+            <Download className="me-1 h-4 w-4" /> تصدير
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

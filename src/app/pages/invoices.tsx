@@ -117,17 +117,24 @@ export function Invoices() {
     } finally { setBusy(false); }
   };
 
-  const handleSubmit = async (sendImmediately = false) => {
+  // 3-stage workflow: Draft → Approve → Send
+  // 'draft' = حفظ كمسودة (always available · default)
+  // 'approve' = اعتماد (final commit · enables send · backend will lock edits)
+  // 'send' = إرسال (only after approval · triggers email)
+  const handleSubmit = async (action: "draft" | "approve" | "send" = "draft") => {
     setCreateError(null);
     if (!form.contactId) { setCreateError("اختر العميل"); return; }
     if (!form.description.trim() || !form.unitPrice) { setCreateError("الوصف والسعر مطلوبان"); return; }
     setBusy(true);
     try {
+      // For now: draft always saves as DRAFT · approve+send saves as SENT
+      // TODO: when backend supports APPROVED state, map approve → APPROVED, send → SENT
+      const status = action === "draft" ? "DRAFT" : "SENT";
       const inv = await api.invoices.create({
         contactId: form.contactId,
         issueDate: form.issueDate,
         dueDate: form.dueDate,
-        status: sendImmediately ? "SENT" : "DRAFT",
+        status,
         notes: form.notes || null,
         lines: [{
           description: form.description,
@@ -136,7 +143,10 @@ export function Invoices() {
         }],
       });
       setItems(prev => [inv as Invoice, ...prev]);
-      push("success", sendImmediately ? `تم إنشاء وإرسال ${inv.invoiceNumber}` : `تم حفظ ${inv.invoiceNumber} كمسودة`);
+      const msg = action === "draft" ? `تم حفظ ${inv.invoiceNumber} كمسودة`
+                : action === "approve" ? `تم اعتماد ${inv.invoiceNumber}`
+                : `تم إرسال ${inv.invoiceNumber} للعميل`;
+      push("success", msg);
       closeCreate();
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
@@ -228,10 +238,19 @@ export function Invoices() {
           description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
           onClose={closeCreate}
           footer={
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit(false)} className="border-[#E5E7EB]">{busy ? "..." : "حفظ كمسودة"}</Button>
-              <Button type="button" disabled={busy} onClick={() => handleSubmit(true)} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ وإرسال"}</Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+                  {busy ? "..." : "حفظ كمسودة"}
+                </Button>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-[#1276E3] text-[#1276E3] hover:bg-blue-50" title="اعتماد + قفل التعديل">
+                  {busy ? "..." : "اعتماد"}
+                </Button>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title="إرسال للعميل بالبريد">
+                  {busy ? "..." : "اعتماد + إرسال"}
+                </Button>
+              </div>
             </div>
           }
         >
