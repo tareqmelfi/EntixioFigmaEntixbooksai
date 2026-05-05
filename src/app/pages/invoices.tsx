@@ -1,6 +1,7 @@
 /**
  * Sales Invoices · wired to /api/invoices · org-scoped
- * UX-1: NO modal · NO slide-over. Uses InlinePanel (inline form) + InlineConfirm + Toasts.
+ * UX-1: NO modal · NO slide-over.
+ * UX pattern: FullPageForm (replaces content area on create/sign · مطابق Wafeq) + InlineConfirm + Toasts.
  */
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
@@ -10,7 +11,6 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
-import { InlinePanel } from "../components/inline-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { normalizeDigits } from "../lib/digits";
@@ -216,41 +216,15 @@ export function Invoices() {
     } finally { setBusy(false); }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المبيعات</h1>
-          <p className="text-[#6B7280] mt-1">إدارة فواتير العملاء</p>
-        </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">المُحصَّل</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">المستحق</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">عدد الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-      </div>
-
-      {/* Inline create panel · UX-1 inline form (NOT modal · NOT slide-over) */}
-      {createOpen && (
-        <InlinePanel
+  // Full-page Create form (hides list view) · Wafeq-style replace-content pattern
+  if (createOpen) {
+    return (
+      <>
+        <FullPageForm
           title="فاتورة جديدة"
-          description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+          subtitle="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
           onClose={closeCreate}
+          disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
@@ -268,9 +242,8 @@ export function Invoices() {
             </div>
           }
         >
-          <div className="space-y-4">
+          <div className="max-w-3xl mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
-
             <div className="space-y-2">
               <Label className="text-[#374151]">العميل *</Label>
               <SearchableCombobox
@@ -303,17 +276,23 @@ export function Invoices() {
               <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
                 <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
             </div>
-            <p className="text-xs text-[#6B7280]">💡 احفظ كمسودة أولاً ثم عدّل · أو احفظ وأرسل مباشرة.</p>
+            <p className="text-xs text-[#6B7280]">💡 احفظ كمسودة أولاً ثم عدّل · أو اعتمد مباشرة · أو اعتمد وأرسل للعميل بالبريد.</p>
           </div>
-        </InlinePanel>
-      )}
+        </FullPageForm>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      </>
+    );
+  }
 
-      {/* Inline sign-capture panel */}
-      {signFor && (
-        <InlinePanel
+  // Full-page Sign form (hides list view)
+  if (signFor) {
+    return (
+      <>
+        <FullPageForm
           title={`إرسال ${signFor.invoiceNumber} للتوقيع`}
-          description="DocuSeal · sign.fc.sa"
+          subtitle="DocuSeal · sign.fc.sa · صلاحية الرابط 30 يوم"
           onClose={closeSign}
+          disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
@@ -323,7 +302,7 @@ export function Invoices() {
             </div>
           }
         >
-          <div className="space-y-4">
+          <div className="max-w-2xl mx-auto space-y-4">
             {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2"><Label>اسم الموقّع *</Label>
@@ -332,11 +311,44 @@ export function Invoices() {
                 <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
             </div>
             <div className="space-y-2"><Label>الرسالة المرفقة</Label>
-              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
+              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
             <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
           </div>
-        </InlinePanel>
-      )}
+        </FullPageForm>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      </>
+    );
+  }
+
+  // Default · list view
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المبيعات</h1>
+          <p className="text-[#6B7280] mt-1">إدارة فواتير العملاء</p>
+        </div>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
+          <div className="text-[#6B7280] text-sm mb-1">إجمالي الفواتير</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+        </CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
+          <div className="text-[#6B7280] text-sm mb-1">المُحصَّل</div>
+          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
+        </CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
+          <div className="text-[#6B7280] text-sm mb-1">المستحق</div>
+          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
+        </CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
+          <div className="text-[#6B7280] text-sm mb-1">عدد الفواتير</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
+        </CardContent></Card>
+      </div>
 
       <Card className="border-[#E5E7EB]">
         <CardHeader>
