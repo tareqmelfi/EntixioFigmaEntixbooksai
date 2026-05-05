@@ -30,11 +30,40 @@ export interface AuthState {
   loading: boolean
 }
 
+const USER_CACHE_KEY = 'entix_user_cache'
+const USER_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+function readCachedUser(): User | null {
+  try {
+    if (typeof localStorage === 'undefined') return null
+    const raw = localStorage.getItem(USER_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { user: User; ts: number }
+    if (!parsed?.user?.id) return null
+    if (Date.now() - parsed.ts > USER_CACHE_TTL_MS) return null
+    return parsed.user
+  } catch { return null }
+}
+
+function writeCachedUser(user: User | null) {
+  try {
+    if (typeof localStorage === 'undefined') return
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify({ user, ts: Date.now() }))
+    else localStorage.removeItem(USER_CACHE_KEY)
+  } catch {}
+}
+
 class AuthStore {
-  private state: AuthState = { user: null, isAuthenticated: false, loading: true }
+  private state: AuthState
   private listeners = new Set<(state: AuthState) => void>()
 
   constructor() {
+    // Optimistic hydrate from cache · the server check still runs in background
+    // and will revoke immediately if the cookie has actually expired.
+    const cachedUser = readCachedUser()
+    this.state = cachedUser
+      ? { user: cachedUser, isAuthenticated: true, loading: true }
+      : { user: null, isAuthenticated: false, loading: true }
     // Hydrate session from server on app boot
     this.refresh()
   }
@@ -59,6 +88,7 @@ class AuthStore {
         credentials: 'include',
       })
       if (!res.ok) {
+        writeCachedUser(null)
         this.state = { user: null, isAuthenticated: false, loading: false }
         this.notify()
         return
@@ -75,20 +105,19 @@ class AuthStore {
         const activeMembership = matched || memberships[0]
         if (activeMembership?.org?.id) setOrgId(activeMembership.org.id)
 
-        this.state = {
-          user: {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name || '',
-            company: activeMembership?.org?.name || '',
-            role: activeMembership?.role?.toLowerCase?.() === 'owner' ? 'admin' : (activeMembership?.role?.toLowerCase?.() || 'viewer'),
-            avatar: data.user.image || undefined,
-            createdAt: data.user.createdAt,
-          },
-          isAuthenticated: true,
-          loading: false,
+        const newUser: User = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name || '',
+          company: activeMembership?.org?.name || '',
+          role: activeMembership?.role?.toLowerCase?.() === 'owner' ? 'admin' : (activeMembership?.role?.toLowerCase?.() || 'viewer'),
+          avatar: data.user.image || undefined,
+          createdAt: data.user.createdAt,
         }
+        writeCachedUser(newUser)
+        this.state = { user: newUser, isAuthenticated: true, loading: false }
       } else {
+        writeCachedUser(null)
         this.state = { user: null, isAuthenticated: false, loading: false }
       }
       this.notify()
@@ -178,7 +207,7 @@ class AuthStore {
     return { success: true }
   }
 
-  /** Sign out · clears server session + cookie */
+  /** Sign out · clears server session + cookie + local caches */
   async logout(): Promise<void> {
     try {
       await authClient.signOut()
@@ -186,6 +215,12 @@ class AuthStore {
       console.error('[auth] logout failed', e)
     }
     setOrgId(null)
+    writeCachedUser(null)
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('entix_auth_hint')
+      }
+    } catch {}
     this.state = { user: null, isAuthenticated: false, loading: false }
     this.notify()
   }

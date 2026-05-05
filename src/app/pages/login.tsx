@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, useLocation, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where the user was trying to go before being bounced to /login.
+  // AuthGuard sets this via Navigate state · default to /app for fresh logins.
+  const fromPath: string = (location.state as any)?.from || "/app";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,12 +18,12 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in · respect fromPath
   useEffect(() => {
-    if (authStore.getState().isAuthenticated) navigate("/app");
-    const unsub = authStore.subscribe(s => { if (s.isAuthenticated) navigate("/app"); });
+    if (authStore.getState().isAuthenticated) navigate(fromPath, { replace: true });
+    const unsub = authStore.subscribe(s => { if (s.isAuthenticated) navigate(fromPath, { replace: true }); });
     return unsub;
-  }, [navigate]);
+  }, [navigate, fromPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +31,7 @@ export function Login() {
     setLoading(true);
     const result = await authStore.login(email, password);
     setLoading(false);
-    if (result.success) navigate("/app");
+    if (result.success) navigate(fromPath, { replace: true });
     else setError(result.error || "حدث خطأ");
   };
 
