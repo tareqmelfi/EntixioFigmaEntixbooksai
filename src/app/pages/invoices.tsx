@@ -1,16 +1,15 @@
 /**
- * Sales Invoices · wired to /api/invoices · org-scoped · simple list+create
- * Note: complex 105KB editor replaced with simpler form for V0.3.
- * Full ZATCA-compliant invoice editor coming in Sprint 3 (with multi-line · VAT · QR).
+ * Sales Invoices · wired to /api/invoices · org-scoped
+ * UX RULE UX-1: NO Dialog · NO alert/confirm/prompt. Uses SidePanel + InlineConfirm + Toasts.
  */
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -27,27 +26,38 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-gray-100 text-gray-500",
 };
 
+const EMPTY_FORM = {
+  contactId: "",
+  issueDate: new Date().toISOString().slice(0, 10),
+  dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+  description: "",
+  quantity: "1",
+  unitPrice: "",
+  notes: "",
+};
+
 export function Invoices() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    contactId: "",
-    issueDate: new Date().toISOString().slice(0, 10),
-    dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    description: "",
-    quantity: "1",
-    unitPrice: "",
-    notes: "",
-  });
+
+  // Side-panel state for create + sign capture (NO Dialog)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const [signFor, setSignFor] = useState<Invoice | null>(null);
+  const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
+  const [signError, setSignError] = useState<string | null>(null);
+
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
     try {
       const [invRes, contactsRes] = await Promise.all([
         api.invoices.list({ limit: 200 }),
@@ -56,9 +66,9 @@ export function Invoices() {
       setItems(invRes.items);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
     } finally { setLoading(false); }
-  }, []);
+  }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const filtered = items.filter(i => {
@@ -70,23 +80,18 @@ export function Invoices() {
   const total = items.reduce((s, i) => s + Number(i.total), 0);
   const paid = items.reduce((s, i) => s + Number(i.amountPaid || 0), 0);
   const outstanding = total - paid;
-
   const counts = items.reduce((acc: Record<string, number>, i) => {
     acc[i.status] = (acc[i.status] || 0) + 1;
     return acc;
   }, {});
 
-  const resetForm = () => setForm({
-    contactId: "", issueDate: new Date().toISOString().slice(0, 10),
-    dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    description: "", quantity: "1", unitPrice: "", notes: "",
-  });
+  const openCreate = () => { setForm(EMPTY_FORM); setCreateError(null); setCreateOpen(true); };
+  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
 
-  const handleSubmit = async (e: React.FormEvent, sendImmediately = false) => {
-    e.preventDefault();
-    setError(null);
-    if (!form.contactId) { setError("اختر العميل"); return; }
-    if (!form.description.trim() || !form.unitPrice) { setError("الوصف والسعر مطلوبان"); return; }
+  const handleSubmit = async (sendImmediately = false) => {
+    setCreateError(null);
+    if (!form.contactId) { setCreateError("اختر العميل"); return; }
+    if (!form.description.trim() || !form.unitPrice) { setCreateError("الوصف والسعر مطلوبان"); return; }
     setBusy(true);
     try {
       const inv = await api.invoices.create({
@@ -101,44 +106,61 @@ export function Invoices() {
           unitPrice: Number(form.unitPrice),
         }],
       });
-      setItems(prev => [inv, ...prev]);
-      setOpen(false); resetForm();
+      setItems(prev => [inv as Invoice, ...prev]);
+      push("success", sendImmediately ? `تم إنشاء وإرسال ${inv.invoiceNumber}` : `تم حفظ ${inv.invoiceNumber} كمسودة`);
+      closeCreate();
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل الحفظ");
+      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
     } finally { setBusy(false); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل تريد حذف الفاتورة؟")) return;
+    setPendingDelete(null);
     try {
       await api.invoices.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
+      push("success", "تم حذف الفاتورة");
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+    }
   };
 
-  const handleSendForSignature = async (inv: Invoice) => {
+  const openSign = (inv: Invoice) => {
     const customer = customers.find((c) => c.id === inv.contactId);
-    const defaultEmail = customer?.email || "";
-    const email = prompt(`إرسال الفاتورة ${inv.invoiceNumber} للتوقيع · أدخل بريد الموقّع:`, defaultEmail);
-    if (!email) return;
-    const name = prompt("اسم الموقّع:", customer?.displayName || "") || email;
+    setSignFor(inv);
+    setSignForm({
+      name: customer?.displayName || "",
+      email: customer?.email || "",
+      message: `يرجى مراجعة وتوقيع الفاتورة رقم ${inv.invoiceNumber}`,
+    });
+    setSignError(null);
+  };
+  const closeSign = () => { setSignFor(null); setSignError(null); };
+
+  const handleSignSubmit = async () => {
+    if (!signFor) return;
+    setSignError(null);
+    if (!signForm.email.trim()) { setSignError("البريد الإلكتروني مطلوب"); return; }
+    if (!signForm.name.trim()) { setSignError("اسم الموقّع مطلوب"); return; }
+    setBusy(true);
     try {
-      const r = await api.sign.sendInvoice(inv.id, {
-        signers: [{ name, email, role: "Customer" }],
-        message: `يرجى مراجعة وتوقيع الفاتورة رقم ${inv.invoiceNumber}`,
+      const r = await api.sign.sendInvoice(signFor.id, {
+        signers: [{ name: signForm.name, email: signForm.email, role: "Customer" }],
+        message: signForm.message,
         expiresInDays: 30,
       });
       if (r.error) {
-        alert(`⚠️ تم حفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
+        push("error", `حُفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
       } else {
-        alert(`✅ تم إرسال الفاتورة للتوقيع إلى ${email}`);
-        if (inv.status === "DRAFT") {
-          setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "SENT" } : x));
+        push("success", `تم إرسال الفاتورة للتوقيع إلى ${signForm.email}`);
+        if (signFor.status === "DRAFT") {
+          setItems(prev => prev.map(x => x.id === signFor.id ? { ...x, status: "SENT" } : x));
         }
       }
+      closeSign();
     } catch (e: any) {
-      alert(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذه الفاتورة" : e.message) : "فشل الإرسال");
-    }
+      setSignError(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذه الفاتورة" : e.message) : "فشل الإرسال");
+    } finally { setBusy(false); }
   };
 
   return (
@@ -148,10 +170,8 @@ export function Invoices() {
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المبيعات</h1>
           <p className="text-[#6B7280] mt-1">إدارة فواتير العملاء</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
       </div>
-
-      {error && !open && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
@@ -219,11 +239,15 @@ export function Invoices() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
                         {i.status !== "PAID" && i.status !== "CANCELLED" && (
-                          <button onClick={() => handleSendForSignature(i)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
+                          <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
                           </button>
                         )}
-                        <button onClick={() => handleDelete(i.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                        {pendingDelete === i.id ? (
+                          <InlineConfirm onConfirm={() => handleDelete(i.id)} onCancel={() => setPendingDelete(null)} />
+                        ) : (
+                          <button onClick={() => setPendingDelete(i.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -234,46 +258,80 @@ export function Invoices() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); resetForm(); } }}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader><DialogTitle className="text-[#0B1B49]">فاتورة جديدة</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => handleSubmit(e, false)}>
-            <div className="space-y-4 py-4">
-              {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-              <div className="space-y-2"><Label className="text-[#374151]">العميل *</Label>
-                <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
-                  <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
-                  <SelectContent>
-                    {customers.length === 0 && <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · أضف من صفحة العملاء/الموردين</div>}
-                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
-                  </SelectContent>
-                </Select></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
-                  <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                <div className="space-y-2"><Label className="text-[#374151]">تاريخ الاستحقاق *</Label>
-                  <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-              </div>
-              <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
-                <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة · خدمة · بضاعة ..." required className="border-[#E5E7EB]" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
-                  <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
-                  <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-              </div>
-              <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
-                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
-              <p className="text-xs text-[#6B7280]">💡 يمكنك حفظ كمسودة أولاً ثم تعديلها · وعند الجاهزية اضغط "حفظ وإرسال".</p>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="submit" disabled={busy} variant="outline" className="border-[#E5E7EB]">{busy ? "..." : "حفظ كمسودة"}</Button>
-              <Button type="button" disabled={busy} onClick={(e) => handleSubmit(e as any, true)} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ وإرسال"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Create panel · slide-over from start edge · NOT a modal */}
+      <SidePanel
+        open={createOpen}
+        onClose={closeCreate}
+        title="فاتورة جديدة"
+        description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+        width="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+            <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit(false)} className="border-[#E5E7EB]">{busy ? "..." : "حفظ كمسودة"}</Button>
+            <Button type="button" disabled={busy} onClick={() => handleSubmit(true)} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ وإرسال"}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+          <div className="space-y-2"><Label className="text-[#374151]">العميل *</Label>
+            <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
+              <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
+              <SelectContent>
+                {customers.length === 0 && <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · أضف من صفحة العملاء/الموردين</div>}
+                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
+              </SelectContent>
+            </Select></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
+              <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+            <div className="space-y-2"><Label className="text-[#374151]">تاريخ الاستحقاق *</Label>
+              <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+          </div>
+          <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
+            <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة · خدمة · بضاعة ..." className="border-[#E5E7EB]" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
+              <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+            <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
+              <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+          </div>
+          <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
+          <p className="text-xs text-[#6B7280]">💡 احفظ كمسودة أولاً ثم عدّل · أو احفظ وأرسل مباشرة.</p>
+        </div>
+      </SidePanel>
+
+      {/* Sign-for-signature capture panel */}
+      <SidePanel
+        open={!!signFor}
+        onClose={closeSign}
+        title={signFor ? `إرسال ${signFor.invoiceNumber} للتوقيع` : ""}
+        description="DocuSeal · sign.fc.sa"
+        width="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
+            <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
+          <div className="space-y-2"><Label>اسم الموقّع *</Label>
+            <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
+          <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
+            <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
+          <div className="space-y-2"><Label>الرسالة المرفقة</Label>
+            <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
+          <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
+        </div>
+      </SidePanel>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
