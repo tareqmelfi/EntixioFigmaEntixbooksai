@@ -105,11 +105,21 @@ export function PurchaseBills() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("هل تريد حذف الفاتورة؟") — replace with InlineConfirm */ 
-try {
+    try {
       await api.bills.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
+      push("success", "تم حذف الفاتورة");
     } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
+  };
+
+  const handleApprove = async (b: any) => {
+    try {
+      await api.bills.update(b.id, { status: "RECEIVED" });
+      setItems(prev => prev.map(x => x.id === b.id ? { ...x, status: "RECEIVED" } : x));
+      push("success", `تم اعتماد ${b.billNumber || b.id}`);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل الاعتماد");
+    }
   };
 
   return (
@@ -171,7 +181,14 @@ try {
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()} {b.currency}</td>
                     <td className="py-3 px-4">
-                      <button onClick={() => handleDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {b.status === "DRAFT" && (
+                          <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200" title="اعتماد الفاتورة">
+                            ✓ اعتماد
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      </div>
                     </td>
                   </tr>
                 ))}

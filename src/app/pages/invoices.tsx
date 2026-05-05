@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { InlinePanel } from "../components/inline-panel";
+import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
@@ -163,6 +164,17 @@ export function Invoices() {
       push("success", "تم حذف الفاتورة");
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+    }
+  };
+
+  // Approve a DRAFT invoice · transitions DRAFT → SENT (backend: status=APPROVED state coming · for now uses SENT)
+  const handleApprove = async (inv: Invoice) => {
+    try {
+      const updated = await api.invoices.update(inv.id, { status: "SENT" });
+      setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "SENT" } as Invoice : x));
+      push("success", `تم اعتماد ${inv.invoiceNumber}`);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل الاعتماد");
     }
   };
 
@@ -371,8 +383,15 @@ export function Invoices() {
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()} {i.currency}</td>
                     <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        {i.status !== "PAID" && i.status !== "CANCELLED" && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {/* DRAFT → Approve button */}
+                        {i.status === "DRAFT" && (
+                          <button onClick={() => handleApprove(i)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200" title="اعتماد الفاتورة">
+                            ✓ اعتماد
+                          </button>
+                        )}
+                        {/* SENT/APPROVED → Sign button */}
+                        {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
                           <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
                           </button>
