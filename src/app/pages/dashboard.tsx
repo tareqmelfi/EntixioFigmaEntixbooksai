@@ -149,11 +149,11 @@ export function Dashboard() {
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9CA3AF" }} />
                 <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} />
                 <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
-                <Bar dataKey="revenue" fill="#1276E3" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" fill="#0B1B49" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" fill="#0B1B49" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" fill="#7DD3E4" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <ChartLegend items={[{ label: "إيرادات", color: "#1276E3" }, { label: "مصروفات", color: "#0B1B49" }]} />
+            <ChartLegend items={[{ label: "الإيرادات", color: "#0B1B49" }, { label: "المصروفات", color: "#7DD3E4" }]} />
           </CardContent>
         </Card>
 
