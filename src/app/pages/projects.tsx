@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function Projects() {
   const [items, setItems] = useState<any[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,7 +50,7 @@ export function Projects() {
   const handleDelete = async (id: string) => {
     /* TODO-UX1: was confirm("حذف المشروع؟") — replace with InlineConfirm */ 
 try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
-    catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -110,6 +111,7 @@ try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== 
             <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
           </form>
         </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

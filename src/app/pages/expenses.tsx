@@ -21,6 +21,7 @@ const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
 
 export function Expenses() {
   const [items, setItems] = useState<ApiExpense[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [summary, setSummary] = useState<{ sumTotal: string; avgTotal: string }>({ sumTotal: "0", avgTotal: "0" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +109,7 @@ try {
       setItems(prev => prev.filter(x => x.id !== id));
       if (selected?.id === id) setSelected(null);
     } catch (e: any) {
-      console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
     }
   };
 
@@ -318,6 +319,7 @@ try {
             </div>
           </form>
         </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

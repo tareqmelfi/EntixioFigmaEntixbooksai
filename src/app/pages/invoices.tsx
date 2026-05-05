@@ -54,6 +54,12 @@ export function Invoices() {
   const [signError, setSignError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
+  // Quick-create customer · UX-5 · nested SidePanel
+  const [quickCustOpen, setQuickCustOpen] = useState(false);
+  const [quickCust, setQuickCust] = useState({ displayName: "", email: "", phone: "" });
+  const [quickCustError, setQuickCustError] = useState<string | null>(null);
+
   const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
@@ -87,6 +93,28 @@ export function Invoices() {
 
   const openCreate = () => { setForm(EMPTY_FORM); setCreateError(null); setCreateOpen(true); };
   const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+
+  const openQuickCust = () => { setQuickCust({ displayName: "", email: "", phone: "" }); setQuickCustError(null); setQuickCustOpen(true); };
+  const closeQuickCust = () => { setQuickCustOpen(false); setQuickCustError(null); };
+  const handleQuickCust = async () => {
+    setQuickCustError(null);
+    if (!quickCust.displayName.trim()) { setQuickCustError("اسم العميل مطلوب"); return; }
+    setBusy(true);
+    try {
+      const c = await api.contacts.create({
+        displayName: quickCust.displayName.trim(),
+        type: "CUSTOMER",
+        email: quickCust.email.trim() || undefined,
+        phone: quickCust.phone.trim() || undefined,
+      });
+      setCustomers((prev) => [c, ...prev]);
+      setForm((f) => ({ ...f, contactId: c.id })); // auto-select
+      push("success", `تم إنشاء ${c.displayName}`);
+      closeQuickCust();
+    } catch (e: any) {
+      setQuickCustError(e instanceof ApiError ? e.message : "فشل الإنشاء");
+    } finally { setBusy(false); }
+  };
 
   const handleSubmit = async (sendImmediately = false) => {
     setCreateError(null);
@@ -275,14 +303,25 @@ export function Invoices() {
       >
         <div className="space-y-4">
           {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
-          <div className="space-y-2"><Label className="text-[#374151]">العميل *</Label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[#374151]">العميل *</Label>
+              <button type="button" onClick={openQuickCust} className="text-xs text-[#1276E3] hover:underline flex items-center gap-1">
+                <Plus className="h-3 w-3" /> إضافة عميل جديد
+              </button>
+            </div>
             <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
               <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
               <SelectContent>
-                {customers.length === 0 && <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · أضف من صفحة العملاء/الموردين</div>}
+                {customers.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-[#6B7280]">
+                    لا يوجد عملاء · اضغط <strong>إضافة عميل جديد</strong> أعلاه
+                  </div>
+                )}
                 {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
               </SelectContent>
-            </Select></div>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
               <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
@@ -328,6 +367,31 @@ export function Invoices() {
           <div className="space-y-2"><Label>الرسالة المرفقة</Label>
             <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
           <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
+        </div>
+      </SidePanel>
+
+      {/* Nested Quick-Create Customer · UX-5 part 1 */}
+      <SidePanel
+        open={quickCustOpen}
+        onClose={closeQuickCust}
+        title="عميل جديد · إضافة سريعة"
+        description="الاسم فقط مطلوب · يمكن استكمال التفاصيل لاحقاً من صفحة العملاء"
+        width="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeQuickCust} className="border-[#E5E7EB]">إلغاء</Button>
+            <Button type="button" disabled={busy} onClick={handleQuickCust} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ + اختيار"}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {quickCustError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{quickCustError}</div>}
+          <div className="space-y-2"><Label>الاسم *</Label>
+            <Input value={quickCust.displayName} onChange={(e) => setQuickCust({ ...quickCust, displayName: e.target.value })} placeholder="شركة الفجر · أو فلان فلان" autoFocus /></div>
+          <div className="space-y-2"><Label>البريد الإلكتروني</Label>
+            <Input type="email" value={quickCust.email} onChange={(e) => setQuickCust({ ...quickCust, email: e.target.value })} dir="ltr" className="font-english" placeholder="contact@example.com" /></div>
+          <div className="space-y-2"><Label>الجوال</Label>
+            <Input value={quickCust.phone} onChange={(e) => setQuickCust({ ...quickCust, phone: e.target.value })} dir="ltr" className="font-english" placeholder="+966 5x xxx xxxx" /></div>
         </div>
       </SidePanel>
 

@@ -19,6 +19,7 @@ const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
 
 export function Receipts() {
   const [items, setItems] = useState<Voucher[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [summary, setSummary] = useState({ sumAmount: "0", avgAmount: "0" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +84,7 @@ try {
       await api.vouchers.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       if (selected?.id === id) setSelected(null);
-    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   if (selected) {
@@ -212,6 +213,7 @@ try {
             </div>
           </form>
         </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

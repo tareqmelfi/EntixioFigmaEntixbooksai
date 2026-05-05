@@ -26,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function PurchaseBills() {
   const [items, setItems] = useState<any[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [suppliers, setSuppliers] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +109,7 @@ export function PurchaseBills() {
 try {
       await api.bills.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -216,6 +217,7 @@ try {
             </div>
           </form>
         </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

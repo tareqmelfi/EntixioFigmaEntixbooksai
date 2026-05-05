@@ -237,6 +237,30 @@ export const api = {
     remove: (id: string) => request<{ ok: true }>(`/api/notifications/${id}`, { method: 'DELETE' }),
   },
 
+  // AI Billing · BYOK + hosted credits
+  aiBilling: {
+    get: () => request<AiBillingConfig>('/api/ai-billing'),
+    update: (data: AiBillingUpdate) => request<AiBillingConfig>('/api/ai-billing', { method: 'PATCH', body: data }),
+    usage: (limit?: number) => request<{
+      items: AiUsageLog[];
+      byEndpoint: Record<string, { count: number; cost: number }>;
+      byModel: Record<string, { count: number; cost: number }>;
+    }>('/api/ai-billing/usage', { query: { limit: limit?.toString() } }),
+    // Admin-only (returns 403 for non-admins)
+    admin: {
+      orgs: () => request<{ items: any[]; totalSpend: number; count: number }>('/api/ai-billing/admin/orgs'),
+      topup: (data: { orgId: string; amountUsd: number; note?: string }) =>
+        request<{ orgId: string; newBalance: string }>('/api/ai-billing/admin/topup', { method: 'POST', body: data }),
+      disable: (data: { orgId: string; disabled: boolean; reason?: string }) =>
+        request<{ orgId: string; disabled: boolean; disabledReason: string | null }>('/api/ai-billing/admin/disable', { method: 'POST', body: data }),
+      usageSummary: () => request<{
+        since: string; totalCost: number; totalRequests: number;
+        byOrg: Record<string, { count: number; cost: number }>;
+        byModel: Record<string, { count: number; cost: number }>;
+      }>('/api/ai-billing/admin/usage-summary'),
+    },
+  },
+
   // E-signature (DocuSeal at sign.fc.sa)
   sign: {
     sendQuote: (quoteId: string, data: SignSendInput) =>
@@ -682,6 +706,46 @@ export async function bootstrap() {
 }
 
 export const apiBaseUrl = API_BASE
+
+// ── AI Billing types ────────────────────────────────────────────────────────
+
+export type AiKeyMode = 'BYOK' | 'HOSTED_FREE' | 'HOSTED_PRO' | 'HOSTED_BUSINESS' | 'PAYG';
+
+export interface AiBillingConfig {
+  mode: AiKeyMode;
+  byokProvider: 'openrouter' | 'anthropic' | null;
+  byokKeyHint: string | null; // sk-...XXXX
+  monthlyAllocation: string;  // decimal as string (Prisma)
+  creditBalance: string;
+  spentThisPeriod: string;
+  periodResetAt: string;
+  disabled: boolean;
+  disabledReason: string | null;
+  percentUsed: number;
+}
+
+export interface AiBillingUpdate {
+  mode?: AiKeyMode;
+  byokProvider?: 'openrouter' | 'anthropic';
+  byokKey?: string;
+  clearByok?: boolean;
+}
+
+export interface AiUsageLog {
+  id: string;
+  orgId: string;
+  userId: string | null;
+  endpoint: string;
+  model: string;
+  provider: string;
+  source: 'BYOK' | 'HOSTED';
+  promptTokens: number;
+  completionTokens: number;
+  costUsd: string;
+  successful: boolean;
+  errorCode: string | null;
+  createdAt: string;
+}
 
 // ── Notification + Signature types ─────────────────────────────────────────
 export interface NotificationItem {

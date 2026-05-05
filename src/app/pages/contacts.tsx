@@ -20,6 +20,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 export function Contacts() {
   const [items, setItems] = useState<Contact[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -89,7 +90,7 @@ export function Contacts() {
 try {
       await api.contacts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -218,6 +219,7 @@ try {
             </div>
           </form>
         </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

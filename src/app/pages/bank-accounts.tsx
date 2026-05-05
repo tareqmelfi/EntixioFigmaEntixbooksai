@@ -12,6 +12,7 @@ import { api, ApiError, BankAccount } from "../lib/api";
 
 export function BankAccounts() {
   const [items, setItems] = useState<BankAccount[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [totalBalance, setTotalBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export function BankAccounts() {
 try {
       await api.bankAccounts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
@@ -168,6 +169,7 @@ try {
             </div>
           </form>
         </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

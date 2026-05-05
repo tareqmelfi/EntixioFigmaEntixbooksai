@@ -35,6 +35,7 @@ function timeAgo(iso: string): string {
 export function Notifications() {
   const navigate = useNavigate();
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"ALL" | "UNREAD">("ALL");
@@ -64,7 +65,7 @@ export function Notifications() {
 try {
       await api.notifications.remove(id);
       setItems(arr => arr.filter(x => x.id !== id));
-    } catch (e: any) { console.warn("[toast]", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   const handleMarkAll = async () => {
@@ -134,6 +135,7 @@ try {
           )}
         </CardContent>
       </Card>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
