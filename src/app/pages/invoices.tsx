@@ -4,6 +4,7 @@
  * UX pattern: FullPageForm (replaces content area on create/sign · مطابق Wafeq) + InlineConfirm + Toasts.
  */
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -13,7 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
+import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
+import { InvoicePreviewPane } from "../components/invoice-preview-pane";
+import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { normalizeDigits } from "../lib/digits";
+import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -32,17 +37,45 @@ const STATUS_COLORS: Record<string, string> = {
 
 const EMPTY_FORM = {
   contactId: "",
+  invoiceNumber: "", // auto-generated if empty
+  reference: "",     // customer PO / external reference
   issueDate: new Date().toISOString().slice(0, 10),
   dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-  description: "",
-  quantity: "1",
-  unitPrice: "",
+  currency: "SAR",
+  paymentTerms: "net30", // net15 | net30 | net60 | due-on-receipt | custom
+  brandTemplate: "default",
   notes: "",
 };
 
+const PAYMENT_TERMS = [
+  { value: "due-on-receipt", label: "مستحق فور الاستلام", days: 0 },
+  { value: "net15", label: "صافي 15 يوم", days: 15 },
+  { value: "net30", label: "صافي 30 يوم", days: 30 },
+  { value: "net60", label: "صافي 60 يوم", days: 60 },
+  { value: "net90", label: "صافي 90 يوم", days: 90 },
+];
+
+const CURRENCIES = [
+  { value: "SAR", label: "ريال سعودي · SAR" },
+  { value: "USD", label: "دولار أمريكي · USD" },
+  { value: "EUR", label: "يورو · EUR" },
+  { value: "GBP", label: "جنيه إسترليني · GBP" },
+  { value: "AED", label: "درهم إماراتي · AED" },
+  { value: "KWD", label: "دينار كويتي · KWD" },
+];
+
+const BRAND_TEMPLATES = [
+  { value: "default", label: "افتراضي" },
+  { value: "minimal", label: "مينيمال" },
+  { value: "classic", label: "كلاسيكي" },
+];
+
 export function Invoices() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,12 +85,18 @@ export function Invoices() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  // Multi-line items · UX-5 · Excel paste + bulk tax mode
+  const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
+  const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
 
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
+  // Split-view preview · UX-7 · click row → preview pane on side (Wafeq pattern)
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   // Quick-create customer · UX-5 · nested SidePanel
   const [quickCustOpen, setQuickCustOpen] = useState(false);
@@ -69,17 +108,34 @@ export function Invoices() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [invRes, contactsRes] = await Promise.all([
+      const [invRes, contactsRes, productsRes, accountsRes] = await Promise.all([
         api.invoices.list({ limit: 200 }),
         api.contacts.list({ limit: 200 }),
+        (api as any).products?.list?.({ limit: 200 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
+        (api as any).accounts?.list?.({ limit: 500 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
       ]);
       setItems(invRes.items);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
+      setProducts((productsRes as any).items || []);
+      setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل التحميل");
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Auto-open create form when ?new=1 (from Sales Dashboard quick-create)
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setForm(EMPTY_FORM);
+      setLines([newLine()]);
+      setTaxMode("all-exclusive");
+      setCreateError(null);
+      setCreateOpen(true);
+      // Clean the URL after opening
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filtered = items.filter(i => {
     if (filterStatus !== "ALL" && i.status !== filterStatus) return false;
@@ -95,8 +151,24 @@ export function Invoices() {
     return acc;
   }, {});
 
-  const openCreate = () => { setForm(EMPTY_FORM); setCreateError(null); setCreateOpen(true); };
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setLines([newLine()]);
+    setTaxMode("all-exclusive");
+    setCreateError(null);
+    setCreateOpen(true);
+  };
   const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+
+  // Keyboard shortcuts (UX-7) · skip when create form is open · those have own Esc handler
+  useKeyboardShortcuts({
+    n: () => { if (!createOpen && !signFor) openCreate(); },
+    "/": () => {
+      const search = document.querySelector<HTMLInputElement>('input[placeholder="بحث..."]');
+      search?.focus();
+    },
+    escape: () => { if (previewId && !createOpen && !signFor) setPreviewId(null); },
+  }, [createOpen, signFor, previewId]);
 
   const openQuickCust = () => { setQuickCust({ displayName: "", email: "", phone: "" }); setQuickCustError(null); setQuickCustOpen(true); };
   const closeQuickCust = () => { setQuickCustOpen(false); setQuickCustError(null); };
@@ -127,7 +199,9 @@ export function Invoices() {
   const handleSubmit = async (action: "draft" | "approve" | "send" = "draft") => {
     setCreateError(null);
     if (!form.contactId) { setCreateError("اختر العميل"); return; }
-    if (!form.description.trim() || !form.unitPrice) { setCreateError("الوصف والسعر مطلوبان"); return; }
+    // Validate lines · at least one row with description AND unitPrice
+    const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
+    if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
     setBusy(true);
     try {
       // For now: draft always saves as DRAFT · approve+send saves as SENT
@@ -135,21 +209,33 @@ export function Invoices() {
       const status = action === "draft" ? "DRAFT" : "SENT";
       const inv = await api.invoices.create({
         contactId: form.contactId,
+        invoiceNumber: form.invoiceNumber || undefined,
         issueDate: form.issueDate,
         dueDate: form.dueDate,
+        currency: form.currency,
         status,
         notes: form.notes || null,
-        lines: [{
-          description: form.description,
-          quantity: Number(form.quantity) || 1,
-          unitPrice: Number(form.unitPrice),
-        }],
-      });
+        termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
+        lines: validLines.map((l) => ({
+          productId: l.productId || null,
+          description: l.description,
+          quantity: Number(normalizeDigits(l.quantity)) || 1,
+          unitPrice: l.taxInclusive
+            ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
+            : Number(normalizeDigits(l.unitPrice)),
+        })),
+      } as any);
       setItems(prev => [inv as Invoice, ...prev]);
       const msg = action === "draft" ? `تم حفظ ${inv.invoiceNumber} كمسودة`
                 : action === "approve" ? `تم اعتماد ${inv.invoiceNumber}`
                 : `تم إرسال ${inv.invoiceNumber} للعميل`;
       push("success", msg);
+      // Auto-trigger email send after approve+send
+      if (action === "send" && inv.id) {
+        try {
+          await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined });
+        } catch (e) { /* email might fail if no customer email · don't block */ }
+      }
       closeCreate();
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
@@ -242,41 +328,212 @@ export function Invoices() {
             </div>
           }
         >
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-7xl mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
-            <div className="space-y-2">
-              <Label className="text-[#374151]">العميل *</Label>
-              <SearchableCombobox
-                value={form.contactId}
-                onChange={(id) => setForm({ ...form, contactId: id })}
-                onCreate={async (name) => {
-                  const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
-                  setCustomers((prev) => [c, ...prev]);
-                  push("success", `تم إنشاء ${c.displayName}`);
-                  return c.id;
-                }}
-                items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                placeholder="اكتب اسم العميل أو ابحث..."
-                createLabel={(q) => `+ إنشاء عميل جديد: "${q}"`}
-              />
+
+            {/* Top row · 6 fields per Wafeq screenshot · 2026-05-05 */}
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">جهة الاتصال *</Label>
+                <SearchableCombobox
+                  value={form.contactId}
+                  onChange={(id) => setForm({ ...form, contactId: id })}
+                  onCreate={async (name) => {
+                    const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
+                    setCustomers((prev) => [c, ...prev]);
+                    push("success", `تم إنشاء ${c.displayName}`);
+                    return c.id;
+                  }}
+                  items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
+                  placeholder="ابحث عن عميل..."
+                  createLabel={(q) => `+ إنشاء "${q}"`}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">تاريخ الإصدار *</Label>
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">تاريخ الاستحقاق *</Label>
+                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">رقم الفاتورة</Label>
+                <Input value={form.invoiceNumber} onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })} placeholder="# تلقائي" dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">المرجع</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع العميل" className="border-[#E5E7EB] h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">الدفع الإلكتروني</Label>
+                <button
+                  type="button"
+                  className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-3 text-xs flex items-center justify-between hover:border-[#1276E3]"
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded">MC</span>
+                    <span className="bg-blue-600 text-white text-[10px] font-bold px-1 rounded">VISA</span>
+                  </span>
+                  <span className="text-[#1276E3]">إعداد الدفع</span>
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-              <div className="space-y-2"><Label className="text-[#374151]">تاريخ الاستحقاق *</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+
+            {/* Second row · currency + tax mode + brand template + documents button */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">العملة</Label>
+                <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">المبالغ</Label>
+                <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
+                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-exclusive">غير شاملة الضريبة</SelectItem>
+                    <SelectItem value="all-inclusive">شاملة الضريبة</SelectItem>
+                    <SelectItem value="custom">مخصصة لكل بند</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">قالب العلامة التجارية</Label>
+                <Select value={form.brandTemplate} onValueChange={(v) => setForm({ ...form, brandTemplate: v })}>
+                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BRAND_TEMPLATES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">شروط الدفع</Label>
+                <Select value={form.paymentTerms} onValueChange={(v) => {
+                  const t = PAYMENT_TERMS.find((p) => p.value === v);
+                  if (t) {
+                    const due = new Date(form.issueDate);
+                    due.setDate(due.getDate() + t.days);
+                    setForm({ ...form, paymentTerms: v, dueDate: due.toISOString().slice(0, 10) });
+                  } else {
+                    setForm({ ...form, paymentTerms: v });
+                  }
+                }}>
+                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_TERMS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
-              <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة · خدمة · بضاعة ..." className="border-[#E5E7EB]" /></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
-                <Input type="text" inputMode="decimal" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: normalizeDigits(e.target.value) })} dir="ltr" className="border-[#E5E7EB] font-english" placeholder="1" /></div>
-              <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
-                <Input type="text" inputMode="decimal" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: normalizeDigits(e.target.value) })} dir="ltr" className="border-[#E5E7EB] font-english" placeholder="0.00" /></div>
-              <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
-                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
+
+            {/* Items table v2 · with product picker + account picker */}
+            <ItemsTable
+              lines={lines}
+              setLines={setLines}
+              mode={taxMode}
+              onModeChange={setTaxMode}
+              defaultTaxRate={0.15}
+              currency={form.currency}
+              direction="sales"
+              products={products.map((p: any) => ({
+                id: p.id,
+                name: p.nameAr || p.name,
+                sku: p.sku,
+                unitPrice: Number(p.unitPrice) || 0,
+                accountId: p.incomeAccountId,
+              }))}
+              accounts={accounts.map((a: any) => ({
+                id: a.id,
+                code: a.code,
+                name: a.nameAr || a.name,
+                type: a.type,
+              }))}
+              onCreateProduct={async (name) => {
+                const p = await (api as any).products.create({ name, type: "SERVICE", unitPrice: 0 });
+                setProducts((prev) => [p, ...prev]);
+                return { id: p.id, name: p.name, unitPrice: Number(p.unitPrice) || 0 };
+              }}
+              minRows={10}
+            />
+
+            {/* Document drop zone · matches the screenshot's "اسحب ملفات هنا" bar */}
+            <DocumentDropZone
+              compact
+              target="invoice-lines"
+              hint="استخرج بنود الفاتورة من هذا المستند"
+              defaultTaxRate={0.15}
+              currency={form.currency}
+              onExtracted={(data: ExtractedDocument) => {
+                if (!data.lines || data.lines.length === 0) {
+                  push("warning", "لم يتم استخراج بنود من المستند");
+                  return;
+                }
+                const newLines: InvoiceLine[] = data.lines.map((l: any) => ({
+                  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  description: l.description || "",
+                  quantity: String(l.quantity || 1),
+                  unitPrice: String(l.unitPrice || 0),
+                  taxRate: l.taxRate ?? 0.15,
+                  taxInclusive: l.taxInclusive ?? false,
+                  notes: l.notes || undefined,
+                }));
+                setLines(newLines);
+                if (data.documentNumber && !form.invoiceNumber) {
+                  setForm((f) => ({ ...f, reference: data.documentNumber || f.reference }));
+                }
+                if (data.dueDate) setForm((f) => ({ ...f, dueDate: data.dueDate || f.dueDate }));
+                if (data.notes) setForm((f) => ({ ...f, notes: data.notes || f.notes }));
+                push("success", `تم استخراج ${newLines.length} بنداً بثقة ${Math.round(data.confidence * 100)}%`);
+              }}
+              onError={(msg) => push("error", msg)}
+            />
+
+            {/* Totals + payment terms + notes · 2-column footer */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[#374151] text-xs">شروط الدفع · ملاحظة للعميل</Label>
+                  <textarea
+                    rows={3}
+                    placeholder="مثلاً: الدفع خلال 30 يوم من تاريخ الفاتورة عبر تحويل بنكي..."
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">الإجمالي</Label>
+                <div className="rounded-lg border border-[#E5E7EB] bg-white p-4 space-y-2">
+                  {(() => {
+                    const totals = computeTotals(lines);
+                    return (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#6B7280]">المجموع الفرعي</span>
+                          <span className="font-english text-[#0B1B49]">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#6B7280]">ضريبة القيمة المضافة (15%)</span>
+                          <span className="font-english text-[#0B1B49]">{form.currency} {totals.tax.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
+                          <span className="text-[#0B1B49]" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                            {form.currency} {totals.total.toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-[#6B7280]">💡 احفظ كمسودة أولاً ثم عدّل · أو اعتمد مباشرة · أو اعتمد وأرسل للعميل بالبريد.</p>
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -320,7 +577,11 @@ export function Invoices() {
     );
   }
 
-  // Default · list view
+  // Default · list view (with optional split-view preview pane)
+  const previewInvoice = previewId ? items.find((x) => x.id === previewId) || null : null;
+  const previewCustomer = previewInvoice ? customers.find((c) => c.id === previewInvoice.contactId) || null : null;
+  const splitMode = !!previewInvoice;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -331,7 +592,7 @@ export function Invoices() {
         <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 ${splitMode ? "md:grid-cols-2" : "md:grid-cols-4"} gap-4`}>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">إجمالي الفواتير</div>
           <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
@@ -350,6 +611,7 @@ export function Invoices() {
         </CardContent></Card>
       </div>
 
+      <div className={`grid grid-cols-1 ${splitMode ? "lg:grid-cols-[1fr_1.2fr]" : ""} gap-4`}>
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -377,24 +639,28 @@ export function Invoices() {
               <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاستحقاق</th>
+                {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>}
+                {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاستحقاق</th>}
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الإجمالي</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المتبقي</th>
+                {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المتبقي</th>}
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
               </tr></thead>
               <tbody>
                 {filtered.map(i => (
-                  <tr key={i.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                  <tr
+                    key={i.id}
+                    onClick={() => setPreviewId(previewId === i.id ? null : i.id)}
+                    className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
+                  >
                     <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{i.invoiceNumber}</td>
                     <td className="py-3 px-4 text-sm text-[#374151]">{i.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.dueDate?.slice(0, 10)}</td>
+                    {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.issueDate?.slice(0, 10)}</td>}
+                    {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.dueDate?.slice(0, 10)}</td>}
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span></td>
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()} {i.currency}</td>
-                    <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</td>
-                    <td className="py-3 px-4">
+                    {!splitMode && <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</td>}
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
                         {/* DRAFT → Approve button */}
                         {i.status === "DRAFT" && (
@@ -422,6 +688,33 @@ export function Invoices() {
           )}
         </CardContent>
       </Card>
+
+      {/* Split-view preview pane · shows when a row is clicked */}
+      {splitMode && previewInvoice && (
+        <InvoicePreviewPane
+          doc={{
+            id: previewInvoice.id,
+            number: previewInvoice.invoiceNumber,
+            status: previewInvoice.status,
+            issueDate: previewInvoice.issueDate,
+            dueDate: previewInvoice.dueDate,
+            total: previewInvoice.total,
+            amountPaid: previewInvoice.amountPaid,
+            currency: previewInvoice.currency,
+            notes: (previewInvoice as any).notes,
+            lines: (previewInvoice as any).lines,
+          }}
+          customer={previewCustomer}
+          statusLabels={STATUS_LABELS}
+          statusColors={STATUS_COLORS}
+          docTypeLabel="فاتورة"
+          onClose={() => setPreviewId(null)}
+          onApprove={previewInvoice.status === "DRAFT" ? () => handleApprove(previewInvoice) : undefined}
+          onSign={() => openSign(previewInvoice)}
+          onDelete={() => setPendingDelete(previewInvoice.id)}
+        />
+      )}
+      </div>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

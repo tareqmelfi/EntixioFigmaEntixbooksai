@@ -293,13 +293,130 @@ export const api = {
       }>('/api/ocr/extract-batch', { method: 'POST', body: data }),
   },
 
-  // Agent — Claude with tool calling
+  // Agent — Claude with tool calling + structured extractors
   agent: {
     chat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
       request<{ message: string; toolResults: Array<{ tool: string; args: any; result: any }> }>(
         '/api/agent/chat',
         { method: 'POST', body: { messages } },
       ),
+    /** Universal document → structured rows · UX-65b */
+    extractDocument: (data: {
+      fileBase64: string;
+      fileName?: string;
+      mimeType: string;
+      target?: 'invoice-lines' | 'quote-lines' | 'bill-lines' | 'expense' | 'contact' | 'auto';
+      hint?: string;
+      defaultTaxRate?: number;
+      currency?: string;
+    }) => request<any>('/api/agent/extract-document', { method: 'POST', body: data }),
+    /** Smart paste · text blob → structured rows */
+    parsePaste: (data: { text: string; hint?: 'invoice' | 'expense' | 'bill' | 'voucher' | 'contact' | 'auto' }) =>
+      request<any>('/api/agent/parse-paste', { method: 'POST', body: data }),
+    /** Voice → transcript → optional intent */
+    voice: (data: { audioBase64: string; mimeType: string; mode?: 'transcribe-only' | 'transcribe-and-act' }) =>
+      request<{ transcript: string; source?: string; nextAction?: string }>(
+        '/api/agent/voice',
+        { method: 'POST', body: data },
+      ),
+    /** Anomaly detection · outliers + duplicates + overdue */
+    anomaly: (data?: { period?: '7d' | '30d' | '90d'; scope?: 'all' | 'expenses' | 'invoices' | 'vouchers' }) =>
+      request<{ flags: any[]; total: number; period: string; scope: string }>(
+        '/api/agent/anomaly',
+        { method: 'POST', body: data || {} },
+      ),
+    /** Cash flow forecast · 8 weeks default */
+    cashFlowForecast: (data?: { weeks?: number; includeRecurring?: boolean }) =>
+      request<{ weeks: any[]; startCash: number; endCash: number; concerns: any[] }>(
+        '/api/agent/cash-flow-forecast',
+        { method: 'POST', body: data || {} },
+      ),
+  },
+
+  // Email · Resend wrapper · branded HTML templates
+  email: {
+    sendInvoice: (id: string, data: { to?: string; message?: string; payLink?: string }) =>
+      request<{ ok: boolean; emailId?: string; sentTo: string }>(
+        `/api/email/invoices/${id}/send`,
+        { method: 'POST', body: data },
+      ),
+    sendQuote: (id: string, data: { to?: string; message?: string; payLink?: string }) =>
+      request<{ ok: boolean; emailId?: string; sentTo: string }>(
+        `/api/email/quotes/${id}/send`,
+        { method: 'POST', body: data },
+      ),
+  },
+
+  // ZATCA · process invoice → XML + QR + clearance
+  zatca: {
+    process: (id: string) =>
+      request<{ ok: boolean; status: string; uuid: string; qr: string; warnings: string[] }>(
+        `/api/zatca/invoices/${id}/process`,
+        { method: 'POST' },
+      ),
+    getQr: (id: string) =>
+      request<{ qr: string }>(`/api/zatca/invoices/${id}/qr`),
+  },
+
+  // Loyalty points
+  loyalty: {
+    listAccounts: (params?: { tier?: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' }) =>
+      request<{ items: any[] }>('/api/loyalty/accounts', { query: params }),
+    getAccount: (contactId: string) =>
+      request<any>(`/api/loyalty/accounts/${contactId}`),
+    enrol: (contactId: string) =>
+      request<any>('/api/loyalty/accounts', { method: 'POST', body: { contactId } }),
+    earn: (contactId: string, points: number, source?: string, description?: string) =>
+      request<any>(`/api/loyalty/accounts/${contactId}/earn`, { method: 'POST', body: { points, source, description } }),
+    redeem: (contactId: string, points: number, source?: string, description?: string) =>
+      request<any>(`/api/loyalty/accounts/${contactId}/redeem`, { method: 'POST', body: { points, source, description } }),
+  },
+
+  // Bank statement import (CSV / MT940 / OFX) + auto-match
+  bankImport: {
+    profiles: () => request<{ profiles: { id: string; label: string }[]; formats: string[] }>('/api/bank-import/profiles'),
+    parse: (data: { bankAccountId: string; format: 'csv' | 'mt940' | 'ofx'; profile?: string; text: string }) =>
+      request<{ rows: any[]; matched: number; unmatched: number }>(
+        '/api/bank-import/parse',
+        { method: 'POST', body: data },
+      ),
+    commit: (data: { bankAccountId: string; rows: any[] }) =>
+      request<{ ok: boolean; created: number; linked: number; skipped: number }>(
+        '/api/bank-import/commit',
+        { method: 'POST', body: data },
+      ),
+  },
+
+  // Inventory · multi-warehouse · WAC/FIFO/LIFO
+  inventory: {
+    listWarehouses: () => request<{ items: any[] }>('/api/inventory/warehouses'),
+    createWarehouse: (data: { code: string; name: string; isPrimary?: boolean; address?: string }) =>
+      request<any>('/api/inventory/warehouses', { method: 'POST', body: data }),
+    listStock: (params?: { productId?: string; warehouseId?: string }) =>
+      request<{ items: any[] }>('/api/inventory/stock', { query: params }),
+    listMovements: (params?: { productId?: string; warehouseId?: string; from?: string; to?: string }) =>
+      request<{ items: any[] }>('/api/inventory/movements', { query: params }),
+    receipt: (data: { productId: string; warehouseId: string; quantity: number; unitCost: number; refType?: string; refId?: string }) =>
+      request<any>('/api/inventory/receipts', { method: 'POST', body: data }),
+    issue: (data: { productId: string; warehouseId: string; quantity: number; method?: 'WAC' | 'FIFO' | 'LIFO'; refType?: string; refId?: string }) =>
+      request<{ cogs: number; shortfall: number }>('/api/inventory/issues', { method: 'POST', body: data }),
+    transfer: (data: { productId: string; fromWarehouseId: string; toWarehouseId: string; quantity: number; method?: 'WAC' | 'FIFO' | 'LIFO' }) =>
+      request<any>('/api/inventory/transfers', { method: 'POST', body: data }),
+  },
+
+  // Payroll · GOSI + SIF (مدد)
+  payroll: {
+    calculate: (employees: any[]) =>
+      request<{ results: any[]; totals: any }>('/api/payroll/calculate', { method: 'POST', body: { employees } }),
+    sif: (data: { employerId: string; establishmentId: string; period: string; rows: any[] }) =>
+      request<string>('/api/payroll/sif', { method: 'POST', body: data, raw: true } as any),
+  },
+
+  // Credit notes (إشعارات دائنة)
+  creditNotes: {
+    list: (params?: { limit?: number }) => request<{ items: any[] }>('/api/credit-notes', { query: params }),
+    create: (data: any) => request<any>('/api/credit-notes', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/credit-notes/${id}`, { method: 'DELETE' }),
   },
 
   // Vouchers (سند قبض / سند صرف)

@@ -207,6 +207,48 @@ class AuthStore {
     return { success: true }
   }
 
+  /** Send password-reset email · better-auth flow */
+  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // better-auth exposes /api/auth/forget-password (note spelling)
+      const res = await fetch(`${API_BASE}/api/auth/forget-password`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          redirectTo: `${window.location.origin}/reset-password`,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        return { success: false, error: data?.message || 'فشل إرسال رابط الاسترداد' }
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+    }
+  }
+
+  /** Reset password using a token from the email link */
+  async resetPassword(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        return { success: false, error: data?.message || 'الرابط منتهي أو غير صالح' }
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+    }
+  }
+
   /** Sign out · clears server session + cookie + local caches */
   async logout(): Promise<void> {
     try {

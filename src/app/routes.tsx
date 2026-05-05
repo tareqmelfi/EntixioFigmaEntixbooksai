@@ -3,6 +3,8 @@ import { Root } from "./layouts/root";
 import { Landing } from "./pages/landing";
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
+import { ForgotPassword } from "./pages/forgot-password";
+import { ResetPassword } from "./pages/reset-password";
 import { Features } from "./pages/features";
 import { Integration } from "./pages/integration";
 import { PricingPage } from "./pages/pricing-page";
@@ -84,6 +86,8 @@ export const router = createBrowserRouter([
   { path: "/", element: <Landing />, errorElement: <ErrorBoundary /> },
   { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },
   { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
+  { path: "/forgot-password", element: <ForgotPassword />, errorElement: <ErrorBoundary /> },
+  { path: "/reset-password", element: <ResetPassword />, errorElement: <ErrorBoundary /> },
   { path: "/features", element: <Features />, errorElement: <ErrorBoundary /> },
   { path: "/integration", element: <Integration />, errorElement: <ErrorBoundary /> },
   { path: "/pricing", element: <PricingPage />, errorElement: <ErrorBoundary /> },

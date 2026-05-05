@@ -1,12 +1,19 @@
+/**
+ * Expenses (المصروفات النقدية) · wired to /api/expenses
+ * UX-1 compliant: NO Dialog · NO alert/confirm/prompt · NO SidePanel
+ * UX pattern: FullPageForm · مطابق Wafeq
+ */
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router";
+import { useSearchParams } from "react-router";
 import { Receipt, Plus, Search, Eye, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { FullPageForm } from "../components/full-page-form";
+import { normalizeDigits } from "../lib/digits";
 import { api, Expense as ApiExpense, ExpenseInput, ApiError } from "../lib/api";
 
 const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
@@ -19,41 +26,53 @@ const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
   OTHER: "أخرى",
 };
 
+const EMPTY_FORM = {
+  category: "",
+  date: new Date().toISOString().slice(0, 10),
+  amount: "",
+  paymentMethod: "CASH" as ApiExpense["paymentMethod"],
+  description: "",
+  vendorName: "",
+};
+
 export function Expenses() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<ApiExpense[]>([]);
   const { toasts, push, dismiss } = useToasts();
   const [summary, setSummary] = useState<{ sumTotal: string; avgTotal: string }>({ sumTotal: "0", avgTotal: "0" });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [selected, setSelected] = useState<ApiExpense | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    category: "",
-    date: new Date().toISOString().slice(0, 10),
-    amount: "",
-    paymentMethod: "CASH" as ApiExpense["paymentMethod"],
-    description: "",
-    vendorName: "",
-  });
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await api.expenses.list({ limit: 200 });
       setItems(data.items);
       setSummary(data.summary);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل تحميل المصروفات");
+      push("error", e instanceof ApiError ? e.message : "فشل تحميل المصروفات");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [push]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setFormData(EMPTY_FORM);
+      setCreateError(null);
+      setCreateOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filtered = items.filter((e) =>
     !searchQuery
@@ -65,16 +84,17 @@ export function Expenses() {
   const total = Number(summary.sumTotal || 0);
   const avg = Number(summary.avgTotal || 0);
 
-  const resetForm = () => setFormData({
-    category: "", date: new Date().toISOString().slice(0, 10),
-    amount: "", paymentMethod: "CASH", description: "", vendorName: "",
-  });
+  const openCreate = () => {
+    setFormData(EMPTY_FORM);
+    setCreateError(null);
+    setCreateOpen(true);
+  };
+  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!formData.category.trim() || !formData.amount || Number(formData.amount) <= 0) {
-      setError("الرجاء تعبئة التصنيف والمبلغ");
+  const handleSubmit = async () => {
+    setCreateError(null);
+    if (!formData.category.trim() || !formData.amount || Number(normalizeDigits(formData.amount)) <= 0) {
+      setCreateError("الرجاء تعبئة التصنيف والمبلغ");
       return;
     }
     setBusy(true);
@@ -82,7 +102,7 @@ export function Expenses() {
       const input: ExpenseInput = {
         date: formData.date,
         category: formData.category.trim(),
-        amount: Number(formData.amount),
+        amount: Number(normalizeDigits(formData.amount)),
         paymentMethod: formData.paymentMethod,
         description: formData.description || null,
         vendorName: formData.vendorName || null,
@@ -93,25 +113,92 @@ export function Expenses() {
         sumTotal: String(Number(s.sumTotal) + Number(created.total)),
         avgTotal: String((Number(s.sumTotal) + Number(created.total)) / (items.length + 1)),
       }));
-      setIsDialogOpen(false);
-      resetForm();
+      push("success", `تم حفظ المصروف ${created.number}`);
+      closeCreate();
     } catch (e: any) {
-      setError(e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل حفظ المصروف");
+      setCreateError(e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل حفظ المصروف");
     } finally {
       setBusy(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("هل أنت متأكد من حذف هذا المصروف؟") — replace with InlineConfirm */ 
-try {
+    setPendingDelete(null);
+    try {
       await api.expenses.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       if (selected?.id === id) setSelected(null);
+      push("success", "تم حذف المصروف");
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الحذف");
     }
   };
+
+  // Full-page Create form
+  if (createOpen) {
+    return (
+      <>
+        <FullPageForm
+          title="مصروف جديد"
+          subtitle="املأ البيانات الأساسية للمصروف النقدي"
+          onClose={closeCreate}
+          disableEscape={busy}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+                {busy ? "..." : "حفظ"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="max-w-2xl mx-auto space-y-4">
+            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+            <div className="space-y-2">
+              <Label className="text-[#374151]">التصنيف *</Label>
+              <Input placeholder="مثال: إيجار المكتب · رواتب · فواتير" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-[#E5E7EB]" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-[#374151]">التاريخ *</Label>
+                <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#374151]">المبلغ (SR) *</Label>
+                <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: normalizeDigits(e.target.value) })} required dir="ltr" className="border-[#E5E7EB] font-english" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-[#374151]">طريقة الدفع *</Label>
+                <Select value={formData.paymentMethod} onValueChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}>
+                  <SelectTrigger className="border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">نقداً</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
+                    <SelectItem value="CARD">بطاقة ائتمان</SelectItem>
+                    <SelectItem value="MADA">مدى</SelectItem>
+                    <SelectItem value="STC_PAY">STC Pay</SelectItem>
+                    <SelectItem value="CHECK">شيك</SelectItem>
+                    <SelectItem value="OTHER">أخرى</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#374151]">المورد / الجهة (اختياري)</Label>
+                <Input placeholder="مثال: شركة الكهرباء" value={formData.vendorName} onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })} className="border-[#E5E7EB]" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[#374151]">ملاحظات (اختياري)</Label>
+              <textarea rows={3} placeholder="تفاصيل إضافية..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
+            </div>
+          </div>
+        </FullPageForm>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      </>
+    );
+  }
 
   if (selected) {
     return (
@@ -124,9 +211,13 @@ try {
               <p className="text-[#6B7280] text-sm">{selected.category}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => handleDelete(selected.id)} className="border-red-200 text-red-600 hover:bg-red-50">
-            <Trash2 className="me-2 h-4 w-4" /> حذف
-          </Button>
+          {pendingDelete === selected.id ? (
+            <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
+          ) : (
+            <Button variant="outline" onClick={() => setPendingDelete(selected.id)} className="border-red-200 text-red-600 hover:bg-red-50">
+              <Trash2 className="me-2 h-4 w-4" /> حذف
+            </Button>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">
@@ -148,6 +239,7 @@ try {
             )}
           </CardContent></Card>
         </div>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
       </div>
     );
   }
@@ -156,19 +248,19 @@ try {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المصروفات النقدية</h1><p className="text-[#6B7280] mt-1">إدارة المصروفات اليومية</p></div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي المصروفات</CardTitle></CardHeader>
           <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">إجمالي</p></CardContent>
         </Card>
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">عدد المصروفات</CardTitle></CardHeader>
           <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-[#6B7280] mt-1">مصروف</p></CardContent>
         </Card>
-        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">متوسط المصروف</CardTitle></CardHeader>
           <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length ? Math.round(avg).toLocaleString() : 0} SR</div><p className="text-xs text-[#6B7280] mt-1">لكل مصروف</p></CardContent>
         </Card>
@@ -190,13 +282,13 @@ try {
                 <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>التاريخ</th>
                 <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المبلغ</th>
                 <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الطريقة</th>
-                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>⋮</th>
+                <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>إجراءات</th>
               </tr>
             </thead>
             <tbody>
               {loading && <tr><td colSpan={6} className="py-8 text-center text-[#6B7280] text-sm">جارٍ التحميل...</td></tr>}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="py-8 text-center text-[#6B7280] text-sm">لا توجد مصروفات · اضغط "مصروف جديد" لإضافة أول مصروف</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد مصروفات · اضغط "مصروف جديد" لإضافة أول مصروف</p></td></tr>
               )}
               {!loading && filtered.map((e) => (
                 <tr key={e.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] transition-colors">
@@ -208,7 +300,11 @@ try {
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setSelected(e)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><Eye className="h-4 w-4" /></button>
-                      <button onClick={() => handleDelete(e.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      {pendingDelete === e.id ? (
+                        <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
+                      ) : (
+                        <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -218,107 +314,6 @@ try {
         </CardContent>
       </Card>
 
-      {/* Top-level error banner */}
-      {error && !isDialogOpen && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      )}
-
-      {/* Dialog for New Expense */}
-      <SidePanel open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
-        <div className="mb-3">
-            <h2 className="text-[#0B1B49] text-lg font-semibold">مصروف جديد</h2>
-          </div>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-[#374151]">التصنيف *</Label>
-                <Input
-                  id="category"
-                  placeholder="مثال: إيجار المكتب"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                  className="border-[#E5E7EB]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date" className="text-[#374151]">التاريخ *</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                  className="border-[#E5E7EB] font-english"
-                  dir="ltr"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="amount" className="text-[#374151]">المبلغ (SR) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  required
-                  className="border-[#E5E7EB] font-english"
-                  dir="ltr"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="method" className="text-[#374151]">طريقة الدفع *</Label>
-                <Select value={formData.paymentMethod} onValueChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}>
-                  <SelectTrigger className="border-[#E5E7EB]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CASH">نقداً</SelectItem>
-                    <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
-                    <SelectItem value="CARD">بطاقة ائتمان</SelectItem>
-                    <SelectItem value="MADA">مدى</SelectItem>
-                    <SelectItem value="STC_PAY">STC Pay</SelectItem>
-                    <SelectItem value="CHECK">شيك</SelectItem>
-                    <SelectItem value="OTHER">أخرى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vendorName" className="text-[#374151]">المورد / الجهة (اختياري)</Label>
-                <Input
-                  id="vendorName"
-                  placeholder="مثال: شركة الكهرباء"
-                  value={formData.vendorName}
-                  onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
-                  className="border-[#E5E7EB]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-[#374151]">ملاحظات (اختياري)</Label>
-                <Input
-                  id="description"
-                  placeholder=""
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="border-[#E5E7EB]"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
-                إلغاء
-              </Button>
-              <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
-                {busy ? "جارٍ الحفظ..." : "حفظ"}
-              </Button>
-            </div>
-          </form>
-        </SidePanel>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );

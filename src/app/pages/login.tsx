@@ -103,7 +103,7 @@ export function Login() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 500 }}>كلمة المرور</label>
-                <a href="#" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>نسيت كلمة المرور؟</a>
+                <Link to="/forgot-password" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>نسيت كلمة المرور؟</Link>
               </div>
               <div className="relative">
                 <input

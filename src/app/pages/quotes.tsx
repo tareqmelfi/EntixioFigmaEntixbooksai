@@ -1,16 +1,30 @@
 /**
  * Quotes (عروض الأسعار) · wired to /api/quotes · with convert-to-invoice + sign
  * UX-1 compliant: NO Dialog · NO alert/confirm/prompt
+ * UX pattern: FullPageForm + ItemsTable + SearchableCombobox · مطابق Wafeq
  */
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { FullPageForm } from "../components/full-page-form";
+import { SearchableCombobox } from "../components/searchable-combobox";
+import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
+import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Quote, Contact } from "../lib/api";
+
+const CURRENCIES = [
+  { value: "SAR", label: "ريال سعودي · SAR" },
+  { value: "USD", label: "دولار أمريكي · USD" },
+  { value: "EUR", label: "يورو · EUR" },
+  { value: "AED", label: "درهم إماراتي · AED" },
+];
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "مسودة", SENT: "مرسل", VIEWED: "مُشاهَد", ACCEPTED: "مقبول",
@@ -28,15 +42,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 const EMPTY_FORM = {
   contactId: "",
+  quoteNumber: "",
+  reference: "",
   issueDate: new Date().toISOString().slice(0, 10),
   validUntil: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-  description: "",
-  quantity: "1",
-  unitPrice: "",
+  currency: "SAR",
   notes: "",
 };
 
 export function Quotes() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +61,8 @@ export function Quotes() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
+  const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
 
   const [signFor, setSignFor] = useState<Quote | null>(null);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
@@ -70,6 +87,17 @@ export function Quotes() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setForm(EMPTY_FORM);
+      setLines([newLine()]);
+      setTaxMode("all-exclusive");
+      setCreateError(null);
+      setCreateOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const filtered = items.filter(q =>
     !searchQuery || q.quoteNumber.includes(searchQuery) ||
     (q.contact?.displayName || "").includes(searchQuery)
@@ -79,29 +107,47 @@ export function Quotes() {
   const accepted = items.filter(q => q.status === "ACCEPTED").length;
   const pending = items.filter(q => q.status === "SENT" || q.status === "VIEWED").length;
 
-  const openCreate = () => { setForm(EMPTY_FORM); setCreateError(null); setCreateOpen(true); };
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setLines([newLine()]);
+    setTaxMode("all-exclusive");
+    setCreateError(null);
+    setCreateOpen(true);
+  };
   const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (action: "draft" | "send" = "draft") => {
     setCreateError(null);
     if (!form.contactId) { setCreateError("اختر العميل"); return; }
-    if (!form.description.trim() || !form.unitPrice) { setCreateError("الوصف والسعر مطلوبان"); return; }
+    const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
+    if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
     setBusy(true);
     try {
+      const status = action === "draft" ? "DRAFT" : "SENT";
       const q = await api.quotes.create({
         contactId: form.contactId,
+        quoteNumber: form.quoteNumber || undefined,
         issueDate: form.issueDate,
         validUntil: form.validUntil,
-        status: "DRAFT",
+        currency: form.currency,
+        status,
         notes: form.notes || null,
-        lines: [{
-          description: form.description,
-          quantity: Number(form.quantity) || 1,
-          unitPrice: Number(form.unitPrice),
-        }],
-      });
+        termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
+        lines: validLines.map((l) => ({
+          productId: l.productId || null,
+          description: l.description,
+          quantity: Number(normalizeDigits(l.quantity)) || 1,
+          unitPrice: l.taxInclusive
+            ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
+            : Number(normalizeDigits(l.unitPrice)),
+        })),
+      } as any);
       setItems(prev => [q, ...prev]);
-      push("success", `تم حفظ ${q.quoteNumber} كمسودة`);
+      const msg = action === "draft" ? `تم حفظ ${q.quoteNumber} كمسودة` : `تم إرسال ${q.quoteNumber}`;
+      push("success", msg);
+      if (action === "send" && q.id) {
+        try { await (api as any).email?.sendQuote?.(q.id, { message: form.notes || undefined }); } catch (e) {}
+      }
       closeCreate();
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
@@ -166,6 +212,209 @@ export function Quotes() {
     } finally { setBusy(false); }
   };
 
+  // Full-page Create form
+  if (createOpen) {
+    return (
+      <>
+        <FullPageForm
+          title="عرض سعر جديد"
+          subtitle="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+          onClose={closeCreate}
+          disableEscape={busy}
+          footer={
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+                  {busy ? "..." : "حفظ كمسودة"}
+                </Button>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title="إرسال للعميل">
+                  {busy ? "..." : "حفظ + إرسال"}
+                </Button>
+              </div>
+            </div>
+          }
+        >
+          <div className="max-w-7xl mx-auto space-y-4">
+            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+
+            {/* Top fields row */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">العميل *</Label>
+                <SearchableCombobox
+                  value={form.contactId}
+                  onChange={(id) => setForm({ ...form, contactId: id })}
+                  onCreate={async (name) => {
+                    const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
+                    setCustomers((prev) => [c, ...prev]);
+                    push("success", `تم إنشاء ${c.displayName}`);
+                    return c.id;
+                  }}
+                  items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
+                  placeholder="ابحث عن عميل..."
+                  createLabel={(q) => `+ إنشاء "${q}"`}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">تاريخ العرض *</Label>
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">صالح حتى *</Label>
+                <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">رقم العرض</Label>
+                <Input value={form.quoteNumber} onChange={(e) => setForm({ ...form, quoteNumber: e.target.value })} placeholder="# تلقائي" dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">المرجع</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع داخلي" className="border-[#E5E7EB] h-9 text-sm" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">العملة</Label>
+                <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">المبالغ</Label>
+                <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
+                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-exclusive">غير شاملة الضريبة</SelectItem>
+                    <SelectItem value="all-inclusive">شاملة الضريبة</SelectItem>
+                    <SelectItem value="custom">مخصصة لكل بند</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <ItemsTable
+              lines={lines}
+              setLines={setLines}
+              mode={taxMode}
+              onModeChange={setTaxMode}
+              defaultTaxRate={0.15}
+              currency={form.currency}
+              direction="sales"
+              minRows={10}
+            />
+
+            <DocumentDropZone
+              compact
+              target="quote-lines"
+              hint="استخرج بنود عرض السعر من هذا المستند"
+              defaultTaxRate={0.15}
+              currency={form.currency}
+              onExtracted={(data: ExtractedDocument) => {
+                if (!data.lines || data.lines.length === 0) {
+                  push("warning", "لم يتم استخراج بنود من المستند");
+                  return;
+                }
+                const newLines: InvoiceLine[] = data.lines.map((l: any) => ({
+                  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  description: l.description || "",
+                  quantity: String(l.quantity || 1),
+                  unitPrice: String(l.unitPrice || 0),
+                  taxRate: l.taxRate ?? 0.15,
+                  taxInclusive: l.taxInclusive ?? false,
+                }));
+                setLines(newLines);
+                if (data.notes) setForm((f) => ({ ...f, notes: data.notes || f.notes }));
+                push("success", `تم استخراج ${newLines.length} بنداً`);
+              }}
+              onError={(msg) => push("error", msg)}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">شروط ومدة التنفيذ</Label>
+                <textarea
+                  rows={3}
+                  placeholder="شروط الدفع · مدة التنفيذ · ضمانات..."
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#374151] text-xs">الإجمالي</Label>
+                <div className="rounded-lg border border-[#E5E7EB] bg-white p-4 space-y-2">
+                  {(() => {
+                    const totals = computeTotals(lines);
+                    return (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#6B7280]">المجموع الفرعي</span>
+                          <span className="font-english">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#6B7280]">الضريبة (15%)</span>
+                          <span className="font-english">{form.currency} {totals.tax.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
+                          <span className="text-[#0B1B49]" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                            {form.currency} {totals.total.toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </FullPageForm>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      </>
+    );
+  }
+
+  // Full-page Sign form
+  if (signFor) {
+    return (
+      <>
+        <FullPageForm
+          title={`إرسال ${signFor.quoteNumber} للتوقيع`}
+          subtitle="DocuSeal · sign.fc.sa · صلاحية الرابط 30 يوم"
+          onClose={closeSign}
+          disableEscape={busy}
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+                <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="max-w-2xl mx-auto space-y-4">
+            {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>اسم الموقّع *</Label>
+                <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
+              <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
+                <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
+            </div>
+            <div className="space-y-2"><Label>الرسالة المرفقة</Label>
+              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
+            <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة العرض وتوقيعه · صلاحية الرابط 30 يوم.</p>
+          </div>
+        </FullPageForm>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      </>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -227,7 +476,7 @@ export function Quotes() {
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(q.total).toLocaleString()} {q.currency}</td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`}>{STATUS_LABELS[q.status] || q.status}</span></td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-wrap">
                         {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
                           <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
@@ -256,75 +505,6 @@ export function Quotes() {
           )}
         </CardContent>
       </Card>
-
-      <SidePanel
-        open={createOpen}
-        onClose={closeCreate}
-        title="عرض سعر جديد"
-        description="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
-        width="md"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
-            <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ كمسودة"}</Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
-          <div className="space-y-2"><Label className="text-[#374151]">العميل *</Label>
-            <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
-              <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 && <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · أضف من صفحة العملاء/الموردين</div>}
-                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
-              </SelectContent>
-            </Select></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label className="text-[#374151]">تاريخ العرض *</Label>
-              <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-            <div className="space-y-2"><Label className="text-[#374151]">صالح حتى *</Label>
-              <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-          </div>
-          <div className="space-y-2"><Label className="text-[#374151]">الوصف *</Label>
-            <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة تقنية · تطوير برمجي ..." className="border-[#E5E7EB]" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
-              <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-            <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
-              <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-          </div>
-          <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
-            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
-        </div>
-      </SidePanel>
-
-      <SidePanel
-        open={!!signFor}
-        onClose={closeSign}
-        title={signFor ? `إرسال ${signFor.quoteNumber} للتوقيع` : ""}
-        description="DocuSeal · sign.fc.sa"
-        width="md"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
-            <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
-              <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
-          <div className="space-y-2"><Label>اسم الموقّع *</Label>
-            <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
-          <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
-            <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
-          <div className="space-y-2"><Label>الرسالة المرفقة</Label>
-            <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
-          <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة العرض وتوقيعه · صلاحية الرابط 30 يوم.</p>
-        </div>
-      </SidePanel>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
