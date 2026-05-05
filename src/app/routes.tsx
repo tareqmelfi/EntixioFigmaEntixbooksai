@@ -56,6 +56,7 @@ import { Contacts } from "./pages/contacts";
 import { ContactDetail } from "./pages/contact-detail";
 import { Reports } from "./pages/reports";
 import { Settings } from "./pages/settings";
+import { Notifications } from "./pages/notifications";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
 import { CostCenters } from "./pages/cost-centers";
@@ -155,6 +156,7 @@ export const router = createBrowserRouter([
       // Analytics & Settings
       { path: "reports", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "settings", element: <Settings />, errorElement: <ErrorBoundary /> },
+      { path: "notifications", element: <Notifications />, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: <FeatureRoadmap />, errorElement: <ErrorBoundary /> },
     ],
   },

@@ -4,7 +4,7 @@
  * Full ZATCA-compliant invoice editor coming in Sprint 3 (with multi-line · VAT · QR).
  */
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Search, Trash2, Loader2, FileText } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -116,6 +116,31 @@ export function Invoices() {
     } catch (e: any) { alert(e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
+  const handleSendForSignature = async (inv: Invoice) => {
+    const customer = customers.find((c) => c.id === inv.contactId);
+    const defaultEmail = customer?.email || "";
+    const email = prompt(`إرسال الفاتورة ${inv.invoiceNumber} للتوقيع · أدخل بريد الموقّع:`, defaultEmail);
+    if (!email) return;
+    const name = prompt("اسم الموقّع:", customer?.displayName || "") || email;
+    try {
+      const r = await api.sign.sendInvoice(inv.id, {
+        signers: [{ name, email, role: "Customer" }],
+        message: `يرجى مراجعة وتوقيع الفاتورة رقم ${inv.invoiceNumber}`,
+        expiresInDays: 30,
+      });
+      if (r.error) {
+        alert(`⚠️ تم حفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
+      } else {
+        alert(`✅ تم إرسال الفاتورة للتوقيع إلى ${email}`);
+        if (inv.status === "DRAFT") {
+          setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "SENT" } : x));
+        }
+      }
+    } catch (e: any) {
+      alert(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذه الفاتورة" : e.message) : "فشل الإرسال");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -192,7 +217,14 @@ export function Invoices() {
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()} {i.currency}</td>
                     <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</td>
                     <td className="py-3 px-4">
-                      <button onClick={() => handleDelete(i.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      <div className="flex items-center gap-1">
+                        {i.status !== "PAID" && i.status !== "CANCELLED" && (
+                          <button onClick={() => handleSendForSignature(i)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
+                            <FileSignature className="h-3.5 w-3.5" /> توقيع
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(i.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      </div>
                     </td>
                   </tr>
                 ))}

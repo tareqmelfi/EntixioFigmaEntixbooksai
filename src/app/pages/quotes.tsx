@@ -2,7 +2,7 @@
  * Quotes (عروض الأسعار) · wired to /api/quotes · with convert-to-invoice
  */
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -118,6 +118,31 @@ export function Quotes() {
     }
   };
 
+  const handleSendForSignature = async (q: Quote) => {
+    const customer = customers.find((c) => c.id === q.contactId);
+    const defaultEmail = customer?.email || "";
+    const email = prompt(`إرسال عرض السعر ${q.quoteNumber} للتوقيع · أدخل بريد الموقّع:`, defaultEmail);
+    if (!email) return;
+    const name = prompt("اسم الموقّع:", customer?.displayName || "") || email;
+    try {
+      const r = await api.sign.sendQuote(q.id, {
+        signers: [{ name, email, role: "Customer" }],
+        message: `يرجى مراجعة وتوقيع عرض السعر رقم ${q.quoteNumber}`,
+        expiresInDays: 30,
+      });
+      if (r.error) {
+        alert(`⚠️ تم حفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
+      } else {
+        alert(`✅ تم إرسال عرض السعر للتوقيع إلى ${email}\n\nرابط متابعة: ${r.docuseal?.embed_src || "تم الإرسال بالبريد"}`);
+        if (q.status === "DRAFT") {
+          setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: "SENT" } : x));
+        }
+      }
+    } catch (e: any) {
+      alert(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذا العرض" : e.message) : "فشل الإرسال");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -182,6 +207,11 @@ export function Quotes() {
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`}>{STATUS_LABELS[q.status] || q.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
+                        {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
+                          <button onClick={() => handleSendForSignature(q)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
+                            <FileSignature className="h-3.5 w-3.5" /> توقيع
+                          </button>
+                        )}
                         {q.status !== "CONVERTED" && (
                           <button onClick={() => handleConvert(q)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1" title="تحويل لفاتورة">
                             <ArrowLeftRight className="h-3.5 w-3.5" /> تحويل

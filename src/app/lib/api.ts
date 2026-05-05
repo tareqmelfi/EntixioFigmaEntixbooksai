@@ -225,6 +225,30 @@ export const api = {
     remove: (id: string) => request<void>(`/api/products/${id}`, { method: 'DELETE' }),
   },
 
+  // Notifications
+  notifications: {
+    list: (params?: { unread?: boolean; limit?: number }) =>
+      request<{ items: NotificationItem[]; count: number }>('/api/notifications', {
+        query: { unread: params?.unread ? '1' : undefined, limit: params?.limit?.toString() },
+      }),
+    count: () => request<{ unread: number }>('/api/notifications/count'),
+    markRead: (id: string) => request<NotificationItem>(`/api/notifications/${id}/read`, { method: 'PATCH' }),
+    markAllRead: () => request<{ updated: number }>('/api/notifications/mark-all-read', { method: 'POST' }),
+    remove: (id: string) => request<{ ok: true }>(`/api/notifications/${id}`, { method: 'DELETE' }),
+  },
+
+  // E-signature (DocuSeal at sign.fc.sa)
+  sign: {
+    sendQuote: (quoteId: string, data: SignSendInput) =>
+      request<SignSendResult>(`/api/sign/quotes/${quoteId}/send`, { method: 'POST', body: data }),
+    sendInvoice: (invoiceId: string, data: SignSendInput) =>
+      request<SignSendResult>(`/api/sign/invoices/${invoiceId}/send`, { method: 'POST', body: data }),
+    listRequests: (params?: { status?: string; docType?: 'QUOTE' | 'INVOICE' }) =>
+      request<{ items: SignatureRequest[] }>('/api/sign/requests', { query: params }),
+    getRequest: (id: string) => request<SignatureRequest>(`/api/sign/requests/${id}`),
+    health: () => request<{ base: string; tokenSet: boolean; publicApiUrl: string }>('/api/sign/health'),
+  },
+
   // Bank Accounts
   bankAccounts: {
     list: () => request<{ items: BankAccount[]; total: number; totalBalance: number }>('/api/bank-accounts'),
@@ -652,3 +676,55 @@ export async function bootstrap() {
 }
 
 export const apiBaseUrl = API_BASE
+
+// ── Notification + Signature types ─────────────────────────────────────────
+export interface NotificationItem {
+  id: string
+  orgId: string
+  userId: string | null
+  type: string // INVOICE_PAID | QUOTE_ACCEPTED | SIGN_REQUESTED | SIGN_COMPLETED | EXPENSE_CREATED | SYSTEM
+  title: string
+  body: string | null
+  link: string | null
+  refType: string | null
+  refId: string | null
+  readAt: string | null
+  createdAt: string
+}
+
+export interface SignSigner {
+  name: string
+  email: string
+  role?: string
+}
+
+export interface SignSendInput {
+  signers: SignSigner[]
+  message?: string
+  expiresInDays?: number
+}
+
+export interface SignatureRequest {
+  id: string
+  orgId: string
+  docType: 'QUOTE' | 'INVOICE' | 'CONTRACT'
+  docId: string
+  docNumber: string
+  status: 'PENDING' | 'SENT' | 'VIEWED' | 'SIGNED' | 'DECLINED' | 'EXPIRED'
+  docusealSubmissionId: string | null
+  docusealEmbedUrl: string | null
+  signers: string // JSON-encoded array
+  signedPdfUrl: string | null
+  auditTrailUrl: string | null
+  sentAt: string | null
+  signedAt: string | null
+  expiresAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SignSendResult {
+  signatureRequest: SignatureRequest
+  docuseal: { id: number | string; embed_src?: string } | null
+  error: string | null
+}
