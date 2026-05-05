@@ -11,6 +11,8 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { InlinePanel } from "../components/inline-panel";
+import { SearchableCombobox } from "../components/searchable-combobox";
+import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -257,47 +259,21 @@ export function Invoices() {
           <div className="space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
 
-            {/* Quick-create customer · nested inline expand */}
-            {quickCustOpen && (
-              <div className="rounded-lg border border-[#1276E3]/30 bg-[#F4FCFF] p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>عميل جديد · إضافة سريعة</h3>
-                  <button type="button" onClick={closeQuickCust} className="text-xs text-[#6B7280] hover:text-[#0B1B49]">إغلاق</button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="space-y-1"><Label className="text-xs">الاسم *</Label>
-                    <Input value={quickCust.displayName} onChange={(e) => setQuickCust({ ...quickCust, displayName: e.target.value })} placeholder="شركة الفجر" autoFocus /></div>
-                  <div className="space-y-1"><Label className="text-xs">البريد</Label>
-                    <Input type="email" value={quickCust.email} onChange={(e) => setQuickCust({ ...quickCust, email: e.target.value })} dir="ltr" className="font-english" placeholder="contact@example.com" /></div>
-                  <div className="space-y-1"><Label className="text-xs">الجوال</Label>
-                    <Input value={quickCust.phone} onChange={(e) => setQuickCust({ ...quickCust, phone: e.target.value })} dir="ltr" className="font-english" placeholder="+966 ..." /></div>
-                </div>
-                {quickCustError && <div className="mt-2 text-xs text-red-700">{quickCustError}</div>}
-                <div className="flex items-center justify-end gap-2 mt-3">
-                  <Button type="button" variant="outline" size="sm" onClick={closeQuickCust} className="border-[#E5E7EB]">إلغاء</Button>
-                  <Button type="button" size="sm" disabled={busy} onClick={handleQuickCust} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ + اختيار"}</Button>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-[#374151]">العميل *</Label>
-                {!quickCustOpen && (
-                  <button type="button" onClick={openQuickCust} className="text-xs text-[#1276E3] hover:underline flex items-center gap-1">
-                    <Plus className="h-3 w-3" /> إضافة عميل جديد
-                  </button>
-                )}
-              </div>
-              <Select value={form.contactId} onValueChange={(v) => setForm({ ...form, contactId: v })}>
-                <SelectTrigger className="border-[#E5E7EB]"><SelectValue placeholder="اختر عميل..." /></SelectTrigger>
-                <SelectContent>
-                  {customers.length === 0 && (
-                    <div className="px-3 py-2 text-xs text-[#6B7280]">لا يوجد عملاء · اضغط <strong>إضافة عميل جديد</strong> أعلاه</div>
-                  )}
-                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.displayName}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-[#374151]">العميل *</Label>
+              <SearchableCombobox
+                value={form.contactId}
+                onChange={(id) => setForm({ ...form, contactId: id })}
+                onCreate={async (name) => {
+                  const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
+                  setCustomers((prev) => [c, ...prev]);
+                  push("success", `تم إنشاء ${c.displayName}`);
+                  return c.id;
+                }}
+                items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
+                placeholder="اكتب اسم العميل أو ابحث..."
+                createLabel={(q) => `+ إنشاء عميل جديد: "${q}"`}
+              />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2"><Label className="text-[#374151]">تاريخ الإصدار *</Label>
@@ -309,9 +285,9 @@ export function Invoices() {
               <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="استشارة · خدمة · بضاعة ..." className="border-[#E5E7EB]" /></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-2"><Label className="text-[#374151]">الكمية *</Label>
-                <Input type="number" step="0.01" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <Input type="text" inputMode="decimal" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: normalizeDigits(e.target.value) })} dir="ltr" className="border-[#E5E7EB] font-english" placeholder="1" /></div>
               <div className="space-y-2"><Label className="text-[#374151]">السعر *</Label>
-                <Input type="number" step="0.01" min="0" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <Input type="text" inputMode="decimal" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: normalizeDigits(e.target.value) })} dir="ltr" className="border-[#E5E7EB] font-english" placeholder="0.00" /></div>
               <div className="space-y-2"><Label className="text-[#374151]">ملاحظات</Label>
                 <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
             </div>
