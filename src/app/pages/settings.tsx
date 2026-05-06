@@ -25,7 +25,7 @@ const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: stri
 };
 
 export function Settings() {
-  const [tab, setTab] = useState<"company" | "members" | "account" | "branding" | "ai">("company");
+  const [tab, setTab] = useState<"company" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog">("company");
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +150,7 @@ await authStore.logout();
       </div>
 
       <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
-        {([["company", "بيانات الشركة"], ["members", "الفريق"], ["ai", "الذكاء الاصطناعي"], ["branding", "العلامة التجارية"], ["account", "حسابي"]] as const).map(([k, label]) => (
+        {([["company", "بيانات الشركة"], ["numbering", "الترقيم"], ["payments", "بوابات الدفع"], ["catalog", "كتالوج المنتجات"], ["members", "الفريق"], ["ai", "الذكاء الاصطناعي"], ["branding", "العلامة التجارية"], ["account", "حسابي"]] as const).map(([k, label]) => (
           <button
             key={k}
             onClick={() => setTab(k as any)}
@@ -363,6 +363,10 @@ await authStore.logout();
         </Card>
       )}
 
+      {tab === "numbering" && org && <NumberingTab orgId={org.id} push={push} />}
+      {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
+      {tab === "catalog" && org && <CatalogTab push={push} />}
+
       {tab === "branding" && (
         <Card className="border-[#E5E7EB]">
           <CardHeader><CardTitle className="text-[#0B1B49]">العلامة التجارية</CardTitle><CardDescription>الشعار · الألوان · القوالب</CardDescription></CardHeader>
@@ -386,5 +390,245 @@ await authStore.logout();
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
+  );
+}
+
+// ── NUMBERING TAB ──────────────────────────────────────────────────────────
+function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: string) => void }) {
+  const [config, setConfig] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api.orgs.getNumbering(orgId)
+      .then(setConfig)
+      .catch(() => setConfig({ contact: { prefix: "CUST-", padding: 4 }, invoice: { prefix: "INV-{YYYY}-", padding: 4 }, quote: { prefix: "QT-{YYYY}-", padding: 4 }, bill: { prefix: "BILL-{YYYY}-", padding: 4 }, voucher: { prefix: "VCR-", padding: 4 } }))
+      .finally(() => setLoading(false));
+  }, [orgId]);
+
+  const expand = (s: string) => {
+    const now = new Date();
+    return s.replace(/\{YYYY\}/g, String(now.getFullYear()))
+      .replace(/\{YY\}/g, String(now.getFullYear()).slice(-2))
+      .replace(/\{MM\}/g, String(now.getMonth() + 1).padStart(2, "0"))
+      .replace(/\{DD\}/g, String(now.getDate()).padStart(2, "0"));
+  };
+
+  const preview = (kind: string) => {
+    const k = config?.[kind];
+    if (!k) return "—";
+    return `${expand(k.prefix || "")}${"1".padStart(k.padding || 4, "0")}`;
+  };
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      await api.orgs.saveNumbering(orgId, config);
+      push("success", "تم حفظ إعدادات الترقيم");
+    } catch (e: any) {
+      push("error", e?.message || "فشل الحفظ");
+    } finally { setBusy(false); }
+  };
+
+  if (loading) return <Card className="border-[#E5E7EB]"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></CardContent></Card>;
+
+  const kinds: Array<[string, string]> = [
+    ["contact", "العملاء/الموردين"],
+    ["invoice", "فواتير المبيعات"],
+    ["quote", "عروض الأسعار"],
+    ["bill", "فواتير المشتريات"],
+    ["voucher", "السندات"],
+  ];
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="text-[#0B1B49]">الترقيم التلقائي للمستندات</CardTitle>
+        <CardDescription>
+          البادئة تدعم متغيرات: <code className="font-english bg-gray-100 px-1 rounded">{"{YYYY}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{YY}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{MM}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{DD}"}</code>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-12 gap-2 text-xs text-[#6B7280] font-medium border-b pb-2">
+          <div className="col-span-3">النوع</div>
+          <div className="col-span-5">البادئة</div>
+          <div className="col-span-2 text-center">عدد الأرقام</div>
+          <div className="col-span-2">معاينة</div>
+        </div>
+        {kinds.map(([k, label]) => (
+          <div key={k} className="grid grid-cols-12 gap-2 items-center">
+            <div className="col-span-3 text-sm text-[#0B1B49]">{label}</div>
+            <Input className="col-span-5 font-english" dir="ltr" value={config?.[k]?.prefix || ""}
+              onChange={(e) => setConfig({ ...config, [k]: { ...config[k], prefix: e.target.value } })} />
+            <Input className="col-span-2 font-english text-center" type="number" min="1" max="10" dir="ltr"
+              value={config?.[k]?.padding || 4}
+              onChange={(e) => setConfig({ ...config, [k]: { ...config[k], padding: Number(e.target.value) } })} />
+            <div className="col-span-2 font-english text-xs text-[#1276E3]" dir="ltr">{preview(k)}</div>
+          </div>
+        ))}
+        <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── PAYMENTS TAB ───────────────────────────────────────────────────────────
+function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: (kind: any, msg: string) => void }) {
+  const [settings, setSettings] = useState<any>((org as any).paymentSettings || {
+    stripe: { enabled: false, publishableKey: "", secretKey: "" },
+    paypal: { enabled: false, clientId: "", clientSecret: "", mode: "live" },
+    moyasar: { enabled: false, publishableKey: "", secretKey: "" },
+    tamara: { enabled: false, publicKey: "", token: "" },
+    tabby: { enabled: false, publicKey: "", secretKey: "" },
+  });
+  const [busy, setBusy] = useState(false);
+  const [showSecrets, setShowSecrets] = useState(false);
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      const updated = await api.orgs.update(org.id, { paymentSettings: settings } as any);
+      setOrg(updated);
+      push("success", "تم حفظ بوابات الدفع");
+    } catch (e: any) {
+      push("error", e?.message || "فشل الحفظ");
+    } finally { setBusy(false); }
+  };
+
+  const Provider = ({ name, label, fields }: { name: string; label: string; fields: Array<[string, string, "text" | "secret"]> }) => (
+    <div className="rounded-lg border border-[#E5E7EB] p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[#0B1B49] font-medium">{label}</div>
+          <div className="text-xs text-[#9CA3AF]">{settings[name]?.enabled ? "✅ مفعّل" : "⚪ غير مفعّل"}</div>
+        </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={!!settings[name]?.enabled}
+            onChange={(e) => setSettings({ ...settings, [name]: { ...settings[name], enabled: e.target.checked } })} />
+          تفعيل
+        </label>
+      </div>
+      {settings[name]?.enabled && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#F3F4F6]">
+          {fields.map(([fk, fl, ft]) => (
+            <div key={fk}>
+              <Label className="text-xs">{fl}</Label>
+              <Input className="font-english" dir="ltr" type={ft === "secret" && !showSecrets ? "password" : "text"}
+                value={settings[name]?.[fk] || ""}
+                onChange={(e) => setSettings({ ...settings, [name]: { ...settings[name], [fk]: e.target.value } })} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="text-[#0B1B49]">بوابات الدفع</CardTitle>
+        <CardDescription>روابط دفع للفواتير · USD/SAR</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <label className="flex items-center gap-2 text-xs text-[#6B7280] cursor-pointer mb-2">
+          <input type="checkbox" checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
+          إظهار المفاتيح السرية
+        </label>
+        <Provider name="stripe" label="💳 Stripe (عالمي · USD/EUR)" fields={[
+          ["publishableKey", "Publishable Key (pk_live_...)", "text"],
+          ["secretKey", "Secret Key (sk_live_...)", "secret"],
+        ]} />
+        <Provider name="paypal" label="🅿️ PayPal" fields={[
+          ["clientId", "Client ID", "text"],
+          ["clientSecret", "Client Secret", "secret"],
+          ["mode", "البيئة (live | sandbox)", "text"],
+        ]} />
+        <Provider name="moyasar" label="🟢 Moyasar (السعودية · SAR · مدى/Apple Pay)" fields={[
+          ["publishableKey", "Publishable Key (pk_live_...)", "text"],
+          ["secretKey", "Secret Key (sk_live_...)", "secret"],
+        ]} />
+        <Provider name="tamara" label="🛍️ Tamara (تقسيط)" fields={[
+          ["publicKey", "Public Key", "text"],
+          ["token", "API Token", "secret"],
+        ]} />
+        <Provider name="tabby" label="🛒 Tabby (تقسيط)" fields={[
+          ["publicKey", "Public Key", "text"],
+          ["secretKey", "Secret Key", "secret"],
+        ]} />
+        <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── CATALOG TAB ────────────────────────────────────────────────────────────
+function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    api.products.categories?.().then(setStats).catch(() => {});
+  }, []);
+
+  const handleSeed = async () => {
+    if (!confirm("سيتم إضافة 50+ منتج من كاتالوج FC Products إلى ENSIDEX. هل أنت متأكد؟")) return;
+    setBusy(true);
+    try {
+      const result: any = await api.products.seedFcCatalog?.();
+      push("success", `تمت إضافة ${result?.created || 0} منتج · تم تخطي ${result?.skipped || 0} منتج موجود`);
+      const s = await api.products.categories?.();
+      setStats(s);
+    } catch (e: any) {
+      push("error", e?.message || "فشل الزرع");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="text-[#0B1B49]">كتالوج المنتجات</CardTitle>
+        <CardDescription>زرع كتالوج FC الجاهز · إحصاءات الفئات</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <Sparkles className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="text-[#0B1B49] font-medium">زرع كتالوج FC Products</div>
+              <p className="text-xs text-[#6B7280] mt-1">
+                سيقوم بإضافة 50+ منتج جاهز (FC-ADV-*, FC-AI-*, FC-BRD-*, FC-CLD-*, FC-CNT-*, FC-ENT-*, FC-LLC-*, FC-PRM-*, FC-WEB-*) مع الأسعار المعتمدة.
+                المنتجات الموجودة لن تتأثر (skip duplicates).
+              </p>
+              <Button onClick={handleSeed} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
+                زرع الكتالوج
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {stats && stats.categories && stats.categories.length > 0 && (
+          <div className="rounded-lg border border-[#E5E7EB] p-4">
+            <div className="text-sm font-medium text-[#0B1B49] mb-3">الفئات الحالية</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {stats.categories.map((c: any) => (
+                <div key={c.category} className="flex items-center justify-between p-2 rounded bg-[#F9FAFB] text-sm">
+                  <span className="text-[#0B1B49] font-english" dir="ltr">{c.category}</span>
+                  <span className="text-xs text-[#6B7280]">
+                    <span className="font-english" dir="ltr">{c.count}</span> منتج · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString()}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
