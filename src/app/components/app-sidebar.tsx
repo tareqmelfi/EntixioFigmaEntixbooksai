@@ -99,6 +99,7 @@ const sections: MenuSection[] = [
         ],
       },
       { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
+      { title: "تسوية البنوك", icon: Landmark, path: "/app/bank-reconciliation" },
       { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
       { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
       { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },

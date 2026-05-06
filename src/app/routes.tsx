@@ -63,6 +63,7 @@ import { InboxPage } from "./pages/inbox";
 import { AdminDashboard } from "./pages/admin";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
+import { BankReconciliation } from "./pages/bank-reconciliation";
 import { CostCenters } from "./pages/cost-centers";
 import { Projects } from "./pages/projects";
 import { Branches } from "./pages/branches";
@@ -161,6 +162,7 @@ export const router = createBrowserRouter([
       // Bank Accounts
       { path: "bank-accounts", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       { path: "bank-accounts/new", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
+      { path: "bank-reconciliation", element: <BankReconciliation />, errorElement: <ErrorBoundary /> },
       // Assets
       { path: "assets", element: <FixedAssets />, errorElement: <ErrorBoundary /> },
       { path: "assets/:id", element: <AssetDetail />, errorElement: <ErrorBoundary /> },
