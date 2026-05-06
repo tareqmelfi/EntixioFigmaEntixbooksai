@@ -2,7 +2,7 @@
  * Settings · org info + members + auth · wired to /orgs · /orgs/:id/members
  */
 import { useEffect, useState, useCallback } from "react";
-import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle } from "lucide-react";
+import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -477,6 +477,61 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   });
   const [busy, setBusy] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [oauthStatus, setOauthStatus] = useState<any>(null);
+
+  // Pull connection state · runs once + after returning from OAuth callback
+  useEffect(() => {
+    (api as any).oauth?.status?.(org.id).then(setOauthStatus).catch(() => {});
+    // ?oauth=stripe&status=success on return URL · refresh org + show toast
+    const url = new URL(window.location.href);
+    const oauth = url.searchParams.get("oauth");
+    const status = url.searchParams.get("status");
+    if (oauth && status) {
+      const reason = url.searchParams.get("reason");
+      if (status === "success") {
+        push("success", `تم ربط ${oauth === "stripe" ? "Stripe" : "PayPal"} بنجاح`);
+        api.orgs.get(org.id).then(setOrg).catch(() => {});
+      } else {
+        push("error", `فشل ربط ${oauth}: ${reason || "خطأ غير معروف"}`);
+      }
+      url.searchParams.delete("oauth");
+      url.searchParams.delete("status");
+      url.searchParams.delete("reason");
+      url.searchParams.delete("account");
+      url.searchParams.delete("merchant");
+      window.history.replaceState({}, "", url.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [org.id]);
+
+  const connectStripe = () => {
+    if (!oauthStatus?.stripe?.configured) {
+      push("error", "Stripe Connect غير مهيأ في الخادم · اطلب من المسؤول إضافة STRIPE_CLIENT_ID");
+      return;
+    }
+    window.location.href = (api as any).oauth.startUrl("stripe", org.id);
+  };
+  const connectPayPal = () => {
+    if (!oauthStatus?.paypal?.configured) {
+      push("error", "PayPal غير مهيأ في الخادم · اطلب من المسؤول إضافة PAYPAL_CLIENT_ID");
+      return;
+    }
+    window.location.href = (api as any).oauth.startUrl("paypal", org.id);
+  };
+  const disconnectStripe = async () => {
+    setBusy(true);
+    try {
+      await (api as any).oauth.disconnectStripe(org.id);
+      push("success", "تم فصل Stripe");
+      const updated = await api.orgs.get(org.id);
+      setOrg(updated);
+      const next = await (api as any).oauth.status(org.id);
+      setOauthStatus(next);
+    } catch (e: any) {
+      push("error", e?.message || "فشل الفصل");
+    } finally { setBusy(false); }
+  };
 
   const handleSave = async () => {
     setBusy(true);
@@ -524,33 +579,108 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         <CardDescription>روابط دفع للفواتير · USD/SAR</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <label className="flex items-center gap-2 text-xs text-[#6B7280] cursor-pointer mb-2">
-          <input type="checkbox" checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
-          إظهار المفاتيح السرية
-        </label>
-        <Provider name="stripe" label="💳 Stripe (عالمي · USD/EUR)" fields={[
-          ["publishableKey", "Publishable Key (pk_live_...)", "text"],
-          ["secretKey", "Secret Key (sk_live_...)", "secret"],
-        ]} />
-        <Provider name="paypal" label="🅿️ PayPal" fields={[
-          ["clientId", "Client ID", "text"],
-          ["clientSecret", "Client Secret", "secret"],
-          ["mode", "البيئة (live | sandbox)", "text"],
-        ]} />
+
+        {/* ── Stripe · OAuth Connect (recommended) ─────────────────────── */}
+        <div className="rounded-lg border border-[#E5E7EB] p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-[#0B1B49] font-medium flex items-center gap-2">
+                💳 Stripe
+                {oauthStatus?.stripe?.connected && (
+                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">✅ مربوط</span>
+                )}
+                {!oauthStatus?.stripe?.configured && (
+                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">⚠️ يحتاج إعداد بالخادم</span>
+                )}
+              </div>
+              <div className="text-xs text-[#9CA3AF] mt-0.5">
+                {oauthStatus?.stripe?.connected
+                  ? <>الحساب: <span className="font-english">{oauthStatus.stripe.accountId}</span> · {oauthStatus.stripe.mode}</>
+                  : "بطاقات ائتمانية عالمية · USD/EUR/SAR · لا حاجة لنسخ المفاتيح"}
+              </div>
+            </div>
+            {oauthStatus?.stripe?.connected ? (
+              <Button onClick={disconnectStripe} disabled={busy} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "فصل"}
+              </Button>
+            ) : (
+              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.configured} className="bg-[#635BFF] hover:bg-[#4F47CC] text-white">
+                <ExternalLink className="h-4 w-4 me-2" /> ربط Stripe
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ── PayPal · Partner Referrals OAuth ─────────────────────────── */}
+        <div className="rounded-lg border border-[#E5E7EB] p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-[#0B1B49] font-medium flex items-center gap-2">
+                🅿️ PayPal
+                {oauthStatus?.paypal?.connected && (
+                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">✅ مربوط</span>
+                )}
+                {!oauthStatus?.paypal?.configured && (
+                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">⚠️ يحتاج إعداد بالخادم</span>
+                )}
+              </div>
+              <div className="text-xs text-[#9CA3AF] mt-0.5">
+                {oauthStatus?.paypal?.connected
+                  ? <>التاجر: <span className="font-english">{oauthStatus.paypal.merchantId}</span> · {oauthStatus.paypal.mode}</>
+                  : "محفظة PayPal · بطاقات + رصيد PayPal"}
+              </div>
+            </div>
+            {oauthStatus?.paypal?.connected ? (
+              <span className="text-xs text-[#6B7280]">للفصل: استخدم لوحة PayPal</span>
+            ) : (
+              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.configured} className="bg-[#003087] hover:bg-[#001E5F] text-white">
+                <ExternalLink className="h-4 w-4 me-2" /> ربط PayPal
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Moyasar / Tamara / Tabby · Manual paste (no OAuth) ────────── */}
+        <div className="text-xs text-[#6B7280] mt-2">
+          البوابات السعودية تتطلب نسخ المفتاح يدوياً (لا يوجد OAuth):
+        </div>
         <Provider name="moyasar" label="🟢 Moyasar (السعودية · SAR · مدى/Apple Pay)" fields={[
           ["publishableKey", "Publishable Key (pk_live_...)", "text"],
           ["secretKey", "Secret Key (sk_live_...)", "secret"],
         ]} />
-        <Provider name="tamara" label="🛍️ Tamara (تقسيط)" fields={[
-          ["publicKey", "Public Key", "text"],
-          ["token", "API Token", "secret"],
-        ]} />
-        <Provider name="tabby" label="🛒 Tabby (تقسيط)" fields={[
-          ["publicKey", "Public Key", "text"],
-          ["secretKey", "Secret Key", "secret"],
-        ]} />
+
+        {/* ── Advanced: paste Stripe/PayPal manually (legacy / dev mode) ─ */}
+        <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-xs text-[#6B7280] underline mt-2">
+          {showAdvanced ? "إخفاء" : "إظهار"} الإعدادات المتقدمة (نسخ المفاتيح يدوياً · للمطورين)
+        </button>
+        {showAdvanced && (
+          <div className="space-y-3 pt-2 border-t border-[#F3F4F6]">
+            <label className="flex items-center gap-2 text-xs text-[#6B7280] cursor-pointer">
+              <input type="checkbox" checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
+              إظهار المفاتيح السرية
+            </label>
+            <Provider name="stripe" label="💳 Stripe (نسخ يدوي)" fields={[
+              ["publishableKey", "Publishable Key (pk_live_...)", "text"],
+              ["secretKey", "Secret Key (sk_live_...)", "secret"],
+            ]} />
+            <Provider name="paypal" label="🅿️ PayPal (نسخ يدوي)" fields={[
+              ["clientId", "Client ID", "text"],
+              ["clientSecret", "Client Secret", "secret"],
+              ["mode", "البيئة (live | sandbox)", "text"],
+            ]} />
+            <Provider name="tamara" label="🛍️ Tamara (تقسيط)" fields={[
+              ["publicKey", "Public Key", "text"],
+              ["token", "API Token", "secret"],
+            ]} />
+            <Provider name="tabby" label="🛒 Tabby (تقسيط)" fields={[
+              ["publicKey", "Public Key", "text"],
+              ["secretKey", "Secret Key", "secret"],
+            ]} />
+          </div>
+        )}
+
         <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ المفاتيح اليدوية</>}
         </Button>
       </CardContent>
     </Card>

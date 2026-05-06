@@ -620,6 +620,26 @@ export const api = {
     remove: (id: string) =>
       request<void>(`/api/invoices/${id}`, { method: 'DELETE' }),
   },
+
+  // OAuth · payment provider connections (UX-137)
+  oauth: {
+    /** Returns the URL to navigate the merchant to for Stripe/PayPal Connect. */
+    startUrl: (provider: 'stripe' | 'paypal', orgId: string) =>
+      `${API_BASE}/api/oauth/${provider}/start?orgId=${encodeURIComponent(orgId)}`,
+    /** Pull connection state for status badges in PaymentsTab */
+    status: (orgId: string) =>
+      request<{
+        stripe: { configured: boolean; connected: boolean; accountId: string | null; mode: string | null; connectedAt: string | null }
+        paypal: { configured: boolean; connected: boolean; merchantId: string | null; mode: string | null; connectedAt: string | null }
+        moyasar: { configured: boolean; connected: boolean }
+      }>('/api/oauth/status', { query: { orgId } }),
+    /** Tell Stripe we no longer act on this account · clears stored tokens */
+    disconnectStripe: (orgId: string) =>
+      request<{ ok: true; disconnected: string | null }>('/api/oauth/stripe/disconnect', {
+        method: 'POST',
+        body: { orgId },
+      }),
+  },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
