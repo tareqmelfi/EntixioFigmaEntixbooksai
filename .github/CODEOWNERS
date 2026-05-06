@@ -1,0 +1,16 @@
+# Force review on changes to critical infrastructure
+# Figma Make commits to these paths must NOT auto-merge
+
+src/app/lib/                  @tareqmelfi
+src/app/components/items-table.tsx        @tareqmelfi
+src/app/components/searchable-combobox.tsx @tareqmelfi
+src/app/components/full-page-form.tsx     @tareqmelfi
+src/app/components/side-panel.tsx         @tareqmelfi
+src/app/components/quick-contact-dialog.tsx @tareqmelfi
+src/app/components/quick-create-modals.tsx  @tareqmelfi
+src/app/components/org-switcher.tsx       @tareqmelfi
+src/app/components/inline-panel.tsx       @tareqmelfi
+src/app/components/address-autocomplete.tsx @tareqmelfi
+src/app/components/barcode-scanner.tsx    @tareqmelfi
+src/app/components/document-dropzone.tsx  @tareqmelfi
+.github/                                  @tareqmelfi

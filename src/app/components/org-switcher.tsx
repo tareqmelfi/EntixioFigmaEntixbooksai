@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Plus, Check, Building2, X } from "lucide-react";
 import { api, Org, setOrgId } from "../lib/api";
+import { AddressAutocomplete } from "./address-autocomplete";
 
 interface Props {
   className?: string;
@@ -458,8 +459,20 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="text-sm text-[#374151] block mb-1">Street Address</label>
-                  <input type="text" value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })}
-                    placeholder="30 N Gould St" className={inp + " font-english"} dir="ltr" />
+                  <AddressAutocomplete
+                    value={form.streetName}
+                    onChange={(v) => setForm({ ...form, streetName: v })}
+                    onPick={(p) => setForm({
+                      ...form,
+                      streetName: p.line1,
+                      city: p.city || form.city,
+                      state: p.region || form.state,
+                      region: p.region || form.region,
+                      postalCode: p.postalCode || form.postalCode,
+                    })}
+                    country={form.country}
+                    placeholder="30 N Gould St (start typing for suggestions)"
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-[#374151] block mb-1">Suite / Unit</label>
@@ -484,10 +497,21 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="md:col-span-2">
                   <label className="text-sm text-[#374151] block mb-1">الشارع</label>
-                  <input type="text" value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })}
-                    placeholder="طريق الدائري الشرقي الفرعي" className={inp} />
+                  <AddressAutocomplete
+                    value={form.streetName}
+                    onChange={(v) => setForm({ ...form, streetName: v })}
+                    onPick={(p) => setForm({
+                      ...form,
+                      streetName: p.line1,
+                      city: p.city || form.city,
+                      region: p.region || form.region,
+                      postalCode: p.postalCode || form.postalCode,
+                    })}
+                    country={form.country}
+                    placeholder="ابدأ بكتابة العنوان (مثل: طريق الدائري الشرقي)"
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-[#374151] block mb-1">الحي</label>

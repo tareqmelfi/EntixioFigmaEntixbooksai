@@ -1,0 +1,77 @@
+name: Protect Source · prevent Figma Make from wiping critical files
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify lib/ folder exists
+        run: |
+          REQUIRED=(
+            "src/app/lib/api.ts"
+            "src/app/lib/auth-client.ts"
+            "src/app/lib/digits.ts"
+            "src/app/lib/tax-id-format.ts"
+            "src/app/lib/use-keyboard-shortcuts.ts"
+          )
+          MISSING=()
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "$f" ]; then MISSING+=("$f"); fi
+          done
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "::error::Critical files MISSING from this push"
+            for f in "${MISSING[@]}"; do echo "::error::  - $f"; done
+            exit 1
+          fi
+          echo "All lib/ files present"
+
+      - name: Verify critical components exist
+        run: |
+          REQUIRED=(
+            "src/app/components/searchable-combobox.tsx"
+            "src/app/components/full-page-form.tsx"
+            "src/app/components/items-table.tsx"
+            "src/app/components/inline-panel.tsx"
+            "src/app/components/quick-create-modals.tsx"
+            "src/app/components/quick-contact-dialog.tsx"
+            "src/app/components/document-dropzone.tsx"
+            "src/app/components/barcode-scanner.tsx"
+            "src/app/components/address-autocomplete.tsx"
+            "src/app/components/side-panel.tsx"
+            "src/app/components/org-switcher.tsx"
+            "src/app/components/install-prompt.tsx"
+            "src/app/components/invoice-preview-pane.tsx"
+          )
+          MISSING=()
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "$f" ]; then MISSING+=("$f"); fi
+          done
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "::error::Critical components MISSING"
+            for f in "${MISSING[@]}"; do echo "::error::  - $f"; done
+            exit 1
+          fi
+          echo "All critical components present"
+
+      - name: Detect Figma Make signature
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if echo "$COMMIT_MSG" | grep -qiE "(Figma Make|Update files from Figma)"; then
+            CHANGED_API=$(git diff --name-only HEAD~1 HEAD | grep -E '^src/app/lib/api\.ts$' || true)
+            if [ -n "$CHANGED_API" ]; then
+              echo "::warning::Figma Make commit modified api.ts · this is suspicious"
+            fi
+          fi
+          echo "Sanity check passed"
