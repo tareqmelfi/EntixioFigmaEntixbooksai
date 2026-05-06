@@ -132,7 +132,7 @@ const modules: FeatureModule[] = [
       { name: "حدود ائتمانية للعملاء", status: "planned", description: "تعيين سقف ائتماني مع تنبيهات عند التجاوز", critical: true },
       { name: "إدارة الموردين", status: "live", description: "بيانات الموردين مع الأدوار والتصنيفات" },
       { name: "شروط الدفع للموردين", status: "partial", description: "تعيين شروط دفع افتراضية لكل مورد", details: ["موجود في الفواتير", "يحتاج: ربط مع ملف المورد"] },
-      { name: "ملفات المستقلين (Freelancers)", status: "live", description: "تسجيل وإدارة المتعاونين المستقلين" },
+      { name: "ملفات ال��ستقلين (Freelancers)", status: "live", description: "تسجيل وإدارة المتعاونين المستقلين" },
       { name: "خط زمني للنشاط", status: "live", description: "سجل كامل لتاريخ التفاعلات والمعاملات" },
       { name: "CRM خفيف", status: "partial", description: "ملاحظات وتصنيفات وآخر تفاعل", details: ["سجل النشاط موجود", "يحتاج: tags / ملاحظات حرة / تذكيرات"] },
       { name: "بحث ذكي وإنشاء فوري", status: "live", description: "اكتب اسم العميل في أي نموذج واختر أو أنشئ جديد بدون مغادرة الصفحة", details: ["بحث أثناء الكتابة (Autocomplete)", "إنشاء سريع مع نموذج مدمج", "تصنيف محلي / أجنبي", "بيانات ضريبية (VAT / ITN / LEI)", "ضريبة الاستقطاع للكيانات الأجنبية"] },

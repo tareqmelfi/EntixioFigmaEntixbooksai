@@ -6,13 +6,12 @@ import {
   FileSpreadsheet, CreditCard, ScrollText, BookOpen,
   Calculator as CalculatorIcon, FolderOpen, Wallet,
   Building2, Map, Layers, Warehouse, Search,
-  Landmark, Target, FolderKanban, GitBranch, CalendarDays,
+  Landmark, Target, FolderKanban, GitBranch,
   Plug, FileCode, Handshake, HelpCircle, Globe,
-  Mail, UserCheck, Briefcase, ClipboardList, Users2, Inbox,
+  Mail, UserCheck, Briefcase, ClipboardList, Users2,
   Pin, PinOff, MousePointer, EyeOff,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { OrgSwitcher } from "./org-switcher";
 
 interface SubItem {
   title: string;
@@ -62,7 +61,6 @@ const sections: MenuSection[] = [
           { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
           { title: "سندات الدفع", icon: CreditCard, path: "/app/payments" },
           { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
-          { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
         ],
       },
       { title: "العملاء والموردين", icon: Users, path: "/app/contacts" },
@@ -72,7 +70,7 @@ const sections: MenuSection[] = [
         path: "/app/payroll",
         children: [
           { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
-          { title: "الموظفين", icon: Users2, path: "/app/employees" },
+          { title: "الموظفين", icon: Users2, path: "/app/payroll" },
         ],
       },
       {
@@ -99,8 +97,6 @@ const sections: MenuSection[] = [
         ],
       },
       { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
-      { title: "تسوية البنوك", icon: Landmark, path: "/app/bank-reconciliation" },
-      { title: "الفترات المالية", icon: CalendarDays, path: "/app/fiscal-periods" },
       { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
       { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
       { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
@@ -116,7 +112,7 @@ const sections: MenuSection[] = [
   },
   {
     items: [
-      { title: "التعاقد مع محاسب", icon: Handshake, path: "/app/marketplace/accountants" },
+      { title: "التعاقد مع محاسب", icon: Handshake, path: "/app/roadmap" },
     ],
   },
 ];
@@ -320,8 +316,10 @@ function SidebarContent({
           </button>
         </div>
 
-        <OrgSwitcher />
-
+        <button className="mb-2 flex w-full items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F9FAFB]">
+          <span>شركة Entix Books العالمية</span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-[#6B7280]" />
+        </button>
 
         <div className="relative" ref={searchRef}>
           <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />

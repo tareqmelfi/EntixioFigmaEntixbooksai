@@ -1,611 +1,271 @@
-/**
- * Journal Entries · UX-89 · manual ledger entries with debit/credit balance check
- * Wave-style: row click → side panel with full detail · edit · post/unpost · attachments
- * Correct column alignment (RTL with explicit dir="ltr" on numeric cells)
- */
-import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  Plus, Loader2, BookOpen, Trash2, X, AlertCircle, CheckCircle2, Calculator,
-  Pencil, Send, Undo2, Paperclip, Download, Upload,
-} from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router";
+import { Calculator, Plus, Search, Eye, X, Trash2, Check, XCircle, MoreVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
 
-type Line = { accountId: string; debit: string; credit: string; description: string };
-const blankLine = (): Line => ({ accountId: "", debit: "0", credit: "0", description: "" });
+interface JournalLine { account: string; costCenter: string; debit: number; credit: number; }
+interface JournalEntry { id: string; date: string; description: string; ref: string; lines: JournalLine[]; status: string; }
 
-type FormState = {
-  date: string;
-  description: string;
-  reference: string;
-  lines: Line[];
-  postOnSave: boolean;
+const statusStyle = (s: string) => {
+  const m: Record<string, string> = {
+    "مرحّل": "bg-[#DCFCE7] text-[#166534] hover:bg-[#BBF7D0]",
+    "مسودة": "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]",
+    "ملغي": "bg-[#FEE2E2] text-[#991B1B] hover:bg-[#FECACA]",
+  };
+  return m[s] || "";
 };
 
+const accounts = ["1101 النقدية", "1102 البنك", "1103 الذمم المدينة", "2101 الذمم الدائنة", "4001 إيرادات المبيعات", "5001 تكلفة المبيعات", "5002 الرواتب", "5003 الإيجار"];
+
+const initialEntries: JournalEntry[] = [
+  { id: "JE-001", date: "2026-03-01", description: "قيد افتتاحي", ref: "REF-001", lines: [{ account: "1101 النقدية", costCenter: "الرئيسي", debit: 140000, credit: 0 }, { account: "4001 إيرادات المبيعات", costCenter: "الرئيسي", debit: 0, credit: 140000 }], status: "مرحّل" },
+  { id: "JE-002", date: "2026-03-02", description: "مبيعات نقدية", ref: "INV-001", lines: [{ account: "1101 النقدية", costCenter: "الرئيسي", debit: 15000, credit: 0 }, { account: "4001 إيرادات المبيعات", costCenter: "الرئيسي", debit: 0, credit: 15000 }], status: "مرحّل" },
+  { id: "JE-003", date: "2026-03-03", description: "سداد للمورد", ref: "PAY-001", lines: [{ account: "2101 الذمم الدائنة", costCenter: "الرئيسي", debit: 8500, credit: 0 }, { account: "1102 البنك", costCenter: "الرئيسي", debit: 0, credit: 8500 }], status: "مسودة" },
+  { id: "JE-004", date: "2026-03-05", description: "دفع إيجار المكتب", ref: "EXP-001", lines: [{ account: "5003 الإيجار", costCenter: "الرئيسي", debit: 5000, credit: 0 }, { account: "1102 البنك", costCenter: "الرئيسي", debit: 0, credit: 5000 }], status: "مرحّل" },
+];
+
+type View = "list" | "create" | "view";
+
 export function JournalEntries() {
-  const { toasts, push, dismiss } = useToasts();
-  const [items, setItems] = useState<JournalEntryRow[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"" | "POSTED" | "DRAFT">("");
+  const [entries, setEntries] = useState<JournalEntry[]>(initialEntries);
+  const [view, setView] = useState<View>("list");
+  const [selected, setSelected] = useState<JournalEntry | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  // Detail panel state
-  const [selected, setSelected] = useState<JournalEntryRow | null>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [attachments, setAttachments] = useState<JournalAttachment[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [formDate, setFormDate] = useState("2026-03-04");
+  const [formDesc, setFormDesc] = useState("");
+  const [formRef, setFormRef] = useState("");
+  const [formLines, setFormLines] = useState<JournalLine[]>([
+    { account: "", costCenter: "", debit: 0, credit: 0 },
+    { account: "", costCenter: "", debit: 0, credit: 0 },
+  ]);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState<FormState>({
-    date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true,
+  const totalDebit = formLines.reduce((s, l) => s + l.debit, 0);
+  const totalCredit = formLines.reduce((s, l) => s + l.credit, 0);
+  const isBalanced = totalDebit === totalCredit && totalDebit > 0;
+  const nextId = `JE-${String(entries.length + 1).padStart(3, "0")}`;
+
+  const filtered = entries.filter((e) => {
+    const matchSearch = !searchQuery || e.description.includes(searchQuery) || e.id.includes(searchQuery);
+    const matchStatus = !statusFilter || e.status === statusFilter;
+    return matchSearch && matchStatus;
   });
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [j, a] = await Promise.all([
-        api.journals.list(statusFilter || undefined),
-        api.accounts.list(),
-      ]);
-      setItems(j.items);
-      setAccounts(a.items);
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
-    } finally { setLoading(false); }
-  }, [push, statusFilter]);
-  useEffect(() => { refresh(); }, [refresh]);
+  const resetForm = () => { setFormDate("2026-03-04"); setFormDesc(""); setFormRef(""); setFormLines([{ account: "", costCenter: "", debit: 0, credit: 0 }, { account: "", costCenter: "", debit: 0, credit: 0 }]); };
 
-  const totalDebit = form.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
-  const totalCredit = form.lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
-  const diff = totalDebit - totalCredit;
-  const balanced = Math.abs(diff) < 0.01 && totalDebit > 0;
-
-  const addLine = () => setForm({ ...form, lines: [...form.lines, blankLine()] });
-  const removeLine = (i: number) => setForm({ ...form, lines: form.lines.filter((_, idx) => idx !== i) });
-  const updateLine = (i: number, patch: Partial<Line>) => {
-    const lines = [...form.lines];
-    lines[i] = { ...lines[i], ...patch };
-    setForm({ ...form, lines });
+  const handleSave = (post: boolean) => {
+    const entry: JournalEntry = { id: nextId, date: formDate, description: formDesc, ref: formRef, lines: formLines, status: post ? "مرحّل" : "مسودة" };
+    setEntries((p) => [...p, entry]); setView("list"); resetForm();
   };
 
-  const resetForm = () => setForm({ date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true });
+  const addLine = () => setFormLines((p) => [...p, { account: "", costCenter: "", debit: 0, credit: 0 }]);
+  const removeLine = (i: number) => setFormLines((p) => p.filter((_, j) => j !== i));
+  const updateLine = (i: number, field: keyof JournalLine, val: string | number) => setFormLines((p) => p.map((l, j) => j === i ? { ...l, [field]: val } : l));
 
-  const openCreate = () => { resetForm(); setEditMode(false); setOpen(true); };
+  const totalEntryDebit = (e: JournalEntry) => e.lines.reduce((s, l) => s + l.debit, 0);
+  const totalEntryCredit = (e: JournalEntry) => e.lines.reduce((s, l) => s + l.credit, 0);
 
-  const openEdit = (e: JournalEntryRow) => {
-    if (e.status === "POSTED") {
-      push("error", "لا يمكن تعديل قيد مرحّل، قم بإلغاء الترحيل أولاً");
-      return;
-    }
-    setForm({
-      date: e.date.slice(0, 10),
-      description: e.description,
-      reference: e.reference || "",
-      lines: e.lines.map(l => ({
-        accountId: l.accountId,
-        debit: String(l.debit || 0),
-        credit: String(l.credit || 0),
-        description: l.description || "",
-      })),
-      postOnSave: false,
-    });
-    setEditMode(true);
-    setOpen(true);
-  };
-
-  const openDetail = async (id: string) => {
-    try {
-      const e = await api.journals.get(id);
-      setSelected(e);
-      setAttachments(e.attachments || []);
-    } catch (err: any) {
-      push("error", err instanceof ApiError ? err.message : "فشل تحميل التفاصيل");
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.description.trim()) { push("error", "الوصف مطلوب"); return; }
-    if (!balanced) { push("error", "القيد غير متوازن"); return; }
-    const validLines = form.lines.filter(l => l.accountId && (Number(l.debit) > 0 || Number(l.credit) > 0));
-    if (validLines.length < 2) { push("error", "يجب أن يحتوي القيد على سطرين على الأقل"); return; }
-
-    const payload = {
-      date: form.date,
-      description: form.description.trim(),
-      reference: form.reference.trim() || null,
-      postOnSave: form.postOnSave,
-      lines: validLines.map(l => ({
-        accountId: l.accountId,
-        debit: Number(l.debit) || 0,
-        credit: Number(l.credit) || 0,
-        description: l.description.trim() || null,
-      })),
-    };
-
-    setBusy(true);
-    try {
-      if (editMode && selected) {
-        await api.journals.update(selected.id, payload);
-        push("success", "تم تحديث القيد");
-      } else {
-        await api.journals.create(payload);
-        push("success", form.postOnSave ? "تم حفظ القيد ومُرحَّل" : "تم حفظ القيد كمسودة");
-      }
-      setOpen(false); setEditMode(false); resetForm(); setSelected(null);
-      refresh();
-    } catch (err: any) {
-      push("error", err instanceof ApiError ? err.message : "فشل الحفظ");
-    } finally { setBusy(false); }
-  };
-
-  const handlePost = async (id: string) => {
-    try {
-      await api.journals.post(id);
-      push("success", "تم ترحيل القيد · ستنعكس على لوحة التحكم");
-      const fresh = await api.journals.get(id);
-      setSelected(fresh);
-      refresh();
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الترحيل");
-    }
-  };
-
-  const handleUnpost = async (id: string) => {
-    try {
-      await api.journals.unpost(id);
-      push("success", "تم إلغاء الترحيل");
-      const fresh = await api.journals.get(id);
-      setSelected(fresh);
-      refresh();
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل إلغاء الترحيل");
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await api.journals.remove(id);
-      setItems(prev => prev.filter(x => x.id !== id));
-      if (selected?.id === id) setSelected(null);
-      push("success", "تم الحذف");
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
-    } finally { setPendingDelete(null); }
-  };
-
-  const handleUpload = async (file: File) => {
-    if (!selected) return;
-    if (file.size > 25 * 1024 * 1024) { push("error", "الحد الأقصى للملف 25 ميجا"); return; }
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      const newAtt = await api.journals.attachments.upload(selected.id, {
-        filename: file.name,
-        contentType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-        data: base64,
-      });
-      setAttachments(prev => [newAtt, ...prev]);
-      push("success", "تم رفع المرفق");
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الرفع");
-    }
-  };
-
-  const handleRemoveAttachment = async (aid: string) => {
-    if (!selected) return;
-    try {
-      await api.journals.attachments.remove(selected.id, aid);
-      setAttachments(prev => prev.filter(a => a.id !== aid));
-      push("success", "تم حذف المرفق");
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
-    }
-  };
-
-  const totalPosted = items.filter(e => e.status === "POSTED").reduce((s, e) => s + e.totalDebit, 0);
-  const totalDraft = items.filter(e => e.status === "DRAFT").length;
-
-  return (
-    <div className="flex gap-4">
-      <ToastStack toasts={toasts} onDismiss={dismiss} />
-
-      <div className={`space-y-6 transition-all ${selected ? "flex-1 min-w-0" : "w-full"}`}>
+  /* ─── Detail View ─── */
+  if (view === "view" && selected) {
+    return (
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>قيود اليومية</h1>
-            <p className="text-[#6B7280] mt-1">قيود محاسبية يدوية مع التحقق من توازن المدين والدائن</p>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView("list")} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+            <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>قيد <span className="font-english">{selected.id}</span></h1><p className="text-[#6B7280] text-sm">{selected.description}</p></div>
+            <span className={`inline-flex rounded-md px-2.5 py-1 text-xs ${statusStyle(selected.status)}`} style={{ fontWeight: 600 }}>{selected.status}</span>
           </div>
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}>
-            <Plus className="me-2 h-4 w-4" /> قيد جديد
-          </Button>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">إجمالي القيود</div>
-            <div className="font-english font-bold text-[#0B1B49] mt-1" style={{ fontSize: "1.5rem" }}>{items.length}</div>
-          </CardContent></Card>
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">المرحّلة</div>
-            <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }}>{items.filter(e => e.status === "POSTED").length}</div>
-          </CardContent></Card>
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">المسودات</div>
-            <div className="font-english font-bold text-amber-700 mt-1" style={{ fontSize: "1.5rem" }}>{totalDraft}</div>
-          </CardContent></Card>
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">إجمالي المبالغ المرحّلة</div>
-            <div className="font-english font-bold text-[#0B1B49] mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalPosted.toLocaleString()}</div>
-          </CardContent></Card>
-        </div>
-
+        <Card className="border-[#E5E7EB]"><CardContent className="p-5"><div className="grid grid-cols-3 gap-4 text-sm"><div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date}</span></div><div><span className="text-[#6B7280]">الوصف:</span> <span>{selected.description}</span></div><div><span className="text-[#6B7280]">المرجع:</span> <span className="font-english text-[#1276E3]">{selected.ref}</span></div></div></CardContent></Card>
         <Card className="border-[#E5E7EB]">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[#0B1B49] flex items-center gap-2"><BookOpen className="h-4 w-4" /> سجل القيود</CardTitle>
-            <div className="flex gap-1">
-              {(["", "POSTED", "DRAFT"] as const).map(s => (
-                <button key={s} onClick={() => setStatusFilter(s)}
-                  className={`text-xs px-3 py-1.5 rounded-md ${statusFilter === s ? "bg-[#1276E3] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
-                  {s === "" ? "الكل" : s === "POSTED" ? "مرحّل" : "مسودة"}
-                </button>
-              ))}
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
-            ) : items.length === 0 ? (
-              <div className="py-12 text-center">
-                <BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
-                <p className="text-sm text-[#6B7280]">لا توجد قيود يدوية بعد</p>
-                <button onClick={openCreate} className="text-sm text-[#1276E3] hover:underline mt-2">+ أضف أول قيد</button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-                  <colgroup>
-                    <col style={{ width: "120px" }} />
-                    <col style={{ width: "100px" }} />
-                    <col />
-                    <col style={{ width: "120px" }} />
-                    <col style={{ width: "120px" }} />
-                    <col style={{ width: "80px" }} />
-                    <col style={{ width: "90px" }} />
-                    <col style={{ width: "60px" }} />
-                  </colgroup>
-                  <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
-                    <tr>
-                      <th className="text-start px-4 py-2.5 font-medium">رقم</th>
-                      <th className="text-start px-4 py-2.5 font-medium">التاريخ</th>
-                      <th className="text-start px-4 py-2.5 font-medium">الوصف</th>
-                      <th className="text-end px-4 py-2.5 font-medium">المدين</th>
-                      <th className="text-end px-4 py-2.5 font-medium">الدائن</th>
-                      <th className="text-center px-2 py-2.5 font-medium">المصدر</th>
-                      <th className="text-center px-2 py-2.5 font-medium">الحالة</th>
-                      <th className="px-2 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map(e => (
-                      <tr key={e.id}
-                        className={`border-t border-[#F3F4F6] cursor-pointer hover:bg-[#F4FCFF] ${selected?.id === e.id ? "bg-[#EFF8FF]" : ""}`}
-                        onClick={() => openDetail(e.id)}>
-                        <td className="px-4 py-3 font-english font-semibold text-[#1276E3] truncate" dir="ltr">{e.number}</td>
-                        <td className="px-4 py-3 font-english text-[#374151]" dir="ltr">{e.date.slice(0, 10)}</td>
-                        <td className="px-4 py-3">
-                          <div className="text-[#0B1B49] truncate" style={{ fontWeight: 500 }}>{e.description}</div>
-                          <div className="text-xs text-[#9CA3AF] mt-0.5">
-                            {e.lineCount} سطر
-                            {(e.attachmentCount || 0) > 0 && <span className="ms-2"><Paperclip className="inline h-3 w-3" /> {e.attachmentCount}</span>}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-[#0B1B49]" dir="ltr">{e.totalDebit.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-[#0B1B49]" dir="ltr">{e.totalCredit.toLocaleString()}</td>
-                        <td className="px-2 py-3 text-center">
-                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 whitespace-nowrap">{e.source === "manual" ? "يدوي" : e.source === "invoice" ? "فاتورة" : e.source === "bill" ? "مشتريات" : e.source || "—"}</span>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${e.status === "POSTED" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-                            {e.status === "POSTED" ? "مرحّل" : "مسودة"}
-                          </span>
-                        </td>
-                        <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
-                          {e.source === "manual" && e.status === "DRAFT" && (
-                            pendingDelete === e.id ? (
-                              <span className="flex items-center gap-1 text-xs">
-                                <button onClick={() => handleDelete(e.id)} className="px-2 py-1 rounded bg-red-600 text-white">تأكيد</button>
-                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-[#E5E7EB]">إلغاء</button>
-                              </span>
-                            ) : (
-                              <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
-                            )
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          <CardHeader><CardTitle className="text-[#0B1B49]">بنود القيد</CardTitle></CardHeader>
+          <CardContent>
+            <table className="w-full border-collapse" style={{ minWidth: "500px" }}>
+              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>الحساب</th>
+                <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "120px" }}>مركز التكلفة</th>
+                <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "130px" }}>مدين (SR)</th>
+                <th className="py-2.5 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "130px" }}>دائن (SR)</th>
+              </tr></thead>
+              <tbody>
+                {selected.lines.map((l, i) => (<tr key={i} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF]">
+                  <td className="py-2.5 pe-4 text-sm"><Link to="/app/chart-of-accounts" className="text-[#374151] hover:text-[#1276E3] hover:underline">{l.account}</Link></td>
+                  <td className="py-2.5 pe-4 text-sm text-[#6B7280]">{l.costCenter}</td>
+                  <td className="py-2.5 pe-4 text-sm font-english">{l.debit > 0 ? l.debit.toLocaleString() : "—"}</td>
+                  <td className="py-2.5 text-sm font-english">{l.credit > 0 ? l.credit.toLocaleString() : "—"}</td>
+                </tr>))}
+                <tr className="bg-[#F9FAFB]" style={{ fontWeight: 600 }}>
+                  <td className="py-2.5 pe-4 text-sm" colSpan={2}>الإجمالي</td>
+                  <td className="py-2.5 pe-4 text-sm font-english">{totalEntryDebit(selected).toLocaleString()}</td>
+                  <td className="py-2.5 text-sm font-english">{totalEntryCredit(selected).toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
           </CardContent>
         </Card>
+        <div className={`flex items-center gap-2 rounded-lg p-3 ${totalEntryDebit(selected) === totalEntryCredit(selected) ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEE2E2] text-[#991B1B]"}`}>
+          {totalEntryDebit(selected) === totalEntryCredit(selected) ? <Check className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+          <span style={{ fontWeight: 600 }}>{totalEntryDebit(selected) === totalEntryCredit(selected) ? "متوازن" : "غير متوازن"}</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Create View ─── */
+  if (view === "create") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => { setView("list"); resetForm(); }} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>قيد جديد</h1>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="border-[#E5E7EB]" onClick={() => handleSave(false)}>حفظ كمسودة</Button>
+            <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => handleSave(true)} disabled={!isBalanced}>ترحيل</Button>
+          </div>
+        </div>
+        <Card className="border-[#E5E7EB]"><CardHeader><CardTitle className="text-[#0B1B49]">بيانات القيد</CardTitle></CardHeader><CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="space-y-2"><Label>رقم القيد</Label><Input value={nextId} disabled className="font-english bg-[#F3F4F6]" dir="ltr" /></div>
+            <div className="space-y-2"><Label>التاريخ</Label><Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="font-english" dir="ltr" /></div>
+            <div className="space-y-2"><Label>الوصف</Label><Input value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="وصف القيد" /></div>
+            <div className="space-y-2"><Label>المرجع</Label><Input value={formRef} onChange={(e) => setFormRef(e.target.value)} placeholder="اختياري" className="font-english" dir="ltr" /></div>
+          </div>
+        </CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardHeader><CardTitle className="text-[#0B1B49]">بنود القيد</CardTitle></CardHeader><CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ minWidth: "600px" }}>
+              <thead><tr className="border-b border-[#E5E7EB]">
+                <th className="pb-3 pe-2 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>الحساب</th>
+                <th className="pb-3 pe-2 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "140px" }}>مركز التكلفة</th>
+                <th className="pb-3 pe-2 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "130px" }}>المدين (SR)</th>
+                <th className="pb-3 pe-2 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "130px" }}>الدائن (SR)</th>
+                <th className="pb-3" style={{ width: "40px" }}></th>
+              </tr></thead>
+              <tbody>
+                {formLines.map((line, i) => (
+                  <tr key={i} className="border-b border-[#F3F4F6]">
+                    <td className="py-2 pe-2"><select value={line.account} onChange={(e) => updateLine(i, "account", e.target.value)} className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm min-w-[180px] focus:border-[#1276E3] focus:outline-none"><option value="">اختر حساب...</option>{accounts.map((a) => <option key={a} value={a}>{a}</option>)}</select></td>
+                    <td className="py-2 pe-2"><Input value={line.costCenter} onChange={(e) => updateLine(i, "costCenter", e.target.value)} placeholder="مركز التكلفة" /></td>
+                    <td className="py-2 pe-2"><Input type="number" value={line.debit || ""} onChange={(e) => updateLine(i, "debit", +e.target.value)} className="font-english" dir="ltr" min={0} placeholder="0" /></td>
+                    <td className="py-2 pe-2"><Input type="number" value={line.credit || ""} onChange={(e) => updateLine(i, "credit", +e.target.value)} className="font-english" dir="ltr" min={0} placeholder="0" /></td>
+                    <td className="py-2">{formLines.length > 2 && <button onClick={() => removeLine(i)} className="rounded p-1 text-[#EF4444] hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>}</td>
+                  </tr>
+                ))}
+                <tr className="bg-[#F9FAFB]" style={{ fontWeight: 600 }}>
+                  <td className="py-2 pe-2 text-sm" colSpan={2}>الإجمالي</td>
+                  <td className="py-2 pe-2 text-sm font-english">{totalDebit.toLocaleString()}</td>
+                  <td className="py-2 pe-2 text-sm font-english">{totalCredit.toLocaleString()}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            <Button variant="outline" className="border-[#1276E3] text-[#1276E3]" onClick={addLine}><Plus className="me-1 h-4 w-4" />إضافة سطر</Button>
+            <div className={`flex items-center gap-2 rounded-lg px-4 py-2 ${isBalanced ? "bg-[#DCFCE7] text-[#166534]" : totalDebit === 0 && totalCredit === 0 ? "bg-[#F3F4F6] text-[#6B7280]" : "bg-[#FEE2E2] text-[#991B1B]"}`}>
+              {isBalanced ? <Check className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              <span className="text-sm" style={{ fontWeight: 600 }}>{isBalanced ? "متوازن" : "غير متوازن"}</span>
+            </div>
+          </div>
+        </CardContent></Card>
+      </div>
+    );
+  }
+
+  /* ─── List View ─── */
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>قيود اليومية</h1><p className="text-[#6B7280] mt-1">إدارة القيود المحاسبية اليومية</p></div>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => { resetForm(); setView("create"); }}><Plus className="me-2 h-4 w-4" />قيد جديد</Button>
       </div>
 
-      {/* ── DETAIL PANEL ─────────────────────────────────────────────────── */}
-      {selected && (
-        <Card className="border-[#E5E7EB] w-[480px] flex-shrink-0 self-start sticky top-4">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-[#F3F4F6]">
-            <div>
-              <div className="font-english font-bold text-[#1276E3]" dir="ltr">{selected.number}</div>
-              <div className="text-xs text-[#6B7280] mt-0.5">{selected.description}</div>
-            </div>
-            <button onClick={() => setSelected(null)} className="p-1 hover:bg-gray-100 rounded">
-              <X className="h-4 w-4 text-[#6B7280]" />
-            </button>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-xs text-[#6B7280]">التاريخ</div>
-                <div className="font-english text-[#0B1B49] mt-0.5" dir="ltr">{selected.date.slice(0, 10)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-[#6B7280]">الحالة</div>
-                <div className="mt-0.5">
-                  <span className={`text-xs px-2 py-0.5 rounded ${selected.status === "POSTED" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-                    {selected.status === "POSTED" ? "مرحّل" : "مسودة"}
-                  </span>
-                </div>
-              </div>
-              {selected.reference && (
-                <div className="col-span-2">
-                  <div className="text-xs text-[#6B7280]">المرجع</div>
-                  <div className="font-english text-[#0B1B49] mt-0.5" dir="ltr">{selected.reference}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Lines */}
-            <div>
-              <div className="text-xs text-[#6B7280] mb-1">السطور</div>
-              <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead className="bg-[#F9FAFB] text-[#6B7280]">
-                    <tr>
-                      <th className="text-start px-2 py-1.5 font-medium">الحساب</th>
-                      <th className="text-end px-2 py-1.5 font-medium w-20">مدين</th>
-                      <th className="text-end px-2 py-1.5 font-medium w-20">دائن</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selected.lines.map((l, i) => (
-                      <tr key={i} className="border-t border-[#F3F4F6]">
-                        <td className="px-2 py-1.5">
-                          <div className="font-english text-[#374151] text-[11px]" dir="ltr">{l.accountCode}</div>
-                          <div className="text-[#0B1B49]">{l.accountName}</div>
-                          {l.description && <div className="text-[10px] text-[#9CA3AF] mt-0.5">{l.description}</div>}
-                        </td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString() : "—"}</td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString() : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-[#F9FAFB]">
-                    <tr>
-                      <td className="px-2 py-1.5 text-end text-[#6B7280] font-medium">الإجمالي</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-[#0B1B49]" dir="ltr">{selected.totalDebit.toLocaleString()}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-[#0B1B49]" dir="ltr">{selected.totalCredit.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-
-            {/* Attachments */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-xs text-[#6B7280] flex items-center gap-1">
-                  <Paperclip className="h-3.5 w-3.5" /> المرفقات ({attachments.length})
-                </div>
-                <input ref={fileInputRef} type="file" hidden
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
-                <button onClick={() => fileInputRef.current?.click()}
-                  className="text-xs text-[#1276E3] hover:underline flex items-center gap-1">
-                  <Upload className="h-3 w-3" /> رفع
-                </button>
-              </div>
-              {attachments.length === 0 ? (
-                <div className="text-xs text-[#9CA3AF] text-center py-3 border border-dashed border-[#E5E7EB] rounded">
-                  لا توجد مرفقات
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {attachments.map(a => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded border border-[#E5E7EB] text-xs">
-                      <Paperclip className="h-3.5 w-3.5 text-[#6B7280] flex-shrink-0" />
-                      <div className="flex-1 min-w-0 truncate">{a.filename}</div>
-                      <span className="font-english text-[#9CA3AF]" dir="ltr">{(a.sizeBytes / 1024).toFixed(0)} KB</span>
-                      <a href={a.url} download={a.filename} className="text-[#1276E3] hover:bg-blue-50 p-1 rounded"><Download className="h-3 w-3" /></a>
-                      <button onClick={() => handleRemoveAttachment(a.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 className="h-3 w-3" /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-[#F3F4F6]">
-              {selected.source === "manual" && selected.status === "DRAFT" && (
-                <>
-                  <Button onClick={() => handlePost(selected.id)} className="bg-green-600 hover:bg-green-700 text-white">
-                    <Send className="h-4 w-4 me-1" /> ترحيل
-                  </Button>
-                  <Button onClick={() => openEdit(selected)} variant="outline" className="border-[#E5E7EB]">
-                    <Pencil className="h-4 w-4 me-1" /> تعديل
-                  </Button>
-                </>
-              )}
-              {selected.source === "manual" && selected.status === "POSTED" && (
-                <Button onClick={() => handleUnpost(selected.id)} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
-                  <Undo2 className="h-4 w-4 me-1" /> إلغاء الترحيل
-                </Button>
-              )}
-              {selected.source === "manual" && selected.status === "DRAFT" && (
-                pendingDelete === selected.id ? (
-                  <span className="flex items-center gap-1">
-                    <Button onClick={() => handleDelete(selected.id)} className="bg-red-600 hover:bg-red-700">تأكيد الحذف</Button>
-                    <Button onClick={() => setPendingDelete(null)} variant="outline" className="border-[#E5E7EB]">إلغاء</Button>
-                  </span>
-                ) : (
-                  <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
-                    <Trash2 className="h-4 w-4 me-1" /> حذف
-                  </Button>
-                )
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── CREATE / EDIT MODAL ──────────────────────────────────────────── */}
-      {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between p-5 border-b border-[#F3F4F6]">
-                <h2 className="text-lg text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
-                  <Calculator className="h-5 w-5" /> {editMode ? "تعديل قيد" : "قيد يومية جديد"}
-                </h2>
-                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-[#F3F4F6] rounded">
-                  <X className="h-5 w-5 text-[#6B7280]" />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs text-[#6B7280]">التاريخ *</Label>
-                    <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required className="border-[#E5E7EB] font-english" />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs text-[#6B7280]">الوصف *</Label>
-                    <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="قيد تسوية رواتب شهر..." required className="border-[#E5E7EB]" />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs text-[#6B7280]">المرجع (اختياري)</Label>
-                  <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مستند خارجي" className="border-[#E5E7EB]" />
-                </div>
-
-                <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
-                  <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-                    <colgroup>
-                      <col style={{ width: "32%" }} />
-                      <col />
-                      <col style={{ width: "120px" }} />
-                      <col style={{ width: "120px" }} />
-                      <col style={{ width: "40px" }} />
-                    </colgroup>
-                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
-                      <tr>
-                        <th className="text-start px-3 py-2 font-medium">الحساب</th>
-                        <th className="text-start px-3 py-2 font-medium">البيان</th>
-                        <th className="text-end px-3 py-2 font-medium">مدين</th>
-                        <th className="text-end px-3 py-2 font-medium">دائن</th>
-                        <th className="px-2 py-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.lines.map((l, i) => (
-                        <tr key={i} className="border-t border-[#F3F4F6]">
-                          <td className="px-2 py-1.5">
-                            <select value={l.accountId} onChange={(e) => updateLine(i, { accountId: e.target.value })}
-                              className="w-full text-sm rounded border border-[#E5E7EB] px-2 py-1.5 bg-white">
-                              <option value="">— اختر حساباً —</option>
-                              {accounts.map(a => (
-                                <option key={a.id} value={a.id}>{a.code} · {a.nameAr || a.name}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })}
-                              placeholder="بيان السطر..." className="w-full text-sm rounded border border-[#E5E7EB] px-2 py-1.5" />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input type="number" step="0.01" min="0" value={l.debit}
-                              onChange={(e) => updateLine(i, { debit: e.target.value, credit: Number(e.target.value) > 0 ? "0" : l.credit })}
-                              dir="ltr" className="w-full text-sm rounded border border-[#E5E7EB] px-2 py-1.5 text-end font-english" />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input type="number" step="0.01" min="0" value={l.credit}
-                              onChange={(e) => updateLine(i, { credit: e.target.value, debit: Number(e.target.value) > 0 ? "0" : l.debit })}
-                              dir="ltr" className="w-full text-sm rounded border border-[#E5E7EB] px-2 py-1.5 text-end font-english" />
-                          </td>
-                          <td className="px-1 py-1.5 text-center">
-                            {form.lines.length > 2 && (
-                              <button type="button" onClick={() => removeLine(i)} className="p-1 text-red-600 hover:bg-red-50 rounded">
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-[#F9FAFB] text-xs">
-                      <tr>
-                        <td colSpan={2} className="px-3 py-2 text-end text-[#6B7280] font-medium">الإجمالي</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-[#0B1B49]" dir="ltr">{totalDebit.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-[#0B1B49]" dir="ltr">{totalCredit.toLocaleString()}</td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <button type="button" onClick={addLine} className="text-sm text-[#1276E3] hover:underline flex items-center gap-1">
-                    <Plus className="h-3.5 w-3.5" /> إضافة سطر
-                  </button>
-
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${balanced ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-                    {balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    {balanced ? "متوازن ✓" : (totalDebit === 0 && totalCredit === 0 ? "أدخل المبالغ" : `الفرق: ${Math.abs(diff).toLocaleString()}`)}
-                  </div>
-                </div>
-
-                {!editMode && (
-                  <label className="flex items-center gap-2 text-sm text-[#374151] cursor-pointer">
-                    <input type="checkbox" checked={form.postOnSave}
-                      onChange={(e) => setForm({ ...form, postOnSave: e.target.checked })}
-                      className="rounded border-[#E5E7EB]" />
-                    ترحيل القيد فور الحفظ (سينعكس مباشرة على لوحة التحكم)
-                  </label>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 p-5 border-t border-[#F3F4F6]">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
-                <Button type="submit" disabled={busy || !balanced} className="bg-[#1276E3] hover:bg-[#1060C0]">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (editMode ? "حفظ التعديلات" : (form.postOnSave ? "حفظ وترحيل" : "حفظ كمسودة"))}
-                </Button>
-              </div>
-            </form>
-          </div>
+      {/* KPI — Clickable */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div onClick={() => setStatusFilter(null)} className="cursor-pointer">
+          <Card className={`border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all ${!statusFilter ? "ring-2 ring-[#1276E3]/20" : ""}`}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي القيود</CardTitle></CardHeader>
+            <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{entries.length}</div></CardContent>
+          </Card>
         </div>
-      )}
+        <div className="cursor-pointer"><Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي المدين</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{entries.reduce((s, e) => s + totalEntryDebit(e), 0).toLocaleString()} SR</div></CardContent>
+        </Card></div>
+        <div className="cursor-pointer"><Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي الدائن</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{entries.reduce((s, e) => s + totalEntryCredit(e), 0).toLocaleString()} SR</div></CardContent>
+        </Card></div>
+        <div onClick={() => setStatusFilter(statusFilter === "مسودة" ? null : "مسودة")} className="cursor-pointer">
+          <Card className={`border-[#E5E7EB] hover:shadow-md transition-all ${statusFilter === "مسودة" ? "ring-2 ring-[#F59E0B]/30" : ""}`}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">التوازن</CardTitle></CardHeader>
+            <CardContent><div className="text-[#22C55E]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>متوازن ✓</div></CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Table — Fixed alignment */}
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[#0B1B49]">قائمة قيود اليومية</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-64 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+          </div>
+          {statusFilter && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-[#6B7280]">تصفية:</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${statusStyle(statusFilter)}`} style={{ fontWeight: 600 }}>
+                {statusFilter}
+                <button onClick={() => setStatusFilter(null)} className="ms-1 hover:opacity-70"><X className="h-3 w-3" /></button>
+              </span>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse" style={{ minWidth: "750px" }}>
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "90px" }}>رقم القيد</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>التاريخ</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>الوصف</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "120px" }}>إجمالي المدين</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "120px" }}>إجمالي الدائن</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "80px" }}>الحالة</th>
+                  <th className="py-2.5 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "90px" }}>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((e) => (
+                  <tr key={e.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
+                    <td className="py-3.5 pe-4"><button onClick={() => { setSelected(e); setView("view"); }} className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{e.id}</button></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#6B7280]">{e.date}</span></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm text-[#374151]">{e.description}</span></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 500 }}>{totalEntryDebit(e).toLocaleString()}</span></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 500 }}>{totalEntryCredit(e).toLocaleString()}</span></td>
+                    <td className="py-3.5 pe-4">
+                      <button onClick={() => setStatusFilter(statusFilter === e.status ? null : e.status)}>
+                        <span className={`inline-flex rounded-md px-2.5 py-1 text-xs cursor-pointer transition-colors ${statusStyle(e.status)}`} style={{ fontWeight: 600 }}>{e.status}</span>
+                      </button>
+                    </td>
+                    <td className="py-3.5">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setSelected(e); setView("view"); }} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"><MoreVertical className="h-4 w-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

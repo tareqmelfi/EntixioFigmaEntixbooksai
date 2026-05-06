@@ -1,293 +1,74 @@
-/**
- * Credit Notes (الإشعارات الدائنة) · UI-first build · backend wired via /api/credit-notes (when ready)
- * Falls back to filtered invoices with status=CANCELLED until dedicated API ships.
- *
- * Per طارق: build out from coming-soon · لا تخلي صفحة فاضية
- *
- * Pattern: same FullPageForm + ItemsTable + SearchableCombobox as invoices/quotes/bills.
- * Difference: links to original invoice (optional) · negative impact on receivables.
- */
-import { useEffect, useState, useCallback } from "react";
-import { Plus, Search, Trash2, Loader2, ScrollText, ArrowDownLeft } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router";
+import { ScrollText, Plus, Search, Eye, X, MoreVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
-import { FullPageForm } from "../components/full-page-form";
-import { SearchableCombobox } from "../components/searchable-combobox";
-import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
-import { normalizeDigits } from "../lib/digits";
-import { api, ApiError, Contact, Invoice } from "../lib/api";
+import { contactLink } from "../components/contact-map";
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", ISSUED: "صادر", APPLIED: "مطبَّق", CANCELLED: "ملغى",
-};
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  ISSUED: "bg-amber-100 text-amber-700",
-  APPLIED: "bg-green-100 text-green-700",
-  CANCELLED: "bg-gray-100 text-gray-500",
-};
+interface CreditNote { id: string; client: string; date: string; amount: string; amountNum: number; reason: string; ref: string; }
 
-const REASONS = [
-  { value: "RETURN", label: "إرجاع بضاعة" },
-  { value: "DISCOUNT", label: "خصم تجاري" },
-  { value: "PRICING_ERROR", label: "تصحيح خطأ تسعير" },
-  { value: "QUALITY_ISSUE", label: "مشكلة جودة" },
-  { value: "OTHER", label: "أخرى" },
+const creditNotesData: CreditNote[] = [
+  { id: "CN-001", client: "شركة الأمل التجارية", date: "2026-03-01", amount: "2,000", amountNum: 2000, reason: "خصم تجاري", ref: "INV-2026-001" },
+  { id: "CN-002", client: "مؤسسة النور", date: "2026-03-02", amount: "1,500", amountNum: 1500, reason: "إرجاع بضاعة", ref: "INV-2026-002" },
 ];
 
-const EMPTY_FORM = {
-  contactId: "",
-  originalInvoiceId: "",
-  issueDate: new Date().toISOString().slice(0, 10),
-  reason: "RETURN",
-  notes: "",
-};
-
-interface CreditNote {
-  id: string;
-  noteNumber: string;
-  status: string;
-  issueDate: string;
-  total: string | number;
-  currency: string;
-  reason: string;
-  contactId: string;
-  contact?: Contact;
-  originalInvoiceId?: string | null;
-  notes?: string | null;
-}
-
 export function CreditNotes() {
-  const [items, setItems] = useState<CreditNote[]>([]);
-  const [customers, setCustomers] = useState<Contact[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<CreditNote | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
-  const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  const filtered = creditNotesData.filter((n) => !searchQuery || n.client.includes(searchQuery) || n.id.includes(searchQuery));
+  const total = creditNotesData.reduce((s, n) => s + n.amountNum, 0);
 
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const { toasts, push, dismiss } = useToasts();
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Try the dedicated endpoint · fall back to empty list with helpful message
-      const [contactsRes, invRes] = await Promise.all([
-        api.contacts.list({ limit: 200 }),
-        api.invoices.list({ limit: 200 }),
-      ]);
-      setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
-      setInvoices(invRes.items);
-      // When /api/credit-notes ships, replace this:
-      try {
-        // @ts-ignore · API may not have this method yet
-        if (api.creditNotes && typeof api.creditNotes.list === "function") {
-          // @ts-ignore
-          const cnRes = await api.creditNotes.list({ limit: 200 });
-          setItems(cnRes.items);
-        } else {
-          setItems([]); // no backend yet · UI-only stage
-        }
-      } catch (_) { setItems([]); }
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
-    } finally { setLoading(false); }
-  }, [push]);
-  useEffect(() => { refresh(); }, [refresh]);
-
-  const filtered = items.filter(c =>
-    !searchQuery || c.noteNumber.includes(searchQuery) ||
-    (c.contact?.displayName || "").includes(searchQuery)
-  );
-
-  const total = items.reduce((s, c) => s + Number(c.total), 0);
-
-  const openCreate = () => {
-    setForm(EMPTY_FORM);
-    setLines([newLine()]);
-    setTaxMode("all-exclusive");
-    setCreateError(null);
-    setCreateOpen(true);
-  };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
-
-  const handleSubmit = async () => {
-    setCreateError(null);
-    if (!form.contactId) { setCreateError("اختر العميل"); return; }
-    const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
-    if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل"); return; }
-    setBusy(true);
-    try {
-      // @ts-ignore · API.creditNotes shipping with backend
-      if (api.creditNotes && typeof api.creditNotes.create === "function") {
-        // @ts-ignore
-        const cn = await api.creditNotes.create({
-          contactId: form.contactId,
-          originalInvoiceId: form.originalInvoiceId || null,
-          issueDate: form.issueDate,
-          reason: form.reason,
-          notes: form.notes || null,
-          lines: validLines.map((l) => ({
-            description: l.description,
-            quantity: Number(normalizeDigits(l.quantity)) || 1,
-            unitPrice: l.taxInclusive
-              ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
-              : Number(normalizeDigits(l.unitPrice)),
-          })),
-        });
-        setItems((prev) => [cn, ...prev]);
-        push("success", `تم إنشاء إشعار دائن ${cn.noteNumber}`);
-      } else {
-        push("warning", "API الإشعارات الدائنة لم يتم تفعيله بعد · النموذج جاهز");
-      }
-      closeCreate();
-    } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
-    } finally { setBusy(false); }
-  };
-
-  const handleDelete = async (id: string) => {
-    setPendingDelete(null);
-    try {
-      // @ts-ignore
-      if (api.creditNotes && typeof api.creditNotes.remove === "function") {
-        // @ts-ignore
-        await api.creditNotes.remove(id);
-      }
-      setItems(prev => prev.filter(x => x.id !== id));
-      push("success", "تم حذف الإشعار");
-    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
-  };
-
-  // Customer-filtered invoices for the original-invoice combobox
-  const customerInvoices = invoices.filter(i => !form.contactId || i.contactId === form.contactId);
-
-  // Full-page Create form
-  if (createOpen) {
+  if (selected) {
     return (
-      <>
-        <FullPageForm
-          title="إشعار دائن جديد"
-          subtitle="ربط الإشعار بفاتورة الأصلية اختياري · سيخصم القيمة من رصيد العميل"
-          onClose={closeCreate}
-          disableEscape={busy}
-          footer={
-            <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
-                {busy ? "..." : "حفظ كمسودة"}
-              </Button>
-            </div>
-          }
-        >
-          <div className="max-w-3xl mx-auto space-y-4">
-            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
-            <div className="space-y-2">
-              <Label className="text-[#374151]">العميل *</Label>
-              <SearchableCombobox
-                value={form.contactId}
-                onChange={(id) => setForm({ ...form, contactId: id, originalInvoiceId: "" })}
-                onCreate={async (name) => {
-                  const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
-                  setCustomers((prev) => [c, ...prev]);
-                  push("success", `تم إنشاء ${c.displayName}`);
-                  return c.id;
-                }}
-                items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                placeholder="اكتب اسم العميل أو ابحث..."
-                createLabel={(q) => `+ إنشاء عميل جديد: "${q}"`}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-[#374151]">الفاتورة الأصلية (اختياري)</Label>
-                <select
-                  value={form.originalInvoiceId}
-                  onChange={(e) => setForm({ ...form, originalInvoiceId: e.target.value })}
-                  className="w-full rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">— بدون ربط —</option>
-                  {customerInvoices.map(i => (
-                    <option key={i.id} value={i.id}>{i.invoiceNumber} · {Number(i.total).toLocaleString()} {i.currency}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[#374151]">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[#374151]">سبب الإصدار *</Label>
-              <select
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm"
-              >
-                {REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[#374151]">البنود *</Label>
-              <ItemsTable
-                lines={lines}
-                setLines={setLines}
-                mode={taxMode}
-                onModeChange={setTaxMode}
-                defaultTaxRate={0.15}
-                currency="SAR"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[#374151]">ملاحظات</Label>
-              <textarea
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                rows={3}
-                placeholder="تفاصيل إضافية تظهر للعميل..."
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm"
-              />
-            </div>
-            <p className="text-xs text-[#6B7280]">💡 يمكنك لصق بنود من Excel · سيتم توزيعها تلقائياً.</p>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setSelected(null)} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+          <div>
+            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>إشعار دائن <span className="font-english">{selected.id}</span></h1>
+            <Link to={contactLink(selected.client)} className="text-[#6B7280] text-sm hover:text-[#1276E3] hover:underline">{selected.client}</Link>
           </div>
-        </FullPageForm>
-        <ToastStack toasts={toasts} onDismiss={dismiss} />
-      </>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">
+            <h3 className="text-[#0B1B49]" style={{ fontWeight: 600 }}>بيانات الإشعار</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-[#6B7280]">رقم:</span> <span className="font-english">{selected.id}</span></div>
+              <div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date}</span></div>
+              <div><span className="text-[#6B7280]">السبب:</span> <span>{selected.reason}</span></div>
+              <div><span className="text-[#6B7280]">الفاتورة المرجعية:</span> <Link to="/app/invoices" className="font-english text-[#1276E3] hover:underline">{selected.ref}</Link></div>
+            </div>
+          </CardContent></Card>
+          <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">
+            <h3 className="text-[#0B1B49]" style={{ fontWeight: 600 }}>المبلغ</h3>
+            <div className="text-[#349FC4] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>-{selected.amount} SR</div>
+          </CardContent></Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات الدائنة</h1>
-          <p className="text-[#6B7280] mt-1">إدارة إشعارات الخصم والإرجاع للعملاء</p>
-        </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />إشعار دائن جديد</Button>
+        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات الدائنة</h1><p className="text-[#6B7280] mt-1">إدارة إشعارات الخصم والإرجاع</p></div>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />إشعار دائن جديد</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي الإشعارات</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي القيمة</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">مطبَّقة</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
-        </CardContent></Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي الإشعارات</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">هذا الشهر</p></CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">عدد الإشعارات</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{creditNotesData.length}</div><p className="text-xs text-[#6B7280] mt-1">إشعار دائن</p></CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">متوسط القيمة</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(total / creditNotesData.length).toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">لكل إشعار</p></CardContent>
+        </Card>
       </div>
 
       <Card className="border-[#E5E7EB]">
@@ -298,53 +79,34 @@ export function CreditNotes() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
-           filtered.length === 0 ? (
-            <div className="py-12 text-center">
-              <ScrollText className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" />
-              <p className="text-sm text-[#6B7280] mb-2">لا توجد إشعارات دائنة</p>
-              <p className="text-xs text-[#9CA3AF]">اضغط "إشعار دائن جديد" لإنشاء أول إشعار</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>السبب</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>القيمة</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
-              </tr></thead>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse" style={{ minWidth: "650px" }}>
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>رقم الإشعار</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>العميل</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>التاريخ</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>المبلغ (SR)</th>
+                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>السبب</th>
+                  <th className="py-2.5 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "80px" }}>إجراءات</th>
+                </tr>
+              </thead>
               <tbody>
-                {filtered.map(c => (
-                  <tr key={c.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                    <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{c.noteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-[#374151]">{c.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{c.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 text-xs text-[#6B7280]">{REASONS.find(r => r.value === c.reason)?.label || c.reason}</td>
-                    <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>
-                      <span className="inline-flex items-center gap-1"><ArrowDownLeft className="h-3 w-3" />{Number(c.total).toLocaleString()} {c.currency}</span>
-                    </td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] || c.status}</span></td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        {pendingDelete === c.id ? (
-                          <InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />
-                        ) : (
-                          <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
+                {filtered.map((n) => (
+                  <tr key={n.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
+                    <td className="py-3.5 pe-4"><button onClick={() => setSelected(n)} className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{n.id}</button></td>
+                    <td className="py-3.5 pe-4"><Link to={contactLink(n.client)} className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline transition-colors">{n.client}</Link></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#6B7280]">{n.date}</span></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 600 }}>{n.amount}</span></td>
+                    <td className="py-3.5 pe-4"><span className="text-sm text-[#6B7280]">{n.reason}</span></td>
+                    <td className="py-3.5"><button onClick={() => setSelected(n)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"><MoreVertical className="h-4 w-4" /></button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
+          </div>
         </CardContent>
       </Card>
-
-      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
