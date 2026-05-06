@@ -145,9 +145,22 @@ export const api = {
 
   // Journal Entries
   journals: {
-    list: () => request<{ items: JournalEntryRow[]; total: number }>('/api/journals'),
-    create: (data: JournalEntryInput) => request<any>('/api/journals', { method: 'POST', body: data }),
+    list: (status?: 'POSTED' | 'DRAFT') =>
+      request<{ items: JournalEntryRow[]; total: number }>('/api/journals', { query: status ? { status } : undefined }),
+    get: (id: string) => request<JournalEntryRow>(`/api/journals/${id}`),
+    create: (data: JournalEntryInput) => request<JournalEntryRow>('/api/journals', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<JournalEntryInput>) =>
+      request<JournalEntryRow>(`/api/journals/${id}`, { method: 'PATCH', body: data }),
+    post: (id: string) => request<{ ok: true }>(`/api/journals/${id}/post`, { method: 'POST' }),
+    unpost: (id: string) => request<{ ok: true }>(`/api/journals/${id}/unpost`, { method: 'POST' }),
     remove: (id: string) => request<void>(`/api/journals/${id}`, { method: 'DELETE' }),
+    attachments: {
+      list: (id: string) => request<{ items: JournalAttachment[] }>(`/api/journals/${id}/attachments`),
+      upload: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) =>
+        request<JournalAttachment>(`/api/journals/${id}/attachments`, { method: 'POST', body }),
+      remove: (id: string, aid: string) =>
+        request<void>(`/api/journals/${id}/attachments/${aid}`, { method: 'DELETE' }),
+    },
   },
 
   // Inbox (email-to-invoice)
@@ -590,12 +603,23 @@ export interface Contact {
 }
 
 export interface JournalEntryLine {
+  id?: string
   accountId: string
   accountCode?: string
   accountName?: string
+  accountType?: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
   debit: number
   credit: number
   description?: string | null
+}
+
+export interface JournalAttachment {
+  id: string
+  filename: string
+  contentType: string
+  sizeBytes: number
+  url: string
+  createdAt: string
 }
 
 export interface JournalEntryRow {
@@ -606,16 +630,20 @@ export interface JournalEntryRow {
   reference: string | null
   status: 'POSTED' | 'DRAFT'
   source: string | null
+  postedAt?: string | null
   totalDebit: number
   totalCredit: number
   lineCount: number
+  attachmentCount?: number
   lines: JournalEntryLine[]
+  attachments?: JournalAttachment[]
 }
 
 export interface JournalEntryInput {
   date: string
   description: string
   reference?: string | null
+  postOnSave?: boolean
   lines: Array<{
     accountId: string
     debit?: number
