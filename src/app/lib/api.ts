@@ -154,6 +154,8 @@ export const api = {
       request<Account>(`/api/accounts/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
+    importBulk: (rows: Array<{ code: string; name: string; nameAr?: string | null; type?: string; parentCode?: string | null; description?: string | null }>, skipExisting = true) =>
+      request<{ ok: true; created: number; skipped: number; linked: number; errors: any[]; message: string }>('/api/accounts/import', { method: 'POST', body: { rows, skipExisting } }),
   },
 
   // Expenses
