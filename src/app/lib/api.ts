@@ -112,6 +112,10 @@ export const api = {
       request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
     members: (id: string) =>
       request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),
+    getNumbering: (id: string) =>
+      request<NumberingSettings>(`/orgs/${id}/numbering`, { skipOrg: true }),
+    saveNumbering: (id: string, data: NumberingSettings) =>
+      request<NumberingSettings>(`/orgs/${id}/numbering`, { method: 'PATCH', body: data, skipOrg: true }),
   },
 
   // Contacts
@@ -120,6 +124,7 @@ export const api = {
       request<PaginatedResponse<Contact>>('/api/contacts', { query: params }),
     get: (id: string) => request<Contact>(`/api/contacts/${id}`),
     summary: (id: string) => request<ContactSummary>(`/api/contacts/${id}/summary`),
+    nextCode: () => request<{ customCode: string }>('/api/contacts/_/next-code'),
     create: (data: ContactInput) =>
       request<Contact>('/api/contacts', { method: 'POST', body: data }),
     update: (id: string, data: Partial<ContactInput>) =>
@@ -523,6 +528,7 @@ export interface CreateOrgInput {
 export interface Contact {
   id: string
   orgId: string
+  customCode?: string | null
   type: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
   // Multi-role flags (UX-46)
   isCustomer?: boolean
@@ -673,6 +679,14 @@ export interface ContactInput {
   tags?: string | null
   notes?: string | null
 }
+
+export type NumberingKind = 'contact' | 'invoice' | 'quote' | 'bill' | 'receipt' | 'payment'
+export interface NumberingPerKind {
+  prefix?: string
+  padding?: number
+  start?: number
+}
+export type NumberingSettings = Partial<Record<NumberingKind, NumberingPerKind>>
 
 export interface AccountTransactions {
   account: { id: string; code: string; name: string; nameAr: string | null; type: string }
