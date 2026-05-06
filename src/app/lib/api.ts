@@ -879,11 +879,16 @@ export interface DashboardSummary {
     accountsReceivable: number
     accountsPayable: number
     cashOnHand: number
+    revenueFromInvoices?: number
+    revenueFromJournal?: number
+    expensesFromBills?: number
+    expensesFromJournal?: number
   }
   monthlyTrend: Array<{ month: string; revenue: number; expenses: number }>
   cashFlowTrend: Array<{ month: string; in: number; out: number; net: number }>
   profitLoss: Array<{ month: string; revenue: number; expenses: number; net: number }>
   expenseBreakdown: Array<{ category: string; total: number }>
+  incomeBreakdown: Array<{ category: string; code: string; total: number }>
   overdueInvoices: Array<{
     id: string
     number: string

@@ -200,6 +200,107 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* Wave-style Income vs Expense breakdown — Row 1.5 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
+                  <ArrowUpRight className="h-4 w-4 text-green-600" /> الإيرادات حسب الفئة
+                </CardTitle>
+                <CardDescription className="text-[#6B7280] text-xs">
+                  إجمالي <span className="font-english font-semibold text-green-700">{fmt(k.revenue)}</span>
+                  {(k.revenueFromJournal || 0) > 0 && (
+                    <span className="text-[#9CA3AF]"> · فواتير <span className="font-english">{fmtCompact(k.revenueFromInvoices || 0)}</span> + قيود <span className="font-english">{fmtCompact(k.revenueFromJournal || 0)}</span></span>
+                  )}
+                </CardDescription>
+              </div>
+              <Link to="/app/journal-entries" className="text-xs text-[#1276E3] hover:underline">قيد جديد +</Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {data.incomeBreakdown.length === 0 ? (
+              <div className="text-center py-8 text-sm text-[#6B7280]">
+                لا توجد إيرادات بعد
+                <div className="mt-2"><Link to="/app/invoices?new=1" className="text-xs text-[#1276E3] hover:underline">+ فاتورة</Link></div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.incomeBreakdown.slice(0, 6).map((row, i) => {
+                  const max = data.incomeBreakdown[0].total || 1;
+                  const pctW = (row.total / max) * 100;
+                  return (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                          <span className="text-[#0B1B49] truncate">{row.category}</span>
+                          <span className="text-xs text-[#9CA3AF] font-english" dir="ltr">{row.code}</span>
+                        </div>
+                        <span className="font-english font-semibold text-[#0B1B49]" dir="ltr">{row.total.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 bg-[#F3F4F6] rounded">
+                        <div className="h-1.5 rounded" style={{ width: `${pctW}%`, backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
+                  <ArrowDownRight className="h-4 w-4 text-red-600" /> المصروفات حسب الفئة
+                </CardTitle>
+                <CardDescription className="text-[#6B7280] text-xs">
+                  إجمالي <span className="font-english font-semibold text-red-700">{fmt(k.expenses + k.purchases)}</span>
+                  {(k.expensesFromJournal || 0) > 0 && (
+                    <span className="text-[#9CA3AF]"> · شامل قيود يومية <span className="font-english">{fmtCompact(k.expensesFromJournal || 0)}</span></span>
+                  )}
+                </CardDescription>
+              </div>
+              <Link to="/app/expenses/new" className="text-xs text-[#1276E3] hover:underline">مصروف +</Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {data.expenseBreakdown.length === 0 ? (
+              <div className="text-center py-8 text-sm text-[#6B7280]">
+                لا توجد مصروفات بعد
+                <div className="mt-2"><Link to="/app/expenses/new" className="text-xs text-[#1276E3] hover:underline">+ مصروف</Link></div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.expenseBreakdown.slice(0, 6).map((row, i) => {
+                  const max = data.expenseBreakdown[0].total || 1;
+                  const pctW = (row.total / max) * 100;
+                  const color = ["#EF4444", "#F59E0B", "#F97316", "#EC4899", "#A855F7", "#0EA5E9"][i % 6];
+                  return (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="text-[#0B1B49] truncate">{row.category}</span>
+                        </div>
+                        <span className="font-english font-semibold text-[#0B1B49]" dir="ltr">{row.total.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 bg-[#F3F4F6] rounded">
+                        <div className="h-1.5 rounded" style={{ width: `${pctW}%`, backgroundColor: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Cash Flow combo + P&L · Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="border-[#E5E7EB]">
