@@ -258,10 +258,22 @@ export const api = {
 
   // Products
   products: {
-    list: (params?: { type?: 'SERVICE' | 'GOOD' | 'INVENTORY' }) =>
-      request<{ items: any[]; total: number }>('/api/products', { query: params }),
+    list: (params?: { type?: string; category?: string }) =>
+      request<{ items: any[]; total: number; categories: Array<{ category: string; count: number }> }>('/api/products', { query: params }),
+    categories: () =>
+      request<{ categories: Array<{ category: string; count: number; totalValue: number }> }>('/api/products/categories'),
     create: (data: any) => request<any>('/api/products', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/products/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/products/${id}`, { method: 'DELETE' }),
+    importBulk: (rows: Array<{ sku?: string; name: string; nameAr?: string; description?: string; type?: string; category?: string; billingCycle?: string; unitPrice?: number; costPrice?: number }>, skipExisting = true) =>
+      request<{ ok: true; created: number; skipped: number; errors: any[]; message: string }>(
+        '/api/products/import',
+        { method: 'POST', body: { rows, skipExisting } },
+      ),
+    seedFcCatalog: () =>
+      request<{ ok: true; created: number; skipped: number; message: string }>(
+        '/api/products/seed-fc-catalog', { method: 'POST', body: {} },
+      ),
   },
 
   // Notifications
