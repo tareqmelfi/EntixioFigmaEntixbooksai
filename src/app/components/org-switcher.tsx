@@ -168,18 +168,42 @@ const COUNTRY_SPECS: Record<string, CountrySpec> = {
 };
 
 function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated: (o: Org) => void }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<any>({
     name: "",
     legalName: "",
     country: "SA",
     baseCurrency: "SAR",
     vatNumber: "",
     crNumber: "",
+    fiscalYearStart: 1,
+    industry: "",
+    addressLine: "",
+    city: "",
+    region: "",
+    postalCode: "",
+    district: "",
+    buildingNumber: "",
+    streetName: "",
+    taxRegistrationDate: "",
+    firstVatPeriodStart: "",
+    vatPeriod: "monthly",
+    logoUrl: "",
+    stampUrl: "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const spec = COUNTRY_SPECS[form.country] || COUNTRY_SPECS.SA;
+
+  const handleImageUpload = async (file: File, kind: "logoUrl" | "stampUrl") => {
+    if (file.size > 2 * 1024 * 1024) {
+      setError(`${kind === "logoUrl" ? "الشعار" : "الختم"} يجب أن يكون أصغر من 2 ميجا`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setForm((f: any) => ({ ...f, [kind]: String(reader.result || "") }));
+    reader.readAsDataURL(file);
+  };
 
   // Auto-set currency when country changes
   const setCountry = (c: string) => {
@@ -198,125 +222,234 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
         .replace(/[^a-z0-9؀-ۿ]+/g, "-")
         .replace(/^-+|-+$/g, "")
         .slice(0, 30) || `co-${Math.random().toString(36).slice(2, 8)}`;
-      const org = await api.orgs.create({
+      const payload: any = {
         slug: slug + "-" + Math.random().toString(36).slice(2, 6),
         name: form.name.trim(),
-        legalName: form.legalName.trim() || undefined,
         country: form.country,
         baseCurrency: form.baseCurrency,
-        vatNumber: form.vatNumber.trim() || undefined,
-        crNumber: form.crNumber.trim() || undefined,
-      });
+        fiscalYearStart: Number(form.fiscalYearStart) || 1,
+      };
+      const optStr = (k: string) => { const v = String(form[k] || "").trim(); if (v) payload[k] = v; };
+      ["legalName","vatNumber","crNumber","industry","addressLine","city","region","postalCode","district","buildingNumber","streetName","logoUrl","stampUrl","vatPeriod","taxRegistrationDate","firstVatPeriodStart"].forEach(optStr);
+      const org = await api.orgs.create(payload);
       onCreated(org);
     } catch (e: any) {
-      setError(e?.message || "فشل إنشاء الشركة");
+      // Defensive: ApiError.message is always a string after our normalization
+      const msg =
+        typeof e?.message === "string" ? e.message :
+        typeof e === "string" ? e :
+        e && typeof e === "object" ? JSON.stringify(e) :
+        "فشل إنشاء الشركة";
+      setError(msg);
     } finally {
       setBusy(false);
     }
   };
 
+  const inp = "w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20";
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" dir="rtl">
-      <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] p-4">
-          <h2 className="text-[#0B1B49]" style={{ fontSize: "1.1rem", fontWeight: 600 }}>إنشاء شركة جديدة</h2>
-          <button onClick={onClose} className="rounded p-1 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+    <div className="fixed inset-0 z-[100] bg-white overflow-y-auto" dir="rtl">
+      <form onSubmit={handleSubmit}>
+        {/* Sticky header */}
+        <div className="sticky top-0 z-10 border-b border-[#E5E7EB] bg-white/95 backdrop-blur px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onClose} className="rounded p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+            <div>
+              <h1 className="text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>إنشاء شركة جديدة</h1>
+              <p className="text-xs text-[#6B7280]">بعد الإنشاء: 20 حساب · 3 معدلات ضريبية · ZATCA جاهز</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose} className="rounded border border-[#E5E7EB] px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F3F4F6]">إلغاء</button>
+            <button type="submit" disabled={busy} className="rounded bg-[#1276E3] px-5 py-2 text-sm text-white hover:bg-[#0B5FBF] disabled:opacity-60">
+              {busy ? "جارٍ الإنشاء…" : "إنشاء الشركة"}
+            </button>
+          </div>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 p-4">
+
+        <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
           {error && (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           )}
-          <div className="space-y-1">
-            <label className="text-sm text-[#374151]">اسم الشركة *</label>
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="مثال: شركة الأمل التجارية"
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm text-[#374151]">الاسم القانوني (اختياري)</label>
-            <input
-              type="text"
-              value={form.legalName}
-              onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-              placeholder="Al Amal Trading Co. LLC"
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-sm text-[#374151]">الدولة</label>
-              <select
-                value={form.country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white focus:border-[#1276E3] focus:outline-none"
-              >
-                <option value="SA">السعودية (KSA)</option>
-                <option value="AE">الإمارات (UAE)</option>
-                <option value="KW">الكويت</option>
-                <option value="QA">قطر</option>
-                <option value="BH">البحرين</option>
-                <option value="OM">عُمان</option>
-                <option value="EG">مصر</option>
-                <option value="US">الولايات المتحدة (USA)</option>
-                <option value="GB">المملكة المتحدة (UK)</option>
-              </select>
-              <p className="text-xs text-[#6B7280]">حقول الضريبة والتسجيل تتغير حسب الدولة</p>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm text-[#374151]">العملة الأساسية</label>
-              <select
-                value={form.baseCurrency}
-                onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })}
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white focus:border-[#1276E3] focus:outline-none"
-              >
-                <option value="SAR">SAR · ريال سعودي</option>
-                <option value="USD">USD · دولار أمريكي</option>
-                <option value="AED">AED · درهم إماراتي</option>
-                <option value="EUR">EUR · يورو</option>
-                <option value="GBP">GBP · جنيه إسترليني</option>
-                <option value="KWD">KWD · دينار كويتي</option>
-                <option value="QAR">QAR · ريال قطري</option>
-                <option value="BHD">BHD · دينار بحريني</option>
-                <option value="OMR">OMR · ريال عُماني</option>
-                <option value="EGP">EGP · جنيه مصري</option>
-              </select>
-            </div>
-          </div>
-          {/* Country-aware tax/registration fields */}
-          <div className="grid grid-cols-2 gap-3">
-            {spec.fields.map((f) => (
-              <div key={f.key} className="space-y-1">
-                <label className="text-sm text-[#374151]">{f.label}</label>
-                <input
-                  type="text"
-                  value={(form as any)[f.key] || ""}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  placeholder={f.placeholder}
-                  className={`w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none ${f.ltr ? "font-english" : ""}`}
-                  dir={f.ltr ? "ltr" : "rtl"}
-                />
-                {f.help && <p className="text-xs text-[#9CA3AF]">{f.help}</p>}
+
+          {/* Section: Branding */}
+          <div className="rounded-lg border border-[#E5E7EB] p-5">
+            <h2 className="text-[#0B1B49] mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>الهوية البصرية</h2>
+            <p className="text-xs text-[#6B7280] mb-4">شعار الشركة + الختم الرسمي · يظهران على الفواتير والعقود</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="text-sm text-[#374151] block mb-1.5">الشعار · يقبل مربع أو طولي</label>
+                <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4 hover:border-[#1276E3] transition">
+                  <input type="file" accept="image/*" hidden id="logo-upload"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "logoUrl"); }} />
+                  {form.logoUrl ? (
+                    <div className="flex items-center gap-3">
+                      <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[80px] object-contain bg-[#F9FAFB] rounded p-1" />
+                      <div className="flex flex-col gap-1">
+                        <label htmlFor="logo-upload" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                        <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline text-start">حذف</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label htmlFor="logo-upload" className="cursor-pointer block text-center py-4">
+                      <div className="text-sm text-[#1276E3] font-medium">اضغط لرفع الشعار</div>
+                      <div className="text-xs text-[#9CA3AF] mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                    </label>
+                  )}
+                </div>
               </div>
-            ))}
+              <div>
+                <label className="text-sm text-[#374151] block mb-1.5">الختم الرسمي</label>
+                <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4 hover:border-[#1276E3] transition">
+                  <input type="file" accept="image/*" hidden id="stamp-upload"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "stampUrl"); }} />
+                  {form.stampUrl ? (
+                    <div className="flex items-center gap-3">
+                      <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-[#F9FAFB] rounded p-1" />
+                      <div className="flex flex-col gap-1">
+                        <label htmlFor="stamp-upload" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                        <button type="button" onClick={() => setForm({ ...form, stampUrl: "" })} className="text-xs text-red-600 hover:underline text-start">حذف</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label htmlFor="stamp-upload" className="cursor-pointer block text-center py-4">
+                      <div className="text-sm text-[#1276E3] font-medium">اضغط لرفع الختم</div>
+                      <div className="text-xs text-[#9CA3AF] mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-end gap-2 border-t border-[#E5E7EB] pt-3">
-            <button type="button" onClick={onClose} className="rounded border border-[#E5E7EB] px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F3F4F6]">
-              إلغاء
-            </button>
-            <button type="submit" disabled={busy} className="rounded bg-[#1276E3] px-4 py-2 text-sm text-white hover:bg-[#0B5FBF] disabled:opacity-60">
-              {busy ? "جارٍ الإنشاء..." : "إنشاء"}
-            </button>
+
+          {/* Section: Basic info */}
+          <div className="rounded-lg border border-[#E5E7EB] p-5">
+            <h2 className="text-[#0B1B49] mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>البيانات الأساسية</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="text-sm text-[#374151] block mb-1">اسم الشركة (العرض) *</label>
+                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="مثال: شركة سبيك بروز للاستثمار" className={inp} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-[#374151] block mb-1">الاسم القانوني الكامل</label>
+                <input type="text" value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })}
+                  placeholder="Spec Pros Fund LP" className={inp} />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">الدولة</label>
+                <select value={form.country} onChange={(e) => setCountry(e.target.value)} className={inp + " bg-white"}>
+                  <option value="SA">السعودية (KSA)</option>
+                  <option value="AE">الإمارات (UAE)</option>
+                  <option value="KW">الكويت</option>
+                  <option value="QA">قطر</option>
+                  <option value="BH">البحرين</option>
+                  <option value="OM">عُمان</option>
+                  <option value="EG">مصر</option>
+                  <option value="US">الولايات المتحدة (USA)</option>
+                  <option value="GB">المملكة المتحدة (UK)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">العملة الأساسية</label>
+                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className={inp + " bg-white"}>
+                  <option value="SAR">SAR · ريال سعودي</option>
+                  <option value="USD">USD · دولار</option>
+                  <option value="AED">AED · درهم</option>
+                  <option value="EUR">EUR · يورو</option>
+                  <option value="GBP">GBP · جنيه</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">مجال الشركة</label>
+                <input type="text" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                  placeholder="استشارات · إنتاج فني · عقاري · …" className={inp} />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">بداية السنة المالية (شهر)</label>
+                <select value={form.fiscalYearStart} onChange={(e) => setForm({ ...form, fiscalYearStart: e.target.value })} className={inp + " bg-white"}>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
+                    <option key={m} value={m}>{["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"][m-1]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[#6B7280] text-center">
-            بعد الإنشاء · تُضاف 20 حساب CoA + 3 معدلات ضريبة + بيانات تجريبية افتراضية
-          </p>
-        </form>
-      </div>
+
+          {/* Section: Tax & registration */}
+          <div className="rounded-lg border border-[#E5E7EB] p-5">
+            <h2 className="text-[#0B1B49] mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>التسجيل الضريبي والقانوني</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {spec.fields.map((f) => (
+                <div key={f.key}>
+                  <label className="text-sm text-[#374151] block mb-1">{f.label}</label>
+                  <input type="text" value={form[f.key] || ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                    placeholder={f.placeholder} dir={f.ltr ? "ltr" : "rtl"}
+                    className={`${inp} ${f.ltr ? "font-english" : ""}`} />
+                  {f.help && <p className="text-xs text-[#9CA3AF] mt-1">{f.help}</p>}
+                </div>
+              ))}
+              {form.country === "SA" && (
+                <>
+                  <div>
+                    <label className="text-sm text-[#374151] block mb-1">تاريخ التسجيل الضريبي الفعلي</label>
+                    <input type="date" value={form.taxRegistrationDate} onChange={(e) => setForm({ ...form, taxRegistrationDate: e.target.value })} className={inp + " font-english"} dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-[#374151] block mb-1">تاريخ استحقاق أول إقرار ضريبي</label>
+                    <input type="date" value={form.firstVatPeriodStart} onChange={(e) => setForm({ ...form, firstVatPeriodStart: e.target.value })} className={inp + " font-english"} dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-[#374151] block mb-1">الفترة الضريبية</label>
+                    <select value={form.vatPeriod} onChange={(e) => setForm({ ...form, vatPeriod: e.target.value })} className={inp + " bg-white"}>
+                      <option value="monthly">شهرية</option>
+                      <option value="quarterly">ربع سنوية</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Section: Address */}
+          <div className="rounded-lg border border-[#E5E7EB] p-5">
+            <h2 className="text-[#0B1B49] mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>العنوان الوطني</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">الشارع</label>
+                <input type="text" value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })}
+                  placeholder="طريق الدائري الشرقي الفرعي" className={inp} />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">الحي</label>
+                <input type="text" value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })}
+                  placeholder="حي الروضة" className={inp} />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">رقم المبنى</label>
+                <input type="text" value={form.buildingNumber} onChange={(e) => setForm({ ...form, buildingNumber: e.target.value })}
+                  placeholder="7421" className={inp + " font-english"} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">الرمز البريدي</label>
+                <input type="text" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
+                  placeholder="13213" className={inp + " font-english"} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">المدينة</label>
+                <input type="text" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  placeholder="الرياض" className={inp} />
+              </div>
+              <div>
+                <label className="text-sm text-[#374151] block mb-1">المنطقة</label>
+                <input type="text" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}
+                  placeholder="منطقة الرياض" className={inp} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

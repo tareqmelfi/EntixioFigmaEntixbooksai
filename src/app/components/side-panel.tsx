@@ -134,9 +134,16 @@ export function useToasts() {
   const [toasts, setToasts] = useState<ToastState[]>([]);
   const idRef = useRef(0);
   const dismiss = useCallback((id: number) => setToasts((arr) => arr.filter((t) => t.id !== id)), []);
-  const push = useCallback((kind: ToastState["kind"], message: string, ms = 4000) => {
+  const push = useCallback((kind: ToastState["kind"], message: any, ms = 4000) => {
     const id = ++idRef.current;
-    setToasts((arr) => [...arr, { id, kind, message }]);
+    // Coerce non-strings safely · prevents "[object Object]" toasts
+    let msg: string;
+    if (typeof message === "string") msg = message;
+    else if (message instanceof Error) msg = message.message;
+    else if (message && typeof message === "object") {
+      msg = (message as any).error || (message as any).message || (message as any).detail || JSON.stringify(message);
+    } else msg = String(message ?? "—");
+    setToasts((arr) => [...arr, { id, kind, message: msg }]);
     if (ms > 0) setTimeout(() => dismiss(id), ms);
   }, [dismiss]);
   return { toasts, push, dismiss };

@@ -89,8 +89,23 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   const data = contentType.includes('json') ? await res.json().catch(() => null) : await res.text()
 
   if (!res.ok) {
-    const message = (data && typeof data === 'object' && (data as any).error) || res.statusText
-    const detail = (data && typeof data === 'object' && (data as any).detail) || undefined
+    // Normalize error shape — backend may send { error: "string" } | { error: { message } } | { message } | Zod validation errors
+    let message: string = res.statusText || `HTTP ${res.status}`
+    let detail: string | undefined
+    if (data && typeof data === 'object') {
+      const d = data as any
+      if (typeof d.error === 'string') message = d.error
+      else if (d.error && typeof d.error === 'object') {
+        message = d.error.message || d.error.code || JSON.stringify(d.error)
+      } else if (typeof d.message === 'string') message = d.message
+      // Zod validation: { success: false, error: { issues: [{path, message}, ...] } }
+      if (Array.isArray(d?.error?.issues)) {
+        message = d.error.issues.map((i: any) => `${(i.path || []).join('.')} ${i.message}`).join(' · ')
+      }
+      detail = typeof d.detail === 'string' ? d.detail : (d.detail ? JSON.stringify(d.detail) : undefined)
+    } else if (typeof data === 'string' && data.trim()) {
+      message = data.slice(0, 500)
+    }
     throw new ApiError(res.status, message, detail)
   }
 
@@ -612,7 +627,24 @@ export interface Org {
   vatNumber?: string | null
   crNumber?: string | null
   zatcaEnabled: boolean
+  zatcaMode?: string | null
+  zatcaCsid?: string | null
+  zatcaCsidSecret?: string | null
   logoUrl?: string | null
+  stampUrl?: string | null
+  addressLine?: string | null
+  city?: string | null
+  region?: string | null
+  postalCode?: string | null
+  district?: string | null
+  buildingNumber?: string | null
+  streetName?: string | null
+  industry?: string | null
+  taxRegistrationDate?: string | null
+  firstVatPeriodStart?: string | null
+  vatPeriod?: 'monthly' | 'quarterly' | null
+  paymentSettings?: any
+  numberingSettings?: any
 }
 
 export interface CreateOrgInput {
@@ -621,8 +653,22 @@ export interface CreateOrgInput {
   legalName?: string
   country?: string
   baseCurrency?: string
+  fiscalYearStart?: number
   vatNumber?: string
   crNumber?: string
+  logoUrl?: string
+  stampUrl?: string
+  addressLine?: string
+  city?: string
+  region?: string
+  postalCode?: string
+  district?: string
+  buildingNumber?: string
+  streetName?: string
+  industry?: string
+  taxRegistrationDate?: string
+  firstVatPeriodStart?: string
+  vatPeriod?: string
 }
 
 export interface Contact {
