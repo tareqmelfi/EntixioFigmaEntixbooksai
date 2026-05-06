@@ -165,7 +165,7 @@ export function QuickContactDialog({
         </div>
         <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
           <Button type="button" variant="outline" onClick={onCancel} className="border-[#E5E7EB]">إلغاء</Button>
-          <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
+          <Button type="button" onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
           </Button>
         </div>

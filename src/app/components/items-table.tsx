@@ -272,8 +272,11 @@ export function ItemsTable({
   const showTaxAmount = !hidden.taxAmount;
   const hiddenCount = Number(hidden.account) + Number(hidden.tax) + Number(hidden.taxAmount);
 
+  // Backend uses REVENUE not INCOME · accept both for compatibility
   const accountItems = accounts
-    .filter((a) => direction === "sales" ? a.type === "INCOME" : a.type === "EXPENSE")
+    .filter((a) => direction === "sales"
+      ? (a.type === "REVENUE" || a.type === "INCOME")
+      : a.type === "EXPENSE")
     .map((a) => ({ id: a.id, label: a.name, sublabel: a.code }));
 
   return (
