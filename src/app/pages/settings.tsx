@@ -559,45 +559,89 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 
 // ── CATALOG TAB ────────────────────────────────────────────────────────────
 function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
+  const [industries, setIndustries] = useState<any[]>([]);
 
   useEffect(() => {
-    api.products.categories?.().then(setStats).catch(() => {});
+    (api as any).products.categories?.().then(setStats).catch(() => {});
+    (api as any).products.industryCatalogs?.()
+      .then((r: any) => setIndustries(r.items || []))
+      .catch(() => {});
   }, []);
 
-  const handleSeed = async () => {
-    if (!confirm("سيتم إضافة 50+ منتج من كاتالوج FC Products إلى ENSIDEX. هل أنت متأكد؟")) return;
-    setBusy(true);
+  const seedIndustry = async (industryId: string) => {
+    if (!confirm(`سيتم إضافة منتجات قطاع جديدة. هل أنت متأكد؟`)) return;
+    setBusy(industryId);
     try {
-      const result: any = await api.products.seedFcCatalog?.();
-      push("success", `تمت إضافة ${result?.created || 0} منتج · تم تخطي ${result?.skipped || 0} منتج موجود`);
-      const s = await api.products.categories?.();
+      const result: any = await (api as any).products.seedIndustry(industryId);
+      push("success", `${result?.catalog?.icon || ""} تمت إضافة ${result?.created || 0} منتج · تخطي ${result?.skipped || 0}`);
+      const s = await (api as any).products.categories?.();
       setStats(s);
     } catch (e: any) {
-      push("error", e?.message || "فشل الزرع");
-    } finally { setBusy(false); }
+      push("error", e?.message || "فشل");
+    } finally { setBusy(null); }
+  };
+
+  const seedFc = async () => {
+    if (!confirm("زرع كتالوج Falcon Core / ENSIDEX (50+ منتج). متابعة؟")) return;
+    setBusy("fc");
+    try {
+      const result: any = await (api as any).products.seedFcCatalog?.();
+      push("success", `تمت إضافة ${result?.created || 0} منتج`);
+      const s = await (api as any).products.categories?.();
+      setStats(s);
+    } catch (e: any) {
+      push("error", e?.message || "فشل");
+    } finally { setBusy(null); }
   };
 
   return (
     <Card className="border-[#E5E7EB]">
       <CardHeader>
         <CardTitle className="text-[#0B1B49]">كتالوج المنتجات</CardTitle>
-        <CardDescription>زرع كتالوج FC الجاهز · إحصاءات الفئات</CardDescription>
+        <CardDescription>اختر قطاعك واحصل على كتالوج جاهز · أو اعتمد كتالوج FC</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+      <CardContent className="space-y-5">
+        <div>
+          <h3 className="text-sm font-medium text-[#0B1B49] mb-3">اختر قطاع شركتك</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {industries.map((ind) => (
+              <div key={ind.id} className="rounded-lg border border-[#E5E7EB] p-4 hover:border-[#1276E3] transition">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{ind.icon}</span>
+                      <div>
+                        <div className="text-[#0B1B49] font-medium">{ind.nameAr}</div>
+                        <div className="text-xs text-[#9CA3AF] font-english" dir="ltr">{ind.name}</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-[#6B7280] mt-2 leading-relaxed">{ind.description}</p>
+                  </div>
+                  <span className="text-xs text-[#1276E3] bg-[#F4FCFF] px-2 py-0.5 rounded font-english" dir="ltr">{ind.productCount}</span>
+                </div>
+                <Button onClick={() => seedIndustry(ind.id)} disabled={busy === ind.id}
+                  variant="outline" className="w-full mt-3 border-[#E5E7EB] hover:bg-[#F4FCFF]">
+                  {busy === ind.id ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
+                  زرع
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Sparkles className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="text-[#0B1B49] font-medium">زرع كتالوج FC Products</div>
+              <div className="text-[#0B1B49] font-medium">كتالوج Falcon Core / ENSIDEX (للداخلية)</div>
               <p className="text-xs text-[#6B7280] mt-1">
-                سيقوم بإضافة 50+ منتج جاهز (FC-ADV-*, FC-AI-*, FC-BRD-*, FC-CLD-*, FC-CNT-*, FC-ENT-*, FC-LLC-*, FC-PRM-*, FC-WEB-*) مع الأسعار المعتمدة.
-                المنتجات الموجودة لن تتأثر (skip duplicates).
+                فقط لمنشأت Falcon Core أو ENSIDEX · 50+ منتج (FC-ADV/AI/BRD/CLD/CNT/ENT/LLC/PRM/WEB)
               </p>
-              <Button onClick={handleSeed} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
-                زرع الكتالوج
+              <Button onClick={seedFc} disabled={busy === "fc"} className="bg-amber-600 hover:bg-amber-700 text-white mt-3">
+                {busy === "fc" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
+                زرع كتالوج FC
               </Button>
             </div>
           </div>

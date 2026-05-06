@@ -308,6 +308,14 @@ export const api = {
       request<{ ok: true; created: number; skipped: number; message: string }>(
         '/api/products/seed-fc-catalog', { method: 'POST', body: {} },
       ),
+    industryCatalogs: () =>
+      request<{ items: Array<{ id: string; name: string; nameAr: string; description: string; icon: string; productCount: number }> }>(
+        '/api/products/industry-catalogs',
+      ),
+    seedIndustry: (industryId: string) =>
+      request<{ ok: true; created: number; skipped: number; message: string; catalog: { id: string; nameAr: string; icon: string } }>(
+        `/api/products/seed-industry/${industryId}`, { method: 'POST', body: {} },
+      ),
   },
 
   // Notifications

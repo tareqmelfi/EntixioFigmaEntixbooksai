@@ -767,6 +767,50 @@ export function ChartOfAccounts() {
                   <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="استخدامات الحساب..." className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
                 </div>
 
+                <div>
+                  <Label className="text-xs text-[#6B7280]">نوع التدفق النقدي *</Label>
+                  <select value={(form as any).cashFlowType || "OPERATING"}
+                    onChange={(e) => setForm({ ...form, cashFlowType: e.target.value } as any)}
+                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    <option value="OPERATING">التشغيلات (Operating)</option>
+                    <option value="INVESTING">الاستثمارات (Investing)</option>
+                    <option value="FINANCING">التمويلات (Financing)</option>
+                    <option value="NON_CASH">غير نقدي (Non-Cash)</option>
+                  </select>
+                  <p className="text-xs text-[#9CA3AF] mt-1">حدد القسم الذي سيظهر فيه هذا الحساب ضمن قائمة التدفقات النقدية</p>
+                </div>
+
+                <div className="rounded-lg border border-[#E5E7EB] p-3 space-y-2">
+                  <div className="text-xs text-[#6B7280] font-medium">كيف يمكن استخدام هذا الحساب؟ (اختياري)</div>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" checked={(form as any).allowPosting !== false}
+                      onChange={(e) => setForm({ ...form, allowPosting: e.target.checked } as any)}
+                      className="mt-1" />
+                    <div>
+                      <div className="text-sm text-[#0B1B49]">السماح بتسجيل المعاملات على هذا الحساب</div>
+                      <div className="text-xs text-[#9CA3AF]">يُسمح للمستخدمين بتحديد هذا الحساب عند إنشاء القيود اليدوية</div>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" checked={(form as any).allowPayment === true}
+                      onChange={(e) => setForm({ ...form, allowPayment: e.target.checked } as any)}
+                      className="mt-1" />
+                    <div>
+                      <div className="text-sm text-[#0B1B49]">السماح باختيار هذا الحساب للمدفوعات</div>
+                      <div className="text-xs text-[#9CA3AF]">السماح باختيار هذا الحساب عند تسجيل أي مدفوعات</div>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" checked={(form as any).allowExpenseClaim === true}
+                      onChange={(e) => setForm({ ...form, allowExpenseClaim: e.target.checked } as any)}
+                      className="mt-1" />
+                    <div>
+                      <div className="text-sm text-[#0B1B49]">السماح في مطالبات أو مصاريف الموظفين</div>
+                      <div className="text-xs text-[#9CA3AF]">يظهر الحساب في نموذج تقديم مطالبات المصاريف</div>
+                    </div>
+                  </label>
+                </div>
+
                 {/* Preview */}
                 <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] p-3">
                   <div className="text-xs text-[#9CA3AF] mb-1">معاينة</div>
