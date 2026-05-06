@@ -133,13 +133,16 @@ export const router = createBrowserRouter([
       { path: "purchases/bills", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
       { path: "payments", element: <Payments />, errorElement: <ErrorBoundary /> },
       { path: "expenses", element: <Expenses />, errorElement: <ErrorBoundary /> },
+      { path: "expenses/new", element: <Expenses />, errorElement: <ErrorBoundary /> },
       { path: "inbox", element: <InboxPage />, errorElement: <ErrorBoundary /> },
+      { path: "vouchers/new", element: <Receipts />, errorElement: <ErrorBoundary /> },
       // Accounting
       { path: "chart-of-accounts", element: <ChartOfAccounts />, errorElement: <ErrorBoundary /> },
       { path: "journal-entries", element: <JournalEntries />, errorElement: <ErrorBoundary /> },
       { path: "taxes", element: <Taxes />, errorElement: <ErrorBoundary /> },
       // Bank Accounts
       { path: "bank-accounts", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
+      { path: "bank-accounts/new", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       // Assets
       { path: "assets", element: <FixedAssets />, errorElement: <ErrorBoundary /> },
       { path: "assets/:id", element: <AssetDetail />, errorElement: <ErrorBoundary /> },
@@ -162,6 +165,8 @@ export const router = createBrowserRouter([
       { path: "templates", element: <Templates />, errorElement: <ErrorBoundary /> },
       // Analytics & Settings
       { path: "reports", element: <Reports />, errorElement: <ErrorBoundary /> },
+      { path: "reports/cash-flow", element: <Reports />, errorElement: <ErrorBoundary /> },
+      { path: "reports/profit-loss", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "settings", element: <Settings />, errorElement: <ErrorBoundary /> },
       { path: "notifications", element: <Notifications />, errorElement: <ErrorBoundary /> },
       { path: "admin", element: <AdminDashboard />, errorElement: <ErrorBoundary /> },

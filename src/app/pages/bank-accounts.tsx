@@ -2,7 +2,8 @@
  * Bank Accounts · CRUD wired to /api/bank-accounts
  */
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Search, Trash2, Wallet, Loader2, X } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { Plus, Search, Trash2, Wallet, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -18,9 +19,13 @@ export function BankAccounts() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [open, setOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [open, setOpen] = useState(window.location.pathname.endsWith("/new") || searchParams.get("new") === "1");
   const [form, setForm] = useState({
-    name: "", bankName: "", accountNumber: "", iban: "", currency: "SAR", balance: "0",
+    name: "", bankName: "", country: "SA",
+    accountNumber: "", iban: "",
+    swiftCode: "", routingNumber: "",
+    currency: "SAR", balance: "0",
   });
 
   const refresh = useCallback(async () => {
@@ -37,7 +42,12 @@ export function BankAccounts() {
   const filtered = items.filter(b => !searchQuery ||
     b.name.includes(searchQuery) || (b.bankName || "").includes(searchQuery) || (b.iban || "").includes(searchQuery));
 
-  const resetForm = () => setForm({ name: "", bankName: "", accountNumber: "", iban: "", currency: "SAR", balance: "0" });
+  const resetForm = () => setForm({
+    name: "", bankName: "", country: "SA",
+    accountNumber: "", iban: "",
+    swiftCode: "", routingNumber: "",
+    currency: "SAR", balance: "0",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,14 +58,18 @@ export function BankAccounts() {
       const b = await api.bankAccounts.create({
         name: form.name.trim(),
         bankName: form.bankName || null,
+        country: form.country || null,
         accountNumber: form.accountNumber || null,
         iban: form.iban || null,
+        swiftCode: form.swiftCode || null,
+        routingNumber: form.routingNumber || null,
         currency: form.currency,
         balance: Number(form.balance) || 0,
       });
       setItems(prev => [...prev, b]);
       setTotalBalance(prev => prev + Number(b.balance));
       setOpen(false); resetForm();
+      push("success", `تم إنشاء حساب ${b.name}`);
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : "فشل الحفظ");
     } finally { setBusy(false); }
@@ -142,24 +156,76 @@ try {
               <div className="space-y-2"><Label className="text-[#374151]">اسم الحساب *</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="مثال: الحساب الجاري الرئيسي" required className="border-[#E5E7EB]" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">اسم البنك</Label>
-                  <Input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder="الراجحي · الأهلي · ..." className="border-[#E5E7EB]" /></div>
-                <div className="space-y-2"><Label className="text-[#374151]">العملة</Label>
-                  <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
-                    <option value="SAR">SAR</option>
-                    <option value="USD">USD</option>
-                    <option value="AED">AED</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="KWD">KWD</option>
+                <div className="space-y-2"><Label className="text-[#374151]">الدولة *</Label>
+                  <select value={form.country} onChange={(e) => {
+                    const c = e.target.value;
+                    const cur = c === "SA" ? "SAR" : c === "US" ? "USD" : c === "AE" ? "AED" : c === "EG" ? "EGP" : c === "GB" ? "GBP" : c === "EU" || c === "DE" || c === "FR" ? "EUR" : "USD";
+                    setForm({ ...form, country: c, currency: cur });
+                  }} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    <option value="SA">السعودية</option>
+                    <option value="AE">الإمارات</option>
+                    <option value="KW">الكويت</option>
+                    <option value="QA">قطر</option>
+                    <option value="BH">البحرين</option>
+                    <option value="OM">عُمان</option>
+                    <option value="EG">مصر</option>
+                    <option value="JO">الأردن</option>
+                    <option value="US">الولايات المتحدة</option>
+                    <option value="GB">المملكة المتحدة</option>
+                    <option value="DE">ألمانيا</option>
+                    <option value="FR">فرنسا</option>
                   </select></div>
+                <div className="space-y-2"><Label className="text-[#374151]">العملة</Label>
+                  <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">رقم الحساب</Label>
+              <div className="space-y-2"><Label className="text-[#374151]">اسم البنك</Label>
+                <Input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder={form.country === "SA" ? "الراجحي · الأهلي · ..." : form.country === "US" ? "Mercury · Chase · BofA · ..." : "Bank name"} className="border-[#E5E7EB]" /></div>
+
+              {/* KSA + Gulf · IBAN-based */}
+              {(form.country === "SA" || form.country === "AE" || form.country === "KW" || form.country === "QA" || form.country === "BH" || form.country === "OM" || form.country === "JO") && (
+                <>
+                  <div className="space-y-2"><Label className="text-[#374151]">IBAN *</Label>
+                    <Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })}
+                      placeholder={form.country === "SA" ? "SA00 0000 0000 0000 0000 0000" : "Country IBAN"} maxLength={34} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2"><Label className="text-[#374151]">رمز SWIFT/BIC</Label>
+                      <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="RJHISARIXXX" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                    <div className="space-y-2"><Label className="text-[#374151]">رقم الحساب (اختياري)</Label>
+                      <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                  </div>
+                </>
+              )}
+
+              {/* US · Routing + Account Number */}
+              {form.country === "US" && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2"><Label className="text-[#374151]">Routing Number * <span className="text-[#9CA3AF] text-xs">(ABA)</span></Label>
+                      <Input value={form.routingNumber} onChange={(e) => setForm({ ...form, routingNumber: e.target.value.replace(/\D/g, "") })} placeholder="123456789" maxLength={9} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                    <div className="space-y-2"><Label className="text-[#374151]">Account Number *</Label>
+                      <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                  </div>
+                  <div className="space-y-2"><Label className="text-[#374151]">SWIFT/BIC <span className="text-[#9CA3AF] text-xs">(للتحويلات الدولية)</span></Label>
+                    <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="CHASUS33" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                </>
+              )}
+
+              {/* UK / EU · IBAN + SWIFT */}
+              {(form.country === "GB" || form.country === "DE" || form.country === "FR") && (
+                <>
+                  <div className="space-y-2"><Label className="text-[#374151]">IBAN *</Label>
+                    <Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })} placeholder="GB00 NWBK 0000 0000 0000 00" maxLength={34} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                  <div className="space-y-2"><Label className="text-[#374151]">SWIFT/BIC *</Label>
+                    <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="NWBKGB2L" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                </>
+              )}
+
+              {/* Egypt · Account number only */}
+              {form.country === "EG" && (
+                <div className="space-y-2"><Label className="text-[#374151]">رقم الحساب *</Label>
                   <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                <div className="space-y-2"><Label className="text-[#374151]">IBAN</Label>
-                  <Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value })} placeholder="SAxx xxxx xxxx xxxx xxxx xxxx" dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-              </div>
+              )}
+
               <div className="space-y-2"><Label className="text-[#374151]">الرصيد الافتتاحي</Label>
                 <Input type="number" step="0.01" value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
             </div>

@@ -128,6 +128,13 @@ export const api = {
       request<void>(`/api/contacts/${id}`, { method: 'DELETE' }),
   },
 
+  // Journal Entries
+  journals: {
+    list: () => request<{ items: JournalEntryRow[]; total: number }>('/api/journals'),
+    create: (data: JournalEntryInput) => request<any>('/api/journals', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/journals/${id}`, { method: 'DELETE' }),
+  },
+
   // Inbox (email-to-invoice)
   inbox: {
     list: (status?: string) => request<{ items: InboxMessageRow[]; total: number }>('/api/inbox', { query: status ? { status } : undefined }),
@@ -510,22 +517,76 @@ export interface Contact {
   id: string
   orgId: string
   type: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
+  // Multi-role flags (UX-46)
+  isCustomer?: boolean
+  isSupplier?: boolean
+  isEmployee?: boolean
+  isShareholder?: boolean
+  isFreelancer?: boolean
+  // Entity classification (UX-47)
+  entityKind?: 'INDIVIDUAL' | 'COMPANY'
   displayName: string
   legalName?: string | null
   email?: string | null
   phone?: string | null
+  // Tax IDs
+  taxId?: string | null
   vatNumber?: string | null
   crNumber?: string | null
+  nationalId?: string | null
+  leiCode?: string | null
+  // Foreign / withholding
+  isForeign?: boolean
+  withholdingTaxRate?: number | null
+  defaultCurrency?: string | null
+  // Address
   addressLine1?: string | null
   addressLine2?: string | null
   city?: string | null
   region?: string | null
   country: string
   postalCode?: string | null
+  // CRM-light
+  tags?: string | null
   notes?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface JournalEntryLine {
+  accountId: string
+  accountCode?: string
+  accountName?: string
+  debit: number
+  credit: number
+  description?: string | null
+}
+
+export interface JournalEntryRow {
+  id: string
+  number: string
+  date: string
+  description: string
+  reference: string | null
+  status: 'POSTED' | 'DRAFT'
+  source: string | null
+  totalDebit: number
+  totalCredit: number
+  lineCount: number
+  lines: JournalEntryLine[]
+}
+
+export interface JournalEntryInput {
+  date: string
+  description: string
+  reference?: string | null
+  lines: Array<{
+    accountId: string
+    debit?: number
+    credit?: number
+    description?: string | null
+  }>
 }
 
 export interface InboxMessageRow {
@@ -578,18 +639,31 @@ export interface ContactSummary {
 
 export interface ContactInput {
   type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
+  isCustomer?: boolean
+  isSupplier?: boolean
+  isEmployee?: boolean
+  isShareholder?: boolean
+  isFreelancer?: boolean
+  entityKind?: 'INDIVIDUAL' | 'COMPANY'
   displayName: string
   legalName?: string | null
   email?: string | null
   phone?: string | null
+  taxId?: string | null
   vatNumber?: string | null
   crNumber?: string | null
+  nationalId?: string | null
+  leiCode?: string | null
+  isForeign?: boolean
+  withholdingTaxRate?: number | null
+  defaultCurrency?: string | null
   addressLine1?: string | null
   addressLine2?: string | null
   city?: string | null
   region?: string | null
   country?: string
   postalCode?: string | null
+  tags?: string | null
   notes?: string | null
 }
 
@@ -675,8 +749,11 @@ export interface BankAccount {
   orgId: string
   name: string
   bankName?: string | null
+  country?: string | null     // SA · US · AE · ...
   accountNumber?: string | null
-  iban?: string | null
+  iban?: string | null         // KSA · EU · UK
+  swiftCode?: string | null    // KSA · international wires
+  routingNumber?: string | null // US ABA routing (9 digits)
   currency: string
   balance: string
   isActive: boolean
@@ -685,8 +762,11 @@ export interface BankAccount {
 export interface BankAccountInput {
   name: string
   bankName?: string | null
+  country?: string | null
   accountNumber?: string | null
   iban?: string | null
+  swiftCode?: string | null
+  routingNumber?: string | null
   currency?: string
   balance?: number
 }
