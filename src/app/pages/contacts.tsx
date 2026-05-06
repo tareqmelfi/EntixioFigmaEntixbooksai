@@ -25,6 +25,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact, ContactInput } from "../lib/api";
 import { formatTaxId, formatCrNumber } from "../lib/tax-id-format";
+import { AddressAutocomplete } from "../components/address-autocomplete";
 
 // ── Roles ────────────────────────────────────────────────────────────────────
 type RoleKey = "isCustomer" | "isSupplier" | "isEmployee" | "isShareholder" | "isFreelancer";
@@ -714,8 +715,21 @@ function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
     <div className="space-y-4">
       <p className="text-sm text-[#374151]">تفاصيل إضافية</p>
       <div>
-        <Label className="text-xs text-[#6B7280]">العنوان</Label>
-        <Input value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} placeholder="المدينة، الحي، الشارع" className="border-[#E5E7EB]" />
+        <Label className="text-xs text-[#6B7280] flex items-center gap-1.5">العنوان <span className="text-[10px] text-[#1276E3]">✨ ابدأ الكتابة لاقتراحات تلقائية</span></Label>
+        <AddressAutocomplete
+          value={form.addressLine1}
+          country={form.country}
+          onChange={(v) => setForm({ ...form, addressLine1: v })}
+          onPick={(p) => setForm({
+            ...form,
+            addressLine1: p.line1 || form.addressLine1,
+            city: p.city || form.city,
+            region: p.region || form.region,
+            postalCode: p.postalCode || form.postalCode,
+            country: p.country || form.country,
+          })}
+          placeholder="مثال: 30 N Gould St Sheridan WY · أو الرياض حي العليا"
+        />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
