@@ -577,6 +577,16 @@ export const api = {
       request<Voucher>(`/api/vouchers/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/vouchers/${id}`, { method: 'DELETE' }),
+    printUrl: (id: string) => `${API_BASE}/api/vouchers/${id}/print`,
+    email: (id: string, body?: { to?: string; subject?: string; message?: string }) =>
+      request<{ ok: true; to: string }>(`/api/vouchers/${id}/email`, { method: 'POST', body: body || {} }),
+    attachments: {
+      list: (id: string) => request<{ items: Array<{ id: string; filename: string; contentType: string; sizeBytes: number; url: string; createdAt: string }> }>(`/api/vouchers/${id}/attachments`),
+      upload: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) =>
+        request<any>(`/api/vouchers/${id}/attachments`, { method: 'POST', body }),
+      remove: (id: string, aid: string) =>
+        request<void>(`/api/vouchers/${id}/attachments/${aid}`, { method: 'DELETE' }),
+    },
   },
 
   // Invoices
