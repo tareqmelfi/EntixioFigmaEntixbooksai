@@ -289,7 +289,7 @@ export function ItemsTable({
             <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
               <tr>
                 <th className="py-2.5 px-2 w-8"></th>
-                {products.length > 0 && (
+                {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
                   <th className="py-2.5 px-3 text-start w-44" style={{ fontWeight: 600 }}>الصنف</th>
                 )}
                 <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الوصف</th>
@@ -322,7 +322,7 @@ export function ItemsTable({
                     <td className="px-1 py-1 text-center">
                       <GripVertical className="h-3.5 w-3.5 text-[#D1D5DB] mx-auto cursor-grab" />
                     </td>
-                    {products.length > 0 && (
+                    {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
                       <td className="px-2 py-1">
                         <SearchableCombobox
                           value={line.productId || ""}
