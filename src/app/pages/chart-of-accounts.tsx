@@ -13,13 +13,13 @@
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet } from "lucide-react";
+import { BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError, Account } from "../lib/api";
+import { api, ApiError, Account, AccountTransactions } from "../lib/api";
 
 type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
 
@@ -126,6 +126,41 @@ export function ChartOfAccounts() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<{ rows: any[]; mapping: Record<string, string>; rawHeaders: string[] } | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  // Transactions side panel
+  const [txPanel, setTxPanel] = useState<{ accountId: string; data: AccountTransactions | null; loading: boolean } | null>(null);
+  // AI translate state
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+
+  const aiSuggest = async (sourceText: string) => {
+    if (!sourceText.trim()) { push("error", "اكتب اسم الحساب أولاً"); return; }
+    setAiBusy(true); setAiSuggestion(null);
+    try {
+      const r = await api.accounts.translate(sourceText.trim(), form.parentId ? `Parent type: ${form.type}` : undefined);
+      setForm(prev => ({
+        ...prev,
+        name: r.name || prev.name,
+        nameAr: r.nameAr || prev.nameAr,
+        type: r.type || prev.type,
+        ...((!codeManuallyEdited && r.suggestedCode) ? { code: r.suggestedCode } : {}),
+      }));
+      setAiSuggestion(r.reasoning || `${r.category || r.type}`);
+      push("success", "تم الاقتراح بالذكاء ✨");
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل الاقتراح");
+    } finally { setAiBusy(false); }
+  };
+
+  const openTransactions = async (accountId: string) => {
+    setTxPanel({ accountId, data: null, loading: true });
+    try {
+      const data = await api.accounts.transactions(accountId);
+      setTxPanel({ accountId, data, loading: false });
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل تحميل العمليات");
+      setTxPanel(null);
+    }
+  };
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -451,28 +486,47 @@ export function ChartOfAccounts() {
                 <th className="py-3 px-4 text-start font-medium">الرمز</th>
                 <th className="py-3 px-4 text-start font-medium">الاسم</th>
                 <th className="py-3 px-4 text-start font-medium">التصنيف</th>
+                <th className="py-3 px-4 text-end font-medium">الرصيد</th>
                 <th className="py-3 px-4 text-end font-medium">الإجراءات</th>
               </tr></thead>
               <tbody>
                 {flatRows.map(node => (
-                  <tr key={node.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                    <td className="py-2.5 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600, paddingInlineStart: `${1 + node.depth * 1.5}rem` }}>
-                      <span className="inline-flex items-center gap-1">
+                  <tr key={node.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] group">
+                    <td className="py-2.5 px-4 font-english text-sm text-[#1276E3] relative" style={{ fontWeight: 600 }}>
+                      {/* Indentation guides · vertical lines per depth */}
+                      <span className="inline-flex items-center" style={{ gap: 0 }}>
+                        {Array.from({ length: node.depth }).map((_, d) => (
+                          <span key={d} className="inline-block border-s-2 border-[#E5E7EB] h-7" style={{ width: '1.5rem', marginInlineStart: '0.25rem' }} />
+                        ))}
+                        {/* Branch connector for non-root */}
+                        {node.depth > 0 && (
+                          <span className="inline-block border-t-2 border-[#E5E7EB] me-1" style={{ width: '0.5rem' }} />
+                        )}
                         {node.children.length > 0 ? (
-                          <button onClick={() => toggleExpand(node.id)} className="text-[#9CA3AF] hover:text-[#1276E3]">
+                          <button onClick={() => toggleExpand(node.id)} className="text-[#9CA3AF] hover:text-[#1276E3] me-1">
                             {expanded.has(node.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />}
                           </button>
-                        ) : <span className="w-3.5" />}
-                        {node.code}
+                        ) : <span className="inline-block me-1" style={{ width: '0.875rem' }} />}
+                        <button type="button" onClick={() => openTransactions(node.id)} className="hover:underline cursor-pointer">{node.code}</button>
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 text-sm">
-                      <div className="text-[#0B1B49]" style={{ fontWeight: 500 }}>{node.nameAr || node.name}</div>
+                    <td className="py-2.5 px-4 text-sm cursor-pointer" onClick={() => openTransactions(node.id)}>
+                      <div className="text-[#0B1B49] hover:text-[#1276E3]" style={{ fontWeight: 500 }}>{node.nameAr || node.name}</div>
                       {node.nameAr && <div className="text-xs text-[#6B7280] font-english">{node.name}</div>}
                     </td>
                     <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded ${TYPE_COLORS[node.type as AccountType]}`}>{TYPE_LABELS[node.type as AccountType]}</span></td>
+                    <td className="py-2.5 px-4 text-end font-english">
+                      {(node.balance ?? 0) !== 0 ? (
+                        <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-[#0B1B49]" : "text-amber-700"}`}>
+                          {(node.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </span>
+                      ) : (
+                        <span className="text-[#9CA3AF]">0.00</span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-4 text-end">
                       <div className="flex items-center gap-1 justify-end">
+                        <button onClick={() => openTransactions(node.id)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="العمليات"><History className="h-4 w-4" /></button>
                         <button onClick={() => openEdit(node)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="تعديل"><Edit2 className="h-4 w-4" /></button>
                         {pendingDelete === node.id ? (
                           <span className="flex items-center gap-1 text-xs">
@@ -491,6 +545,73 @@ export function ChartOfAccounts() {
           )}
         </CardContent>
       </Card>
+
+      {/* Transactions slide-over panel */}
+      {txPanel && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={() => setTxPanel(null)}>
+          <div className="bg-white shadow-xl w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-[#F3F4F6] p-5 flex items-center justify-between z-10">
+              <div>
+                <h2 className="text-base text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
+                  <History className="h-5 w-5 text-[#1276E3]" />
+                  {txPanel.data ? `${txPanel.data.account.code} · ${txPanel.data.account.nameAr || txPanel.data.account.name}` : "جارٍ التحميل..."}
+                </h2>
+                {txPanel.data && (
+                  <p className="text-xs text-[#6B7280] mt-1">
+                    {txPanel.data.total} عملية ·
+                    <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-[#0B1B49]" : "text-amber-700"}`}>
+                      الرصيد: {txPanel.data.finalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </span>
+                  </p>
+                )}
+              </div>
+              <button onClick={() => setTxPanel(null)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-5 w-5 text-[#6B7280]" /></button>
+            </div>
+
+            <div className="p-5">
+              {txPanel.loading ? (
+                <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+              ) : !txPanel.data || txPanel.data.transactions.length === 0 ? (
+                <div className="py-12 text-center">
+                  <BookOpen className="h-10 w-10 text-[#E5E7EB] mx-auto mb-2" />
+                  <p className="text-sm text-[#6B7280]">لا توجد عمليات على هذا الحساب بعد</p>
+                  <p className="text-xs text-[#9CA3AF] mt-1">العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب</p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280] sticky top-0">
+                      <tr>
+                        <th className="text-start px-3 py-2 font-medium">التاريخ</th>
+                        <th className="text-start px-3 py-2 font-medium">رقم القيد</th>
+                        <th className="text-start px-3 py-2 font-medium">الوصف</th>
+                        <th className="text-end px-3 py-2 font-medium">مدين</th>
+                        <th className="text-end px-3 py-2 font-medium">دائن</th>
+                        <th className="text-end px-3 py-2 font-medium">الرصيد</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {txPanel.data.transactions.map((t) => (
+                        <tr key={t.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                          <td className="px-3 py-2 font-english text-[#374151]">{t.date.slice(0, 10)}</td>
+                          <td className="px-3 py-2 font-english font-semibold text-[#1276E3]">{t.journalNumber}</td>
+                          <td className="px-3 py-2">
+                            <div className="text-[#0B1B49]">{t.description}</div>
+                            {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-[#9CA3AF] mt-0.5">{t.lineDescription}</div>}
+                          </td>
+                          <td className="px-3 py-2 text-end font-english text-[#0B1B49]">{t.debit > 0 ? t.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english text-[#0B1B49]">{t.credit > 0 ? t.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english font-semibold text-[#0B1B49]">{t.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import preview modal */}
       {importPreview && (
@@ -609,15 +730,37 @@ export function ChartOfAccounts() {
                     )}
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs text-[#6B7280]">الاسم بالإنجليزية *</Label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Office Supplies" required dir="ltr" className="border-[#E5E7EB] font-english" />
+                    <Label className="text-xs text-[#6B7280] flex items-center justify-between">
+                      <span>الاسم بالإنجليزية *</span>
+                      <button type="button" onClick={() => aiSuggest(form.name || form.nameAr)} disabled={aiBusy} className="text-[10px] text-[#1276E3] hover:underline flex items-center gap-1 disabled:opacity-50">
+                        {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        اقتراح بالذكاء
+                      </button>
+                    </Label>
+                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.name); } }}
+                      placeholder="Office Supplies" required dir="ltr" className="border-[#E5E7EB] font-english" />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-[#6B7280]">الاسم بالعربية</Label>
-                  <Input value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} placeholder="مستلزمات مكتبية" className="border-[#E5E7EB]" />
+                  <Label className="text-xs text-[#6B7280] flex items-center justify-between">
+                    <span>الاسم بالعربية</span>
+                    <button type="button" onClick={() => aiSuggest(form.nameAr || form.name)} disabled={aiBusy} className="text-[10px] text-[#1276E3] hover:underline flex items-center gap-1 disabled:opacity-50">
+                      {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      اقتراح بالذكاء
+                    </button>
+                  </Label>
+                  <Input value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.nameAr); } }}
+                    placeholder="مستلزمات مكتبية · أو اكتب 'جهاز' / 'مبيعات' والذكاء يقترح" className="border-[#E5E7EB]" />
                 </div>
+
+                {aiSuggestion && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 flex items-start gap-2">
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 mt-0.5" /> <span>{aiSuggestion}</span>
+                  </div>
+                )}
 
                 <div>
                   <Label className="text-xs text-[#6B7280]">الوصف (اختياري)</Label>

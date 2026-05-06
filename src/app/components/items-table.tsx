@@ -432,7 +432,7 @@ export function ItemsTable({
           </table>
         </div>
 
-        {/* Footer · add row + barcode + columns toggle */}
+        {/* Footer · add row + cashier input + barcode + columns toggle */}
         <div className="border-t border-[#F3F4F6] px-3 py-2 bg-[#F9FAFB] flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <button
@@ -442,6 +442,52 @@ export function ItemsTable({
             >
               <Plus className="h-3.5 w-3.5" /> إضافة سطر
             </button>
+
+            {/* Cashier mode · type SKU/code + Enter → product drops in */}
+            {products.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-[#6B7280]">كاشير:</span>
+                <input
+                  type="text"
+                  placeholder="ادخل الكود + Enter"
+                  className="text-sm rounded border border-[#E5E7EB] px-2 py-1 w-40 font-english focus:ring-1 focus:ring-[#1276E3]/30"
+                  dir="ltr"
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    const code = (e.target as HTMLInputElement).value.trim();
+                    if (!code) return;
+                    // Try SKU match first · then by id · then by name
+                    const match = products.find(p =>
+                      (p.sku || "").toLowerCase() === code.toLowerCase() ||
+                      p.id === code ||
+                      p.name.toLowerCase() === code.toLowerCase()
+                    );
+                    if (match) {
+                      const emptyIdx = lines.findIndex(l => !l.description.trim() && !l.unitPrice);
+                      if (emptyIdx >= 0) {
+                        onProductPick(emptyIdx, match);
+                      } else {
+                        const inclusive = mode === "all-inclusive";
+                        const newLineWithProduct: InvoiceLine = {
+                          ...newLine(defaultTaxRate, inclusive),
+                          productId: match.id,
+                          description: match.name,
+                          unitPrice: String(match.unitPrice),
+                          accountId: match.accountId,
+                          taxRate: match.taxRate ?? defaultTaxRate,
+                        };
+                        setLines([...lines, newLineWithProduct]);
+                      }
+                      (e.target as HTMLInputElement).value = "";
+                    } else {
+                      console.warn("[cashier] no match for:", code);
+                      (e.target as HTMLInputElement).select();
+                    }
+                  }}
+                />
+              </div>
+            )}
             {products.length > 0 && (
               <BarcodeScannerButton
                 onScanned={(code) => {

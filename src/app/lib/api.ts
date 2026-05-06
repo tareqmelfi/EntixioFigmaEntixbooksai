@@ -156,6 +156,11 @@ export const api = {
       request<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
     importBulk: (rows: Array<{ code: string; name: string; nameAr?: string | null; type?: string; parentCode?: string | null; description?: string | null }>, skipExisting = true) =>
       request<{ ok: true; created: number; skipped: number; linked: number; errors: any[]; message: string }>('/api/accounts/import', { method: 'POST', body: { rows, skipExisting } }),
+    transactions: (id: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions`),
+    translate: (input: string, hint?: string) =>
+      request<{ name: string; nameAr: string; type: 'ASSET'|'LIABILITY'|'EQUITY'|'REVENUE'|'EXPENSE'; category?: string; reasoning?: string; suggestedCode?: string }>(
+        '/api/accounts/translate', { method: 'POST', body: { input, hint } },
+      ),
   },
 
   // Expenses
@@ -669,6 +674,24 @@ export interface ContactInput {
   notes?: string | null
 }
 
+export interface AccountTransactions {
+  account: { id: string; code: string; name: string; nameAr: string | null; type: string }
+  transactions: Array<{
+    id: string
+    journalNumber: string
+    date: string
+    description: string
+    lineDescription: string | null
+    source: string | null
+    reference: string | null
+    debit: number
+    credit: number
+    runningBalance: number
+  }>
+  total: number
+  finalBalance: number
+}
+
 export interface Account {
   id: string
   orgId: string
@@ -678,6 +701,8 @@ export interface Account {
   type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
   subtype?: string | null
   parentId?: string | null
+  description?: string | null
+  balance?: number          // sum of journal lines (signed for normal balance)
   isActive: boolean
 }
 
