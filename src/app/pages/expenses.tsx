@@ -13,6 +13,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
 import { api, Expense as ApiExpense, ExpenseInput, ApiError } from "../lib/api";
 
@@ -34,6 +35,17 @@ const EMPTY_FORM = {
   description: "",
   vendorName: "",
 };
+
+async function fileToBase64(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+  }
+  return btoa(binary);
+}
 
 export function Expenses() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -152,7 +164,38 @@ export function Expenses() {
             </div>
           }
         >
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,420px)_1fr] gap-6 max-w-6xl mx-auto">
+            {/* Left · Document preview pane (Wafeq pattern) */}
+            <DocumentPreviewPane
+              hint="اسحب صورة الإيصال أو ملف PDF هنا"
+              onExtract={async (file) => {
+                try {
+                  const fileBase64 = await fileToBase64(file);
+                  const data: any = await api.agent.extractDocument({
+                    fileBase64,
+                    fileName: file.name,
+                    mimeType: file.type || "application/pdf",
+                    target: "expense",
+                    defaultTaxRate: 0.15,
+                    currency: "SAR",
+                  });
+                  setFormData((f) => ({
+                    ...f,
+                    category: f.category || data?.lines?.[0]?.description || data?.notes || f.category,
+                    amount: String(data?.totals?.total ?? data?.lines?.[0]?.lineTotal ?? f.amount ?? ""),
+                    date: data?.issueDate || f.date,
+                    vendorName: data?.issuer?.name || f.vendorName,
+                    description: data?.notes || data?.documentNumber || f.description,
+                  }));
+                  push("success", `تم استخراج البيانات بثقة ${Math.round((data?.confidence || 0) * 100)}%`);
+                } catch (e: any) {
+                  push("error", e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل الاستخراج");
+                }
+              }}
+            />
+
+            {/* Right · Form */}
+            <div className="space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
             <div className="space-y-2">
               <Label className="text-[#374151]">التصنيف *</Label>
@@ -193,7 +236,8 @@ export function Expenses() {
               <Label className="text-[#374151]">ملاحظات (اختياري)</Label>
               <textarea rows={3} placeholder="تفاصيل إضافية..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
             </div>
-          </div>
+            </div>{/* /right column */}
+          </div>{/* /grid */}
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
       </>
