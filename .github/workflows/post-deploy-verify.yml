@@ -24,7 +24,7 @@ jobs:
       SKIP_PURGE: ${{ github.event.inputs.skip_purge }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Wait for Coolify initial build (60s)
         run: |
