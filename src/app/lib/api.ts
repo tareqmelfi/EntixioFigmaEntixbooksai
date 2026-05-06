@@ -451,6 +451,16 @@ export const api = {
       ),
   },
 
+  // Portal · enable/disable per-contact + retrieve URL
+  portal: {
+    enable: (contactId: string) =>
+      request<{ ok: true; url: string; token: string }>(`/api/contacts/${contactId}/portal/enable`, { method: 'POST' }),
+    disable: (contactId: string) =>
+      request<{ ok: true }>(`/api/contacts/${contactId}/portal/disable`, { method: 'POST' }),
+    getUrl: (contactId: string) =>
+      request<{ enabled: boolean; url?: string; token?: string }>(`/api/contacts/${contactId}/portal/url`),
+  },
+
   // Payment Links · Stripe + PayPal + Moyasar
   paymentLinks: {
     create: (invoiceId: string, provider: 'stripe' | 'paypal' | 'moyasar' | 'auto' = 'auto') =>
