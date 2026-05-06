@@ -11,12 +11,12 @@
  *
  * Roles get distinct color badges. KPI strip at top: total · customers · suppliers · net balance.
  */
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router";
 import {
   Users, Plus, Search, Trash2, Loader2, Edit2, X, ChevronRight, ChevronLeft,
   Building2, User, Mail, Phone, ExternalLink, AlertCircle, Globe, MapPin,
-  Briefcase, Landmark, UserCheck, TrendingUp, Filter,
+  Briefcase, Landmark, UserCheck, TrendingUp, Filter, Upload, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -24,6 +24,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact, ContactInput } from "../lib/api";
+import { formatTaxId, formatCrNumber } from "../lib/tax-id-format";
 
 // ── Roles ────────────────────────────────────────────────────────────────────
 type RoleKey = "isCustomer" | "isSupplier" | "isEmployee" | "isShareholder" | "isFreelancer";
@@ -399,6 +400,49 @@ export function Contacts() {
           onPrev={() => setWizard(w => ({ ...w, step: Math.max(1, w.step - 1) as any }))}
           onNext={() => setWizard(w => ({ ...w, step: Math.min(4, w.step + 1) as any }))}
           onSave={handleSave}
+          onAutoFill={async (file) => {
+            try {
+              const base64 = await new Promise<string>((res, rej) => {
+                const r = new FileReader();
+                r.onload = () => {
+                  const s = r.result as string;
+                  const i = s.indexOf("base64,");
+                  res(i >= 0 ? s.slice(i + 7) : s);
+                };
+                r.onerror = () => rej(r.error);
+                r.readAsDataURL(file);
+              });
+              const data = await api.contacts.extractFromDocument({
+                fileBase64: base64,
+                fileName: file.name,
+                mimeType: file.type || "application/octet-stream",
+              });
+              setForm(prev => ({
+                ...prev,
+                displayName: data.displayName || prev.displayName,
+                legalName: data.legalName || prev.legalName,
+                entityKind: data.entityKind || prev.entityKind,
+                country: data.country || prev.country,
+                vatNumber: data.vatNumber ? formatTaxId(data.vatNumber, data.country || prev.country) : prev.vatNumber,
+                crNumber: data.crNumber ? formatCrNumber(data.crNumber, data.country || prev.country) : prev.crNumber,
+                nationalId: data.nationalId || prev.nationalId,
+                addressLine1: data.addressLine1 || prev.addressLine1,
+                city: data.city || prev.city,
+                region: data.region || prev.region,
+                postalCode: data.postalCode || prev.postalCode,
+                phone: data.phone || prev.phone,
+                email: data.email || prev.email,
+                isCustomer: data.isCustomer ?? prev.isCustomer,
+                isSupplier: data.isSupplier ?? prev.isSupplier,
+                isForeign: (data.country || prev.country) !== "SA",
+              }));
+              push("success", `✨ ${data.notes || "تم استخراج البيانات"} (ثقة ${(data.confidence * 100).toFixed(0)}%)`);
+              // Auto-advance to step 2 so user sees filled fields
+              setWizard(w => ({ ...w, step: 2 }));
+            } catch (e: any) {
+              push("error", e instanceof ApiError ? e.message : "فشل قراءة المستند");
+            }
+          }}
         />
       )}
     </div>
@@ -431,8 +475,9 @@ function WizardModal(props: {
   onPrev: () => void;
   onNext: () => void;
   onSave: () => void;
+  onAutoFill?: (file: File) => Promise<void>;
 }) {
-  const { step, isEditing, form, setForm, canProceed, busy, onClose, onPrev, onNext, onSave } = props;
+  const { step, isEditing, form, setForm, canProceed, busy, onClose, onPrev, onNext, onSave, onAutoFill } = props;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -460,7 +505,7 @@ function WizardModal(props: {
 
         {/* Body */}
         <div className="p-5 space-y-4">
-          {step === 1 && <Step1 form={form} setForm={setForm} />}
+          {step === 1 && <Step1 form={form} setForm={setForm} onAutoFill={onAutoFill} />}
           {step === 2 && <Step2 form={form} setForm={setForm} />}
           {step === 3 && <Step3 form={form} setForm={setForm} />}
           {step === 4 && <Step4 form={form} setForm={setForm} />}
@@ -486,9 +531,18 @@ function WizardModal(props: {
   );
 }
 
-function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: FormState) => void; onAutoFill?: (file: File) => Promise<void> }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+
+  const handleFile = async (file: File) => {
+    if (!onAutoFill) return;
+    setAiBusy(true);
+    try { await onAutoFill(file); } finally { setAiBusy(false); }
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <p className="text-sm text-[#374151]">هل هي منظمة أم فرد؟</p>
       <div className="grid grid-cols-2 gap-3">
         {(["INDIVIDUAL", "COMPANY"] as const).map(k => {
@@ -509,6 +563,22 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
             </button>
           );
         })}
+      </div>
+
+      {/* AI · upload registration / EIN letter / passport → auto-fill */}
+      <div className="rounded-xl border-2 border-dashed border-[#1276E3]/30 bg-[#F4FCFF] p-4">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-6 w-6 text-[#1276E3]" />
+          <div className="flex-1">
+            <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>تعبئة تلقائية بالذكاء</div>
+            <p className="text-xs text-[#6B7280] mt-0.5">ارفع السجل التجاري · رسالة EIN · شهادة الزكاة · والذكاء يقرأها ويعبّي البيانات</p>
+          </div>
+          <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
+          <Button type="button" variant="outline" disabled={aiBusy} onClick={() => fileRef.current?.click()} className="border-[#1276E3] text-[#1276E3]">
+            {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4 me-1.5" /> رفع مستند</>}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -553,11 +623,21 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           <>
             <div>
               <Label className="text-xs text-[#6B7280]">الرقم الضريبي</Label>
-              <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} placeholder="300XXXXXXXXX003" maxLength={15} dir="ltr" className="border-[#E5E7EB] font-english" />
+              <Input
+                value={form.vatNumber}
+                onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
+                onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, vatNumber: formatTaxId(txt, form.country) }); }}
+                placeholder="300 XXX XXX XXX X 003" maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english"
+              />
             </div>
             <div>
               <Label className="text-xs text-[#6B7280]">السجل التجاري</Label>
-              <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} placeholder="1010XXXXXX" dir="ltr" className="border-[#E5E7EB] font-english" />
+              <Input
+                value={form.crNumber}
+                onChange={(e) => setForm({ ...form, crNumber: formatCrNumber(e.target.value, form.country) })}
+                onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, crNumber: formatCrNumber(txt, form.country) }); }}
+                placeholder="1010XXXXXX" maxLength={10} dir="ltr" className="border-[#E5E7EB] font-english"
+              />
             </div>
           </>
         )}
@@ -571,7 +651,12 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           <>
             <div>
               <Label className="text-xs text-[#6B7280]">Tax ID (EIN / VAT / TRN)</Label>
-              <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} placeholder="42-XXXXXXX" dir="ltr" className="border-[#E5E7EB] font-english" />
+              <Input
+                value={form.vatNumber}
+                onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
+                onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, vatNumber: formatTaxId(txt, form.country) }); }}
+                placeholder={form.country === "US" ? "XX-XXXXXXX" : "Tax ID"} maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english"
+              />
             </div>
             <div>
               <Label className="text-xs text-[#6B7280]">LEI Code (اختياري)</Label>

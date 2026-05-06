@@ -125,6 +125,16 @@ export const api = {
     get: (id: string) => request<Contact>(`/api/contacts/${id}`),
     summary: (id: string) => request<ContactSummary>(`/api/contacts/${id}/summary`),
     nextCode: () => request<{ customCode: string }>('/api/contacts/_/next-code'),
+    extractFromDocument: (data: { fileBase64: string; fileName?: string; mimeType?: string }) =>
+      request<{
+        displayName: string | null; legalName: string | null;
+        entityKind: 'INDIVIDUAL' | 'COMPANY'; country: string;
+        vatNumber: string | null; crNumber: string | null; nationalId: string | null;
+        addressLine1: string | null; city: string | null; region: string | null; postalCode: string | null;
+        phone: string | null; email: string | null;
+        isCustomer: boolean; isSupplier: boolean;
+        confidence: number; notes: string | null;
+      }>('/api/contacts/_/extract-from-document', { method: 'POST', body: data }),
     create: (data: ContactInput) =>
       request<Contact>('/api/contacts', { method: 'POST', body: data }),
     update: (id: string, data: Partial<ContactInput>) =>

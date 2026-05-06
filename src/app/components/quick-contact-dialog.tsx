@@ -26,6 +26,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { api, ApiError, Contact } from "../lib/api";
+import { formatTaxId, formatCrNumber } from "../lib/tax-id-format";
 
 type Role = "customer" | "supplier" | "both";
 
@@ -141,11 +142,21 @@ export function QuickContactDialog({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-[#6B7280]">الرقم الضريبي</Label>
-                <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} placeholder="300XXX" maxLength={15} dir="ltr" className="border-[#E5E7EB] font-english" />
+                <Input
+                  value={form.vatNumber}
+                  onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
+                  onPaste={(e) => { e.preventDefault(); const t = e.clipboardData.getData("text"); setForm({ ...form, vatNumber: formatTaxId(t, form.country) }); }}
+                  placeholder="300XXX" maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english"
+                />
               </div>
               <div>
                 <Label className="text-xs text-[#6B7280]">السجل التجاري</Label>
-                <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} placeholder="1010XX" dir="ltr" className="border-[#E5E7EB] font-english" />
+                <Input
+                  value={form.crNumber}
+                  onChange={(e) => setForm({ ...form, crNumber: formatCrNumber(e.target.value, form.country) })}
+                  onPaste={(e) => { e.preventDefault(); const t = e.clipboardData.getData("text"); setForm({ ...form, crNumber: formatCrNumber(t, form.country) }); }}
+                  placeholder="1010XX" maxLength={10} dir="ltr" className="border-[#E5E7EB] font-english"
+                />
               </div>
             </div>
           )}
