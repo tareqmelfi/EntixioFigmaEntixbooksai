@@ -451,6 +451,14 @@ export const api = {
       ),
   },
 
+  // Payment Links · Stripe + PayPal + Moyasar
+  paymentLinks: {
+    create: (invoiceId: string, provider: 'stripe' | 'paypal' | 'moyasar' | 'auto' = 'auto') =>
+      request<{ url: string; id: string; provider: string }>(`/api/payment-links/invoice/${invoiceId}`, { method: 'POST', body: { provider } }),
+    get: (invoiceId: string) =>
+      request<{ url: string; provider: string; id: string }>(`/api/payment-links/invoice/${invoiceId}`),
+  },
+
   // Currency · multi-currency rates + conversion
   currency: {
     listRates: (params?: { from?: string; to?: string }) =>

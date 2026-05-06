@@ -64,6 +64,7 @@ import { AdminDashboard } from "./pages/admin";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
 import { BankReconciliation } from "./pages/bank-reconciliation";
+import { FiscalPeriods } from "./pages/fiscal-periods";
 import { CostCenters } from "./pages/cost-centers";
 import { Projects } from "./pages/projects";
 import { Branches } from "./pages/branches";
@@ -163,6 +164,7 @@ export const router = createBrowserRouter([
       { path: "bank-accounts", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       { path: "bank-accounts/new", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       { path: "bank-reconciliation", element: <BankReconciliation />, errorElement: <ErrorBoundary /> },
+      { path: "fiscal-periods", element: <FiscalPeriods />, errorElement: <ErrorBoundary /> },
       // Assets
       { path: "assets", element: <FixedAssets />, errorElement: <ErrorBoundary /> },
       { path: "assets/:id", element: <AssetDetail />, errorElement: <ErrorBoundary /> },
