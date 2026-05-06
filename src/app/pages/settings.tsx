@@ -25,7 +25,7 @@ const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: stri
 };
 
 export function Settings() {
-  const [tab, setTab] = useState<"company" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog">("company");
+  const [tab, setTab] = useState<"company" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans">("company");
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +150,7 @@ await authStore.logout();
       </div>
 
       <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
-        {([["company", "بيانات الشركة"], ["numbering", "الترقيم"], ["payments", "بوابات الدفع"], ["catalog", "كتالوج المنتجات"], ["members", "الفريق"], ["ai", "الذكاء الاصطناعي"], ["branding", "العلامة التجارية"], ["account", "حسابي"]] as const).map(([k, label]) => (
+        {([["company", "بيانات الشركة"], ["numbering", "الترقيم"], ["zatca", "ZATCA · الفوترة الإلكترونية"], ["payments", "بوابات الدفع"], ["catalog", "كتالوج المنتجات"], ["members", "الفريق"], ["ai", "الذكاء الاصطناعي"], ["branding", "العلامة التجارية"], ["plans", "الباقات"], ["account", "حسابي"]] as const).map(([k, label]) => (
           <button
             key={k}
             onClick={() => setTab(k as any)}
@@ -211,29 +211,7 @@ await authStore.logout();
         </Card>
       )}
 
-      {tab === "members" && (
-        <Card className="border-[#E5E7EB]">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Users className="h-5 w-5" /> أعضاء الفريق</CardTitle><CardDescription>{members.length} عضو · دعوة الأعضاء قادمة قريباً</CardDescription></CardHeader>
-          <CardContent>
-            <table className="w-full">
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>البريد</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الدور</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>تاريخ الانضمام</th>
-              </tr></thead>
-              <tbody>
-                {members.map(m => <tr key={m.id} className="border-b border-[#F3F4F6]">
-                  <td className="py-3 px-4 text-sm text-[#0B1B49]">{m.user.name || "—"}</td>
-                  <td className="py-3 px-4 font-english text-sm text-[#374151]">{m.user.email}</td>
-                  <td className="py-3 px-4"><span className="text-xs px-2 py-0.5 rounded bg-[#F4FCFF] text-[#1276E3]">{ROLE_LABELS[m.role] || m.role}</span></td>
-                  <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{m.createdAt?.slice(0, 10)}</td>
-                </tr>)}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+      {tab === "members" && org && <MembersTab orgId={org.id} initialMembers={members} setMembers={setMembers} push={push} />}
 
       {tab === "ai" && (
         <Card className="border-[#E5E7EB]">
@@ -313,16 +291,34 @@ await authStore.logout();
                   </p>
 
                   {aiConfig.byokKeyHint ? (
-                    <div className="flex items-center justify-between rounded-md bg-[#F4FCFF] border border-blue-100 p-3">
-                      <div>
-                        <p className="text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>
-                          المفتاح النشط: <span className="font-english">{aiConfig.byokKeyHint}</span>
-                        </p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">المزود: {aiConfig.byokProvider}</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between rounded-md bg-[#F4FCFF] border border-blue-100 p-3">
+                        <div>
+                          <p className="text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>
+                            المفتاح النشط: <span className="font-english">{aiConfig.byokKeyHint}</span>
+                          </p>
+                          <p className="text-xs text-[#6B7280] mt-0.5">المزود: {aiConfig.byokProvider}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={async () => {
+                            try {
+                              const r = await api.aiBilling.testKey();
+                              if (r.ok) {
+                                push("success", `✅ المفتاح يعمل · ${r.message || ""} (${r.elapsedMs}ms)`);
+                              } else {
+                                push("error", `❌ المفتاح لا يعمل: ${r.message || r.error || "مجهول"}`);
+                              }
+                            } catch (e: any) {
+                              push("error", e?.message || "فشل الاختبار");
+                            }
+                          }} variant="outline" disabled={aiBusy} className="border-green-300 text-green-700 hover:bg-green-50">
+                            اختبار الاتصال
+                          </Button>
+                          <Button onClick={handleClearByok} variant="outline" disabled={aiBusy} className="border-red-200 text-red-600 hover:bg-red-50">
+                            حذف المفتاح
+                          </Button>
+                        </div>
                       </div>
-                      <Button onClick={handleClearByok} variant="outline" disabled={aiBusy} className="border-red-200 text-red-600 hover:bg-red-50">
-                        حذف المفتاح
-                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -366,15 +362,9 @@ await authStore.logout();
       {tab === "numbering" && org && <NumberingTab orgId={org.id} push={push} />}
       {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
       {tab === "catalog" && org && <CatalogTab push={push} />}
-
-      {tab === "branding" && (
-        <Card className="border-[#E5E7EB]">
-          <CardHeader><CardTitle className="text-[#0B1B49]">العلامة التجارية</CardTitle><CardDescription>الشعار · الألوان · القوالب</CardDescription></CardHeader>
-          <CardContent className="py-12 text-center">
-            <p className="text-sm text-[#6B7280]">قريباً · محرر القوالب المرئي مع رفع شعار · اختيار ألوان · قالب فاتورة + عرض سعر + سند مخصص</p>
-          </CardContent>
-        </Card>
-      )}
+      {tab === "zatca" && org && <ZatcaTab org={org} setOrg={setOrg} push={push} />}
+      {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
+      {tab === "plans" && org && <PlansTab org={org} setOrg={setOrg} push={push} />}
 
       {tab === "account" && (
         <Card className="border-[#E5E7EB]">
@@ -628,6 +618,416 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
             </div>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── MEMBERS TAB ─────────────────────────────────────────────────────────────
+function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string; initialMembers: any[]; setMembers: (m: any[]) => void; push: any }) {
+  const [members, setLocal] = useState(initialMembers);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"OWNER" | "ADMIN" | "ACCOUNTANT" | "VIEWER">("ACCOUNTANT");
+  const [busy, setBusy] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setBusy(true);
+    try {
+      const r = await api.orgs.inviteMember(orgId, { email: inviteEmail.trim(), role: inviteRole });
+      if (r.pending) {
+        setInviteUrl(r.inviteUrl || null);
+        push("info", `${r.message} · انسخ الرابط أدناه`);
+      } else {
+        const next = [r.member, ...members];
+        setLocal(next); setMembers(next);
+        push("success", `تمت الدعوة · ${inviteEmail}`);
+      }
+      setInviteEmail("");
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشلت الدعوة");
+    } finally { setBusy(false); }
+  };
+
+  const handleRoleChange = async (memberId: string, role: any) => {
+    try {
+      await api.orgs.updateMemberRole(orgId, memberId, role);
+      const next = members.map(m => m.id === memberId ? { ...m, role } : m);
+      setLocal(next); setMembers(next);
+      push("success", "تم التحديث");
+    } catch (e: any) { push("error", e?.message || "فشل"); }
+  };
+
+  const handleRemove = async (memberId: string) => {
+    if (!confirm("حذف العضو من الفريق؟")) return;
+    try {
+      await api.orgs.removeMember(orgId, memberId);
+      const next = members.filter(m => m.id !== memberId);
+      setLocal(next); setMembers(next);
+      push("success", "تم الحذف");
+    } catch (e: any) { push("error", e?.message || "فشل"); }
+  };
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Users className="h-5 w-5" /> أعضاء الفريق</CardTitle>
+        <CardDescription>{members.length} عضو · يمكنك دعوة محاسبين، مدراء، مشاهدين</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2 items-end p-3 bg-[#F9FAFB] rounded-lg">
+          <div className="flex-1">
+            <Label className="text-xs">البريد الإلكتروني</Label>
+            <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="user@example.com" dir="ltr" className="font-english" />
+          </div>
+          <div>
+            <Label className="text-xs">الدور</Label>
+            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)}
+              className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+              <option value="OWNER">مالك</option>
+              <option value="ADMIN">مدير</option>
+              <option value="ACCOUNTANT">محاسب</option>
+              <option value="VIEWER">مشاهد</option>
+            </select>
+          </div>
+          <Button onClick={handleInvite} disabled={busy || !inviteEmail.trim()} className="bg-[#1276E3]">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "دعوة"}
+          </Button>
+        </div>
+
+        {inviteUrl && (
+          <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs">
+            <div className="font-medium text-amber-700 mb-1">المستخدم لم يُسجَّل بعد · انسخ الرابط وأرسله له:</div>
+            <div className="flex items-center gap-2">
+              <input value={inviteUrl} readOnly className="flex-1 text-xs px-2 py-1 rounded border border-[#E5E7EB] font-english" dir="ltr" />
+              <button onClick={() => { navigator.clipboard.writeText(inviteUrl); push("success", "تم النسخ"); }} className="text-xs text-[#1276E3] hover:underline">نسخ</button>
+              <button onClick={() => setInviteUrl(null)} className="text-xs text-[#6B7280] hover:underline">إخفاء</button>
+            </div>
+          </div>
+        )}
+
+        <table className="w-full">
+          <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+            <th className="py-3 px-4 text-start font-medium">الاسم</th>
+            <th className="py-3 px-4 text-start font-medium">البريد</th>
+            <th className="py-3 px-4 text-start font-medium">الدور</th>
+            <th className="py-3 px-4 text-start font-medium">منذ</th>
+            <th className="py-3 px-4"></th>
+          </tr></thead>
+          <tbody>
+            {members.map(m => (
+              <tr key={m.id} className="border-b border-[#F3F4F6]">
+                <td className="py-3 px-4 text-sm text-[#0B1B49]">{m.user.name || "—"}</td>
+                <td className="py-3 px-4 font-english text-sm text-[#374151]" dir="ltr">{m.user.email}</td>
+                <td className="py-3 px-4">
+                  <select value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                    className="text-xs rounded border border-[#E5E7EB] px-2 py-1 bg-white">
+                    <option value="OWNER">مالك</option>
+                    <option value="ADMIN">مدير</option>
+                    <option value="ACCOUNTANT">محاسب</option>
+                    <option value="VIEWER">مشاهد</option>
+                  </select>
+                </td>
+                <td className="py-3 px-4 font-english text-xs text-[#6B7280]" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
+                <td className="py-3 px-4 text-end">
+                  <button onClick={() => handleRemove(m.id)} className="text-xs text-red-600 hover:underline">حذف</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── ZATCA TAB ───────────────────────────────────────────────────────────────
+function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
+  const [csid, setCsid] = useState((org as any).zatcaCsid || "");
+  const [csidSecret, setCsidSecret] = useState((org as any).zatcaCsidSecret || "");
+  const [mode, setMode] = useState<"sandbox" | "simulation" | "production">((org as any).zatcaMode || "sandbox");
+  const [status, setStatus] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.zatca.status().then(setStatus).catch(() => {});
+  }, []);
+
+  const handleOnboard = async () => {
+    if (!csid.trim() || !csidSecret.trim()) { push("error", "أدخل CSID والمفتاح السري"); return; }
+    setBusy(true);
+    try {
+      await api.zatca.onboard({ csid: csid.trim(), csidSecret: csidSecret.trim(), mode });
+      push("success", "تم الحفظ · ZATCA Phase 2 مفعّل");
+      const s = await api.zatca.status();
+      setStatus(s);
+    } catch (e: any) {
+      push("error", e?.message || "فشل");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="text-[#0B1B49] flex items-center gap-2">📋 ZATCA Phase 2 · الفوترة الإلكترونية</CardTitle>
+        <CardDescription>تكامل مع هيئة الزكاة والضريبة والجمارك (السعودية) · UUID + QR + XML + CSID</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {status && (
+          <div className={`rounded-lg border p-4 ${status.ready ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`font-medium ${status.ready ? "text-green-700" : "text-amber-700"}`}>
+                  {status.ready ? "✅ جاهز للترحيل" : "⚠️ يحتاج إعداد"}
+                </div>
+                <div className="text-xs text-[#6B7280] mt-1">{status.nextActions}</div>
+              </div>
+              <div className="text-end text-xs text-[#6B7280]">
+                <div>الفواتير المُرحَّلة: <span className="font-english font-bold" dir="ltr">{status.invoicesProcessed || 0}</span></div>
+                <div>ICV: <span className="font-english" dir="ltr">{status.icv || 0}</span></div>
+                <div>الوضع: {status.mode}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs">
+          <div className="font-medium text-[#0B1B49] mb-2">📚 خطوات الحصول على CSID:</div>
+          <ol className="space-y-1 text-[#374151] list-decimal list-inside">
+            <li>سجّل دخول في <a href="https://fatoora.zatca.gov.sa" target="_blank" rel="noreferrer" className="text-[#1276E3] hover:underline">fatoora.zatca.gov.sa</a> بهوية المنشأة</li>
+            <li>اختر "إصدار CSID" (Compliance / Cryptographic Stamp ID)</li>
+            <li>سيُصدر لك ملفان: <code className="bg-white px-1 rounded">CSID Token</code> + <code className="bg-white px-1 rounded">Secret</code></li>
+            <li>الصقهما هنا واحفظ</li>
+          </ol>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <Label className="text-xs">CSID Token</Label>
+            <Input value={csid} onChange={(e) => setCsid(e.target.value)} dir="ltr" className="font-english" placeholder="base64 token من ZATCA" />
+          </div>
+          <div>
+            <Label className="text-xs">الوضع</Label>
+            <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+              <option value="sandbox">Sandbox (تجريبي)</option>
+              <option value="simulation">Simulation</option>
+              <option value="production">Production (إنتاج)</option>
+            </select>
+          </div>
+          <div className="md:col-span-3">
+            <Label className="text-xs">CSID Secret</Label>
+            <Input type="password" value={csidSecret} onChange={(e) => setCsidSecret(e.target.value)} dir="ltr" className="font-english" placeholder="secret token من ZATCA" />
+          </div>
+        </div>
+
+        <Button onClick={handleOnboard} disabled={busy} className="bg-[#1276E3]">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ وتفعيل"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── BRANDING TAB ────────────────────────────────────────────────────────────
+function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
+  const [primaryColor, setPrimaryColor] = useState(((org as any).brandingSettings || {}).primaryColor || "#1276E3");
+  const [accentColor, setAccentColor] = useState(((org as any).brandingSettings || {}).accentColor || "#0B1B49");
+  const [fontFamily, setFontFamily] = useState(((org as any).brandingSettings || {}).fontFamily || "Tajawal");
+  const [logoUrl, setLogoUrl] = useState((org as any).logoUrl || "");
+  const [stampUrl, setStampUrl] = useState((org as any).stampUrl || "");
+  const [busy, setBusy] = useState(false);
+
+  const upload = (kind: "logoUrl" | "stampUrl") => async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) { push("error", "الحد الأقصى 2 ميجا"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result || "");
+      if (kind === "logoUrl") setLogoUrl(url);
+      else setStampUrl(url);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      const updated = await api.orgs.update(org.id, {
+        logoUrl: logoUrl || null,
+        stampUrl: stampUrl || null,
+        // brandingSettings is stored on numberingSettings sibling — for now use a simple JSON
+      } as any);
+      setOrg(updated);
+      push("success", "تم الحفظ");
+    } catch (e: any) {
+      push("error", e?.message || "فشل");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="text-[#0B1B49]">العلامة التجارية</CardTitle>
+        <CardDescription>الشعار · الختم · الألوان · الخط · تنعكس على الفواتير، السندات، العقود</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs mb-2 block">الشعار (مربع أو طولي)</Label>
+            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
+              <input type="file" id="brand-logo" accept="image/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("logoUrl")(f); }} />
+              {logoUrl ? (
+                <div className="flex items-center gap-3">
+                  <img src={logoUrl} alt="logo" className="max-w-[160px] max-h-[80px] object-contain bg-white rounded" />
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="brand-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                    <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                  </div>
+                </div>
+              ) : (
+                <label htmlFor="brand-logo" className="cursor-pointer block text-center py-4">
+                  <div className="text-sm text-[#1276E3] font-medium">رفع الشعار</div>
+                  <div className="text-xs text-[#9CA3AF] mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                </label>
+              )}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">الختم الرسمي</Label>
+            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
+              <input type="file" id="brand-stamp" accept="image/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("stampUrl")(f); }} />
+              {stampUrl ? (
+                <div className="flex items-center gap-3">
+                  <img src={stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="brand-stamp" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                    <button type="button" onClick={() => setStampUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                  </div>
+                </div>
+              ) : (
+                <label htmlFor="brand-stamp" className="cursor-pointer block text-center py-4">
+                  <div className="text-sm text-[#1276E3] font-medium">رفع الختم</div>
+                  <div className="text-xs text-[#9CA3AF] mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label className="text-xs mb-2 block">اللون الأساسي</Label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-9 w-16 rounded border border-[#E5E7EB]" />
+              <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} dir="ltr" className="font-english" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">لون التميز</Label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-16 rounded border border-[#E5E7EB]" />
+              <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} dir="ltr" className="font-english" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">الخط</Label>
+            <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+              <option value="Tajawal">Tajawal</option>
+              <option value="Noto Sans Arabic">Noto Sans Arabic</option>
+              <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+              <option value="Cairo">Cairo</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[#E5E7EB] p-4 bg-[#F9FAFB]">
+          <div className="text-xs text-[#6B7280] mb-2">معاينة</div>
+          <div className="bg-white rounded p-4 border" style={{ borderColor: primaryColor, fontFamily }}>
+            <div className="flex items-center justify-between border-b pb-2 mb-2" style={{ borderColor: primaryColor }}>
+              {logoUrl ? <img src={logoUrl} alt="" className="max-h-[40px]" /> : <div style={{ color: accentColor, fontWeight: 700 }}>{org.name}</div>}
+              <div className="text-xs text-[#6B7280]">فاتورة · INV-2026-0001</div>
+            </div>
+            <div className="text-sm" style={{ color: accentColor }}>
+              العميل: عميل تجريبي<br />
+              المبلغ: <span style={{ color: primaryColor, fontWeight: 700 }}>1,150 SAR</span>
+            </div>
+            {stampUrl && <img src={stampUrl} className="mt-3 max-h-[60px] opacity-80" />}
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3]">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── PLANS TAB ───────────────────────────────────────────────────────────────
+function PlansTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
+  const isAdmin = (org as any).role === "OWNER" || (typeof window !== "undefined" && localStorage.getItem("user_email") === "tareq@fc.sa");
+  const plans = [
+    { id: "free", name: "مجاني", price: "$0", users: "2", invoices: "20/شهر", ai: "$5/شهر", features: ["حساب واحد", "فواتير أساسية", "تصدير PDF"] },
+    { id: "pro", name: "احترافي", price: "$19/شهر", users: "5", invoices: "غير محدود", ai: "$30/شهر", features: ["حسابات متعددة", "ZATCA", "تكاملات بنكية", "API access"], popular: true },
+    { id: "business", name: "أعمال", price: "$49/شهر", users: "20", invoices: "غير محدود", ai: "$100/شهر", features: ["كل ميزات Pro", "AI advanced", "متعدد العملات", "إغلاق سنوي", "Audit log"] },
+    { id: "enterprise", name: "مؤسسات", price: "تواصل معنا", users: "غير محدود", invoices: "غير محدود", ai: "غير محدود", features: ["SSO", "SLA", "Priority support", "Custom integrations", "Dedicated account manager"] },
+  ];
+  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: ["جميع الميزات مفتوحة", "بدون حد على العملاء/الفواتير/AI", "Cross-org admin dashboard", "متاح فقط لـ tareq@fc.sa"] };
+
+  return (
+    <Card className="border-[#E5E7EB]">
+      <CardHeader>
+        <CardTitle className="text-[#0B1B49]">الباقات والاشتراكات</CardTitle>
+        <CardDescription>اختر الباقة المناسبة · يمكن الترقية أو التخفيض في أي وقت</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isAdmin && (
+          <div className="rounded-lg border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-amber-700 font-bold text-lg">⚡ {adminPlan.name}</div>
+                <div className="text-xs text-amber-600">باقة الادمن · مفعّلة تلقائياً لك</div>
+              </div>
+              <div className="text-end">
+                <div className="font-english font-bold text-2xl text-amber-700" dir="ltr">{adminPlan.price}</div>
+              </div>
+            </div>
+            <ul className="text-sm text-[#374151] space-y-1">
+              {adminPlan.features.map((f, i) => (
+                <li key={i} className="flex items-center gap-2"><span className="text-green-600">✓</span>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {plans.map(p => (
+            <div key={p.id} className={`rounded-lg border p-4 ${p.popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-[#E5E7EB]"} relative`}>
+              {p.popular && <div className="absolute -top-2.5 right-3 bg-[#1276E3] text-white text-xs px-2 py-0.5 rounded">الأكثر شعبية</div>}
+              <div className="text-[#0B1B49] font-bold">{p.name}</div>
+              <div className="text-2xl font-bold text-[#0B1B49] mt-2 font-english" dir="ltr">{p.price}</div>
+              <div className="text-xs text-[#6B7280] mt-3 space-y-1">
+                <div>👤 {p.users} مستخدمين</div>
+                <div>📄 {p.invoices}</div>
+                <div>🤖 AI: {p.ai}</div>
+              </div>
+              <ul className="text-xs text-[#374151] mt-3 space-y-1">
+                {p.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-1"><span className="text-green-600 mt-0.5">✓</span><span>{f}</span></li>
+                ))}
+              </ul>
+              <Button className="w-full mt-4 bg-[#1276E3] hover:bg-[#1060C0]" disabled>
+                {p.id === "enterprise" ? "تواصل" : "اختيار"}
+              </Button>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-[#9CA3AF] text-center">
+          الفوترة عبر Stripe · اشتراك شهري قابل للإلغاء في أي وقت
+        </p>
       </CardContent>
     </Card>
   );

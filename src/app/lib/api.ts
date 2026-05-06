@@ -127,6 +127,12 @@ export const api = {
       request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
     members: (id: string) =>
       request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),
+    inviteMember: (id: string, data: { email: string; role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER' }) =>
+      request<{ ok: true; pending?: boolean; member?: any; inviteUrl?: string; message?: string }>(`/orgs/${id}/members/invite`, { method: 'POST', body: data, skipOrg: true }),
+    updateMemberRole: (id: string, memberId: string, role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER') =>
+      request<{ ok: true }>(`/orgs/${id}/members/${memberId}`, { method: 'PATCH', body: { role }, skipOrg: true }),
+    removeMember: (id: string, memberId: string) =>
+      request<void>(`/orgs/${id}/members/${memberId}`, { method: 'DELETE', skipOrg: true }),
     getNumbering: (id: string) =>
       request<NumberingSettings>(`/orgs/${id}/numbering`, { skipOrg: true }),
     saveNumbering: (id: string, data: NumberingSettings) =>
@@ -320,6 +326,10 @@ export const api = {
   aiBilling: {
     get: () => request<AiBillingConfig>('/api/ai-billing'),
     update: (data: AiBillingUpdate) => request<AiBillingConfig>('/api/ai-billing', { method: 'PATCH', body: data }),
+    testKey: () => request<{
+      ok: boolean; status?: number; provider?: string; error?: string; message?: string;
+      elapsedMs?: number; keyLabel?: string; usage?: number; limit?: number; isFreeTier?: boolean;
+    }>('/api/ai-billing/test-key', { method: 'POST' }),
     usage: (limit?: number) => request<{
       items: AiUsageLog[];
       byEndpoint: Record<string, { count: number; cost: number }>;
