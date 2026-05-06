@@ -451,6 +451,24 @@ export const api = {
       ),
   },
 
+  // ZATCA Phase 2 · CSID + processing + status
+  zatca: {
+    status: () => request<{
+      enabled: boolean; mode: 'sandbox' | 'simulation' | 'production';
+      vatNumber: string | null; crNumber: string | null;
+      csidConfigured: boolean; icv: number; pihExists: boolean;
+      invoicesProcessed: number; ready: boolean; nextActions: string;
+    }>('/api/zatca/status'),
+    onboard: (data: { csid: string; csidSecret: string; mode?: 'sandbox' | 'simulation' | 'production' }) =>
+      request<{ ok: true }>('/api/zatca/onboard', { method: 'POST', body: data }),
+    resetIcv: () => request<{ ok: true; message: string }>('/api/zatca/reset-icv', { method: 'POST' }),
+    process: (invoiceId: string) =>
+      request<{ ok: boolean; status: string; uuid: string; qr: string; warnings: string[]; errors: string[] }>(
+        `/api/zatca/invoices/${invoiceId}/process`, { method: 'POST' },
+      ),
+    getQr: (invoiceId: string) => request<{ qr: string }>(`/api/zatca/invoices/${invoiceId}/qr`),
+  },
+
   // Inventory · multi-warehouse · WAC/FIFO/LIFO
   inventory: {
     listWarehouses: () => request<{ items: any[] }>('/api/inventory/warehouses'),
