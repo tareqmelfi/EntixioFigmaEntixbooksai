@@ -451,6 +451,35 @@ export const api = {
       ),
   },
 
+  // Currency · multi-currency rates + conversion
+  currency: {
+    listRates: (params?: { from?: string; to?: string }) =>
+      request<{ items: Array<{ id: string; fromCurrency: string; toCurrency: string; rate: number; date: string; source: string }> }>(
+        '/api/currency/rates', { query: params },
+      ),
+    latestRate: (from: string, to: string) =>
+      request<{ rate: number; source: string; date: string }>('/api/currency/rates/latest', { query: { from, to } }),
+    upsertRate: (data: { fromCurrency: string; toCurrency: string; rate: number; date?: string; source?: string }) =>
+      request<any>('/api/currency/rates', { method: 'POST', body: data }),
+    sync: () => request<{ ok: true; count: number; source: string }>('/api/currency/rates/sync', { method: 'POST' }),
+    convert: (params: { amount: number; from: string; to: string; date?: string }) =>
+      request<{ amount: number; converted: number; rate: number; source?: string }>('/api/currency/convert', { query: params }),
+  },
+
+  // Fiscal Periods · year close + locking
+  fiscalPeriods: {
+    list: (year?: number) =>
+      request<{ items: Array<any> }>('/api/fiscal-periods', { query: year ? { year } : undefined }),
+    init: (year: number, startMonth = 1) =>
+      request<{ ok: true; count: number }>('/api/fiscal-periods/init', { method: 'POST', body: { year, startMonth } }),
+    lock: (id: string) => request<{ ok: true }>(`/api/fiscal-periods/${id}/lock`, { method: 'POST' }),
+    unlock: (id: string) => request<{ ok: true }>(`/api/fiscal-periods/${id}/unlock`, { method: 'POST' }),
+    previewClose: (id: string) =>
+      request<{ period: any; combinedRevenue: number; combinedExpense: number; netIncome: number }>(`/api/fiscal-periods/${id}/preview-close`),
+    close: (id: string) =>
+      request<{ ok: true; totalRevenue: number; totalExpense: number; netIncome: number }>(`/api/fiscal-periods/${id}/close`, { method: 'POST' }),
+  },
+
   // ZATCA Phase 2 · CSID + processing + status
   zatca: {
     status: () => request<{
