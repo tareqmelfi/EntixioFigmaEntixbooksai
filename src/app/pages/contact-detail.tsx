@@ -11,7 +11,7 @@
  * Powered by GET /api/contacts/:id/summary
  */
 import { useEffect, useState, useCallback } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router";
 import {
   ArrowRight, Building2, Mail, Phone, Globe, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, Edit2, ExternalLink, AlertCircle, Plus, Send,
