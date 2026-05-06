@@ -1,11 +1,23 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  Bell, Globe, Settings, LogOut, User, Building2,
-  CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu
+  Bell, Settings, LogOut, Building2,
+  CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu, CheckCheck
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
+import { api, NotificationItem } from "../lib/api";
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "الآن";
+  if (m < 60) return `منذ ${m} دقيقة`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `منذ ${h} ساعة`;
+  const d = Math.floor(h / 24);
+  return `منذ ${d} يوم`;
+}
 
 export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const navigate = useNavigate();
@@ -14,6 +26,28 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const authState = authStore.getState();
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifs = useCallback(async () => {
+    try {
+      const [list, count] = await Promise.all([
+        api.notifications.list({ limit: 15 }),
+        api.notifications.count(),
+      ]);
+      setNotifications(list.items);
+      setUnreadCount(count.unread);
+    } catch (e) {
+      console.error("[notifications] fetch failed", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchNotifs]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -24,13 +58,25 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const notifications = [
-    { id: 1, text: "فاتورة INV-2026-015 متأخرة 3 أيام", time: "منذ ساعة", read: false },
-    { id: 2, text: "تم استلام دفعة من شركة التقنية المتقدمة", time: "منذ 3 ساعات", read: false },
-    { id: 3, text: "المخزون منخفض: ورق طباعة A4", time: "منذ يوم", read: true },
-    { id: 4, text: "دورة الرواتب لشهر فبراير جاهزة للمراجعة", time: "منذ يومين", read: true },
-  ];
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const handleNotifClick = async (n: NotificationItem) => {
+    setShowNotifications(false);
+    if (!n.readAt) {
+      try {
+        await api.notifications.markRead(n.id);
+        setUnreadCount((c) => Math.max(0, c - 1));
+        setNotifications((arr) => arr.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)));
+      } catch {}
+    }
+    if (n.link) navigate(n.link);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.notifications.markAllRead();
+      setUnreadCount(0);
+      setNotifications((arr) => arr.map((x) => ({ ...x, readAt: x.readAt || new Date().toISOString() })));
+    } catch {}
+  };
 
   return (
     <header className="border-b border-[#E5E7EB] bg-white px-4 sm:px-6 py-3">
@@ -62,22 +108,39 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             {showNotifications && (
               <div className="absolute start-0 z-50 mt-1 w-80 rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[#F3F4F6]">
-                  <span className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>الإشعارات</span>
-                  <button className="text-xs text-[#1276E3] hover:underline">تحديد الكل كمقروء</button>
+                  <span className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>
+                    الإشعارات{unreadCount > 0 && <span className="ms-2 text-xs text-[#1276E3] font-english">({unreadCount})</span>}
+                  </span>
+                  {unreadCount > 0 && (
+                    <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-[#1276E3] hover:underline">
+                      <CheckCheck className="h-3 w-3" /> تحديد الكل كمقروء
+                    </button>
+                  )}
                 </div>
                 <div className="max-h-72 overflow-y-auto">
-                  {notifications.map((n) => (
-                    <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB] transition-colors cursor-pointer ${!n.read ? "bg-[#EFF6FF]/30" : ""}`}>
-                      <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.read ? "bg-[#1276E3]" : "bg-transparent"}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#374151]">{n.text}</p>
-                        <p className="text-xs text-[#9CA3AF] mt-0.5">{n.time}</p>
+                  {notifications.length === 0 ? (
+                    <div className="py-10 text-center text-sm text-[#9CA3AF]">لا توجد إشعارات</div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => handleNotifClick(n)}
+                        className={`flex gap-3 px-4 py-3 border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB] transition-colors cursor-pointer ${!n.readAt ? "bg-[#EFF6FF]/30" : ""}`}
+                      >
+                        <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-[#1276E3]" : "bg-transparent"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-[#0B1B49]" style={{ fontWeight: !n.readAt ? 600 : 400 }}>{n.title}</p>
+                          {n.body && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-2">{n.body}</p>}
+                          <p className="text-xs text-[#9CA3AF] mt-1">{timeAgo(n.createdAt)}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <div className="px-4 py-2 border-t border-[#F3F4F6]">
-                  <button className="w-full text-center text-xs text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>عرض كل الإشعارات</button>
+                  <Link to="/app/notifications" onClick={() => setShowNotifications(false)} className="block w-full text-center text-xs text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>
+                    عرض كل الإشعارات
+                  </Link>
                 </div>
               </div>
             )}

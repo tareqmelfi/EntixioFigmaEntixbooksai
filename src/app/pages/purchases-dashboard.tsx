@@ -1,302 +1,322 @@
-import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+/**
+ * Purchases Dashboard · org-scoped · matches sales dashboard structure (UX-65)
+ *
+ * Layout:
+ *   1. Hero · title + quick-create (فاتورة مشتريات · مصروف · سند صرف · تصدير)
+ *   2. 4 KPI cards · إجمالي · المسدّد · المتبقي · عدد الفواتير
+ *   3. 3 insight cards · أكبر مورد · أكثر تأخر · أكثر إنفاق
+ *   4. Recent purchase bills table (5 rows + view all)
+ *   5. Charts · monthly bills · expenses by category
+ */
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router";
 import {
-  FileText, TrendingUp, DollarSign, AlertCircle, Trophy, AlertTriangle,
-  Building2, Plus, Search, Filter, Download, MoreVertical, Eye, Edit2, Trash2, Copy, X
+  Loader2, FileText, ShoppingCart, TrendingUp, AlertTriangle,
+  Plus, Download, Trophy, Building2, ArrowLeft, Search, MoreHorizontal, Receipt,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import {
-  gridStyle, xAxisStyle, yAxisStyle, tooltipStyle, formatSAR, chartColors
-} from "../components/chart-styles";
-import { contactLink } from "../components/contact-map";
+import { api, ApiError, PurchasesDashboard as Data } from "../lib/api";
 
-const monthlyData = [
-  { month: "أكتوبر", purchases: 65000 },
-  { month: "نوفمبر", purchases: 72000 },
-  { month: "ديسمبر", purchases: 88000 },
-  { month: "يناير", purchases: 58000 },
-  { month: "فبراير", purchases: 75000 },
-  { month: "مارس", purchases: 82000 },
-];
-
-const vendorData = [
-  { name: "شركة المواد الخام", value: 120000, color: "#0B1B49" },
-  { name: "مؤسسة التوريدات", value: 85000, color: "#1276E3" },
-  { name: "شركة الإمدادات", value: 65000, color: "#179FC5" },
-  { name: "أخرى", value: 45000, color: "#E5E7EB" },
-];
-
-const recentBills = [
-  { id: "BILL-2026-001", vendor: "شركة المواد الخام", date: "2026-03-01", amount: "45,000", status: "مدفوعة" },
-  { id: "BILL-2026-002", vendor: "مؤسسة التوريدات", date: "2026-03-05", amount: "28,500", status: "مرسلة" },
-  { id: "BILL-2026-003", vendor: "شركة الإمدادات", date: "2026-03-08", amount: "15,000", status: "مدفوعة" },
-  { id: "BILL-2026-004", vendor: "مؤسسة الخدمات", date: "2026-02-25", amount: "22,000", status: "متأخرة" },
-  { id: "BILL-2026-005", vendor: "شركة التجهيزات", date: "2026-03-10", amount: "18,500", status: "مسودة" },
-];
-
-const statusBadgeClass = (status: string) => {
-  const map: Record<string, string> = {
-    "مدفوعة": "bg-[#ECEEF5] text-[#0B1A47] border-[#0B1A47]/20 hover:bg-[#D9DCE9]",
-    "مرسلة": "bg-[#EFF6FF] text-[#1E40AF] border-[#1276E3]/20 hover:bg-[#DBEAFE]",
-    "متأخرة": "bg-[#E4F4F9] text-[#2A7F9E] border-[#349FC4]/20 hover:bg-[#D0EDF4]",
-    "مسودة": "bg-[#F3F4F6] text-[#374151] border-[#9CA3AF]/20 hover:bg-[#E5E7EB]",
-  };
-  return map[status] || "";
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "مسودة", RECEIVED: "مستلمة", PAID: "مدفوعة", PARTIAL: "مدفوعة جزئياً",
+  OVERDUE: "متأخرة", CANCELLED: "ملغاة",
+};
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: "bg-gray-100 text-gray-700",
+  RECEIVED: "bg-blue-100 text-blue-700",
+  PAID: "bg-green-100 text-green-700",
+  PARTIAL: "bg-amber-100 text-amber-700",
+  OVERDUE: "bg-red-100 text-red-700",
+  CANCELLED: "bg-gray-100 text-gray-500",
+};
+const STATUS_FILL: Record<string, string> = {
+  DRAFT: "#9CA3AF",
+  RECEIVED: "#1276E3",
+  PAID: "#10B981",
+  PARTIAL: "#F59E0B",
+  OVERDUE: "#EF4444",
+  CANCELLED: "#6B7280",
 };
 
-const filterLabels: Record<string, string> = { "": "الكل", paid: "مدفوعة", sent: "مرسلة", overdue: "متأخرة", draft: "مسودات" };
-const statusToFilter: Record<string, string> = { "مدفوعة": "paid", "مرسلة": "sent", "متأخرة": "overdue", "مسودة": "draft" };
+const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#7DD3E4", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
 export function PurchasesDashboard() {
   const navigate = useNavigate();
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("");
-  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
-  const actionMenuRef = useRef<HTMLDivElement>(null);
+  const [data, setData] = useState<Data | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) setActionMenuId(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setData(await api.dashboard.purchases()); }
+    catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل التحميل"); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
-  const filteredBills = activeFilter
-    ? recentBills.filter((b) => statusToFilter[b.status] === activeFilter)
-    : recentBills;
+  const monthlyData = useMemo(() => {
+    if (!data?.monthly) return [];
+    return data.monthly.map((m: any) => ({
+      month: typeof m.month === "string" && m.month.includes("-") ? AR_MONTHS[Number(m.month.split("-")[1]) - 1] : String(m.month),
+      total: Number(m.total) || 0,
+    }));
+  }, [data]);
+
+  const categoryData = useMemo(() => {
+    if (!data?.expensesByCategory) return [];
+    return data.expensesByCategory.slice(0, 8).map((c, i) => ({
+      name: c.category,
+      value: Number(c.total),
+      fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+    }));
+  }, [data]);
+
+  if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-[#1276E3]" /></div>;
+  if (error || !data) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || "تعذّر التحميل"}</div>;
+
+  const cur = data.org.baseCurrency;
+  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
+  const filtered = data.recentBills.filter((b) => !searchQuery || b.number.includes(searchQuery) || b.contact.includes(searchQuery)).slice(0, 5);
+
+  // Insights
+  const topSupplier = data.topSuppliers[0];
+  const overdueBills = data.recentBills.filter((b) => b.status === "OVERDUE");
+  const mostOverdueSupplier = overdueBills[0];
+  const topCategory = data.expensesByCategory[0];
+
+  const totalAllTime = Number(data.ytd.bills) + Number(data.ytd.expenses);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المشتريات</h1>
-          <p className="text-[#6B7280] mt-1">نظرة شاملة على مشترياتك وفواتير الموردين</p>
+          <p className="text-[#6B7280] mt-1 text-sm">نظرة شاملة على مشترياتك ومصروفاتك</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/app/purchases/bills"><Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />فاتورة شراء جديدة</Button></Link>
-          <Link to="/app/payments"><Button variant="outline" className="border-[#1276E3] text-[#1276E3]"><Plus className="me-2 h-4 w-4" />سند دفع</Button></Link>
-          <Link to="/app/expenses"><Button variant="outline" className="border-[#E5E7EB]"><Plus className="me-2 h-4 w-4" />مصروف</Button></Link>
-          <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
-        </div>
-      </div>
-
-      {/* ── KPI Cards — Assets style ── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div onClick={() => navigate("/app/purchases/bills")} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-            <CardContent className="pt-5 pb-4 px-5 text-center">
-              <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><FileText className="h-5 w-5 text-[#1276E3]" /></div></div>
-              <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>5</div>
-              <p className="text-xs text-[#6B7280] mt-1">إجمالي فواتير المشتريات</p>
-            </CardContent>
-          </Card>
-        </div>
-        <div onClick={() => navigate("/app/purchases/bills")} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-            <CardContent className="pt-5 pb-4 px-5 text-center">
-              <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><DollarSign className="h-5 w-5 text-[#1276E3]" /></div></div>
-              <span dir="ltr" className="inline-flex items-baseline gap-1.5">
-                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
-                <span className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>129,000.00</span>
-              </span>
-              <p className="text-xs text-[#6B7280] mt-1">إجمالي المبالغ</p>
-            </CardContent>
-          </Card>
-        </div>
-        <div onClick={() => navigate("/app/purchases/bills?status=paid")} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#349FC4]/30 transition-all">
-            <CardContent className="pt-5 pb-4 px-5 text-center">
-              <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#E4F4F9] p-2.5"><TrendingUp className="h-5 w-5 text-[#349FC4]" /></div></div>
-              <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
-                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
-                <span className="text-[#349FC4] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>60,000</span>
-              </div>
-              <p className="text-xs text-[#6B7280] mt-1">المدفوع للموردين</p>
-            </CardContent>
-          </Card>
-        </div>
-        <div onClick={() => navigate("/app/purchases/bills?status=overdue")} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#0B1A47]/30 transition-all">
-            <CardContent className="pt-5 pb-4 px-5 text-center">
-              <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#ECEEF5] p-2.5"><AlertCircle className="h-5 w-5 text-[#0B1A47]" /></div></div>
-              <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
-                <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>SAR</span>
-                <span className="text-[#0B1A47] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>22,000</span>
-              </div>
-              <p className="text-xs text-[#6B7280] mt-1">المستحق عليك</p>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => navigate("/app/purchases/bills?new=1")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+            <Plus className="me-1 h-4 w-4" /> فاتورة مشتريات
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/app/expenses?new=1")} className="border-[#E5E7EB] text-[#1276E3]">
+            <Plus className="me-1 h-4 w-4" /> مصروف
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/app/payments?new=1")} className="border-[#E5E7EB] text-[#1276E3]">
+            <Plus className="me-1 h-4 w-4" /> سند صرف
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/app/reports?type=purchases")} className="border-[#E5E7EB] text-[#6B7280]">
+            <Download className="me-1 h-4 w-4" /> تصدير
+          </Button>
         </div>
       </div>
 
-      {/* ── Quick Insights — compact, no "عرض التفاصيل" ── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div onClick={() => navigate(contactLink("شركة المواد الخام"))} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-[#FEF3C7] p-2 shrink-0"><Trophy className="h-4 w-4 text-[#F59E0B]" /></div>
-                <div className="flex-1 min-w-0"><p className="text-xs text-[#6B7280]">أكبر مورد</p><p className="text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>شركة المواد الخام</p></div>
-                <div className="text-end shrink-0"><p className="text-[#0B1B49] font-english" style={{ fontWeight: 700 }}><span dir="ltr" className="font-english">SAR 120,000</span></p></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div onClick={() => navigate(contactLink("مؤسسة الخدمات"))} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-[#E4F4F9] p-2 shrink-0"><AlertTriangle className="h-4 w-4 text-[#349FC4]" /></div>
-                <div className="flex-1 min-w-0"><p className="text-xs text-[#6B7280]">أكثر مورد تأخراً</p><p className="text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>مؤسسة الخدمات</p></div>
-                <div className="text-end shrink-0"><p className="text-[#0B1B49] font-english" style={{ fontWeight: 700 }}><span dir="ltr" className="font-english">SAR 22,000</span></p></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div onClick={() => navigate("/app/assets")} className="cursor-pointer">
-          <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-[#DBEAFE] p-2 shrink-0"><Building2 className="h-4 w-4 text-[#1276E3]" /></div>
-                <div className="flex-1 min-w-0"><p className="text-xs text-[#6B7280]">مشتريات أصول</p><p className="text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>قيد التصنيف</p></div>
-                <div className="text-end shrink-0"><p className="text-[#0B1B49]" style={{ fontWeight: 700 }}>2 <span className="text-[#6B7280]" style={{ fontSize: "0.75rem", fontWeight: 500 }}>عنصر</span></p></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* 4 KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-[#6B7280]">عدد الفواتير</span>
+              <FileText className="h-4 w-4 text-[#1276E3]" />
+            </div>
+            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{data.ytd.billCount}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-[#6B7280]">إجمالي المشتريات</span>
+              <ShoppingCart className="h-4 w-4 text-[#1276E3]" />
+            </div>
+            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(totalAllTime)}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-[#6B7280]">المصروفات النقدية</span>
+              <Receipt className="h-4 w-4 text-amber-500" />
+            </div>
+            <div className="text-amber-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(Number(data.ytd.expenses))}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-[#6B7280]">هذا الشهر</span>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="text-green-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(Number(data.thisMonth.bills))}</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── Table — filter in dropdown, 3-dot menu ── */}
+      {/* 3 insight cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> أكبر مورد</p>
+                <p className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{topSupplier?.name || "—"}</p>
+              </div>
+              <div className="font-english text-[#0B1B49] text-sm shrink-0" style={{ fontWeight: 700 }}>
+                <span className="text-[#9CA3AF]">SR</span> {topSupplier ? Number(topSupplier.total).toLocaleString() : "—"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> أكثر تأخر</p>
+                <p className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{mostOverdueSupplier?.contact || "—"}</p>
+              </div>
+              <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
+                <span className="text-[#9CA3AF]">SR</span> {mostOverdueSupplier ? Number(mostOverdueSupplier.total).toLocaleString() : "0"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5"><Building2 className="h-3 w-3 text-[#1276E3]" /> أكثر تصنيف</p>
+                <p className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{topCategory?.category || "—"}</p>
+              </div>
+              <div className="font-english text-[#0B1B49] text-sm shrink-0" style={{ fontWeight: 700 }}>
+                <span className="text-[#9CA3AF]">SR</span> {topCategory ? Number(topCategory.total).toLocaleString() : "—"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent bills */}
       <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[#0B1B49]">آخر فواتير المشتريات</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="البحث..." className="w-64 ps-10 border-[#E5E7EB]" /></div>
-              <div className="relative">
-                <button onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className={`rounded-lg border p-2 transition-colors ${activeFilter ? "bg-[#EFF6FF] border-[#1276E3] text-[#1276E3]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]"}`}><Filter className="h-4 w-4" /></button>
-                {showFilterDropdown && (
-                  <div className="absolute end-0 z-40 mt-1 w-44 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                    {Object.entries(filterLabels).map(([val, label]) => (
-                      <button key={val} onClick={() => { setActiveFilter(val); setShowFilterDropdown(false); }}
-                        className={`w-full text-start px-3 py-2 text-sm transition-colors ${activeFilter === val ? "bg-[#EFF6FF] text-[#1276E3]" : "text-[#374151] hover:bg-[#F9FAFB]"}`}
-                        style={{ fontWeight: activeFilter === val ? 600 : 400 }}>{label}</button>
-                    ))}
-                    {activeFilter && (<><div className="border-t border-[#F3F4F6] my-1" /><button onClick={() => { setActiveFilter(""); setShowFilterDropdown(false); }} className="w-full text-start px-3 py-2 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30">مسح الفلتر</button></>)}
-                  </div>
-                )}
-              </div>
+        <CardContent className="p-0">
+          <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-[#F3F4F6]">
+            <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>آخر فواتير المشتريات</h2>
+            <div className="relative">
+              <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
+              <Input
+                placeholder="البحث في الفواتير..."
+                className="w-64 ps-9 h-9 border-[#E5E7EB] text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {activeFilter && (
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs text-[#6B7280]">فلتر نشط:</span>
-              <span className="inline-flex items-center gap-1 rounded-md bg-[#EFF6FF] px-2 py-0.5 text-xs text-[#1276E3]" style={{ fontWeight: 600 }}>
-                {filterLabels[activeFilter]}
-                <button onClick={() => setActiveFilter("")} className="hover:text-[#EF4444]"><X className="h-3 w-3" /></button>
-              </span>
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse" style={{ minWidth: "700px" }}>
+          {filtered.length === 0 ? (
+            <div className="p-12 text-center text-sm text-[#6B7280]">لا توجد فواتير مشتريات بعد</div>
+          ) : (
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-[#E5E7EB]">
-                  <th className="pb-3 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "140px" }}>رقم الفاتورة</th>
-                  <th className="pb-3 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>المورد</th>
-                  <th className="pb-3 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>التاريخ</th>
-                  <th className="pb-3 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>المبلغ (SAR)</th>
-                  <th className="pb-3 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "90px" }}>الحالة</th>
-                  <th className="pb-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "60px" }}>إجراءات</th>
+                <tr className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                  <th className="py-2.5 px-5 text-start" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>المورد</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>المبلغ ({cur})</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>الحالة</th>
+                  <th className="py-2.5 px-2 w-10"></th>
                 </tr>
               </thead>
               <tbody>
-                {filteredBills.map((b) => (
-                  <tr key={b.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
-                    <td className="py-3.5 pe-4"><Link to="/app/purchases/bills" className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{b.id}</Link></td>
-                    <td className="py-3.5 pe-4"><Link to={contactLink(b.vendor)} className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline transition-colors">{b.vendor}</Link></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#6B7280]">{b.date}</span></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 600 }}>{b.amount}</span></td>
-                    <td className="py-3.5 pe-4"><span className={`inline-flex rounded-md px-2.5 py-1 text-xs border transition-colors ${statusBadgeClass(b.status)}`} style={{ fontWeight: 600 }}>{b.status}</span></td>
-                    <td className="py-3.5">
-                      <div className="relative" ref={actionMenuId === b.id ? actionMenuRef : undefined}>
-                        <button onClick={() => setActionMenuId(actionMenuId === b.id ? null : b.id)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"><MoreVertical className="h-4 w-4" /></button>
-                        {actionMenuId === b.id && (
-                          <div className="absolute end-0 z-40 mt-1 w-36 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                            <Link to="/app/purchases/bills" className="flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB]" onClick={() => setActionMenuId(null)}><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</Link>
-                            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start" onClick={() => setActionMenuId(null)}><Edit2 className="h-3.5 w-3.5 text-[#6B7280]" />تعديل</button>
-                            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start" onClick={() => setActionMenuId(null)}><Copy className="h-3.5 w-3.5 text-[#6B7280]" />نسخ</button>
-                            <div className="border-t border-[#F3F4F6] my-1" />
-                            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start" onClick={() => setActionMenuId(null)}><Trash2 className="h-3.5 w-3.5" />حذف</button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                {filtered.map((b) => (
+                  <tr key={b.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF] cursor-pointer" onClick={() => navigate(`/app/purchases/bills`)}>
+                    <td className="py-3 px-5 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{b.number}</td>
+                    <td className="py-3 px-2 text-sm text-[#374151]">{b.contact}</td>
+                    <td className="py-3 px-2 font-english text-xs text-[#6B7280]">{b.date}</td>
+                    <td className="py-3 px-2 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()}</td>
+                    <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
+                    <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-[#9CA3AF]" /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-          <div className="mt-4 text-center">
-            <Link to="/app/purchases/bills" className="text-sm text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>عرض جميع فواتير المشتريات ←</Link>
-          </div>
+          )}
+          {filtered.length > 0 && (
+            <div className="px-5 py-3 border-t border-[#F3F4F6] text-center">
+              <button
+                onClick={() => navigate("/app/purchases/bills")}
+                className="text-sm text-[#1276E3] hover:underline inline-flex items-center gap-1"
+              >
+                عرض جميع الفواتير <ArrowLeft className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="border-[#E5E7EB]">
-          <CardHeader>
-            <CardTitle className="text-[#0B1B49]">المشتريات الشهرية</CardTitle>
-            <CardDescription className="text-[#B0B7C3]" style={{ fontSize: "12px" }}>آخر 6 أشهر</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div dir="ltr">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monthlyData}>
-                  <CartesianGrid {...gridStyle} />
-                  <XAxis dataKey="month" {...xAxisStyle} reversed />
-                  <YAxis {...yAxisStyle} orientation="right" />
-                  <Tooltip {...tooltipStyle} formatter={(v: number) => formatSAR(v)} />
-                  <Bar dataKey="purchases" fill={chartColors.tealSoft} name="المشتريات" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <CardContent className="p-5">
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>المشتريات الشهرية</h2>
+              <span className="text-xs text-[#6B7280]">آخر 6 أشهر</span>
+            </div>
+            <div style={{ width: "100%", height: 280 }}>
+              {monthlyData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-[#6B7280]">لا توجد بيانات بعد</div>
+              ) : (
+                <ResponsiveContainer>
+                  <BarChart data={monthlyData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6B7280" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+                    <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
+                    <Bar dataKey="total" fill="#1276E3" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
         <Card className="border-[#E5E7EB]">
-          <CardHeader>
-            <CardTitle className="text-[#0B1B49]">توزيع حسب المورد</CardTitle>
-            <CardDescription className="text-[#B0B7C3]" style={{ fontSize: "12px" }}>حسب حجم المشتريات</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div dir="ltr">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie data={vendorData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value"
-                    label={({ name }) => `${name}`} labelLine={{ stroke: "#D1D5DB", strokeWidth: 1 }}
-                    style={{ fontSize: "11px", fontFamily: "Noto Sans Arabic", fill: "#9CA3AF" }}>
-                    {vendorData.map((e, index) => (<Cell key={`cell-${index}`} fill={e.color} fillOpacity={0.85} />))}
-                  </Pie>
-                  <Tooltip {...tooltipStyle} formatter={(v: number) => formatSAR(v)} />
-                </PieChart>
-              </ResponsiveContainer>
+          <CardContent className="p-5">
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>المصروفات حسب التصنيف</h2>
+              <span className="text-xs text-[#6B7280]">السنة حتى الآن</span>
+            </div>
+            <div style={{ width: "100%", height: 280 }}>
+              {categoryData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-[#6B7280]">لا توجد بيانات بعد</div>
+              ) : (
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={(entry: any) => entry.name}
+                      labelLine={{ stroke: "#9CA3AF", strokeWidth: 1 }}
+                    >
+                      {categoryData.map((s, i) => (
+                        <Cell key={i} fill={s.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      {/* -- removed: buttons moved to header like sales dashboard -- */}
     </div>
   );
 }

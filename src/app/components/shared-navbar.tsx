@@ -84,14 +84,15 @@ export function SharedNavbar() {
   };
 
   return (
-    <nav 
+    <nav
+      dir={language === "en" ? "ltr" : "rtl"}
       className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
-        scrolled 
-          ? "bg-white/98 backdrop-blur-xl shadow-md shadow-black/5" 
+        scrolled
+          ? "bg-white/98 backdrop-blur-xl shadow-md shadow-black/5"
           : "bg-white/90 backdrop-blur-md"
       } border-b border-gray-100/80`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[68px] flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-md">
@@ -131,7 +132,7 @@ export function SharedNavbar() {
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className={`w-full text-right px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            className={`w-full text-end px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer ${
                               i !== item.dropdown!.length - 1 ? "border-b border-gray-50" : ""
                             }`}
                           >
@@ -171,9 +172,9 @@ export function SharedNavbar() {
           >
             تسجيل الدخول
           </button>
-          <button 
+          <button
             onClick={() => navigate("/register")}
-            className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
+            className="bg-[#05B6FA] hover:bg-[#0498D4] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#05B6FA]/25 cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
             ابدأ مجاناً
@@ -211,7 +212,7 @@ export function SharedNavbar() {
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className="w-full text-right px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                            className="w-full text-end px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
                             style={{ fontSize: "15px", fontWeight: 500 }}
                           >
                             {subItem.label}
@@ -222,7 +223,7 @@ export function SharedNavbar() {
                   ) : (
                     <button
                       onClick={() => handleNavigate(item.href!)}
-                      className="w-full text-right px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                      className="w-full text-end px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
                       style={{ fontSize: "15px", fontWeight: 500 }}
                     >
                       {item.label}
@@ -233,14 +234,14 @@ export function SharedNavbar() {
               <hr className="border-gray-100 my-4" />
               <button 
                 onClick={() => handleNavigate("/login")} 
-                className="w-full text-right text-[#0B1A47] px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" 
+                className="w-full text-end text-[#0B1A47] px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" 
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
                 تسجيل الدخول
               </button>
-              <button 
-                onClick={() => handleNavigate("/register")} 
-                className="w-full bg-[#1276E3] text-white py-3 rounded-xl cursor-pointer hover:bg-[#0B5FBF] transition-colors" 
+              <button
+                onClick={() => handleNavigate("/register")}
+                className="w-full bg-[#05B6FA] text-white py-3 rounded-xl cursor-pointer hover:bg-[#0498D4] transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 ابدأ مجاناً
@@ -249,6 +250,19 @@ export function SharedNavbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile fixed-bottom CTA · only when nav is closed and on small screens */}
+      {!mobileNav && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
+          <button
+            onClick={() => navigate("/register")}
+            className="w-full bg-[#05B6FA] text-white py-3 rounded-xl shadow-lg shadow-[#05B6FA]/20 hover:bg-[#0498D4] transition-colors cursor-pointer"
+            style={{ fontSize: "15px", fontWeight: 600 }}
+          >
+            ابدأ مجاناً
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

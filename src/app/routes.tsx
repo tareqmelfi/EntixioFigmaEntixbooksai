@@ -3,6 +3,8 @@ import { Root } from "./layouts/root";
 import { Landing } from "./pages/landing";
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
+import { ForgotPassword } from "./pages/forgot-password";
+import { ResetPassword } from "./pages/reset-password";
 import { Features } from "./pages/features";
 import { Integration } from "./pages/integration";
 import { PricingPage } from "./pages/pricing-page";
@@ -56,8 +58,13 @@ import { Contacts } from "./pages/contacts";
 import { ContactDetail } from "./pages/contact-detail";
 import { Reports } from "./pages/reports";
 import { Settings } from "./pages/settings";
+import { Notifications } from "./pages/notifications";
+import { InboxPage } from "./pages/inbox";
+import { AdminDashboard } from "./pages/admin";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
+import { BankReconciliation } from "./pages/bank-reconciliation";
+import { FiscalPeriods } from "./pages/fiscal-periods";
 import { CostCenters } from "./pages/cost-centers";
 import { Projects } from "./pages/projects";
 import { Branches } from "./pages/branches";
@@ -82,6 +89,8 @@ export const router = createBrowserRouter([
   { path: "/", element: <Landing />, errorElement: <ErrorBoundary /> },
   { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },
   { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
+  { path: "/forgot-password", element: <ForgotPassword />, errorElement: <ErrorBoundary /> },
+  { path: "/reset-password", element: <ResetPassword />, errorElement: <ErrorBoundary /> },
   { path: "/features", element: <Features />, errorElement: <ErrorBoundary /> },
   { path: "/integration", element: <Integration />, errorElement: <ErrorBoundary /> },
   { path: "/pricing", element: <PricingPage />, errorElement: <ErrorBoundary /> },
@@ -118,20 +127,44 @@ export const router = createBrowserRouter([
       // Sales
       { path: "sales", element: <SalesDashboard />, errorElement: <ErrorBoundary /> },
       { path: "invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "invoices/new", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "invoices/:id", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      // legacy aliases used by older links
+      { path: "sales/invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "sales/invoices/new", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "sales/invoices/:id", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "sales/quotes", element: <Quotes />, errorElement: <ErrorBoundary /> },
+      { path: "sales/quotes/new", element: <Quotes />, errorElement: <ErrorBoundary /> },
+      { path: "sales/quotes/:id", element: <Quotes />, errorElement: <ErrorBoundary /> },
       { path: "quotes", element: <Quotes />, errorElement: <ErrorBoundary /> },
+      { path: "quotes/new", element: <Quotes />, errorElement: <ErrorBoundary /> },
+      { path: "quotes/:id", element: <Quotes />, errorElement: <ErrorBoundary /> },
       { path: "receipts", element: <Receipts />, errorElement: <ErrorBoundary /> },
+      { path: "receipts/new", element: <Receipts />, errorElement: <ErrorBoundary /> },
       { path: "credit-notes", element: <CreditNotes />, errorElement: <ErrorBoundary /> },
+      { path: "credit-notes/new", element: <CreditNotes />, errorElement: <ErrorBoundary /> },
       // Purchases
       { path: "purchases", element: <PurchasesDashboard />, errorElement: <ErrorBoundary /> },
       { path: "purchases/bills", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
+      { path: "purchases/bills/new", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
+      { path: "purchases/bills/:id", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
       { path: "payments", element: <Payments />, errorElement: <ErrorBoundary /> },
+      { path: "payments/new", element: <Payments />, errorElement: <ErrorBoundary /> },
       { path: "expenses", element: <Expenses />, errorElement: <ErrorBoundary /> },
+      { path: "expenses/new", element: <Expenses />, errorElement: <ErrorBoundary /> },
+      { path: "inbox", element: <InboxPage />, errorElement: <ErrorBoundary /> },
+      { path: "vouchers", element: <Receipts />, errorElement: <ErrorBoundary /> },
+      { path: "vouchers/new", element: <Receipts />, errorElement: <ErrorBoundary /> },
       // Accounting
       { path: "chart-of-accounts", element: <ChartOfAccounts />, errorElement: <ErrorBoundary /> },
       { path: "journal-entries", element: <JournalEntries />, errorElement: <ErrorBoundary /> },
+      { path: "journal-entries/new", element: <JournalEntries />, errorElement: <ErrorBoundary /> },
       { path: "taxes", element: <Taxes />, errorElement: <ErrorBoundary /> },
       // Bank Accounts
       { path: "bank-accounts", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
+      { path: "bank-accounts/new", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
+      { path: "bank-reconciliation", element: <BankReconciliation />, errorElement: <ErrorBoundary /> },
+      { path: "fiscal-periods", element: <FiscalPeriods />, errorElement: <ErrorBoundary /> },
       // Assets
       { path: "assets", element: <FixedAssets />, errorElement: <ErrorBoundary /> },
       { path: "assets/:id", element: <AssetDetail />, errorElement: <ErrorBoundary /> },
@@ -154,7 +187,11 @@ export const router = createBrowserRouter([
       { path: "templates", element: <Templates />, errorElement: <ErrorBoundary /> },
       // Analytics & Settings
       { path: "reports", element: <Reports />, errorElement: <ErrorBoundary /> },
+      { path: "reports/cash-flow", element: <Reports />, errorElement: <ErrorBoundary /> },
+      { path: "reports/profit-loss", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "settings", element: <Settings />, errorElement: <ErrorBoundary /> },
+      { path: "notifications", element: <Notifications />, errorElement: <ErrorBoundary /> },
+      { path: "admin", element: <AdminDashboard />, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: <FeatureRoadmap />, errorElement: <ErrorBoundary /> },
     ],
   },

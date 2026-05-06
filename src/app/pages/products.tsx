@@ -1,0 +1,104 @@
+import { useEffect, useState, useCallback } from "react";
+import { Package, Plus, Trash2, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { api, ApiError } from "../lib/api";
+
+export function Products() {
+  const [items, setItems] = useState<any[]>([]);
+  const { toasts, push, dismiss } = useToasts();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ sku: "", name: "", nameAr: "", type: "SERVICE", unitPrice: "", costPrice: "0" });
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try { setItems((await api.products.list()).items); }
+    catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل التحميل"); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.unitPrice) { setError("الاسم والسعر مطلوبان"); return; }
+    setBusy(true); setError(null);
+    try {
+      const p = await api.products.create({
+        sku: form.sku || null, name: form.name, nameAr: form.nameAr || null,
+        type: form.type, unitPrice: Number(form.unitPrice), costPrice: Number(form.costPrice || 0),
+      });
+      setItems(prev => [...prev, p]);
+      setOpen(false); setForm({ sku: "", name: "", nameAr: "", type: "SERVICE", unitPrice: "", costPrice: "0" });
+    } catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل الحفظ"); }
+    finally { setBusy(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    /* TODO-UX1: was confirm("حذف؟") — replace with InlineConfirm */ 
+try { await api.products.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل"); }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المنتجات والخدمات</h1><p className="text-[#6B7280] mt-1">إدارة المنتجات والخدمات والأصناف المخزنية</p></div>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />صنف جديد</Button>
+      </div>
+      <Card className="border-[#E5E7EB]"><CardHeader><CardTitle>القائمة · {items.length}</CardTitle></CardHeader><CardContent>
+        {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+         items.length === 0 ? <div className="py-12 text-center"><Package className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد منتجات</p></div> :
+        (<table className="w-full"><thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+          <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>SKU</th>
+          <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
+          <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>النوع</th>
+          <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>السعر</th>
+          <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}></th>
+        </tr></thead><tbody>
+          {items.map(p => <tr key={p.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+            <td className="py-3 px-4 font-english text-sm text-[#6B7280]">{p.sku || "—"}</td>
+            <td className="py-3 px-4 text-sm text-[#0B1B49]">{p.nameAr || p.name}</td>
+            <td className="py-3 px-4 text-xs"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700">{p.type === "SERVICE" ? "خدمة" : p.type === "GOOD" ? "بضاعة" : "مخزون"}</span></td>
+            <td className="py-3 px-4 font-english text-sm" style={{ fontWeight: 600 }}>{Number(p.unitPrice).toLocaleString()}</td>
+            <td className="py-3 px-4"><button onClick={() => handleDelete(p.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></td>
+          </tr>)}
+        </tbody></table>)}
+      </CardContent></Card>
+
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">صنف جديد</h2></div>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>النوع</Label>
+                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SERVICE">خدمة</SelectItem>
+                    <SelectItem value="GOOD">بضاعة</SelectItem>
+                    <SelectItem value="INVENTORY">مخزون</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2"><Label>الاسم بالإنجليزية *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>الاسم بالعربية</Label><Input value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>سعر البيع *</Label><Input type="number" step="0.01" min="0" required value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>سعر التكلفة</Label><Input type="number" step="0.01" min="0" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} dir="ltr" className="font-english" /></div>
+            </div>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
+          </form>
+        </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </div>
+  );
+}

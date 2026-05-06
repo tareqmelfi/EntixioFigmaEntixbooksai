@@ -1,38 +1,59 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, useLocation, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where the user was trying to go before being bounced to /login.
+  // AuthGuard sets this via Navigate state · default to /app for fresh logins.
+  const fromPath: string = (location.state as any)?.from || "/app";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in · respect fromPath
   useEffect(() => {
-    if (authStore.getState().isAuthenticated) navigate("/app");
-  }, [navigate]);
+    if (authStore.getState().isAuthenticated) navigate(fromPath, { replace: true });
+    const unsub = authStore.subscribe(s => { if (s.isAuthenticated) navigate(fromPath, { replace: true }); });
+    return unsub;
+  }, [navigate, fromPath]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const result = authStore.login(email, password);
-      if (result.success) {
-        navigate("/app");
-      } else {
-        setError(result.error || "حدث خطأ");
-      }
-      setLoading(false);
-    }, 800);
+    const result = await authStore.login(email, password);
+    setLoading(false);
+    if (result.success) navigate(fromPath, { replace: true });
+    else setError(result.error || "حدث خطأ");
   };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const r = await authStore.loginWithGoogle();
+      if (!r.success) {
+        setError(r.error || "تعذّر الاتصال بـGoogle");
+        setGoogleLoading(false);
+      }
+    } catch (e: any) {
+      setError(e?.message || "تعذّر الاتصال بـGoogle");
+      setGoogleLoading(false);
+    }
+  };
+
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  useEffect(() => {
+    authStore.getProviders().then(p => setGoogleEnabled(p.google));
+  }, []);
 
   return (
     <div className="min-h-screen flex" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
@@ -82,7 +103,7 @@ export function Login() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 500 }}>كلمة المرور</label>
-                <a href="#" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>نسيت كلمة المرور؟</a>
+                <Link to="/forgot-password" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>نسيت كلمة المرور؟</Link>
               </div>
               <div className="relative">
                 <input
@@ -118,6 +139,38 @@ export function Login() {
               ) : "تسجيل الدخول"}
             </button>
           </form>
+
+          {/* Divider · only when Google enabled */}
+          {googleEnabled && (
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-[#E5E7EB]" />
+              <span className="text-[#9CA3AF]" style={{ fontSize: "12px" }}>أو</span>
+              <div className="flex-1 h-px bg-[#E5E7EB]" />
+            </div>
+          )}
+
+          {/* Google OAuth · only when configured */}
+          {googleEnabled && (
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={googleLoading}
+            className="w-full bg-white border border-[#E5E7EB] hover:border-[#1276E3] hover:bg-[#F9FAFB] disabled:opacity-60 text-[#0B1A47] py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
+            style={{ fontSize: "15px", fontWeight: 600 }}
+          >
+            {googleLoading ? (
+              <span className="w-5 h-5 border-2 border-[#1276E3]/30 border-t-[#1276E3] rounded-full animate-spin" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+            )}
+            تسجيل الدخول عبر Google
+          </button>
+          )}
 
           <div className="mt-6 text-center">
             <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>ليس لديك حساب؟ </span>

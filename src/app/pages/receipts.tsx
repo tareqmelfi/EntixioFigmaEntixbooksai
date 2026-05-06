@@ -1,49 +1,121 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { Receipt, Plus, Search, Eye, X, DollarSign, MoreVertical, Edit2, Trash2, Copy } from "lucide-react";
+/**
+ * سندات القبض · Receipt Vouchers (cash IN from customers)
+ * Wired to /api/vouchers?type=RECEIPT
+ */
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Search, Eye, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { contactLink } from "../components/contact-map";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { api, Voucher, ApiError } from "../lib/api";
 
-interface ReceiptItem { id: string; client: string; date: string; amount: string; amountNum: number; method: string; ref: string; }
-
-const receiptsData: ReceiptItem[] = [
-  { id: "R-001", client: "شركة الأمل التجارية", date: "2026-03-01", amount: "5,000", amountNum: 5000, method: "تحويل بنكي", ref: "INV-2026-001" },
-  { id: "R-002", client: "مؤسسة النور", date: "2026-03-02", amount: "8,500", amountNum: 8500, method: "نقداً", ref: "INV-2026-002" },
-  { id: "R-003", client: "شركة البناء الحديث", date: "2026-03-03", amount: "12,000", amountNum: 12000, method: "شيك", ref: "INV-2026-003" },
-];
+const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
+  CASH: "نقداً", BANK_TRANSFER: "تحويل بنكي", CARD: "بطاقة ائتمان",
+  STC_PAY: "STC Pay", MADA: "مدى", CHECK: "شيك", OTHER: "أخرى",
+};
 
 export function Receipts() {
-  const [selected, setSelected] = useState<ReceiptItem | null>(null);
+  const [items, setItems] = useState<Voucher[]>([]);
+  const { toasts, push, dismiss } = useToasts();
+  const [summary, setSummary] = useState({ sumAmount: "0", avgAmount: "0" });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<Voucher | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    amount: "",
+    paymentMethod: "BANK_TRANSFER" as Voucher["paymentMethod"],
+    reference: "",
+    notes: "",
+  });
 
-  const filtered = receiptsData.filter((r) => !searchQuery || r.client.includes(searchQuery) || r.id.includes(searchQuery));
-  const total = receiptsData.reduce((s, r) => s + r.amountNum, 0);
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await api.vouchers.list({ type: "RECEIPT" });
+      setItems(data.items);
+      setSummary(data.summary);
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "فشل التحميل");
+    } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const filtered = items.filter(p =>
+    !searchQuery || p.number.includes(searchQuery) ||
+    (p.contact?.displayName || "").includes(searchQuery) ||
+    (p.notes || "").includes(searchQuery)
+  );
+  const total = Number(summary.sumAmount || 0);
+  const avg = Number(summary.avgAmount || 0);
+
+  const resetForm = () => setForm({
+    date: new Date().toISOString().slice(0, 10),
+    amount: "", paymentMethod: "BANK_TRANSFER", reference: "", notes: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!form.amount || Number(form.amount) <= 0) { setError("الرجاء إدخال مبلغ صحيح"); return; }
+    setBusy(true);
+    try {
+      const v = await api.vouchers.create({
+        type: "RECEIPT", date: form.date, amount: Number(form.amount),
+        paymentMethod: form.paymentMethod,
+        reference: form.reference || null, notes: form.notes || null,
+      });
+      setItems(prev => [v, ...prev]);
+      setOpen(false); resetForm();
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "فشل الحفظ");
+    } finally { setBusy(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    /* TODO-UX1: was confirm("هل تريد حذف سند القبض؟ سيتم تعديل رصيد الفاتورة المرتبطة.") — replace with InlineConfirm */ 
+try {
+      await api.vouchers.remove(id);
+      setItems(prev => prev.filter(x => x.id !== id));
+      if (selected?.id === id) setSelected(null);
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
+  };
 
   if (selected) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setSelected(null)} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
-          <div>
-            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>سند قبض <span className="font-english">{selected.id}</span></h1>
-            <Link to={contactLink(selected.client)} className="text-[#6B7280] text-sm hover:text-[#1276E3] hover:underline">{selected.client}</Link>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSelected(null)} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+            <div>
+              <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>سند قبض <span className="font-english">{selected.number}</span></h1>
+              {selected.contact && <p className="text-[#6B7280] text-sm">{selected.contact.displayName}</p>}
+            </div>
           </div>
+          <Button variant="outline" onClick={() => handleDelete(selected.id)} className="border-red-200 text-red-600 hover:bg-red-50">
+            <Trash2 className="me-2 h-4 w-4" /> حذف
+          </Button>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">
             <h3 className="text-[#0B1B49]" style={{ fontWeight: 600 }}>بيانات السند</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-[#6B7280]">رقم:</span> <span className="font-english">{selected.id}</span></div>
-              <div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date}</span></div>
-              <div><span className="text-[#6B7280]">طريقة الدفع:</span> <span>{selected.method}</span></div>
-              <div><span className="text-[#6B7280]">المرجع:</span> <Link to="/app/invoices" className="font-english text-[#1276E3] hover:underline">{selected.ref}</Link></div>
+              <div><span className="text-[#6B7280]">رقم:</span> <span className="font-english">{selected.number}</span></div>
+              <div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date.slice(0, 10)}</span></div>
+              <div><span className="text-[#6B7280]">طريقة الدفع:</span> <span>{METHOD_LABELS[selected.paymentMethod]}</span></div>
+              {selected.reference && <div><span className="text-[#6B7280]">المرجع:</span> <span className="font-english">{selected.reference}</span></div>}
+              {selected.notes && <div className="col-span-2"><span className="text-[#6B7280]">ملاحظات:</span> <span>{selected.notes}</span></div>}
             </div>
           </CardContent></Card>
           <Card className="border-[#E5E7EB]"><CardContent className="p-5 space-y-3">
             <h3 className="text-[#0B1B49]" style={{ fontWeight: 600 }}>المبلغ</h3>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{selected.amount} SR</div>
+            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{Number(selected.amount).toLocaleString()} {selected.currency}</div>
           </CardContent></Card>
         </div>
       </div>
@@ -54,26 +126,20 @@ export function Receipts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>سندات القبض</h1><p className="text-[#6B7280] mt-1">إدارة سندات القبض من العملاء</p></div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />سند قبض جديد</Button>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />سند قبض جديد</Button>
       </div>
 
-      {/* KPI — Clickable */}
+      {error && !open && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="cursor-pointer"><Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي المقبوضات</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">هذا الشهر</p></CardContent>
-        </Card></div>
-        <div className="cursor-pointer"><Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">عدد السندات</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{receiptsData.length}</div><p className="text-xs text-[#6B7280] mt-1">سند قبض</p></CardContent>
-        </Card></div>
-        <div className="cursor-pointer"><Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">متوسط المقبوض</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(total / receiptsData.length).toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">لكل سند</p></CardContent>
-        </Card></div>
+        <Card className="border-[#E5E7EB]"><CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي المقبوضات</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()} SR</div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">عدد السندات</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">متوسط المقبوض</CardTitle></CardHeader>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length ? Math.round(avg).toLocaleString() : 0} SR</div></CardContent></Card>
       </div>
 
-      {/* Table */}
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -82,34 +148,72 @@ export function Receipts() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse" style={{ minWidth: "650px" }}>
-              <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>رقم السند</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "auto" }}>العميل</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>التاريخ</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "110px" }}>المبلغ (SR)</th>
-                  <th className="py-2.5 pe-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "100px" }}>طريقة الدفع</th>
-                  <th className="py-2.5 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600, width: "80px" }}>إجراءات</th>
+          <table className="w-full">
+            <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+              <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>رقم السند</th>
+              <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>العميل</th>
+              <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>التاريخ</th>
+              <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المبلغ (SR)</th>
+              <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>طريقة الدفع</th>
+              <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>إجراءات</th>
+            </tr></thead>
+            <tbody>
+              {loading && <tr><td colSpan={6} className="py-8 text-center text-sm text-[#6B7280]">جارٍ التحميل...</td></tr>}
+              {!loading && filtered.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm text-[#6B7280]">لا توجد سندات · اضغط "سند قبض جديد"</td></tr>}
+              {!loading && filtered.map(p => (
+                <tr key={p.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] transition-colors">
+                  <td className="py-3 px-4"><span className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{p.number}</span></td>
+                  <td className="py-3 px-4"><span className="text-sm text-[#374151]">{p.contact?.displayName || "—"}</span></td>
+                  <td className="py-3 px-4"><span className="font-english text-sm text-[#6B7280]">{p.date.slice(0, 10)}</span></td>
+                  <td className="py-3 px-4"><span className="font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(p.amount).toLocaleString()}</span></td>
+                  <td className="py-3 px-4"><span className="text-sm text-[#6B7280]">{METHOD_LABELS[p.paymentMethod]}</span></td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setSelected(p)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><Eye className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(p.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
-                    <td className="py-3.5 pe-4"><button onClick={() => setSelected(r)} className="text-sm font-english text-[#1276E3] hover:underline" style={{ fontWeight: 600 }}>{r.id}</button></td>
-                    <td className="py-3.5 pe-4"><Link to={contactLink(r.client)} className="text-sm text-[#374151] hover:text-[#1276E3] hover:underline transition-colors">{r.client}</Link></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#6B7280]">{r.date}</span></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm font-english text-[#374151]" style={{ fontWeight: 600 }}>{r.amount}</span></td>
-                    <td className="py-3.5 pe-4"><span className="text-sm text-[#6B7280]">{r.method}</span></td>
-                    <td className="py-3.5"><button onClick={() => setSelected(r)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"><MoreVertical className="h-4 w-4" /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
+
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">سند قبض جديد</h2></div>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+              <div className="space-y-2"><Label className="text-[#374151]">التاريخ *</Label>
+                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">المبلغ (SR) *</Label>
+                <Input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">طريقة الدفع *</Label>
+                <Select value={form.paymentMethod} onValueChange={(v) => setForm({ ...form, paymentMethod: v as Voucher["paymentMethod"] })}>
+                  <SelectTrigger className="border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">نقداً</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
+                    <SelectItem value="CARD">بطاقة ائتمان</SelectItem>
+                    <SelectItem value="MADA">مدى</SelectItem>
+                    <SelectItem value="STC_PAY">STC Pay</SelectItem>
+                    <SelectItem value="CHECK">شيك</SelectItem>
+                    <SelectItem value="OTHER">أخرى</SelectItem>
+                  </SelectContent>
+                </Select></div>
+              <div className="space-y-2"><Label className="text-[#374151]">المرجع (اختياري)</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم تحويل / رقم شيك" className="border-[#E5E7EB] font-english" dir="ltr" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">ملاحظات (اختياري)</Label>
+                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="border-[#E5E7EB]" /></div>
+            </div>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
+            </div>
+          </form>
+        </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

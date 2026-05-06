@@ -1,311 +1,83 @@
-import { useState, useRef, useEffect } from "react";
-import {
-  Target, Plus, Search, MoreVertical, Eye, Edit2, Trash2,
-  ChevronDown, Download, Layers, DollarSign, TrendingUp
-} from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Target, Plus, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-
-const CUR = "SR";
-
-interface CostCenter {
-  id: string;
-  name: string;
-  code: string;
-  parent?: string;
-  budget: number;
-  actual: number;
-  status: string;
-}
-
-const costCenters: CostCenter[] = [
-  { id: "CC-001", name: "الإدارة العامة", code: "ADM", budget: 500000, actual: 320000, status: "نشط" },
-  { id: "CC-002", name: "قسم المبيعات", code: "SLS", budget: 800000, actual: 650000, status: "نشط" },
-  { id: "CC-003", name: "قسم التقنية", code: "TEC", budget: 1200000, actual: 980000, status: "نشط" },
-  { id: "CC-004", name: "الموارد البشرية", code: "HR", budget: 300000, actual: 275000, status: "نشط" },
-  { id: "CC-005", name: "قسم التسويق", code: "MKT", budget: 450000, actual: 380000, status: "نشط" },
-  { id: "CC-006", name: "مشروع التحول الرقمي", code: "DX", parent: "قسم التقنية", budget: 600000, actual: 420000, status: "نشط" },
-  { id: "CC-007", name: "فرع جدة", code: "JED", budget: 200000, actual: 50000, status: "مُعلّق" },
-];
-
-const statusStyle = (s: string) => {
-  const m: Record<string, string> = {
-    "نشط": "bg-[#ECEEF5] text-[#0B1A47] border-[#0B1A47]/20",
-    "مُعلّق": "bg-[#FEF3C7] text-[#92400E] border-[#F59E0B]",
-    "مغلق": "bg-[#F3F4F6] text-[#6B7280] border-[#9CA3AF]",
-  };
-  return m[s] || "";
-};
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { api, ApiError } from "../lib/api";
 
 export function CostCenters() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    code: "",
-    parent: "",
-    budget: "",
-    status: "نشط"
-  });
-  const actionMenuRef = useRef<HTMLDivElement>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const { toasts, push, dismiss } = useToasts();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ code: "", name: "" });
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) setActionMenuId(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setItems((await api.costCenters.list()).items); }
+    catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل التحميل"); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
-  const filtered = costCenters.filter((c) =>
-    c.name.includes(searchQuery) || c.code.includes(searchQuery)
-  );
-
-  const totalBudget = costCenters.reduce((s, c) => s + c.budget, 0);
-  const totalActual = costCenters.reduce((s, c) => s + c.actual, 0);
-  const utilization = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // هنا يمكن إضافة المنطق لحفظ البيانات
-    console.log("New Cost Center:", formData);
-    setIsDialogOpen(false);
-    setFormData({ name: "", code: "", parent: "", budget: "", status: "نشط" });
+    if (!form.code.trim() || !form.name.trim()) { setError("الرمز والاسم مطلوبان"); return; }
+    setBusy(true); setError(null);
+    try {
+      const c = await api.costCenters.create({ code: form.code.trim(), name: form.name.trim() });
+      setItems(prev => [...prev, c]);
+      setOpen(false); setForm({ code: "", name: "" });
+    } catch (e: any) { setError(e instanceof ApiError ? (e.message === "code_exists" ? "الرمز موجود" : e.message) : "فشل الحفظ"); }
+    finally { setBusy(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    /* TODO-UX1: was confirm("حذف مركز التكلفة؟") — replace with InlineConfirm */ 
+try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مراكز التكلفة</h1>
-          <p className="text-[#6B7280] mt-1">إدارة وتتبع مراكز التكلفة والميزانيات</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setIsDialogOpen(true)}><Plus className="me-2 h-4 w-4" />مركز تكلفة جديد</Button>
-          <Button variant="outline" className="border-[#E5E7EB]"><Download className="me-2 h-4 w-4" />تصدير</Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer">
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><Target className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{costCenters.length}</div>
-            <p className="text-xs text-[#6B7280] mt-1">إجمالي المراكز</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer">
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#ECEEF5] p-2.5"><DollarSign className="h-5 w-5 text-[#0B1A47]" /></div></div>
-            <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
-              <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>{CUR}</span>
-              <span className="text-[#0B1A47] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{(totalBudget / 1000000).toFixed(1)}M</span>
-            </div>
-            <p className="text-xs text-[#6B7280] mt-1">إجمالي الميزانية</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer">
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#E4F4F9] p-2.5"><Layers className="h-5 w-5 text-[#349FC4]" /></div></div>
-            <div dir="ltr" className="flex items-baseline justify-center gap-1.5">
-              <span className="text-[#6B7280] font-english" style={{ fontSize: "0.8125rem", fontWeight: 500 }}>{CUR}</span>
-              <span className="text-[#349FC4] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{(totalActual / 1000000).toFixed(1)}M</span>
-            </div>
-            <p className="text-xs text-[#6B7280] mt-1">إجمالي المصروف</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer">
-          <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><TrendingUp className="h-5 w-5 text-[#1276E3]" /></div></div>
-            <div className="text-[#1276E3] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{utilization}%</div>
-            <p className="text-xs text-[#6B7280] mt-1">نسبة الاستخدام</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مراكز التكلفة</h1><p className="text-[#6B7280] mt-1">تتبع المصاريف والإيرادات حسب مركز التكلفة</p></div>
+        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />مركز جديد</Button>
       </div>
 
       <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-[#0B1B49]">قائمة مراكز التكلفة</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-              <Input placeholder="بحث..." className="w-full ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full" style={{ minWidth: "900px" }}>
-              <colgroup>
-                <col style={{ minWidth: "90px" }} />
-                <col style={{ minWidth: "160px" }} />
-                <col style={{ minWidth: "80px" }} />
-                <col style={{ minWidth: "140px" }} />
-                <col style={{ minWidth: "120px" }} />
-                <col style={{ minWidth: "120px" }} />
-                <col style={{ minWidth: "130px" }} />
-                <col style={{ minWidth: "90px" }} />
-                <col style={{ width: "50px" }} />
-              </colgroup>
-              <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الرمز</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الاسم</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الكود</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المركز الأب</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الميزانية</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المصروف</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الاستخدام</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الحالة</th>
-                  <th className="py-2.5 px-3 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>⋮</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((cc) => {
-                  const usage = cc.budget > 0 ? Math.round((cc.actual / cc.budget) * 100) : 0;
-                  return (
-                    <tr key={cc.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F4FCFF] transition-colors">
-                      <td className="py-3.5 px-3"><span className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{cc.id}</span></td>
-                      <td className="py-3.5 px-3">
-                        <span className="text-sm text-[#374151] block overflow-hidden text-ellipsis" style={{ fontWeight: 500 }} title={cc.name}>
-                          {cc.name}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3"><span className="font-english text-sm text-[#6B7280]" style={{ fontWeight: 600 }}>{cc.code}</span></td>
-                      <td className="py-3.5 px-3">
-                        <span className="text-sm text-[#9CA3AF] block overflow-hidden text-ellipsis" title={cc.parent || "—"}>
-                          {cc.parent || "—"}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <span dir="ltr" className="inline-flex items-baseline gap-0.5 font-english text-sm whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-                          <span className="text-[#9CA3AF]" style={{ fontSize: "0.625rem" }}>{CUR}</span>
-                          <span className="text-[#374151]">{cc.budget.toLocaleString("en-US")}</span>
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <span dir="ltr" className="inline-flex items-baseline gap-0.5 font-english text-sm whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-                          <span className="text-[#9CA3AF]" style={{ fontSize: "0.625rem" }}>{CUR}</span>
-                          <span className="text-[#349FC4]">{cc.actual.toLocaleString("en-US")}</span>
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-[#E5E7EB] rounded-full min-w-[50px]">
-                            <div className={`h-1.5 rounded-full ${usage > 90 ? "bg-[#F59E0B]" : "bg-[#1276E3]"}`} style={{ width: `${Math.min(usage, 100)}%` }} />
-                          </div>
-                          <span className="font-english text-xs text-[#6B7280] whitespace-nowrap" style={{ fontWeight: 600 }}>{usage}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3"><span className={`inline-flex rounded-md px-2 py-0.5 text-xs border whitespace-nowrap ${statusStyle(cc.status)}`} style={{ fontWeight: 600 }}>{cc.status}</span></td>
-                      <td className="py-3.5 px-3">
-                        <div className="relative" ref={actionMenuId === cc.id ? actionMenuRef : undefined}>
-                          <button onClick={() => setActionMenuId(actionMenuId === cc.id ? null : cc.id)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><MoreVertical className="h-4 w-4" /></button>
-                          {actionMenuId === cc.id && (
-                            <div className="absolute end-0 z-40 mt-1 w-36 rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1">
-                              <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Eye className="h-3.5 w-3.5 text-[#6B7280]" />عرض</button>
-                              <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start"><Edit2 className="h-3.5 w-3.5 text-[#6B7280]" />تعديل</button>
-                              <div className="border-t border-[#F3F4F6] my-1" />
-                              <button onClick={() => setActionMenuId(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start"><Trash2 className="h-3.5 w-3.5" />حذف</button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <CardHeader><CardTitle className="text-[#0B1B49]">القائمة · {items.length}</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+           items.length === 0 ? <div className="py-12 text-center"><Target className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد مراكز تكلفة</p></div> :
+          (<table className="w-full"><thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
+            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
+            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+          </tr></thead><tbody>
+            {items.map(c => <tr key={c.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+              <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{c.code}</td>
+              <td className="py-3 px-4 text-sm text-[#0B1B49]">{c.name}</td>
+              <td className="py-3 px-4"><button onClick={() => handleDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></td>
+            </tr>)}
+          </tbody></table>)}
         </CardContent>
       </Card>
 
-      {/* Dialog for New Cost Center */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-[#0B1B49]">مركز تكلفة جديد</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-[#374151]">اسم المركز *</Label>
-                <Input
-                  id="name"
-                  placeholder="مثال: قسم التسويق"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="border-[#E5E7EB]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="code" className="text-[#374151]">الكود *</Label>
-                <Input
-                  id="code"
-                  placeholder="مثال: MKT"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  required
-                  className="border-[#E5E7EB] font-english"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="parent" className="text-[#374151]">المركز الأب (اختياري)</Label>
-                <Select value={formData.parent} onValueChange={(value) => setFormData({ ...formData, parent: value })}>
-                  <SelectTrigger className="border-[#E5E7EB]">
-                    <SelectValue placeholder="اختر المركز الأب" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {costCenters.map((cc) => (
-                      <SelectItem key={cc.id} value={cc.name}>{cc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget" className="text-[#374151]">الميزانية ({CUR}) *</Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  placeholder="0"
-                  value={formData.budget}
-                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                  required
-                  className="border-[#E5E7EB] font-english"
-                  dir="ltr"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status" className="text-[#374151]">الحالة *</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger className="border-[#E5E7EB]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="نشط">نشط</SelectItem>
-                    <SelectItem value="مُعلّق">مُعلّق</SelectItem>
-                    <SelectItem value="مغلق">مغلق</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-[#E5E7EB]">
-                إلغاء
-              </Button>
-              <Button type="submit" className="bg-[#1276E3] hover:bg-[#1060C0]">
-                حفظ
-              </Button>
-            </DialogFooter>
+      <SidePanel open={open} onClose={() => setOpen(false)}>
+        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">مركز تكلفة جديد</h2></div>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+            <div className="space-y-2"><Label>الرمز *</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CC-001" dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>الاسم *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="قسم المبيعات" /></div>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SidePanel>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
