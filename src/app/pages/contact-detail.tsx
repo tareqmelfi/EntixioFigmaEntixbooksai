@@ -162,7 +162,7 @@ export function ContactDetail() {
             <Edit2 className="h-3.5 w-3.5" /> تعديل
           </button>
           <Link
-            to={`/app/sales/invoices/new?contactId=${contact.id}`}
+            to={`/app/invoices?new=1&contactId=${contact.id}`}
             className="px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" /> فاتورة جديدة
@@ -358,7 +358,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           </CardHeader>
           <CardContent>
             {recentInvoices.length === 0 ? (
-              <EmptyMini icon={FileText} text="لا توجد فواتير" cta={{ to: `/app/sales/invoices/new?contactId=${contact.id}`, label: "+ أنشئ أول فاتورة" }} />
+              <EmptyMini icon={FileText} text="لا توجد فواتير" cta={{ to: `/app/invoices?new=1&contactId=${contact.id}`, label: "+ أنشئ أول فاتورة" }} />
             ) : (
               <DocList
                 rows={recentInvoices.map((i) => ({
@@ -368,7 +368,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
                   total: Number(i.total),
                   paid: Number(i.amountPaid),
                   status: i.status,
-                  href: `/app/sales/invoices/${i.id}`,
+                  href: `/app/invoices/${i.id}`,
                   cur: i.currency,
                 }))}
               />
@@ -389,7 +389,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           </CardHeader>
           <CardContent>
             {recentBills.length === 0 ? (
-              <EmptyMini icon={ShoppingBag} text="لا توجد فواتير شراء" cta={{ to: `/app/purchases/bills/new?contactId=${contact.id}`, label: "+ سجّل فاتورة شراء" }} />
+              <EmptyMini icon={ShoppingBag} text="لا توجد فواتير شراء" cta={{ to: `/app/purchases/bills?new=1&contactId=${contact.id}`, label: "+ سجّل فاتورة شراء" }} />
             ) : (
               <DocList
                 rows={recentBills.map((b) => ({
@@ -472,9 +472,9 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
   ];
 
   const newLinks: Record<Section, string> = {
-    invoices: `/app/sales/invoices/new?contactId=${contact.id}`,
-    bills: `/app/purchases/bills/new?contactId=${contact.id}`,
-    quotes: `/app/sales/quotes/new?contactId=${contact.id}`,
+    invoices: `/app/invoices?new=1&contactId=${contact.id}`,
+    bills: `/app/purchases/bills?new=1&contactId=${contact.id}`,
+    quotes: `/app/quotes?new=1&contactId=${contact.id}`,
     vouchers: `/app/vouchers/new?contactId=${contact.id}`,
     expenses: `/app/expenses/new?contactId=${contact.id}`,
   };
@@ -516,9 +516,9 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
       {/* Section content · table */}
       <Card className="border-[#E5E7EB]">
         <CardContent className="p-0">
-          {section === "invoices" && <InvTable rows={data.invoices.map((i) => ({ id: i.id, number: i.invoiceNumber, date: i.issueDate, due: i.dueDate, total: Number(i.total), paid: Number(i.amountPaid), status: i.status, cur: i.currency, href: `/app/sales/invoices/${i.id}` }))} />}
+          {section === "invoices" && <InvTable rows={data.invoices.map((i) => ({ id: i.id, number: i.invoiceNumber, date: i.issueDate, due: i.dueDate, total: Number(i.total), paid: Number(i.amountPaid), status: i.status, cur: i.currency, href: `/app/invoices/${i.id}` }))} />}
           {section === "bills"    && <InvTable rows={data.bills.map((b) => ({ id: b.id, number: b.billNumber, date: b.issueDate, due: b.dueDate, total: Number(b.total), paid: Number(b.amountPaid), status: b.status, cur: b.currency, href: `/app/purchases/bills/${b.id}` }))} />}
-          {section === "quotes"   && <InvTable rows={data.quotes.map((q) => ({ id: q.id, number: q.quoteNumber, date: q.issueDate, due: q.validUntil, total: Number(q.total), paid: 0, status: q.status, cur: q.currency, href: `/app/sales/quotes/${q.id}` }))} />}
+          {section === "quotes"   && <InvTable rows={data.quotes.map((q) => ({ id: q.id, number: q.quoteNumber, date: q.issueDate, due: q.validUntil, total: Number(q.total), paid: 0, status: q.status, cur: q.currency, href: `/app/quotes/${q.id}` }))} />}
           {section === "vouchers" && <VchTable rows={data.vouchers} />}
           {section === "expenses" && <ExpTable rows={data.expenses} />}
         </CardContent>

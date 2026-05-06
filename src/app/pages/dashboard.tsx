@@ -116,7 +116,7 @@ export function Dashboard() {
           <p className="text-[#6B7280] mt-1">{data.org.name} · <span className="font-english">{cur}</span></p>
         </div>
         <div className="flex gap-2">
-          <Link to="/app/sales/invoices/new" className="px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition">+ فاتورة</Link>
+          <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition">+ فاتورة</Link>
           <Link to="/app/expenses/new" className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition">+ مصروف</Link>
           <Link to="/app/vouchers/new" className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition">+ سند</Link>
         </div>
@@ -142,7 +142,7 @@ export function Dashboard() {
               <span className="text-red-600 mx-1">قيد التحصيل</span>
             </div>
           </div>
-          <Link to="/app/sales/invoices?status=OVERDUE" className="text-sm text-red-700 hover:underline">عرض الكل ←</Link>
+          <Link to="/app/invoices?status=OVERDUE" className="text-sm text-red-700 hover:underline">عرض الكل ←</Link>
         </div>
       )}
 
@@ -437,7 +437,7 @@ export function Dashboard() {
               <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
                 <Clock className="h-4 w-4 text-red-500" /> فواتير متأخرة
               </CardTitle>
-              <Link to="/app/sales/invoices?status=OVERDUE" className="text-xs text-[#1276E3] hover:underline">عرض الكل ←</Link>
+              <Link to="/app/invoices?status=OVERDUE" className="text-xs text-[#1276E3] hover:underline">عرض الكل ←</Link>
             </div>
           </CardHeader>
           <CardContent>
@@ -450,7 +450,7 @@ export function Dashboard() {
                 {data.overdueInvoices.map((inv) => (
                   <Link
                     key={inv.id}
-                    to={`/app/sales/invoices/${inv.id}`}
+                    to={`/app/invoices/${inv.id}`}
                     className="flex items-center justify-between p-2.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100 transition"
                   >
                     <div className="min-w-0">

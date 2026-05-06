@@ -18,6 +18,7 @@ import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../com
 import { InvoicePreviewPane } from "../components/invoice-preview-pane";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-create-modals";
+import { QuickContactDialog } from "../components/quick-contact-dialog";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
@@ -107,6 +108,9 @@ export function Invoices() {
   const [signError, setSignError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
+  // Quick-create contact dialog (full form, not just name)
+  const [pendingContact, setPendingContact] = useState<{ name: string; resolve: (id: string) => void; reject: () => void } | null>(null);
 
   // Split-view preview · UX-7 · click row → preview pane on side (Wafeq pattern)
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -351,12 +355,9 @@ export function Invoices() {
                 <SearchableCombobox
                   value={form.contactId}
                   onChange={(id) => setForm({ ...form, contactId: id })}
-                  onCreate={async (name) => {
-                    const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
-                    setCustomers((prev) => [c, ...prev]);
-                    push("success", `تم إنشاء ${c.displayName}`);
-                    return c.id;
-                  }}
+                  onCreate={(name) => new Promise<string>((resolve, reject) => {
+                    setPendingContact({ name, resolve, reject });
+                  })}
                   items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
                   placeholder="ابحث عن عميل..."
                   createLabel={(q) => `+ إنشاء "${q}"`}
@@ -783,6 +784,19 @@ export function Invoices() {
       </div>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+      {pendingContact && (
+        <QuickContactDialog
+          initialName={pendingContact.name}
+          defaultRole="customer"
+          onCancel={() => { pendingContact.reject(); setPendingContact(null); }}
+          onCreated={(c) => {
+            setCustomers((prev) => [c, ...prev]);
+            push("success", `تم إنشاء ${c.displayName}`);
+            pendingContact.resolve(c.id);
+            setPendingContact(null);
+          }}
+        />
+      )}
     </div>
   );
 }
