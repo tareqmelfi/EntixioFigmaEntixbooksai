@@ -11,6 +11,30 @@ import { Label } from "../components/ui/label";
 import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, BankAccount } from "../lib/api";
 
+// KSA banks · IBAN bank-code (positions 5-6) → name + SWIFT
+const KSA_BANKS: Record<string, { name: string; swift: string }> = {
+  "80": { name: "مصرف الراجحي · Al Rajhi", swift: "RJHISARI" },
+  "10": { name: "البنك الأهلي السعودي · SNB", swift: "NCBKSAJE" },
+  "05": { name: "مصرف الإنماء · Alinma Bank", swift: "INMASARI" },
+  "55": { name: "البنك السعودي الفرنسي · BSF", swift: "BSFRSARI" },
+  "30": { name: "البنك العربي الوطني · ANB", swift: "ARNBSARI" },
+  "45": { name: "البنك السعودي البريطاني · SAB", swift: "SABBSARI" },
+  "20": { name: "بنك الرياض · Riyad Bank", swift: "RIBLSARI" },
+  "90": { name: "بنك البلاد · Al Bilad", swift: "ALBISARI" },
+  "60": { name: "بنك الجزيرة · Al Jazira", swift: "BJAZSAJE" },
+  "65": { name: "البنك السعودي للاستثمار · SAIB", swift: "SIBCSARI" },
+  "70": { name: "بنك الإمارات دبي الوطني · ENBD", swift: "EBILSARI" },
+  "85": { name: "بنك الخليج الدولي · GIB", swift: "GULFSARI" },
+};
+
+/** Detect KSA bank from IBAN string · returns { name, swift } or null */
+function detectKsaBank(iban: string): { name: string; swift: string } | null {
+  const cleaned = iban.replace(/\s/g, "").toUpperCase();
+  if (!cleaned.startsWith("SA") || cleaned.length < 8) return null;
+  const bankCode = cleaned.substring(4, 6);
+  return KSA_BANKS[bankCode] || null;
+}
+
 export function BankAccounts() {
   const [items, setItems] = useState<BankAccount[]>([]);
   const { toasts, push, dismiss } = useToasts();
@@ -178,15 +202,50 @@ try {
                 <div className="space-y-2"><Label className="text-[#374151]">العملة</Label>
                   <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
               </div>
-              <div className="space-y-2"><Label className="text-[#374151]">اسم البنك</Label>
-                <Input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder={form.country === "SA" ? "الراجحي · الأهلي · ..." : form.country === "US" ? "Mercury · Chase · BofA · ..." : "Bank name"} className="border-[#E5E7EB]" /></div>
+              <div className="space-y-2"><Label className="text-[#374151]">البنك</Label>
+                {form.country === "SA" ? (
+                  <select
+                    value={form.bankName}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      // If user picks from registry · also set SWIFT
+                      const match = Object.values(KSA_BANKS).find((b) => b.name === v);
+                      setForm({ ...form, bankName: v, swiftCode: match ? match.swift + "XXX" : form.swiftCode });
+                    }}
+                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="">اختر بنكاً...</option>
+                    {Object.values(KSA_BANKS).map((b) => (<option key={b.swift} value={b.name}>{b.name}</option>))}
+                    <option value="other">أخرى...</option>
+                  </select>
+                ) : (
+                  <Input value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder={form.country === "US" ? "Mercury · Chase · BofA · ..." : "Bank name"} className="border-[#E5E7EB]" />
+                )}
+              </div>
 
               {/* KSA + Gulf · IBAN-based */}
               {(form.country === "SA" || form.country === "AE" || form.country === "KW" || form.country === "QA" || form.country === "BH" || form.country === "OM" || form.country === "JO") && (
                 <>
                   <div className="space-y-2"><Label className="text-[#374151]">IBAN *</Label>
-                    <Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })}
-                      placeholder={form.country === "SA" ? "SA00 0000 0000 0000 0000 0000" : "Country IBAN"} maxLength={34} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                    <Input value={form.iban} onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\s/g, "").toUpperCase();
+                      const next: any = { ...form, iban: cleaned };
+                      // Auto-detect KSA bank from IBAN positions 5-6
+                      if (form.country === "SA" && cleaned.length >= 8) {
+                        const detected = detectKsaBank(cleaned);
+                        if (detected) {
+                          next.bankName = detected.name;
+                          next.swiftCode = detected.swift + "XXX";
+                        }
+                      }
+                      setForm(next);
+                    }}
+                      placeholder={form.country === "SA" ? "SA00 0000 0000 0000 0000 0000" : "Country IBAN"} maxLength={34} dir="ltr" className="border-[#E5E7EB] font-english" />
+                    {form.country === "SA" && form.iban.length >= 8 && (() => {
+                      const d = detectKsaBank(form.iban);
+                      return d ? <p className="text-[10px] text-green-700 mt-1">✓ تم التعرّف: {d.name}</p> : <p className="text-[10px] text-amber-600 mt-1">⚠ لم يتم التعرّف · أدخل البنك يدوياً</p>;
+                    })()}
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2"><Label className="text-[#374151]">رمز SWIFT/BIC</Label>
                       <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="RJHISARIXXX" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
