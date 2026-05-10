@@ -62,6 +62,7 @@ import { Notifications } from "./pages/notifications";
 import { InboxPage } from "./pages/inbox";
 import { AdminDashboard } from "./pages/admin";
 import { ComingSoonApp } from "./pages/coming-soon-app";
+import { InvoicePrintView } from "./pages/invoice-print-view";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
 import { BankReconciliation } from "./pages/bank-reconciliation";
@@ -130,6 +131,7 @@ export const router = createBrowserRouter([
       { path: "invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
       { path: "invoices/new", element: <Invoices />, errorElement: <ErrorBoundary /> },
       { path: "invoices/:id", element: <Invoices />, errorElement: <ErrorBoundary /> },
+      { path: "invoices/:id/print-view", element: <InvoicePrintView />, errorElement: <ErrorBoundary /> },
       // legacy aliases used by older links
       { path: "sales/invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
       { path: "sales/invoices/new", element: <Invoices />, errorElement: <ErrorBoundary /> },

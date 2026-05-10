@@ -619,6 +619,9 @@ export const api = {
       request<Invoice>(`/api/invoices/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/invoices/${id}`, { method: 'DELETE' }),
+    printUrl: (id: string) => `${API_BASE}/api/invoices/${id}/print`,
+    email: (id: string, body?: { to?: string; subject?: string; message?: string }) =>
+      request<{ ok: true; to: string }>(`/api/invoices/${id}/email`, { method: 'POST', body: body || {} }),
   },
 
   // OAuth · payment provider connections (UX-137)

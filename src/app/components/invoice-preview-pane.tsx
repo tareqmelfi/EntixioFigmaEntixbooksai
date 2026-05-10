@@ -129,8 +129,10 @@ export function InvoicePreviewPane({
               <Mail className="h-4 w-4" />
             </button>
           )}
-          <button onClick={() => window.print()} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]" title="طباعة">
-            <Printer className="h-4 w-4" />
+          <button onClick={() => {
+            window.open(`/app/invoices/${doc.id}/print-view`, '_blank');
+          }} className="rounded-md px-2 py-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex items-center gap-1 text-xs" title="طباعة بالشكل الرسمي · Wafeq-style">
+            <Printer className="h-3.5 w-3.5" /> طباعة
           </button>
           {onEdit && (
             <button onClick={onEdit} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]" title="تعديل">
