@@ -842,7 +842,17 @@ export function Invoices() {
            filtered.length === 0 ? (
             <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد فواتير</p></div>
           ) : (
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col style={{ width: "12%" }} />{/* الرقم */}
+                <col />{/* العميل */}
+                {!splitMode && <col style={{ width: "11%" }} />}{/* التاريخ */}
+                {!splitMode && <col style={{ width: "11%" }} />}{/* الاستحقاق */}
+                <col style={{ width: "13%" }} />{/* الحالة */}
+                <col style={{ width: "13%" }} />{/* الإجمالي */}
+                {!splitMode && <col style={{ width: "11%" }} />}{/* المتبقي */}
+                <col style={{ width: "12%" }} />{/* إجراءات */}
+              </colgroup>
               <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
@@ -861,7 +871,7 @@ export function Invoices() {
                     className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
                   >
                     <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{i.invoiceNumber}</td>
-                    <td className="py-3 px-4 text-sm text-[#374151]">{i.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-sm text-[#374151] truncate" title={i.contact?.displayName || ""}>{i.contact?.displayName || "—"}</td>
                     {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.issueDate?.slice(0, 10)}</td>}
                     {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.dueDate?.slice(0, 10)}</td>}
                     <td className="py-3 px-4">

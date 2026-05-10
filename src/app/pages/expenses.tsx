@@ -318,7 +318,15 @@ export function Expenses() {
           </div>
         </CardHeader>
         <CardContent>
-          <table className="w-full">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col style={{ width: "13%" }} />
+              <col />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
             <thead>
               <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
                 <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>رقم</th>

@@ -322,7 +322,15 @@ export function Contacts() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col />
+                  <col style={{ width: "22%" }} />
+                  <col style={{ width: "22%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "10%" }} />
+                </colgroup>
                 <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
                   <tr>
                     <th className="text-start px-4 py-2.5 font-medium">الاسم</th>

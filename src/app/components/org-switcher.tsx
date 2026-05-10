@@ -216,7 +216,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           </button>
 
           {/* Seed two demos (SA + US) · only show if user has 0 or 1 org · UX-179 */}
-          {orgs.length <= 1 && (
+          {(true) /* UX-194 · always show */ && (
             <button
               onClick={async () => {
                 setOpen(false);
