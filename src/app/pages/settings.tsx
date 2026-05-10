@@ -1163,15 +1163,17 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   const [accentColor, setAccentColor] = useState(((org as any).brandingSettings || {}).accentColor || "#0B1B49");
   const [fontFamily, setFontFamily] = useState(((org as any).brandingSettings || {}).fontFamily || "Tajawal");
   const [logoUrl, setLogoUrl] = useState((org as any).logoUrl || "");
+  const [printLogoUrl, setPrintLogoUrl] = useState((org as any).printLogoUrl || "");
   const [stampUrl, setStampUrl] = useState((org as any).stampUrl || "");
   const [busy, setBusy] = useState(false);
 
-  const upload = (kind: "logoUrl" | "stampUrl") => async (file: File) => {
+  const upload = (kind: "logoUrl" | "printLogoUrl" | "stampUrl") => async (file: File) => {
     if (file.size > 2 * 1024 * 1024) { push("error", "الحد الأقصى 2 ميجا"); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const url = String(reader.result || "");
       if (kind === "logoUrl") setLogoUrl(url);
+      else if (kind === "printLogoUrl") setPrintLogoUrl(url);
       else setStampUrl(url);
     };
     reader.readAsDataURL(file);
@@ -1182,8 +1184,8 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
     try {
       const updated = await api.orgs.update(org.id, {
         logoUrl: logoUrl || null,
+        printLogoUrl: printLogoUrl || null,
         stampUrl: stampUrl || null,
-        // brandingSettings is stored on numberingSettings sibling — for now use a simple JSON
       } as any);
       setOrg(updated);
       push("success", "تم الحفظ");
@@ -1201,13 +1203,13 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs mb-2 block">الشعار (مربع أو طولي)</Label>
+            <Label className="text-xs mb-2 block">الشعار · Avatar (يظهر في الواجهة)</Label>
             <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
               <input type="file" id="brand-logo" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("logoUrl")(f); }} />
               {logoUrl ? (
                 <div className="flex items-center gap-3">
-                  <img src={logoUrl} alt="logo" className="max-w-[160px] max-h-[80px] object-contain bg-white rounded" />
+                  <img src={logoUrl} alt="logo" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
                     <label htmlFor="brand-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
                     <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
@@ -1215,11 +1217,34 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 </div>
               ) : (
                 <label htmlFor="brand-logo" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-[#1276E3] font-medium">رفع الشعار</div>
-                  <div className="text-xs text-[#9CA3AF] mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                  <div className="text-sm text-[#1276E3] font-medium">رفع شعار صغير</div>
+                  <div className="text-xs text-[#9CA3AF] mt-1">يفضّل مربع · PNG/SVG · حتى 2MB</div>
                 </label>
               )}
             </div>
+            <p className="text-[10px] text-[#9CA3AF] mt-1">يظهر في الـ org switcher + الـ header</p>
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">شعار الطباعة · Print Logo (يظهر على الفواتير)</Label>
+            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
+              <input type="file" id="brand-print-logo" accept="image/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("printLogoUrl")(f); }} />
+              {printLogoUrl ? (
+                <div className="flex items-center gap-3">
+                  <img src={printLogoUrl} alt="print logo" className="max-w-[200px] max-h-[80px] object-contain bg-white rounded" />
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="brand-print-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                    <button type="button" onClick={() => setPrintLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                  </div>
+                </div>
+              ) : (
+                <label htmlFor="brand-print-logo" className="cursor-pointer block text-center py-4">
+                  <div className="text-sm text-[#1276E3] font-medium">رفع شعار للطباعة</div>
+                  <div className="text-xs text-[#9CA3AF] mt-1">يفضّل أفقي بدقة عالية · PNG/SVG · حتى 2MB</div>
+                </label>
+              )}
+            </div>
+            <p className="text-[10px] text-[#9CA3AF] mt-1">يظهر على الفواتير · السندات · العقود · لو فاضي يستخدم الـ Avatar</p>
           </div>
           <div>
             <Label className="text-xs mb-2 block">الختم الرسمي</Label>

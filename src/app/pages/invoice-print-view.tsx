@@ -104,7 +104,7 @@ export function InvoicePrintView() {
     <>
       <style>{`
         /* Reset · standalone route · no app chrome */
-        body { margin: 0; background: #F4F5F7; font-family: 'Tajawal','Noto Sans Arabic','Inter',sans-serif; }
+        body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Tajawal','Noto Sans Arabic','Inter',sans-serif; }
         .num { font-family: 'Inter', monospace; direction: ltr; display: inline-block; }
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -115,7 +115,7 @@ export function InvoicePrintView() {
         @page { size: A4; margin: 14mm 12mm; }
       `}</style>
 
-      <div dir="rtl" style={{ color: accent, fontSize: 13, lineHeight: 1.5 }}>
+      <div dir={isKsa ? "rtl" : "ltr"} style={{ color: accent, fontSize: 13, lineHeight: 1.5 }}>
         {/* Action bar (no-print) */}
         <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: "flex", gap: 8 }}>
           <button onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: primary, color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
@@ -131,7 +131,7 @@ export function InvoicePrintView() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
               <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px 0", color: primary }}>{isKsa ? "فاتورة ضريبية" : "Invoice"}</h1>
-              <div style={{ fontSize: 13, color: "#6B7280" }}>Tax Invoice</div>
+              <div style={{ fontSize: 13, color: "#6B7280" }}>{isKsa ? "Tax Invoice" : "Sales Invoice"}</div>
               <div style={{ marginTop: 8 }}>
                 <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 9999, fontSize: 11, fontWeight: 600, background: "#F4FCFF", color: primary, border: `1px solid ${primary}33` }}>
                   {String(invoice.status || "DRAFT").toUpperCase()}
@@ -156,7 +156,7 @@ export function InvoicePrintView() {
           {/* Bill-to + invoice details */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 24 }}>
             <div style={{ padding: "12px 14px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <h2 style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>عميل · Bill To</h2>
+              <h2 style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
               <strong style={{ display: "block", color: accent, marginBottom: 4, fontSize: 14 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
               {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 11 }}>{contact.legalName}</div>)}
               {contactAddress && <div style={{ color: "#6B7280", fontSize: 11, marginTop: 4 }}>{contactAddress}</div>}
@@ -165,12 +165,12 @@ export function InvoicePrintView() {
               {(contact as any)?.taxId && <div style={{ color: "#6B7280", fontSize: 11 }}>{isKsa ? "الرقم الضريبي" : "Tax ID"}: <span className="num">{(contact as any).taxId}</span></div>}
             </div>
             <div style={{ padding: "12px 14px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <h2 style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>تفاصيل الفاتورة</h2>
+              <h2 style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>{isKsa ? "تفاصيل الفاتورة" : "Invoice Details"}</h2>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 13 }}>
-                <span style={{ color: "#6B7280" }}>رقم الفاتورة</span><span className="num" style={{ textAlign: "end" }}>{invoice.invoiceNumber}</span>
-                <span style={{ color: "#6B7280" }}>تاريخ الإصدار</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
-                {invoice.dueDate && <><span style={{ color: "#6B7280" }}>تاريخ الاستحقاق</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
-                {(invoice as any).reference && <><span style={{ color: "#6B7280" }}>المرجع</span><span className="num" style={{ textAlign: "end" }}>{(invoice as any).reference}</span></>}
+                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num" style={{ textAlign: "end" }}>{invoice.invoiceNumber}</span>
+                <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
+                {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
+                {(invoice as any).reference && <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num" style={{ textAlign: "end" }}>{(invoice as any).reference}</span></>}
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function InvoicePrintView() {
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 24 }}>
             <thead>
               <tr>
-                {["#", "الوصف · Description", "الكمية", "السعر", "VAT", "الإجمالي"].map((h, i) => (
+                {["#", isKsa ? "الوصف · Description" : "Description", isKsa ? "الكمية" : "Qty", isKsa ? "السعر" : "Price", isKsa ? "VAT" : "Tax", isKsa ? "الإجمالي" : "Amount"].map((h, i) => (
                   <th key={i} style={{ background: accent, color: "white", padding: "10px 12px", fontSize: 11, fontWeight: 600, textAlign: i >= 2 ? "end" : "start" }}>{h}</th>
                 ))}
               </tr>
@@ -214,37 +214,48 @@ export function InvoicePrintView() {
             )}
             <div style={{ minWidth: 320, border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", marginInlineStart: "auto" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
-                <span>المجموع الفرعي · Subtotal</span><span className="num">{subtotal.toFixed(2)} {currency}</span>
+                <span>{isKsa ? "المجموع الفرعي · Subtotal" : "Subtotal"}</span><span className="num">{subtotal.toFixed(2)} {currency}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
-                <span>VAT</span><span className="num">{tax.toFixed(2)} {currency}</span>
+                <span>{isKsa ? "VAT (15%)" : "Sales Tax"}</span><span className="num">{tax.toFixed(2)} {currency}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 15, fontWeight: 700, background: accent, color: "white" }}>
-                <span>الإجمالي · Total</span><span className="num">{total.toFixed(2)} {currency}</span>
+                <span>{isKsa ? "الإجمالي · Total" : "Total"}</span><span className="num">{total.toFixed(2)} {currency}</span>
               </div>
               {paid > 0 && (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
-                    <span>المدفوع</span><span className="num">{paid.toFixed(2)} {currency}</span>
+                    <span>{isKsa ? "المدفوع" : "Paid"}</span><span className="num">{paid.toFixed(2)} {currency}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, background: "#FEF3C7", fontWeight: 700 }}>
-                    <span>المستحق</span><span className="num">{due.toFixed(2)} {currency}</span>
+                    <span>{isKsa ? "المستحق" : "Balance Due"}</span><span className="num">{due.toFixed(2)} {currency}</span>
                   </div>
                 </>
               )}
             </div>
           </div>
 
+
+          {/* Multi-currency note · if invoice currency differs from org base */}
+          {currency !== org.baseCurrency && (
+            <div style={{ marginTop: 12, padding: "10px 14px", background: "#EFF6FF", borderRadius: 6, fontSize: 11, color: "#1E40AF", textAlign: "end" }}>
+              💱 <strong>{isKsa ? "ملاحظة العملة" : "Currency Note"}:</strong>{" "}
+              {isKsa
+                ? `الفاتورة بعملة ${currency} · العملة الأساسية للشركة ${org.baseCurrency}`
+                : `Invoice in ${currency} · Company base currency: ${org.baseCurrency}`}
+            </div>
+          )}
+
           {invoice.notes && (
             <div style={{ marginTop: 24, padding: "12px 14px", background: "#FFFBEB", borderInlineEnd: "3px solid #F59E0B", borderRadius: 6, fontSize: 12, color: "#78350F" }}>
-              <strong>ملاحظات:</strong> {invoice.notes}
+              <strong>{isKsa ? "ملاحظات:" : "Notes:"}</strong> {invoice.notes}
             </div>
           )}
 
           {/* Footer · stamp + thank-you */}
           <div style={{ marginTop: 32, paddingTop: 16, borderTop: `2px solid ${primary}`, display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "end" }}>
             <div style={{ color: "#6B7280", fontSize: 11 }}>
-              <div>شكراً لتعاملكم معنا · Thank you for your business</div>
+              <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>
               {(org as any).website && <div>{(org as any).website}</div>}
             </div>
             <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
