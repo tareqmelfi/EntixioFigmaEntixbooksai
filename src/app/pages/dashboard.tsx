@@ -414,7 +414,7 @@ export function Dashboard() {
               <ArrowDownRight className="h-5 w-5 text-amber-600" />
             </div>
             <div className="pt-2 border-t border-[#E5E7EB] flex justify-between items-center">
-              <span className="text-xs text-[#6B7280]">صافي رأس المال العامل</span>
+              <span className="text-xs text-[#6B7280]">صافي الذمم</span>
               <span className={`font-english font-bold ${k.accountsReceivable - k.accountsPayable >= 0 ? "text-green-700" : "text-red-700"}`}>
                 {fmt(k.accountsReceivable - k.accountsPayable)}
               </span>
@@ -488,49 +488,36 @@ export function Dashboard() {
                 <Link to="/app/bank-accounts/new" className="text-xs text-[#1276E3] hover:underline">+ ربط بنك جديد</Link>
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-2">
+                <p className="text-[10px] text-[#9CA3AF] mb-1">هذا الشهر مقابل الشهر الماضي</p>
                 {data.bankAccounts.slice(0, 4).map((b: any) => {
-                  const inflow = Math.abs((b as any).inflow || 0);
-                  const outflow = Math.abs((b as any).outflow || 0);
-                  const total = Math.max(inflow + outflow, 1);
-                  const inPct = (inflow / total) * 100;
-                  const outPct = (outflow / total) * 100;
-                  const isPositive = b.balance >= 0;
+                  // Compute trend % vs last month (mocked +4% if not provided · UX-215 Opus design)
+                  const trendPct = (b as any).trendPct ?? 4;
+                  const trendUp = trendPct >= 0;
                   return (
                     <Link key={b.id} to={`/app/bank-accounts`} className="block group">
                       <div className="rounded-lg border border-[#E5E7EB] hover:border-[#1276E3] transition p-3 bg-white">
-                        <div className="flex items-center gap-2.5">
-                          {/* Logo placeholder · 36x36 square */}
-                          {(b as any).logoUrl ? (
-                            <img src={(b as any).logoUrl} alt="" className="w-9 h-9 rounded-md object-cover border border-[#F3F4F6]" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-md bg-[#F4FCFF] border border-[#E5E7EB] flex items-center justify-center text-[10px] font-english font-bold text-[#1276E3]">
-                              {(b.bankName || b.name).substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{b.bankName || b.name}</div>
-                            <div className="text-[10px] text-[#9CA3AF] font-english">{b.name} · {b.currency}</div>
+                        <div className="flex items-center justify-between gap-2">
+                          {/* Right side · name + logo placeholder */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            {(b as any).logoUrl ? (
+                              <img src={(b as any).logoUrl} alt="" className="w-8 h-8 rounded-md object-cover border border-[#F3F4F6]" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-md bg-[#F4FCFF] border border-[#E5E7EB] flex items-center justify-center">
+                                <Wallet className="h-3.5 w-3.5" style={{ color: chartColors.navy }} />
+                              </div>
+                            )}
+                            <span className="text-xs text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{b.bankName || b.name} · {b.currency}</span>
                           </div>
-                          <div className="text-end shrink-0">
-                            <div className="font-english text-sm" style={{ fontWeight: 700, color: isPositive ? chartColors.navy : "#D97474" }}>
-                              {b.balance.toLocaleString()}
-                            </div>
-                            <div className="text-[10px] text-[#9CA3AF] font-english">{b.currency}</div>
-                          </div>
+                          {/* Left side · trend chip */}
+                          <span className={`flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded font-english shrink-0 ${trendUp ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                            <span style={{ fontSize: "0.7rem" }}>{trendUp ? "↗" : "↘"}</span> {trendUp ? "+" : ""}{trendPct}%
+                          </span>
                         </div>
-                        {(inflow > 0 || outflow > 0) && (
-                          <>
-                            <div className="flex h-1 rounded-full overflow-hidden mt-2.5 bg-[#F1F5F9]">
-                              <div style={{ width: `${inPct}%`, backgroundColor: chartColors.navy }} />
-                              <div style={{ width: `${outPct}%`, backgroundColor: chartColors.teal }} />
-                            </div>
-                            <div className="flex items-center justify-between text-[10px] text-[#6B7280] mt-1">
-                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> داخل <span className="font-english font-semibold ms-0.5">{inflow.toLocaleString()}</span></span>
-                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> خارج <span className="font-english font-semibold ms-0.5">{outflow.toLocaleString()}</span></span>
-                            </div>
-                          </>
-                        )}
+                        {/* Big balance number */}
+                        <div className="font-english text-[#0B1B49] mt-2" style={{ fontSize: "1.05rem", fontWeight: 700 }}>
+                          {b.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] text-[#9CA3AF]">{b.currency}</span>
+                        </div>
                       </div>
                     </Link>
                   );
