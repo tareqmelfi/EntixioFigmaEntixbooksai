@@ -870,10 +870,10 @@ export function Invoices() {
                     onClick={() => setPreviewId(previewId === i.id ? null : i.id)}
                     className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
                   >
-                    <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{i.invoiceNumber}</td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
                     <td className="py-3 px-4 text-sm text-[#374151] truncate" title={i.contact?.displayName || ""}>{i.contact?.displayName || "—"}</td>
-                    {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.issueDate?.slice(0, 10)}</td>}
-                    {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.dueDate?.slice(0, 10)}</td>}
+                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
+                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
                         <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span>
@@ -884,8 +884,8 @@ export function Invoices() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()} {i.currency}</td>
-                    {!splitMode && <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</td>}
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-[#0B1B49] inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-[#9CA3AF]">{i.currency}</span></span></td>
+                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>}
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
                         {/* SENT/APPROVED → Sign button */}

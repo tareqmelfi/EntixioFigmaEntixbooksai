@@ -387,12 +387,12 @@ export function Contacts() {
                             {c.isForeign && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">خارجي</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#6B7280] space-y-0.5">
-                          {c.email && <div className="flex items-center gap-1"><Mail className="h-3 w-3" /><span className="font-english">{c.email}</span></div>}
-                          {c.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3" /><span className="font-english">{c.phone}</span></div>}
+                        <td className="px-4 py-3 text-xs text-[#6B7280] space-y-0.5 text-start">
+                          {c.email && <div dir="ltr" className="flex items-center gap-1"><Mail className="h-3 w-3" /><span className="font-english" style={{ fontVariantNumeric: "tabular-nums" }}>{c.email}</span></div>}
+                          {c.phone && <div dir="ltr" className="flex items-center gap-1"><Phone className="h-3 w-3" /><span className="font-english" style={{ fontVariantNumeric: "tabular-nums" }}>{c.phone}</span></div>}
                         </td>
-                        <td className="px-4 py-3 font-english text-xs text-[#6B7280]">{c.vatNumber || c.taxId || "—"}</td>
-                        <td className="px-4 py-3 text-xs text-[#374151] font-english uppercase">{c.country}</td>
+                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.vatNumber || c.taxId || "—"}</span></td>
+                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-[#374151] uppercase">{c.country}</span></td>
                         <td className="px-2 py-3 text-end">
                           <div className="flex items-center gap-1 justify-end">
                             <Link to={`/app/contacts/${c.id}`} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="فتح"><ExternalLink className="h-4 w-4" /></Link>
