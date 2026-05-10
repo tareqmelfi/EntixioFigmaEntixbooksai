@@ -123,8 +123,29 @@ export function Dashboard() {
       </div>
 
       {isEmpty && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-[#1276E3]">
-          مرحباً بك في {data.org.name}! · لا توجد بيانات بعد · ابدأ بإنشاء فاتورة أو مصروف · أو اضغط <strong>المساعد الذكي</strong> ليساعدك
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="text-sm text-[#1276E3]">
+            مرحباً بك في <strong>{data.org.name}</strong> · لا توجد بيانات بعد · جرّب البيانات التجريبية لتشوف كل شي شغّال
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const orgId = (data.org as any).id;
+                if (!orgId) { alert("لم يتم تحديد الشركة"); return; }
+                const r = await (api as any).seedDemoData(orgId);
+                if (r?.ok) {
+                  const s = r.seeded || {};
+                  alert(`تم! · ${s.contacts || 0} عميل/مورّد · ${s.products || 0} منتج · ${s.invoices || 0} فاتورة · ${s.expenses || 0} مصروف · ${s.accounts || 0} حساب · ${s.banks || 0} بنوك`);
+                  window.location.reload();
+                }
+              } catch (e: any) {
+                alert(`فشل: ${e?.message || "خطأ غير معروف"}`);
+              }
+            }}
+            className="bg-[#1276E3] hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg shrink-0"
+          >
+            عبّ هذه الشركة ببيانات تجريبية كاملة
+          </button>
         </div>
       )}
 
