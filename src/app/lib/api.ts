@@ -624,6 +624,12 @@ export const api = {
       request<{ ok: true; to: string }>(`/api/invoices/${id}/email`, { method: 'POST', body: body || {} }),
   },
 
+  // Demo data · seed two orgs (SA + US) for the current user · UX-179
+  seedTwoDemos: () =>
+    request<{ ok: true; seeded: Array<{ id: string; slug: string; name: string; country: string; currency: string }> }>(
+      '/api/orgs/_/seed-two-demos', { method: 'POST', body: {} },
+    ),
+
   // OAuth · payment provider connections (UX-137)
   oauth: {
     /** Returns the URL to navigate the merchant to for Stripe/PayPal Connect. */

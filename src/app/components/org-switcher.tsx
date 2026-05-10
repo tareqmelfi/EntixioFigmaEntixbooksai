@@ -215,6 +215,29 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             إنشاء منشأة جديدة
           </button>
 
+          {/* Seed two demos (SA + US) · only show if user has 0 or 1 org · UX-179 */}
+          {orgs.length <= 1 && (
+            <button
+              onClick={async () => {
+                setOpen(false);
+                try {
+                  const r = await (api as any).seedTwoDemos();
+                  if (r?.ok) {
+                    alert(`تم إنشاء ${r.seeded.length} شركة تجريبية كاملة (SA + US) · جارِ التحميل...`);
+                    window.location.reload();
+                  }
+                } catch (e: any) {
+                  alert(`فشل: ${e?.message || "خطأ غير معروف"}`);
+                }
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-green-700 hover:bg-green-50 border-b border-[#F3F4F6]"
+              style={{ fontWeight: 600 }}
+            >
+              <Plus className="h-4 w-4" />
+              + إنشاء بيانات تجريبية كاملة (SA + US)
+            </button>
+          )}
+
           <div className="max-h-[340px] overflow-y-auto">
             {filteredOrgs.map((o) => (
               <button
