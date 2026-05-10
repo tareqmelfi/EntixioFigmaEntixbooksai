@@ -251,7 +251,7 @@ export function Expenses() {
           <div className="flex items-center gap-4">
             <button onClick={() => setSelected(null)} className="rounded-lg border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
             <div>
-              <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>مصروف <span className="font-english">{selected.number}</span></h1>
+              <h1 className="text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>مصروف <span className="font-english">{selected.number}</span></h1>
               <p className="text-[#6B7280] text-sm">{selected.category}</p>
             </div>
           </div>
@@ -298,15 +298,15 @@ export function Expenses() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي المصروفات</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">إجمالي</p></CardContent>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()} SR</div><p className="text-xs text-[#6B7280] mt-1">إجمالي</p></CardContent>
         </Card>
         <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">عدد المصروفات</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-[#6B7280] mt-1">مصروف</p></CardContent>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-[#6B7280] mt-1">مصروف</p></CardContent>
         </Card>
         <Card className="border-[#E5E7EB] hover:shadow-md hover:border-[#1276E3]/30 transition-all">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">متوسط المصروف</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length ? Math.round(avg).toLocaleString() : 0} SR</div><p className="text-xs text-[#6B7280] mt-1">لكل مصروف</p></CardContent>
+          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length ? Math.round(avg).toLocaleString() : 0} SR</div><p className="text-xs text-[#6B7280] mt-1">لكل مصروف</p></CardContent>
         </Card>
       </div>
 

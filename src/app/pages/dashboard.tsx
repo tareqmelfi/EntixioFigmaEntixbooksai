@@ -222,50 +222,60 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* KPI Cards · Row 1 (UX-209 · revenue+sales right · expenses+VAT left · subtle accent) */}
+      {/* KPI Cards · Row 1 (UX-212 · revenue · net income · expenses · VAT · smaller numbers + distinct colors) */}
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
-        {/* Revenue · rightmost in RTL */}
+        {/* Revenue · rightmost · navy */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
+          <CardContent className="p-3.5">
+            <div className="flex items-start justify-between mb-2">
               <span className="text-xs text-[#6B7280]">إجمالي الإيرادات</span>
-              <div className="rounded-md p-1.5" style={{ backgroundColor: "#F4FCFF" }}><DollarSign className="h-4 w-4" style={{ color: chartColors.navy }} /></div>
+              <DollarSign className="h-3.5 w-3.5 text-[#9CA3AF]" />
             </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
-              <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
-              {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15 }}>
+              <span className="text-[#6B7280] text-[0.7rem] me-1 font-normal">{cur}</span>
+              {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english font-semibold text-[#0B1B49]">{k.invoiceCount}</span> فاتورة · النقد <span className="font-english">{k.cashOnHand.toLocaleString()}</span></p>
+            <p className="text-[10.5px] text-[#9CA3AF] mt-1.5"><span className="font-english font-semibold text-[#0B1B49]">{k.invoiceCount}</span> فاتورة · نقد <span className="font-english">{k.cashOnHand.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
           </CardContent>
         </Card>
 
-        {/* Sales (subset) */}
-        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">المبيعات</span>
-              <div className="rounded-md p-1.5" style={{ backgroundColor: "#F4FCFF" }}><FileText className="h-4 w-4" style={{ color: chartColors.navy }} /></div>
-            </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
-              <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
-              {(k.revenueFromInvoices ?? k.revenue).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{k.invoiceCount}</span> فاتورة</p>
-          </CardContent>
-        </Card>
+        {/* Net Income · highlighted with sign · green/amber */}
+        {(() => {
+          const net = k.revenue - (k.expenses + k.purchases);
+          const positive = net >= 0;
+          return (
+            <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
+              <CardContent className="p-3.5">
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-xs text-[#6B7280]">صافي الدخل</span>
+                  {positive ? <TrendingUp className="h-3.5 w-3.5" style={{ color: "#10B981" }} /> : <TrendingDown className="h-3.5 w-3.5" style={{ color: "#D97474" }} />}
+                </div>
+                <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: positive ? "#0B1B49" : "#D97474" }}>
+                  <span className="text-[#6B7280] text-[0.7rem] me-1 font-normal">{cur}</span>
+                  {Math.abs(net).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <p className="text-[10.5px] mt-1.5">
+                  <span className={positive ? "text-emerald-700" : "text-rose-700"} style={{ fontWeight: 600 }}>{positive ? "ربح" : "خسارة"}</span>
+                  <span className="text-[#9CA3AF]"> · هامش </span>
+                  <span className="font-english" style={{ color: positive ? "#10B981" : "#D97474" }}>{k.revenue > 0 ? Math.round((net / k.revenue) * 100) : 0}%</span>
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
-        {/* Total Expenses */}
+        {/* Total Expenses · teal · clearly different */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
+          <CardContent className="p-3.5">
+            <div className="flex items-start justify-between mb-2">
               <span className="text-xs text-[#6B7280]">إجمالي المصروفات</span>
-              <div className="rounded-md p-1.5" style={{ backgroundColor: "#F0F8FB" }}><ShoppingBag className="h-4 w-4" style={{ color: chartColors.teal }} /></div>
+              <ShoppingBag className="h-3.5 w-3.5" style={{ color: chartColors.teal }} />
             </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
-              <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
-              {(k.expenses + k.purchases).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: chartColors.teal }}>
+              <span className="text-[#6B7280] text-[0.7rem] me-1 font-normal">{cur}</span>
+              {(k.expenses + k.purchases).toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5">مباشرة <span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString()}</span> · عمومية <span className="font-english">{k.expenses.toLocaleString()}</span></p>
+            <p className="text-[10.5px] text-[#9CA3AF] mt-1.5">مباشرة <span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span> · عمومية <span className="font-english">{k.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
           </CardContent>
         </Card>
 

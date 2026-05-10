@@ -802,19 +802,19 @@ export function Invoices() {
       <div className={`grid grid-cols-1 ${splitMode ? "md:grid-cols-2" : "md:grid-cols-4"} gap-4`}>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">إجمالي الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">المُحصَّل</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
+          <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">المستحق</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
+          <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">عدد الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
       </div>
 

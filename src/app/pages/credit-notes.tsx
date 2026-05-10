@@ -278,15 +278,15 @@ export function CreditNotes() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">إجمالي الإشعارات</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">إجمالي القيمة</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+          <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">مطبَّقة</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
+          <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
         </CardContent></Card>
       </div>
 

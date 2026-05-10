@@ -365,15 +365,15 @@ export function PurchaseBills() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">إجمالي المشتريات</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">عدد الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
+          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
         <Card className="border-[#E5E7EB]"><CardContent className="p-5">
           <div className="text-[#6B7280] text-sm mb-1">متأخرة</div>
-          <div className="font-english text-red-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.filter(b => b.status === "OVERDUE").length}</div>
+          <div className="font-english text-red-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(b => b.status === "OVERDUE").length}</div>
         </CardContent></Card>
       </div>
 
