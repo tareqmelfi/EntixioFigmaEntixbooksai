@@ -104,6 +104,9 @@ export function Invoices() {
   } | null>(null);
 
   const [signFor, setSignFor] = useState<Invoice | null>(null);
+  const [payFor, setPayFor] = useState<Invoice | null>(null);
+  const [payForm, setPayForm] = useState({ amount: "", method: "BANK_TRANSFER" as any, date: new Date().toISOString().slice(0,10), notes: "" });
+  const [payBusy, setPayBusy] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   void editingInvoice;
@@ -293,7 +296,48 @@ export function Invoices() {
     }
   };
 
-  const openSign = (inv: Invoice) => {
+  const openRecordPayment = (inv: Invoice) => {
+    const remaining = Number(inv.total) - Number(inv.amountPaid || 0);
+    setPayFor(inv);
+    setPayForm({
+      amount: remaining > 0 ? String(remaining.toFixed(2)) : String(Number(inv.total).toFixed(2)),
+      method: "BANK_TRANSFER",
+      date: new Date().toISOString().slice(0, 10),
+      notes: `دفعة على الفاتورة ${inv.invoiceNumber}`,
+    });
+  };
+  const closeRecordPayment = () => { setPayFor(null); };
+  const handleRecordPayment = async () => {
+    if (!payFor) return;
+    const amt = Number(payForm.amount);
+    if (!amt || amt <= 0) { push("error", "أدخل مبلغ صحيح"); return; }
+    setPayBusy(true);
+    try {
+      // Create RECEIPT voucher linked to this invoice + customer
+      await (api as any).vouchers.create({
+        kind: "RECEIPT",
+        date: payForm.date,
+        contactId: payFor.contactId,
+        invoiceId: payFor.id,
+        amount: amt,
+        currency: payFor.currency,
+        paymentMethod: payForm.method,
+        description: payForm.notes,
+      });
+      // Update invoice amountPaid
+      const newPaid = Number(payFor.amountPaid || 0) + amt;
+      const total = Number(payFor.total);
+      const newStatus = newPaid >= total ? "PAID" : newPaid > 0 ? "PARTIAL" : payFor.status;
+      await api.invoices.update(payFor.id, { status: newStatus as any, amountPaid: String(newPaid) } as any);
+      setItems(prev => prev.map(x => x.id === payFor.id ? { ...x, amountPaid: String(newPaid), status: newStatus as any } : x));
+      push("success", `تم تسجيل دفعة ${amt} ${payFor.currency}`);
+      closeRecordPayment();
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل التسجيل");
+    } finally { setPayBusy(false); }
+  };
+
+    const openSign = (inv: Invoice) => {
     const customer = customers.find((c) => c.id === inv.contactId);
     setSignFor(inv);
     setSignForm({
@@ -572,7 +616,56 @@ export function Invoices() {
             </div>
           </div>
         </FullPageForm>
-        <ToastStack toasts={toasts} onDismiss={dismiss} />
+              {/* Record Payment dialog (UX-187) */}
+      {payFor && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeRecordPayment}>
+          <div className="bg-white rounded-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[#0B1B49]" style={{ fontWeight: 700, fontSize: "1.05rem" }}>💰 تسجيل دفعة على {payFor.invoiceNumber}</h3>
+              <button onClick={closeRecordPayment} className="text-[#9CA3AF]">✕</button>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                إجمالي الفاتورة: <span className="font-english">{Number(payFor.total).toFixed(2)} {payFor.currency}</span>
+                {Number(payFor.amountPaid || 0) > 0 && <> · المدفوع: <span className="font-english">{Number(payFor.amountPaid).toFixed(2)}</span></>}
+                {" · "}المتبقي: <span className="font-english font-semibold">{(Number(payFor.total) - Number(payFor.amountPaid || 0)).toFixed(2)}</span>
+              </div>
+              <div>
+                <label className="text-xs text-[#374151]">المبلغ *</label>
+                <input value={payForm.amount} onChange={(e) => setPayForm({...payForm, amount: normalizeDigits(e.target.value)})} dir="ltr" className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm font-english" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-[#374151]">طريقة الدفع</label>
+                  <select value={payForm.method} onChange={(e) => setPayForm({...payForm, method: e.target.value})} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    <option value="BANK_TRANSFER">تحويل بنكي</option>
+                    <option value="CASH">نقدي</option>
+                    <option value="CARD">بطاقة</option>
+                    <option value="MADA">مدى</option>
+                    <option value="STC_PAY">STC Pay</option>
+                    <option value="CHECK">شيك</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-[#374151]">التاريخ</label>
+                  <input type="date" value={payForm.date} onChange={(e) => setPayForm({...payForm, date: e.target.value})} dir="ltr" className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm font-english" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-[#374151]">ملاحظات</label>
+                <input value={payForm.notes} onChange={(e) => setPayForm({...payForm, notes: e.target.value})} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={closeRecordPayment} className="px-4 py-2 rounded-md border border-[#E5E7EB] text-sm">إلغاء</button>
+              <button onClick={handleRecordPayment} disabled={payBusy} className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm" style={{fontWeight:600}}>
+                {payBusy ? "..." : "حفظ الدفعة + إنشاء سند قبض"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
 
         {/* Quick-create Product modal · opens when user types unknown item name */}
         {quickProductReq && (
@@ -801,7 +894,7 @@ export function Invoices() {
           docTypeLabel="فاتورة"
           onClose={() => setPreviewId(null)}
           onApprove={previewInvoice.status === "DRAFT" ? () => handleApprove(previewInvoice) : undefined}
-          onSign={() => openSign(previewInvoice)}
+          onRecordPayment={() => openRecordPayment(SOMEVAR)} onSign={() => openSign(previewInvoice)} onRecordPayment={() => openRecordPayment(previewInvoice)}
           onDelete={() => setPendingDelete(previewInvoice.id)}
         />
       )}

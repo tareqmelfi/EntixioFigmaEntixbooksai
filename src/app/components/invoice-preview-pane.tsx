@@ -62,6 +62,7 @@ interface Props {
   onClose: () => void;
   onApprove?: () => void;
   onSign?: () => void;
+  onRecordPayment?: () => void;
   onSendEmail?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -78,6 +79,7 @@ export function InvoicePreviewPane({
   onClose,
   onApprove,
   onSign,
+  onRecordPayment,
   onSendEmail,
   onEdit,
   onDelete,
@@ -117,6 +119,11 @@ export function InvoicePreviewPane({
           {onApprove && doc.status === "DRAFT" && (
             <button onClick={onApprove} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 border border-green-200" title="اعتماد">
               ✓ اعتماد
+            </button>
+          )}
+          {onRecordPayment && doc.status !== "PAID" && doc.status !== "CANCELLED" && (
+            <button onClick={onRecordPayment} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200" title="تسجيل دفعة على الفاتورة">
+              💰 دفعة
             </button>
           )}
           {onSign && doc.status !== "DRAFT" && doc.status !== "PAID" && doc.status !== "CANCELLED" && doc.status !== "CONVERTED" && (
