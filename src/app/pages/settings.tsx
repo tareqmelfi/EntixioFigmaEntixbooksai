@@ -38,6 +38,7 @@ export function Settings() {
     logoUrl: "", stampUrl: "",
     email: "", phone: "", website: "",
     industry: "",
+    defaultInvoiceLanguage: "ar" as "ar" | "en",
   });
 
   // AI Billing state
@@ -67,6 +68,7 @@ export function Settings() {
         phone: (active as any).phone || "",
         website: (active as any).website || "",
         industry: (active as any).industry || "",
+        defaultInvoiceLanguage: ((active as any).defaultInvoiceLanguage as "ar" | "en") || "ar",
       });
       const m = await api.orgs.members(active.id);
       setMembers(m.members);
@@ -94,6 +96,7 @@ export function Settings() {
         phone: form.phone || null,
         website: form.website || null,
         industry: form.industry || null,
+        defaultInvoiceLanguage: form.defaultInvoiceLanguage,
       } as any);
       setOrg(updated);
       setSaved(true);
@@ -314,6 +317,13 @@ await authStore.logout();
                     <option value="SAAS">SaaS · تكنولوجيا</option>
                     <option value="OTHER">أخرى</option>
                   </select>
+                </div>
+                <div className="space-y-2"><Label className="text-xs">اللغة الافتراضية للفواتير</Label>
+                  <select value={form.defaultInvoiceLanguage} onChange={(e) => setForm({ ...form, defaultInvoiceLanguage: e.target.value as "ar" | "en" })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    <option value="ar">عربي · Arabic</option>
+                    <option value="en">إنجليزي · English</option>
+                  </select>
+                  <p className="text-[10px] text-[#9CA3AF]">يحدد اللغة الافتراضية للفواتير + السندات + التقارير عند الطباعة</p>
                 </div>
               </div>
             </div>

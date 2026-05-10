@@ -9,7 +9,7 @@
  * - E-signature display (when present)
  */
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Invoice, Org, Contact } from "../lib/api";
 import { Loader2, Printer, X } from "lucide-react";
 
@@ -20,6 +20,8 @@ function safeNum(v: any, d = 0): number {
 
 export function InvoicePrintView() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const langOverride = searchParams.get("lang"); // "ar" | "en" | null
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -59,7 +61,11 @@ export function InvoicePrintView() {
   if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (error || !invoice || !org) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "red" }}>{error || "تعذر التحميل"}</div>;
 
-  const isKsa = (org.country || "SA") === "SA";
+  // Language: ?lang= override · else org.defaultInvoiceLanguage · else infer from country
+  const orgDefaultLang = (org as any).defaultInvoiceLanguage as ("ar" | "en" | undefined);
+  const inferredLang = (org.country || "SA") === "SA" ? "ar" : "en";
+  const lang = (langOverride === "ar" || langOverride === "en") ? langOverride : (orgDefaultLang || inferredLang);
+  const isKsa = lang === "ar"; // keep variable name for minimum-diff
   const branding = (org as any).paymentSettings?.branding || {};
   const primary = branding.primaryColor || "#1276E3";
   const accent = branding.accentColor || "#0B1B49";

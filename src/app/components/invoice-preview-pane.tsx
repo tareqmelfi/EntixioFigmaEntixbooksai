@@ -129,11 +129,19 @@ export function InvoicePreviewPane({
               <Mail className="h-4 w-4" />
             </button>
           )}
-          <button onClick={() => {
-            window.open(`/print/invoice/${doc.id}`, '_blank');
-          }} className="rounded-md px-2 py-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex items-center gap-1 text-xs" title="طباعة بالشكل الرسمي · Wafeq-style">
-            <Printer className="h-3.5 w-3.5" /> طباعة
-          </button>
+          <div className="inline-flex rounded-md border border-[#E5E7EB] overflow-hidden">
+            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=ar`, '_blank')}
+              className="px-2 py-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex items-center gap-1 text-xs"
+              title="طباعة بالعربي">
+              <Printer className="h-3.5 w-3.5" /> عربي
+            </button>
+            <span className="w-px bg-[#E5E7EB]" />
+            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=en`, '_blank')}
+              className="px-2 py-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex items-center gap-1 text-xs font-english"
+              title="Print in English">
+              <Printer className="h-3.5 w-3.5" /> EN
+            </button>
+          </div>
           {onEdit && (
             <button onClick={onEdit} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]" title="تعديل">
               <Edit3 className="h-4 w-4" />
