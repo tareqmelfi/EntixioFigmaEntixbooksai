@@ -334,8 +334,25 @@ export function Payments() {
                   <SearchableCombobox
                     value={form.contactId}
                     onChange={(id) => setForm({ ...form, contactId: id, billId: "" })}
-                    items={suppliers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                    placeholder="ابحث عن مورد..."
+                    items={contacts.map((c: any) => ({
+                      id: c.id,
+                      label: c.displayName,
+                      sublabel: [c.legalName, c.email].filter(Boolean).join(" · ") || undefined,
+                    }))}
+                    placeholder="ابحث عن مورّد (عربي/English)..."
+                    onCreate={async (name: string) => {
+                      const created = await api.contacts.create({
+                        displayName: name,
+                        type: "SUPPLIER" as any,
+                        isSupplier: true,
+                        entityKind: "COMPANY" as any,
+                        country: "SA",
+                      } as any);
+                      setContacts((prev: any) => [created, ...prev]);
+                      setForm((f: any) => ({ ...f, contactId: created.id }));
+                      return created.id;
+                    }}
+                    createLabel={(q: string) => `+ إنشاء مورّد جديد "${q}"`}
                   />
                 </div>
 
