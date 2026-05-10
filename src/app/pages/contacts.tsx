@@ -12,7 +12,7 @@
  * Roles get distinct color badges. KPI strip at top: total · customers · suppliers · net balance.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { Link } from "react-router";
 import {
   Users, Plus, Search, Trash2, Loader2, Edit2, X, ChevronRight, ChevronLeft,
