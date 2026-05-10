@@ -231,8 +231,8 @@ export function Dashboard() {
                   const max = data.incomeBreakdown[0].total || 1;
                   const pctW = (row.total / max) * 100;
                   return (
-                    <div key={i}>
-                      <div className="flex items-center justify-between text-sm mb-1">
+                    <div key={i} className="group">
+                      <div className="flex items-center justify-between text-sm mb-1.5">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
                           <span className="text-[#0B1B49] truncate">{row.category}</span>

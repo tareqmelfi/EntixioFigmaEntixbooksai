@@ -337,6 +337,32 @@ export function Invoices() {
     } finally { setPayBusy(false); }
   };
 
+    const openEdit = (inv: Invoice) => {
+    setEditingInvoice(inv);
+    setForm({
+      ...EMPTY_FORM,
+      contactId: inv.contactId,
+      invoiceNumber: inv.invoiceNumber,
+      issueDate: String(inv.issueDate).slice(0, 10),
+      dueDate: inv.dueDate ? String(inv.dueDate).slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+      currency: inv.currency,
+      notes: inv.notes || "",
+      reference: (inv as any).reference || "",
+    } as any);
+    setLines(((inv.lines as any[]) || []).map((l: any) => ({
+      id: l.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      description: l.description || "",
+      quantity: String(l.quantity || 1),
+      unitPrice: String(l.unitPrice || 0),
+      taxRate: 0.15,
+      taxInclusive: false,
+      productId: l.productId || null,
+      accountId: l.accountId || null,
+    })));
+    setCreateOpen(true);
+    setCreateError(null);
+  };
+
     const openSign = (inv: Invoice) => {
     const customer = customers.find((c) => c.id === inv.contactId);
     setSignFor(inv);
@@ -894,7 +920,7 @@ export function Invoices() {
           docTypeLabel="فاتورة"
           onClose={() => setPreviewId(null)}
           onApprove={previewInvoice.status === "DRAFT" ? () => handleApprove(previewInvoice) : undefined}
-          onRecordPayment={() => openRecordPayment(SOMEVAR)} onSign={() => openSign(previewInvoice)} onRecordPayment={() => openRecordPayment(previewInvoice)}
+          onRecordPayment={() => openRecordPayment(SOMEVAR)} onSign={() => openSign(previewInvoice)} onRecordPayment={() => openRecordPayment(previewInvoice)} onEdit={() => openEdit(previewInvoice)}
           onDelete={() => setPendingDelete(previewInvoice.id)}
         />
       )}
