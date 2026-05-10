@@ -61,6 +61,7 @@ import { Settings } from "./pages/settings";
 import { Notifications } from "./pages/notifications";
 import { InboxPage } from "./pages/inbox";
 import { AdminDashboard } from "./pages/admin";
+import { ComingSoonApp } from "./pages/coming-soon-app";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
 import { BankReconciliation } from "./pages/bank-reconciliation";
@@ -193,6 +194,25 @@ export const router = createBrowserRouter([
       { path: "notifications", element: <Notifications />, errorElement: <ErrorBoundary /> },
       { path: "admin", element: <AdminDashboard />, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: <FeatureRoadmap />, errorElement: <ErrorBoundary /> },
+      // Marketplace · stub until launch (UX-151)
+      {
+        path: "marketplace/accountants",
+        element: (
+          <ComingSoonApp
+            title="التعاقد مع محاسب معتمد"
+            description="قريباً · سوق محاسبين وموجِّهين ضريبيين معتمدين تتعاقد معهم مباشرة من داخل المنصة."
+            features={[
+              "محاسبون مرخّصون ومراجَعون من فريق ENSIDEX",
+              "أسعار شهرية ثابتة · بدون مفاجآت",
+              "دخول مباشر لحساباتك من قِبَل المحاسب بصلاحيات محدّدة",
+              "تقارير ZATCA + إقرار VAT شهري/ربع سنوي",
+            ]}
+            ctaLabel="سجّل اهتمامك"
+            ctaHref="mailto:hello@entix.io?subject=marketplace-accountants"
+          />
+        ),
+        errorElement: <ErrorBoundary />,
+      },
     ],
   },
   // Portal routes (standalone, no sidebar)
