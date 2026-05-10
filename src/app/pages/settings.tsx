@@ -365,7 +365,26 @@ await authStore.logout();
               </div>
             )}
 
-            <div className="flex justify-end pt-2">
+            <div className="flex items-center justify-between pt-2 gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!org) return;
+                  if (!confirm("سيتم إضافة بيانات تجريبية كاملة (حسابات + عملاء + منتجات + فواتير) لهذه الشركة. متابعة؟")) return;
+                  try {
+                    const r = await (api as any).seedDemoData(org.id);
+                    if (r?.ok) {
+                      setSaved(true);
+                      setTimeout(() => window.location.reload(), 800);
+                    }
+                  } catch (e: any) {
+                    setError(e?.message || "فشل التعبئة");
+                  }
+                }}
+                className="px-3 py-2 text-sm rounded-md border border-green-200 text-green-700 hover:bg-green-50 flex items-center gap-2"
+              >
+                ✨ تعبئة بيانات تجريبية كاملة
+              </button>
               <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ التغييرات</>}
               </Button>

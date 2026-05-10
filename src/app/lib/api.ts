@@ -625,6 +625,10 @@ export const api = {
   },
 
   // Demo data · seed two orgs (SA + US) for the current user · UX-179
+  seedDemoData: (orgId: string) =>
+    request<{ ok: true; seeded: any }>(
+      `/api/orgs/${orgId}/seed-demo-data`, { method: 'POST', body: {} },
+    ),
   seedTwoDemos: () =>
     request<{ ok: true; seeded: Array<{ id: string; slug: string; name: string; country: string; currency: string }> }>(
       '/api/orgs/_/seed-two-demos', { method: 'POST', body: {} },

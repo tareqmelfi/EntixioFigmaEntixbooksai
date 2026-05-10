@@ -188,6 +188,9 @@ export function ItemsTable({
   };
 
   const handlePaste = async (e: ClipboardEvent<HTMLDivElement>) => {
+    // UX-185: skip auto-split if user pastes inside a textarea (description multi-line)
+    const target = e.target as HTMLElement;
+    if (target && target.tagName === "TEXTAREA") return;
     const text = e.clipboardData.getData("text/plain");
     if (!text) return;
     const rows = text.split(/\r?\n/).filter((r) => r.trim());
@@ -350,12 +353,21 @@ export function ItemsTable({
                       </td>
                     )}
                     <td className="px-2 py-1">
-                      <Input
+                      <textarea
                         value={line.description}
                         onChange={(e) => updateLine(i, { description: e.target.value })}
-                        onKeyDown={(e) => handleKeyDown(e, i, false)}
-                        placeholder="الوصف"
-                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-8 bg-transparent"
+                        onKeyDown={(e) => {
+                          // Shift+Enter = newline inside cell · Enter alone = next row
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleKeyDown(e as any, i, false);
+                          }
+                          // Shift+Enter is allowed default behavior (newline)
+                        }}
+                        placeholder="الوصف · Shift+Enter لسطر جديد داخل الخلية"
+                        rows={1}
+                        style={{ minHeight: "32px", resize: "vertical" }}
+                        className="w-full border-0 focus:ring-1 focus:ring-[#1276E3]/30 bg-transparent text-sm py-1 px-2 outline-none"
                       />
                     </td>
                     <td className="px-2 py-1">
