@@ -18,6 +18,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [activeOrg, setActiveOrg] = useState<Org | null>(null);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -157,46 +158,95 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     );
   }
 
+  // Wafeq-parity sidebar variant · square logo + name + "مختارة حالياً" tag
+  const filteredOrgs = orgs.filter((o) =>
+    !search.trim() || o.name.toLowerCase().includes(search.toLowerCase()) || (o.legalName||"").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className={`mb-2 flex w-full items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F9FAFB] ${className || ""}`}
+        className={`mb-2 flex w-full items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-2 text-sm text-[#0B1B49] hover:bg-[#F9FAFB] hover:border-[#1276E3]/30 transition-all ${className || ""}`}
       >
-        <span className="truncate flex items-center gap-2">
-          <Building2 className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
-          {activeOrg ? activeOrg.name : "اختر شركة"}
-        </span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {activeOrg?.logoUrl ? (
+            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
+              {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="flex flex-col items-start gap-0 min-w-0">
+            <span className="truncate text-sm text-[#0B1B49] leading-tight max-w-[180px]" style={{ fontWeight: 600 }}>
+              {activeOrg ? activeOrg.name : "اختر شركة"}
+            </span>
+            {activeOrg && (
+              <span className="text-[10px] text-[#6B7280] font-english leading-tight">
+                {activeOrg.country} · {activeOrg.baseCurrency}
+              </span>
+            )}
+          </div>
+        </div>
         <ChevronDown className={`h-4 w-4 shrink-0 text-[#6B7280] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-[400px] overflow-y-auto rounded-md border border-[#E5E7EB] bg-white shadow-lg">
-          <div className="p-1">
-            {orgs.map((o) => (
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-[480px] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
+          {/* Search bar · Wafeq style */}
+          <div className="p-2 border-b border-[#F3F4F6]">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ابحث عن شركة..."
+              className="w-full rounded-md border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-sm focus:bg-white focus:border-[#1276E3]/30 outline-none"
+              autoFocus
+            />
+          </div>
+
+          {/* Create new · top action */}
+          <button
+            onClick={() => { setOpen(false); setShowCreate(true); }}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-[#1276E3] hover:bg-[#F4FCFF] border-b border-[#F3F4F6]"
+            style={{ fontWeight: 600 }}
+          >
+            <Plus className="h-4 w-4" />
+            إنشاء منشأة جديدة
+          </button>
+
+          <div className="max-h-[340px] overflow-y-auto">
+            {filteredOrgs.map((o) => (
               <button
                 key={o.id}
                 onClick={() => handleSelect(o)}
-                className="flex w-full items-center justify-between rounded px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F4FCFF]"
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-[#0B1B49] hover:bg-[#F4FCFF] border-b border-[#F3F4F6] last:border-b-0"
               >
-                <div className="flex flex-col items-start gap-0.5">
-                  <span className="font-medium">{o.name}</span>
-                  <span className="text-xs text-[#6B7280] font-english">
+                {o.logoUrl ? (
+                  <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
+                ) : (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english" style={{ fontWeight: 700 }}>
+                    {(o.name || "?").trim().charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex flex-col items-start gap-0 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="truncate font-medium text-start">{o.name}</span>
+                    {activeOrg?.id === o.id && (
+                      <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                        مختارة حالياً
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[#6B7280] font-english">
                     {o.country} · {o.baseCurrency}
                   </span>
                 </div>
-                {activeOrg?.id === o.id && <Check className="h-4 w-4 text-[#1276E3] shrink-0" />}
               </button>
             ))}
-          </div>
-          <div className="border-t border-[#E5E7EB] p-1">
-            <button
-              onClick={() => { setOpen(false); setShowCreate(true); }}
-              className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-[#1276E3] hover:bg-[#F4FCFF]"
-            >
-              <Plus className="h-4 w-4" />
-              إنشاء شركة جديدة
-            </button>
+            {filteredOrgs.length === 0 && (
+              <div className="py-8 text-center text-sm text-[#9CA3AF]">لا توجد منشأة بهذا الاسم</div>
+            )}
           </div>
         </div>
       )}

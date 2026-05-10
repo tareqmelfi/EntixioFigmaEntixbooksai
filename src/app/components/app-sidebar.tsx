@@ -242,7 +242,7 @@ export function AppSidebar({
     <aside
       className={`
         flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white
-        fixed inset-y-0 end-0 z-50 transition-transform duration-300 shadow-xl
+        fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-xl
         ${isOpen ? "translate-x-0" : "translate-x-full"}
         ${className}
       `}
@@ -302,20 +302,10 @@ function SidebarContent({
 }) {
   return (
     <>
-      {/* ── Sidebar header · ENTIX.IO wordmark + Org chip ── */}
+      {/* ── Sidebar header · ENTIX.IO right-aligned + Org chip below ── */}
       <div className="border-b border-[#E5E7EB] p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          {/* ENTIX.IO wordmark · click → /app */}
-          <Link
-            to="/app"
-            onClick={onClose}
-            className="font-english tracking-tight select-none hover:opacity-80 transition-opacity flex-1"
-            style={{ fontWeight: 800, fontSize: "1.125rem", letterSpacing: "-0.02em", lineHeight: 1 }}
-            title="الرئيسية · ENTIX"
-          >
-            <span style={{ color: "#0B1B49" }}>ENTIX</span>
-            <span style={{ color: "#1276E3" }}>.IO</span>
-          </Link>
+        <div className="mb-3 flex items-center justify-end gap-2">
+          {/* sidebar mode toggle (left in RTL · subtle) */}
           <button
             onClick={cycleMode}
             className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#0B1B49] transition-colors shrink-0"
@@ -323,9 +313,20 @@ function SidebarContent({
           >
             <ModeIcon className="h-4 w-4" />
           </button>
+          {/* ENTIX.IO wordmark · right-aligned · click → /app */}
+          <Link
+            to="/app"
+            onClick={onClose}
+            className="font-english tracking-tight select-none hover:opacity-80 transition-opacity"
+            style={{ fontWeight: 800, fontSize: "1.125rem", letterSpacing: "-0.02em", lineHeight: 1 }}
+            title="الرئيسية · ENTIX"
+          >
+            <span style={{ color: "#0B1B49" }}>ENTIX</span>
+            <span style={{ color: "#1276E3" }}>.IO</span>
+          </Link>
         </div>
 
-        {/* Active org switcher (Wafeq-style) */}
+        {/* Active org switcher · Wafeq-style with logo + search + "مختارة حالياً" tag */}
         <OrgSwitcher />
 
 

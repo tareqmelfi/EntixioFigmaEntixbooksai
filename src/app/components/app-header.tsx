@@ -82,9 +82,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   return (
     <header className="border-b border-[#E5E7EB] bg-white px-4 sm:px-6 py-3">
       <div className="flex items-center justify-between gap-3">
-        {/* START side (right in RTL) · mobile menu + Org chip */}
+        {/* START side (right in RTL) · mobile menu only · org info lives in sidebar (UX-169) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          {/* Mobile menu button */}
           <button
             onClick={onMenuClick}
             className="lg:hidden rounded-md p-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
@@ -92,8 +91,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          {/* Active org · click to switch */}
-          <OrgSwitcher variant="header-chip" />
+          {/* Page title slot · could show breadcrumb later */}
+          <div className="hidden lg:block text-sm text-[#6B7280]" />
         </div>
 
         {/* END side (left in RTL) · actions only · ENTIX.IO wordmark moved to sidebar header */}
