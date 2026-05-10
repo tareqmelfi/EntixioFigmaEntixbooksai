@@ -358,7 +358,7 @@ export const api = {
     },
   },
 
-  // E-signature (DocuSeal at sign.fc.sa)
+  // E-signature (DocuSeal at sign.ensidex.com)
   sign: {
     sendQuote: (quoteId: string, data: SignSendInput) =>
       request<SignSendResult>(`/api/sign/quotes/${quoteId}/send`, { method: 'POST', body: data }),

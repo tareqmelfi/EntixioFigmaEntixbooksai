@@ -385,7 +385,7 @@ export function Quotes() {
       <>
         <FullPageForm
           title={`إرسال ${signFor.quoteNumber} للتوقيع`}
-          subtitle="DocuSeal · sign.fc.sa · صلاحية الرابط 30 يوم"
+          subtitle="DocuSeal · sign.ensidex.com · صلاحية الرابط 30 يوم"
           onClose={closeSign}
           disableEscape={busy}
           footer={
