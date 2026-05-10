@@ -16,8 +16,7 @@ import {
   ArrowRight, Building2, Mail, Phone, Globe, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, Edit2, ExternalLink, AlertCircle, Plus, Send,
   CheckCircle2, Clock, XCircle, Hash, Briefcase, User, History, Files,
-  KeyRound, Activity, Tag,
-} from "lucide-react";
+  KeyRound, Activity, Tag, Landmark } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { api, ApiError, ContactSummary } from "../lib/api";
 
@@ -131,42 +130,93 @@ export function ContactDetail() {
 
   return (
     <div className="space-y-5">
-      {/* Header bar */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0">
-          <Link to="/app/contacts" className="mt-1 text-[#6B7280] hover:text-[#1276E3]">
+      {/* Header bar · Wave-style minimal (UX-201) */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/app/contacts" className="text-[#9CA3AF] hover:text-[#1276E3] transition">
             <ArrowRight className="h-5 w-5" />
           </Link>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[#0B1B49] truncate" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-                {contact.displayName}
-              </h1>
-              {contact.entityKind === "COMPANY" ? <Building2 className="h-4 w-4 text-[#6B7280]" /> : <User className="h-4 w-4 text-[#6B7280]" />}
-              {contact.isForeign && (
-                <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700">جهة خارجية</span>
-              )}
-            </div>
-            {contact.legalName && contact.legalName !== contact.displayName && (
-              <p className="text-sm text-[#6B7280] mt-0.5">{contact.legalName}</p>
-            )}
-            <div className="mt-2"><RoleBadges contact={contact} /></div>
-          </div>
+          <h1 className="text-[#0B1B49] truncate" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+            {contact.displayName}
+          </h1>
         </div>
-
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => navigate(`/app/contacts?edit=${contact.id}`)}
-            className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-full border border-[#1276E3] text-[#1276E3] text-sm hover:bg-[#F4FCFF] transition flex items-center gap-1.5"
           >
-            <Edit2 className="h-3.5 w-3.5" /> تعديل
+            تعديل العميل
           </button>
           <Link
             to={`/app/invoices?new=1&contactId=${contact.id}`}
-            className="px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-full border border-[#1276E3] text-[#1276E3] text-sm hover:bg-[#F4FCFF] transition flex items-center gap-1.5"
           >
-            <Plus className="h-3.5 w-3.5" /> فاتورة جديدة
+            المزيد <span className="text-[10px]">▾</span>
           </Link>
+        </div>
+      </div>
+
+      {/* Wave-style 2-column · contact card on left + tabs on right */}
+      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5 items-start">
+        {/* Left contact card */}
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="p-5">
+            {/* Entity-aware avatar (UX-201) */}
+            <div className="flex flex-col items-center mb-4">
+              <div className="relative w-24 h-24 rounded-full bg-[#F4FCFF] border border-dashed border-[#1276E3] flex items-center justify-center mb-3 group cursor-pointer hover:bg-[#E0F2FE] transition" title="رفع شعار (قريباً)">
+                {contact.entityKind === "COMPANY" ? (
+                  <Building2 className="h-10 w-10 text-[#1276E3]" />
+                ) : (contact as any).entityKind === "GOVERNMENT" ? (
+                  <Landmark className="h-10 w-10 text-[#1276E3]" />
+                ) : (
+                  <User className="h-10 w-10 text-[#1276E3]" />
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1 justify-center">
+                {contact.isForeign && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-700">جهة خارجية</span>
+                )}
+                <RoleBadges contact={contact} />
+              </div>
+            </div>
+            {contact.legalName && contact.legalName !== contact.displayName && (
+              <div className="text-xs text-[#9CA3AF] text-center mb-3 pb-3 border-b border-[#F3F4F6]">{contact.legalName}</div>
+            )}
+            <div className="space-y-3 text-sm">
+              {(contact as any).primaryContactName && (
+                <div>
+                  <div className="text-[10px] text-[#9CA3AF] mb-0.5">جهة الاتصال الرئيسية</div>
+                  <div className="text-[#0B1B49] font-semibold">{(contact as any).primaryContactName}</div>
+                </div>
+              )}
+              {contact.email && (
+                <div className="text-xs">
+                  <a href={`mailto:${contact.email}`} className="text-[#374151] hover:text-[#1276E3] break-all font-english">{contact.email}</a>
+                </div>
+              )}
+              {(contact as any).website && (
+                <div className="text-xs">
+                  <a href={(contact as any).website} target="_blank" rel="noreferrer" className="text-[#1276E3] hover:underline font-english break-all">{(contact as any).website}</a>
+                </div>
+              )}
+              {(contact.addressLine1 || contact.city) && (
+                <div className="pt-3 border-t border-[#F3F4F6]">
+                  <div className="text-[10px] text-[#9CA3AF] mb-1">عنوان الفوترة</div>
+                  <div className="text-xs text-[#374151] leading-5">
+                    {contact.addressLine1 && <div>{contact.addressLine1}</div>}
+                    {contact.addressLine2 && <div>{contact.addressLine2}</div>}
+                    {(contact.city || contact.region) && <div>{[contact.city, contact.region].filter(Boolean).join(", ")}</div>}
+                    {contact.postalCode && <div className="font-english">{contact.postalCode}</div>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right column — placeholder spacer for tabs/content (existing KPIs + sections render below this grid) */}
+        <div className="min-w-0">
+          {/* spacer; content continues below outside grid */}
         </div>
       </div>
 

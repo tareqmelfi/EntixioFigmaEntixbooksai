@@ -60,6 +60,7 @@ import { Reports } from "./pages/reports";
 import { Settings } from "./pages/settings";
 import { Notifications } from "./pages/notifications";
 import { InboxPage } from "./pages/inbox";
+import { ScanReceipts } from "./pages/scan-receipts";
 import { AdminDashboard } from "./pages/admin";
 import { ComingSoonApp } from "./pages/coming-soon-app";
 import { InvoicePrintView } from "./pages/invoice-print-view";
