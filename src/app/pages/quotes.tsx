@@ -59,6 +59,8 @@ export function Quotes() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
@@ -75,12 +77,16 @@ export function Quotes() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [quotesRes, contactsRes] = await Promise.all([
+      const [quotesRes, contactsRes, productsRes, accountsRes] = await Promise.all([
         api.quotes.list(),
         api.contacts.list({ limit: 200 }),
+        (api as any).products?.list?.({ limit: 200 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
+        (api as any).accounts?.list?.({ limit: 500 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
       ]);
       setItems(quotesRes.items);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
+      setProducts((productsRes as any).items || []);
+      setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل التحميل");
     } finally { setLoading(false); }
@@ -306,6 +312,18 @@ export function Quotes() {
               currency={form.currency}
               direction="sales"
               minRows={10}
+              products={products.map((p: any) => ({ id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, defaultAccountId: p.incomeAccountId }))}
+              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.nameAr || a.name, type: a.type }))}
+              onCreateProduct={async (name: string) => {
+                const created = await (api as any).products.create({ name, type: "SERVICE", unitPrice: "0", isActive: true });
+                setProducts((prev) => [created, ...prev]);
+                return { id: created.id, name: created.name, sku: created.sku, unitPrice: 0 };
+              }}
+              onCreateAccount={async (name: string) => {
+                const created = await (api as any).accounts.create({ name, type: "REVENUE", code: String(4000 + Math.floor(Math.random() * 100)) });
+                setAccounts((prev) => [created, ...prev]);
+                return { id: created.id, code: created.code, name: created.name, type: created.type };
+              }}
             />
 
             <DocumentDropZone
