@@ -17,6 +17,16 @@ import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../l
 
 type Line = { accountId: string; debit: string; credit: string; description: string };
 const blankLine = (): Line => ({ accountId: "", debit: "0", credit: "0", description: "" });
+// UX-206 · debit/credit increase/decrease indicator
+function impactLabel(accountType: string, debit: number, credit: number): { text: string; tone: "up" | "down" | null } {
+  if (!debit && !credit) return { text: "", tone: null };
+  // Asset/Expense: debit increases · Liability/Equity/Revenue: credit increases
+  const isDebitNormal = accountType === "ASSET" || accountType === "EXPENSE";
+  if (debit > 0) return { text: isDebitNormal ? "زاد ↑" : "نقص ↓", tone: isDebitNormal ? "up" : "down" };
+  if (credit > 0) return { text: isDebitNormal ? "نقص ↓" : "زاد ↑", tone: isDebitNormal ? "down" : "up" };
+  return { text: "", tone: null };
+}
+
 
 type FormState = {
   date: string;
@@ -555,6 +565,17 @@ export function JournalEntries() {
                           <td className="px-2 py-1.5">
                             <input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })}
                               placeholder="بيان السطر..." className="w-full text-sm rounded border border-[#E5E7EB] px-2 py-1.5" />
+                            {(() => {
+                              const acc = accounts.find(a => a.id === l.accountId);
+                              if (!acc) return null;
+                              const { text, tone } = impactLabel(acc.type, Number(l.debit) || 0, Number(l.credit) || 0);
+                              if (!text) return null;
+                              return (
+                                <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded ${tone === "up" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                                  {(acc.nameAr || acc.name)} {text}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-2 py-1.5">
                             <input type="number" step="0.01" min="0" value={l.debit}

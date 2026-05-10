@@ -36,6 +36,61 @@ import { api, ApiError, DashboardSummary } from "../lib/api";
 
 const DONUT_COLORS = ["#1276E3", "#179FC5", "#7DD3E4", "#0B1B49", "#D4A76A", "#10B981", "#F59E0B", "#EF4444"];
 
+// UX-205 · Locked chart-styles per Figma spec ("Data is the Hero")
+const chartColors = {
+  navy: "#0B1B49",                       // deep navy · primary positive
+  navySoft: "#2D3D6B",                   // muted navy · for bar fills (not transparent)
+  blue: "#1276E3",                       // brand interaction
+  teal: "#5A95B0",                       // muted dusty teal · less saturated
+  tealSoft: "#8FB7C8",                   // even softer · secondary bars
+  green: "#10B981",                      // success
+  red: "#D97474",                        // muted rose-red · NOT fluorescent (user feedback UX-206)
+  redSoft: "#E8A8A8",                    // lightest rose
+};
+const gridStyle = { stroke: "#ECEEF1", strokeDasharray: "3 3", opacity: 0.8 };
+const xAxisStyle = { fontSize: 10, fill: "#B0B7C3" };
+const yAxisStyle = { fontSize: 10, fill: "#C4CAD4" };
+const tooltipStyle = {
+  contentStyle: { backgroundColor: "rgba(255,255,255,0.96)", border: "1px solid #ECEEF1", borderRadius: 10, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" },
+  cursor: { fill: "rgba(11,27,73,0.04)" },
+  labelStyle: { color: "#0B1B49", fontWeight: 600, marginBottom: 4 },
+};
+
+// VATGauge · split horizontal bar showing collected vs paid VAT
+function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; paid: number; currency?: string }) {
+  const net = collected - paid;
+  const total = Math.max(collected + paid, 1);
+  const collectedPct = (collected / total) * 100;
+  const paidPct = (paid / total) * 100;
+  const isOwed = net > 0;
+  return (
+    <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <span className="text-xs text-[#6B7280]">ضريبة القيمة المضافة</span>
+          <Gauge className="h-4 w-4 text-[#9CA3AF]" />
+        </div>
+        {/* split bar */}
+        <div className="flex h-2 rounded-full overflow-hidden mb-3 bg-[#F1F5F9]">
+          <div style={{ width: `${collectedPct}%`, backgroundColor: chartColors.teal }} />
+          <div style={{ width: `${paidPct}%`, backgroundColor: chartColors.navy }} />
+        </div>
+        <div className="flex items-center justify-between text-[10px] text-[#6B7280] mb-2">
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> لصالح الضريبة <span className="font-english font-semibold text-[#0B1B49] ms-1">{collected.toLocaleString()}</span></span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> لصالحنا <span className="font-english font-semibold text-[#0B1B49] ms-1">{paid.toLocaleString()}</span></span>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-[#F3F4F6]">
+          <span className="text-[11px] text-[#6B7280]">صافي المستحق</span>
+          <div className="flex items-center gap-2">
+            <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#F59E0B" : "#22C55E" }}>{Math.abs(net).toLocaleString()} <span className="text-[10px] text-[#9CA3AF]">{currency}</span></span>
+            <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#166534]"}`}>{isOwed ? "علينا" : "لصالحنا ✓"}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ChartLegend({ items }: { items: { label: string; color: string; type?: "rect" | "line" }[] }) {
   return (
     <div className="flex justify-center gap-4 pt-2" style={{ fontFamily: "Noto Sans Arabic", fontSize: "11px", color: "#9CA3AF" }}>
@@ -167,232 +222,157 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* KPI Cards · Row 1 (UX-198 · minimalist Wave/Qoyod style · single brand accent) */}
+      {/* KPI Cards · Row 1 (UX-205 · Figma spec: VATGauge + Purchases + Sales + Revenue) */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-        {/* Revenue */}
+        <VATGauge collected={k.vatOutput} paid={k.vatInput} currency={cur} />
+
+        {/* Purchases */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">إجمالي الإيرادات</span>
-              <DollarSign className="h-4 w-4 text-[#9CA3AF]" />
+              <span className="text-xs text-[#6B7280]">المشتريات</span>
+              <div className="rounded-md p-1.5" style={{ backgroundColor: "#EFF6FF" }}><ShoppingBag className="h-4 w-4" style={{ color: chartColors.blue }} /></div>
             </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(k.revenue)}</div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
+              <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
+              {k.purchases.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </div>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5">المصروفات: <span className="font-english">{k.expenses.toLocaleString()}</span></p>
+          </CardContent>
+        </Card>
+
+        {/* Sales / Invoices count */}
+        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs text-[#6B7280]">المبيعات</span>
+              <div className="rounded-md p-1.5" style={{ backgroundColor: "#EFF6FF" }}><FileText className="h-4 w-4" style={{ color: chartColors.blue }} /></div>
+            </div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
+              <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
+              {(k.revenueFromInvoices ?? k.revenue).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </div>
             <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{k.invoiceCount}</span> فاتورة</p>
           </CardContent>
         </Card>
 
-        {/* Purchases + Expenses */}
+        {/* Total Revenue */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">المشتريات + المصروفات</span>
-              <ShoppingBag className="h-4 w-4 text-[#9CA3AF]" />
+              <span className="text-xs text-[#6B7280]">إجمالي الإيرادات</span>
+              <div className="rounded-md p-1.5" style={{ backgroundColor: "#EFF6FF" }}><DollarSign className="h-4 w-4" style={{ color: chartColors.blue }} /></div>
             </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(k.purchases + k.expenses)}</div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{k.purchases.toLocaleString()}</span> مشتريات · <span className="font-english">{k.expenses.toLocaleString()}</span> مصروفات</p>
-          </CardContent>
-        </Card>
-
-        {/* VAT */}
-        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">ضريبة القيمة المضافة</span>
-              <Gauge className="h-4 w-4 text-[#9CA3AF]" />
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
+              <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
+              {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(Math.abs(k.vatNet))}</div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5">
-              {k.vatNet >= 0 ? "علينا للهيئة" : "لصالحنا"}
-              <span className="mx-1">·</span>
-              <span className="font-english">{k.vatOutput.toLocaleString()}</span> / <span className="font-english">{k.vatInput.toLocaleString()}</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Cash on Hand */}
-        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">النقد المتوفّر</span>
-              <Wallet className="h-4 w-4 text-[#9CA3AF]" />
-            </div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(k.cashOnHand)}</div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{data.bankAccounts.length}</span> حساب بنكي مربوط</p>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5">النقد المتوفّر: <span className="font-english">{k.cashOnHand.toLocaleString()}</span></p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Wave-style Income vs Expense breakdown — Row 1.5 */}
+      {/* Charts grid 2x2 · Figma spec UX-205 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* P&L · vertical bars · navy + red */}
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                  <ArrowUpRight className="h-4 w-4 text-green-600" /> الإيرادات حسب الفئة
-                </CardTitle>
-                <CardDescription className="text-[#6B7280] text-xs">
-                  إجمالي <span className="font-english font-semibold text-green-700">{fmt(k.revenue)}</span>
-                  {(k.revenueFromJournal || 0) > 0 && (
-                    <span className="text-[#9CA3AF]"> · فواتير <span className="font-english">{fmtCompact(k.revenueFromInvoices || 0)}</span> + قيود <span className="font-english">{fmtCompact(k.revenueFromJournal || 0)}</span></span>
-                  )}
-                </CardDescription>
-              </div>
-              <Link to="/app/journal-entries" className="text-xs text-[#1276E3] hover:underline">قيد جديد +</Link>
-            </div>
+            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>الأرباح والخسائر</CardTitle>
+            <CardDescription className="text-[#6B7280] text-xs">ملخص الأرباح والخسائر لآخر 6 أشهر</CardDescription>
           </CardHeader>
           <CardContent>
-            {data.incomeBreakdown.length === 0 ? (
-              <div className="text-center py-8 text-sm text-[#6B7280]">
-                لا توجد إيرادات بعد
-                <div className="mt-2"><Link to="/app/invoices?new=1" className="text-xs text-[#1276E3] hover:underline">+ فاتورة</Link></div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {data.incomeBreakdown.slice(0, 6).map((row, i) => {
-                  const max = data.incomeBreakdown[0].total || 1;
-                  const pctW = (row.total / max) * 100;
-                  return (
-                    <div key={i} className="group">
-                      <div className="flex items-center justify-between text-sm mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                          <span className="text-[#0B1B49] truncate">{row.category}</span>
-                          <span className="text-xs text-[#9CA3AF] font-english" dir="ltr">{row.code}</span>
-                        </div>
-                        <span className="font-english font-semibold text-[#0B1B49]" dir="ltr">{row.total.toLocaleString()}</span>
-                      </div>
-                      <div className="h-1.5 bg-[#F3F4F6] rounded">
-                        <div className="h-1.5 rounded" style={{ width: `${pctW}%`, backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                  <ArrowDownRight className="h-4 w-4 text-red-600" /> المصروفات حسب الفئة
-                </CardTitle>
-                <CardDescription className="text-[#6B7280] text-xs">
-                  إجمالي <span className="font-english font-semibold text-red-700">{fmt(k.expenses + k.purchases)}</span>
-                  {(k.expensesFromJournal || 0) > 0 && (
-                    <span className="text-[#9CA3AF]"> · شامل قيود يومية <span className="font-english">{fmtCompact(k.expensesFromJournal || 0)}</span></span>
-                  )}
-                </CardDescription>
-              </div>
-              <Link to="/app/expenses/new" className="text-xs text-[#1276E3] hover:underline">مصروف +</Link>
+            <div dir="ltr">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={data.profitLoss.map(p => ({ month: p.month, profit: p.revenue, loss: p.expenses }))}>
+                  <CartesianGrid {...gridStyle} />
+                  <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
+                  <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                  <Bar dataKey="profit" fill={chartColors.navySoft} radius={[8, 8, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="loss" fill={chartColors.red} radius={[8, 8, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </CardHeader>
-          <CardContent>
-            {data.expenseBreakdown.length === 0 ? (
-              <div className="text-center py-8 text-sm text-[#6B7280]">
-                لا توجد مصروفات بعد
-                <div className="mt-2"><Link to="/app/expenses/new" className="text-xs text-[#1276E3] hover:underline">+ مصروف</Link></div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {data.expenseBreakdown.slice(0, 6).map((row, i) => {
-                  const max = data.expenseBreakdown[0].total || 1;
-                  const pctW = (row.total / max) * 100;
-                  const color = ["#EF4444", "#F59E0B", "#F97316", "#EC4899", "#A855F7", "#0EA5E9"][i % 6];
-                  return (
-                    <div key={i}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                          <span className="text-[#0B1B49] truncate">{row.category}</span>
-                        </div>
-                        <span className="font-english font-semibold text-[#0B1B49]" dir="ltr">{row.total.toLocaleString()}</span>
-                      </div>
-                      <div className="h-1.5 bg-[#F3F4F6] rounded">
-                        <div className="h-1.5 rounded" style={{ width: `${pctW}%`, backgroundColor: color }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Cash Flow combo + P&L · Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-[#E5E7EB]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>التدفق النقدي</CardTitle>
-                <CardDescription className="text-[#6B7280] text-xs">داخل · خارج · الصافي · آخر 6 أشهر</CardDescription>
-              </div>
-              <Link to="/app/reports/cash-flow" className="text-xs text-[#1276E3] hover:underline">التقرير الكامل ←</Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={data.cashFlowTrend}>
-                <defs>
-                  <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1276E3" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#1276E3" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ECEEF1" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9CA3AF" }} />
-                <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} tickFormatter={fmtCompact} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }}
-                  formatter={(v: any) => Number(v).toLocaleString()}
-                />
-                <Bar dataKey="in" fill="#10B981" radius={[3, 3, 0, 0]} barSize={18} />
-                <Bar dataKey="out" fill="#EF4444" radius={[3, 3, 0, 0]} barSize={18} />
-                <Area type="monotone" dataKey="net" stroke="#1276E3" strokeWidth={2.5} fill="url(#netGradient)" />
-              </ComposedChart>
-            </ResponsiveContainer>
             <ChartLegend items={[
-              { label: "تدفق داخل", color: "#10B981" },
-              { label: "تدفق خارج", color: "#EF4444" },
-              { label: "صافي", color: "#1276E3", type: "line" },
+              { label: "الأرباح", color: chartColors.navy },
+              { label: "الخسائر", color: chartColors.red },
             ]} />
           </CardContent>
         </Card>
 
+        {/* Revenue Breakdown · horizontal bars · navySoft */}
         <Card className="border-[#E5E7EB]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>الأرباح والخسائر</CardTitle>
-                <CardDescription className="text-[#6B7280] text-xs">الإيرادات vs المصروفات · صافي الدخل · آخر 6 أشهر</CardDescription>
-              </div>
-              <Link to="/app/reports/profit-loss" className="text-xs text-[#1276E3] hover:underline">التقرير الكامل ←</Link>
-            </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>تفصيل الإيرادات</CardTitle>
+            <CardDescription className="text-[#6B7280] text-xs">توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={data.profitLoss}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ECEEF1" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#9CA3AF" }} />
-                <YAxis tick={{ fontSize: 10, fill: "#9CA3AF" }} tickFormatter={fmtCompact} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }}
-                  formatter={(v: any) => Number(v).toLocaleString()}
-                />
-                <Bar dataKey="revenue" fill="#0B1B49" radius={[3, 3, 0, 0]} barSize={20} />
-                <Bar dataKey="expenses" fill="#7DD3E4" radius={[3, 3, 0, 0]} barSize={20} />
-                <Line type="monotone" dataKey="net" stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} />
-              </ComposedChart>
-            </ResponsiveContainer>
+            {data.incomeBreakdown.length === 0 ? (
+              <div className="py-12 text-center text-sm text-[#9CA3AF]">لا توجد إيرادات بعد</div>
+            ) : (
+              <div dir="ltr">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart layout="vertical" data={data.incomeBreakdown.slice(0, 6).map(r => ({ category: r.category, value: r.total }))}>
+                    <CartesianGrid {...gridStyle} horizontal={false} />
+                    <XAxis type="number" tick={xAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+                    <YAxis type="category" dataKey="category" orientation="right" width={100} tick={{ ...yAxisStyle, fontFamily: "Noto Sans Arabic" }} tickLine={false} axisLine={false} />
+                    <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                    <Bar dataKey="value" fill={chartColors.navySoft} radius={[0, 8, 8, 0]} maxBarSize={22} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue vs Expenses · grouped bars · navySoft + tealSoft */}
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>الإيرادات مقابل المصروفات</CardTitle>
+            <CardDescription className="text-[#6B7280] text-xs">مقارنة الإيرادات بالمصروفات لآخر 6 أشهر</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div dir="ltr">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={data.monthlyTrend}>
+                  <CartesianGrid {...gridStyle} />
+                  <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
+                  <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                  <Bar dataKey="revenue" fill={chartColors.navySoft} radius={[8, 8, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="expenses" fill={chartColors.tealSoft} radius={[8, 8, 0, 0]} maxBarSize={28} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
             <ChartLegend items={[
-              { label: "الإيرادات", color: "#0B1B49" },
-              { label: "المصروفات", color: "#7DD3E4" },
-              { label: "صافي الدخل", color: "#10B981", type: "line" },
+              { label: "الإيرادات", color: chartColors.navy },
+              { label: "المصروفات", color: chartColors.teal },
+            ]} />
+          </CardContent>
+        </Card>
+
+        {/* Cash Flow · line chart · navy + teal */}
+        <Card className="border-[#E5E7EB]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>التدفق النقدي</CardTitle>
+            <CardDescription className="text-[#6B7280] text-xs">تحليل التدفقات النقدية الداخلة والخارجة</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div dir="ltr">
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={data.cashFlowTrend.map(c => ({ month: c.month, inflow: c.in, outflow: c.out }))}>
+                  <CartesianGrid {...gridStyle} />
+                  <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
+                  <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                  <Line type="monotone" dataKey="inflow" stroke={chartColors.navy} strokeWidth={2} dot={{ r: 3, fill: chartColors.navy }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="outflow" stroke={chartColors.teal} strokeWidth={2} dot={{ r: 3, fill: chartColors.teal }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <ChartLegend items={[
+              { label: "تدفق داخل", color: chartColors.navy, type: "line" },
+              { label: "تدفق خارج", color: chartColors.teal, type: "line" },
             ]} />
           </CardContent>
         </Card>
