@@ -2,7 +2,7 @@
 
 :root {
   --font-size: 16px;
-  --background: #F4FCFF;
+  --background: #F1F5F9;
   --foreground: #0B1B49;
   --card: #ffffff;
   --card-foreground: #0B1B49;
@@ -42,7 +42,7 @@
   --navy-primary: #0B1B49;
   --blue-accent: #1276E3;
   --teal-secondary: #179FC5;
-  --light-background: #F4FCFF;
+  --light-background: #F1F5F9;
 }
 
 .dark {

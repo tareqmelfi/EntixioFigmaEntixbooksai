@@ -32,7 +32,7 @@ export function Root() {
   }, []);
 
   return (
-    <div className="flex h-dvh w-full bg-[#F4FCFF]" dir="rtl">
+    <div className="flex h-dvh w-full bg-[#F1F5F9]" dir="rtl">
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
