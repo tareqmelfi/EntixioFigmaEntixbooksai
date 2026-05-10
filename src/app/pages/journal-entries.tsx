@@ -81,7 +81,7 @@ export function JournalEntries() {
 
   const openEdit = (e: JournalEntryRow) => {
     if (e.status === "POSTED") {
-      push("error", "لا يمكن تعديل قيد مرحّل، قم بإلغاء الترحيل أولاً");
+      push("warning", "اضغط (إلغاء ترحيل وتعديل) لتحرير قيد مرحَّل");
       return;
     }
     setForm({
@@ -459,9 +459,21 @@ export function JournalEntries() {
                 </>
               )}
               {selected.source === "manual" && selected.status === "POSTED" && (
-                <Button onClick={() => handleUnpost(selected.id)} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
-                  <Undo2 className="h-4 w-4 me-1" /> إلغاء الترحيل
-                </Button>
+                <>
+                  <Button onClick={() => unpostAndEdit(selected)} className="bg-amber-500 hover:bg-amber-600 text-white">
+                    <Pencil className="h-4 w-4 me-1" /> إلغاء ترحيل وتعديل
+                  </Button>
+                  <Button onClick={() => handleUnpost(selected.id)} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                    <Undo2 className="h-4 w-4 me-1" /> إلغاء الترحيل فقط
+                  </Button>
+                </>
+              )}
+              {selected.source !== "manual" && (
+                <div className="w-full rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                  هذا القيد أُنشئ تلقائياً من <span style={{fontWeight: 600}}>{selected.source === "invoice" ? "فاتورة مبيعات" : selected.source === "bill" ? "فاتورة شراء" : selected.source === "expense" ? "مصروف" : selected.source === "voucher" ? "سند" : "مستند آخر"}</span>{selected.sourceId ? <> رقم <span className="font-english">{selected.sourceId}</span></> : null}.
+                  <br/>
+                  للتعديل · افتح المستند الأصلي وعدّل من هناك.
+                </div>
               )}
               {selected.source === "manual" && selected.status === "DRAFT" && (
                 pendingDelete === selected.id ? (
