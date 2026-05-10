@@ -366,7 +366,15 @@ export function Invoices() {
                 <Label className="text-[#374151] text-xs">جهة الاتصال *</Label>
                 <SearchableCombobox
                   value={form.contactId}
-                  onChange={(id) => setForm({ ...form, contactId: id })}
+                  onChange={(id) => {
+                    setForm({ ...form, contactId: id });
+                    // Auto-fill reference: contactCode + invoice sequence (editable)
+                    const c = customers.find((x) => x.id === id);
+                    if (c?.customCode) {
+                      const seq = items.filter((iv: any) => iv.contactId === id).length + 1;
+                      setForm((prev: any) => ({ ...prev, contactId: id, reference: prev.reference || `${c.customCode}-${String(seq).padStart(2, '0')}` }));
+                    }
+                  }}
                   onCreate={(name) => new Promise<string>((resolve, reject) => {
                     setPendingContact({ name, resolve, reject });
                   })}
