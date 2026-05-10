@@ -422,44 +422,52 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Period Compare */}
+        {/* Period Compare · paired bars (UX-214) */}
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-2">
             <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
               <TrendingUp className="h-4 w-4" /> هذا الشهر vs الشهر الماضي
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[#6B7280]">الإيرادات</span>
-              <div className="flex items-center gap-2">
-                <span className="font-english font-semibold">{fmtCompact(data.periodCompare.thisMonth.revenue)}</span>
-                <span className={`text-xs ${revCompare.up ? "text-green-600" : "text-red-600"}`}>
-                  {revCompare.up ? "▲" : "▼"} {revCompare.value}%
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[#6B7280]">المصروفات</span>
-              <div className="flex items-center gap-2">
-                <span className="font-english font-semibold">{fmtCompact(data.periodCompare.thisMonth.expenses)}</span>
-                <span className={`text-xs ${!expCompare.up ? "text-green-600" : "text-red-600"}`}>
-                  {expCompare.up ? "▲" : "▼"} {expCompare.value}%
-                </span>
-              </div>
-            </div>
-            <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
-              <span className="text-sm text-[#0B1B49] font-semibold">صافي الدخل</span>
-              <div className="flex items-center gap-2">
-                <span className={`font-english font-bold ${data.periodCompare.thisMonth.net >= 0 ? "text-green-700" : "text-red-700"}`}>
-                  {fmtCompact(data.periodCompare.thisMonth.net)}
-                </span>
-                <span className={`text-xs ${netCompare.up ? "text-green-600" : "text-red-600"}`}>
-                  {netCompare.up ? "▲" : "▼"} {netCompare.value}%
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-[#9CA3AF] pt-1">الشهر الماضي: <span className="font-english">{fmtCompact(data.periodCompare.lastMonth.net)}</span> {cur}</p>
+          <CardContent className="space-y-3.5">
+            {(() => {
+              const rows = [
+                { label: "الإيرادات", curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, color: chartColors.navy, prevColor: chartColors.navy + "40", upGood: true, cmp: revCompare },
+                { label: "المصروفات", curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, color: chartColors.teal, prevColor: chartColors.teal + "40", upGood: false, cmp: expCompare },
+                { label: "صافي الدخل", curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, color: data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B", prevColor: (data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B") + "40", upGood: true, cmp: netCompare },
+              ];
+              const max = Math.max(1, ...rows.flatMap(r => [Math.abs(r.curr), Math.abs(r.prev)]));
+              return rows.map((r, i) => {
+                const positiveTrend = r.upGood ? r.cmp.up : !r.cmp.up;
+                return (
+                  <div key={i}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-[#6B7280]">{r.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-english font-semibold text-[#0B1B49]">{fmtCompact(r.curr)}</span>
+                        <span className="font-english text-[10px]" style={{ color: positiveTrend ? "#10B981" : "#E84B4B" }}>{r.cmp.up ? "▲" : "▼"} {r.cmp.value}%</span>
+                      </div>
+                    </div>
+                    {/* Two stacked thin bars · this month + last month */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-[#9CA3AF] w-9 shrink-0">الحالي</span>
+                        <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
+                          <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.curr) / max) * 100}%`, backgroundColor: r.color }} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-[#9CA3AF] w-9 shrink-0">السابق</span>
+                        <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
+                          <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.prev) / max) * 100}%`, backgroundColor: r.prevColor }} />
+                        </div>
+                        <span className="font-english text-[10px] text-[#9CA3AF] shrink-0">{fmtCompact(r.prev)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </CardContent>
         </Card>
 
@@ -578,46 +586,82 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Overdue list */}
+        {/* Overdue · 2 columns: AR (متأخرة لي) + AP (متأخرة عليّ) (UX-214) */}
         <Card className="border-[#E5E7EB]">
-          <CardHeader>
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                <Clock className="h-4 w-4 text-red-500" /> فواتير متأخرة
+                <Clock className="h-4 w-4" style={{ color: chartColors.red }} /> الفواتير المتأخرة
               </CardTitle>
               <Link to="/app/invoices?status=OVERDUE" className="text-xs text-[#1276E3] hover:underline">عرض الكل ←</Link>
             </div>
           </CardHeader>
           <CardContent>
-            {data.overdueInvoices.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-sm text-green-600">🎉 لا توجد فواتير متأخرة</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* AR overdue · invoices customers haven't paid */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-[#6B7280]">متأخرة عليهم (AR)</span>
+                  <span className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{data.overdueInvoices.length}</span>
+                </div>
+                {data.overdueInvoices.length === 0 ? (
+                  <div className="text-center py-6 rounded-lg bg-emerald-50 border border-emerald-100">
+                    <p className="text-[11px] text-emerald-700">🎉 لا توجد</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {data.overdueInvoices.slice(0, 3).map((inv) => (
+                      <Link key={inv.id} to={`/app/invoices/${inv.id}`} className="block p-2 rounded-md hover:bg-rose-50 border border-[#F3F4F6] hover:border-rose-100 transition">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-english text-[11px] text-[#0B1B49] font-semibold truncate">{inv.number}</span>
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-english shrink-0">{inv.daysOverdue}ي</span>
+                            </div>
+                            <div className="text-[10px] text-[#6B7280] truncate mt-0.5">{inv.contact}</div>
+                          </div>
+                          <div className="text-end shrink-0">
+                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{(inv.remaining || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="space-y-2">
-                {data.overdueInvoices.map((inv) => (
-                  <Link
-                    key={inv.id}
-                    to={`/app/invoices/${inv.id}`}
-                    className="flex items-center justify-between p-2.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100 transition"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-english text-sm text-[#0B1B49] font-semibold">{inv.number}</span>
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-english">
-                          {inv.daysOverdue} يوم
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#6B7280] truncate mt-0.5">{inv.contact}</div>
-                    </div>
-                    <div className="text-end shrink-0">
-                      <div className="font-english font-semibold text-red-600">{inv.remaining.toLocaleString()}</div>
-                      <div className="text-xs text-[#9CA3AF] font-english">{cur}</div>
-                    </div>
-                  </Link>
-                ))}
+
+              {/* AP overdue · bills we haven't paid */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-[#6B7280]">متأخرة علينا (AP)</span>
+                  <span className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(data as any).overdueBills?.length || 0}</span>
+                </div>
+                {(!(data as any).overdueBills || (data as any).overdueBills.length === 0) ? (
+                  <div className="text-center py-6 rounded-lg bg-emerald-50 border border-emerald-100">
+                    <p className="text-[11px] text-emerald-700">🎉 لا توجد</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {((data as any).overdueBills as any[]).slice(0, 3).map((bill) => (
+                      <Link key={bill.id} to={`/app/purchases/bills`} className="block p-2 rounded-md hover:bg-cyan-50 border border-[#F3F4F6] hover:border-cyan-100 transition">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-english text-[11px] text-[#0B1B49] font-semibold truncate">{bill.number || bill.billNumber}</span>
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-cyan-100 text-cyan-700 font-english shrink-0">{bill.daysOverdue}ي</span>
+                            </div>
+                            <div className="text-[10px] text-[#6B7280] truncate mt-0.5">{bill.contact}</div>
+                          </div>
+                          <div className="text-end shrink-0">
+                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(bill.remaining || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       </div>
