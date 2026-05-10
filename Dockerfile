@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install deps · cache layer for npm
 COPY package*.json ./
-RUN npm ci --no-audit --no-fund --prefer-offline
+RUN npm install --no-audit --no-fund
 
 # Build
 COPY . .
