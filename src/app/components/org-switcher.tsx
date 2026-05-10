@@ -84,7 +84,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
               </div>
             )}
-            <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[180px]">
+            <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[260px]">
               <span className="truncate text-sm text-[#0B1B49] leading-tight" style={{ fontWeight: 600 }}>
                 {activeOrg ? activeOrg.name : "اختر شركة"}
               </span>
@@ -106,7 +106,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
         </div>
 
         {open && (
-          <div className="absolute end-0 top-full z-50 mt-1 w-72 max-h-[420px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+          <div className="absolute end-0 top-full z-[60] mt-1 w-80 max-h-[420px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
             <div className="p-1">
               {orgs.map((o) => (
                 <button
@@ -171,7 +171,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[400px] overflow-y-auto rounded-md border border-[#E5E7EB] bg-white shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-[400px] overflow-y-auto rounded-md border border-[#E5E7EB] bg-white shadow-lg">
           <div className="p-1">
             {orgs.map((o) => (
               <button
@@ -392,7 +392,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "logoUrl"); }} />
                   {form.logoUrl ? (
                     <div className="flex items-center gap-3">
-                      <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[80px] object-contain bg-[#F9FAFB] rounded p-1" />
+                      <img src={form.logoUrl} alt="logo" className="max-w-[240px] max-h-[80px] object-contain bg-[#F9FAFB] rounded p-1" />
                       <div className="flex flex-col gap-1">
                         <label htmlFor="logo-upload" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
                         <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline text-start">حذف</button>

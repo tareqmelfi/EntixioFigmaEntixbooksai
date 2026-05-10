@@ -96,18 +96,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           <OrgSwitcher variant="header-chip" />
         </div>
 
-        {/* END side (left in RTL) · ENTIX IO wordmark + actions */}
+        {/* END side (left in RTL) · actions only · ENTIX.IO wordmark moved to sidebar header */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* ENTIX IO wordmark · click → /app dashboard */}
-          <Link
-            to="/app"
-            className="hidden sm:flex items-center font-english tracking-tight select-none hover:opacity-80 transition-opacity"
-            style={{ fontWeight: 800, fontSize: "1.125rem", letterSpacing: "-0.02em" }}
-            title="الرئيسية · ENTIX"
-          >
-            <span style={{ color: "#0B1B49" }}>ENTIX</span>
-            <span style={{ color: "#1276E3" }}>.IO</span>
-          </Link>
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button
