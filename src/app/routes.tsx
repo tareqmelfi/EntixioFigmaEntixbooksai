@@ -131,7 +131,6 @@ export const router = createBrowserRouter([
       { path: "invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
       { path: "invoices/new", element: <Invoices />, errorElement: <ErrorBoundary /> },
       { path: "invoices/:id", element: <Invoices />, errorElement: <ErrorBoundary /> },
-      { path: "invoices/:id/print-view", element: <InvoicePrintView />, errorElement: <ErrorBoundary /> },
       // legacy aliases used by older links
       { path: "sales/invoices", element: <Invoices />, errorElement: <ErrorBoundary /> },
       { path: "sales/invoices/new", element: <Invoices />, errorElement: <ErrorBoundary /> },
@@ -220,6 +219,7 @@ export const router = createBrowserRouter([
   // Portal routes (standalone, no sidebar)
   { path: "/portal/login", element: <PortalLogin />, errorElement: <ErrorBoundary /> },
   { path: "/portal", element: <PortalHome />, errorElement: <ErrorBoundary /> },
+  { path: "/print/invoice/:id", element: <InvoicePrintView />, errorElement: <ErrorBoundary /> },
   // Error handling
   { path: "*", element: <NotFound /> },
 ]);
