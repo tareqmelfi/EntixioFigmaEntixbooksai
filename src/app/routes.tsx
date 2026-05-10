@@ -166,6 +166,7 @@ export const router = createBrowserRouter([
       // Bank Accounts
       { path: "bank-accounts", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       { path: "bank-accounts/new", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
+      { path: "bank-accounts/:id", element: <BankAccounts />, errorElement: <ErrorBoundary /> },
       { path: "bank-reconciliation", element: <BankReconciliation />, errorElement: <ErrorBoundary /> },
       { path: "fiscal-periods", element: <FiscalPeriods />, errorElement: <ErrorBoundary /> },
       // Assets

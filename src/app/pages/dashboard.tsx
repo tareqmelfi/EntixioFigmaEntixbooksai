@@ -479,7 +479,7 @@ export function Dashboard() {
                   const outPct = (outflow / total) * 100;
                   const isPositive = b.balance >= 0;
                   return (
-                    <Link key={b.id} to={`/app/bank-accounts/${b.id}`} className="block group">
+                    <Link key={b.id} to={`/app/bank-accounts`} className="block group">
                       <div className="rounded-lg border border-[#E5E7EB] hover:border-[#1276E3] transition p-3 bg-white">
                         <div className="flex items-center gap-2.5">
                           {/* Logo placeholder · 36x36 square */}

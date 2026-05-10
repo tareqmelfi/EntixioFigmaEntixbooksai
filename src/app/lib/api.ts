@@ -252,7 +252,7 @@ export const api = {
 
   // Bills (purchase invoices)
   bills: {
-    list: (params?: { status?: string }) =>
+    list: (params?: { status?: string; contactId?: string }) =>
       request<{ items: any[]; total: number }>('/api/bills', { query: params }),
     get: (id: string) => request<any>(`/api/bills/${id}`),
     create: (data: any) => request<any>('/api/bills', { method: 'POST', body: data }),
