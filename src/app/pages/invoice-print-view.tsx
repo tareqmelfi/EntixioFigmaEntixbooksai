@@ -90,7 +90,8 @@ export function InvoicePrintView() {
   // Print logo > avatar logo · so business has a clean PDF logo
   const printLogo = (org as any).printLogoUrl || (org as any).logoUrl;
   const stampUrl = (org as any).stampUrl;
-  const showQr = isKsa && (org as any).zatcaEnabled;
+  // Show QR for all countries (not just KSA · UX-186)
+  const showQr = true;
 
   // Generate ZATCA-style QR placeholder (TLV base64) · use a simple SVG placeholder
   // In production: use library like qrcode.react · for now placeholder until library added
@@ -159,21 +160,21 @@ export function InvoicePrintView() {
             </div>
           </div>
 
-          {/* Bill-to + invoice details */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 24 }}>
-            <div style={{ padding: "12px 14px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <h2 style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
-              <strong style={{ display: "block", color: accent, marginBottom: 4, fontSize: 14 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
-              {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 11 }}>{contact.legalName}</div>)}
-              {contactAddress && <div style={{ color: "#6B7280", fontSize: 11, marginTop: 4 }}>{contactAddress}</div>}
-              {contact?.email && <div style={{ color: "#6B7280", fontSize: 11 }}>{contact.email}</div>}
-              {contact?.phone && <div style={{ color: "#6B7280", fontSize: 11 }}><span className="num">{contact.phone}</span></div>}
-              {(contact as any)?.taxId && <div style={{ color: "#6B7280", fontSize: 11 }}>{isKsa ? "الرقم الضريبي" : "Tax ID"}: <span className="num">{(contact as any).taxId}</span></div>}
+          {/* Bill-to + invoice details · compact (no box · saves vertical space) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 18, paddingBottom: 12, borderBottom: "1px solid #F3F4F6" }}>
+            <div>
+              <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
+              <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 13 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
+              {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 10 }}>{contact.legalName}</div>)}
+              {contactAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{contactAddress}</div>}
+              {contact?.email && <div style={{ color: "#6B7280", fontSize: 10 }}>{contact.email}</div>}
+              {contact?.phone && <div style={{ color: "#6B7280", fontSize: 10 }}><span className="num">{contact.phone}</span></div>}
+              {(contact as any)?.taxId && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "الرقم الضريبي" : "Tax ID"}: <span className="num">{(contact as any).taxId}</span></div>}
             </div>
-            <div style={{ padding: "12px 14px", borderRadius: 8, background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-              <h2 style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>{isKsa ? "تفاصيل الفاتورة" : "Invoice Details"}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 13 }}>
-                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num" style={{ textAlign: "end" }}>{invoice.invoiceNumber}</span>
+            <div>
+              <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "تفاصيل الفاتورة" : "Invoice Details"}</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 12px", fontSize: 11 }}>
+                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num" style={{ textAlign: "end", color: accent, fontWeight: 600 }}>{invoice.invoiceNumber}</span>
                 <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
                 {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
                 {(invoice as any).reference && <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num" style={{ textAlign: "end" }}>{(invoice as any).reference}</span></>}
@@ -210,15 +211,35 @@ export function InvoicePrintView() {
             </tbody>
           </table>
 
-          {/* Totals + QR (side-by-side) */}
+          {/* Totals + QR + Stamp · all in one row */}
           <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-            {qrSvg && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                {qrSvg}
-                <div style={{ fontSize: 9, color: "#9CA3AF" }}>ZATCA QR · للتحقق</div>
-              </div>
-            )}
-            <div style={{ minWidth: 320, border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", marginInlineStart: "auto" }}>
+            {/* QR + Stamp · side-by-side on the END side (left in RTL) */}
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+              {qrSvg && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  {qrSvg}
+                  <div style={{ fontSize: 9, color: "#9CA3AF" }}>{isKsa ? "QR للتحقق" : "Verify QR"}</div>
+                </div>
+              )}
+              {stampUrl && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <div style={{
+                    transform: "rotate(-6deg)",
+                    padding: 4,
+                    background: "transparent",
+                  }}>
+                    <img src={stampUrl} alt={isKsa ? "ختم" : "Seal"} style={{
+                      maxHeight: 100, maxWidth: 130,
+                      objectFit: "contain",
+                      opacity: 0.85,
+                      mixBlendMode: "multiply",
+                    }} />
+                  </div>
+                  <div style={{ fontSize: 9, color: "#9CA3AF" }}>{isKsa ? "ختم الشركة" : "Company Seal"}</div>
+                </div>
+              )}
+            </div>
+            <div style={{ minWidth: 320, border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
                 <span>{isKsa ? "المجموع الفرعي · Subtotal" : "Subtotal"}</span><span className="num">{subtotal.toFixed(2)} {currency}</span>
               </div>
@@ -258,15 +279,10 @@ export function InvoicePrintView() {
             </div>
           )}
 
-          {/* Footer · stamp + thank-you */}
-          <div style={{ marginTop: 32, paddingTop: 16, borderTop: `2px solid ${primary}`, display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "end" }}>
-            <div style={{ color: "#6B7280", fontSize: 11 }}>
-              <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>
-              {(org as any).website && <div>{(org as any).website}</div>}
-            </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-              {stampUrl && <img src={stampUrl} alt="ختم" style={{ maxHeight: 90, maxWidth: 160, objectFit: "contain", opacity: 0.85 }} />}
-            </div>
+          {/* Footer · thank-you only · stamp moved next to totals */}
+          <div style={{ marginTop: 28, paddingTop: 12, borderTop: `2px solid ${primary}`, color: "#6B7280", fontSize: 11, textAlign: "center" }}>
+            <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>
+            {(org as any).website && <div>{(org as any).website}</div>}
           </div>
         </div>
 
