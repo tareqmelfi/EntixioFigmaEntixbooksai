@@ -13,7 +13,7 @@
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles } from "lucide-react";
+import { BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, MoreHorizontal, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -42,6 +42,24 @@ const TYPE_PREFIX: Record<AccountType, string> = {
   REVENUE:   "4",
   EXPENSE:   "5",
 };
+
+// Visual meta per type · gradient + icon + ring color (UX-192)
+const TYPE_META: Record<AccountType, {
+  icon: any;
+  gradient: string;
+  ring: string;
+  bg: string;
+  text: string;
+  accent: string;
+  hint: string;
+}> = {
+  ASSET:     { icon: Wallet,        gradient: "from-blue-500 to-cyan-500",       ring: "ring-blue-200",      bg: "bg-blue-50",      text: "text-blue-700",      accent: "#1276E3", hint: "ما تملكه الشركة" },
+  LIABILITY: { icon: CreditCard,    gradient: "from-rose-500 to-red-500",        ring: "ring-rose-200",      bg: "bg-rose-50",      text: "text-rose-700",      accent: "#E11D48", hint: "ما عليها للغير" },
+  EQUITY:    { icon: Landmark,      gradient: "from-purple-500 to-indigo-500",   ring: "ring-purple-200",    bg: "bg-purple-50",    text: "text-purple-700",    accent: "#7C3AED", hint: "حقوق الملاّك" },
+  REVENUE:   { icon: TrendingUp,    gradient: "from-emerald-500 to-green-500",   ring: "ring-emerald-200",   bg: "bg-emerald-50",   text: "text-emerald-700",   accent: "#10B981", hint: "ما تكسبه الشركة" },
+  EXPENSE:   { icon: TrendingDown,  gradient: "from-amber-500 to-orange-500",    ring: "ring-amber-200",     bg: "bg-amber-50",     text: "text-amber-700",     accent: "#F59E0B", hint: "ما تنفقه الشركة" },
+};
+
 
 /** Suggest next available code in the bucket. If parent provided, use parent.code as prefix. */
 function suggestCode(items: Account[], type: AccountType, parent: Account | null): string {
@@ -450,101 +468,195 @@ export function ChartOfAccounts() {
         </div>
       </div>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        {(["ALL", "ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setFilterType(t)}
-            className={`rounded-lg border px-4 py-3 text-start transition ${filterType === t ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] hover:bg-[#F9FAFB]"}`}
-          >
-            <div className="text-xs text-[#6B7280] mb-1">{t === "ALL" ? "الكل" : TYPE_LABELS[t]}</div>
-            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t === "ALL" ? items.length : (counts[t] || 0)}</div>
-          </button>
-        ))}
+      {/* Type cards · gradient header + count + total balance (UX-192) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).map(t => {
+          const meta = TYPE_META[t];
+          const Icon = meta.icon;
+          const typeItems = items.filter(a => a.type === t);
+          const total = typeItems.reduce((s, a) => s + (a.balance ?? 0), 0);
+          const isActive = filterType === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setFilterType(isActive ? "ALL" : t)}
+              className={`group relative overflow-hidden rounded-xl border text-start transition-all hover:shadow-md hover:-translate-y-0.5 ${isActive ? "border-[#1276E3] ring-2 ring-[#1276E3]/20" : "border-[#E5E7EB]"}`}
+            >
+              <div className={`bg-gradient-to-br ${meta.gradient} p-3 text-white`}>
+                <div className="flex items-center justify-between">
+                  <Icon className="h-5 w-5 opacity-90" />
+                  <span className="text-[10px] font-english font-bold bg-white/20 px-1.5 py-0.5 rounded">{typeItems.length}</span>
+                </div>
+                <div className="mt-2 text-sm font-semibold">{TYPE_LABELS[t]}</div>
+                <div className="text-[10px] opacity-80 mt-0.5">{meta.hint}</div>
+              </div>
+              <div className="bg-white p-3">
+                <div className="text-[10px] text-[#6B7280] mb-0.5">إجمالي الرصيد</div>
+                <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.05rem", fontWeight: 700 }}>
+                  {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[#0B1B49]">الحسابات ({flatRows.length})</CardTitle>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-[#1276E3] hover:underline">+ توسيع الكل</button>
-              <button onClick={() => setExpanded(new Set())} className="text-xs text-[#6B7280] hover:underline">طيّ الكل</button>
-              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-64 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+      {/* Toolbar */}
+      <Card className="border-[#E5E7EB] shadow-sm">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
+              <Input placeholder="بحث بالاسم أو الرمز..." className="ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
+            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-[#1276E3] text-white border-[#1276E3]" : "bg-white border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]"}`}>الكل ({items.length})</button>
+            <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-[#1276E3] hover:underline px-2">+ توسيع</button>
+            <button onClick={() => setExpanded(new Set())} className="text-xs text-[#6B7280] hover:underline px-2">طيّ</button>
+            <span className="text-xs text-[#9CA3AF] ms-auto">{flatRows.length} حساب معروض</span>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
-          ) : flatRows.length === 0 ? (
-            <div className="py-12 text-center"><BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد حسابات</p></div>
-          ) : (
-            <table className="w-full">
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
-                <th className="py-3 px-4 text-start font-medium">الرمز</th>
-                <th className="py-3 px-4 text-start font-medium">الاسم</th>
-                <th className="py-3 px-4 text-start font-medium">التصنيف</th>
-                <th className="py-3 px-4 text-end font-medium">الرصيد</th>
-                <th className="py-3 px-4 text-end font-medium">الإجراءات</th>
-              </tr></thead>
-              <tbody>
-                {flatRows.map(node => (
-                  <tr key={node.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] group">
-                    <td className="py-2.5 px-4 font-english text-sm text-[#1276E3] relative" style={{ fontWeight: 600 }}>
-                      {/* Indentation guides · vertical lines per depth */}
-                      <span className="inline-flex items-center" style={{ gap: 0 }}>
-                        {Array.from({ length: node.depth }).map((_, d) => (
-                          <span key={d} className="inline-block border-s-2 border-[#E5E7EB] h-7" style={{ width: '1.5rem', marginInlineStart: '0.25rem' }} />
-                        ))}
-                        {/* Branch connector for non-root */}
-                        {node.depth > 0 && (
-                          <span className="inline-block border-t-2 border-[#E5E7EB] me-1" style={{ width: '0.5rem' }} />
-                        )}
-                        {node.children.length > 0 ? (
-                          <button onClick={() => toggleExpand(node.id)} className="text-[#9CA3AF] hover:text-[#1276E3] me-1">
-                            {expanded.has(node.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />}
-                          </button>
-                        ) : <span className="inline-block me-1" style={{ width: '0.875rem' }} />}
-                        <button type="button" onClick={() => openTransactions(node.id)} className="hover:underline cursor-pointer">{node.code}</button>
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4 text-sm cursor-pointer" onClick={() => openTransactions(node.id)}>
-                      <div className="text-[#0B1B49] hover:text-[#1276E3]" style={{ fontWeight: 500 }}>{node.nameAr || node.name}</div>
-                      {node.nameAr && <div className="text-xs text-[#6B7280] font-english">{node.name}</div>}
-                    </td>
-                    <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded ${TYPE_COLORS[node.type as AccountType]}`}>{TYPE_LABELS[node.type as AccountType]}</span></td>
-                    <td className="py-2.5 px-4 text-end font-english">
-                      {(node.balance ?? 0) !== 0 ? (
-                        <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-[#0B1B49]" : "text-amber-700"}`}>
-                          {(node.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                        </span>
-                      ) : (
-                        <span className="text-[#9CA3AF]">0.00</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-4 text-end">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => openTransactions(node.id)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="العمليات"><History className="h-4 w-4" /></button>
-                        <button onClick={() => openEdit(node)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="تعديل"><Edit2 className="h-4 w-4" /></button>
-                        {pendingDelete === node.id ? (
-                          <span className="flex items-center gap-1 text-xs">
-                            <button onClick={() => handleDelete(node.id)} className="px-2 py-1 rounded bg-red-600 text-white">تأكيد</button>
-                            <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-[#E5E7EB]">إلغاء</button>
-                          </span>
-                        ) : (
-                          <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </CardContent>
       </Card>
+
+      {/* Type-grouped tree sections (UX-192) */}
+      {loading ? (
+        <Card className="border-[#E5E7EB]"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></CardContent></Card>
+      ) : items.length === 0 ? (
+        <Card className="border-[#E5E7EB] border-dashed"><CardContent className="py-16 text-center">
+          <BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
+          <p className="text-sm text-[#6B7280] mb-3">لا توجد حسابات بعد</p>
+          <Button onClick={openCreate} className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />أضف أول حساب</Button>
+        </CardContent></Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).filter(t => filterType === "ALL" || filterType === t).map(t => {
+            const meta = TYPE_META[t];
+            const Icon = meta.icon;
+            const sectionRoots = tree.filter(n => n.type === t);
+            // Apply search filter on tree
+            const filterNode = (n: typeof sectionRoots[0]): boolean => {
+              if (!searchQuery) return true;
+              const q = searchQuery.toLowerCase();
+              if (n.code.includes(q) || n.name.toLowerCase().includes(q) || (n.nameAr || "").includes(q)) return true;
+              return n.children.some(filterNode);
+            };
+            const visibleRoots = sectionRoots.filter(filterNode);
+            const sectionTotal = items.filter(a => a.type === t).reduce((s, a) => s + (a.balance ?? 0), 0);
+
+            return (
+              <Card key={t} className={`border-[#E5E7EB] overflow-hidden`}>
+                <div className={`bg-gradient-to-r ${meta.gradient} px-4 py-2.5 flex items-center justify-between text-white`}>
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-5 w-5" />
+                    <div>
+                      <div className="text-sm font-semibold">{TYPE_LABELS[t]}</div>
+                      <div className="text-[10px] opacity-90">{sectionRoots.length} حساب رئيسي · إجمالي {sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setForm({ code: "", name: "", nameAr: "", type: t, parentId: "", description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                    className="text-[11px] bg-white/20 hover:bg-white/30 transition px-2 py-1 rounded inline-flex items-center gap-1"
+                    title={`إضافة حساب جديد · ${TYPE_LABELS[t]}`}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> إضافة
+                  </button>
+                </div>
+                <CardContent className="p-0">
+                  {visibleRoots.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-[#9CA3AF]">
+                      {searchQuery ? "لا نتائج مطابقة" : "لا توجد حسابات في هذا التصنيف"}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#F3F4F6]">
+                      {(() => {
+                        // Flatten only the section's tree honoring expanded state
+                        const out: TreeNode[] = [];
+                        const walk = (n: TreeNode) => {
+                          if (!filterNode(n)) return;
+                          out.push(n);
+                          if (expanded.has(n.id)) n.children.forEach(walk);
+                        };
+                        visibleRoots.forEach(walk);
+                        return out.map(node => (
+                          <div key={node.id} className={`group flex items-center gap-2 px-3 py-2 hover:${meta.bg} transition`} style={{ paddingInlineStart: `${0.75 + node.depth * 1.25}rem` }}>
+                            {/* Indent + chevron */}
+                            {node.depth > 0 && (
+                              <span className="inline-block border-s border-[#E5E7EB] self-stretch -my-2 me-1" style={{ marginInlineStart: "-0.5rem" }} />
+                            )}
+                            {node.children.length > 0 ? (
+                              <button onClick={() => toggleExpand(node.id)} className="text-[#9CA3AF] hover:text-[#1276E3] shrink-0">
+                                {expanded.has(node.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+                              </button>
+                            ) : <span className="inline-block w-4 h-4 shrink-0" />}
+                            {/* Code chip */}
+                            <button
+                              type="button"
+                              onClick={() => openTransactions(node.id)}
+                              className={`font-english text-xs ${meta.text} ${meta.bg} border ${meta.bg.replace('bg-','border-')} px-2 py-0.5 rounded shrink-0 hover:underline`}
+                              style={{ fontWeight: 700 }}
+                            >
+                              {node.code}
+                            </button>
+                            {/* Name */}
+                            <button
+                              type="button"
+                              onClick={() => openTransactions(node.id)}
+                              className="flex-1 min-w-0 text-start cursor-pointer"
+                            >
+                              <div className="text-sm text-[#0B1B49] truncate hover:text-[#1276E3]" style={{ fontWeight: node.depth === 0 ? 600 : 500 }}>
+                                {node.nameAr || node.name}
+                              </div>
+                              {node.nameAr && node.name && (
+                                <div className="text-[10px] text-[#9CA3AF] font-english truncate">{node.name}</div>
+                              )}
+                            </button>
+                            {/* Balance */}
+                            <div className="font-english text-xs shrink-0 text-end" style={{ minWidth: "80px" }}>
+                              {(node.balance ?? 0) !== 0 ? (
+                                <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-[#0B1B49]" : "text-amber-700"}`}>
+                                  {(node.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                </span>
+                              ) : (
+                                <span className="text-[#D1D5DB]">0.00</span>
+                              )}
+                            </div>
+                            {/* Hover actions */}
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+                              <button
+                                onClick={() => { setForm({ code: "", name: "", nameAr: "", type: node.type as AccountType, parentId: node.id, description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                                className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]"
+                                title="إضافة حساب فرعي تحت هذا"
+                              >
+                                <PlusCircle className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]" title="تعديل"><Edit2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]" title="العمليات"><History className="h-3.5 w-3.5" /></button>
+                              {pendingDelete === node.id ? (
+                                <span className="flex items-center gap-0.5 text-[10px]">
+                                  <button onClick={() => handleDelete(node.id)} className="px-1.5 py-0.5 rounded bg-red-600 text-white">تأكيد</button>
+                                  <button onClick={() => setPendingDelete(null)} className="px-1.5 py-0.5 rounded border border-[#E5E7EB]">x</button>
+                                </span>
+                              ) : (
+                                <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+                              )}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                      {/* Inline add at bottom of section */}
+                      <button
+                        onClick={() => { setForm({ code: "", name: "", nameAr: "", type: t, parentId: "", description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                        className="w-full px-3 py-2 text-xs text-[#9CA3AF] hover:text-[#1276E3] hover:bg-[#F9FAFB] flex items-center gap-2 border-t border-dashed border-[#E5E7EB]"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> إضافة حساب رئيسي جديد لـ{TYPE_LABELS[t]}
+                      </button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Transactions slide-over panel */}
       {txPanel && (
