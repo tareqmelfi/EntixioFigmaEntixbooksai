@@ -162,6 +162,10 @@ export function Dashboard() {
   const netCompare = pct(data.periodCompare.thisMonth.net, data.periodCompare.lastMonth.net);
   const revCompare = pct(data.periodCompare.thisMonth.revenue, data.periodCompare.lastMonth.revenue);
   const expCompare = pct(data.periodCompare.thisMonth.expenses, data.periodCompare.lastMonth.expenses);
+  const yearAgo = (data.periodCompare as any).yearAgo || { revenue: 0, expenses: 0, net: 0 };
+  const revYa = pct(data.periodCompare.thisMonth.revenue, yearAgo.revenue);
+  const expYa = pct(data.periodCompare.thisMonth.expenses, yearAgo.expenses);
+  const netYa = pct(data.periodCompare.thisMonth.net, yearAgo.net);
 
   return (
     <div className="space-y-3">
@@ -432,11 +436,11 @@ export function Dashboard() {
           <CardContent className="space-y-3.5">
             {(() => {
               const rows = [
-                { label: "الإيرادات", curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, color: chartColors.navy, prevColor: chartColors.navy + "40", upGood: true, cmp: revCompare },
-                { label: "المصروفات", curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, color: chartColors.teal, prevColor: chartColors.teal + "40", upGood: false, cmp: expCompare },
-                { label: "صافي الدخل", curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, color: data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B", prevColor: (data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B") + "40", upGood: true, cmp: netCompare },
+                { label: "الإيرادات", curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, ya: yearAgo.revenue, color: chartColors.navy, prevColor: chartColors.navy + "40", upGood: true, cmp: revCompare },
+                { label: "المصروفات", curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, ya: yearAgo.expenses, color: chartColors.teal, prevColor: chartColors.teal + "40", upGood: false, cmp: expCompare },
+                { label: "صافي الدخل", curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, ya: yearAgo.net, color: data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B", prevColor: (data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B") + "40", upGood: true, cmp: netCompare },
               ];
-              const max = Math.max(1, ...rows.flatMap(r => [Math.abs(r.curr), Math.abs(r.prev)]));
+              const max = Math.max(1, ...rows.flatMap(r => [Math.abs(r.curr), Math.abs(r.prev), Math.abs(r.ya)]));
               return rows.map((r, i) => {
                 const positiveTrend = r.upGood ? r.cmp.up : !r.cmp.up;
                 return (
@@ -448,20 +452,27 @@ export function Dashboard() {
                         <span className="font-english text-[10px]" style={{ color: positiveTrend ? "#10B981" : "#E84B4B" }}>{r.cmp.up ? "▲" : "▼"} {r.cmp.value}%</span>
                       </div>
                     </div>
-                    {/* Two stacked thin bars · this month + last month */}
+                    {/* Three stacked thin bars · current / previous month / year-ago (UX-216) */}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-[#9CA3AF] w-9 shrink-0">الحالي</span>
+                        <span className="text-[9px] text-[#9CA3AF] w-12 shrink-0">الحالي</span>
                         <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.curr) / max) * 100}%`, backgroundColor: r.color }} />
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-[#9CA3AF] w-9 shrink-0">السابق</span>
+                        <span className="text-[9px] text-[#9CA3AF] w-12 shrink-0">الشهر الماضي</span>
                         <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.prev) / max) * 100}%`, backgroundColor: r.prevColor }} />
                         </div>
-                        <span className="font-english text-[10px] text-[#9CA3AF] shrink-0">{fmtCompact(r.prev)}</span>
+                        <span className="font-english text-[10px] text-[#9CA3AF] shrink-0 w-9 text-end">{fmtCompact(r.prev)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-[#9CA3AF] w-12 shrink-0">السنة الماضية</span>
+                        <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
+                          <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.ya || 0) / max) * 100}%`, backgroundColor: r.prevColor }} />
+                        </div>
+                        <span className="font-english text-[10px] text-[#9CA3AF] shrink-0 w-9 text-end">{fmtCompact(r.ya || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -496,14 +507,14 @@ export function Dashboard() {
                   const trendUp = trendPct >= 0;
                   return (
                     <Link key={b.id} to={`/app/bank-accounts`} className="block group">
-                      <div className="rounded-lg border border-[#E5E7EB] hover:border-[#1276E3] transition p-3 bg-white">
+                      <div className="rounded-lg border border-[#E5E7EB] hover:border-[#1276E3] transition p-2.5 bg-white">
                         <div className="flex items-center justify-between gap-2">
                           {/* Right side · name + logo placeholder */}
                           <div className="flex items-center gap-2 min-w-0">
                             {(b as any).logoUrl ? (
-                              <img src={(b as any).logoUrl} alt="" className="w-8 h-8 rounded-md object-cover border border-[#F3F4F6]" />
+                              <img src={(b as any).logoUrl} alt="" className="w-7 h-7 rounded-md object-cover border border-[#F3F4F6]" />
                             ) : (
-                              <div className="w-8 h-8 rounded-md bg-[#F4FCFF] border border-[#E5E7EB] flex items-center justify-center">
+                              <div className="w-7 h-7 rounded-md bg-[#F4FCFF] border border-[#E5E7EB] flex items-center justify-center">
                                 <Wallet className="h-3.5 w-3.5" style={{ color: chartColors.navy }} />
                               </div>
                             )}
@@ -515,7 +526,7 @@ export function Dashboard() {
                           </span>
                         </div>
                         {/* Big balance number */}
-                        <div className="font-english text-[#0B1B49] mt-2" style={{ fontSize: "1.05rem", fontWeight: 700 }}>
+                        <div className="font-english text-[#0B1B49] mt-1.5" style={{ fontSize: "0.95rem", fontWeight: 700 }}>
                           {b.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] text-[#9CA3AF]">{b.currency}</span>
                         </div>
                       </div>

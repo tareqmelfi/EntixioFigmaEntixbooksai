@@ -343,14 +343,14 @@ export function Expenses() {
                 <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد مصروفات · اضغط "مصروف جديد" لإضافة أول مصروف</p></td></tr>
               )}
               {!loading && filtered.map((e) => (
-                <tr key={e.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] transition-colors">
+                <tr key={e.id} onClick={() => setSelected(e)} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] transition-colors cursor-pointer">
                   <td className="py-3 px-4"><span className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{e.number}</span></td>
                   <td className="py-3 px-4"><span className="text-sm text-[#374151]">{e.category}</span></td>
                   <td className="py-3 px-4"><span className="font-english text-sm text-[#6B7280]">{e.date.slice(0, 10)}</span></td>
                   <td className="py-3 px-4"><span className="font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(e.total).toLocaleString()} SR</span></td>
                   <td className="py-3 px-4"><span className="text-sm text-[#6B7280]">{PAYMENT_METHOD_LABELS[e.paymentMethod]}</span></td>
                   <td className="py-3 px-4">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" onClick={(ev) => ev.stopPropagation()}>
                       <button onClick={() => setSelected(e)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><Eye className="h-4 w-4" /></button>
                       {pendingDelete === e.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />

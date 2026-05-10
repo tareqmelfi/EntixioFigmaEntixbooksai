@@ -1094,6 +1094,7 @@ export interface DashboardSummary {
   periodCompare: {
     thisMonth: { revenue: number; expenses: number; net: number }
     lastMonth: { revenue: number; expenses: number; net: number }
+    yearAgo?: { revenue: number; expenses: number; net: number }
   }
 }
 
