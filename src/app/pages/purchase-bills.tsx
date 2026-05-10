@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, ShoppingBag } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, ShoppingBag , Edit2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -59,6 +59,7 @@ export function PurchaseBills() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
@@ -110,9 +111,27 @@ export function PurchaseBills() {
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
+    setEditingId(null);
     setCreateOpen(true);
   };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+
+  const openEdit = (b: any) => {
+    setForm({
+      contactId: b.contactId || "",
+      billNumber: b.billNumber || "",
+      issueDate: b.issueDate?.slice(0, 10) || EMPTY_FORM.issueDate,
+      dueDate: b.dueDate?.slice(0, 10) || EMPTY_FORM.dueDate,
+      currency: b.currency || "SAR",
+      notes: b.notes || "",
+    } as any);
+    const linesData = (b.lines || []).map((l: any) => ({ description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice), accountId: l.accountId || "", productId: l.productId || "" }));
+    setLines(linesData.length > 0 ? linesData : [newLine()]);
+    setTaxMode("all-exclusive");
+    setCreateError(null);
+    setEditingId(b.id);
+    setCreateOpen(true);
+  };
+  const closeCreate = () => { setCreateOpen(false); setCreateError(null); setEditingId(null); };
 
   const handleSubmit = async (action: "draft" | "approve" = "draft") => {
     setCreateError(null);
@@ -122,7 +141,7 @@ export function PurchaseBills() {
     setBusy(true);
     try {
       const status = action === "draft" ? "DRAFT" : "RECEIVED";
-      const b = await api.bills.create({
+      const payload: any = {
         contactId: form.contactId,
         billNumber: form.billNumber || undefined,
         issueDate: form.issueDate,
@@ -139,9 +158,12 @@ export function PurchaseBills() {
             ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
             : Number(normalizeDigits(l.unitPrice)),
         })),
-      } as any);
-      setItems(prev => [b, ...prev]);
-      const msg = action === "draft" ? `تم حفظ ${b.billNumber || "الفاتورة"} كمسودة` : `تم اعتماد ${b.billNumber || "الفاتورة"}`;
+      };
+      const b = editingId
+        ? await api.bills.update(editingId, payload)
+        : await api.bills.create(payload);
+      setItems(prev => editingId ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
+      const msg = editingId ? "تم تحديث الفاتورة" : (action === "draft" ? `تم حفظ ${b.billNumber || "الفاتورة"} كمسودة` : `تم اعتماد ${b.billNumber || "الفاتورة"}`);
       push("success", msg);
       closeCreate();
     } catch (e: any) {
@@ -401,15 +423,16 @@ export function PurchaseBills() {
               </tr></thead>
               <tbody>
                 {filtered.map(b => (
-                  <tr key={b.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                  <tr key={b.id} onClick={() => openEdit(b)} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] cursor-pointer">
                     <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{b.billNumber}</td>
                     <td className="py-3 px-4 text-sm text-[#374151]">{b.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{b.issueDate?.slice(0, 10)}</td>
                     <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{b.dueDate?.slice(0, 10)}</td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()} {b.currency}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
+                        <button onClick={() => openEdit(b)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="تعديل"><Edit2 className="h-4 w-4" /></button>
                         {b.status === "DRAFT" && (
                           <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200" title="اعتماد الفاتورة">
                             ✓ اعتماد
