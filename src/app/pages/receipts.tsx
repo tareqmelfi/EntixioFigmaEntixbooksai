@@ -376,8 +376,19 @@ export function Receipts() {
                   <SearchableCombobox
                     value={form.contactId}
                     onChange={(id) => setForm({ ...form, contactId: id, invoiceId: "" })}
-                    items={contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                    placeholder="ابحث عن عميل..."
+                    items={contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: [(c as any).legalName, c.email].filter(Boolean).join(" · ") || undefined }))}
+                    placeholder="ابحث عن عميل (عربي/English)..."
+                    onCreate={async (name) => {
+                      try {
+                        const created = await api.contacts.create({ displayName: name, type: "CUSTOMER" as any, isCustomer: true, isSupplier: false, entityKind: "COMPANY" as any, country: "SA" } as any);
+                        setContacts((prev) => [created, ...prev]);
+                        return created.id;
+                      } catch (e: any) {
+                        push("error", e?.message || "فشل الإنشاء");
+                        return "";
+                      }
+                    }}
+                    createLabel={(q) => `+ إنشاء جديد "${q}"`}
                   />
                 </div>
 
