@@ -34,7 +34,10 @@ export function Settings() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     name: "", legalName: "", country: "SA", baseCurrency: "SAR",
-    vatNumber: "", crNumber: "", fiscalYearStart: 1, zatcaEnabled: false,
+    vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
+    logoUrl: "", stampUrl: "",
+    email: "", phone: "", website: "",
+    industry: "",
   });
 
   // AI Billing state
@@ -56,7 +59,14 @@ export function Settings() {
         name: active.name, legalName: active.legalName || "",
         country: active.country, baseCurrency: active.baseCurrency,
         vatNumber: active.vatNumber || "", crNumber: active.crNumber || "",
-        fiscalYearStart: active.fiscalYearStart, zatcaEnabled: active.zatcaEnabled,
+        fiscalYearEnd: (active as any).fiscalYearEnd || 12,
+        zatcaEnabled: active.zatcaEnabled,
+        logoUrl: (active as any).logoUrl || "",
+        stampUrl: (active as any).stampUrl || "",
+        email: (active as any).email || "",
+        phone: (active as any).phone || "",
+        website: (active as any).website || "",
+        industry: (active as any).industry || "",
       });
       const m = await api.orgs.members(active.id);
       setMembers(m.members);
@@ -69,12 +79,22 @@ export function Settings() {
     if (!org) return;
     setBusy(true); setError(null); setSaved(false);
     try {
+      // Auto-derive fiscalYearStart = (end mod 12) + 1 · per UX-134
+      const yearStart = (form.fiscalYearEnd % 12) + 1;
       const updated = await api.orgs.update(org.id, {
         name: form.name, legalName: form.legalName || null,
         country: form.country, baseCurrency: form.baseCurrency,
         vatNumber: form.vatNumber || null, crNumber: form.crNumber || null,
-        fiscalYearStart: form.fiscalYearStart, zatcaEnabled: form.zatcaEnabled,
-      });
+        fiscalYearEnd: form.fiscalYearEnd,
+        fiscalYearStart: yearStart,
+        zatcaEnabled: form.zatcaEnabled,
+        logoUrl: form.logoUrl || null,
+        stampUrl: form.stampUrl || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        website: form.website || null,
+        industry: form.industry || null,
+      } as any);
       setOrg(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -164,7 +184,7 @@ await authStore.logout();
 
       {tab === "company" && (
         <Card className="border-[#E5E7EB]">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Building2 className="h-5 w-5" /> بيانات الشركة</CardTitle><CardDescription>الاسم · الرقم الضريبي · العملة الأساسية</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Building2 className="h-5 w-5" /> بيانات الشركة</CardTitle><CardDescription>الاسم · الرقم الضريبي · العملة · الشعار · الختم · بيانات التواصل</CardDescription></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>اسم الشركة *</Label>
@@ -184,19 +204,106 @@ await authStore.logout();
                   <option value="SAR">SAR</option><option value="USD">USD</option><option value="AED">AED</option>
                   <option value="EUR">EUR</option><option value="GBP">GBP</option><option value="KWD">KWD</option>
                 </select></div>
-              <div className="space-y-2"><Label>بداية السنة المالية</Label>
-                <Select value={String(form.fiscalYearStart)} onValueChange={(v) => setForm({ ...form, fiscalYearStart: Number(v) })}>
+              <div className="space-y-2"><Label>نهاية السنة المالية</Label>
+                <Select value={String(form.fiscalYearEnd)} onValueChange={(v) => setForm({ ...form, fiscalYearEnd: Number(v) })}>
                   <SelectTrigger className="border-[#E5E7EB]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <SelectItem key={m} value={String(m)}>{["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"][m-1]}</SelectItem>)}
                   </SelectContent>
-                </Select></div>
+                </Select>
+                <p className="text-[10px] text-[#9CA3AF] mt-1">شهر إقفال الحسابات السنوي (KSA: ديسمبر افتراضي)</p>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>{form.country === "US" ? "EIN" : form.country === "AE" ? "TRN" : "الرقم الضريبي"}</Label>
                 <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
               <div className="space-y-2"><Label>{form.country === "US" ? "State Filing #" : "السجل التجاري"}</Label>
                 <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+            </div>
+
+            {/* Branding · logo + stamp upload (UX-157) */}
+            <div className="border-t border-[#F3F4F6] pt-4">
+              <h3 className="text-sm text-[#0B1B49] mb-3" style={{ fontWeight: 600 }}>الشعار والختم</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs mb-2 block">الشعار (مربع أو طولي · يظهر على الفواتير)</Label>
+                  <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-3">
+                    <input type="file" id="company-logo" accept="image/*" hidden
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0]; if (!f) return;
+                        if (f.size > 2 * 1024 * 1024) { setError("الحد الأقصى 2 ميجا"); return; }
+                        const r = new FileReader(); r.onload = () => setForm(p => ({ ...p, logoUrl: String(r.result || "") })); r.readAsDataURL(f);
+                      }} />
+                    {form.logoUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[60px] object-contain bg-white rounded border border-[#F3F4F6]" />
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="company-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, logoUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label htmlFor="company-logo" className="cursor-pointer block text-center py-4">
+                        <div className="text-sm text-[#1276E3] font-medium">رفع الشعار</div>
+                        <div className="text-xs text-[#9CA3AF] mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs mb-2 block">الختم الرسمي (يظهر على العقود + السندات)</Label>
+                  <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-3">
+                    <input type="file" id="company-stamp" accept="image/*" hidden
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0]; if (!f) return;
+                        if (f.size > 2 * 1024 * 1024) { setError("الحد الأقصى 2 ميجا"); return; }
+                        const r = new FileReader(); r.onload = () => setForm(p => ({ ...p, stampUrl: String(r.result || "") })); r.readAsDataURL(f);
+                      }} />
+                    {form.stampUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-[#F3F4F6]" />
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="company-stamp" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, stampUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label htmlFor="company-stamp" className="cursor-pointer block text-center py-4">
+                        <div className="text-sm text-[#1276E3] font-medium">رفع الختم</div>
+                        <div className="text-xs text-[#9CA3AF] mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact info (UX-132) */}
+            <div className="border-t border-[#F3F4F6] pt-4">
+              <h3 className="text-sm text-[#0B1B49] mb-3" style={{ fontWeight: 600 }}>بيانات التواصل</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2"><Label className="text-xs">البريد الإلكتروني</Label>
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" placeholder="info@company.com" className="border-[#E5E7EB] font-english" /></div>
+                <div className="space-y-2"><Label className="text-xs">الهاتف</Label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" placeholder="+966500000000" className="border-[#E5E7EB] font-english" /></div>
+                <div className="space-y-2"><Label className="text-xs">الموقع</Label>
+                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} dir="ltr" placeholder="https://company.com" className="border-[#E5E7EB] font-english" /></div>
+              </div>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2"><Label className="text-xs">الصناعة</Label>
+                  <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    <option value="">اختر...</option>
+                    <option value="CONSULTING">استشارات</option>
+                    <option value="RETAIL">تجارة تجزئة</option>
+                    <option value="REAL_ESTATE">عقارات</option>
+                    <option value="VET_CLINIC">عيادة بيطرية</option>
+                    <option value="PRODUCTION">إنتاج إعلامي</option>
+                    <option value="EDUCATION">تعليم</option>
+                    <option value="SAAS">SaaS · تكنولوجيا</option>
+                    <option value="OTHER">أخرى</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F4FCFF] border border-blue-100">
               <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
