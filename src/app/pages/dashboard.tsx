@@ -38,14 +38,14 @@ const DONUT_COLORS = ["#1276E3", "#179FC5", "#7DD3E4", "#0B1B49", "#D4A76A", "#1
 
 // UX-205 · Locked chart-styles per Figma spec ("Data is the Hero")
 const chartColors = {
-  navy: "#0B1B49",                       // deep navy · primary positive
-  navySoft: "#2D3D6B",                   // muted navy · for bar fills (not transparent)
+  navy: "#0B1B49",                       // Entix logo deep navy · primary positive (UX-213 · full saturation)
+  navySoft: "#0B1B49",                   // same · NO dusty version (matches Figma · solid bars)
   blue: "#1276E3",                       // brand interaction
-  teal: "#5A95B0",                       // muted dusty teal · less saturated
-  tealSoft: "#8FB7C8",                   // even softer · secondary bars
+  teal: "#05B6FA",                       // Entix logo light cyan (UX-213 · brand match)
+  tealSoft: "#7DD3FC",                   // softer cyan · for paired bars
   green: "#10B981",                      // success
-  red: "#D97474",                        // muted rose-red · NOT fluorescent (user feedback UX-206)
-  redSoft: "#E8A8A8",                    // lightest rose
+  red: "#E84B4B",                        // Figma red · slightly muted (UX-213 · brighter than dusty)
+  redSoft: "#FCA5A5",                    // lightest rose
 };
 const gridStyle = { stroke: "#ECEEF1", strokeDasharray: "3 3", opacity: 0.8 };
 const xAxisStyle = { fontSize: 10, fill: "#B0B7C3" };
