@@ -164,7 +164,7 @@ export function Dashboard() {
   const expCompare = pct(data.periodCompare.thisMonth.expenses, data.periodCompare.lastMonth.expenses);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>لوحة التحكم</h1>
@@ -222,31 +222,29 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* KPI Cards · Row 1 (UX-205 · Figma spec: VATGauge + Purchases + Sales + Revenue) */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <VATGauge collected={k.vatOutput} paid={k.vatInput} currency={cur} />
-
-        {/* Purchases */}
+      {/* KPI Cards · Row 1 (UX-209 · revenue+sales right · expenses+VAT left · subtle accent) */}
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+        {/* Revenue · rightmost in RTL */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">المشتريات</span>
-              <div className="rounded-md p-1.5" style={{ backgroundColor: "#EFF6FF" }}><ShoppingBag className="h-4 w-4" style={{ color: chartColors.blue }} /></div>
+              <span className="text-xs text-[#6B7280]">إجمالي الإيرادات</span>
+              <div className="rounded-md p-1.5" style={{ backgroundColor: "#F4FCFF" }}><DollarSign className="h-4 w-4" style={{ color: chartColors.navy }} /></div>
             </div>
             <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
               <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
-              {k.purchases.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5">المصروفات: <span className="font-english">{k.expenses.toLocaleString()}</span></p>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english font-semibold text-[#0B1B49]">{k.invoiceCount}</span> فاتورة · النقد <span className="font-english">{k.cashOnHand.toLocaleString()}</span></p>
           </CardContent>
         </Card>
 
-        {/* Sales / Invoices count */}
+        {/* Sales (subset) */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
               <span className="text-xs text-[#6B7280]">المبيعات</span>
-              <div className="rounded-md p-1.5" style={{ backgroundColor: "#EFF6FF" }}><FileText className="h-4 w-4" style={{ color: chartColors.blue }} /></div>
+              <div className="rounded-md p-1.5" style={{ backgroundColor: "#F4FCFF" }}><FileText className="h-4 w-4" style={{ color: chartColors.navy }} /></div>
             </div>
             <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
               <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
@@ -256,20 +254,23 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Total Revenue */}
+        {/* Total Expenses */}
         <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-3">
-              <span className="text-xs text-[#6B7280]">إجمالي الإيرادات</span>
-              <div className="rounded-md p-1.5" style={{ backgroundColor: "#EFF6FF" }}><DollarSign className="h-4 w-4" style={{ color: chartColors.blue }} /></div>
+              <span className="text-xs text-[#6B7280]">إجمالي المصروفات</span>
+              <div className="rounded-md p-1.5" style={{ backgroundColor: "#F0F8FB" }}><ShoppingBag className="h-4 w-4" style={{ color: chartColors.teal }} /></div>
             </div>
             <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>
               <span className="text-[#6B7280] text-[0.8125rem] me-1.5 font-normal">{cur}</span>
-              {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {(k.expenses + k.purchases).toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1.5">النقد المتوفّر: <span className="font-english">{k.cashOnHand.toLocaleString()}</span></p>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5">مباشرة <span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString()}</span> · عمومية <span className="font-english">{k.expenses.toLocaleString()}</span></p>
           </CardContent>
         </Card>
+
+        {/* VAT Gauge · leftmost */}
+        <VATGauge collected={k.vatOutput} paid={k.vatInput} currency={cur} />
       </div>
 
       {/* Charts grid 2x2 · Figma spec UX-205 */}
@@ -452,7 +453,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Connected accounts */}
+        {/* Bank Accounts · Wave-style cards · UX-209 */}
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -469,19 +470,53 @@ export function Dashboard() {
                 <Link to="/app/bank-accounts/new" className="text-xs text-[#1276E3] hover:underline">+ ربط بنك جديد</Link>
               </div>
             ) : (
-              <div className="space-y-2">
-                {data.bankAccounts.slice(0, 4).map((b) => (
-                  <div key={b.id} className="flex items-center justify-between text-sm py-1.5 border-b border-[#F3F4F6] last:border-0">
-                    <div className="min-w-0">
-                      <div className="text-[#0B1B49] truncate" style={{ fontWeight: 500 }}>{b.name}</div>
-                      <div className="text-xs text-[#9CA3AF] font-english">{b.bankName || "—"} {b.accountNumber || ""}</div>
-                    </div>
-                    <div className="text-end">
-                      <div className="font-english font-semibold text-[#0B1B49]">{b.balance.toLocaleString()}</div>
-                      <div className="text-xs text-[#9CA3AF] font-english">{b.currency}</div>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-2.5">
+                {data.bankAccounts.slice(0, 4).map((b: any) => {
+                  const inflow = Math.abs((b as any).inflow || 0);
+                  const outflow = Math.abs((b as any).outflow || 0);
+                  const total = Math.max(inflow + outflow, 1);
+                  const inPct = (inflow / total) * 100;
+                  const outPct = (outflow / total) * 100;
+                  const isPositive = b.balance >= 0;
+                  return (
+                    <Link key={b.id} to={`/app/bank-accounts/${b.id}`} className="block group">
+                      <div className="rounded-lg border border-[#E5E7EB] hover:border-[#1276E3] transition p-3 bg-white">
+                        <div className="flex items-center gap-2.5">
+                          {/* Logo placeholder · 36x36 square */}
+                          {(b as any).logoUrl ? (
+                            <img src={(b as any).logoUrl} alt="" className="w-9 h-9 rounded-md object-cover border border-[#F3F4F6]" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-md bg-[#F4FCFF] border border-[#E5E7EB] flex items-center justify-center text-[10px] font-english font-bold text-[#1276E3]">
+                              {(b.bankName || b.name).substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{b.bankName || b.name}</div>
+                            <div className="text-[10px] text-[#9CA3AF] font-english">{b.name} · {b.currency}</div>
+                          </div>
+                          <div className="text-end shrink-0">
+                            <div className="font-english text-sm" style={{ fontWeight: 700, color: isPositive ? chartColors.navy : "#D97474" }}>
+                              {b.balance.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-[#9CA3AF] font-english">{b.currency}</div>
+                          </div>
+                        </div>
+                        {(inflow > 0 || outflow > 0) && (
+                          <>
+                            <div className="flex h-1 rounded-full overflow-hidden mt-2.5 bg-[#F1F5F9]">
+                              <div style={{ width: `${inPct}%`, backgroundColor: chartColors.navy }} />
+                              <div style={{ width: `${outPct}%`, backgroundColor: chartColors.teal }} />
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-[#6B7280] mt-1">
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> داخل <span className="font-english font-semibold ms-0.5">{inflow.toLocaleString()}</span></span>
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> خارج <span className="font-english font-semibold ms-0.5">{outflow.toLocaleString()}</span></span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </CardContent>
