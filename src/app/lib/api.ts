@@ -624,14 +624,14 @@ export const api = {
       request<{ ok: true; to: string }>(`/api/invoices/${id}/email`, { method: 'POST', body: body || {} }),
   },
 
-  // Demo data · seed two orgs (SA + US) for the current user · UX-179
+  // Demo data · seed two orgs (SA + US) for the current user · UX-179 + UX-199 fix
   seedDemoData: (orgId: string) =>
     request<{ ok: true; seeded: any }>(
-      `/api/orgs/${orgId}/seed-demo-data`, { method: 'POST', body: {} },
+      `/orgs/${orgId}/seed-demo-data`, { method: 'POST', body: {}, skipOrg: true },
     ),
   seedTwoDemos: () =>
     request<{ ok: true; seeded: Array<{ id: string; slug: string; name: string; country: string; currency: string }> }>(
-      '/api/orgs/_/seed-two-demos', { method: 'POST', body: {} },
+      '/orgs/_/seed-two-demos', { method: 'POST', body: {}, skipOrg: true },
     ),
 
   // OAuth · payment provider connections (UX-137)

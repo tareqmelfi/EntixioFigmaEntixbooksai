@@ -146,91 +146,57 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* KPI Cards · Row 1 (UX-195 · gradient hero cards with icon halos) */}
+      {/* KPI Cards · Row 1 (UX-198 · minimalist Wave/Qoyod style · single brand accent) */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {/* Revenue */}
-        <Card className="border-[#E5E7EB] overflow-hidden relative group hover:shadow-md transition">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 to-green-500" />
+        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="text-xs text-[#6B7280] flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5 text-emerald-600" /> إجمالي الإيرادات
-                </div>
-                <div className="font-english text-[#0B1B49] mt-2" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>{fmt(k.revenue)}</div>
-                <p className="text-[11px] text-[#6B7280] mt-1.5"><span className="font-english font-semibold text-emerald-700">{k.invoiceCount}</span> فاتورة هذه الفترة</p>
-              </div>
-              <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-green-100 p-2.5 group-hover:scale-110 transition">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
-              </div>
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs text-[#6B7280]">إجمالي الإيرادات</span>
+              <DollarSign className="h-4 w-4 text-[#9CA3AF]" />
             </div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(k.revenue)}</div>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{k.invoiceCount}</span> فاتورة</p>
           </CardContent>
         </Card>
 
         {/* Purchases + Expenses */}
-        <Card className="border-[#E5E7EB] overflow-hidden relative group hover:shadow-md transition">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 to-red-500" />
+        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="text-xs text-[#6B7280] flex items-center gap-1.5">
-                  <ShoppingBag className="h-3.5 w-3.5 text-rose-600" /> المشتريات + المصروفات
-                </div>
-                <div className="font-english text-[#0B1B49] mt-2" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>{fmt(k.purchases + k.expenses)}</div>
-                <p className="text-[11px] text-[#6B7280] mt-1.5">
-                  <span className="font-english">{k.purchases.toLocaleString()}</span> مشتريات · <span className="font-english">{k.expenses.toLocaleString()}</span> مصروفات
-                </p>
-              </div>
-              <div className="rounded-xl bg-gradient-to-br from-rose-50 to-red-100 p-2.5 group-hover:scale-110 transition">
-                <ShoppingBag className="h-5 w-5 text-rose-600" />
-              </div>
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs text-[#6B7280]">المشتريات + المصروفات</span>
+              <ShoppingBag className="h-4 w-4 text-[#9CA3AF]" />
             </div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(k.purchases + k.expenses)}</div>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{k.purchases.toLocaleString()}</span> مشتريات · <span className="font-english">{k.expenses.toLocaleString()}</span> مصروفات</p>
           </CardContent>
         </Card>
 
         {/* VAT */}
-        <Card className="border-[#E5E7EB] overflow-hidden relative group hover:shadow-md transition">
-          <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${k.vatNet >= 0 ? "from-amber-400 to-orange-500" : "from-green-400 to-emerald-500"}`} />
+        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="text-xs text-[#6B7280] flex items-center gap-1.5">
-                  <Gauge className={`h-3.5 w-3.5 ${k.vatNet >= 0 ? "text-amber-600" : "text-green-600"}`} /> ضريبة القيمة المضافة
-                </div>
-                <div className="font-english text-[#0B1B49] mt-2" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>{fmt(Math.abs(k.vatNet))}</div>
-                <p className="text-[11px] mt-1.5">
-                  {k.vatNet >= 0 ? <span className="text-amber-600 font-semibold">علينا للهيئة</span> : <span className="text-green-600 font-semibold">لصالحنا (استرداد)</span>}
-                  <span className="text-[#9CA3AF]"> · </span>
-                  <span className="font-english text-[#6B7280]">{k.vatOutput.toLocaleString()}</span>
-                  <span className="text-[#9CA3AF]"> / </span>
-                  <span className="font-english text-[#6B7280]">{k.vatInput.toLocaleString()}</span>
-                </p>
-              </div>
-              <div className={`rounded-xl bg-gradient-to-br p-2.5 group-hover:scale-110 transition ${k.vatNet >= 0 ? "from-amber-50 to-orange-100" : "from-green-50 to-emerald-100"}`}>
-                <Gauge className={`h-5 w-5 ${k.vatNet >= 0 ? "text-amber-600" : "text-green-600"}`} />
-              </div>
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs text-[#6B7280]">ضريبة القيمة المضافة</span>
+              <Gauge className="h-4 w-4 text-[#9CA3AF]" />
             </div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(Math.abs(k.vatNet))}</div>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5">
+              {k.vatNet >= 0 ? "علينا للهيئة" : "لصالحنا"}
+              <span className="mx-1">·</span>
+              <span className="font-english">{k.vatOutput.toLocaleString()}</span> / <span className="font-english">{k.vatInput.toLocaleString()}</span>
+            </p>
           </CardContent>
         </Card>
 
         {/* Cash on Hand */}
-        <Card className="border-[#E5E7EB] overflow-hidden relative group hover:shadow-md transition">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-500" />
+        <Card className="border-[#E5E7EB] hover:border-[#D1D5DB] transition">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="text-xs text-[#6B7280] flex items-center gap-1.5">
-                  <Wallet className="h-3.5 w-3.5 text-[#1276E3]" /> النقد المتوفّر
-                </div>
-                <div className="font-english text-[#0B1B49] mt-2" style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.1 }}>{fmt(k.cashOnHand)}</div>
-                <p className="text-[11px] text-[#6B7280] mt-1.5">
-                  <span className="font-english font-semibold text-[#1276E3]">{data.bankAccounts.length}</span> حساب بنكي مربوط
-                </p>
-              </div>
-              <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-100 p-2.5 group-hover:scale-110 transition">
-                <Wallet className="h-5 w-5 text-[#1276E3]" />
-              </div>
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs text-[#6B7280]">النقد المتوفّر</span>
+              <Wallet className="h-4 w-4 text-[#9CA3AF]" />
             </div>
+            <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.15 }}>{fmt(k.cashOnHand)}</div>
+            <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{data.bankAccounts.length}</span> حساب بنكي مربوط</p>
           </CardContent>
         </Card>
       </div>

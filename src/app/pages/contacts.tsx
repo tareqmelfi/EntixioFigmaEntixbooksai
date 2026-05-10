@@ -12,6 +12,7 @@
  * Roles get distinct color badges. KPI strip at top: total · customers · suppliers · net balance.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Link } from "react-router";
 import {
   Users, Plus, Search, Trash2, Loader2, Edit2, X, ChevronRight, ChevronLeft,
@@ -171,6 +172,26 @@ export function Contacts() {
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // UX-196 · open edit wizard when navigated with ?edit=ID
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    const isNew = searchParams.get("new");
+    if (isNew === "1" && items.length > 0 && !wizard.open) {
+      setWizard({ open: true, step: 1, editingId: null });
+      const next = new URLSearchParams(searchParams); next.delete("new"); setSearchParams(next, { replace: true });
+      return;
+    }
+    if (editId && items.length > 0 && !wizard.open) {
+      const target = items.find(c => c.id === editId);
+      if (target) {
+        openEdit(target);
+        const next = new URLSearchParams(searchParams); next.delete("edit"); setSearchParams(next, { replace: true });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, searchParams]);
 
   // Counts per role
   const counts = useMemo(() => {

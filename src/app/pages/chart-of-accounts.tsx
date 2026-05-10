@@ -46,18 +46,15 @@ const TYPE_PREFIX: Record<AccountType, string> = {
 // Visual meta per type · gradient + icon + ring color (UX-192)
 const TYPE_META: Record<AccountType, {
   icon: any;
-  gradient: string;
-  ring: string;
-  bg: string;
-  text: string;
-  accent: string;
+  bg: string;       // chip soft bg (used very sparingly)
+  text: string;     // chip text
   hint: string;
 }> = {
-  ASSET:     { icon: Wallet,        gradient: "from-blue-500 to-cyan-500",       ring: "ring-blue-200",      bg: "bg-blue-50",      text: "text-blue-700",      accent: "#1276E3", hint: "ما تملكه الشركة" },
-  LIABILITY: { icon: CreditCard,    gradient: "from-rose-500 to-red-500",        ring: "ring-rose-200",      bg: "bg-rose-50",      text: "text-rose-700",      accent: "#E11D48", hint: "ما عليها للغير" },
-  EQUITY:    { icon: Landmark,      gradient: "from-purple-500 to-indigo-500",   ring: "ring-purple-200",    bg: "bg-purple-50",    text: "text-purple-700",    accent: "#7C3AED", hint: "حقوق الملاّك" },
-  REVENUE:   { icon: TrendingUp,    gradient: "from-emerald-500 to-green-500",   ring: "ring-emerald-200",   bg: "bg-emerald-50",   text: "text-emerald-700",   accent: "#10B981", hint: "ما تكسبه الشركة" },
-  EXPENSE:   { icon: TrendingDown,  gradient: "from-amber-500 to-orange-500",    ring: "ring-amber-200",     bg: "bg-amber-50",     text: "text-amber-700",     accent: "#F59E0B", hint: "ما تنفقه الشركة" },
+  ASSET:     { icon: Wallet,       bg: "bg-[#F4FCFF]", text: "text-[#1276E3]", hint: "ما تملكه الشركة" },
+  LIABILITY: { icon: CreditCard,   bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "ما عليها للغير" },
+  EQUITY:    { icon: Landmark,     bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "حقوق الملاّك" },
+  REVENUE:   { icon: TrendingUp,   bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "ما تكسبه الشركة" },
+  EXPENSE:   { icon: TrendingDown, bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "ما تنفقه الشركة" },
 };
 
 
@@ -468,7 +465,7 @@ export function ChartOfAccounts() {
         </div>
       </div>
 
-      {/* Type cards · gradient header + count + total balance (UX-192) */}
+      {/* Type cards · quiet white tiles (UX-198 · minimal Wave-style) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).map(t => {
           const meta = TYPE_META[t];
@@ -480,22 +477,16 @@ export function ChartOfAccounts() {
             <button
               key={t}
               onClick={() => setFilterType(isActive ? "ALL" : t)}
-              className={`group relative overflow-hidden rounded-xl border text-start transition-all hover:shadow-md hover:-translate-y-0.5 ${isActive ? "border-[#1276E3] ring-2 ring-[#1276E3]/20" : "border-[#E5E7EB]"}`}
+              className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-[#1276E3] ${isActive ? "border-[#1276E3] ring-1 ring-[#1276E3]/20" : "border-[#E5E7EB]"}`}
             >
-              <div className={`bg-gradient-to-br ${meta.gradient} p-3 text-white`}>
-                <div className="flex items-center justify-between">
-                  <Icon className="h-5 w-5 opacity-90" />
-                  <span className="text-[10px] font-english font-bold bg-white/20 px-1.5 py-0.5 rounded">{typeItems.length}</span>
-                </div>
-                <div className="mt-2 text-sm font-semibold">{TYPE_LABELS[t]}</div>
-                <div className="text-[10px] opacity-80 mt-0.5">{meta.hint}</div>
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-xs text-[#6B7280]">{TYPE_LABELS[t]}</span>
+                <Icon className="h-4 w-4 text-[#9CA3AF]" />
               </div>
-              <div className="bg-white p-3">
-                <div className="text-[10px] text-[#6B7280] mb-0.5">إجمالي الرصيد</div>
-                <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.05rem", fontWeight: 700 }}>
-                  {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                </div>
+              <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
+                {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </div>
+              <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{typeItems.length}</span> حساب</p>
             </button>
           );
         })}
@@ -544,17 +535,17 @@ export function ChartOfAccounts() {
 
             return (
               <Card key={t} className={`border-[#E5E7EB] overflow-hidden`}>
-                <div className={`bg-gradient-to-r ${meta.gradient} px-4 py-2.5 flex items-center justify-between text-white`}>
+                <div className="bg-[#F9FAFB] border-b border-[#E5E7EB] px-4 py-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4 text-[#6B7280]" />
                     <div>
-                      <div className="text-sm font-semibold">{TYPE_LABELS[t]}</div>
-                      <div className="text-[10px] opacity-90">{sectionRoots.length} حساب رئيسي · إجمالي {sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                      <div className="text-sm text-[#0B1B49] font-semibold">{TYPE_LABELS[t]}</div>
+                      <div className="text-[10px] text-[#9CA3AF]">{sectionRoots.length} حساب رئيسي · إجمالي <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
                     onClick={() => { setForm({ code: "", name: "", nameAr: "", type: t, parentId: "", description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
-                    className="text-[11px] bg-white/20 hover:bg-white/30 transition px-2 py-1 rounded inline-flex items-center gap-1"
+                    className="text-[11px] text-[#1276E3] hover:bg-[#F4FCFF] transition px-2 py-1 rounded inline-flex items-center gap-1"
                     title={`إضافة حساب جديد · ${TYPE_LABELS[t]}`}
                   >
                     <Plus className="h-3.5 w-3.5" /> إضافة
@@ -577,7 +568,7 @@ export function ChartOfAccounts() {
                         };
                         visibleRoots.forEach(walk);
                         return out.map(node => (
-                          <div key={node.id} className={`group flex items-center gap-2 px-3 py-2 hover:${meta.bg} transition`} style={{ paddingInlineStart: `${0.75 + node.depth * 1.25}rem` }}>
+                          <div key={node.id} className="group flex items-center gap-2 px-3 py-2 hover:bg-[#F9FAFB] transition" style={{ paddingInlineStart: `${0.75 + node.depth * 1.25}rem` }}>
                             {/* Indent + chevron */}
                             {node.depth > 0 && (
                               <span className="inline-block border-s border-[#E5E7EB] self-stretch -my-2 me-1" style={{ marginInlineStart: "-0.5rem" }} />
@@ -591,7 +582,7 @@ export function ChartOfAccounts() {
                             <button
                               type="button"
                               onClick={() => openTransactions(node.id)}
-                              className={`font-english text-xs ${meta.text} ${meta.bg} border ${meta.bg.replace('bg-','border-')} px-2 py-0.5 rounded shrink-0 hover:underline`}
+                              className="font-english text-xs text-[#1276E3] bg-[#F4FCFF] border border-[#E5E7EB] px-2 py-0.5 rounded shrink-0 hover:underline"
                               style={{ fontWeight: 700 }}
                             >
                               {node.code}
