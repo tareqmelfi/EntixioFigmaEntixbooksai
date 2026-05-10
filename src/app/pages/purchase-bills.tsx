@@ -65,16 +65,22 @@ export function PurchaseBills() {
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [bills, contactsRes] = await Promise.all([
+      const [bills, contactsRes, productsRes, accountsRes] = await Promise.all([
         api.bills.list(),
         api.contacts.list({ limit: 200 }),
+        (api as any).products?.list?.({ limit: 200 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
+        (api as any).accounts?.list?.({ limit: 500 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
       ]);
       setItems(bills.items);
       setSuppliers(contactsRes.items.filter(c => c.type === "SUPPLIER" || c.type === "BOTH"));
+      setProducts((productsRes as any).items || []);
+      setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل التحميل");
     } finally { setLoading(false); }
@@ -255,6 +261,22 @@ export function PurchaseBills() {
               currency={form.currency}
               direction="purchases"
               minRows={10}
+              products={products.map((p: any) => ({
+                id: p.id, code: p.code, name: p.name, sellPrice: Number(p.sellPrice || 0), costPrice: Number(p.costPrice || 0),
+                taxRate: p.taxRate ? Number(p.taxRate) : 0.15, taxInclusive: !!p.taxInclusive,
+                accountId: p.expenseAccountId || p.revenueAccountId,
+              }))}
+              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.name, type: a.type }))}
+              onCreateProduct={async (name) => {
+                const p = await (api as any).products.create({ code: `P-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, sellPrice: 0, kind: "GOOD", isActive: true });
+                setProducts((prev) => [p, ...prev]);
+                return { id: p.id, code: p.code, name: p.name, sellPrice: Number(p.sellPrice || 0), costPrice: Number(p.costPrice || 0), taxRate: 0.15, taxInclusive: false };
+              }}
+              onCreateAccount={async (name) => {
+                const a = await (api as any).accounts.create({ code: `EXP-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, type: "EXPENSE" });
+                setAccounts((prev) => [a, ...prev]);
+                return { id: a.id, code: a.code, name: a.name, type: a.type };
+              }}
             />
 
             <DocumentDropZone
