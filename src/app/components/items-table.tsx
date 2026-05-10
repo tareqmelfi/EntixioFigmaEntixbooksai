@@ -388,6 +388,12 @@ export function ItemsTable({
                           items={accountItems}
                           placeholder="حساب"
                           className="border-0"
+                          onCreate={onCreateAccount ? async (name) => {
+                            const a = await onCreateAccount(name);
+                            updateLine(i, { accountId: a.id });
+                            return a.id;
+                          } : undefined}
+                          createLabel="+ إنشاء حساب جديد"
                         />
                       </td>
                     )}

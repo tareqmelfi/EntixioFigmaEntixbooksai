@@ -104,6 +104,9 @@ export function Invoices() {
   } | null>(null);
 
   const [signFor, setSignFor] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  void editingInvoice;
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
 
@@ -257,7 +260,12 @@ export function Invoices() {
           await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined });
         } catch (e) { /* email might fail if no customer email · don't block */ }
       }
-      closeCreate();
+      // UX-177 · stay on the saved invoice instead of returning to list
+      // Switch to edit mode of the freshly-saved invoice · preserve all form fields
+      setEditingInvoice(inv as Invoice);
+      setForm((prev) => ({ ...prev, invoiceNumber: inv.invoiceNumber }));
+      // Keep createOpen true · just refresh state
+      // closeCreate();   // ❌ removed · was bouncing user back to list and losing context
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
     } finally { setBusy(false); }
@@ -729,17 +737,20 @@ export function Invoices() {
                     <td className="py-3 px-4 text-sm text-[#374151]">{i.contact?.displayName || "—"}</td>
                     {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.issueDate?.slice(0, 10)}</td>}
                     {!splitMode && <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{i.dueDate?.slice(0, 10)}</td>}
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span></td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span>
+                        {i.status === "DRAFT" && (
+                          <button onClick={(e) => { e.stopPropagation(); handleApprove(i); }} className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200" title="اعتماد الفاتورة">
+                            ✓
+                          </button>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()} {i.currency}</td>
                     {!splitMode && <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</td>}
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
-                        {/* DRAFT → Approve button */}
-                        {i.status === "DRAFT" && (
-                          <button onClick={() => handleApprove(i)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200" title="اعتماد الفاتورة">
-                            ✓ اعتماد
-                          </button>
-                        )}
                         {/* SENT/APPROVED → Sign button */}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
                           <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">

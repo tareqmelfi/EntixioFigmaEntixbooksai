@@ -170,7 +170,19 @@ await authStore.logout();
       </div>
 
       <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
-        {([["company", "بيانات الشركة"], ["numbering", "الترقيم"], ["zatca", "ZATCA · الفوترة الإلكترونية"], ["payments", "بوابات الدفع"], ["catalog", "كتالوج المنتجات"], ["members", "الفريق"], ["ai", "الذكاء الاصطناعي"], ["branding", "العلامة التجارية"], ["plans", "الباقات"], ["account", "حسابي"]] as const).map(([k, label]) => (
+        {(([
+          ["company", "بيانات الشركة"],
+          ["numbering", "الترقيم"],
+          // ZATCA tab is KSA-only · hide when country=US (UX-176)
+          ...(org?.country === "US" ? [] : [["zatca", "ZATCA · الفوترة الإلكترونية"]]),
+          ["payments", "بوابات الدفع"],
+          ["catalog", "كتالوج المنتجات"],
+          ["members", "الفريق"],
+          ["ai", "الذكاء الاصطناعي"],
+          ["branding", "العلامة التجارية"],
+          ["plans", "الباقات"],
+          ["account", "حسابي"],
+        ] as const) as Array<readonly [string, string]>).map(([k, label]) => (
           <button
             key={k}
             onClick={() => setTab(k as any)}
@@ -305,10 +317,17 @@ await authStore.logout();
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F4FCFF] border border-blue-100">
-              <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
-              <label htmlFor="zatca" className="text-sm text-[#0B1B49] cursor-pointer">تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)</label>
-            </div>
+            {form.country !== "US" && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F4FCFF] border border-blue-100">
+                <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
+                <label htmlFor="zatca" className="text-sm text-[#0B1B49] cursor-pointer">تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)</label>
+              </div>
+            )}
+            {form.country === "US" && (
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900">
+                🇺🇸 وضع الشركات الأمريكية مفعّل · لا حاجة لـ ZATCA · أنت مرتبط ببوابات أمريكية (Stripe · Plaid · 1099) ولا تحتاج للسوق السعودي
+              </div>
+            )}
             {/* Inbox forwarding alias (UX-159) · shows the unique email for this org */}
             {org && (org as any).slug && (
               <div className="border-t border-[#F3F4F6] pt-4">
