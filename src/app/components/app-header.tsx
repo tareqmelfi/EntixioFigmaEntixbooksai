@@ -7,6 +7,7 @@ import {
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
 import { api, NotificationItem } from "../lib/api";
+import { OrgSwitcher } from "./org-switcher";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -80,20 +81,33 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <header className="border-b border-[#E5E7EB] bg-white px-4 sm:px-6 py-3">
-      <div className="flex items-center justify-between">
-        {/* Left side in RTL */}
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center justify-between gap-3">
+        {/* START side (right in RTL) · mobile menu + Org chip */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {/* Mobile menu button */}
-          <button 
+          <button
             onClick={onMenuClick}
             className="lg:hidden rounded-md p-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+            title="القائمة"
           >
             <Menu className="h-5 w-5" />
           </button>
+          {/* Active org · click to switch */}
+          <OrgSwitcher variant="header-chip" />
         </div>
 
-        {/* Right side in RTL = notifications + profile */}
+        {/* END side (left in RTL) · ENTIX IO wordmark + actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* ENTIX IO wordmark · click → /app dashboard */}
+          <Link
+            to="/app"
+            className="hidden sm:flex items-center font-english tracking-tight select-none hover:opacity-80 transition-opacity"
+            style={{ fontWeight: 800, fontSize: "1.125rem", letterSpacing: "-0.02em" }}
+            title="الرئيسية · ENTIX"
+          >
+            <span style={{ color: "#0B1B49" }}>ENTIX</span>
+            <span style={{ color: "#1276E3" }}>.IO</span>
+          </Link>
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button

@@ -9,9 +9,11 @@ import { AddressAutocomplete } from "./address-autocomplete";
 
 interface Props {
   className?: string;
+  /** "sidebar" = full-width button (default) · "header-chip" = compact pill with logo for app-header */
+  variant?: "sidebar" | "header-chip";
 }
 
-export function OrgSwitcher({ className }: Props) {
+export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [activeOrg, setActiveOrg] = useState<Org | null>(null);
   const [open, setOpen] = useState(false);
@@ -60,6 +62,80 @@ export function OrgSwitcher({ className }: Props) {
       <button className={`mb-2 flex w-full items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#9CA3AF] ${className || ""}`}>
         <span>...جارٍ التحميل</span>
       </button>
+    );
+  }
+
+  // Compact chip · used in app-header (right side in RTL)
+  if (variant === "header-chip") {
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setOpen(!open)}
+          className={`flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm hover:bg-[#F9FAFB] hover:border-[#1276E3]/30 transition-all ${className || ""}`}
+          title={activeOrg?.name || "اختر شركة"}
+        >
+          {activeOrg?.logoUrl ? (
+            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-7 w-7 rounded object-cover bg-white border border-[#F3F4F6]" />
+          ) : (
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#1276E3] text-white text-xs font-english" style={{ fontWeight: 700 }}>
+              {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="hidden sm:inline truncate max-w-[160px] text-[#0B1B49]" style={{ fontWeight: 500 }}>
+            {activeOrg ? activeOrg.name : "اختر شركة"}
+          </span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[#9CA3AF] transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+
+        {open && (
+          <div className="absolute end-0 top-full z-50 mt-1 w-72 max-h-[420px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+            <div className="p-1">
+              {orgs.map((o) => (
+                <button
+                  key={o.id}
+                  onClick={() => handleSelect(o)}
+                  className="flex w-full items-center justify-between gap-2 rounded px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F4FCFF]"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {o.logoUrl ? (
+                      <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-cover bg-white border border-[#F3F4F6] shrink-0" />
+                    ) : (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-[#1276E3] text-white text-xs font-english" style={{ fontWeight: 700 }}>
+                        {(o.name || "?").trim().charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex flex-col items-start gap-0.5 min-w-0">
+                      <span className="truncate font-medium">{o.name}</span>
+                      <span className="text-xs text-[#6B7280] font-english">{o.country} · {o.baseCurrency}</span>
+                    </div>
+                  </div>
+                  {activeOrg?.id === o.id && <Check className="h-4 w-4 text-[#1276E3] shrink-0" />}
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-[#E5E7EB] p-1">
+              <button
+                onClick={() => { setOpen(false); setShowCreate(true); }}
+                className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-[#1276E3] hover:bg-[#F4FCFF]"
+              >
+                <Plus className="h-4 w-4" />
+                إنشاء شركة جديدة
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showCreate && (
+          <CreateOrgModal
+            onClose={() => setShowCreate(false)}
+            onCreated={(o) => {
+              setShowCreate(false);
+              setOrgs((prev) => [...prev, o]);
+              handleSelect(o);
+            }}
+          />
+        )}
+      </div>
     );
   }
 

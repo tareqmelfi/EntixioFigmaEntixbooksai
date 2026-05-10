@@ -302,25 +302,18 @@ function SidebarContent({
 }) {
   return (
     <>
-      {/* ── Logo & Company ── */}
+      {/* ── Sidebar header · just the mode toggle (logo + org moved to AppHeader) ── */}
       <div className="border-b border-[#E5E7EB] p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1276E3]">
-              <span className="font-english text-lg text-white" style={{ fontWeight: 700 }}>EB</span>
-            </div>
-            <h1 className="font-english text-lg text-[#0B1B49]" style={{ fontWeight: 700 }}>Entix Books</h1>
-          </div>
+        <div className="mb-3 flex items-center justify-end">
           <button
             onClick={cycleMode}
             className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#0B1B49] transition-colors"
-            title={`الوضع: ${modeLabel}`}
+            title={`وضع الشريط الجانبي: ${modeLabel}`}
           >
             <ModeIcon className="h-4 w-4" />
           </button>
         </div>
 
-        <OrgSwitcher />
 
 
         <div className="relative" ref={searchRef}>
