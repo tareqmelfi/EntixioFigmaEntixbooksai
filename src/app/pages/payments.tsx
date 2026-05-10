@@ -334,7 +334,7 @@ export function Payments() {
                   <SearchableCombobox
                     value={form.contactId}
                     onChange={(id) => setForm({ ...form, contactId: id, billId: "" })}
-                    items={contacts.map((c: any) => ({
+                    items={suppliers.map((c: any) => ({
                       id: c.id,
                       label: c.displayName,
                       sublabel: [c.legalName, c.email].filter(Boolean).join(" · ") || undefined,
@@ -348,7 +348,7 @@ export function Payments() {
                         entityKind: "COMPANY" as any,
                         country: "SA",
                       } as any);
-                      setContacts((prev: any) => [created, ...prev]);
+                      setSuppliers((prev: any) => [created, ...prev]);
                       setForm((f: any) => ({ ...f, contactId: created.id }));
                       return created.id;
                     }}

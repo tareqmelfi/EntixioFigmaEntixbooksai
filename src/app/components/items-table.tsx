@@ -344,7 +344,7 @@ export function ItemsTable({
                           items={products.map((p) => ({
                             id: p.id,
                             label: p.name,
-                            sublabel: `${p.sku ? `${p.sku} · ` : ""}${p.unitPrice.toLocaleString()}`,
+                            sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString()}`,
                           }))}
                           placeholder="ابحث عن صنف..."
                           createLabel={(q) => `+ إنشاء صنف "${q}"`}
