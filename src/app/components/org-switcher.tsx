@@ -3,6 +3,7 @@
  * يظهر في app-sidebar.tsx · يستبدل الـbutton الجامد القديم
  */
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
 import { ChevronDown, Plus, Check, Building2, X } from "lucide-react";
 import { api, Org, setOrgId } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
@@ -66,26 +67,43 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   }
 
   // Compact chip · used in app-header (right side in RTL)
+  // Logo + name = Link → /app (homepage) · ChevronDown = separate button to open dropdown
   if (variant === "header-chip") {
     return (
       <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setOpen(!open)}
-          className={`flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm hover:bg-[#F9FAFB] hover:border-[#1276E3]/30 transition-all ${className || ""}`}
-          title={activeOrg?.name || "اختر شركة"}
-        >
-          {activeOrg?.logoUrl ? (
-            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-7 w-7 rounded object-cover bg-white border border-[#F3F4F6]" />
-          ) : (
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#1276E3] text-white text-xs font-english" style={{ fontWeight: 700 }}>
-              {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
+        <div className={`flex items-center rounded-lg border border-[#E5E7EB] bg-white hover:border-[#1276E3]/30 transition-all ${className || ""}`}>
+          <Link
+            to="/app"
+            className="flex items-center gap-2.5 ps-2 pe-3 py-2 hover:bg-[#F9FAFB] rounded-s-lg transition-colors"
+            title={`${activeOrg?.name || "الرئيسية"} · لوحة التحكم`}
+          >
+            {activeOrg?.logoUrl ? (
+              <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
+                {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[180px]">
+              <span className="truncate text-sm text-[#0B1B49] leading-tight" style={{ fontWeight: 600 }}>
+                {activeOrg ? activeOrg.name : "اختر شركة"}
+              </span>
+              {activeOrg && (
+                <span className="text-[10px] text-[#6B7280] font-english leading-tight">
+                  {activeOrg.country} · {activeOrg.baseCurrency}
+                </span>
+              )}
             </div>
-          )}
-          <span className="hidden sm:inline truncate max-w-[160px] text-[#0B1B49]" style={{ fontWeight: 500 }}>
-            {activeOrg ? activeOrg.name : "اختر شركة"}
-          </span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[#9CA3AF] transition-transform ${open ? "rotate-180" : ""}`} />
-        </button>
+          </Link>
+          <button
+            onClick={() => setOpen(!open)}
+            className="border-s border-[#E5E7EB] p-2 hover:bg-[#F9FAFB] rounded-e-lg transition-colors"
+            title="تبديل الشركة"
+            aria-label="تبديل الشركة"
+          >
+            <ChevronDown className={`h-4 w-4 shrink-0 text-[#6B7280] transition-transform ${open ? "rotate-180" : ""}`} />
+          </button>
+        </div>
 
         {open && (
           <div className="absolute end-0 top-full z-50 mt-1 w-72 max-h-[420px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
