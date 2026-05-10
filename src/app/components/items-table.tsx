@@ -393,7 +393,7 @@ export function ItemsTable({
                             updateLine(i, { accountId: a.id });
                             return a.id;
                           } : undefined}
-                          createLabel="+ إنشاء حساب جديد"
+                          createLabel={(q) => `+ إنشاء حساب جديد "${q}"`}
                         />
                       </td>
                     )}
