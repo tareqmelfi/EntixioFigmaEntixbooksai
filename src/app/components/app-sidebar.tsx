@@ -302,18 +302,9 @@ function SidebarContent({
 }) {
   return (
     <>
-      {/* ── Sidebar header · ENTIX.IO right-aligned + Org chip below ── */}
+      {/* ── Sidebar header · ENTIX.IO right-aligned · pin removed (no value · UX-170) ── */}
       <div className="border-b border-[#E5E7EB] p-4">
-        <div className="mb-3 flex items-center justify-end gap-2">
-          {/* sidebar mode toggle (left in RTL · subtle) */}
-          <button
-            onClick={cycleMode}
-            className="hidden lg:flex items-center justify-center rounded-md p-1.5 text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#0B1B49] transition-colors shrink-0"
-            title={`وضع الشريط الجانبي: ${modeLabel}`}
-          >
-            <ModeIcon className="h-4 w-4" />
-          </button>
-          {/* ENTIX.IO wordmark · right-aligned · click → /app */}
+        <div className="mb-3 flex items-center">
           <Link
             to="/app"
             onClick={onClose}
