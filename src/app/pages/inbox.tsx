@@ -63,11 +63,12 @@ export function InboxPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  // Fetch org slug for display
+  // Fetch org slug for display · pull from orgs list using stored active org id
   useEffect(() => {
-    api.me().then((s: any) => {
-      const slug = s?.activeOrg?.slug || s?.org?.slug || s?.memberships?.[0]?.org?.slug;
-      if (slug) setOrgSlug(slug);
+    api.orgs.list().then((orgs) => {
+      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
+      const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
+      if (active?.slug) setOrgSlug(active.slug);
     }).catch(() => {});
   }, []);
 

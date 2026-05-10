@@ -309,6 +309,33 @@ await authStore.logout();
               <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
               <label htmlFor="zatca" className="text-sm text-[#0B1B49] cursor-pointer">تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)</label>
             </div>
+            {/* Inbox forwarding alias (UX-159) · shows the unique email for this org */}
+            {org && (org as any).slug && (
+              <div className="border-t border-[#F3F4F6] pt-4">
+                <h3 className="text-sm text-[#0B1B49] mb-2" style={{ fontWeight: 600 }}>صندوق البريد الوارد · يستلم الفواتير تلقائياً</h3>
+                <div className="rounded-lg border border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <code className="text-sm text-[#0B1B49] font-english font-semibold block truncate" dir="ltr">
+                      bills+{(org as any).slug}@entix.io
+                    </code>
+                    <p className="text-xs text-[#6B7280] mt-1">
+                      أرسل أي فاتورة من المورد إلى هذا الإيميل · يقوم الذكاء بتحليلها وإنشاء مسودة في "البريد الوارد" تلقائياً
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`bills+${(org as any).slug}@entix.io`);
+                      push("success", "تم نسخ العنوان");
+                    }}
+                    className="shrink-0 px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition"
+                  >
+                    نسخ
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end pt-2">
               <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ التغييرات</>}
