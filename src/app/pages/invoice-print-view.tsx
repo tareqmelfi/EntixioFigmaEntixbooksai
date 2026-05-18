@@ -111,8 +111,8 @@ export function InvoicePrintView() {
     <>
       <style>{`
         /* Reset · standalone route · no app chrome */
-        body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Tajawal','Noto Sans Arabic','Inter',sans-serif; }
-        .num { font-family: 'Inter', monospace; direction: ltr; display: inline-block; }
+        body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Tajawal','Noto Sans Arabic',system-ui,sans-serif; }
+        .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }

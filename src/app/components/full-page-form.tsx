@@ -1,7 +1,7 @@
 /**
  * FullPageForm · replaces the entire main content area while editing.
  *
- * Per طارق: "يجب ان يفتح الصفحة كاملة وليست جانبية ولا منبثقة"
+ * Product requirement: "يجب ان يفتح الصفحة كاملة وليست جانبية ولا منبثقة"
  * Pattern: when editing/creating, the form takes ALL content area · table is hidden.
  * Click X (top-end corner) returns to the list view.
  *

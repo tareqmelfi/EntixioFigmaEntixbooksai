@@ -1,5 +1,5 @@
 /**
- * /app/admin · Cross-org dashboard for platform admin (Tareq).
+ * /app/admin · Cross-org dashboard for platform admin (platform admin).
  *
  * Server-side gate: api returns 403 if user email not in ADMIN_EMAILS env.
  * Client-side: just calls the API · if 403, shows access-denied message.

@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router";
-import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud, Globe } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
+import { useLanguage } from "../components/LanguageContext";
 
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language, toggleLanguage, t } = useLanguage();
   // Where the user was trying to go before being bounced to /login.
   // AuthGuard sets this via Navigate state · default to /app for fresh logins.
   const fromPath: string = (location.state as any)?.from || "/app";
@@ -32,7 +34,7 @@ export function Login() {
     const result = await authStore.login(email, password);
     setLoading(false);
     if (result.success) navigate(fromPath, { replace: true });
-    else setError(result.error || "حدث خطأ");
+    else setError(result.error || t("حدث خطأ", "Something went wrong"));
   };
 
   const handleGoogle = async () => {
@@ -41,11 +43,11 @@ export function Login() {
     try {
       const r = await authStore.loginWithGoogle();
       if (!r.success) {
-        setError(r.error || "تعذّر الاتصال بـGoogle");
+        setError(r.error || t("تعذّر الاتصال بـGoogle", "Could not connect to Google"));
         setGoogleLoading(false);
       }
     } catch (e: any) {
-      setError(e?.message || "تعذّر الاتصال بـGoogle");
+      setError(e?.message || t("تعذّر الاتصال بـGoogle", "Could not connect to Google"));
       setGoogleLoading(false);
     }
   };
@@ -56,27 +58,38 @@ export function Login() {
   }, []);
 
   return (
-    <div className="min-h-screen flex" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
+    <div className="min-h-screen flex" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Right side - Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-8 bg-white">
         <motion.div 
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           className="w-full max-w-md"
         >
-          <Link to="/" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] mb-10 transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
-            <ArrowRight className="w-4 h-4" />
-            العودة للرئيسية
-          </Link>
+          <div className="mb-10 flex items-center justify-between gap-3">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
+              <ArrowRight className="w-4 h-4" />
+              {t("العودة للرئيسية", "Back home")}
+            </Link>
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-[#6B7280] hover:border-[#1276E3]/30 hover:bg-[#F4FCFF]"
+              style={{ fontSize: "13px", fontWeight: 600 }}
+            >
+              <Globe className="h-4 w-4" />
+              {language === "ar" ? "English" : "العربية"}
+            </button>
+          </div>
           
           <div className="flex items-center gap-2.5 mb-10">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-sm">
-              <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+              <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
             </div>
             <span className="text-[#0B1A47]" style={{ fontSize: "22px", fontWeight: 700 }}>Entix Books</span>
           </div>
 
-          <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>تسجيل الدخول</h1>
-          <p className="text-[#6B7280] mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>أدخل بياناتك للوصول إلى حسابك</p>
+          <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("تسجيل الدخول", "Sign in")}</h1>
+          <p className="text-[#6B7280] mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>{t("أدخل بياناتك للوصول إلى حسابك", "Enter your details to access your account.")}</p>
 
           {error && (
             <motion.div 
@@ -89,21 +102,21 @@ export function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>البريد الإلكتروني</label>
+              <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>{t("البريد الإلكتروني", "Email")}</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
                 className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
-                style={{ fontSize: "14px", fontFamily: "Inter", direction: "ltr", textAlign: "right" }}
+                style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                 required
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 500 }}>كلمة المرور</label>
-                <Link to="/forgot-password" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>نسيت كلمة المرور؟</Link>
+                <label className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 500 }}>{t("كلمة المرور", "Password")}</label>
+                <Link to="/forgot-password" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>{t("نسيت كلمة المرور؟", "Forgot password?")}</Link>
               </div>
               <div className="relative">
                 <input
@@ -112,7 +125,7 @@ export function Login() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
-                  style={{ fontSize: "14px", fontFamily: "Inter", direction: "ltr", textAlign: "right" }}
+                  style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                   required
                 />
                 <button
@@ -134,9 +147,9 @@ export function Login() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  جارٍ تسجيل الدخول...
+                  {t("جارٍ تسجيل الدخول...", "Signing in...")}
                 </span>
-              ) : "تسجيل الدخول"}
+              ) : t("تسجيل الدخول", "Sign in")}
             </button>
           </form>
 
@@ -144,7 +157,7 @@ export function Login() {
           {googleEnabled && (
             <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-[#E5E7EB]" />
-              <span className="text-[#9CA3AF]" style={{ fontSize: "12px" }}>أو</span>
+              <span className="text-[#9CA3AF]" style={{ fontSize: "12px" }}>{t("أو", "or")}</span>
               <div className="flex-1 h-px bg-[#E5E7EB]" />
             </div>
           )}
@@ -168,13 +181,13 @@ export function Login() {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
             )}
-            تسجيل الدخول عبر Google
+            {t("تسجيل الدخول عبر Google", "Sign in with Google")}
           </button>
           )}
 
           <div className="mt-6 text-center">
-            <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>ليس لديك حساب؟ </span>
-            <Link to="/register" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>إنشاء حساب جديد</Link>
+            <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>{t("ليس لديك حساب؟ ", "No account yet? ")}</span>
+            <Link to="/register" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("إنشاء حساب جديد", "Create account")}</Link>
           </div>
         </motion.div>
       </div>
@@ -188,20 +201,22 @@ export function Login() {
         <div className="text-center max-w-md relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <div className="w-20 h-20 mx-auto rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-8 border border-white/10">
-              <span className="text-white" style={{ fontSize: "32px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+              <span className="text-white" style={{ fontSize: "32px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
             </div>
-            <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>مرحباً بك في<br />Entix Books</h2>
+            <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br />Entix Books</h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
-              نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين.
-              متوافق مع ZATCA ومصمم خصيصاً للسوق السعودي.
+              {t(
+                "نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين. متوافق مع ZATCA ومصمم خصيصاً للسوق السعودي.",
+                "A cloud accounting platform that works online and offline, with ZATCA-ready workflows for Saudi businesses."
+              )}
             </p>
           </motion.div>
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-3">
             {[
-              { icon: Shield, text: "تشفير AES-256 لحماية البيانات" },
-              { icon: Zap, text: "أداء سريع وتجربة سلسة" },
-              { icon: Cloud, text: "مزامنة ذكية مع عمل أوفلاين" },
+              { icon: Shield, text: t("تشفير AES-256 لحماية البيانات", "Encrypted data protection") },
+              { icon: Zap, text: t("أداء سريع وتجربة سلسة", "Fast and smooth experience") },
+              { icon: Cloud, text: t("مزامنة ذكية مع عمل أوفلاين", "Smart sync with offline work") },
             ].map(item => (
               <div key={item.text} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                 <item.icon className="w-5 h-5 text-[#349FC4] flex-shrink-0" />

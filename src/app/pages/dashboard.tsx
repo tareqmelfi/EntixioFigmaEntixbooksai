@@ -33,6 +33,7 @@ import {
 } from "recharts";
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, DashboardSummary } from "../lib/api";
+import { ToastStack, useToasts } from "../components/side-panel";
 
 const DONUT_COLORS = ["#1276E3", "#179FC5", "#7DD3E4", "#0B1B49", "#D4A76A", "#10B981", "#F59E0B", "#EF4444"];
 
@@ -118,6 +119,8 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [seedArmed, setSeedArmed] = useState(false);
+  const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -186,25 +189,43 @@ export function Dashboard() {
           <div className="text-sm text-[#1276E3]">
             مرحباً بك في <strong>{data.org.name}</strong> · لا توجد بيانات بعد · جرّب البيانات التجريبية لتشوف كل شي شغّال
           </div>
-          <button
-            onClick={async () => {
-              try {
-                const orgId = (data.org as any).id;
-                if (!orgId) { alert("لم يتم تحديد الشركة"); return; }
-                const r = await (api as any).seedDemoData(orgId);
-                if (r?.ok) {
-                  const s = r.seeded || {};
-                  alert(`تم! · ${s.contacts || 0} عميل/مورّد · ${s.products || 0} منتج · ${s.invoices || 0} فاتورة · ${s.expenses || 0} مصروف · ${s.accounts || 0} حساب · ${s.banks || 0} بنوك`);
-                  window.location.reload();
-                }
-              } catch (e: any) {
-                alert(`فشل: ${e?.message || "خطأ غير معروف"}`);
-              }
-            }}
-            className="bg-[#1276E3] hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg shrink-0"
-          >
-            عبّ هذه الشركة ببيانات تجريبية كاملة
-          </button>
+          {seedArmed ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => {
+                  setSeedArmed(false);
+                  try {
+                    const orgId = (data.org as any).id;
+                    if (!orgId) { push("error", "لم يتم تحديد الشركة"); return; }
+                    const r = await (api as any).seedDemoData(orgId);
+                    if (r?.ok) {
+                      const s = r.seeded || {};
+                      push("success", `تمت التعبئة · ${s.contacts || 0} عميل/مورّد · ${s.products || 0} منتج · ${s.invoices || 0} فاتورة`);
+                      window.setTimeout(() => window.location.reload(), 800);
+                    }
+                  } catch (e: any) {
+                    push("error", `فشل: ${e?.message || "خطأ غير معروف"}`);
+                  }
+                }}
+                className="bg-[#1276E3] hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg"
+              >
+                تأكيد التعبئة
+              </button>
+              <button
+                onClick={() => setSeedArmed(false)}
+                className="border border-[#E5E7EB] text-[#6B7280] hover:bg-white text-sm px-3 py-2 rounded-lg"
+              >
+                إلغاء
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSeedArmed(true)}
+              className="bg-[#1276E3] hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg shrink-0"
+            >
+              عبّ هذه الشركة ببيانات تجريبية كاملة
+            </button>
+          )}
         </div>
       )}
 
@@ -691,6 +712,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

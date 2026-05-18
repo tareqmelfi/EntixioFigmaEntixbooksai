@@ -23,10 +23,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
     
-    // Update body font
-    document.body.style.fontFamily = language === "ar" 
-      ? "'Noto Sans Arabic', sans-serif" 
-      : "'Inter', sans-serif";
+    document.body.style.fontFamily = language === "ar"
+      ? "'Noto Sans Arabic', system-ui, -apple-system, sans-serif"
+      : "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   }, [language]);
 
   const toggleLanguage = () => {

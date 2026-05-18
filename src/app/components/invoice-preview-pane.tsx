@@ -1,7 +1,7 @@
 /**
  * InvoicePreviewPane · split-view preview that shows when a row is clicked.
  *
- * Per طارق's UX request (Wafeq pattern):
+ * Product requirement UX request (Wafeq pattern):
  * - Click row in list → preview pane opens on the left (RTL: end side)
  * - List collapses to narrow column on the right
  * - Click X or click another row to switch

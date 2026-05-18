@@ -133,7 +133,7 @@ export function Privacy() {
               <p className="text-[#374151] mb-4" style={{ fontSize: "15px", lineHeight: 1.9 }}>
                 إذا كان لديك أي استفسارات حول سياسة الخصوصية أو كيفية استخدامنا لبياناتك، يرجى التواصل معنا:
               </p>
-              <p className="text-[#1276E3]" style={{ fontSize: "15px", fontFamily: "Inter" }}>
+              <p className="text-[#1276E3]" style={{ fontSize: "15px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                 privacy@entix.io
               </p>
             </div>

@@ -9,7 +9,7 @@
  *
  * "Open list" = user can pick from this list OR type a free-form country code.
  *
- * Per طارق · UX-47 · "تصنيف محلي / أجنبي + ITN/LEI + ضريبة استقطاع"
+ * Product requirement: UX-47 · "تصنيف محلي / أجنبي + ITN/LEI + ضريبة استقطاع"
  */
 
 export interface Country {

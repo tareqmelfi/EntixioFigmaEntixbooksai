@@ -21,14 +21,14 @@ export const xAxisStyle = {
 
 /** X-axis for English / numeric values */
 export const xAxisNumericStyle = {
-  style: { fontSize: "10px", fontFamily: "Inter", fill: "#B0B7C3" },
+  style: { fontSize: "10px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fill: "#B0B7C3" },
   tickLine: false as const,
   axisLine: false as const,
 } as const;
 
 /** Y-axis (numeric scale) — very light so numbers don't compete with data */
 export const yAxisStyle = {
-  style: { fontSize: "10px", fontFamily: "Inter", fill: "#C4CAD4" },
+  style: { fontSize: "10px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fill: "#C4CAD4" },
   tickLine: false as const,
   axisLine: false as const,
 } as const;

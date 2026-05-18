@@ -1,7 +1,7 @@
 /**
  * use-keyboard-shortcuts · keyboard-first UX layer (UX-7)
  *
- * Per طارق · "خليه يعمل بسرعة الكي بورد · مثل Linear و Wafeq"
+ * Product requirement: "خليه يعمل بسرعة الكي بورد · مثل Linear و Wafeq"
  *
  * Standard shortcuts that any list page can wire up:
  *

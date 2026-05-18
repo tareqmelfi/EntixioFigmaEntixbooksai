@@ -1,7 +1,7 @@
 /**
  * SearchableCombobox · type-to-search + create-on-the-fly
  *
- * Replaces closed shadcn <Select>. Per طارق's UX-5 rule:
+ * Replaces closed shadcn <Select>. Product requirement UX-5 rule:
  *   "العميل · يمكن كتابة الاسم ويظهر · إذا لم يكن مسجلاً يسمح بتسجيله مباشرة"
  *
  * Pattern (matches Wave + Wafeq + Notion comboboxes):

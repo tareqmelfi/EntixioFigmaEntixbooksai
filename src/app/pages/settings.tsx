@@ -32,6 +32,7 @@ export function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [seedArmed, setSeedArmed] = useState(false);
   const [form, setForm] = useState({
     name: "", legalName: "", country: "SA", baseCurrency: "SAR",
     vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
@@ -366,25 +367,45 @@ await authStore.logout();
             )}
 
             <div className="flex items-center justify-between pt-2 gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!org) return;
-                  if (!confirm("سيتم إضافة بيانات تجريبية كاملة (حسابات + عملاء + منتجات + فواتير) لهذه الشركة. متابعة؟")) return;
-                  try {
-                    const r = await (api as any).seedDemoData(org.id);
-                    if (r?.ok) {
-                      setSaved(true);
-                      setTimeout(() => window.location.reload(), 800);
-                    }
-                  } catch (e: any) {
-                    setError(e?.message || "فشل التعبئة");
-                  }
-                }}
-                className="px-3 py-2 text-sm rounded-md border border-green-200 text-green-700 hover:bg-green-50 flex items-center gap-2"
-              >
-                ✨ تعبئة بيانات تجريبية كاملة
-              </button>
+              {seedArmed ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!org) return;
+                      setSeedArmed(false);
+                      try {
+                        const r = await (api as any).seedDemoData(org.id);
+                        if (r?.ok) {
+                          push("success", "تمت إضافة البيانات التجريبية");
+                          setSaved(true);
+                          setTimeout(() => window.location.reload(), 800);
+                        }
+                      } catch (e: any) {
+                        setError(e?.message || "فشل التعبئة");
+                      }
+                    }}
+                    className="px-3 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700"
+                  >
+                    تأكيد التعبئة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSeedArmed(false)}
+                    className="px-3 py-2 text-sm rounded-md border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSeedArmed(true)}
+                  className="px-3 py-2 text-sm rounded-md border border-green-200 text-green-700 hover:bg-green-50 flex items-center gap-2"
+                >
+                  ✨ تعبئة بيانات تجريبية كاملة
+                </button>
+              )}
               <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ التغييرات</>}
               </Button>
@@ -874,6 +895,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [industries, setIndustries] = useState<any[]>([]);
+  const [pendingSeed, setPendingSeed] = useState<string | null>(null);
 
   useEffect(() => {
     (api as any).products.categories?.().then(setStats).catch(() => {});
@@ -883,7 +905,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
   }, []);
 
   const seedIndustry = async (industryId: string) => {
-    if (!confirm(`سيتم إضافة منتجات قطاع جديدة. هل أنت متأكد؟`)) return;
+    setPendingSeed(null);
     setBusy(industryId);
     try {
       const result: any = await (api as any).products.seedIndustry(industryId);
@@ -895,11 +917,11 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
     } finally { setBusy(null); }
   };
 
-  const seedFc = async () => {
-    if (!confirm("زرع كتالوج Falcon Core / ENSIDEX (50+ منتج). متابعة؟")) return;
-    setBusy("fc");
+  const seedEnsidexCatalog = async () => {
+    setPendingSeed(null);
+    setBusy("ensidex");
     try {
-      const result: any = await (api as any).products.seedFcCatalog?.();
+      const result: any = await (api as any).products.seedEnsidexCatalog?.();
       push("success", `تمت إضافة ${result?.created || 0} منتج`);
       const s = await (api as any).products.categories?.();
       setStats(s);
@@ -912,7 +934,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
     <Card className="border-[#E5E7EB]">
       <CardHeader>
         <CardTitle className="text-[#0B1B49]">كتالوج المنتجات</CardTitle>
-        <CardDescription>اختر قطاعك واحصل على كتالوج جاهز · أو اعتمد كتالوج FC</CardDescription>
+        <CardDescription>اختر قطاعك واحصل على كتالوج جاهز · أو اعتمد كتالوج ENSIDEX الداخلي</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
@@ -933,11 +955,20 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
                   </div>
                   <span className="text-xs text-[#1276E3] bg-[#F4FCFF] px-2 py-0.5 rounded font-english" dir="ltr">{ind.productCount}</span>
                 </div>
-                <Button onClick={() => seedIndustry(ind.id)} disabled={busy === ind.id}
+                <Button onClick={() => setPendingSeed(ind.id)} disabled={busy === ind.id}
                   variant="outline" className="w-full mt-3 border-[#E5E7EB] hover:bg-[#F4FCFF]">
                   {busy === ind.id ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
                   زرع
                 </Button>
+                {pendingSeed === ind.id && (
+                  <div className="mt-2">
+                    <InlineConfirm
+                      label="إضافة منتجات قطاع جديدة؟"
+                      onConfirm={() => seedIndustry(ind.id)}
+                      onCancel={() => setPendingSeed(null)}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -947,14 +978,23 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="text-[#0B1B49] font-medium">كتالوج Falcon Core / ENSIDEX (للداخلية)</div>
+              <div className="text-[#0B1B49] font-medium">كتالوج ENSIDEX الداخلي</div>
               <p className="text-xs text-[#6B7280] mt-1">
-                فقط لمنشأت Falcon Core أو ENSIDEX · 50+ منتج (FC-ADV/AI/BRD/CLD/CNT/ENT/LLC/PRM/WEB)
+                فقط للمنشآت الداخلية المصرح لها · 50+ منتج وخدمة
               </p>
-              <Button onClick={seedFc} disabled={busy === "fc"} className="bg-amber-600 hover:bg-amber-700 text-white mt-3">
-                {busy === "fc" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
-                زرع كتالوج FC
+              <Button onClick={() => setPendingSeed("ensidex")} disabled={busy === "ensidex"} className="bg-amber-600 hover:bg-amber-700 text-white mt-3">
+                {busy === "ensidex" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
+                زرع كتالوج ENSIDEX
               </Button>
+              {pendingSeed === "ensidex" && (
+                <div className="mt-2">
+                  <InlineConfirm
+                    label="زرع كتالوج ENSIDEX؟"
+                    onConfirm={seedEnsidexCatalog}
+                    onCancel={() => setPendingSeed(null)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -986,6 +1026,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
   const [inviteRole, setInviteRole] = useState<"OWNER" | "ADMIN" | "ACCOUNTANT" | "VIEWER">("ACCOUNTANT");
   const [busy, setBusy] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<string | null>(null);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -1016,7 +1057,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
   };
 
   const handleRemove = async (memberId: string) => {
-    if (!confirm("حذف العضو من الفريق؟")) return;
+    setPendingRemove(null);
     try {
       await api.orgs.removeMember(orgId, memberId);
       const next = members.filter(m => m.id !== memberId);
@@ -1088,7 +1129,15 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
                 </td>
                 <td className="py-3 px-4 font-english text-xs text-[#6B7280]" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
                 <td className="py-3 px-4 text-end">
-                  <button onClick={() => handleRemove(m.id)} className="text-xs text-red-600 hover:underline">حذف</button>
+                  {pendingRemove === m.id ? (
+                    <InlineConfirm
+                      label="حذف العضو؟"
+                      onConfirm={() => handleRemove(m.id)}
+                      onCancel={() => setPendingRemove(null)}
+                    />
+                  ) : (
+                    <button onClick={() => setPendingRemove(m.id)} className="text-xs text-red-600 hover:underline">حذف</button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -1319,7 +1368,6 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
               <option value="Tajawal">Tajawal</option>
               <option value="Noto Sans Arabic">Noto Sans Arabic</option>
               <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
-              <option value="Cairo">Cairo</option>
             </select>
           </div>
         </div>
@@ -1349,14 +1397,14 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 
 // ── PLANS TAB ───────────────────────────────────────────────────────────────
 function PlansTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
-  const isAdmin = (org as any).role === "OWNER" || (typeof window !== "undefined" && localStorage.getItem("user_email") === "tareq@fc.sa");
+  const isAdmin = (org as any).platformRole === "ADMIN";
   const plans = [
     { id: "free", name: "مجاني", price: "$0", users: "2", invoices: "20/شهر", ai: "$5/شهر", features: ["حساب واحد", "فواتير أساسية", "تصدير PDF"] },
     { id: "pro", name: "احترافي", price: "$19/شهر", users: "5", invoices: "غير محدود", ai: "$30/شهر", features: ["حسابات متعددة", "ZATCA", "تكاملات بنكية", "API access"], popular: true },
     { id: "business", name: "أعمال", price: "$49/شهر", users: "20", invoices: "غير محدود", ai: "$100/شهر", features: ["كل ميزات Pro", "AI advanced", "متعدد العملات", "إغلاق سنوي", "Audit log"] },
     { id: "enterprise", name: "مؤسسات", price: "تواصل معنا", users: "غير محدود", invoices: "غير محدود", ai: "غير محدود", features: ["SSO", "SLA", "Priority support", "Custom integrations", "Dedicated account manager"] },
   ];
-  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: ["جميع الميزات مفتوحة", "بدون حد على العملاء/الفواتير/AI", "Cross-org admin dashboard", "متاح فقط لـ tareq@fc.sa"] };
+  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: ["جميع الميزات مفتوحة", "بدون حد على العملاء/الفواتير/AI", "Cross-org admin dashboard", "متاح فقط لمشرفي المنصة"] };
 
   return (
     <Card className="border-[#E5E7EB]">

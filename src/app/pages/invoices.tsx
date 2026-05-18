@@ -930,7 +930,9 @@ export function Invoices() {
           docTypeLabel="فاتورة"
           onClose={() => setPreviewId(null)}
           onApprove={previewInvoice.status === "DRAFT" ? () => handleApprove(previewInvoice) : undefined}
-          onRecordPayment={() => openRecordPayment(SOMEVAR)} onSign={() => openSign(previewInvoice)} onRecordPayment={() => openRecordPayment(previewInvoice)} onEdit={() => openEdit(previewInvoice)}
+          onRecordPayment={() => openRecordPayment(previewInvoice)}
+          onSign={() => openSign(previewInvoice)}
+          onEdit={() => openEdit(previewInvoice)}
           onDelete={() => setPendingDelete(previewInvoice.id)}
         />
       )}

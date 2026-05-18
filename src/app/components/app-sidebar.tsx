@@ -13,6 +13,62 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { OrgSwitcher } from "./org-switcher";
+import { useLanguage } from "./LanguageContext";
+
+const EN_TEXT: Record<string, string> = {
+  "لوحة التحكم": "Dashboard",
+  "الذكاء الاصطناعي": "AI",
+  "جديد": "New",
+  "العمليات الأساسية": "Core operations",
+  "المبيعات": "Sales",
+  "عروض الأسعار": "Quotes",
+  "فواتير المبيعات": "Sales invoices",
+  "سندات القبض": "Receipts",
+  "الإشعارات الدائنة": "Credit notes",
+  "المشتريات": "Purchases",
+  "فواتير المشتريات": "Purchase bills",
+  "سندات الدفع": "Payments",
+  "المصروفات النقدية": "Expenses",
+  "البريد الوارد": "Inbox",
+  "قائمة الاتصال": "Contacts",
+  "الرواتب والموظفين": "Payroll & employees",
+  "الرواتب": "Payroll",
+  "الموظفين": "Employees",
+  "منتجات، خدمات، مخزون": "Products, services, inventory",
+  "المنتجات والخدمات": "Products & services",
+  "المخزون والمستودعات": "Inventory & warehouses",
+  "للمحاسب": "Accounting",
+  "المحاسبة": "Accounting",
+  "القيود اليدوية": "Journal entries",
+  "شجرة الحسابات": "Chart of accounts",
+  "الضرائب": "Taxes",
+  "الحسابات البنكية": "Bank accounts",
+  "تسوية البنوك": "Bank reconciliation",
+  "الفترات المالية": "Fiscal periods",
+  "الأصول الثابتة": "Fixed assets",
+  "مراكز التكلفة": "Cost centers",
+  "المشاريع": "Projects",
+  "الفروع": "Branches",
+  "للمطورين": "Developers",
+  "التكاملات": "Integrations",
+  "القوالب": "Templates",
+  "محدّث": "Updated",
+  "التعاقد مع محاسب": "Hire an accountant",
+  "التقارير": "Reports",
+  "خارطة المزايا": "Roadmap",
+  "الإعدادات": "Settings",
+  "مركز المساعدة": "Help center",
+  "اذهب إلى صفحة...": "Go to page...",
+  "الرئيسية · ENTIX": "Home · ENTIX",
+  "ثابت": "Pinned",
+  "تلقائي": "Auto",
+  "مخفي": "Hidden",
+};
+
+function useSidebarText() {
+  const { t } = useLanguage();
+  return (value?: string) => value ? t(value, EN_TEXT[value] || value) : "";
+}
 
 interface SubItem {
   title: string;
@@ -43,6 +99,16 @@ const sections: MenuSection[] = [
   {
     label: "العمليات الأساسية",
     items: [
+      { title: "قائمة الاتصال", icon: Users, path: "/app/contacts" },
+      {
+        title: "منتجات، خدمات، مخزون",
+        icon: Package,
+        path: "/app/products",
+        children: [
+          { title: "المنتجات والخدمات", icon: Layers, path: "/app/products" },
+          { title: "المخزون والمستودعات", icon: Warehouse, path: "/app/inventory" },
+        ],
+      },
       {
         title: "المبيعات",
         icon: ShoppingCart,
@@ -65,7 +131,6 @@ const sections: MenuSection[] = [
           { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
         ],
       },
-      { title: "العملاء والموردين", icon: Users, path: "/app/contacts" },
       {
         title: "الرواتب والموظفين",
         icon: Wallet,
@@ -73,15 +138,6 @@ const sections: MenuSection[] = [
         children: [
           { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
           { title: "الموظفين", icon: Users2, path: "/app/employees" },
-        ],
-      },
-      {
-        title: "منتجات، خدمات، مخزون",
-        icon: Package,
-        path: "/app/products",
-        children: [
-          { title: "المنتجات والخدمات", icon: Layers, path: "/app/products" },
-          { title: "المخزون والمستودعات", icon: Warehouse, path: "/app/inventory" },
         ],
       },
     ],
@@ -133,7 +189,7 @@ const searchPages = [
   { label: "فواتير المشتريات", path: "/app/purchases/bills" },
   { label: "سندات الدفع", path: "/app/payments" },
   { label: "المصروفات النقدية", path: "/app/expenses" },
-  { label: "العملاء والموردين", path: "/app/contacts" },
+  { label: "قائمة الاتصال", path: "/app/contacts" },
   { label: "الرواتب والموظفين", path: "/app/payroll" },
   { label: "المنتجات والخدمات", path: "/app/products" },
   { label: "المخزون والمستودعات", path: "/app/inventory" },
@@ -171,6 +227,7 @@ export function AppSidebar({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const tr = useSidebarText();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -198,7 +255,10 @@ export function AppSidebar({
     path ? location.pathname === path || location.pathname.startsWith(path + "/") : false;
 
   const searchResults = searchQuery.trim()
-    ? searchPages.filter((p) => p.label.includes(searchQuery))
+    ? searchPages.filter((p) => {
+        const q = searchQuery.trim().toLowerCase();
+        return p.label.includes(searchQuery) || tr(p.label).toLowerCase().includes(q);
+      })
     : [];
 
   const cycleMode = () => {
@@ -243,7 +303,7 @@ export function AppSidebar({
       className={`
         flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white
         fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-xl
-        ${isOpen ? "translate-x-0" : "translate-x-full"}
+        ${isOpen ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}
         ${className}
       `}
       onMouseLeave={() => {
@@ -300,6 +360,9 @@ function SidebarContent({
   navigate: (p: string) => void;
   onClose?: () => void;
 }) {
+  const { language, toggleLanguage, t } = useLanguage();
+  const tr = useSidebarText();
+
   return (
     <>
       {/* ── Sidebar header · ENTIX.IO right-aligned · pin removed (no value · UX-170) ── */}
@@ -310,7 +373,7 @@ function SidebarContent({
             onClick={onClose}
             className="font-english tracking-tight select-none hover:opacity-80 transition-opacity"
             style={{ fontWeight: 800, fontSize: "1.125rem", letterSpacing: "-0.02em", lineHeight: 1 }}
-            title="الرئيسية · ENTIX"
+            title={tr("الرئيسية · ENTIX")}
           >
             <span style={{ color: "#0B1B49" }}>ENTIX</span>
             <span style={{ color: "#1276E3" }}>.IO</span>
@@ -326,7 +389,7 @@ function SidebarContent({
           <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
           <input
             type="text"
-            placeholder="اذهب إلى صفحة..."
+            placeholder={tr("اذهب إلى صفحة...")}
             className="w-full rounded-md border border-[#E5E7EB] bg-white ps-9 pe-8 py-2 text-sm text-[#0B1B49] placeholder:text-[#9CA3AF] focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -345,7 +408,7 @@ function SidebarContent({
                   onClick={() => { navigate(r.path); setSearchQuery(""); setSearchFocused(false); onClose?.(); }}
                   className="w-full text-start px-3 py-2 text-sm text-[#374151] hover:bg-[#EFF6FF] hover:text-[#1276E3] transition-colors"
                 >
-                  {r.label}
+                  {tr(r.label)}
                 </button>
               ))}
             </div>
@@ -359,7 +422,7 @@ function SidebarContent({
           <div key={si} className={si > 0 ? "mt-3" : ""}>
             {section.label && (
               <div className="mb-1.5 px-3 text-[11px] tracking-wider text-[#9CA3AF] text-start" style={{ fontWeight: 600 }}>
-                {section.label}
+                {tr(section.label)}
               </div>
             )}
             <div className="space-y-0.5">
@@ -391,30 +454,34 @@ function SidebarContent({
         <Link to="/app/reports" onClick={onClose}>
           <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/reports") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
             <BarChart3 className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-start">التقارير</span>
+            <span className="flex-1 text-start">{tr("التقارير")}</span>
           </button>
         </Link>
         <Link to="/app/roadmap" onClick={onClose}>
           <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
             <Map className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-start">خارطة المزايا</span>
+            <span className="flex-1 text-start">{tr("خارطة المزايا")}</span>
           </button>
         </Link>
         <Link to="/app/settings" onClick={onClose}>
           <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/settings") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
             <Settings className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-start">الإعدادات</span>
+            <span className="flex-1 text-start">{tr("الإعدادات")}</span>
           </button>
         </Link>
 
         <div className="flex items-center gap-1 pt-1">
           <button className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
             <HelpCircle className="h-4 w-4 shrink-0" />
-            <span>مركز المساعدة</span>
+            <span>{tr("مركز المساعدة")}</span>
           </button>
-          <button className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+            aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
+          >
             <Globe className="h-4 w-4 shrink-0" />
-            <span className="font-english">English</span>
+            <span className={language === "ar" ? "font-english" : ""}>{language === "ar" ? "English" : "العربية"}</span>
           </button>
         </div>
 
@@ -425,7 +492,7 @@ function SidebarContent({
             className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-[#9CA3AF] hover:bg-[#F3F4F6] transition-colors"
           >
             <ModeIcon className="h-3 w-3" />
-            <span>{modeLabel}</span>
+            <span>{tr(modeLabel)}</span>
           </button>
         </div>
       </div>
@@ -436,6 +503,7 @@ function SidebarContent({
 /* ─── Link item ─── */
 function SidebarLink({ item, active, onClick }: { item: MenuItem; active: boolean; onClick?: () => void }) {
   const Icon = item.icon;
+  const tr = useSidebarText();
   return (
     <Link to={item.path!} onClick={onClick}>
       <button
@@ -444,10 +512,10 @@ function SidebarLink({ item, active, onClick }: { item: MenuItem; active: boolea
         }`}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        <span className="flex-1 text-start">{item.title}</span>
+        <span className="flex-1 text-start">{tr(item.title)}</span>
         {item.badge && (
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] text-white ${item.badge === "محدّث" ? "bg-[#F59E0B]" : "bg-[#179FC5]"}`}>
-            {item.badge}
+            {tr(item.badge)}
           </span>
         )}
       </button>
@@ -468,6 +536,7 @@ function CollapsibleMenu({
 }) {
   const Icon = item.icon;
   const navigate = useNavigate();
+  const tr = useSidebarText();
 
   // Click main label → navigate to parent path + open submenu
   const handleMainClick = () => {
@@ -491,7 +560,7 @@ function CollapsibleMenu({
           }`}
         >
           <Icon className="h-5 w-5 shrink-0" />
-          <span className="flex-1 text-start">{item.title}</span>
+          <span className="flex-1 text-start">{tr(item.title)}</span>
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -529,7 +598,7 @@ function CollapsibleMenu({
                   }`}
                 >
                   <ChildIcon className="h-4 w-4 shrink-0" />
-                  <span className="text-start">{child.title}</span>
+                  <span className="text-start">{tr(child.title)}</span>
                 </button>
               </Link>
             );

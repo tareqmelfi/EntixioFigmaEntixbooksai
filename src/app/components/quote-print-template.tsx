@@ -104,7 +104,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
         minHeight: "297mm",
         margin: "0 auto",
         background: "#FFFFFF",
-        fontFamily: "'Noto Sans Arabic', 'Inter', sans-serif",
+        fontFamily: "'Noto Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         color: "#1a1a1a",
         fontSize: "11px",
         lineHeight: "1.6",
@@ -123,7 +123,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                 <div style={{
                   width: "42px", height: "42px", borderRadius: "8px", background: "#1276E3",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontWeight: 800, fontSize: "14px", fontFamily: "Inter, sans-serif",
+                  color: "#fff", fontWeight: 800, fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
                 }}>EB</div>
                 <div>
                   <div style={{ fontSize: "16px", fontWeight: 700, color: "#0B1B49" }}>Entix Books</div>
@@ -132,8 +132,8 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
               </div>
             </div>
             <div style={{ textAlign: "left", fontSize: "10px", color: "#6B7280" }}>
-              <div style={{ fontFamily: "Inter, sans-serif" }}>{q.date}</div>
-              <div style={{ fontFamily: "Inter, sans-serif" }}>{q.id}</div>
+              <div style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{q.date}</div>
+              <div style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{q.id}</div>
             </div>
           </div>
 
@@ -168,7 +168,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
           {/* Footer */}
           <div style={{ padding: "20px 50px", borderTop: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#9CA3AF" }}>
             <span>سري وخاص — لا يُوزّع بدون إذن مسبق</span>
-            <span style={{ fontFamily: "Inter, sans-serif" }}>www.entixbooks.com</span>
+            <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>www.entixbooks.com</span>
           </div>
         </div>
       )}
@@ -188,7 +188,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
               }}>◆</div>
               <span style={{ fontSize: "16px", fontWeight: 700, color: "#0B1B49" }}>العرض الفني</span>
             </div>
-            <span style={{ fontSize: "10px", color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>{q.id}</span>
+            <span style={{ fontSize: "10px", color: "#9CA3AF", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{q.id}</span>
           </div>
 
           <div style={{ flex: 1, padding: "0 50px" }}>
@@ -263,7 +263,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
               }}>☰</div>
               <span style={{ fontSize: "16px", fontWeight: 700, color: "#0B1B49" }}>نطاق العمل (SOW)</span>
             </div>
-            <span style={{ fontSize: "10px", color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>{q.id}</span>
+            <span style={{ fontSize: "10px", color: "#9CA3AF", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{q.id}</span>
           </div>
 
           <div style={{ flex: 1, padding: "0 50px" }}>
@@ -279,7 +279,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                   <div style={{
                     width: "26px", height: "26px", borderRadius: "50%", background: "#1276E3",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: "11px", fontWeight: 700, fontFamily: "Inter, sans-serif",
+                    color: "#fff", fontSize: "11px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
                     flexShrink: 0,
                   }}>{i + 1}</div>
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "#0B1B49" }}>{s.title}</span>
@@ -312,7 +312,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                 <div style={{
                   width: "36px", height: "36px", borderRadius: "6px", background: "#1276E3",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontWeight: 800, fontSize: "12px", fontFamily: "Inter, sans-serif",
+                  color: "#fff", fontWeight: 800, fontSize: "12px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
                 }}>EB</div>
                 <div>
                   <div style={{ fontSize: "14px", fontWeight: 700, color: "#0B1B49" }}>Entix Books</div>
@@ -321,7 +321,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
               </div>
               <div style={{ fontSize: "9px", color: "#6B7280", marginTop: "4px" }}>
                 <div>الرياض، المملكة العربية السعودية</div>
-                <div style={{ fontFamily: "Inter, sans-serif" }}>info@entixbooks.com | +966 50 000 0000</div>
+                <div style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>info@entixbooks.com | +966 50 000 0000</div>
               </div>
             </div>
 
@@ -331,7 +331,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
               <div style={{
                 display: "inline-block", background: "#EFF6FF", color: "#1276E3",
                 borderRadius: "6px", padding: "2px 10px", fontSize: "12px",
-                fontWeight: 700, fontFamily: "Inter, sans-serif",
+                fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
               }}>{q.id}</div>
             </div>
           </div>
@@ -353,9 +353,9 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
               <div style={{ fontSize: "10px", color: "#9CA3AF", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>بيانات العرض</div>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: "11px" }}>
                 <span style={{ color: "#6B7280" }}>التاريخ:</span>
-                <span style={{ fontFamily: "Inter, sans-serif", color: "#374151" }}>{q.date}</span>
+                <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color: "#374151" }}>{q.date}</span>
                 <span style={{ color: "#6B7280" }}>صالح حتى:</span>
-                <span style={{ fontFamily: "Inter, sans-serif", color: "#374151" }}>{q.validUntil}</span>
+                <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color: "#374151" }}>{q.validUntil}</span>
                 {q.reference && <>
                   <span style={{ color: "#6B7280" }}>المرجع:</span>
                   <span style={{ color: "#374151" }}>{q.reference}</span>
@@ -389,9 +389,9 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                       <span style={{ fontWeight: 600, color: "#0B1B49" }}>{item.product}</span>
                     </td>
                     <td style={{ ...tdStyle, color: "#6B7280" }}>{item.description}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontFamily: "Inter, sans-serif" }}>{item.qty}</td>
-                    <td style={{ ...tdStyle, textAlign: "left", fontFamily: "Inter, sans-serif" }}>{fmt(item.price)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontFamily: "Inter, sans-serif" }}>{item.taxRate}%</td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{item.qty}</td>
+                    <td style={{ ...tdStyle, textAlign: "left", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{fmt(item.price)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{item.taxRate}%</td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>
                       <span style={{
                         display: "inline-block",
@@ -402,7 +402,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                         {item.taxMode === "inclusive" ? "شامل" : "مضافة"}
                       </span>
                     </td>
-                    <td style={{ ...tdStyle, textAlign: "left", fontFamily: "Inter, sans-serif", fontWeight: 700, color: "#0B1B49" }}>{fmt(c.total)}</td>
+                    <td style={{ ...tdStyle, textAlign: "left", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fontWeight: 700, color: "#0B1B49" }}>{fmt(c.total)}</td>
                   </tr>
                 );
               })}
@@ -414,15 +414,15 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
             <div style={{ width: "280px", background: "#F9FAFB", borderRadius: "10px", padding: "16px", border: "1px solid #E5E7EB" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "11px" }}>
                 <span style={{ color: "#6B7280" }}>المجموع الفرعي:</span>
-                <span style={{ fontFamily: "Inter, sans-serif", color: "#374151" }}>{fmt(totals.subtotal)} SR</span>
+                <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color: "#374151" }}>{fmt(totals.subtotal)} SR</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px", fontSize: "11px" }}>
                 <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة:</span>
-                <span style={{ fontFamily: "Inter, sans-serif", color: "#374151" }}>{fmt(totals.taxTotal)} SR</span>
+                <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color: "#374151" }}>{fmt(totals.taxTotal)} SR</span>
               </div>
               <div style={{ borderTop: "2px solid #0B1B49", paddingTop: "10px", display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "14px", fontWeight: 800, color: "#0B1B49" }}>الإجمالي:</span>
-                <span style={{ fontSize: "14px", fontWeight: 800, color: "#0B1B49", fontFamily: "Inter, sans-serif" }}>{fmt(totals.grandTotal)} SR</span>
+                <span style={{ fontSize: "14px", fontWeight: 800, color: "#0B1B49", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>{fmt(totals.grandTotal)} SR</span>
               </div>
             </div>
           </div>
@@ -466,7 +466,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
           display: "flex", justifyContent: "space-between", fontSize: "8px", color: "#9CA3AF",
         }}>
           <span>تم إنشاؤه بواسطة Entix Books — نظام المحاسبة السحابي</span>
-          <span style={{ fontFamily: "Inter, sans-serif" }}>www.entixbooks.com</span>
+          <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>www.entixbooks.com</span>
         </div>
       </div>
     </div>

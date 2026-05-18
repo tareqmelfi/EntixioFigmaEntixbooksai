@@ -228,7 +228,7 @@ export function PricingPage() {
 
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2 mb-2" dir="ltr">
-                    <span className="text-[#0B1A47]" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "Inter" }}>
+                    <span className="text-[#0B1A47]" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {plan.price[billingCycle] === 0 
                         ? "مجاني" 
                         : plan.price[billingCycle].toLocaleString("en-US")}

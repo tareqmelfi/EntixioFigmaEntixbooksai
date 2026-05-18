@@ -70,7 +70,7 @@ export function Register() {
 
           <div className="flex items-center gap-2.5 mb-8">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-sm">
-              <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+              <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
             </div>
             <span className="text-[#0B1A47]" style={{ fontSize: "22px", fontWeight: 700 }}>Entix Books</span>
           </div>
@@ -95,7 +95,7 @@ export function Register() {
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="طارق"
+                  placeholder="محمد"
                   className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
                   style={{ fontSize: "14px" }}
                   required
@@ -122,7 +122,7 @@ export function Register() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
                 className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
-                style={{ fontSize: "14px", fontFamily: "Inter", direction: "ltr", textAlign: "right" }}
+                style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: "right" }}
                 required
               />
             </div>
@@ -135,7 +135,7 @@ export function Register() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="6 أحرف على الأقل"
                   className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
-                  style={{ fontSize: "14px", fontFamily: "Inter", direction: "ltr", textAlign: "right" }}
+                  style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: "right" }}
                   required
                 />
                 <button
@@ -218,7 +218,7 @@ export function Register() {
         <div className="text-center max-w-md relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <div className="w-20 h-20 mx-auto rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-8 border border-white/10">
-              <span className="text-white" style={{ fontSize: "32px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+              <span className="text-white" style={{ fontSize: "32px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
             </div>
             <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>ابدأ رحلتك<br />المالية معنا</h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>

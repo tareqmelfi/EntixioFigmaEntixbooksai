@@ -84,6 +84,7 @@ export function SharedNavbar() {
   };
 
   return (
+    <>
     <nav
       dir={language === "en" ? "ltr" : "rtl"}
       className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
@@ -96,7 +97,7 @@ export function SharedNavbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-md">
-            <span className="text-white" style={{ fontSize: "16px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+            <span className="text-white" style={{ fontSize: "16px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
           </div>
           <span className="text-[#0B1A47]" style={{ fontSize: "20px", fontWeight: 700 }}>Entix Books</span>
         </Link>
@@ -112,7 +113,7 @@ export function SharedNavbar() {
                     className="flex items-center gap-1.5 px-4 py-2 text-[#374151] hover:text-[#0B1A47] hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
                     style={{ fontSize: "15px", fontWeight: 500 }}
                   >
-                    {item.label}
+                    {t(item.label, item.labelEn)}
                     <ChevronDown 
                       className={`w-4 h-4 transition-transform duration-200 ${
                         openDropdown === item.label ? "rotate-180" : ""
@@ -126,22 +127,22 @@ export function SharedNavbar() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full right-0 mt-2 w-[280px] bg-white rounded-xl shadow-2xl shadow-black/10 border border-gray-100 overflow-hidden"
+                        className="absolute top-full end-0 mt-2 w-[280px] bg-white rounded-xl shadow-2xl shadow-black/10 border border-gray-100 overflow-hidden"
                       >
                         {item.dropdown.map((subItem, i) => (
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className={`w-full text-end px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            className={`w-full text-start px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer ${
                               i !== item.dropdown!.length - 1 ? "border-b border-gray-50" : ""
                             }`}
                           >
                             <div className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 600 }}>
-                              {subItem.label}
+                              {t(subItem.label, subItem.labelEn)}
                             </div>
                             {subItem.desc && (
                               <div className="text-[#6B7280] mt-0.5" style={{ fontSize: "12px" }}>
-                                {subItem.desc}
+                                {t(subItem.desc, subItem.descEn)}
                               </div>
                             )}
                           </button>
@@ -156,7 +157,7 @@ export function SharedNavbar() {
                   className="block px-4 py-2 text-[#374151] hover:text-[#0B1A47] hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 500 }}
                 >
-                  {item.label}
+                  {t(item.label, item.labelEn)}
                 </Link>
               )}
             </div>
@@ -165,19 +166,28 @@ export function SharedNavbar() {
 
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-3">
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-[#374151] hover:border-[#1276E3]/30 hover:bg-[#F4FCFF] hover:text-[#0B1A47] transition-colors"
+            style={{ fontSize: "13px", fontWeight: 600 }}
+            aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
+          >
+            <Globe className="h-4 w-4" />
+            <span>{language === "ar" ? "English" : "العربية"}</span>
+          </button>
           <button 
             onClick={() => navigate("/login")}
             className="text-[#0B1A47] hover:text-[#1276E3] transition-colors cursor-pointer px-4 py-2.5" 
             style={{ fontSize: "14px", fontWeight: 500 }}
           >
-            تسجيل الدخول
+            {t("تسجيل الدخول", "Sign in")}
           </button>
           <button
             onClick={() => navigate("/register")}
             className="bg-[#05B6FA] hover:bg-[#0498D4] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#05B6FA]/25 cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
-            ابدأ مجاناً
+            {t("ابدأ مجاناً", "Start free")}
           </button>
         </div>
 
@@ -205,17 +215,17 @@ export function SharedNavbar() {
                   {item.dropdown ? (
                     <>
                       <div className="text-[#6B7280] px-3 py-2" style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        {item.label}
+                        {t(item.label, item.labelEn)}
                       </div>
                       <div className="space-y-1 mb-3">
                         {item.dropdown.map((subItem) => (
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className="w-full text-end px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                            className="w-full text-start px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
                             style={{ fontSize: "15px", fontWeight: 500 }}
                           >
-                            {subItem.label}
+                            {t(subItem.label, subItem.labelEn)}
                           </button>
                         ))}
                       </div>
@@ -223,46 +233,58 @@ export function SharedNavbar() {
                   ) : (
                     <button
                       onClick={() => handleNavigate(item.href!)}
-                      className="w-full text-end px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                      className="w-full text-start px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
                       style={{ fontSize: "15px", fontWeight: 500 }}
                     >
-                      {item.label}
+                      {t(item.label, item.labelEn)}
                     </button>
                   )}
                 </div>
               ))}
               <hr className="border-gray-100 my-4" />
+              <button
+                onClick={toggleLanguage}
+                className="w-full flex items-center justify-between px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                style={{ fontSize: "15px", fontWeight: 600 }}
+              >
+                <span>{t("اللغة", "Language")}</span>
+                <span className="flex items-center gap-1.5 font-english">
+                  <Globe className="h-4 w-4" />
+                  {language === "ar" ? "English" : "العربية"}
+                </span>
+              </button>
               <button 
                 onClick={() => handleNavigate("/login")} 
-                className="w-full text-end text-[#0B1A47] px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" 
+                className="w-full text-start text-[#0B1A47] px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
-                تسجيل الدخول
+                {t("تسجيل الدخول", "Sign in")}
               </button>
               <button
                 onClick={() => handleNavigate("/register")}
                 className="w-full bg-[#05B6FA] text-white py-3 rounded-xl cursor-pointer hover:bg-[#0498D4] transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                ابدأ مجاناً
+                {t("ابدأ مجاناً", "Start free")}
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Mobile fixed-bottom CTA · only when nav is closed and on small screens */}
-      {!mobileNav && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
-          <button
-            onClick={() => navigate("/register")}
-            className="w-full bg-[#05B6FA] text-white py-3 rounded-xl shadow-lg shadow-[#05B6FA]/20 hover:bg-[#0498D4] transition-colors cursor-pointer"
-            style={{ fontSize: "15px", fontWeight: 600 }}
-          >
-            ابدأ مجاناً
-          </button>
-        </div>
-      )}
     </nav>
+
+    {/* Mobile fixed-bottom CTA · outside fixed nav so it stays anchored to viewport bottom */}
+    {!mobileNav && (
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
+        <button
+          onClick={() => navigate("/register")}
+          className="w-full bg-[#05B6FA] text-white py-3 rounded-xl shadow-lg shadow-[#05B6FA]/20 hover:bg-[#0498D4] transition-colors cursor-pointer"
+          style={{ fontSize: "15px", fontWeight: 600 }}
+        >
+          {t("ابدأ مجاناً", "Start free")}
+        </button>
+      </div>
+    )}
+    </>
   );
 }

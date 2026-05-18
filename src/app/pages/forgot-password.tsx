@@ -43,7 +43,7 @@ export function ForgotPassword() {
 
         <div className="flex items-center gap-2.5 mb-10">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-sm">
-            <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+            <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
           </div>
           <span className="text-[#0B1A47]" style={{ fontSize: "22px", fontWeight: 700 }}>Entix Books</span>
         </div>
@@ -91,7 +91,7 @@ export function ForgotPassword() {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="example@company.sa"
                     className="w-full px-4 py-3.5 pe-12 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
-                    style={{ fontSize: "14px", fontFamily: "Inter", direction: "ltr", textAlign: "right" }}
+                    style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: "right" }}
                     required
                     autoFocus
                   />

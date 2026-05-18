@@ -3,7 +3,7 @@
  *
  * Wraps fetch with:
  *  - Base URL (api.entix.io · localhost:3000 in dev)
- *  - Auth token (Logto JWT · or empty in DEMO mode)
+ *  - Cookie-based better-auth sessions
  *  - Active org id (X-Org-Id header)
  *  - JSON serialization
  *  - Error envelope normalization
@@ -13,15 +13,17 @@ const API_BASE =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
   'https://api.entix.io'
 
-// ── Token + Org state (replace with Logto store when wired) ───────────────────
-let authToken: string | null = null
+// ── Org state ────────────────────────────────────────────────────────────────
 let orgId: string | null = null
 
+/**
+ * @deprecated Sessions are cookie-based via better-auth. Kept as a no-op
+ * compatibility shim for older callers while removing legacy token storage.
+ */
 export function setAuthToken(token: string | null) {
-  authToken = token
+  void token
   if (typeof localStorage !== 'undefined') {
-    if (token) localStorage.setItem('entix_token', token)
-    else localStorage.removeItem('entix_token')
+    localStorage.removeItem('entix_token')
   }
 }
 
@@ -35,7 +37,7 @@ export function setOrgId(id: string | null) {
 
 // Bootstrap from localStorage on load
 if (typeof localStorage !== 'undefined') {
-  authToken = localStorage.getItem('entix_token')
+  localStorage.removeItem('entix_token')
   orgId = localStorage.getItem('entix_org_id')
 }
 
@@ -68,7 +70,6 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   }
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (authToken) headers['Authorization'] = `Bearer ${authToken}`
   if (!opts.skipOrg && orgId) headers['X-Org-Id'] = orgId
 
   let body: string | undefined
@@ -304,9 +305,9 @@ export const api = {
         '/api/products/import',
         { method: 'POST', body: { rows, skipExisting } },
       ),
-    seedFcCatalog: () =>
+    seedEnsidexCatalog: () =>
       request<{ ok: true; created: number; skipped: number; message: string }>(
-        '/api/products/seed-fc-catalog', { method: 'POST', body: {} },
+        '/api/products/seed-ensidex-catalog', { method: 'POST', body: {} },
       ),
     industryCatalogs: () =>
       request<{ items: Array<{ id: string; name: string; nameAr: string; description: string; icon: string; productCount: number }> }>(
@@ -442,17 +443,6 @@ export const api = {
         `/api/email/quotes/${id}/send`,
         { method: 'POST', body: data },
       ),
-  },
-
-  // ZATCA · process invoice → XML + QR + clearance
-  zatca: {
-    process: (id: string) =>
-      request<{ ok: boolean; status: string; uuid: string; qr: string; warnings: string[] }>(
-        `/api/zatca/invoices/${id}/process`,
-        { method: 'POST' },
-      ),
-    getQr: (id: string) =>
-      request<{ qr: string }>(`/api/zatca/invoices/${id}/qr`),
   },
 
   // Loyalty points

@@ -237,7 +237,7 @@ export function Integration() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#1276E3] to-[#349FC4] flex items-center justify-center shadow-lg shadow-[#1276E3]/20">
                       <step.icon className="w-7 h-7 text-white" />
                     </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#0B1A47] text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "Inter" }}>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#0B1A47] text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {step.step}
                     </div>
                     <h4 className="text-[#0B1A47] mb-2" style={{ fontSize: "15px", fontWeight: 600 }}>
@@ -367,7 +367,7 @@ export function Integration() {
                 className="bg-white rounded-xl p-6 text-center border border-gray-200 hover:border-[#1276E3]/30 hover:shadow-lg transition-all"
               >
                 <stat.icon className="w-8 h-8 mx-auto mb-3 text-[#1276E3]" />
-                <div className="text-[#0B1A47] mb-1" style={{ fontSize: "28px", fontWeight: 700, fontFamily: "Inter" }}>
+                <div className="text-[#0B1A47] mb-1" style={{ fontSize: "28px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                   {stat.value}
                 </div>
                 <div className="text-[#6B7280]" style={{ fontSize: "13px" }}>
@@ -514,7 +514,7 @@ export function Integration() {
               {["ISO 27001", "SOC 2 Type II", "GDPR", "PCI DSS"].map((cert) => (
                 <div key={cert} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-colors">
                   <Award className="w-10 h-10 mx-auto mb-3 text-[#60A5FA]" />
-                  <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "Inter" }}>
+                  <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                     {cert}
                   </div>
                 </div>

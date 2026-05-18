@@ -4,7 +4,7 @@
  * Uses BarcodeDetector API (Chrome 88+ · Edge · Safari 17+)
  * Fallback: opens manual SKU input if API unavailable.
  *
- * Per طارق · "في شي قبل صف المنتج · إذا في قارئ باركود خليه يتفعل"
+ * Product requirement: "في شي قبل صف المنتج · إذا في قارئ باركود خليه يتفعل"
  *
  * Usage:
  *   <BarcodeScannerButton onScanned={(code) => findProductBySku(code)} />

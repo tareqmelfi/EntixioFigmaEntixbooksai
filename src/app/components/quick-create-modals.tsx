@@ -1,7 +1,7 @@
 /**
  * QuickCreateAccount + QuickCreateProduct · inline popovers
  *
- * Per طارق · "اكتب اسم مستشفى ولا يطلع · يفتح منبثقة فيها فئة الحساب · أحفظ"
+ * Product requirement: "اكتب اسم مستشفى ولا يطلع · يفتح منبثقة فيها فئة الحساب · أحفظ"
  *           · "اكتب اسم منتج ولا يطلع · يفتح منبثقة فيها السعر والحساب والـSKU"
  *
  * UX-1 compliant: NO Dialog · NO overlay. Centered popover with backdrop fade.

@@ -21,6 +21,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const refresh = async () => {
@@ -219,15 +220,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           {(true) /* UX-194 · always show */ && (
             <button
               onClick={async () => {
-                setOpen(false);
                 try {
                   const r = await (api as any).seedTwoDemos();
                   if (r?.ok) {
-                    alert(`تم إنشاء ${r.seeded.length} شركة تجريبية كاملة (SA + US) · جارِ التحميل...`);
-                    window.location.reload();
+                    setSeedMessage({ kind: "success", text: `تم إنشاء ${r.seeded.length} شركة تجريبية كاملة · جارِ التحميل...` });
+                    window.setTimeout(() => window.location.reload(), 800);
                   }
                 } catch (e: any) {
-                  alert(`فشل: ${e?.message || "خطأ غير معروف"}`);
+                  setSeedMessage({ kind: "error", text: `فشل: ${e?.message || "خطأ غير معروف"}` });
                 }
               }}
               className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-green-700 hover:bg-green-50 border-b border-[#F3F4F6]"
@@ -236,6 +236,16 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               <Plus className="h-4 w-4" />
               + إنشاء بيانات تجريبية كاملة (SA + US)
             </button>
+          )}
+
+          {seedMessage && (
+            <div className={`mx-2 my-2 rounded-md border px-3 py-2 text-xs ${
+              seedMessage.kind === "success"
+                ? "border-green-200 bg-green-50 text-green-700"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}>
+              {seedMessage.text}
+            </div>
           )}
 
           <div className="max-h-[340px] overflow-y-auto">

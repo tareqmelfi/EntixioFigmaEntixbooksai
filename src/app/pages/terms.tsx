@@ -193,11 +193,11 @@ export function Terms() {
               <div className="space-y-2">
                 <p className="text-[#374151]" style={{ fontSize: "15px" }}>
                   <strong>البريد الإلكتروني:</strong>{" "}
-                  <span className="text-[#1276E3]" style={{ fontFamily: "Inter" }}>legal@entix.io</span>
+                  <span className="text-[#1276E3]" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>legal@entix.io</span>
                 </p>
                 <p className="text-[#374151]" style={{ fontSize: "15px" }}>
                   <strong>الهاتف:</strong>{" "}
-                  <span className="text-[#1276E3]" style={{ fontFamily: "Inter", direction: "ltr", display: "inline-block" }}>+966 800 430 088</span>
+                  <span className="text-[#1276E3]" style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", display: "inline-block" }}>+966 800 430 088</span>
                 </p>
               </div>
             </div>

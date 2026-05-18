@@ -1,7 +1,7 @@
 /**
  * ItemsTable v2 · multi-line invoice/quote/bill items
  *
- * Per طارق's reference (Wafeq screenshot 2026-05-05):
+ * Product requirement reference (Wafeq screenshot 2026-05-05):
  * Columns (RTL):
  *   الصنف (Item)            · product picker · auto-fills description + price + tax
  *   الوصف (Description)     · free text · overrides product default

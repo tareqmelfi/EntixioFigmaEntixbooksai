@@ -3,9 +3,11 @@ import { AppSidebar, SidebarMode } from "../components/app-sidebar";
 import { AppHeader } from "../components/app-header";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PanelRightOpen } from "lucide-react";
+import { useLanguage } from "../components/LanguageContext";
 
 export function Root() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { language, t } = useLanguage();
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("entix-sidebar-mode");
@@ -32,7 +34,7 @@ export function Root() {
   }, []);
 
   return (
-    <div className="flex h-dvh w-full bg-[#F1F5F9]" dir="rtl">
+    <div className="flex h-dvh w-full bg-[#F1F5F9]" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
@@ -85,10 +87,10 @@ export function Root() {
         <button
           onClick={() => handleModeChange("pinned")}
           className="hidden lg:flex fixed top-4 end-4 z-30 items-center gap-1.5 rounded-lg bg-white border border-[#E5E7EB] px-3 py-2 text-xs text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49] shadow-sm transition-all"
-          title="إظهار القائمة"
+          title={t("إظهار القائمة", "Show sidebar")}
         >
           <PanelRightOpen className="h-4 w-4" />
-          <span>القائمة</span>
+          <span>{t("القائمة", "Sidebar")}</span>
         </button>
       )}
     </div>

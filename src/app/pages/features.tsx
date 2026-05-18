@@ -155,7 +155,7 @@ export function Features() {
         <div>
           <div className="flex items-center gap-2.5 mb-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center">
-              <span className="text-white" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "Inter" }}>E</span>
+              <span className="text-white" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
             </div>
             <span className="text-[#0B1A47]" style={{ fontSize: "18px", fontWeight: 700 }}>Entix Books</span>
           </div>
