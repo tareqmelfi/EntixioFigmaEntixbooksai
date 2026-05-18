@@ -22,6 +22,15 @@ export function Employees() {
     phone: "",
     nationalId: "",
     country: "SA",
+    employeeNumber: "",
+    jobTitle: "",
+    department: "",
+    nationalityCode: "SA",
+    iban: "",
+    bankId: "",
+    basicSalary: "",
+    housingAllowance: "",
+    transportAllowance: "",
     notes: "",
   });
 
@@ -60,7 +69,7 @@ export function Employees() {
     setBusy(true);
     setError(null);
     try {
-      await api.contacts.create({
+      const employee = await api.contacts.create({
         type: "CUSTOMER",
         isCustomer: false,
         isSupplier: false,
@@ -73,8 +82,25 @@ export function Employees() {
         country: form.country,
         notes: form.notes.trim() || null,
       });
+      await api.payroll.saveContract({
+        contactId: employee.id,
+        employeeNumber: form.employeeNumber.trim() || null,
+        jobTitle: form.jobTitle.trim() || null,
+        department: form.department.trim() || null,
+        nationalityCode: form.nationalityCode,
+        iban: form.iban.trim() || null,
+        bankId: form.bankId.trim() || null,
+        basicSalary: Number(form.basicSalary || 0),
+        housingAllowance: Number(form.housingAllowance || 0),
+        transportAllowance: Number(form.transportAllowance || 0),
+        sanedEnabled: form.nationalityCode === "SA",
+      });
       setOpen(false);
-      setForm({ displayName: "", email: "", phone: "", nationalId: "", country: "SA", notes: "" });
+      setForm({
+        displayName: "", email: "", phone: "", nationalId: "", country: "SA",
+        employeeNumber: "", jobTitle: "", department: "", nationalityCode: "SA",
+        iban: "", bankId: "", basicSalary: "", housingAllowance: "", transportAllowance: "", notes: "",
+      });
       await load();
       push("success", "تمت إضافة الموظف");
     } catch (e: any) {
@@ -192,6 +218,23 @@ export function Employees() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>رقم الموظف</Label><Input value={form.employeeNumber} onChange={(e) => setForm({ ...form, employeeNumber: e.target.value })} dir="ltr" className="font-english" placeholder="EMP-001" /></div>
+            <div className="space-y-2"><Label>الجنسية</Label><Input value={form.nationalityCode} onChange={(e) => setForm({ ...form, nationalityCode: e.target.value.toUpperCase().slice(0, 2) })} dir="ltr" className="font-english" placeholder="SA" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>المسمى الوظيفي</Label><Input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="محاسب" /></div>
+            <div className="space-y-2"><Label>القسم</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="المالية" /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2"><Label>الراتب الأساسي</Label><Input type="number" min="0" step="0.01" value={form.basicSalary} onChange={(e) => setForm({ ...form, basicSalary: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>بدل السكن</Label><Input type="number" min="0" step="0.01" value={form.housingAllowance} onChange={(e) => setForm({ ...form, housingAllowance: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>بدل النقل</Label><Input type="number" min="0" step="0.01" value={form.transportAllowance} onChange={(e) => setForm({ ...form, transportAllowance: e.target.value })} dir="ltr" className="font-english" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>IBAN</Label><Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })} dir="ltr" className="font-english" placeholder="SA..." /></div>
+            <div className="space-y-2"><Label>Bank ID</Label><Input value={form.bankId} onChange={(e) => setForm({ ...form, bankId: e.target.value.toUpperCase() })} dir="ltr" className="font-english" placeholder="RJHI" /></div>
           </div>
           <div className="space-y-2"><Label>ملاحظات</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="المسمى الوظيفي أو القسم" /></div>
           <div className="flex justify-end gap-2 border-t border-[#E5E7EB] pt-3">

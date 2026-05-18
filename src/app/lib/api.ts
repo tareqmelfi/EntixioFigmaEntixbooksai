@@ -138,6 +138,10 @@ export const api = {
       request<NumberingSettings>(`/orgs/${id}/numbering`, { skipOrg: true }),
     saveNumbering: (id: string, data: NumberingSettings) =>
       request<NumberingSettings>(`/orgs/${id}/numbering`, { method: 'PATCH', body: data, skipOrg: true }),
+    resetData: (id: string, data: { mode: 'blank' | 'demo' | 'clean_company'; confirmName: string }) =>
+      request<{ ok: true; mode: string; counts?: Record<string, number>; org?: Org }>(`/orgs/${id}/reset-data`, { method: 'POST', body: data, skipOrg: true }),
+    auditLog: (id: string, limit = 50) =>
+      request<{ items: AuditLogItem[] }>(`/orgs/${id}/audit-log`, { query: { limit }, skipOrg: true }),
   },
 
   // Contacts
@@ -562,6 +566,17 @@ export const api = {
       request<{ results: any[]; totals: any }>('/api/payroll/calculate', { method: 'POST', body: { employees } }),
     sif: (data: { employerId: string; establishmentId: string; period: string; rows: any[] }) =>
       request<string>('/api/payroll/sif', { method: 'POST', body: data, raw: true } as any),
+    settings: () => request<any>('/api/payroll/settings'),
+    updateSettings: (data: any) => request<any>('/api/payroll/settings', { method: 'PATCH', body: data }),
+    contracts: () => request<{ items: any[]; total: number }>('/api/payroll/contracts'),
+    saveContract: (data: any) => request<any>('/api/payroll/contracts', { method: 'POST', body: data }),
+    updateContract: (id: string, data: any) => request<any>(`/api/payroll/contracts/${id}`, { method: 'PATCH', body: data }),
+    runs: () => request<{ items: any[]; total: number }>('/api/payroll/runs'),
+    saveRun: (data: { period: string; runNumber?: string; notes?: string | null; employees?: any[] }) =>
+      request<any>('/api/payroll/run', { method: 'POST', body: data }),
+    updateRunStatus: (id: string, status: 'DRAFT' | 'APPROVED' | 'POSTED' | 'PAID' | 'CANCELLED') =>
+      request<any>(`/api/payroll/runs/${id}/status`, { method: 'POST', body: { status } }),
+    runSifUrl: (id: string) => `${API_BASE}/api/payroll/runs/${id}/sif`,
   },
 
   // Credit notes (إشعارات دائنة)
@@ -569,6 +584,15 @@ export const api = {
     list: (params?: { limit?: number }) => request<{ items: any[] }>('/api/credit-notes', { query: params }),
     create: (data: any) => request<any>('/api/credit-notes', { method: 'POST', body: data }),
     remove: (id: string) => request<void>(`/api/credit-notes/${id}`, { method: 'DELETE' }),
+  },
+
+  // Supplier credits (إشعارات/مرتجعات الموردين)
+  supplierCredits: {
+    list: (params?: { limit?: number; contactId?: string; originalBillId?: string; status?: string }) =>
+      request<{ items: any[]; total: number }>('/api/supplier-credits', { query: params }),
+    get: (id: string) => request<any>(`/api/supplier-credits/${id}`),
+    create: (data: any) => request<any>('/api/supplier-credits', { method: 'POST', body: data }),
+    remove: (id: string) => request<void>(`/api/supplier-credits/${id}`, { method: 'DELETE' }),
   },
 
   // Vouchers (سند قبض / سند صرف)
@@ -703,6 +727,20 @@ export interface Org {
   vatPeriod?: 'monthly' | 'quarterly' | null
   paymentSettings?: any
   numberingSettings?: any
+}
+
+export interface AuditLogItem {
+  id: string
+  orgId: string
+  userId?: string | null
+  action: string
+  entityType: string
+  entityId?: string | null
+  severity: string
+  metadata?: any
+  ipAddress?: string | null
+  userAgent?: string | null
+  createdAt: string
 }
 
 export interface CreateOrgInput {

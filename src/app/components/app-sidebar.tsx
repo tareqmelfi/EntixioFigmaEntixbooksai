@@ -27,6 +27,7 @@ const EN_TEXT: Record<string, string> = {
   "الإشعارات الدائنة": "Credit notes",
   "المشتريات": "Purchases",
   "فواتير المشتريات": "Purchase bills",
+  "إشعارات الموردين": "Supplier credits",
   "سندات الدفع": "Payments",
   "المصروفات النقدية": "Expenses",
   "البريد الوارد": "Inbox",
@@ -126,6 +127,7 @@ const sections: MenuSection[] = [
         path: "/app/purchases",
         children: [
           { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
+          { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
           { title: "سندات الدفع", icon: CreditCard, path: "/app/payments" },
           { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
           { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
@@ -187,6 +189,7 @@ const searchPages = [
   { label: "الإشعارات الدائنة", path: "/app/credit-notes" },
   { label: "المشتريات", path: "/app/purchases" },
   { label: "فواتير المشتريات", path: "/app/purchases/bills" },
+  { label: "إشعارات الموردين", path: "/app/purchases/supplier-credits" },
   { label: "سندات الدفع", path: "/app/payments" },
   { label: "المصروفات النقدية", path: "/app/expenses" },
   { label: "قائمة الاتصال", path: "/app/contacts" },

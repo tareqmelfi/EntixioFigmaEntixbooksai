@@ -43,6 +43,7 @@ import { Receipts } from "./pages/receipts";
 import { CreditNotes } from "./pages/credit-notes";
 import { PurchasesDashboard } from "./pages/purchases-dashboard";
 import { PurchaseBills } from "./pages/purchase-bills";
+import { SupplierCredits } from "./pages/supplier-credits";
 import { Payments } from "./pages/payments";
 import { Expenses } from "./pages/expenses";
 import { ChartOfAccounts } from "./pages/chart-of-accounts";
@@ -152,6 +153,8 @@ export const router = createBrowserRouter([
       { path: "purchases/bills", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
       { path: "purchases/bills/new", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
       { path: "purchases/bills/:id", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
+      { path: "purchases/supplier-credits", element: <SupplierCredits />, errorElement: <ErrorBoundary /> },
+      { path: "purchases/supplier-credits/new", element: <SupplierCredits />, errorElement: <ErrorBoundary /> },
       { path: "payments", element: <Payments />, errorElement: <ErrorBoundary /> },
       { path: "payments/new", element: <Payments />, errorElement: <ErrorBoundary /> },
       { path: "expenses", element: <Expenses />, errorElement: <ErrorBoundary /> },

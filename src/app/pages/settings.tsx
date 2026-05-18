@@ -2,14 +2,14 @@
  * Settings · org info + members + auth · wired to /orgs · /orgs/:id/members
  */
 import { useEffect, useState, useCallback } from "react";
-import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink } from "lucide-react";
+import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink, Database, RotateCcw, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
-import { api, ApiError, Org, AiBillingConfig, AiKeyMode } from "../lib/api";
+import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLogItem } from "../lib/api";
 import { authStore } from "../components/auth-store";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,7 +25,7 @@ const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: stri
 };
 
 export function Settings() {
-  const [tab, setTab] = useState<"company" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans">("company");
+  const [tab, setTab] = useState<"company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans">("company");
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,6 +176,7 @@ await authStore.logout();
       <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
         {(([
           ["company", "بيانات الشركة"],
+          ["data", "البيانات"],
           ["numbering", "الترقيم"],
           // ZATCA tab is KSA-only · hide when country=US (UX-176)
           ...(org?.country === "US" ? [] : [["zatca", "ZATCA · الفوترة الإلكترونية"]]),
@@ -415,6 +416,7 @@ await authStore.logout();
       )}
 
       {tab === "members" && org && <MembersTab orgId={org.id} initialMembers={members} setMembers={setMembers} push={push} />}
+      {tab === "data" && org && <DataResetTab org={org} setOrg={setOrg} push={push} refresh={refresh} />}
 
       {tab === "ai" && (
         <Card className="border-[#E5E7EB]">
@@ -582,6 +584,187 @@ await authStore.logout();
       )}
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </div>
+  );
+}
+
+function DataResetTab({
+  org,
+  setOrg,
+  push,
+  refresh,
+}: {
+  org: Org;
+  setOrg: (org: Org) => void;
+  push: (kind: any, msg: string) => void;
+  refresh: () => Promise<void>;
+}) {
+  const [confirmName, setConfirmName] = useState("");
+  const [busy, setBusy] = useState<"blank" | "demo" | "clean_company" | null>(null);
+  const [audit, setAudit] = useState<AuditLogItem[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(true);
+
+  const loadAudit = useCallback(async () => {
+    setLoadingAudit(true);
+    try {
+      const res = await api.orgs.auditLog(org.id, 20);
+      setAudit(res.items || []);
+    } catch {
+      setAudit([]);
+    } finally {
+      setLoadingAudit(false);
+    }
+  }, [org.id]);
+
+  useEffect(() => { loadAudit(); }, [loadAudit]);
+
+  const runReset = async (mode: "blank" | "demo" | "clean_company") => {
+    if (confirmName.trim() !== org.name && confirmName.trim() !== org.slug) {
+      push("error", "اكتب اسم الشركة أو slug كما هو للتأكيد");
+      return;
+    }
+    setBusy(mode);
+    try {
+      const result = await api.orgs.resetData(org.id, { mode, confirmName: confirmName.trim() });
+      if (mode === "clean_company" && result.org) {
+        setOrgId(result.org.id);
+        setOrg(result.org);
+        push("success", "تم إنشاء شركة نظيفة والتبديل عليها");
+        setTimeout(() => window.location.reload(), 500);
+        return;
+      }
+      push("success", mode === "demo" ? "تمت إعادة ضبط البيانات وتحميل بيانات تجريبية" : "تمت إعادة ضبط بيانات الشركة");
+      setConfirmName("");
+      await refresh();
+      await loadAudit();
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشلت العملية");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const disabled = !!busy || (confirmName.trim() !== org.name && confirmName.trim() !== org.slug);
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-[#F4B4B4] bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-[#0B1B49]">
+            <Database className="h-5 w-5 text-red-600" /> إعادة ضبط البيانات
+          </CardTitle>
+          <CardDescription>
+            هذه الأدوات مخصصة للنسخة الخاصة والتجارب. لا تحذف المستخدم أو عضوية الشركة أو جلسات الدخول.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>اكتب <span className="font-semibold">{org.name}</span> أو <span className="font-english">{org.slug}</span> لتأكيد أي عملية.</p>
+            </div>
+          </div>
+          <Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={org.name} className="border-[#E5E7EB]" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <ResetOption
+              title="شركة فاضية"
+              description="يمسح المستندات والجهات والمنتجات ويعيد دليل الحسابات والضريبة والمستودع الرئيسي."
+              icon={RotateCcw}
+              disabled={disabled}
+              busy={busy === "blank"}
+              onClick={() => runReset("blank")}
+              action="إعادة ضبط"
+            />
+            <ResetOption
+              title="بيانات تجريبية"
+              description="يمسح البيانات ثم يضيف عميل ومورد وموظف ومنتج وفاتورة ومشتريات جاهزة للفحص."
+              icon={Sparkles}
+              disabled={disabled}
+              busy={busy === "demo"}
+              onClick={() => runReset("demo")}
+              action="تحميل ديمو"
+            />
+            <ResetOption
+              title="شركة نظيفة جديدة"
+              description="ينشئ شركة جديدة بنفس معلوماتك الأساسية ويترك الشركة الحالية كما هي."
+              icon={ShieldCheck}
+              disabled={disabled}
+              busy={busy === "clean_company"}
+              onClick={() => runReset("clean_company")}
+              action="إنشاء نسخة"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle className="text-[#0B1B49]">سجل التدقيق</CardTitle>
+          <CardDescription>آخر عمليات حساسة على بيانات الشركة.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingAudit ? (
+            <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-[#1276E3]" /></div>
+          ) : audit.length === 0 ? (
+            <div className="py-8 text-center text-sm text-[#6B7280]">لا يوجد سجل تدقيق بعد</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px]">
+                <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                  <th className="px-4 py-3 text-start">العملية</th>
+                  <th className="px-4 py-3 text-start">النوع</th>
+                  <th className="px-4 py-3 text-start">المستوى</th>
+                  <th className="px-4 py-3 text-start">التاريخ</th>
+                </tr></thead>
+                <tbody>
+                  {audit.map((item) => (
+                    <tr key={item.id} className="border-b border-[#F3F4F6]">
+                      <td className="px-4 py-3 text-sm font-english text-[#0B1B49]">{item.action}</td>
+                      <td className="px-4 py-3 text-sm text-[#374151]">{item.entityType}</td>
+                      <td className="px-4 py-3 text-xs">
+                        <span className={`rounded px-2 py-0.5 ${item.severity === "WARNING" ? "bg-amber-100 text-amber-700" : "bg-blue-50 text-blue-700"}`}>{item.severity}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-english text-[#6B7280]">{new Date(item.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ResetOption({
+  title,
+  description,
+  icon: Icon,
+  disabled,
+  busy,
+  onClick,
+  action,
+}: {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  disabled: boolean;
+  busy: boolean;
+  onClick: () => void;
+  action: string;
+}) {
+  return (
+    <div className="rounded-lg border border-[#E5E7EB] bg-white p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon className="h-5 w-5 text-[#1276E3]" />
+        <h3 className="text-sm font-semibold text-[#0B1B49]">{title}</h3>
+      </div>
+      <p className="min-h-14 text-xs leading-6 text-[#6B7280]">{description}</p>
+      <Button type="button" disabled={disabled} onClick={onClick} className="mt-4 w-full bg-[#1276E3] hover:bg-[#1060C0]">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : action}
+      </Button>
     </div>
   );
 }
