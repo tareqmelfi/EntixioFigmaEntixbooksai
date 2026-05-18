@@ -50,6 +50,7 @@ import { JournalEntries } from "./pages/journal-entries";
 import { Taxes } from "./pages/taxes";
 import { FixedAssets } from "./pages/fixed-assets";
 import { AssetDetail } from "./pages/asset-detail";
+import { Products } from "./pages/products";
 import { Inventory } from "./pages/inventory";
 import { ProductDetail } from "./pages/product-detail";
 import { Payroll } from "./pages/payroll";
@@ -177,7 +178,7 @@ export const router = createBrowserRouter([
       { path: "projects", element: <Projects />, errorElement: <ErrorBoundary /> },
       { path: "branches", element: <Branches />, errorElement: <ErrorBoundary /> },
       // Products & Services
-      { path: "products", element: <Inventory />, errorElement: <ErrorBoundary /> },
+      { path: "products", element: <Products />, errorElement: <ErrorBoundary /> },
       { path: "products/:id", element: <ProductDetail />, errorElement: <ErrorBoundary /> },
       { path: "inventory", element: <Inventory />, errorElement: <ErrorBoundary /> },
       // Payroll & Employees
