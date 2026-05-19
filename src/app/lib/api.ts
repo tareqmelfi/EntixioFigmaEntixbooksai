@@ -219,7 +219,7 @@ export const api = {
 
   // Expenses
   expenses: {
-    list: (params?: { category?: string; from?: string; to?: string; page?: number; limit?: number }) =>
+    list: (params?: { category?: string; contactId?: string; from?: string; to?: string; page?: number; limit?: number }) =>
       request<PaginatedResponse<Expense> & { summary: { sumTotal: string; avgTotal: string } }>(
         '/api/expenses',
         { query: params },
@@ -995,22 +995,48 @@ export interface AccountInput {
 export interface Expense {
   id: string
   orgId: string
+  contactId?: string | null
   number: string
   date: string
   category: string
   description?: string | null
   amount: string
+  subtotal?: string
   currency: string
   paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'CARD' | 'STC_PAY' | 'MADA' | 'CHECK' | 'OTHER'
   vendorName?: string | null
+  documentNumber?: string | null
   reference?: string | null
   taxRateId?: string | null
   taxAmount: string
   total: string
   receiptUrl?: string | null
+  attachmentName?: string | null
+  attachmentType?: string | null
+  attachmentSizeBytes?: number | null
+  attachmentBase64?: string | null
+  attachmentCount?: number
+  lineItems?: ExpenseLine[] | null
+  extractedJson?: any
+  ocrConfidence?: string | null
+  duplicateOfId?: string | null
+  duplicateReason?: string | null
   notes?: string | null
   createdAt: string
-  taxRate?: { name: string; rate: string } | null
+  contact?: { id: string; displayName: string; taxId?: string | null; vatNumber?: string | null; isSupplier?: boolean } | null
+  taxRate?: { id?: string; name: string; rate: string } | null
+  duplicateExpense?: { id: string; number: string; total: string; date: string; vendorName?: string | null; reason: string } | null
+}
+
+export interface ExpenseLine {
+  description: string
+  quantity?: number
+  unitPrice?: number
+  taxRate?: number | null
+  taxInclusive?: boolean | null
+  lineTotal?: number | null
+  subtotal?: number | null
+  notes?: string | null
 }
 
 export interface ExpenseInput {
@@ -1019,13 +1045,27 @@ export interface ExpenseInput {
   category: string
   description?: string | null
   amount: number
+  subtotal?: number
+  totalAmount?: number
   currency?: string
   paymentMethod: Expense['paymentMethod']
+  contactId?: string | null
   vendorName?: string | null
+  supplierTaxId?: string | null
+  documentNumber?: string | null
   reference?: string | null
   taxRateId?: string | null
   taxAmount?: number
   receiptUrl?: string | null
+  attachmentName?: string | null
+  attachmentType?: string | null
+  attachmentSizeBytes?: number | null
+  attachmentBase64?: string | null
+  attachmentCount?: number
+  lineItems?: ExpenseLine[] | null
+  extractedJson?: any
+  ocrConfidence?: number | null
+  autoCreateSupplier?: boolean
   notes?: string | null
 }
 

@@ -37,6 +37,8 @@ export interface DocumentPreviewProps {
   hint?: string;
   /** Enable AI extract button · default true */
   enableExtract?: boolean;
+  /** Start extraction immediately after upload · default false */
+  autoExtract?: boolean;
 }
 
 interface FileItem {
@@ -61,6 +63,7 @@ export function DocumentPreviewPane({
   initialFiles = [],
   hint = "اسحب ملف الفاتورة أو المستند هنا",
   enableExtract = true,
+  autoExtract = false,
 }: DocumentPreviewProps) {
   const [files, setFiles] = useState<FileItem[]>(
     initialFiles.map((f, i) => ({ id: `init-${i}`, file: null, extractFile: null, name: f.name, url: f.url, type: f.type })),
@@ -102,6 +105,11 @@ export function DocumentPreviewPane({
     setFiles((prev) => [...prev, ...newItems]);
     setActiveId(newItems[newItems.length - 1].id);
     if (onFilesAdded) onFilesAdded(newItems.map((item) => item.extractFile || item.file).filter(Boolean) as File[]);
+    if (autoExtract && enableExtract && onExtract) {
+      for (const item of newItems) {
+        await runExtract(item);
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -109,16 +117,22 @@ export function DocumentPreviewPane({
     if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   };
 
-  const handleExtract = async () => {
-    if (!active || !active.file || !onExtract) return;
-    setFiles((prev) => prev.map((f) => f.id === active.id ? { ...f, extracting: true } : f));
+  const runExtract = async (item: FileItem) => {
+    const source = item.extractFile || item.file;
+    if (!source || !onExtract) return;
+    setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: true } : f));
     try {
-      await onExtract(active.extractFile || active.file);
-      setFiles((prev) => prev.map((f) => f.id === active.id ? { ...f, extracting: false, extracted: true } : f));
+      await onExtract(source);
+      setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: false, extracted: true } : f));
     } catch (e: any) {
       setError(e?.message || "فشل الاستخراج");
-      setFiles((prev) => prev.map((f) => f.id === active.id ? { ...f, extracting: false } : f));
+      setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: false } : f));
     }
+  };
+
+  const handleExtract = async () => {
+    if (!active) return;
+    await runExtract(active);
   };
 
   const removeFile = (id: string) => {
