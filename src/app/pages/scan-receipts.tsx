@@ -66,7 +66,7 @@ export function ScanReceipts() {
         </Card>
 
         {/* File upload */}
-        <Link to="/app/ai" className="block">
+        <Link to="/app/expenses/new" className="block">
           <Card className="border-[#E5E7EB] hover:border-[#1276E3] transition cursor-pointer h-full">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-xl bg-[#F4FCFF] flex items-center justify-center">
@@ -74,7 +74,7 @@ export function ScanReceipts() {
               </div>
               <h3 className="text-[#0B1B49]" style={{ fontWeight: 700 }}>رفع من الكمبيوتر</h3>
               <p className="text-xs text-[#6B7280] mt-2 leading-5">
-                اختر الملفات أو اسحبها هنا · حتى 10 ملفات في المرة · JPG · PNG · PDF
+                اختر الملفات أو اسحبها هنا · صور جوال HEIC/JPG · PDF · عدة مرفقات
               </p>
               <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">موصى به</span>
             </CardContent>
@@ -116,6 +116,9 @@ export function ScanReceipts() {
           <button onClick={() => setShowFaq(true)} className="mt-3 text-xs text-[#1276E3] hover:underline">
             تعرف على كيفية فحص الإيصالات الرقمية ←
           </button>
+          <p className="mt-2 text-[11px] text-[#9CA3AF] leading-5">
+            العنوان المختصر مثل <span className="font-english">spec@entix.io</span> يحتاج ربط Mail Routing، والعنوان الحالي أعلاه جاهز لكل شركة.
+          </p>
         </CardContent>
       </Card>
 
@@ -139,7 +142,7 @@ export function ScanReceipts() {
                 { q: "كيف يعمل؟", a: "تحوّل الإيصالات كمرفقات إلى الإيميل أعلاه من Gmail أو Outlook · سيقرأها AI تلقائياً ويضيفها للمعاملات." },
                 { q: "أيش نوع الإيصالات؟", a: "ممتاز للإيصالات الرقمية اللي تجيك بالإيميل من Amazon · Uber · Stripe · إلخ." },
                 { q: "كم تستغرق المعالجة؟", a: "حتى 5-15 دقيقة لتظهر في صندوق الوارد ثم تُحوّل بعد موافقتك." },
-                { q: "صيغ الملفات المدعومة؟", a: "PDF · JPG · PNG · GIF · حد أقصى 10 ميجا." },
+                { q: "صيغ الملفات المدعومة؟", a: "PDF · JPG · PNG · HEIC · GIF · حد أقصى 10 ميجا." },
                 { q: "ممكن أرسل أكثر من إيصال في إيميل واحد؟", a: "نعم · سيُعالج كل إيصال على حدة." },
                 { q: "ما الذي أكتبه في الإيميل؟", a: "ما في شروط · فقط أرفق الإيصال أو ضعه في جسم الرسالة." },
                 { q: "إيصالي ما اتقرى · إيش السبب؟", a: "تأكد إنه واضح وغير ملطّخ · والحجم تحت 10MB · إذا استمرت المشكلة افتح Inbox وراجع يدوياً." },

@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { Receipt, Plus, Search, Eye, X, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Receipt, Plus, Search, Eye, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -36,6 +36,16 @@ const EMPTY_FORM = {
   vendorName: "",
 };
 
+type ExtractionSummary = {
+  fileName: string;
+  vendor?: string | null;
+  total?: number | null;
+  date?: string | null;
+  confidence?: number | null;
+  model?: string | null;
+  warnings: string[];
+};
+
 async function fileToBase64(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   let binary = "";
@@ -45,6 +55,50 @@ async function fileToBase64(file: File): Promise<string> {
     binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
   }
   return btoa(binary);
+}
+
+function mimeTypeForFile(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.toLowerCase().split(".").pop() || "";
+  if (ext === "heic") return "image/heic";
+  if (ext === "heif") return "image/heif";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "csv") return "text/csv";
+  return "application/octet-stream";
+}
+
+function extractedTotal(data: any): number | null {
+  const value = data?.totals?.total ?? data?.total ?? data?.lines?.[0]?.lineTotal ?? null;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function buildExtractionWarnings(data: any, items: ApiExpense[], total: number | null): string[] {
+  const warnings = Array.isArray(data?.warnings) ? [...data.warnings] : [];
+  const date = data?.issueDate || null;
+  const vendor = data?.issuer?.name || "";
+  if (!date) warnings.push("لم يتم تحديد تاريخ واضح من الإيصال، راجع التاريخ قبل الحفظ.");
+  if (date) {
+    const parsed = new Date(`${date}T00:00:00`);
+    const today = new Date();
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(today.getFullYear() - 2);
+    if (parsed.getTime() > today.getTime() + 86_400_000) warnings.push("تاريخ الإيصال في المستقبل، راجعه قبل الحفظ.");
+    if (parsed < twoYearsAgo) warnings.push("تاريخ الإيصال قديم جداً، تأكد أنه ليس قراءة خاطئة.");
+  }
+  if (total && date) {
+    const duplicate = items.find((item) => {
+      const sameAmount = Math.abs(Number(item.total || 0) - total) < 0.01;
+      const sameDate = String(item.date || "").slice(0, 10) === date;
+      const sameVendor = !vendor || !item.vendorName || item.vendorName.toLowerCase().includes(vendor.toLowerCase()) || vendor.toLowerCase().includes(item.vendorName.toLowerCase());
+      return sameAmount && sameDate && sameVendor;
+    });
+    if (duplicate) warnings.push(`قد يكون مسجلاً مسبقاً: ${duplicate.number} بنفس التاريخ والمبلغ.`);
+  }
+  return Array.from(new Set(warnings.filter(Boolean)));
 }
 
 export function Expenses() {
@@ -60,6 +114,7 @@ export function Expenses() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [extractionSummary, setExtractionSummary] = useState<ExtractionSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -80,6 +135,7 @@ export function Expenses() {
   useEffect(() => {
     if (searchParams.get("new") === "1") {
       setFormData(EMPTY_FORM);
+      setExtractionSummary(null);
       setCreateError(null);
       setCreateOpen(true);
       setSearchParams({}, { replace: true });
@@ -98,10 +154,11 @@ export function Expenses() {
 
   const openCreate = () => {
     setFormData(EMPTY_FORM);
+    setExtractionSummary(null);
     setCreateError(null);
     setCreateOpen(true);
   };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+  const closeCreate = () => { setCreateOpen(false); setCreateError(null); setExtractionSummary(null); };
 
   const handleSubmit = async () => {
     setCreateError(null);
@@ -174,19 +231,30 @@ export function Expenses() {
                   const data: any = await api.agent.extractDocument({
                     fileBase64,
                     fileName: file.name,
-                    mimeType: file.type || "application/pdf",
+                    mimeType: mimeTypeForFile(file),
                     target: "expense",
                     defaultTaxRate: 0.15,
                     currency: "SAR",
                   });
+                  const total = extractedTotal(data);
+                  const warnings = buildExtractionWarnings(data, items, total);
                   setFormData((f) => ({
                     ...f,
-                    category: f.category || data?.lines?.[0]?.description || data?.notes || f.category,
-                    amount: String(data?.totals?.total ?? data?.lines?.[0]?.lineTotal ?? f.amount ?? ""),
+                    category: f.category || data?.category || data?.lines?.[0]?.description || data?.notes || f.category,
+                    amount: total ? String(total) : f.amount,
                     date: data?.issueDate || f.date,
                     vendorName: data?.issuer?.name || f.vendorName,
                     description: data?.notes || data?.documentNumber || f.description,
                   }));
+                  setExtractionSummary({
+                    fileName: file.name,
+                    vendor: data?.issuer?.name || null,
+                    total,
+                    date: data?.issueDate || null,
+                    confidence: data?.confidence ?? null,
+                    model: data?._meta?.model || null,
+                    warnings,
+                  });
                   push("success", `تم استخراج البيانات بثقة ${Math.round((data?.confidence || 0) * 100)}%`);
                 } catch (e: any) {
                   push("error", e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل الاستخراج");
@@ -196,6 +264,33 @@ export function Expenses() {
 
             {/* Right · Form */}
             <div className="space-y-4">
+            {extractionSummary && (
+              <div className="rounded-lg border border-[#D7F0FF] bg-[#F4FCFF] px-3 py-3 text-sm text-[#0B1B49]">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-semibold">تمت قراءة المرفق وتعبئة الحقول القابلة للتأكد</div>
+                    <div className="mt-1 text-xs text-[#6B7280]">
+                      <span className="font-english">{extractionSummary.fileName}</span>
+                      {extractionSummary.vendor ? <> · {extractionSummary.vendor}</> : null}
+                      {extractionSummary.total ? <> · <span className="font-english">{extractionSummary.total.toFixed(2)} SAR</span></> : null}
+                      {extractionSummary.date ? <> · <span className="font-english">{extractionSummary.date}</span></> : null}
+                      {extractionSummary.confidence != null ? <> · ثقة <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
+                    </div>
+                    {extractionSummary.warnings.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {extractionSummary.warnings.map((warning, idx) => (
+                          <div key={idx} className="flex items-start gap-1.5 text-xs text-amber-700">
+                            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                            <span>{warning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
             <div className="space-y-2">
               <Label className="text-[#374151]">التصنيف *</Label>
