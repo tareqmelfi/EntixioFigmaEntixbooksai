@@ -30,7 +30,7 @@ import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
-import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ApiError } from "../lib/api";
+import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ApiError } from "../lib/api";
 
 const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
   CASH: "نقداً",
@@ -62,6 +62,7 @@ type FormState = {
   documentNumber: string;
   notes: string;
   lineItems: ExpenseLine[];
+  paymentSplits: ExpensePaymentSplit[];
   attachments: UploadedAttachment[];
   extractedJson: any;
   ocrConfidence: number | null;
@@ -95,6 +96,7 @@ function emptyForm(): FormState {
     documentNumber: "",
     notes: "",
     lineItems: [],
+    paymentSplits: [],
     attachments: [],
     extractedJson: null,
     ocrConfidence: null,
@@ -128,6 +130,16 @@ function mimeTypeForFile(file: File): string {
 function num(value: any): number | null {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function cleanVendorName(value: any): string {
+  const raw = String(value || "").replace(/\s+/g, " ").trim();
+  if (!raw) return "";
+  return raw
+    .replace(/\s+-\s+/g, " · ")
+    .replace(/^(store|branch|cashier|supplier)\s*[:#-]?\s*/i, "")
+    .replace(/\b(customer service|simplified tax invoice|vat number)\b.*$/i, "")
+    .trim();
 }
 
 function money(value: any, currency = "SAR") {
@@ -170,16 +182,73 @@ function normalizeLineItems(data: any): ExpenseLine[] {
         taxInclusive: Boolean(line?.taxInclusive),
         lineTotal,
         subtotal: num(line?.subtotal),
+        category: line?.category || inferLineCategory(description),
+        accountName: line?.accountName || suggestLineAccount(description),
+        sku: line?.sku || null,
         notes: line?.notes || null,
       };
     })
     .filter(Boolean) as ExpenseLine[];
 }
 
+function inferLineCategory(text: string): string {
+  const value = text.toLowerCase();
+  if (/coffee|coffeemate|cereal|food|market|grocery|بقال|تموين|غذائ|قهوة|حبوب/.test(value)) return "مواد غذائية";
+  if (/restaurant|meal|chicken|وجبة|مطعم|دجاج/.test(value)) return "ضيافة ووجبات";
+  if (/fuel|gas|بنزين|وقود/.test(value)) return "وقود";
+  if (/software|subscription|app|برنامج|اشتراك/.test(value)) return "برامج واشتراكات";
+  return "مصروف عام";
+}
+
+function suggestLineAccount(text: string): string {
+  const value = text.toLowerCase();
+  if (/coffee|coffeemate|cereal|food|market|grocery|بقال|تموين|غذائ|قهوة|حبوب/.test(value)) return "509-01 · مشتريات البقالة والمواد الغذائية";
+  if (/restaurant|meal|chicken|وجبة|مطعم|دجاج/.test(value)) return "509-02 · ضيافة ووجبات";
+  if (/fuel|gas|بنزين|وقود/.test(value)) return "509-03 · وقود وتنقل";
+  if (/software|subscription|app|برنامج|اشتراك/.test(value)) return "509-04 · برامج واشتراكات";
+  return "509-99 · مصروفات عامة";
+}
+
+function normalizePaymentMethod(value: any): ApiExpense["paymentMethod"] {
+  const raw = String(value || "").toUpperCase();
+  if (raw.includes("CASH") || raw.includes("نقد")) return "CASH";
+  if (raw.includes("MADA") || raw.includes("مدى")) return "MADA";
+  if (raw.includes("STC")) return "STC_PAY";
+  if (raw.includes("BANK") || raw.includes("TRANSFER") || raw.includes("تحويل")) return "BANK_TRANSFER";
+  if (raw.includes("CHECK") || raw.includes("شيك")) return "CHECK";
+  if (raw.includes("CARD") || raw.includes("MASTER") || raw.includes("VISA") || raw.includes("EFT")) return "CARD";
+  return "OTHER";
+}
+
+function normalizePayments(data: any, total: number, fallbackMethod: ApiExpense["paymentMethod"]): ExpensePaymentSplit[] {
+  const fromModel = Array.isArray(data?.payments) ? data.payments : [];
+  const payments = fromModel
+    .map((payment: any) => {
+      const amount = num(payment?.amount);
+      if (!amount || amount <= 0) return null;
+      return {
+        method: normalizePaymentMethod(payment?.method || payment?.accountName || payment?.notes),
+        amount,
+        reference: payment?.reference || null,
+        cardLast4: payment?.cardLast4 || String(payment?.reference || "").match(/\*{2,}(\d{4})/)?.[1] || null,
+        accountName: payment?.accountName || null,
+        notes: payment?.notes || null,
+      };
+    })
+    .filter(Boolean) as ExpensePaymentSplit[];
+  if (payments.length) return payments;
+  return total > 0 ? [{ method: fallbackMethod, amount: total, reference: null, cardLast4: null, accountName: null, notes: null }] : [];
+}
+
+function paymentTotal(payments: ExpensePaymentSplit[]): number {
+  return payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+}
+
 function inferCategory(data: any): string {
   const explicit = String(data?.category || "").trim();
   if (explicit) return explicit;
   const text = JSON.stringify(data?.lines || []).toLowerCase();
+  if (/coffeemate|cereal|tamimi|markets|بقال|تموين|غذائ|حبوب/.test(text)) return "مشتريات بقالة ومواد غذائية";
   if (/chicken|restaurant|meal|food|وجبة|دجاج|مطعم|قهوة|ضيافة/.test(text)) return "ضيافة ووجبات";
   if (/electric|water|utility|كهرباء|مياه|فاتورة/.test(text)) return "فواتير خدمات";
   return "مشتريات وفواتير";
@@ -344,6 +413,9 @@ export function Expenses() {
       documentNumber: expense.documentNumber || expense.reference || "",
       notes: expense.notes || "",
       lineItems: Array.isArray(expense.lineItems) ? expense.lineItems : [],
+      paymentSplits: Array.isArray(expense.paymentSplits)
+        ? expense.paymentSplits
+        : [{ method: expense.paymentMethod, amount: Number(expense.total || 0), reference: expense.reference || null }],
       attachments: expense.attachmentBase64 ? [{
         name: expense.attachmentName || "receipt",
         type: expense.attachmentType || "application/octet-stream",
@@ -361,8 +433,17 @@ export function Expenses() {
     const subtotal = Number(normalizeDigits(formData.amount || "0"));
     const taxAmount = Number(normalizeDigits(formData.taxAmount || "0"));
     const totalAmount = Number(normalizeDigits(formData.totalAmount || String(subtotal + taxAmount)));
+    const splits = formData.paymentSplits
+      .map((payment) => ({ ...payment, amount: Number(normalizeDigits(String(payment.amount || 0))) }))
+      .filter((payment) => payment.amount > 0);
+    const finalSplits = splits.length ? splits : [{ method: formData.paymentMethod, amount: totalAmount, reference: null }];
+    const splitTotal = paymentTotal(finalSplits);
     if (!formData.category.trim() || totalAmount <= 0) {
       setCreateError("الرجاء تعبئة التصنيف والمبلغ");
+      return;
+    }
+    if (Math.abs(splitTotal - totalAmount) > 0.05) {
+      setCreateError(`مجموع المدفوعات ${money(splitTotal)} لا يطابق إجمالي الفاتورة ${money(totalAmount)}`);
       return;
     }
     setBusy(true);
@@ -382,13 +463,14 @@ export function Expenses() {
         documentNumber: formData.documentNumber || null,
         reference: formData.documentNumber || null,
         lineItems: formData.lineItems,
+        paymentSplits: finalSplits,
         notes: formData.notes || null,
         attachmentName: primaryAttachment?.name || null,
         attachmentType: primaryAttachment?.type || null,
         attachmentSizeBytes: primaryAttachment?.size || null,
         attachmentBase64: primaryAttachment?.base64 || null,
         attachmentCount: formData.attachments.length,
-        extractedJson: formData.extractedJson ? { ...formData.extractedJson, attachments: formData.attachments.map(({ name, type, size }) => ({ name, type, size })) } : null,
+        extractedJson: formData.extractedJson ? { ...formData.extractedJson, paymentSplits: finalSplits, attachments: formData.attachments.map(({ name, type, size }) => ({ name, type, size })) } : null,
         ocrConfidence: formData.ocrConfidence,
         autoCreateSupplier: true,
       };
@@ -441,8 +523,10 @@ export function Expenses() {
       });
       const totals = extractionTotals(data);
       const lineItems = normalizeLineItems(data);
+      const payments = normalizePayments(data, totals.total, formData.paymentMethod);
       const warnings = buildExtractionWarnings(data, items, totals.total || null);
       const supplierTaxId = data?.issuer?.taxId || "";
+      const vendorName = cleanVendorName(data?.issuer?.name);
       setFormData((f) => ({
         ...f,
         category: f.category || inferCategory(data),
@@ -450,18 +534,20 @@ export function Expenses() {
         taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
         totalAmount: totals.total ? String(totals.total) : f.totalAmount,
         date: data?.issueDate || f.date,
-        vendorName: data?.issuer?.name || f.vendorName,
+        vendorName: vendorName || f.vendorName,
         supplierTaxId: supplierTaxId || f.supplierTaxId,
         documentNumber: data?.documentNumber || f.documentNumber,
         description: data?.notes || data?.documentNumber || f.description,
         notes: data?.notes || f.notes,
         lineItems: lineItems.length ? lineItems : f.lineItems,
+        paymentSplits: payments.length ? payments : f.paymentSplits,
+        paymentMethod: payments[0]?.method || f.paymentMethod,
         extractedJson: data,
         ocrConfidence: data?.confidence ?? null,
       }));
       setExtractionSummary({
         fileName: file.name,
-        vendor: data?.issuer?.name || null,
+        vendor: vendorName || null,
         total: totals.total || null,
         tax: totals.tax || null,
         subtotal: totals.subtotal || null,
@@ -616,36 +702,129 @@ export function Expenses() {
                 </div>
               </div>
 
-              {formData.lineItems.length > 0 && (
-                <div className="rounded-lg border border-[#E5E7EB] bg-white">
-                  <div className="flex items-center justify-between border-b border-[#F3F4F6] px-3 py-2">
-                    <h3 className="text-sm font-semibold text-[#0B1B49]">الأصناف المقروءة</h3>
-                    <span className="font-english text-xs text-[#6B7280]">{formData.lineItems.length}</span>
+              <div className="rounded-lg border border-[#E5E7EB] bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] px-3 py-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#0B1B49]">تقسيم البنود</h3>
+                    <p className="text-xs text-[#6B7280]">راجع الأصناف المقروءة وعدل الحساب لكل بند قبل الحفظ.</p>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] text-sm">
-                      <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
-                        <tr>
-                          <th className="px-3 py-2 text-start">الوصف</th>
-                          <th className="px-3 py-2 text-start">الكمية</th>
-                          <th className="px-3 py-2 text-start">السعر</th>
-                          <th className="px-3 py-2 text-start">الإجمالي</th>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 border-[#E5E7EB] text-xs"
+                    onClick={() => setFormData((f) => ({
+                      ...f,
+                      lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, taxRate: 0.15, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة" }],
+                    }))}
+                  >
+                    <Plus className="me-1 h-3.5 w-3.5" /> إضافة بند
+                  </Button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px] text-sm">
+                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                      <tr>
+                        <th className="px-2 py-2 text-start">الوصف</th>
+                        <th className="px-2 py-2 text-start">الحساب</th>
+                        <th className="px-2 py-2 text-start">الكمية</th>
+                        <th className="px-2 py-2 text-start">السعر</th>
+                        <th className="px-2 py-2 text-start">VAT</th>
+                        <th className="px-2 py-2 text-start">الإجمالي</th>
+                        <th className="px-2 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.lineItems.length === 0 && (
+                        <tr><td colSpan={7} className="px-3 py-4 text-center text-xs text-[#6B7280]">لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.</td></tr>
+                      )}
+                      {formData.lineItems.map((line, idx) => (
+                        <tr key={idx} className="border-t border-[#F3F4F6]">
+                          <td className="px-2 py-2">
+                            <Input value={line.description || ""} onChange={(e) => {
+                              const description = e.target.value;
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, description, category: item.category || inferLineCategory(description), accountName: item.accountName || suggestLineAccount(description) } : item) }));
+                            }} className="h-8 border-[#E5E7EB]" />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input value={line.accountName || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountName: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input dir="ltr" inputMode="decimal" value={String(line.quantity || 1)} onChange={(e) => {
+                              const quantity = Number(normalizeDigits(e.target.value || "1"));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, quantity, lineTotal: quantity * Number(item.unitPrice || 0) } : item) }));
+                            }} className="h-8 w-20 border-[#E5E7EB] font-english" />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input dir="ltr" inputMode="decimal" value={String(line.unitPrice || 0)} onChange={(e) => {
+                              const unitPrice = Number(normalizeDigits(e.target.value || "0"));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, unitPrice, lineTotal: Number(item.quantity || 1) * unitPrice } : item) }));
+                            }} className="h-8 w-24 border-[#E5E7EB] font-english" />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input dir="ltr" inputMode="decimal" value={String(line.taxRate ?? 0.15)} onChange={(e) => {
+                              const taxRate = Number(normalizeDigits(e.target.value || "0"));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxRate } : item) }));
+                            }} className="h-8 w-20 border-[#E5E7EB] font-english" />
+                          </td>
+                          <td className="px-2 py-2 font-english">{money(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)))}</td>
+                          <td className="px-2 py-2 text-center">
+                            <button type="button" onClick={() => setFormData((f) => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {formData.lineItems.map((line, idx) => (
-                          <tr key={idx} className="border-t border-[#F3F4F6]">
-                            <td className="px-3 py-2">{line.description}</td>
-                            <td className="px-3 py-2 font-english">{line.quantity || 1}</td>
-                            <td className="px-3 py-2 font-english">{money(line.unitPrice || 0)}</td>
-                            <td className="px-3 py-2 font-english">{money(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)))}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[#E5E7EB] bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] px-3 py-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#0B1B49]">تقسيم المدفوعات</h3>
+                    <p className="text-xs text-[#6B7280]">يدعم الدفع الجزئي: كاش + بطاقة + تحويل.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-8 border-[#E5E7EB] text-xs"
+                    onClick={() => setFormData((f) => ({ ...f, paymentSplits: [...f.paymentSplits, { method: "CASH", amount: 0, reference: null }] }))}
+                  >
+                    <Plus className="me-1 h-3.5 w-3.5" /> إضافة دفعة
+                  </Button>
+                </div>
+                <div className="space-y-2 p-3">
+                  {(formData.paymentSplits.length ? formData.paymentSplits : [{ method: formData.paymentMethod, amount: formTotal, reference: null }]).map((payment, idx) => (
+                    <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[170px_1fr_130px_36px]">
+                      <Select value={payment.method} onValueChange={(method) => setFormData((f) => {
+                        const splits = f.paymentSplits.length ? f.paymentSplits : [{ method: f.paymentMethod, amount: formTotal, reference: null }];
+                        return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
+                      })}>
+                        <SelectTrigger className="h-9 border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input placeholder="مرجع / آخر 4 أرقام البطاقة" value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
+                        const splits = f.paymentSplits.length ? f.paymentSplits : [{ method: f.paymentMethod, amount: formTotal, reference: null }];
+                        return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, reference: e.target.value } : item) };
+                      })} className="h-9 border-[#E5E7EB]" />
+                      <Input dir="ltr" inputMode="decimal" value={String(payment.amount || "")} onChange={(e) => setFormData((f) => {
+                        const amount = Number(normalizeDigits(e.target.value || "0"));
+                        const splits = f.paymentSplits.length ? f.paymentSplits : [{ method: f.paymentMethod, amount: formTotal, reference: null }];
+                        return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, amount } : item) };
+                      })} className="h-9 border-[#E5E7EB] font-english" />
+                      <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className={`text-xs ${Math.abs(paymentTotal(formData.paymentSplits.length ? formData.paymentSplits : [{ method: formData.paymentMethod, amount: formTotal } as ExpensePaymentSplit]) - formTotal) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>
+                    مجموع المدفوعات: <span className="font-english">{money(paymentTotal(formData.paymentSplits.length ? formData.paymentSplits : [{ method: formData.paymentMethod, amount: formTotal } as ExpensePaymentSplit]))}</span>
                   </div>
                 </div>
-              )}
+              </div>
 
               <div className="space-y-2">
                 <Label className="text-[#374151]">ملاحظات</Label>
@@ -665,6 +844,9 @@ export function Expenses() {
 
   if (selected) {
     const lineItems = Array.isArray(selected.lineItems) ? selected.lineItems : [];
+    const paymentSplits = Array.isArray(selected.paymentSplits) && selected.paymentSplits.length
+      ? selected.paymentSplits
+      : [{ method: selected.paymentMethod, amount: Number(selected.total || 0), reference: selected.reference || null }];
     const vendorName = selected.contact?.displayName || selected.vendorName || "غير محدد";
     return (
       <div className="space-y-5">
@@ -723,8 +905,36 @@ export function Expenses() {
                   </div>
                   <div>
                     <p className="text-xs text-[#6B7280]">طريقة الدفع</p>
-                    <p className="text-sm text-[#0B1B49]">{PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
+                    <p className="text-sm text-[#0B1B49]">{paymentSplits.length > 1 ? `${paymentSplits.length} دفعات` : PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#E5E7EB]">
+              <CardHeader><CardTitle className="text-[#0B1B49]">المدفوعات</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-sm">
+                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                      <tr>
+                        <th className="px-3 py-2 text-start">الطريقة</th>
+                        <th className="px-3 py-2 text-start">المرجع</th>
+                        <th className="px-3 py-2 text-start">الحساب</th>
+                        <th className="px-3 py-2 text-start">المبلغ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentSplits.map((payment, idx) => (
+                        <tr key={idx} className="border-t border-[#F3F4F6]">
+                          <td className="px-3 py-2">{PAYMENT_METHOD_LABELS[payment.method]}</td>
+                          <td className="px-3 py-2 font-english">{payment.reference || payment.cardLast4 || "—"}</td>
+                          <td className="px-3 py-2">{payment.accountName || "—"}</td>
+                          <td className="px-3 py-2 font-english">{money(payment.amount, selected.currency)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
@@ -753,6 +963,7 @@ export function Expenses() {
                       <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
                         <tr>
                           <th className="px-3 py-2 text-start">الوصف</th>
+                          <th className="px-3 py-2 text-start">الحساب</th>
                           <th className="px-3 py-2 text-start">الكمية</th>
                           <th className="px-3 py-2 text-start">السعر</th>
                           <th className="px-3 py-2 text-start">VAT</th>
@@ -763,6 +974,7 @@ export function Expenses() {
                         {lineItems.map((line, idx) => (
                           <tr key={idx} className="border-t border-[#F3F4F6]">
                             <td className="px-3 py-2">{line.description}</td>
+                            <td className="px-3 py-2">{line.accountName || line.category || "—"}</td>
                             <td className="px-3 py-2 font-english">{line.quantity || 1}</td>
                             <td className="px-3 py-2 font-english">{money(line.unitPrice || 0, selected.currency)}</td>
                             <td className="px-3 py-2 font-english">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</td>

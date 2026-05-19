@@ -1017,6 +1017,7 @@ export interface Expense {
   attachmentBase64?: string | null
   attachmentCount?: number
   lineItems?: ExpenseLine[] | null
+  paymentSplits?: ExpensePaymentSplit[] | null
   extractedJson?: any
   ocrConfidence?: string | null
   duplicateOfId?: string | null
@@ -1036,6 +1037,18 @@ export interface ExpenseLine {
   taxInclusive?: boolean | null
   lineTotal?: number | null
   subtotal?: number | null
+  category?: string | null
+  accountName?: string | null
+  sku?: string | null
+  notes?: string | null
+}
+
+export interface ExpensePaymentSplit {
+  method: Expense['paymentMethod']
+  amount: number
+  reference?: string | null
+  cardLast4?: string | null
+  accountName?: string | null
   notes?: string | null
 }
 
@@ -1063,6 +1076,7 @@ export interface ExpenseInput {
   attachmentBase64?: string | null
   attachmentCount?: number
   lineItems?: ExpenseLine[] | null
+  paymentSplits?: ExpensePaymentSplit[] | null
   extractedJson?: any
   ocrConfidence?: number | null
   autoCreateSupplier?: boolean
