@@ -9,7 +9,7 @@ import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, Upload, Loader2, Bot, User, FileText, CheckCircle2, AlertCircle, Trash2, X } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { api, ApiError, OcrResult } from "../lib/api";
+import { api, ApiError, ExpenseLine, ExpensePaymentSplit, OcrResult } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 
 interface Msg {
@@ -35,7 +35,20 @@ interface BatchSummary {
   failed: number;
   totalAmount: number;
   currency: string | null;
-  rows: Array<{ name?: string; ok: boolean; vendor?: string; date?: string; total?: number; currency?: string; error?: string }>;
+  rows: Array<{
+    name?: string;
+    ok: boolean;
+    vendor?: string;
+    vendorVat?: string;
+    documentNumber?: string;
+    date?: string;
+    total?: number;
+    currency?: string;
+    lineCount?: number;
+    createdNumber?: string;
+    duplicateNumber?: string;
+    error?: string;
+  }>;
   index: { byDocType: Record<string, number>; byVendor: Record<string, number>; byMonth: Record<string, number>; byTag: Record<string, number> };
 }
 
@@ -66,6 +79,75 @@ async function readAsBase64(file: File): Promise<string> {
     r.onerror = () => reject(r.error);
     r.readAsDataURL(file);
   });
+}
+
+type ExpenseMethod = ExpensePaymentSplit["method"];
+
+function normalizeMoney(value: unknown): number | null {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizePaymentMethod(value: unknown): ExpenseMethod {
+  const s = String(value || "").toUpperCase();
+  if (s === "CASH") return "CASH";
+  if (s === "BANK_TRANSFER" || s === "TRANSFER" || s.includes("BANK")) return "BANK_TRANSFER";
+  if (s === "MADA") return "MADA";
+  if (s === "STC_PAY" || s.includes("STC")) return "STC_PAY";
+  if (s === "CHECK" || s === "CHEQUE") return "CHECK";
+  if (s === "CARD" || s.includes("VISA") || s.includes("MASTER") || s.includes("CREDIT") || s.includes("DEBIT")) return "CARD";
+  return "OTHER";
+}
+
+function normalizeTaxRate(value: unknown): number | null {
+  const n = normalizeMoney(value);
+  if (n == null) return null;
+  if (n > 1) return n / 100;
+  return n;
+}
+
+function buildExpenseLines(e: OcrResult): ExpenseLine[] {
+  if (!Array.isArray(e.lineItems)) return [];
+  return e.lineItems
+    .map((line: any) => {
+      const quantity = normalizeMoney(line.quantity) || 1;
+      const unitPrice = normalizeMoney(line.unitPrice);
+      const subtotal = normalizeMoney(line.subtotal ?? line.lineTotal);
+      const lineTotal = subtotal ?? (unitPrice != null ? unitPrice * quantity : null);
+      const description = String(line.description || "").trim();
+      if (!description || lineTotal == null) return null;
+      return {
+        description,
+        quantity,
+        unitPrice: unitPrice ?? lineTotal / quantity,
+        taxRate: normalizeTaxRate(line.taxRate ?? e.taxRate),
+        taxInclusive: true,
+        lineTotal,
+        subtotal: lineTotal,
+        category: e.category || null,
+        notes: "OCR line item",
+      } satisfies ExpenseLine;
+    })
+    .filter(Boolean) as ExpenseLine[];
+}
+
+function buildPaymentSplits(e: OcrResult, total: number, fallbackMethod: ExpenseMethod): ExpensePaymentSplit[] {
+  const payments = Array.isArray((e as any).payments) ? (e as any).payments : [];
+  const mapped = payments
+    .map((p: any) => {
+      const amount = normalizeMoney(p.amount);
+      if (!amount || amount <= 0) return null;
+      return {
+        method: normalizePaymentMethod(p.method),
+        amount,
+        reference: p.reference || null,
+        cardLast4: p.cardLast4 ? String(p.cardLast4).replace(/\D/g, "").slice(-4) : null,
+        notes: "OCR payment split",
+      } satisfies ExpensePaymentSplit;
+    })
+    .filter(Boolean) as ExpensePaymentSplit[];
+  if (mapped.length > 0) return mapped;
+  return [{ method: fallbackMethod, amount: total, notes: "OCR inferred payment" }];
 }
 
 export function AI() {
@@ -132,41 +214,81 @@ export function AI() {
         hint: input.trim() || undefined,
       });
 
-      // Build per-file rows
-      const rows = r.files.map((f) => ({
-        name: f.fileName,
-        ok: f.ok,
-        vendor: f.extracted?.vendor || undefined,
-        date: f.extracted?.issueDate || undefined,
-        total: typeof f.extracted?.total === "number" ? f.extracted.total : undefined,
-        currency: f.extracted?.currency || undefined,
-        error: f.error,
-      }));
-
       // Auto-create expenses for high-confidence items
       let createdCount = 0;
+      const createdByFile = new Map<string, { createdNumber?: string; duplicateNumber?: string }>();
+      const pendingByName = new Map(pending.map((p) => [p.name, p]));
       for (const item of r.files) {
         if (!item.ok || !item.extracted) continue;
         const e = item.extracted;
         const conf = e.confidence || 0;
-        if (conf > 0.6 && typeof e.total === "number" && e.total > 0) {
+        const total = normalizeMoney(e.total);
+        if (conf > 0.6 && total != null && total > 0) {
           try {
-            await api.expenses.create({
+            const sourceFile = item.fileName ? pendingByName.get(item.fileName) : undefined;
+            const taxAmount = normalizeMoney(e.taxAmount) || 0;
+            const subtotal = normalizeMoney(e.subtotal) ?? Math.max(total - taxAmount, 0);
+            const method = normalizePaymentMethod(e.paymentMethod);
+            const lineItems = buildExpenseLines(e);
+            const saved: any = await api.expenses.create({
               date: e.issueDate || new Date().toISOString().slice(0, 10),
               category: e.category || "غير مصنف",
-              amount: e.subtotal || e.total - (e.taxAmount || 0),
-              paymentMethod: (e.paymentMethod as any) || "OTHER",
+              amount: subtotal,
+              subtotal,
+              totalAmount: total,
+              paymentMethod: method,
               vendorName: e.vendor || undefined,
-              taxAmount: e.taxAmount || 0,
-              description: `OCR: ${e.documentNumber || item.fileName || ""}`,
+              supplierTaxId: e.vendorVat || undefined,
+              documentNumber: e.documentNumber || undefined,
+              reference: e.documentNumber || undefined,
+              taxAmount,
+              lineItems: lineItems.length > 0 ? lineItems : null,
+              paymentSplits: buildPaymentSplits(e, total, method),
+              attachmentName: sourceFile?.name || item.fileName || null,
+              attachmentType: sourceFile?.mime || item.mimeType || null,
+              attachmentSizeBytes: sourceFile?.size || null,
+              attachmentBase64: sourceFile?.base64 || null,
+              attachmentCount: sourceFile ? 1 : 0,
+              extractedJson: e,
+              ocrConfidence: conf,
+              autoCreateSupplier: true,
+              description: [
+                e.summary || `OCR: ${e.documentNumber || item.fileName || ""}`,
+                e.documentNumber ? `رقم المستند: ${e.documentNumber}` : null,
+                e.vendorVat ? `الرقم الضريبي للمورد: ${e.vendorVat}` : null,
+                lineItems.length ? `البنود: ${lineItems.length}` : null,
+              ].filter(Boolean).join(" · "),
               currency: e.currency || "SAR",
             });
             createdCount += 1;
+            createdByFile.set(item.fileName || "", {
+              createdNumber: saved?.number,
+              duplicateNumber: saved?.duplicateExpense?.number,
+            });
           } catch (err) {
             console.warn("[ai] auto-create expense failed", err);
           }
         }
       }
+
+      // Build per-file rows after persistence, so duplicate and saved numbers show in the same table.
+      const rows = r.files.map((f) => {
+        const meta = createdByFile.get(f.fileName || "") || {};
+        return {
+          name: f.fileName,
+          ok: f.ok,
+          vendor: f.extracted?.vendor || undefined,
+          vendorVat: f.extracted?.vendorVat || undefined,
+          documentNumber: f.extracted?.documentNumber || undefined,
+          date: f.extracted?.issueDate || undefined,
+          total: typeof f.extracted?.total === "number" ? f.extracted.total : undefined,
+          currency: f.extracted?.currency || undefined,
+          lineCount: Array.isArray(f.extracted?.lineItems) ? f.extracted!.lineItems.length : undefined,
+          createdNumber: meta.createdNumber,
+          duplicateNumber: meta.duplicateNumber,
+          error: f.error,
+        };
+      });
 
       const summary: BatchSummary = {
         total: r.summary.totalFiles,
@@ -180,6 +302,8 @@ export function AI() {
 
       let assistantContent = `معالجة ${r.summary.totalFiles} ملف · ✅ ${r.summary.successful} نجح · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} فشل · ` : ""}إجمالي القيمة: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`;
       if (createdCount > 0) assistantContent += `\n\n✨ تم إنشاء ${createdCount} مصروف تلقائياً (الثقة > 60%)`;
+      const duplicateCount = rows.filter((row) => row.duplicateNumber).length;
+      if (duplicateCount > 0) assistantContent += `\n⚠️ تم تعليم ${duplicateCount} كمكرر محتمل بدل تجاهله.`;
 
       setMessages((prev) => [...prev, { role: "assistant", content: assistantContent, batchSummary: summary }]);
       setPending([]);
@@ -285,6 +409,7 @@ export function AI() {
                         <thead className="bg-[#F9FAFB]"><tr>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">الملف</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المورد</th>
+                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">رقم/ضريبة</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">التاريخ</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المبلغ</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">الحالة</th>
@@ -294,12 +419,23 @@ export function AI() {
                             <tr key={j} className="border-t border-[#F3F4F6]">
                               <td className="py-2 px-3 text-[#0B1B49] truncate max-w-[180px]" title={r.name}>{r.name}</td>
                               <td className="py-2 px-3 text-[#374151]">{r.vendor || "—"}</td>
+                              <td className="py-2 px-3 text-[#374151]">
+                                <div className="font-english">{r.documentNumber || "—"}</div>
+                                {r.vendorVat && <div className="font-english text-[10px] text-[#6B7280]">{r.vendorVat}</div>}
+                                {typeof r.lineCount === "number" && r.lineCount > 0 && <div className="text-[10px] text-[#1276E3]">بنود: {r.lineCount}</div>}
+                              </td>
                               <td className="py-2 px-3 font-english text-[#6B7280]">{r.date || "—"}</td>
                               <td className="py-2 px-3 font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
                                 {typeof r.total === "number" ? `${r.total.toLocaleString()} ${r.currency || ""}` : "—"}
                               </td>
                               <td className="py-2 px-3">
-                                {r.ok ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <span className="text-red-600 text-xs">{r.error || "فشل"}</span>}
+                                {r.ok ? (
+                                  <div className="flex flex-col gap-0.5">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                    {r.createdNumber && <span className="font-english text-[10px] text-[#1276E3]">{r.createdNumber}</span>}
+                                    {r.duplicateNumber && <span className="font-english text-[10px] text-amber-700">مكرر: {r.duplicateNumber}</span>}
+                                  </div>
+                                ) : <span className="text-red-600 text-xs">{r.error || "فشل"}</span>}
                               </td>
                             </tr>
                           ))}

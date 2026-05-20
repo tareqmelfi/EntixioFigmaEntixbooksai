@@ -1209,6 +1209,7 @@ export interface DashboardSummary {
 }
 
 export interface OcrResult {
+  docType?: 'RECEIPT' | 'INVOICE' | 'BILL' | 'QUOTE' | 'CONTRACT' | 'STATEMENT' | 'OTHER'
   vendor: string | null
   vendorVat: string | null
   buyer: string | null
@@ -1222,8 +1223,11 @@ export interface OcrResult {
   discount: number | null
   total: number
   paymentMethod: string | null
+  payments?: Array<{ method?: string | null; amount?: number | null; reference?: string | null; cardLast4?: string | null }>
   category: string | null
+  tags?: string[]
   lineItems: Array<{ description: string; quantity: number; unitPrice: number; taxRate: number | null; subtotal: number }>
+  summary?: string
   confidence: number
   language: 'ar' | 'en' | 'mixed'
   warnings: string[]

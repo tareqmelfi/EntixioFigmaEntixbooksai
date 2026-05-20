@@ -45,7 +45,8 @@ type ImportRow = {
   confidence?: number | null;
   duplicateCode?: boolean;
   duplicateNameCode?: string | null;
-  rowStatus?: "new" | "code_duplicate" | "name_duplicate";
+  needsReviewReason?: string | null;
+  rowStatus?: "new" | "code_duplicate" | "name_duplicate" | "needs_review";
 };
 
 const TYPE_LABELS: Record<AccountType, string> = {
@@ -219,7 +220,7 @@ export function ChartOfAccounts() {
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
   const [cashFlowManuallyEdited, setCashFlowManuallyEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreview, setImportPreview] = useState<{ rows: ImportRow[]; mapping: Record<string, string>; rawHeaders: string[]; source: "csv" | "image" | "ai"; warnings?: string[] } | null>(null);
+  const [importPreview, setImportPreview] = useState<{ rows: ImportRow[]; mapping: Record<string, string>; rawHeaders: string[]; source: "csv" | "file" | "ai"; warnings?: string[]; fileName?: string } | null>(null);
   const [importBusy, setImportBusy] = useState(false);
   const [mergeSource, setMergeSource] = useState<Account | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState("");
@@ -530,17 +531,52 @@ export function ChartOfAccounts() {
   const annotateImportRows = (rows: ImportRow[]): ImportRow[] => {
     const byCode = new Set(items.map(a => a.code));
     const byName = new Map(items.map(a => [normalizeText(`${a.name} ${a.nameAr || ""}`), a.code]));
+    const importCodes = new Set(rows.map(row => row.code).filter(Boolean));
     return rows.map((row) => {
       const duplicateCode = byCode.has(row.code);
       const duplicateNameCode = byName.get(normalizeText(`${row.name} ${row.nameAr || ""}`)) || null;
+      const parentMissing = !!row.parentCode && !byCode.has(row.parentCode) && !importCodes.has(row.parentCode);
+      const missingType = !row.type;
+      const lowConfidence = typeof row.confidence === "number" && row.confidence < 0.7;
+      const needsReviewReason = duplicateNameCode
+        ? `اسم مشابه للحساب ${duplicateNameCode}`
+        : parentMissing
+          ? `الأب ${row.parentCode} غير موجود`
+          : missingType
+            ? "التصنيف غير واضح"
+            : lowConfidence
+              ? "ثقة التحليل منخفضة"
+              : null;
       return {
         ...row,
         duplicateCode,
         duplicateNameCode,
-        rowStatus: duplicateCode ? "code_duplicate" : duplicateNameCode ? "name_duplicate" : "new",
+        needsReviewReason,
+        rowStatus: duplicateCode ? "code_duplicate" : duplicateNameCode ? "name_duplicate" : needsReviewReason ? "needs_review" : "new",
       };
     });
   };
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("entix-coa-import-preview");
+      if (!raw || importPreview || items.length === 0) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.rows) && parsed.rows.length > 0) {
+        setImportPreview({ ...parsed, rows: annotateImportRows(parsed.rows) });
+      }
+    } catch {
+      localStorage.removeItem("entix-coa-import-preview");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length]);
+
+  useEffect(() => {
+    try {
+      if (importPreview) localStorage.setItem("entix-coa-import-preview", JSON.stringify(importPreview));
+      else localStorage.removeItem("entix-coa-import-preview");
+    } catch {}
+  }, [importPreview]);
 
   const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -576,7 +612,7 @@ export function ChartOfAccounts() {
           push("error", "لم يستخرج التحليل حسابات واضحة من الملف");
           return;
         }
-        setImportPreview({ rows: parsed, mapping: {}, rawHeaders: [], source: "image", warnings: r.warnings || [] });
+        setImportPreview({ rows: parsed, mapping: {}, rawHeaders: [], source: "file", warnings: r.warnings || [], fileName: file.name });
         push("success", `تم تحليل ${parsed.length} حساب من الملف`);
         return;
       }
@@ -604,7 +640,7 @@ export function ChartOfAccounts() {
         push('error', 'لم يتم العثور على صفوف صالحة · تأكد من وجود عمود "code" أو "رمز"');
         return;
       }
-      setImportPreview({ rows: annotateImportRows(parsed), mapping, rawHeaders: headers, source: "csv" });
+      setImportPreview({ rows: annotateImportRows(parsed), mapping, rawHeaders: headers, source: "csv", fileName: file.name });
     } catch (e: any) {
       push('error', e?.message || 'فشل قراءة الملف');
     } finally {
@@ -616,7 +652,12 @@ export function ChartOfAccounts() {
     if (!importPreview) return;
     setImportBusy(true);
     try {
-      const r = await api.accounts.importBulk(importPreview.rows.map(row => ({
+      const rowsToImport = importPreview.rows.filter(row => row.rowStatus === "new");
+      if (rowsToImport.length === 0) {
+        push("error", "لا توجد حسابات جديدة جاهزة للاستيراد · راجع الصفوف الملونة أولاً");
+        return;
+      }
+      const r = await api.accounts.importBulk(rowsToImport.map(row => ({
         code: row.code,
         name: row.name || row.nameAr || row.code,
         nameAr: row.nameAr || null,
@@ -644,7 +685,7 @@ export function ChartOfAccounts() {
           <p className="text-[#6B7280] mt-1">شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات</p>
         </div>
         <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif" className="hidden"
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv,.pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif,.xlsx,.xls" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy} className="border-[#E5E7EB]">
             {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" />}
@@ -910,21 +951,22 @@ export function ChartOfAccounts() {
 
       {/* Import preview modal */}
       {importPreview && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setImportPreview(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3" onClick={() => setImportPreview(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-[#F3F4F6]">
               <h2 className="text-base text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
                 <FileSpreadsheet className="h-5 w-5 text-[#1276E3]" /> معاينة الاستيراد
+                {importPreview.fileName && <span className="font-english text-xs text-[#6B7280]">· {importPreview.fileName}</span>}
               </h2>
               <button type="button" onClick={() => setImportPreview(null)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-4 w-4 text-[#6B7280]" /></button>
             </div>
 
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1">
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                 ✓ تم اكتشاف <span className="font-english font-bold">{importPreview.rows.length}</span> صف من {importPreview.source === "csv" ? "CSV" : "تحليل ذكي للملف"}
                 <span className="ms-2">· جديد: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "new").length}</span></span>
                 <span className="ms-2">· مكرر بالرمز: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "code_duplicate").length}</span></span>
-                <span className="ms-2">· يحتاج مراجعة: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "name_duplicate").length}</span></span>
+                <span className="ms-2">· يحتاج مراجعة: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review").length}</span></span>
                 {(Object.entries(importPreview.mapping).some(([_, v]) => v) || (importPreview.warnings || []).length > 0) && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {Object.entries(importPreview.mapping).filter(([_, v]) => v).map(([k, v]) => (
@@ -941,11 +983,11 @@ export function ChartOfAccounts() {
                 )}
                 <div className="mt-2 flex items-start gap-1.5 text-[11px] text-blue-700/80">
                   <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  المكرر بالرمز سيتم تخطيه عند الحفظ، والمكرر بالاسم ملوّن للمراجعة قبل إدخاله حتى لا يتكرر دليل الحسابات.
+                  الأخضر جاهز للإضافة، الأحمر موجود مسبقاً ولن يستورد، والبرتقالي يحتاج مراجعة حتى لا يتكرر دليل الحسابات أو يركب تحت أب خطأ.
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[#E5E7EB] overflow-hidden max-h-96 overflow-y-auto">
+              <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-[#F9FAFB] text-xs text-[#6B7280] sticky top-0">
                     <tr>
@@ -957,15 +999,17 @@ export function ChartOfAccounts() {
                     </tr>
                   </thead>
                   <tbody>
-                    {importPreview.rows.slice(0, 100).map((r, i) => {
+                    {importPreview.rows.map((r, i) => {
                       const inferredType = r.type || (r.code ? (r.code.charAt(0) === '1' ? 'ASSET' : r.code.charAt(0) === '2' ? 'LIABILITY' : r.code.charAt(0) === '3' ? 'EQUITY' : r.code.charAt(0) === '4' ? 'REVENUE' : 'EXPENSE') : '?');
                       return (
-                        <tr key={i} className={`border-t border-[#F3F4F6] ${r.rowStatus === "code_duplicate" ? "bg-red-50/60" : r.rowStatus === "name_duplicate" ? "bg-amber-50/60" : ""}`}>
+                        <tr key={i} className={`border-t border-[#F3F4F6] ${r.rowStatus === "code_duplicate" ? "bg-red-50/70" : r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review" ? "bg-amber-50/80" : "bg-emerald-50/55"}`}>
                           <td className="px-3 py-1.5 font-english font-semibold text-[#1276E3]">{r.code}</td>
                           <td className="px-3 py-1.5 font-english">
                             {r.name || '—'}
+                            {r.rowStatus === "new" && <span className="ms-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">سيضاف</span>}
                             {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">رمز موجود</span>}
                             {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">اسم مشابه: {r.duplicateNameCode}</span>}
+                            {r.rowStatus === "needs_review" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{r.needsReviewReason}</span>}
                           </td>
                           <td className="px-3 py-1.5">{r.nameAr || '—'}</td>
                           <td className="px-3 py-1.5">
@@ -980,18 +1024,15 @@ export function ChartOfAccounts() {
                     })}
                   </tbody>
                 </table>
-                {importPreview.rows.length > 100 && (
-                  <div className="px-3 py-2 text-xs text-center text-[#9CA3AF] bg-[#F9FAFB]">+ {importPreview.rows.length - 100} صف إضافي ستُستورد كاملة</div>
-                )}
               </div>
 
-              <p className="text-xs text-[#9CA3AF]">سيتم تخطّي أي رمز موجود مسبقاً · الحسابات الفرعية تُربط تلقائياً بالأب عبر <span className="font-english">parentCode</span></p>
+              <p className="text-xs text-[#9CA3AF]">عند الحفظ سيتم استيراد الصفوف الخضراء فقط · المعاينة تبقى محفوظة مؤقتاً لو أغلقتها ورجعت لها.</p>
             </div>
 
             <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
               <Button type="button" variant="outline" onClick={() => setImportPreview(null)} className="border-[#E5E7EB]" disabled={importBusy}>إلغاء</Button>
               <Button onClick={confirmImport} disabled={importBusy} className="bg-[#1276E3] hover:bg-[#1060C0]">
-                {importBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : `استيراد ${importPreview.rows.length} حساب`}
+                {importBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : `استيراد ${importPreview.rows.filter(r => r.rowStatus === "new").length} حساب جاهز`}
               </Button>
             </div>
           </div>
