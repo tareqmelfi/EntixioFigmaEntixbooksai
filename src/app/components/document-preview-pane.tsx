@@ -23,7 +23,7 @@ import { Button } from "./ui/button";
 
 export interface DocumentPreviewProps {
   className?: string;
-  onFilesAdded?: (files: File[]) => void;
+  onFilesAdded?: (files: File[]) => void | Promise<void>;
   onExtract?: (file: File) => Promise<any>;
   /** Show only the latest file in main preview · default true */
   showLatestOnly?: boolean;
@@ -53,6 +53,25 @@ interface FileItem {
   extracting?: boolean;
 }
 
+type ProcessingState = {
+  phase: "preparing" | "attaching" | "extracting" | "done";
+  title: string;
+  detail: string;
+  fileName?: string;
+  current?: number;
+  total?: number;
+};
+
+function extractionMessageForFile(file: File | null, fallbackName: string) {
+  const name = file?.name || fallbackName;
+  const type = (file?.type || "").toLowerCase();
+  const heicLike = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(name);
+  if (heicLike) return "تحويل HEIC ومعالجة الصورة ثم قراءة البيانات";
+  if (type.includes("pdf") || /\.pdf$/i.test(name)) return "قراءة PDF واستخراج المورد والضريبة والبنود";
+  if (type.startsWith("image/")) return "قص الزوائد وتحسين الصورة ثم قراءة البيانات";
+  return "تحليل الملف واستخراج بيانات المصروف";
+}
+
 export function DocumentPreviewPane({
   className = "",
   onFilesAdded,
@@ -71,6 +90,7 @@ export function DocumentPreviewPane({
   const [activeId, setActiveId] = useState<string | null>(initialFiles[0] ? `init-0` : null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<ProcessingState | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<FileItem[]>(files);
 
@@ -88,10 +108,29 @@ export function DocumentPreviewPane({
       setError(`${tooBig.name} أكبر من ${maxSizeMb} ميجا`);
       return;
     }
-    const newItems: FileItem[] = await Promise.all(
-      arr.map(async (f) => {
+
+    setProcessing({
+      phase: "preparing",
+      title: "Entix AI يجهز المرفقات",
+      detail: arr.length > 1 ? `جاري تجهيز ${arr.length} ملفات للقراءة` : "جاري تجهيز الصورة للقراءة",
+      current: 0,
+      total: arr.length,
+    });
+
+    const newItems: FileItem[] = [];
+    try {
+      for (let index = 0; index < arr.length; index++) {
+        const f = arr[index];
+        setProcessing({
+          phase: "preparing",
+          title: "Entix AI يجهز المرفقات",
+          detail: extractionMessageForFile(f, f.name),
+          fileName: f.name,
+          current: index + 1,
+          total: arr.length,
+        });
         const prepared = await prepareFileForPreviewAndUpload(f);
-        return {
+        newItems.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           file: f,
           extractFile: prepared.file,
@@ -99,16 +138,40 @@ export function DocumentPreviewPane({
           url: prepared.url,
           type: prepared.type,
           note: prepared.note,
-        };
-      }),
-    );
+        });
+      }
+    } catch (e: any) {
+      setError(e?.message || "فشل تجهيز المرفقات");
+      setProcessing(null);
+      return;
+    }
+
     setFiles((prev) => [...prev, ...newItems]);
     setActiveId(newItems[newItems.length - 1].id);
-    if (onFilesAdded) onFilesAdded(newItems.map((item) => item.extractFile || item.file).filter(Boolean) as File[]);
-    if (autoExtract && enableExtract && onExtract) {
-      for (const item of newItems) {
-        await runExtract(item);
+    if (onFilesAdded) {
+      try {
+        setProcessing({
+          phase: "attaching",
+          title: "جاري تثبيت المرفقات",
+          detail: "نحفظ نسخة جاهزة من الملف قبل الاستخراج",
+          current: newItems.length,
+          total: newItems.length,
+        });
+        await onFilesAdded(newItems.map((item) => item.extractFile || item.file).filter(Boolean) as File[]);
+      } catch (e: any) {
+        setError(e?.message || "فشل حفظ المرفقات");
+        setProcessing(null);
+        return;
       }
+    }
+    if (autoExtract && enableExtract && onExtract) {
+      for (let index = 0; index < newItems.length; index++) {
+        const item = newItems[index];
+        setActiveId(item.id);
+        await runExtract(item, { current: index + 1, total: newItems.length, keepDoneVisible: index === newItems.length - 1 });
+      }
+    } else {
+      setProcessing(null);
     }
   };
 
@@ -117,22 +180,40 @@ export function DocumentPreviewPane({
     if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   };
 
-  const runExtract = async (item: FileItem) => {
+  const runExtract = async (item: FileItem, progress?: { current?: number; total?: number; keepDoneVisible?: boolean }) => {
     const source = item.extractFile || item.file;
     if (!source || !onExtract) return;
+    setProcessing({
+      phase: "extracting",
+      title: "Entix AI يقرأ المستند",
+      detail: extractionMessageForFile(source, item.name),
+      fileName: item.name,
+      current: progress?.current,
+      total: progress?.total,
+    });
     setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: true } : f));
     try {
       await onExtract(source);
       setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: false, extracted: true } : f));
+      setProcessing({
+        phase: "done",
+        title: "تمت القراءة والتعبئة",
+        detail: "راجع البيانات قبل الحفظ",
+        fileName: item.name,
+        current: progress?.current,
+        total: progress?.total,
+      });
+      window.setTimeout(() => setProcessing((current) => current?.phase === "done" ? null : current), progress?.keepDoneVisible ? 1400 : 450);
     } catch (e: any) {
       setError(e?.message || "فشل الاستخراج");
       setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: false } : f));
+      setProcessing(null);
     }
   };
 
   const handleExtract = async () => {
     if (!active) return;
-    await runExtract(active);
+    await runExtract(active, { keepDoneVisible: true });
   };
 
   const removeFile = (id: string) => {
@@ -171,6 +252,11 @@ export function DocumentPreviewPane({
           <Button onClick={() => fileRef.current?.click()} variant="outline" className="mt-4 border-[#E5E7EB]">
             <Upload className="h-4 w-4 me-2" /> اختر ملفاً
           </Button>
+          {processing && (
+            <div className="mt-4 w-full max-w-sm px-3">
+              <ProcessingBanner state={processing} compact />
+            </div>
+          )}
           {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
         </div>
       ) : (
@@ -198,10 +284,27 @@ export function DocumentPreviewPane({
               </button>
             </div>
           </div>
+          {processing && (
+            <div className="border-b border-[#D7F0FF] bg-white px-2 py-2">
+              <ProcessingBanner state={processing} />
+            </div>
+          )}
 
           {/* Main preview */}
-          <div className="flex-1 min-h-[400px] bg-[#F4F5F7] flex items-center justify-center p-2">
+          <div className="relative flex-1 min-h-[400px] bg-[#F4F5F7] flex items-center justify-center p-2">
             {active && renderPreview(active)}
+            {active?.extracting && (
+              <div className="absolute inset-2 flex items-center justify-center rounded-lg bg-white/82 backdrop-blur-sm">
+                <div className="w-full max-w-xs">
+                  <ProcessingBanner state={processing || {
+                    phase: "extracting",
+                    title: "Entix AI يقرأ المستند",
+                    detail: extractionMessageForFile(active.extractFile || active.file, active.name),
+                    fileName: active.name,
+                  }} />
+                </div>
+              </div>
+            )}
           </div>
           {active?.note && (
             <div className="px-3 py-2 bg-[#F4FCFF] border-t border-[#D7F0FF] text-xs text-[#0B5CAD] flex items-start gap-2">
@@ -236,6 +339,52 @@ export function DocumentPreviewPane({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function ProcessingBanner({ state, compact = false }: { state: ProcessingState; compact?: boolean }) {
+  const total = state.total || 0;
+  const current = state.current || 0;
+  const percent = total > 0 ? Math.max(8, Math.min(100, Math.round((current / total) * 100))) : 62;
+  const done = state.phase === "done";
+  return (
+    <div className={`rounded-lg border ${done ? "border-emerald-200 bg-emerald-50" : "border-[#D7F0FF] bg-[#F4FCFF]"} ${compact ? "px-3 py-2" : "px-3 py-3"} shadow-sm`}>
+      <div className="flex items-start gap-2">
+        <div className={`relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${done ? "bg-emerald-100" : "bg-[#0B1B49]"}`}>
+          {done ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 text-white" />
+              <span className="absolute inset-0 rounded-full border border-[#1276E3]/40 animate-ping" />
+            </>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-sm font-semibold ${done ? "text-emerald-800" : "text-[#0B1B49]"}`}>{state.title}</p>
+            {!done && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1276E3]" />}
+          </div>
+          <p className="mt-0.5 text-xs text-[#6B7280]">{state.detail}</p>
+          {state.fileName && <p className="mt-1 truncate font-english text-[11px] text-[#6B7280]">{state.fileName}</p>}
+          {!compact && !done && (
+            <div className="mt-2 flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white">
+                <div className="h-full rounded-full bg-[#1276E3] transition-all duration-500" style={{ width: `${percent}%` }} />
+              </div>
+              {total > 1 && <span className="font-english text-[11px] text-[#6B7280]">{current}/{total}</span>}
+            </div>
+          )}
+          {!compact && !done && (
+            <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] text-[#0B5CAD]">
+              <span className="rounded bg-white px-2 py-1 text-center">تهيئة</span>
+              <span className="rounded bg-white px-2 py-1 text-center">OCR</span>
+              <span className="rounded bg-white px-2 py-1 text-center">تعبئة</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
