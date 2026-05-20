@@ -679,6 +679,10 @@ export function Reports() {
     downloadCsv(csv, "entix-reports-catalog.csv");
   };
 
+  const printSelectedReport = () => {
+    window.print();
+  };
+
   const selectCategory = (nextCategory: ReportCategoryId | "all") => {
     setCategory(nextCategory);
     const first = catalog.find((report) => nextCategory === "all" || report.category === nextCategory);
@@ -687,6 +691,23 @@ export function Reports() {
 
   return (
     <div className="space-y-5">
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .entix-report-print, .entix-report-print * { visibility: visible !important; }
+          .entix-report-print {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+            background: #ffffff !important;
+            padding: 24px !important;
+            box-shadow: none !important;
+            border: 0 !important;
+          }
+          .no-print { display: none !important; }
+        }
+      `}</style>
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مركز التقارير</h1>
@@ -694,9 +715,12 @@ export function Reports() {
             كل التقارير المالية والتشغيلية موجودة بفهرس واحد، مع مصطلحات متوافقة مع {profile.countryLabel}.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportCatalogCsv}>
             <FileText className="me-2 h-4 w-4" />تصدير فهرس التقارير
+          </Button>
+          <Button variant="outline" onClick={printSelectedReport} disabled={!selectedReport}>
+            <Printer className="me-2 h-4 w-4" />PDF / طباعة
           </Button>
           <Button variant="outline" onClick={exportSelectedCsv} disabled={!selectedReport}>
             <Download className="me-2 h-4 w-4" />تصدير التقرير المحدد
@@ -778,6 +802,7 @@ export function Reports() {
                     currency={currency}
                     profile={profile}
                     onExport={exportSelectedCsv}
+                    onPrint={printSelectedReport}
                   />
                 </div>
               )}
@@ -849,6 +874,7 @@ function ReportPreview({
   currency,
   profile,
   onExport,
+  onPrint,
 }: {
   report: ReportDefinition;
   rows: PreviewRow[];
@@ -856,13 +882,14 @@ function ReportPreview({
   currency: string;
   profile: ReturnType<typeof getCompanyProfile>;
   onExport: () => void;
+  onPrint: () => void;
 }) {
   const category = categories.find((item) => item.id === report.category)!;
   const Icon = category.icon;
   const status = statusMeta[report.status];
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="entix-report-print border-[#E5E7EB]">
       <CardHeader className="border-b border-[#EEF2F7]">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
@@ -875,9 +902,14 @@ function ReportPreview({
             </div>
             <div className="mt-1 text-xs text-[#6B7280] font-english">{report.englishTitle}</div>
           </div>
-          <Button variant="outline" onClick={onExport}>
-            <Download className="me-2 h-4 w-4" />CSV
-          </Button>
+          <div className="no-print flex flex-wrap gap-2">
+            <Button variant="outline" onClick={onPrint}>
+              <Printer className="me-2 h-4 w-4" />PDF
+            </Button>
+            <Button variant="outline" onClick={onExport}>
+              <Download className="me-2 h-4 w-4" />CSV
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-4">
