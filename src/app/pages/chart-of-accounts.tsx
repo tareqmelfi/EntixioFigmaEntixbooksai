@@ -13,8 +13,8 @@
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, MoreHorizontal, PlusCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle, Info } from "lucide-react";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -22,9 +22,41 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Account, AccountTransactions } from "../lib/api";
 
 type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+type CashFlowType = "OPERATING" | "INVESTING" | "FINANCING" | "NON_CASH";
+type AccountForm = {
+  code: string;
+  name: string;
+  nameAr: string;
+  type: AccountType;
+  parentId: string;
+  description: string;
+  cashFlowType: CashFlowType;
+  allowPosting: boolean;
+  allowPayment: boolean;
+  allowExpenseClaim: boolean;
+};
+type ImportRow = {
+  code: string;
+  name: string;
+  nameAr: string;
+  type?: AccountType;
+  parentCode?: string;
+  description?: string;
+  confidence?: number | null;
+  duplicateCode?: boolean;
+  duplicateNameCode?: string | null;
+  rowStatus?: "new" | "code_duplicate" | "name_duplicate";
+};
 
 const TYPE_LABELS: Record<AccountType, string> = {
   ASSET: "أصل", LIABILITY: "التزام", EQUITY: "حقوق ملكية", REVENUE: "إيراد", EXPENSE: "مصروف",
+};
+const TYPE_LABELS_PLURAL: Record<AccountType, string> = {
+  ASSET: "الأصول",
+  LIABILITY: "الالتزامات",
+  EQUITY: "حقوق الملكية",
+  REVENUE: "الإيرادات",
+  EXPENSE: "المصروفات",
 };
 const TYPE_COLORS: Record<AccountType, string> = {
   ASSET: "bg-blue-100 text-blue-700",
@@ -42,6 +74,58 @@ const TYPE_PREFIX: Record<AccountType, string> = {
   REVENUE:   "4",
   EXPENSE:   "5",
 };
+
+const CASH_FLOW_META: Record<CashFlowType, { label: string; hint: string }> = {
+  OPERATING: { label: "التشغيلات (Operating)", hint: "للمبيعات، المصروفات اليومية، العملاء، الموردين، النقد والبنوك المستخدمة يومياً." },
+  INVESTING: { label: "الاستثمارات (Investing)", hint: "لشراء أو بيع الأصول طويلة الأجل والاستثمارات." },
+  FINANCING: { label: "التمويلات (Financing)", hint: "للقروض، رأس المال، توزيعات الملاك، وحركات التمويل." },
+  NON_CASH: { label: "غير نقدي (Non-Cash)", hint: "للحسابات التي لا تمثل حركة نقدية مباشرة مثل الإهلاك والتسويات." },
+};
+
+function formatAmount(value: number | null | undefined): string {
+  return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function normalizeText(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function looksLikeBankAccount(value: string): boolean {
+  return /(bank|cash|wallet|treasury|checking|saving|بنك|مصرف|حساب بنكي|صندوق|نقد|محفظة)/i.test(value);
+}
+
+function inferCashFlowType(type: AccountType, name: string, parent?: Account | null): CashFlowType {
+  const source = `${name} ${parent?.name || ""} ${parent?.nameAr || ""}`.toLowerCase();
+  if (/depreciation|amortization|provision|إهلاك|استهلاك|مخصص/i.test(source)) return "NON_CASH";
+  if (type === "EQUITY") return "FINANCING";
+  if (type === "LIABILITY" && /(loan|قرض|تمويل|capital lease)/i.test(source)) return "FINANCING";
+  if (type === "ASSET" && /(fixed|equipment|vehicle|building|investment|أصول ثابتة|اصل ثابت|استثمار|سيارة|معدات|مبنى)/i.test(source)) return "INVESTING";
+  return "OPERATING";
+}
+
+function usageDefaults(type: AccountType, name = "", parent?: Account | null) {
+  const text = `${name} ${parent?.name || ""} ${parent?.nameAr || ""}`;
+  const bankish = looksLikeBankAccount(text);
+  return {
+    allowPosting: true,
+    allowPayment: type === "ASSET" && bankish,
+    allowExpenseClaim: type === "EXPENSE",
+  };
+}
+
+function defaultForm(type: AccountType = "ASSET", parentId = "", parent?: Account | null): AccountForm {
+  const usage = usageDefaults(type, "", parent || null);
+  return {
+    code: "",
+    name: "",
+    nameAr: "",
+    type,
+    parentId,
+    description: "",
+    cashFlowType: inferCashFlowType(type, "", parent || null),
+    ...usage,
+  };
+}
 
 // Visual meta per type · gradient + icon + ring color (UX-192)
 const TYPE_META: Record<AccountType, {
@@ -131,16 +215,15 @@ export function ChartOfAccounts() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const [form, setForm] = useState({
-    code: "", name: "", nameAr: "",
-    type: "ASSET" as AccountType,
-    parentId: "" as string,
-    description: "",
-  });
+  const [form, setForm] = useState<AccountForm>(() => defaultForm("ASSET"));
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
+  const [cashFlowManuallyEdited, setCashFlowManuallyEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreview, setImportPreview] = useState<{ rows: any[]; mapping: Record<string, string>; rawHeaders: string[] } | null>(null);
+  const [importPreview, setImportPreview] = useState<{ rows: ImportRow[]; mapping: Record<string, string>; rawHeaders: string[]; source: "csv" | "image" | "ai"; warnings?: string[] } | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  const [mergeSource, setMergeSource] = useState<Account | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState("");
+  const [mergeBusy, setMergeBusy] = useState(false);
   // Transactions side panel
   const [txPanel, setTxPanel] = useState<{ accountId: string; data: AccountTransactions | null; loading: boolean } | null>(null);
   // AI translate state
@@ -151,15 +234,26 @@ export function ChartOfAccounts() {
     if (!sourceText.trim()) { push("error", "اكتب اسم الحساب أولاً"); return; }
     setAiBusy(true); setAiSuggestion(null);
     try {
-      const r = await api.accounts.translate(sourceText.trim(), form.parentId ? `Parent type: ${form.type}` : undefined);
+      const parent = form.parentId ? items.find(a => a.id === form.parentId) : null;
+      const hint = [
+        `Selected type: ${form.type}`,
+        `Preserve selected type. Do not reclassify the account.`,
+        parent ? `Parent account: ${parent.code} · ${parent.nameAr || parent.name} · Parent type: ${parent.type}` : "",
+      ].filter(Boolean).join("\n");
+      const r = await api.accounts.translate(sourceText.trim(), hint);
+      const nextName = r.name || form.name;
+      const nextNameAr = r.nameAr || form.nameAr;
+      const nextUsage = usageDefaults(form.type, `${nextName} ${nextNameAr}`, parent || null);
       setForm(prev => ({
         ...prev,
-        name: r.name || prev.name,
-        nameAr: r.nameAr || prev.nameAr,
-        type: r.type || prev.type,
-        ...((!codeManuallyEdited && r.suggestedCode) ? { code: r.suggestedCode } : {}),
+        name: nextName,
+        nameAr: nextNameAr,
+        ...(cashFlowManuallyEdited ? {} : { cashFlowType: inferCashFlowType(prev.type, `${nextName} ${nextNameAr}`, parent || null) }),
+        allowPayment: nextUsage.allowPayment,
+        allowExpenseClaim: nextUsage.allowExpenseClaim,
+        ...((!codeManuallyEdited && !prev.parentId && r.suggestedCode && r.type === prev.type) ? { code: r.suggestedCode } : {}),
       }));
-      setAiSuggestion(r.reasoning || `${r.category || r.type}`);
+      setAiSuggestion(r.reasoning || `${r.category || TYPE_LABELS[form.type]} · لم يتم تغيير التصنيف المختار`);
       push("success", "تم الاقتراح بالذكاء ✨");
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الاقتراح");
@@ -225,9 +319,17 @@ export function ChartOfAccounts() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.type, form.parentId, items.length]);
 
+  useEffect(() => {
+    if (cashFlowManuallyEdited) return;
+    const parent = form.parentId ? items.find(a => a.id === form.parentId) : null;
+    setForm(prev => ({ ...prev, cashFlowType: inferCashFlowType(prev.type, `${prev.name} ${prev.nameAr}`, parent || null) }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.type, form.parentId, form.name, form.nameAr, items.length, cashFlowManuallyEdited]);
+
   const resetForm = () => {
-    setForm({ code: "", name: "", nameAr: "", type: "ASSET", parentId: "", description: "" });
+    setForm(defaultForm("ASSET"));
     setCodeManuallyEdited(false);
+    setCashFlowManuallyEdited(false);
     setEditingId(null);
   };
 
@@ -240,8 +342,13 @@ export function ChartOfAccounts() {
       type: a.type as AccountType,
       parentId: a.parentId || "",
       description: a.description || "",
+      cashFlowType: (a.cashFlowType as CashFlowType) || inferCashFlowType(a.type as AccountType, `${a.name} ${a.nameAr || ""}`),
+      allowPosting: a.allowPosting !== false,
+      allowPayment: a.allowPayment === true,
+      allowExpenseClaim: a.allowExpenseClaim === true,
     });
     setCodeManuallyEdited(true);
+    setCashFlowManuallyEdited(Boolean(a.cashFlowType));
     setEditingId(a.id);
     setOpen(true);
   };
@@ -259,6 +366,10 @@ export function ChartOfAccounts() {
           type: form.type,
           parentId: form.parentId || null,
           description: form.description.trim() || null,
+          cashFlowType: form.cashFlowType,
+          allowPosting: form.allowPosting,
+          allowPayment: form.allowPayment,
+          allowExpenseClaim: form.allowExpenseClaim,
         });
         setItems(prev => prev.map(x => x.id === a.id ? a : x));
         push("success", "تم التحديث");
@@ -269,6 +380,10 @@ export function ChartOfAccounts() {
           type: form.type,
           parentId: form.parentId || null,
           description: form.description.trim() || null,
+          cashFlowType: form.cashFlowType,
+          allowPosting: form.allowPosting,
+          allowPayment: form.allowPayment,
+          allowExpenseClaim: form.allowExpenseClaim,
         });
         setItems(prev => [...prev, a]);
         push("success", `تم إنشاء الحساب ${a.code}`);
@@ -283,13 +398,36 @@ export function ChartOfAccounts() {
   };
 
   const handleDelete = async (id: string) => {
+    const source = items.find(x => x.id === id) || null;
     try {
       await api.accounts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       push("success", "تم الحذف");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      if (source && e instanceof ApiError && (e.message.includes("قيود") || e.message.includes("فرعية") || e.message.includes("has_journals") || e.message.includes("has_children"))) {
+        setMergeSource(source);
+        setMergeTargetId("");
+        push("error", "لا يمكن حذف هذا الحساب مباشرة · اختر حساباً لنقل القيود أو الحسابات الفرعية إليه");
+      } else {
+        push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      }
     } finally { setPendingDelete(null); }
+  };
+
+  const confirmMerge = async () => {
+    if (!mergeSource || !mergeTargetId) return;
+    setMergeBusy(true);
+    try {
+      const r = await api.accounts.merge(mergeSource.id, mergeTargetId);
+      push("success", r.message || "تم الدمج");
+      setMergeSource(null);
+      setMergeTargetId("");
+      await refresh();
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل الدمج");
+    } finally {
+      setMergeBusy(false);
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -389,8 +527,59 @@ export function ChartOfAccounts() {
     return undefined;
   };
 
+  const annotateImportRows = (rows: ImportRow[]): ImportRow[] => {
+    const byCode = new Set(items.map(a => a.code));
+    const byName = new Map(items.map(a => [normalizeText(`${a.name} ${a.nameAr || ""}`), a.code]));
+    return rows.map((row) => {
+      const duplicateCode = byCode.has(row.code);
+      const duplicateNameCode = byName.get(normalizeText(`${row.name} ${row.nameAr || ""}`)) || null;
+      return {
+        ...row,
+        duplicateCode,
+        duplicateNameCode,
+        rowStatus: duplicateCode ? "code_duplicate" : duplicateNameCode ? "name_duplicate" : "new",
+      };
+    });
+  };
+
+  const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const s = String(reader.result || "");
+      const idx = s.indexOf("base64,");
+      resolve(idx >= 0 ? s.slice(idx + "base64,".length) : s);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
   const handleFilePick = async (file: File) => {
     try {
+      const isCsv = /csv|text\/plain/.test(file.type) || /\.csv$/i.test(file.name);
+      if (!isCsv) {
+        setImportBusy(true);
+        const r = await api.accounts.analyzeImport({
+          fileBase64: await fileToBase64(file),
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+        });
+        const parsed = annotateImportRows((r.rows || []).map((row: any) => ({
+          code: String(row.code || "").trim(),
+          name: String(row.name || "").trim(),
+          nameAr: String(row.nameAr || "").trim(),
+          type: row.type || undefined,
+          parentCode: row.parentCode || "",
+          description: row.description || "",
+          confidence: row.confidence ?? null,
+        })).filter((row: ImportRow) => row.code));
+        if (parsed.length === 0) {
+          push("error", "لم يستخرج التحليل حسابات واضحة من الملف");
+          return;
+        }
+        setImportPreview({ rows: parsed, mapping: {}, rawHeaders: [], source: "image", warnings: r.warnings || [] });
+        push("success", `تم تحليل ${parsed.length} حساب من الملف`);
+        return;
+      }
       const text = await file.text();
       const { headers, rows: rawRows } = parseCsv(text);
       const mapping = detectMapping(headers);
@@ -415,9 +604,11 @@ export function ChartOfAccounts() {
         push('error', 'لم يتم العثور على صفوف صالحة · تأكد من وجود عمود "code" أو "رمز"');
         return;
       }
-      setImportPreview({ rows: parsed, mapping, rawHeaders: headers });
+      setImportPreview({ rows: annotateImportRows(parsed), mapping, rawHeaders: headers, source: "csv" });
     } catch (e: any) {
       push('error', e?.message || 'فشل قراءة الملف');
+    } finally {
+      setImportBusy(false);
     }
   };
 
@@ -432,7 +623,7 @@ export function ChartOfAccounts() {
         type: row.type,
         parentCode: row.parentCode || null,
         description: row.description || null,
-      })) as any, true);
+      })), true);
       push('success', r.message);
       setImportPreview(null);
       refresh();
@@ -453,10 +644,11 @@ export function ChartOfAccounts() {
           <p className="text-[#6B7280] mt-1">شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات</p>
         </div>
         <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden"
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="border-[#E5E7EB]">
-            <Upload className="me-2 h-4 w-4" /> استيراد CSV
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy} className="border-[#E5E7EB]">
+            {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" />}
+            استيراد ذكي
           </Button>
           <Button variant="outline" onClick={handleExport} className="border-[#E5E7EB]">
             <Download className="me-2 h-4 w-4" /> تصدير CSV
@@ -480,13 +672,13 @@ export function ChartOfAccounts() {
               className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-[#1276E3] ${isActive ? "border-[#1276E3] ring-1 ring-[#1276E3]/20" : "border-[#E5E7EB]"}`}
             >
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs text-[#6B7280]">{TYPE_LABELS[t]}</span>
+                <span className="text-xs text-[#6B7280]">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></span>
                 <Icon className="h-4 w-4 text-[#9CA3AF]" />
               </div>
               <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
                 {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </div>
-              <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{typeItems.length}</span> حساب</p>
+              <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{typeItems.length}</span> حساب · الرصيد الإجمالي</p>
             </button>
           );
         })}
@@ -535,16 +727,16 @@ export function ChartOfAccounts() {
 
             return (
               <Card key={t} className={`border-[#E5E7EB] overflow-hidden`}>
-                <div className="bg-[#F9FAFB] border-b border-[#E5E7EB] px-4 py-2.5 flex items-center justify-between">
+                <div className={`border-b border-[#E5E7EB] px-4 py-2.5 flex items-center justify-between ${meta.bg}`}>
                   <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-[#6B7280]" />
+                    <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
-                      <div className="text-sm text-[#0B1B49] font-semibold">{TYPE_LABELS[t]}</div>
+                      <div className="text-sm text-[#0B1B49] font-semibold">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></div>
                       <div className="text-[10px] text-[#9CA3AF]">{sectionRoots.length} حساب رئيسي · إجمالي <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
-                    onClick={() => { setForm({ code: "", name: "", nameAr: "", type: t, parentId: "", description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                    onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                     className="text-[11px] text-[#1276E3] hover:bg-[#F4FCFF] transition px-2 py-1 rounded inline-flex items-center gap-1"
                     title={`إضافة حساب جديد · ${TYPE_LABELS[t]}`}
                   >
@@ -613,7 +805,7 @@ export function ChartOfAccounts() {
                             {/* Hover actions */}
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
                               <button
-                                onClick={() => { setForm({ code: "", name: "", nameAr: "", type: node.type as AccountType, parentId: node.id, description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                                onClick={() => { setForm(defaultForm(node.type as AccountType, node.id, node)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                                 className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]"
                                 title="إضافة حساب فرعي تحت هذا"
                               >
@@ -635,7 +827,7 @@ export function ChartOfAccounts() {
                       })()}
                       {/* Inline add at bottom of section */}
                       <button
-                        onClick={() => { setForm({ code: "", name: "", nameAr: "", type: t, parentId: "", description: "" }); setCodeManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                        onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                         className="w-full px-3 py-2 text-xs text-[#9CA3AF] hover:text-[#1276E3] hover:bg-[#F9FAFB] flex items-center gap-2 border-t border-dashed border-[#E5E7EB]"
                       >
                         <Plus className="h-3.5 w-3.5" /> إضافة حساب رئيسي جديد لـ{TYPE_LABELS[t]}
@@ -729,13 +921,27 @@ export function ChartOfAccounts() {
 
             <div className="p-4 space-y-3">
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-                ✓ تم اكتشاف <span className="font-english font-bold">{importPreview.rows.length}</span> صف · الأعمدة المُكتشفة:
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {Object.entries(importPreview.mapping).filter(([_, v]) => v).map(([k, v]) => (
-                    <span key={k} className="text-[10px] px-2 py-0.5 rounded bg-white border border-blue-200 font-english">
-                      <strong>{k}</strong> ← {v}
-                    </span>
-                  ))}
+                ✓ تم اكتشاف <span className="font-english font-bold">{importPreview.rows.length}</span> صف من {importPreview.source === "csv" ? "CSV" : "تحليل ذكي للملف"}
+                <span className="ms-2">· جديد: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "new").length}</span></span>
+                <span className="ms-2">· مكرر بالرمز: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "code_duplicate").length}</span></span>
+                <span className="ms-2">· يحتاج مراجعة: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "name_duplicate").length}</span></span>
+                {(Object.entries(importPreview.mapping).some(([_, v]) => v) || (importPreview.warnings || []).length > 0) && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {Object.entries(importPreview.mapping).filter(([_, v]) => v).map(([k, v]) => (
+                      <span key={k} className="text-[10px] px-2 py-0.5 rounded bg-white border border-blue-200 font-english">
+                        <strong>{k}</strong> ← {v}
+                      </span>
+                    ))}
+                    {(importPreview.warnings || []).slice(0, 3).map((warning, i) => (
+                      <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700">
+                        {warning}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-blue-700/80">
+                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  المكرر بالرمز سيتم تخطيه عند الحفظ، والمكرر بالاسم ملوّن للمراجعة قبل إدخاله حتى لا يتكرر دليل الحسابات.
                 </div>
               </div>
 
@@ -754,9 +960,13 @@ export function ChartOfAccounts() {
                     {importPreview.rows.slice(0, 100).map((r, i) => {
                       const inferredType = r.type || (r.code ? (r.code.charAt(0) === '1' ? 'ASSET' : r.code.charAt(0) === '2' ? 'LIABILITY' : r.code.charAt(0) === '3' ? 'EQUITY' : r.code.charAt(0) === '4' ? 'REVENUE' : 'EXPENSE') : '?');
                       return (
-                        <tr key={i} className="border-t border-[#F3F4F6]">
+                        <tr key={i} className={`border-t border-[#F3F4F6] ${r.rowStatus === "code_duplicate" ? "bg-red-50/60" : r.rowStatus === "name_duplicate" ? "bg-amber-50/60" : ""}`}>
                           <td className="px-3 py-1.5 font-english font-semibold text-[#1276E3]">{r.code}</td>
-                          <td className="px-3 py-1.5 font-english">{r.name || '—'}</td>
+                          <td className="px-3 py-1.5 font-english">
+                            {r.name || '—'}
+                            {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">رمز موجود</span>}
+                            {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">اسم مشابه: {r.duplicateNameCode}</span>}
+                          </td>
                           <td className="px-3 py-1.5">{r.nameAr || '—'}</td>
                           <td className="px-3 py-1.5">
                             <span className={`text-xs px-1.5 py-0.5 rounded ${TYPE_COLORS[inferredType as AccountType] || 'bg-gray-100'}`}>
@@ -788,6 +998,52 @@ export function ChartOfAccounts() {
         </div>
       )}
 
+      {mergeSource && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setMergeSource(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-[#F3F4F6]">
+              <h2 className="text-base text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
+                <ArrowRightLeft className="h-5 w-5 text-amber-600" />
+                نقل ودمج الحساب
+              </h2>
+              <button type="button" onClick={() => setMergeSource(null)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-4 w-4 text-[#6B7280]" /></button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <div>
+                  لا أحذف الحساب إذا عليه قيود أو حسابات فرعية. اختر حساباً من نفس التصنيف ليتم نقل القيود والحسابات الفرعية إليه ثم تعطيل الحساب القديم.
+                </div>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] p-3">
+                <div className="text-xs text-[#9CA3AF] mb-1">الحساب المراد دمجه</div>
+                <div className="font-english text-sm text-[#0B1B49] font-semibold">{mergeSource.code} · {mergeSource.nameAr || mergeSource.name}</div>
+                <div className="text-xs text-[#6B7280] mt-1">{TYPE_LABELS[mergeSource.type as AccountType]} · الرصيد {formatAmount(mergeSource.balance)}</div>
+              </div>
+              <div>
+                <Label className="text-xs text-[#6B7280]">الحساب البديل *</Label>
+                <select
+                  value={mergeTargetId}
+                  onChange={(e) => setMergeTargetId(e.target.value)}
+                  className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white font-english"
+                >
+                  <option value="">اختر حساباً من نفس التصنيف</option>
+                  {items.filter(a => a.id !== mergeSource.id && a.type === mergeSource.type).map(a => (
+                    <option key={a.id} value={a.id}>{a.code} · {a.nameAr || a.name} · {formatAmount(a.balance)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
+              <Button type="button" variant="outline" onClick={() => setMergeSource(null)} className="border-[#E5E7EB]" disabled={mergeBusy}>إلغاء</Button>
+              <Button type="button" onClick={confirmMerge} disabled={mergeBusy || !mergeTargetId} className="bg-amber-600 hover:bg-amber-700">
+                {mergeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "نقل القيود وتعطيل القديم"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -799,17 +1055,37 @@ export function ChartOfAccounts() {
               <div className="p-4 space-y-3">
                 <div>
                   <Label className="text-xs text-[#6B7280]">التصنيف *</Label>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as AccountType, parentId: "" })}
+                  <select value={form.type} onChange={(e) => {
+                    const nextType = e.target.value as AccountType;
+                    const usage = usageDefaults(nextType, `${form.name} ${form.nameAr}`);
+                    setForm(prev => ({
+                      ...prev,
+                      type: nextType,
+                      parentId: "",
+                      ...(cashFlowManuallyEdited ? {} : { cashFlowType: inferCashFlowType(nextType, `${prev.name} ${prev.nameAr}`) }),
+                      ...usage,
+                    }));
+                  }}
                     className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
                     {(["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as AccountType[]).map(t => (
                       <option key={t} value={t}>{TYPE_LABELS[t]} · {t} ({TYPE_PREFIX[t]}xxxx)</option>
                     ))}
                   </select>
+                  <p className="text-xs text-[#9CA3AF] mt-1">
+                    الرقم الأساسي لهذا التصنيف يبدأ بـ <span className="font-english">{TYPE_PREFIX[form.type]}xxxx</span> · الاقتراح الذكي لن يغيّر هذا التصنيف.
+                  </p>
                 </div>
 
                 <div>
                   <Label className="text-xs text-[#6B7280]">الحساب الأب (اختياري)</Label>
-                  <select value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })}
+                  <select value={form.parentId} onChange={(e) => {
+                    const parent = items.find(a => a.id === e.target.value) || null;
+                    setForm(prev => ({
+                      ...prev,
+                      parentId: e.target.value,
+                      ...(cashFlowManuallyEdited ? {} : { cashFlowType: inferCashFlowType(prev.type, `${prev.name} ${prev.nameAr}`, parent) }),
+                    }));
+                  }}
                     className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white font-english">
                     <option value="">— لا يوجد · حساب رئيسي —</option>
                     {parentOptions.map(p => (
@@ -840,7 +1116,11 @@ export function ChartOfAccounts() {
                         اقتراح بالذكاء
                       </button>
                     </Label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    <Input value={form.name} onChange={(e) => {
+                      const parent = form.parentId ? items.find(a => a.id === form.parentId) : null;
+                      const name = e.target.value;
+                      setForm({ ...form, name, ...usageDefaults(form.type, `${name} ${form.nameAr}`, parent || null) });
+                    }}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.name); } }}
                       placeholder="Office Supplies" required dir="ltr" className="border-[#E5E7EB] font-english" />
                   </div>
@@ -854,7 +1134,11 @@ export function ChartOfAccounts() {
                       اقتراح بالذكاء
                     </button>
                   </Label>
-                  <Input value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })}
+                  <Input value={form.nameAr} onChange={(e) => {
+                    const parent = form.parentId ? items.find(a => a.id === form.parentId) : null;
+                    const nameAr = e.target.value;
+                    setForm({ ...form, nameAr, ...usageDefaults(form.type, `${form.name} ${nameAr}`, parent || null) });
+                  }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.nameAr); } }}
                     placeholder="مستلزمات مكتبية · أو اكتب 'جهاز' / 'مبيعات' والذكاء يقترح" className="border-[#E5E7EB]" />
                 </div>
@@ -872,44 +1156,43 @@ export function ChartOfAccounts() {
 
                 <div>
                   <Label className="text-xs text-[#6B7280]">نوع التدفق النقدي *</Label>
-                  <select value={(form as any).cashFlowType || "OPERATING"}
-                    onChange={(e) => setForm({ ...form, cashFlowType: e.target.value } as any)}
+                  <select value={form.cashFlowType}
+                    onChange={(e) => { setCashFlowManuallyEdited(true); setForm({ ...form, cashFlowType: e.target.value as CashFlowType }); }}
                     className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
-                    <option value="OPERATING">التشغيلات (Operating)</option>
-                    <option value="INVESTING">الاستثمارات (Investing)</option>
-                    <option value="FINANCING">التمويلات (Financing)</option>
-                    <option value="NON_CASH">غير نقدي (Non-Cash)</option>
+                    {(Object.keys(CASH_FLOW_META) as CashFlowType[]).map((key) => (
+                      <option key={key} value={key}>{CASH_FLOW_META[key].label}</option>
+                    ))}
                   </select>
-                  <p className="text-xs text-[#9CA3AF] mt-1">حدد القسم الذي سيظهر فيه هذا الحساب ضمن قائمة التدفقات النقدية</p>
+                  <p className="text-xs text-[#9CA3AF] mt-1">{CASH_FLOW_META[form.cashFlowType].hint}</p>
                 </div>
 
                 <div className="rounded-lg border border-[#E5E7EB] p-3 space-y-2">
-                  <div className="text-xs text-[#6B7280] font-medium">كيف يمكن استخدام هذا الحساب؟ (اختياري)</div>
+                  <div className="text-xs text-[#6B7280] font-medium">أين يظهر هذا الحساب؟</div>
                   <label className="flex items-start gap-2 cursor-pointer">
-                    <input type="checkbox" checked={(form as any).allowPosting !== false}
-                      onChange={(e) => setForm({ ...form, allowPosting: e.target.checked } as any)}
+                    <input type="checkbox" checked={form.allowPosting}
+                      onChange={(e) => setForm({ ...form, allowPosting: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-[#0B1B49]">السماح بتسجيل المعاملات على هذا الحساب</div>
-                      <div className="text-xs text-[#9CA3AF]">يُسمح للمستخدمين بتحديد هذا الحساب عند إنشاء القيود اليدوية</div>
+                      <div className="text-sm text-[#0B1B49]">يظهر في القيود اليدوية</div>
+                      <div className="text-xs text-[#9CA3AF]">فعّله إذا كان المحاسب يقدر يختار الحساب عند تسجيل قيد يدوي</div>
                     </div>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
-                    <input type="checkbox" checked={(form as any).allowPayment === true}
-                      onChange={(e) => setForm({ ...form, allowPayment: e.target.checked } as any)}
+                    <input type="checkbox" checked={form.allowPayment}
+                      onChange={(e) => setForm({ ...form, allowPayment: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-[#0B1B49]">السماح باختيار هذا الحساب للمدفوعات</div>
-                      <div className="text-xs text-[#9CA3AF]">السماح باختيار هذا الحساب عند تسجيل أي مدفوعات</div>
+                      <div className="text-sm text-[#0B1B49]">يظهر كحساب دفع أو تحصيل</div>
+                      <div className="text-xs text-[#9CA3AF]">عادة لحسابات البنك والصندوق والبطاقات، وليس لكل حساب مصروف</div>
                     </div>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
-                    <input type="checkbox" checked={(form as any).allowExpenseClaim === true}
-                      onChange={(e) => setForm({ ...form, allowExpenseClaim: e.target.checked } as any)}
+                    <input type="checkbox" checked={form.allowExpenseClaim}
+                      onChange={(e) => setForm({ ...form, allowExpenseClaim: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-[#0B1B49]">السماح في مطالبات أو مصاريف الموظفين</div>
-                      <div className="text-xs text-[#9CA3AF]">يظهر الحساب في نموذج تقديم مطالبات المصاريف</div>
+                      <div className="text-sm text-[#0B1B49]">يظهر في مطالبات ومصاريف الموظفين</div>
+                      <div className="text-xs text-[#9CA3AF]">فعّله لحسابات المصروفات التي يستخدمها الموظفون في المطالبات</div>
                     </div>
                   </label>
                 </div>

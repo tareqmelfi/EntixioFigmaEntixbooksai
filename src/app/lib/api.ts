@@ -208,8 +208,12 @@ export const api = {
       request<Account>(`/api/accounts/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
+    merge: (id: string, targetAccountId: string) =>
+      request<{ ok: true; movedJournalLines: number; movedChildren: number; message: string }>(`/api/accounts/${id}/merge`, { method: 'POST', body: { targetAccountId } }),
     importBulk: (rows: Array<{ code: string; name: string; nameAr?: string | null; type?: string; parentCode?: string | null; description?: string | null }>, skipExisting = true) =>
       request<{ ok: true; created: number; skipped: number; linked: number; errors: any[]; message: string }>('/api/accounts/import', { method: 'POST', body: { rows, skipExisting } }),
+    analyzeImport: (data: { fileBase64: string; fileName?: string; mimeType: string }) =>
+      request<{ ok: true; rows: Array<{ code: string; name: string; nameAr?: string; type?: string | null; parentCode?: string | null; description?: string | null; confidence?: number | null }>; warnings?: string[]; model?: string }>('/api/accounts/import/analyze', { method: 'POST', body: data }),
     transactions: (id: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions`),
     translate: (input: string, hint?: string) =>
       request<{ name: string; nameAr: string; type: 'ASSET'|'LIABILITY'|'EQUITY'|'REVENUE'|'EXPENSE'; category?: string; reasoning?: string; suggestedCode?: string }>(
@@ -980,6 +984,11 @@ export interface Account {
   parentId?: string | null
   description?: string | null
   balance?: number          // sum of journal lines (signed for normal balance)
+  cashFlowType?: 'OPERATING' | 'INVESTING' | 'FINANCING' | 'NON_CASH' | null
+  allowPosting?: boolean
+  allowPayment?: boolean
+  allowExpenseClaim?: boolean
+  isSystemAccount?: boolean
   isActive: boolean
 }
 
@@ -990,6 +999,11 @@ export interface AccountInput {
   type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
   subtype?: string | null
   parentId?: string | null
+  description?: string | null
+  cashFlowType?: 'OPERATING' | 'INVESTING' | 'FINANCING' | 'NON_CASH' | null
+  allowPosting?: boolean
+  allowPayment?: boolean
+  allowExpenseClaim?: boolean
 }
 
 export interface Expense {
