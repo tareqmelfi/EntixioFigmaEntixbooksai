@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Images, Upload, Sparkles, X, FileText, Image as ImageIcon, Loader2, Eye } from "lucide-react";
 import { Button } from "./ui/button";
+import { api } from "../lib/api";
 
 export interface DocumentPreviewProps {
   className?: string;
@@ -72,6 +73,24 @@ function extractionMessageForFile(file: File | null, fallbackName: string) {
   return "تحليل الملف واستخراج بيانات المصروف";
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+  }
+  return btoa(binary);
+}
+
+function base64ToFile(base64: string, fileName: string, mimeType: string): File {
+  const raw = atob(base64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return new File([bytes], fileName, { type: mimeType });
+}
+
 export function DocumentPreviewPane({
   className = "",
   onFilesAdded,
@@ -91,6 +110,7 @@ export function DocumentPreviewPane({
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<ProcessingState | null>(null);
+  const [archiveOriginal, setArchiveOriginal] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<FileItem[]>(files);
 
@@ -137,7 +157,9 @@ export function DocumentPreviewPane({
           name: f.name,
           url: prepared.url,
           type: prepared.type,
-          note: prepared.note,
+          note: archiveOriginal
+            ? "المعاينة تستخدم نسخة JPG منظفة، لكن الأرشفة ستحفظ الملف الكامل كما رفعته."
+            : prepared.note,
         });
       }
     } catch (e: any) {
@@ -157,7 +179,7 @@ export function DocumentPreviewPane({
           current: newItems.length,
           total: newItems.length,
         });
-        await onFilesAdded(newItems.map((item) => item.extractFile || item.file).filter(Boolean) as File[]);
+        await onFilesAdded(newItems.map((item) => archiveOriginal ? item.file : (item.extractFile || item.file)).filter(Boolean) as File[]);
       } catch (e: any) {
         setError(e?.message || "فشل حفظ المرفقات");
         setProcessing(null);
@@ -247,6 +269,22 @@ export function DocumentPreviewPane({
           <Upload className="h-10 w-10 text-[#9CA3AF] mb-3" />
           <p className="text-sm text-[#0B1B49] font-medium">{hint}</p>
           <p className="text-xs text-[#9CA3AF] mt-1">PDF · JPG · PNG · HEIC · صور من الجوال · حتى {maxSizeMb}MB</p>
+          <div className="mt-3 inline-flex rounded-lg border border-[#E5E7EB] bg-white p-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setArchiveOriginal(false)}
+              className={`rounded-md px-2.5 py-1.5 transition ${!archiveOriginal ? "bg-[#0B1B49] text-white" : "text-[#6B7280] hover:bg-[#F9FAFB]"}`}
+            >
+              أرشفة ممسوحة
+            </button>
+            <button
+              type="button"
+              onClick={() => setArchiveOriginal(true)}
+              className={`rounded-md px-2.5 py-1.5 transition ${archiveOriginal ? "bg-[#0B1B49] text-white" : "text-[#6B7280] hover:bg-[#F9FAFB]"}`}
+            >
+              حفظ كامل
+            </button>
+          </div>
           <input ref={fileRef} type="file" hidden multiple accept={accept}
             onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }} />
           <Button onClick={() => fileRef.current?.click()} variant="outline" className="mt-4 border-[#E5E7EB]">
@@ -270,6 +308,14 @@ export function DocumentPreviewPane({
               {active?.extracted && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />}
             </div>
             <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setArchiveOriginal((value) => !value)}
+                className={`h-7 rounded-md border px-2 text-[11px] transition ${archiveOriginal ? "border-[#0B1B49] bg-[#0B1B49] text-white" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F9FAFB]"}`}
+                title="يؤثر على الملفات الجديدة التي ترفعها بعد تغيير الخيار"
+              >
+                {archiveOriginal ? "حفظ كامل" : "أرشفة ممسوحة"}
+              </button>
               {enableExtract && active?.file && onExtract && (
                 <Button onClick={handleExtract} disabled={active.extracting}
                   size="sm" className="bg-[#1276E3] hover:bg-[#1060C0] text-white text-xs h-7 px-2">
@@ -450,12 +496,37 @@ async function prepareFileForPreviewAndUpload(file: File): Promise<{ file: File;
   const type = file.type || guessType(file.name);
   const heicLike = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(file.name);
 
-  if (!type.startsWith("image/") || heicLike || type.includes("gif")) {
+  if (heicLike) {
+    try {
+      const normalized = await api.agent.normalizeImage({
+        fileBase64: await fileToBase64(file),
+        fileName: file.name,
+        mimeType: type,
+        trimEdges: true,
+      });
+      const converted = base64ToFile(normalized.fileBase64, normalized.fileName || toJpegName(file.name), normalized.mimeType || "image/jpeg");
+      return {
+        file: converted,
+        url: URL.createObjectURL(converted),
+        type: converted.type,
+        note: "تم تحويل HEIC إلى JPG ممسوح ومنظف للمعاينة والأرشفة.",
+      };
+    } catch {
+      return {
+        file,
+        url: URL.createObjectURL(file),
+        type,
+        note: "تعذر تحويل HEIC للمعاينة الآن، وسيحاول السيرفر قراءته عند الاستخراج.",
+      };
+    }
+  }
+
+  if (!type.startsWith("image/") || type.includes("gif")) {
     return {
       file,
       url: URL.createObjectURL(file),
       type,
-      note: heicLike ? "سيتم تحويل HEIC في السيرفر قبل الاستخراج، لذلك لن تظهر المعاينة كاملة داخل المتصفح." : undefined,
+      note: undefined,
     };
   }
 

@@ -82,6 +82,8 @@ type ExtractionSummary = {
   warnings: string[];
 };
 
+const EXPENSE_DRAFT_KEY = "entix.expenses.currentDraft.v2";
+
 function emptyForm(): FormState {
   return {
     category: "",
@@ -101,6 +103,87 @@ function emptyForm(): FormState {
     extractedJson: null,
     ocrConfidence: null,
   };
+}
+
+function hasDraftContent(form: FormState) {
+  const empty = emptyForm();
+  return Boolean(
+    form.category.trim()
+    || form.amount.trim()
+    || form.taxAmount.trim()
+    || form.totalAmount.trim()
+    || form.description.trim()
+    || form.vendorName.trim()
+    || form.supplierTaxId.trim()
+    || form.documentNumber.trim()
+    || form.notes.trim()
+    || form.lineItems.length
+    || form.paymentSplits.length
+    || form.attachments.length
+    || form.extractedJson
+    || form.date !== empty.date
+  );
+}
+
+function readExpenseDraft(): { formData: FormState; extractionSummary: ExtractionSummary | null; updatedAt: string } | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(EXPENSE_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.formData) return null;
+    return {
+      formData: {
+        ...emptyForm(),
+        ...parsed.formData,
+        lineItems: Array.isArray(parsed.formData.lineItems) ? parsed.formData.lineItems : [],
+        paymentSplits: Array.isArray(parsed.formData.paymentSplits) ? parsed.formData.paymentSplits : [],
+        attachments: Array.isArray(parsed.formData.attachments)
+          ? parsed.formData.attachments.filter((a: UploadedAttachment) => a?.base64)
+          : [],
+      },
+      extractionSummary: parsed.extractionSummary || null,
+      updatedAt: parsed.updatedAt || new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeExpenseDraft(formData: FormState, extractionSummary: ExtractionSummary | null) {
+  if (typeof localStorage === "undefined") return;
+  const payload = { formData, extractionSummary, updatedAt: new Date().toISOString() };
+  try {
+    localStorage.setItem(EXPENSE_DRAFT_KEY, JSON.stringify(payload));
+  } catch {
+    const slim = {
+      ...payload,
+      formData: {
+        ...formData,
+        attachments: [],
+      },
+    };
+    try { localStorage.setItem(EXPENSE_DRAFT_KEY, JSON.stringify(slim)); } catch {}
+  }
+}
+
+function clearExpenseDraft() {
+  if (typeof localStorage === "undefined") return;
+  try { localStorage.removeItem(EXPENSE_DRAFT_KEY); } catch {}
+}
+
+function hasStoredExpenseDraft() {
+  const draft = readExpenseDraft();
+  return Boolean(draft && hasDraftContent(draft.formData));
+}
+
+function draftTimeLabel(value: string | null) {
+  if (!value) return null;
+  try {
+    return new Date(value).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return null;
+  }
 }
 
 async function fileToBase64(file: File): Promise<string> {
@@ -335,6 +418,9 @@ export function Expenses() {
   const [formData, setFormData] = useState<FormState>(() => emptyForm());
   const [extractionSummary, setExtractionSummary] = useState<ExtractionSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftAvailable, setDraftAvailable] = useState(() => hasStoredExpenseDraft());
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -372,14 +458,35 @@ export function Expenses() {
   const avg = Number(summary.avgTotal || 0);
 
   function openCreate() {
+    const draft = readExpenseDraft();
     setEditingId(null);
-    setFormData(emptyForm());
-    setExtractionSummary(null);
+    if (draft && hasDraftContent(draft.formData)) {
+      setFormData(draft.formData);
+      setExtractionSummary(draft.extractionSummary);
+      setDraftSavedAt(draft.updatedAt);
+      setDraftNotice("تم استرجاع مسودة مصروف محفوظة تلقائياً.");
+    } else {
+      setFormData(emptyForm());
+      setExtractionSummary(null);
+      setDraftSavedAt(null);
+      setDraftNotice(null);
+    }
     setCreateError(null);
     setCreateOpen(true);
   }
 
-  function closeCreate() {
+  function closeCreate(preserveDraft = true) {
+    if (preserveDraft && !editingId && hasDraftContent(formData)) {
+      writeExpenseDraft(formData, extractionSummary);
+      const now = new Date().toISOString();
+      setDraftSavedAt(now);
+      setDraftAvailable(true);
+    } else if (!preserveDraft && !editingId) {
+      clearExpenseDraft();
+      setDraftSavedAt(null);
+      setDraftAvailable(false);
+      setDraftNotice(null);
+    }
     setCreateOpen(false);
     setEditingId(null);
     setCreateError(null);
@@ -480,7 +587,7 @@ export function Expenses() {
       setSelected(full);
       push("success", editingId ? `تم تحديث المصروف ${saved.number}` : `تم حفظ المصروف ${saved.number}`);
       if ((saved as any).duplicateExpense) push("info", `تنبيه: يوجد مصروف مشابه ${(saved as any).duplicateExpense.number}`, 7000);
-      closeCreate();
+      closeCreate(false);
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل حفظ المصروف");
     } finally {
@@ -565,6 +672,8 @@ export function Expenses() {
   }
 
   const formTotal = Number(normalizeDigits(formData.totalAmount || "0")) || (Number(normalizeDigits(formData.amount || "0")) + Number(normalizeDigits(formData.taxAmount || "0")));
+  const hasActiveDraft = !editingId && hasDraftContent(formData);
+  const savedAtLabel = draftTimeLabel(draftSavedAt);
   const initialFiles = formData.attachments.length
     ? formData.attachments.map((a) => ({
         name: a.name,
@@ -572,6 +681,29 @@ export function Expenses() {
         url: a.type.startsWith("image/") && !/heic|heif/i.test(a.type) ? `data:${a.type};base64,${a.base64}` : "",
       }))
     : [];
+
+  useEffect(() => {
+    if (!createOpen || editingId || !hasDraftContent(formData)) return;
+    const handle = window.setTimeout(() => {
+      writeExpenseDraft(formData, extractionSummary);
+      const now = new Date().toISOString();
+      setDraftSavedAt(now);
+      setDraftAvailable(true);
+    }, 650);
+    return () => window.clearTimeout(handle);
+  }, [createOpen, editingId, formData, extractionSummary]);
+
+  useEffect(() => {
+    if (!createOpen || editingId || !hasDraftContent(formData)) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      writeExpenseDraft(formData, extractionSummary);
+      setDraftAvailable(true);
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [createOpen, editingId, formData, extractionSummary]);
 
   if (createOpen) {
     return (
@@ -600,6 +732,36 @@ export function Expenses() {
             />
 
             <div className="space-y-4">
+              {hasActiveDraft && (
+                <div className="rounded-lg border border-[#D7F0FF] bg-white px-3 py-3 text-sm text-[#0B1B49]">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <span>مسودة محفوظة تلقائياً</span>
+                        {savedAtLabel && <span className="font-english text-xs font-normal text-[#6B7280]">{savedAtLabel}</span>}
+                      </div>
+                      <p className="mt-1 text-xs text-[#6B7280]">لو رجعت للقائمة أو قفلت الشاشة، ترجع تكمل نفس المصروف من زر المسودة.</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 border-[#E5E7EB] text-xs"
+                      onClick={() => {
+                        clearExpenseDraft();
+                        setFormData(emptyForm());
+                        setExtractionSummary(null);
+                        setDraftSavedAt(null);
+                        setDraftAvailable(false);
+                        setDraftNotice(null);
+                      }}
+                    >
+                      حذف المسودة وبدء جديد
+                    </Button>
+                  </div>
+                  {draftNotice && <div className="mt-2 rounded-md bg-[#F4FCFF] px-2 py-1 text-xs text-[#0B5CAD]">{draftNotice}</div>}
+                </div>
+              )}
               {extractionSummary && (
                 <div className="rounded-lg border border-[#D7F0FF] bg-[#F4FCFF] px-3 py-3 text-sm text-[#0B1B49]">
                   <div className="flex items-start gap-2">
@@ -1018,6 +1180,36 @@ export function Expenses() {
         </div>
         <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
       </div>
+
+      {draftAvailable && (
+        <div className="rounded-lg border border-[#D7F0FF] bg-[#F4FCFF] px-4 py-3 text-sm text-[#0B1B49]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <div>
+                <div className="font-semibold">يوجد مصروف محفوظ كمسودة تلقائية</div>
+                <div className="text-xs text-[#6B7280]">لن تضيع البيانات لو خرجت من الشاشة قبل الحفظ النهائي.</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" onClick={openCreate} className="h-8 border-[#E5E7EB] text-xs">إكمال المسودة</Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 border-red-200 text-xs text-red-600 hover:bg-red-50"
+                onClick={() => {
+                  clearExpenseDraft();
+                  setDraftAvailable(false);
+                  setDraftSavedAt(null);
+                  setDraftNotice(null);
+                }}
+              >
+                حذف
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-[#E5E7EB]">

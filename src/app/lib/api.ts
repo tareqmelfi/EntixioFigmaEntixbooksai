@@ -416,6 +416,20 @@ export const api = {
       defaultTaxRate?: number;
       currency?: string;
     }) => request<any>('/api/agent/extract-document', { method: 'POST', body: data }),
+    normalizeImage: (data: {
+      fileBase64: string;
+      fileName?: string;
+      mimeType: string;
+      trimEdges?: boolean;
+    }) => request<{
+      ok: true;
+      fileBase64: string;
+      fileName: string;
+      mimeType: string;
+      warnings?: string[];
+      converted?: boolean;
+      originalMimeType?: string;
+    }>('/api/agent/normalize-image', { method: 'POST', body: data }),
     /** Smart paste · text blob → structured rows */
     parsePaste: (data: { text: string; hint?: 'invoice' | 'expense' | 'bill' | 'voucher' | 'contact' | 'auto' }) =>
       request<any>('/api/agent/parse-paste', { method: 'POST', body: data }),
