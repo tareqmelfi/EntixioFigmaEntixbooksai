@@ -259,6 +259,12 @@ export const api = {
     purchases: () => request<PurchasesDashboard>('/api/dashboard/purchases'),
   },
 
+  // Reports · live report viewer + print designer payload
+  reports: {
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; demo?: number }) =>
+      request<ReportPayload>(`/api/reports/${id}`, { query: params }),
+  },
+
   // Bills (purchase invoices)
   bills: {
     list: (params?: { status?: string; contactId?: string }) =>
@@ -726,6 +732,8 @@ export interface Org {
   zatcaCsid?: string | null
   zatcaCsidSecret?: string | null
   logoUrl?: string | null
+  printLogoUrl?: string | null
+  defaultInvoiceLanguage?: 'ar' | 'en' | null
   stampUrl?: string | null
   email?: string | null
   phone?: string | null
@@ -772,6 +780,8 @@ export interface CreateOrgInput {
   vatNumber?: string
   crNumber?: string
   logoUrl?: string
+  printLogoUrl?: string
+  defaultInvoiceLanguage?: 'ar' | 'en'
   stampUrl?: string
   email?: string
   phone?: string
@@ -789,6 +799,61 @@ export interface CreateOrgInput {
   taxRegistrationDate?: string
   firstVatPeriodStart?: string
   vatPeriod?: string
+}
+
+export interface ReportColumn {
+  key: string
+  label: string
+  align?: 'start' | 'end' | 'center'
+  kind?: 'text' | 'money' | 'number' | 'date' | 'status'
+}
+
+export interface ReportRow {
+  id: string
+  label: string
+  values: Record<string, string | number | null>
+  note?: string | null
+  status?: string | null
+  link?: { label: string; href: string; type: string } | null
+}
+
+export interface ReportSection {
+  id: string
+  title: string
+  description?: string | null
+  columns: ReportColumn[]
+  rows: ReportRow[]
+}
+
+export interface ReportPayload {
+  id: string
+  title: string
+  englishTitle: string
+  description: string
+  category: string
+  status: 'live' | 'demo' | 'empty'
+  generatedAt: string
+  period: { from: string; to: string }
+  currency: string
+  org: Org
+  summary: Record<string, number>
+  sections: ReportSection[]
+  notices?: string[]
+}
+
+export interface ReportPrintSettings {
+  logoSource?: 'print' | 'main' | 'none'
+  paper?: 'A4' | 'Letter'
+  orientation?: 'portrait' | 'landscape'
+  language?: 'ar' | 'en'
+  fontScale?: 'compact' | 'normal' | 'large'
+  density?: 'comfortable' | 'standard' | 'compact'
+  primaryColor?: string
+  accentColor?: string
+  showCompanyInfo?: boolean
+  showTaxInfo?: boolean
+  showFooter?: boolean
+  showPreparedBy?: boolean
 }
 
 export interface Contact {

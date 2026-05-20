@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useNavigate } from "react-router";
 import {
   BarChart3,
   Building2,
@@ -599,6 +600,7 @@ const statusMeta: Record<ReportStatus, { label: string; className: string; help:
 };
 
 export function Reports() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -680,7 +682,7 @@ export function Reports() {
   };
 
   const printSelectedReport = () => {
-    window.print();
+    navigate(`/app/reports/${selectedReport.id}/print`);
   };
 
   const selectCategory = (nextCategory: ReportCategoryId | "all") => {
@@ -691,23 +693,6 @@ export function Reports() {
 
   return (
     <div className="space-y-5">
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .entix-report-print, .entix-report-print * { visibility: visible !important; }
-          .entix-report-print {
-            position: absolute !important;
-            inset: 0 !important;
-            width: 100% !important;
-            min-height: 100vh !important;
-            background: #ffffff !important;
-            padding: 24px !important;
-            box-shadow: none !important;
-            border: 0 !important;
-          }
-          .no-print { display: none !important; }
-        }
-      `}</style>
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مركز التقارير</h1>
@@ -793,7 +778,10 @@ export function Reports() {
                   <ReportList
                     reports={filteredReports}
                     selectedReportId={selectedReport.id}
-                    onSelect={setSelectedReportId}
+                    onSelect={(id) => {
+                      setSelectedReportId(id);
+                      navigate(`/app/reports/${id}`);
+                    }}
                   />
                   <ReportPreview
                     report={selectedReport}

@@ -59,6 +59,8 @@ import { Employees } from "./pages/employees";
 import { Contacts } from "./pages/contacts";
 import { ContactDetail } from "./pages/contact-detail";
 import { Reports } from "./pages/reports";
+import { ReportView } from "./pages/report-view";
+import { ReportPrintDesigner } from "./pages/report-print-designer";
 import { Settings } from "./pages/settings";
 import { Notifications } from "./pages/notifications";
 import { InboxPage } from "./pages/inbox";
@@ -195,6 +197,8 @@ export const router = createBrowserRouter([
       { path: "templates", element: <Templates />, errorElement: <ErrorBoundary /> },
       // Analytics & Settings
       { path: "reports", element: <Reports />, errorElement: <ErrorBoundary /> },
+      { path: "reports/:id", element: <ReportView />, errorElement: <ErrorBoundary /> },
+      { path: "reports/:id/print", element: <ReportPrintDesigner />, errorElement: <ErrorBoundary /> },
       { path: "reports/cash-flow", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "reports/profit-loss", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "settings", element: <Settings />, errorElement: <ErrorBoundary /> },
