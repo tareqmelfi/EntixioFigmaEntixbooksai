@@ -269,7 +269,9 @@ export function Invoices() {
         try {
           await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined, payLink });
           push("success", payLink ? "تم إرسال الفاتورة مع رابط الدفع" : "تم إرسال الفاتورة بدون رابط دفع");
-        } catch (e) { /* email might fail if no customer email · don't block */ }
+        } catch (e: any) {
+          push("error", e?.message || "تعذر إرسال الفاتورة بالبريد");
+        }
       }
       // UX-177 · stay on the saved invoice instead of returning to list
       // Switch to edit mode of the freshly-saved invoice · preserve all form fields

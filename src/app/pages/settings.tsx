@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLogItem } from "../lib/api";
 import { authStore } from "../components/auth-store";
+import { useLanguage } from "../components/LanguageContext";
 
 const ROLE_LABELS: Record<string, string> = {
   OWNER: "مالك", ADMIN: "مدير", ACCOUNTANT: "محاسب", VIEWER: "مشاهد فقط",
@@ -56,7 +57,10 @@ export function Settings() {
   const [aiBusy, setAiBusy] = useState(false);
   const [byokKey, setByokKey] = useState("");
   const [byokProvider, setByokProvider] = useState<"openrouter" | "anthropic">("openrouter");
+  const [emailStatus, setEmailStatus] = useState<any>(null);
+  const [inboxStatus, setInboxStatus] = useState<any>(null);
   const { toasts, push, dismiss } = useToasts();
+  const { t } = useLanguage();
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -86,6 +90,12 @@ export function Settings() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
+
+  useEffect(() => {
+    if (!org) return;
+    api.email.status().then(setEmailStatus).catch(() => setEmailStatus(null));
+    api.inbox.status().then(setInboxStatus).catch(() => setInboxStatus(null));
+  }, [org?.id]);
 
   const handleSave = async () => {
     if (!org) return;
@@ -178,30 +188,30 @@ await authStore.logout();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإعدادات</h1>
+        <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإعدادات", "Settings")}</h1>
         <p className="text-[#6B7280] mt-1">{org?.name}</p>
       </div>
 
       <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
         {(([
-          ["company", "بيانات الشركة"],
-          ["data", "البيانات"],
-          ["numbering", "الترقيم"],
+          ["company", "بيانات الشركة", "Company"],
+          ["data", "البيانات", "Data"],
+          ["numbering", "الترقيم", "Numbering"],
           // ZATCA tab is KSA-only · hide when country=US (UX-176)
-          ...(org?.country === "US" ? [] : [["zatca", "ZATCA · الفوترة الإلكترونية"]]),
-          ["payments", "بوابات الدفع"],
-          ["catalog", "كتالوج المنتجات"],
-          ["members", "الفريق"],
-          ["ai", "الذكاء الاصطناعي"],
-          ["branding", "العلامة التجارية"],
-          ["plans", "الباقات"],
-          ["account", "حسابي"],
-        ] as const) as Array<readonly [string, string]>).map(([k, label]) => (
+          ...(org?.country === "US" ? [] : [["zatca", "ZATCA · الفوترة الإلكترونية", "ZATCA e-invoicing"]]),
+          ["payments", "بوابات الدفع", "Payment gateways"],
+          ["catalog", "كتالوج المنتجات", "Product catalog"],
+          ["members", "الفريق", "Team"],
+          ["ai", "الذكاء الاصطناعي", "AI"],
+          ["branding", "العلامة التجارية", "Branding"],
+          ["plans", "الباقات", "Plans"],
+          ["account", "حسابي", "Account"],
+        ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
           <button
             key={k}
             onClick={() => setTab(k as any)}
             className={`px-4 py-2 text-sm transition-colors border-b-2 -mb-px ${tab === k ? "border-[#1276E3] text-[#1276E3] font-medium" : "border-transparent text-[#6B7280] hover:text-[#0B1B49]"}`}
-          >{label}</button>
+          >{t(label, labelEn)}</button>
         ))}
       </div>
 
@@ -352,25 +362,36 @@ await authStore.logout();
             {/* Inbox forwarding alias (UX-159) · shows the unique email for this org */}
             {org && (org as any).slug && (
               <div className="border-t border-[#F3F4F6] pt-4">
-                <h3 className="text-sm text-[#0B1B49] mb-2" style={{ fontWeight: 600 }}>صندوق البريد الوارد · يستلم الفواتير تلقائياً</h3>
-                <div className="rounded-lg border border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white p-3 flex items-center gap-3">
+                <h3 className="text-sm text-[#0B1B49] mb-2" style={{ fontWeight: 600 }}>
+                  {t("صندوق البريد الوارد · يستلم الفواتير تلقائياً", "Inbound bills mailbox")}
+                </h3>
+                <div className={`rounded-lg border p-3 flex items-center gap-3 ${inboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white" : "border-amber-200 bg-amber-50"}`}>
                   <div className="flex-1 min-w-0">
                     <code className="text-sm text-[#0B1B49] font-english font-semibold block truncate" dir="ltr">
-                      bills+{(org as any).slug}@entix.io
+                      {inboxStatus?.address || `bills+${(org as any).slug}@entix.io`}
                     </code>
-                    <p className="text-xs text-[#6B7280] mt-1">
-                      أرسل أي فاتورة من المورد إلى هذا الإيميل · يقوم الذكاء بتحليلها وإنشاء مسودة في "البريد الوارد" تلقائياً
+                    <p className={`text-xs mt-1 ${inboxStatus?.configured ? "text-[#6B7280]" : "text-amber-800"}`}>
+                      {inboxStatus?.configured
+                        ? t('أرسل أي فاتورة من المورد إلى هذا الإيميل · يقوم الذكاء بتحليلها وإنشاء مسودة في "البريد الوارد" تلقائياً', 'Forward supplier bills to this mailbox. Entix will parse them into Inbox drafts automatically.')
+                        : t("هذا العنوان غير مفعّل كبريد حقيقي بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه.", "This address is not live yet. Configure inbound email routing and INBOX_WEBHOOK_TOKEN on the server before using it.")}
                     </p>
+                    {emailStatus && (
+                      <p className={`text-xs mt-1 ${emailStatus.configured ? "text-emerald-700" : "text-amber-800"}`}>
+                        {emailStatus.configured
+                          ? t(`إرسال الفواتير مفعّل من ${emailStatus.from}`, `Invoice email delivery is active from ${emailStatus.from}`)
+                          : t("إرسال الفواتير غير مفعّل: RESEND_API_KEY أو EMAIL_FROM ناقص.", "Invoice email delivery is not active: RESEND_API_KEY or EMAIL_FROM is missing.")}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(`bills+${(org as any).slug}@entix.io`);
-                      push("success", "تم نسخ العنوان");
+                      navigator.clipboard.writeText(inboxStatus?.address || `bills+${(org as any).slug}@entix.io`);
+                      push("success", t("تم نسخ العنوان", "Address copied"));
                     }}
                     className="shrink-0 px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition"
                   >
-                    نسخ
+                    {t("نسخ", "Copy")}
                   </button>
                 </div>
               </div>
@@ -863,6 +884,7 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
 
 // ── PAYMENTS TAB ───────────────────────────────────────────────────────────
 function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: (kind: any, msg: string) => void }) {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<any>((org as any).paymentSettings || {
     stripe: { enabled: false, publishableKey: "", secretKey: "" },
     paypal: { enabled: false, clientId: "", clientSecret: "", mode: "live" },
@@ -901,15 +923,15 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   }, [org.id]);
 
   const connectStripe = () => {
-    if (!oauthStatus?.stripe?.configured) {
-      push("error", "Stripe Connect غير مهيأ في الخادم · اطلب من المسؤول إضافة STRIPE_CLIENT_ID");
+    if (!oauthStatus?.stripe?.connectConfigured) {
+      push("error", t("Stripe Connect غير مهيأ في الخادم · أضف STRIPE_CLIENT_ID إذا تريد OAuth onboarding", "Stripe Connect is not configured on the server. Add STRIPE_CLIENT_ID if you want OAuth onboarding."));
       return;
     }
     window.location.href = (api as any).oauth.startUrl("stripe", org.id);
   };
   const connectPayPal = () => {
-    if (!oauthStatus?.paypal?.configured) {
-      push("error", "PayPal غير مهيأ في الخادم · اطلب من المسؤول إضافة PAYPAL_CLIENT_ID");
+    if (!oauthStatus?.paypal?.connectConfigured) {
+      push("error", t("PayPal غير مهيأ في الخادم · أضف PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET", "PayPal is not configured on the server. Add PAYPAL_CLIENT_ID/PAYPAL_CLIENT_SECRET."));
       return;
     }
     window.location.href = (api as any).oauth.startUrl("paypal", org.id);
@@ -918,13 +940,13 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
     setBusy(true);
     try {
       await (api as any).oauth.disconnectStripe(org.id);
-      push("success", "تم فصل Stripe");
+      push("success", t("تم فصل Stripe", "Stripe disconnected"));
       const updated = await api.orgs.get(org.id);
       setOrg(updated);
       const next = await (api as any).oauth.status(org.id);
       setOauthStatus(next);
     } catch (e: any) {
-      push("error", e?.message || "فشل الفصل");
+      push("error", e?.message || t("فشل الفصل", "Disconnect failed"));
     } finally { setBusy(false); }
   };
 
@@ -933,9 +955,9 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
     try {
       const updated = await api.orgs.update(org.id, { paymentSettings: settings } as any);
       setOrg(updated);
-      push("success", "تم حفظ بوابات الدفع");
+      push("success", t("تم حفظ بوابات الدفع", "Payment gateways saved"));
     } catch (e: any) {
-      push("error", e?.message || "فشل الحفظ");
+      push("error", e?.message || t("فشل الحفظ", "Save failed"));
     } finally { setBusy(false); }
   };
 
@@ -944,12 +966,12 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
       <div className="flex items-center justify-between">
         <div>
           <div className="text-[#0B1B49] font-medium">{label}</div>
-          <div className="text-xs text-[#9CA3AF]">{settings[name]?.enabled ? "✅ مفعّل" : "⚪ غير مفعّل"}</div>
+          <div className="text-xs text-[#9CA3AF]">{settings[name]?.enabled ? t("مفعّل", "Enabled") : t("غير مفعّل", "Disabled")}</div>
         </div>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input type="checkbox" checked={!!settings[name]?.enabled}
             onChange={(e) => setSettings({ ...settings, [name]: { ...settings[name], enabled: e.target.checked } })} />
-          تفعيل
+          {t("تفعيل", "Enable")}
         </label>
       </div>
       {settings[name]?.enabled && (
@@ -970,8 +992,8 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   return (
     <Card className="border-[#E5E7EB]">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49]">بوابات الدفع</CardTitle>
-        <CardDescription>روابط دفع للفواتير · USD/SAR</CardDescription>
+        <CardTitle className="text-[#0B1B49]">{t("بوابات الدفع", "Payment gateways")}</CardTitle>
+        <CardDescription>{t("روابط دفع للفواتير · USD/SAR", "Invoice payment links · USD/SAR")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
 
@@ -982,25 +1004,29 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
               <div className="text-[#0B1B49] font-medium flex items-center gap-2">
                 💳 Stripe
                 {oauthStatus?.stripe?.connected && (
-                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">✅ مربوط</span>
+                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                    {oauthStatus?.stripe?.source === "server" ? t("مفعّل من الخادم", "Active on server") : t("مربوط", "Connected")}
+                  </span>
                 )}
-                {!oauthStatus?.stripe?.configured && (
-                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">⚠️ يحتاج إعداد بالخادم</span>
+                {oauthStatus && !oauthStatus?.stripe?.configured && (
+                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
                 )}
               </div>
               <div className="text-xs text-[#9CA3AF] mt-0.5">
                 {oauthStatus?.stripe?.connected
-                  ? <>الحساب: <span className="font-english">{oauthStatus.stripe.accountId}</span> · {oauthStatus.stripe.mode}</>
-                  : "بطاقات ائتمانية عالمية · USD/EUR/SAR · لا حاجة لنسخ المفاتيح"}
+                  ? <>{t("الحساب", "Account")}: <span className="font-english">{oauthStatus.stripe.accountId}</span> · {oauthStatus.stripe.mode} · {oauthStatus.stripe.source}</>
+                  : t("بطاقات ائتمانية عالمية · USD/EUR/SAR · لا حاجة لنسخ المفاتيح", "Global cards · USD/EUR/SAR · no customer-side key paste required")}
               </div>
             </div>
-            {oauthStatus?.stripe?.connected ? (
+            {oauthStatus?.stripe?.connected && oauthStatus?.stripe?.source === "oauth" ? (
               <Button onClick={disconnectStripe} disabled={busy} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "فصل"}
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("فصل", "Disconnect")}
               </Button>
+            ) : oauthStatus?.stripe?.connected ? (
+              <span className="text-xs text-[#6B7280]">{t("يُدار من إعدادات الخادم/Stripe", "Managed from server/Stripe settings")}</span>
             ) : (
-              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.configured} className="bg-[#635BFF] hover:bg-[#4F47CC] text-white">
-                <ExternalLink className="h-4 w-4 me-2" /> ربط Stripe
+              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.connectConfigured} className="bg-[#635BFF] hover:bg-[#4F47CC] text-white">
+                <ExternalLink className="h-4 w-4 me-2" /> {t("ربط Stripe", "Connect Stripe")}
               </Button>
             )}
           </div>
@@ -1013,23 +1039,25 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
               <div className="text-[#0B1B49] font-medium flex items-center gap-2">
                 🅿️ PayPal
                 {oauthStatus?.paypal?.connected && (
-                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">✅ مربوط</span>
+                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                    {oauthStatus?.paypal?.source === "server" ? t("مفعّل من الخادم", "Active on server") : t("مربوط", "Connected")}
+                  </span>
                 )}
-                {!oauthStatus?.paypal?.configured && (
-                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">⚠️ يحتاج إعداد بالخادم</span>
+                {oauthStatus && !oauthStatus?.paypal?.configured && (
+                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
                 )}
               </div>
               <div className="text-xs text-[#9CA3AF] mt-0.5">
                 {oauthStatus?.paypal?.connected
-                  ? <>التاجر: <span className="font-english">{oauthStatus.paypal.merchantId}</span> · {oauthStatus.paypal.mode}</>
-                  : "محفظة PayPal · بطاقات + رصيد PayPal"}
+                  ? <>{t("التاجر", "Merchant")}: <span className="font-english">{oauthStatus.paypal.merchantId}</span> · {oauthStatus.paypal.mode} · {oauthStatus.paypal.source}</>
+                  : t("محفظة PayPal · بطاقات + رصيد PayPal", "PayPal wallet · cards + PayPal balance")}
               </div>
             </div>
             {oauthStatus?.paypal?.connected ? (
-              <span className="text-xs text-[#6B7280]">للفصل: استخدم لوحة PayPal</span>
+              <span className="text-xs text-[#6B7280]">{t("للفصل: استخدم لوحة PayPal أو إعدادات الخادم", "To disconnect: use PayPal dashboard or server settings")}</span>
             ) : (
-              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.configured} className="bg-[#003087] hover:bg-[#001E5F] text-white">
-                <ExternalLink className="h-4 w-4 me-2" /> ربط PayPal
+              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.connectConfigured} className="bg-[#003087] hover:bg-[#001E5F] text-white">
+                <ExternalLink className="h-4 w-4 me-2" /> {t("ربط PayPal", "Connect PayPal")}
               </Button>
             )}
           </div>
@@ -1037,7 +1065,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 
         {/* ── Moyasar / Tamara / Tabby · Manual paste (no OAuth) ────────── */}
         <div className="text-xs text-[#6B7280] mt-2">
-          البوابات السعودية تتطلب نسخ المفتاح يدوياً (لا يوجد OAuth):
+          {t("البوابات السعودية تتطلب نسخ المفتاح يدوياً (لا يوجد OAuth):", "Saudi gateways require manual key entry:")}
         </div>
         <Provider name="moyasar" label="🟢 Moyasar (السعودية · SAR · مدى/Apple Pay)" fields={[
           ["publishableKey", "Publishable Key (pk_live_...)", "text"],
@@ -1046,13 +1074,13 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 
         {/* ── Advanced: paste Stripe/PayPal manually (legacy / dev mode) ─ */}
         <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-xs text-[#6B7280] underline mt-2">
-          {showAdvanced ? "إخفاء" : "إظهار"} الإعدادات المتقدمة (نسخ المفاتيح يدوياً · للمطورين)
+          {showAdvanced ? t("إخفاء", "Hide") : t("إظهار", "Show")} {t("الإعدادات المتقدمة (نسخ المفاتيح يدوياً · للمطورين)", "advanced settings (manual keys · developers)")}
         </button>
         {showAdvanced && (
           <div className="space-y-3 pt-2 border-t border-[#F3F4F6]">
             <label className="flex items-center gap-2 text-xs text-[#6B7280] cursor-pointer">
               <input type="checkbox" checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
-              إظهار المفاتيح السرية
+              {t("إظهار المفاتيح السرية", "Show secret keys")}
             </label>
             <Provider name="stripe" label="💳 Stripe (نسخ يدوي)" fields={[
               ["publishableKey", "Publishable Key (pk_live_...)", "text"],
@@ -1061,7 +1089,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
             <Provider name="paypal" label="🅿️ PayPal (نسخ يدوي)" fields={[
               ["clientId", "Client ID", "text"],
               ["clientSecret", "Client Secret", "secret"],
-              ["mode", "البيئة (live | sandbox)", "text"],
+              ["mode", t("البيئة (live | sandbox)", "Mode (live | sandbox)"), "text"],
             ]} />
             <Provider name="tamara" label="🛍️ Tamara (تقسيط)" fields={[
               ["publicKey", "Public Key", "text"],
@@ -1075,7 +1103,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         )}
 
         <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ المفاتيح اليدوية</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> {t("حفظ المفاتيح اليدوية", "Save manual keys")}</>}
         </Button>
       </CardContent>
     </Card>

@@ -192,6 +192,7 @@ export const api = {
   // Inbox (email-to-invoice)
   inbox: {
     list: (status?: string) => request<{ items: InboxMessageRow[]; total: number }>('/api/inbox', { query: status ? { status } : undefined }),
+    status: () => request<{ address: string; configured: boolean; webhookConfigured: boolean; addressConfigured: boolean; mode: string; provider: string | null }>('/api/inbox/status'),
     get: (id: string) => request<InboxMessageDetail>(`/api/inbox/${id}`),
     approve: (id: string) => request<{ ok: true; billId: string; billNumber: string }>(`/api/inbox/${id}/approve`, { method: 'POST' }),
     reject: (id: string) => request<{ ok: true }>(`/api/inbox/${id}/reject`, { method: 'POST' }),
@@ -473,6 +474,8 @@ export const api = {
 
   // Email · Resend wrapper · branded HTML templates
   email: {
+    status: () =>
+      request<{ configured: boolean; mode: string; from: string }>('/api/email/status'),
     sendInvoice: (id: string, data: { to?: string; message?: string; payLink?: string }) =>
       request<{ ok: boolean; emailId?: string; sentTo: string }>(
         `/api/email/invoices/${id}/send`,
@@ -499,11 +502,11 @@ export const api = {
       request<any>(`/api/loyalty/accounts/${contactId}/redeem`, { method: 'POST', body: { points, source, description } }),
   },
 
-  // Bank statement import (CSV / MT940 / OFX) + auto-match
+  // Bank statement import (CSV / MT940 / OFX / PDF) + auto-match
   bankImport: {
-    profiles: () => request<{ profiles: { id: string; label: string }[]; formats: string[] }>('/api/bank-import/profiles'),
-    parse: (data: { bankAccountId: string; format: 'csv' | 'mt940' | 'ofx'; profile?: string; text: string }) =>
-      request<{ rows: any[]; matched: number; unmatched: number }>(
+    profiles: () => request<{ profiles: { id: string; label: string }[]; formats: Array<'csv' | 'mt940' | 'ofx' | 'pdf'> }>('/api/bank-import/profiles'),
+    parse: (data: { bankAccountId: string; format: 'csv' | 'mt940' | 'ofx' | 'pdf'; profile?: string; text?: string; fileBase64?: string; fileName?: string; mimeType?: string }) =>
+      request<{ rows: any[]; matched: number; unmatched: number; ai?: { model?: string; source?: string } }>(
         '/api/bank-import/parse',
         { method: 'POST', body: data },
       ),
@@ -692,8 +695,8 @@ export const api = {
     /** Pull connection state for status badges in PaymentsTab */
     status: (orgId: string) =>
       request<{
-        stripe: { configured: boolean; connected: boolean; accountId: string | null; mode: string | null; connectedAt: string | null }
-        paypal: { configured: boolean; connected: boolean; merchantId: string | null; mode: string | null; connectedAt: string | null }
+        stripe: { configured: boolean; connectConfigured?: boolean; serverConfigured?: boolean; connected: boolean; accountId: string | null; mode: string | null; connectedAt: string | null; source?: string | null }
+        paypal: { configured: boolean; connectConfigured?: boolean; serverConfigured?: boolean; connected: boolean; merchantId: string | null; mode: string | null; connectedAt: string | null; source?: string | null }
         moyasar: { configured: boolean; connected: boolean }
       }>('/api/oauth/status', { query: { orgId } }),
     /** Tell Stripe we no longer act on this account · clears stored tokens */
@@ -900,6 +903,7 @@ export interface Contact {
   id: string
   orgId: string
   customCode?: string | null
+  shortCode?: string | null
   type: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
   // Multi-role flags (UX-46)
   isCustomer?: boolean
@@ -1037,6 +1041,8 @@ export interface ContactSummary {
 }
 
 export interface ContactInput {
+  customCode?: string | null
+  shortCode?: string | null
   type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
   isCustomer?: boolean
   isSupplier?: boolean

@@ -43,6 +43,7 @@ export function InboxPage() {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState<StatusFilter>("ALL");
   const [orgSlug, setOrgSlug] = useState<string>("YOUR-ORG");
+  const [mailboxStatus, setMailboxStatus] = useState<any>(null);
 
   // Fetch list
   const refresh = useCallback(async () => {
@@ -70,6 +71,7 @@ export function InboxPage() {
       const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
       if (active?.slug) setOrgSlug(active.slug);
     }).catch(() => {});
+    api.inbox.status().then(setMailboxStatus).catch(() => setMailboxStatus(null));
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -128,7 +130,7 @@ export function InboxPage() {
     }
   };
 
-  const forwardAddress = `bills+${orgSlug}@entix.io`;
+  const forwardAddress = mailboxStatus?.address || `bills+${orgSlug}@entix.io`;
 
   return (
     <div className="space-y-4">
@@ -146,7 +148,7 @@ export function InboxPage() {
       </div>
 
       {/* Forwarding address banner */}
-      <Card className="border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white">
+      <Card className={mailboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white" : "border-amber-200 bg-amber-50"}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Mail className="h-5 w-5 text-[#1276E3] shrink-0" />
@@ -164,8 +166,10 @@ export function InboxPage() {
               <Copy className="h-3.5 w-3.5" /> نسخ
             </button>
           </div>
-          <p className="text-xs text-[#6B7280] mt-2">
-            💡 اطلب من مورّديك إرسال فواتيرهم لهذا العنوان · أو انسخ بريدك إلى هذا العنوان (CC) عند تلقّي الفواتير
+          <p className={`text-xs mt-2 ${mailboxStatus?.configured ? "text-[#6B7280]" : "text-amber-800"}`}>
+            {mailboxStatus?.configured
+              ? "اطلب من مورّديك إرسال فواتيرهم لهذا العنوان · أو انسخ بريدك إلى هذا العنوان (CC) عند تلقّي الفواتير"
+              : "العنوان غير جاهز للاستلام بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه مع الموردين."}
           </p>
         </CardContent>
       </Card>

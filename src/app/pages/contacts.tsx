@@ -59,6 +59,8 @@ type RoleFilter = "ALL" | RoleKey;
 // ── State helpers ────────────────────────────────────────────────────────────
 type FormState = {
   entityKind: "INDIVIDUAL" | "COMPANY";
+  customCode: string;
+  shortCode: string;
   displayName: string;
   legalName: string;
   email: string;
@@ -86,6 +88,7 @@ type FormState = {
 
 const emptyForm: FormState = {
   entityKind: "COMPANY",
+  customCode: "", shortCode: "",
   displayName: "", legalName: "", email: "", phone: "",
   vatNumber: "", crNumber: "", nationalId: "", leiCode: "",
   isForeign: false, withholdingTaxRate: "", defaultCurrency: "SAR",
@@ -97,6 +100,8 @@ const emptyForm: FormState = {
 function contactToForm(c: Contact): FormState {
   return {
     entityKind: c.entityKind || "COMPANY",
+    customCode: c.customCode || "",
+    shortCode: c.shortCode || "",
     displayName: c.displayName || "",
     legalName: c.legalName || "",
     email: c.email || "",
@@ -125,6 +130,8 @@ function contactToForm(c: Contact): FormState {
 function formToInput(form: FormState): ContactInput {
   return {
     entityKind: form.entityKind,
+    customCode: form.customCode.trim() || null,
+    shortCode: form.shortCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") || null,
     displayName: form.displayName.trim(),
     legalName: form.legalName.trim() || null,
     email: form.email.trim() || null,
@@ -222,6 +229,8 @@ export function Contacts() {
         return (
           c.displayName.toLowerCase().includes(q) ||
           (c.legalName || "").toLowerCase().includes(q) ||
+          (c.customCode || "").toLowerCase().includes(q) ||
+          (c.shortCode || "").toLowerCase().includes(q) ||
           (c.email || "").toLowerCase().includes(q) ||
           (c.phone || "").includes(q) ||
           (c.vatNumber || "").includes(q) ||
@@ -328,7 +337,7 @@ export function Contacts() {
             <CardTitle className="text-[#0B1B49] flex items-center gap-2"><Filter className="h-4 w-4" /> قائمة جهات الاتصال ({filtered.length})</CardTitle>
             <div className="relative w-72 max-w-full">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-              <Input placeholder="بحث بالاسم · البريد · الرقم الضريبي · LEI..." className="ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder="بحث بالاسم · الرمز · البريد · الرقم الضريبي..." className="ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -345,11 +354,11 @@ export function Contacts() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm table-fixed">
                 <colgroup>
-                  <col />
-                  <col style={{ width: "22%" }} />
+                  <col style={{ width: "32%" }} />
+                  <col style={{ width: "16%" }} />
                   <col style={{ width: "22%" }} />
                   <col style={{ width: "13%" }} />
-                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "7%" }} />
                   <col style={{ width: "10%" }} />
                 </colgroup>
                 <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
@@ -367,19 +376,25 @@ export function Contacts() {
                     const Avatar = c.entityKind === "INDIVIDUAL" ? User : Building2;
                     return (
                       <tr key={c.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                        <td className="px-4 py-3">
-                          <Link to={`/app/contacts/${c.id}`} className="flex items-center gap-2.5">
+                        <td className="px-4 py-3 overflow-hidden align-middle" style={{ maxWidth: 0 }}>
+                          <Link to={`/app/contacts/${c.id}`} className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
                             <div className="w-8 h-8 rounded-full bg-[#F4FCFF] flex items-center justify-center shrink-0">
                               <Avatar className="h-4 w-4 text-[#1276E3]" />
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-[#0B1B49] font-semibold hover:underline">{c.displayName}</div>
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              <div className="block max-w-full truncate text-[#0B1B49] font-semibold hover:underline" title={c.displayName}>{c.displayName}</div>
                               {c.legalName && c.legalName !== c.displayName && <div className="text-xs text-[#9CA3AF] truncate">{c.legalName}</div>}
+                              {(c.customCode || c.shortCode) && (
+                                <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-[#9CA3AF]">
+                                  {c.customCode && <span dir="ltr" className="font-english">{c.customCode}</span>}
+                                  {c.shortCode && <span dir="ltr" className="rounded bg-[#F3F4F6] px-1 font-english text-[#6B7280]">{c.shortCode}</span>}
+                                </div>
+                              )}
                             </div>
                           </Link>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-1">
+                        <td className="px-4 py-3 overflow-hidden align-middle" style={{ maxWidth: 0 }}>
+                          <div className="flex min-w-0 max-w-full flex-wrap gap-1 overflow-hidden">
                             {ROLES.filter(r => (c as any)[r.key] || (r.key === "isCustomer" && (c.type === "CUSTOMER" || c.type === "BOTH")) || (r.key === "isSupplier" && (c.type === "SUPPLIER" || c.type === "BOTH")))
                               .map(r => (
                                 <span key={r.key} className={`text-xs px-1.5 py-0.5 rounded ${r.bg} ${r.text}`}>{r.label}</span>
@@ -387,9 +402,9 @@ export function Contacts() {
                             {c.isForeign && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">خارجي</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#6B7280] space-y-0.5 text-start">
-                          {c.email && <div dir="ltr" className="flex items-center gap-1"><Mail className="h-3 w-3" /><span className="font-english" style={{ fontVariantNumeric: "tabular-nums" }}>{c.email}</span></div>}
-                          {c.phone && <div dir="ltr" className="flex items-center gap-1"><Phone className="h-3 w-3" /><span className="font-english" style={{ fontVariantNumeric: "tabular-nums" }}>{c.phone}</span></div>}
+                        <td className="px-4 py-3 text-xs text-[#6B7280] space-y-0.5 text-start overflow-hidden align-middle" style={{ maxWidth: 0 }}>
+                          {c.email && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Mail className="h-3 w-3 shrink-0" /><span className="truncate font-english" title={c.email} style={{ fontVariantNumeric: "tabular-nums" }}>{c.email}</span></div>}
+                          {c.phone && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Phone className="h-3 w-3 shrink-0" /><span className="truncate font-english" title={c.phone} style={{ fontVariantNumeric: "tabular-nums" }}>{c.phone}</span></div>}
                         </td>
                         <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.vatNumber || c.taxId || "—"}</span></td>
                         <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-[#374151] uppercase">{c.country}</span></td>
@@ -627,6 +642,28 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         <div>
           <Label className="text-xs text-[#6B7280]">الاسم بالإنجليزية</Label>
           <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="e.g. Advanced Tech Co." dir="ltr" className="border-[#E5E7EB] font-english" />
+        </div>
+        <div>
+          <Label className="text-xs text-[#6B7280]">رمز العميل/الجهة</Label>
+          <Input
+            value={form.customCode}
+            onChange={(e) => setForm({ ...form, customCode: e.target.value.toUpperCase() })}
+            placeholder="EN-CLI-SNBL"
+            dir="ltr"
+            className="border-[#E5E7EB] font-english"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-[#6B7280]">رمز مختصر للفواتير</Label>
+          <Input
+            value={form.shortCode}
+            onChange={(e) => setForm({ ...form, shortCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) })}
+            placeholder="SNBL"
+            maxLength={4}
+            dir="ltr"
+            className="border-[#E5E7EB] font-english"
+          />
+          <p className="mt-1 text-xs text-[#9CA3AF]">حتى 4 أحرف، مثال: SNBL لإصدار أرقام مثل EN-SNBL-INV.</p>
         </div>
         <div>
           <Label className="text-xs text-[#6B7280]">البريد الإلكتروني</Label>
