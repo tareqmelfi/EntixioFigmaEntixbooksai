@@ -66,7 +66,6 @@ import { Notifications } from "./pages/notifications";
 import { InboxPage } from "./pages/inbox";
 import { ScanReceipts } from "./pages/scan-receipts";
 import { AdminDashboard } from "./pages/admin";
-import { ComingSoonApp } from "./pages/coming-soon-app";
 import { InvoicePrintView } from "./pages/invoice-print-view";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
@@ -161,6 +160,7 @@ export const router = createBrowserRouter([
       { path: "payments/new", element: <Payments />, errorElement: <ErrorBoundary /> },
       { path: "expenses", element: <Expenses />, errorElement: <ErrorBoundary /> },
       { path: "expenses/new", element: <Expenses />, errorElement: <ErrorBoundary /> },
+      { path: "scan-receipts", element: <ScanReceipts />, errorElement: <ErrorBoundary /> },
       { path: "inbox", element: <InboxPage />, errorElement: <ErrorBoundary /> },
       { path: "vouchers", element: <Receipts />, errorElement: <ErrorBoundary /> },
       { path: "vouchers/new", element: <Receipts />, errorElement: <ErrorBoundary /> },
@@ -205,25 +205,7 @@ export const router = createBrowserRouter([
       { path: "notifications", element: <Notifications />, errorElement: <ErrorBoundary /> },
       { path: "admin", element: <AdminDashboard />, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: <FeatureRoadmap />, errorElement: <ErrorBoundary /> },
-      // Marketplace · stub until launch (UX-151)
-      {
-        path: "marketplace/accountants",
-        element: (
-          <ComingSoonApp
-            title="التعاقد مع محاسب معتمد"
-            description="قريباً · سوق محاسبين وموجِّهين ضريبيين معتمدين تتعاقد معهم مباشرة من داخل المنصة."
-            features={[
-              "محاسبون مرخّصون ومراجَعون من فريق ENSIDEX",
-              "أسعار شهرية ثابتة · بدون مفاجآت",
-              "دخول مباشر لحساباتك من قِبَل المحاسب بصلاحيات محدّدة",
-              "تقارير ZATCA + إقرار VAT شهري/ربع سنوي",
-            ]}
-            ctaLabel="سجّل اهتمامك"
-            ctaHref="mailto:hello@entix.io?subject=marketplace-accountants"
-          />
-        ),
-        errorElement: <ErrorBoundary />,
-      },
+      { path: "marketplace/accountants", element: <Navigate to="/app/roadmap" replace />, errorElement: <ErrorBoundary /> },
     ],
   },
   // Portal routes (standalone, no sidebar)

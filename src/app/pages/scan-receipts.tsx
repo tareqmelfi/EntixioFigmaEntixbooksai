@@ -19,8 +19,10 @@ export function ScanReceipts() {
   useEffect(() => {
     (async () => {
       try {
-        const me = await api.auth.me();
-        setOrgSlug((me as any)?.activeOrg?.slug || "");
+        const orgs = await api.orgs.list();
+        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
+        const active = (stored ? orgs.find((org) => org.id === stored) : null) || orgs[0];
+        setOrgSlug(active?.slug || "");
       } catch (_) {}
     })();
   }, []);

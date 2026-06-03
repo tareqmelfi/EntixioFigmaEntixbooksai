@@ -24,8 +24,17 @@ const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: stri
   PAYG:            { label: "ادفع عند الاستخدام",     price: "$1.20 لكل $1",    alloc: "غير محدود" },
 };
 
+type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans";
+const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans"];
+
+function initialSettingsTab(): SettingsTab {
+  if (typeof window === "undefined") return "company";
+  const requested = new URLSearchParams(window.location.search).get("tab");
+  return SETTINGS_TABS.includes(requested as SettingsTab) ? requested as SettingsTab : "company";
+}
+
 export function Settings() {
-  const [tab, setTab] = useState<"company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans">("company");
+  const [tab, setTab] = useState<SettingsTab>(initialSettingsTab);
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

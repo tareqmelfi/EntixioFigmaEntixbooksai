@@ -407,10 +407,22 @@ export const api = {
 
   // Agent — Claude with tool calling + structured extractors
   agent: {
-    chat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
-      request<{ message: string; toolResults: Array<{ tool: string; args: any; result: any }> }>(
+    conversations: {
+      list: (params?: { limit?: number; status?: 'ACTIVE' | 'ARCHIVED' }) =>
+        request<{ items: AgentConversation[] }>('/api/agent/conversations', { query: params }),
+      create: (data?: { title?: string }) =>
+        request<{ conversation: AgentConversation }>('/api/agent/conversations', { method: 'POST', body: data || {} }),
+      messages: (id: string) =>
+        request<{ conversation: AgentConversation; messages: AgentMessage[] }>(`/api/agent/conversations/${id}/messages`),
+      appendMessage: (id: string, data: { role: 'user' | 'assistant'; content: string; toolResults?: any; metadata?: any }) =>
+        request<{ conversation: AgentConversation; message: AgentMessage }>(`/api/agent/conversations/${id}/messages`, { method: 'POST', body: data }),
+      update: (id: string, data: { title?: string; status?: 'ACTIVE' | 'ARCHIVED' }) =>
+        request<{ conversation: AgentConversation }>(`/api/agent/conversations/${id}`, { method: 'PATCH', body: data }),
+    },
+    chat: (input: Array<{ role: 'user' | 'assistant'; content: string }> | { conversationId?: string; message?: string; messages?: Array<{ role: 'user' | 'assistant'; content: string }> }) =>
+      request<AgentChatResponse>(
         '/api/agent/chat',
-        { method: 'POST', body: { messages } },
+        { method: 'POST', body: Array.isArray(input) ? { messages: input } : input },
       ),
     /** Universal document → structured rows · UX-65b */
     extractDocument: (data: {
@@ -706,6 +718,34 @@ export interface User {
   email: string
   name?: string | null
   locale: string
+}
+
+export interface AgentConversation {
+  id: string
+  title: string
+  status: 'ACTIVE' | 'ARCHIVED'
+  lastMessageAt: string
+  createdAt: string
+  updatedAt: string
+  messageCount?: number
+}
+
+export interface AgentMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  toolResults?: Array<{ tool: string; args: any; result: any }> | null
+  metadata?: any
+  createdAt: string
+}
+
+export interface AgentChatResponse {
+  message: string
+  toolResults: Array<{ tool: string; args: any; result: any }>
+  model?: string
+  source?: string
+  conversationId?: string
+  conversation?: AgentConversation
 }
 
 export interface MeResponse extends User {
@@ -1275,6 +1315,9 @@ export interface DashboardSummary {
 
 export interface OcrResult {
   docType?: 'RECEIPT' | 'INVOICE' | 'BILL' | 'QUOTE' | 'CONTRACT' | 'STATEMENT' | 'OTHER'
+  status?: 'needs_bank_statement_review' | string
+  documentType?: 'bank_statement' | string
+  message?: string
   vendor: string | null
   vendorVat: string | null
   buyer: string | null

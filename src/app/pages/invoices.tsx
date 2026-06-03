@@ -259,8 +259,16 @@ export function Invoices() {
       push("success", msg);
       // Auto-trigger email send after approve+send
       if (action === "send" && inv.id) {
+        let payLink: string | undefined;
         try {
-          await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined });
+          const link = await (api as any).paymentLinks?.create?.(inv.id, "auto");
+          payLink = link?.url;
+        } catch (e: any) {
+          push("info", e?.message || "لم يتم إنشاء رابط دفع، سيتم إرسال الفاتورة بدون رابط دفع");
+        }
+        try {
+          await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined, payLink });
+          push("success", payLink ? "تم إرسال الفاتورة مع رابط الدفع" : "تم إرسال الفاتورة بدون رابط دفع");
         } catch (e) { /* email might fail if no customer email · don't block */ }
       }
       // UX-177 · stay on the saved invoice instead of returning to list
@@ -474,6 +482,7 @@ export function Invoices() {
                 <Label className="text-[#374151] text-xs">الدفع الإلكتروني</Label>
                 <button
                   type="button"
+                  onClick={() => { window.location.href = "/app/settings?tab=payments"; }}
                   className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-3 text-xs flex items-center justify-between hover:border-[#1276E3]"
                 >
                   <span className="flex items-center gap-1">

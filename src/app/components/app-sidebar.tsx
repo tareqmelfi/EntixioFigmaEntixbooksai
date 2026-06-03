@@ -7,8 +7,8 @@ import {
   Calculator as CalculatorIcon, FolderOpen, Wallet,
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
-  Plug, FileCode, Handshake, HelpCircle, Globe,
-  Mail, UserCheck, Briefcase, ClipboardList, Users2, Inbox,
+  Plug, FileCode, HelpCircle, Globe,
+  Mail, UserCheck, Briefcase, ClipboardList, Users2, Inbox, Camera,
   Pin, PinOff, MousePointer, EyeOff,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -30,6 +30,7 @@ const EN_TEXT: Record<string, string> = {
   "إشعارات الموردين": "Supplier credits",
   "سندات الدفع": "Payments",
   "المصروفات النقدية": "Expenses",
+  "مسح الإيصالات": "Scan receipts",
   "البريد الوارد": "Inbox",
   "قائمة الاتصال": "Contacts",
   "الرواتب والموظفين": "Payroll & employees",
@@ -130,6 +131,7 @@ const sections: MenuSection[] = [
           { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
           { title: "سندات الدفع", icon: CreditCard, path: "/app/payments" },
           { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
+          { title: "مسح الإيصالات", icon: Camera, path: "/app/scan-receipts" },
           { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
         ],
       },
@@ -172,11 +174,6 @@ const sections: MenuSection[] = [
       { title: "القوالب", icon: FileCode, path: "/app/templates", badge: "محدّث" },
     ],
   },
-  {
-    items: [
-      { title: "التعاقد مع محاسب", icon: Handshake, path: "/app/marketplace/accountants" },
-    ],
-  },
 ];
 
 const searchPages = [
@@ -192,6 +189,7 @@ const searchPages = [
   { label: "إشعارات الموردين", path: "/app/purchases/supplier-credits" },
   { label: "سندات الدفع", path: "/app/payments" },
   { label: "المصروفات النقدية", path: "/app/expenses" },
+  { label: "مسح الإيصالات", path: "/app/scan-receipts" },
   { label: "قائمة الاتصال", path: "/app/contacts" },
   { label: "الرواتب والموظفين", path: "/app/payroll" },
   { label: "المنتجات والخدمات", path: "/app/products" },

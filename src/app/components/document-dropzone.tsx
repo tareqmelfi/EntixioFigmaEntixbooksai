@@ -29,6 +29,9 @@ export type ExtractTarget = "invoice-lines" | "quote-lines" | "bill-lines" | "ex
 export interface ExtractedDocument {
   kind: string;
   confidence: number;
+  status?: string;
+  documentType?: string;
+  message?: string;
   issuer?: { name?: string; taxId?: string; country?: string };
   buyer?: { name?: string; taxId?: string };
   documentNumber?: string;
@@ -65,6 +68,7 @@ interface Props {
 }
 
 const ACCEPT = "image/*,application/pdf,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const BANK_STATEMENT_REVIEW_STATUS = "needs_bank_statement_review";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -115,6 +119,9 @@ export function DocumentDropZone({
         defaultTaxRate,
         currency,
       });
+      if (data?.status === BANK_STATEMENT_REVIEW_STATUS || data?.documentType === "bank_statement") {
+        throw new Error(data.message || "تم اكتشاف كشف حساب بنكي. لم يتم تحويله إلى مستند مالي.");
+      }
       if (!data || data.confidence === 0) {
         throw new Error("تعذّر استخراج بيانات من المستند · جرّب صورة أوضح");
       }

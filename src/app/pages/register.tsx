@@ -133,7 +133,7 @@ export function Register() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="6 أحرف على الأقل"
+                  placeholder="8 أحرف على الأقل"
                   className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
                   style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: "right" }}
                   required
@@ -152,9 +152,9 @@ export function Register() {
               <input type="checkbox" id="terms" className="mt-1 accent-[#1276E3]" required />
               <label htmlFor="terms" className="text-[#6B7280]" style={{ fontSize: "13px", lineHeight: 1.6, fontWeight: 400 }}>
                 بإنشاء حساب فأنت توافق على{" "}
-                <a href="#" className="text-[#1276E3] hover:underline">الشروط والأحكام</a>
+                <Link to="/terms" className="text-[#1276E3] hover:underline">الشروط والأحكام</Link>
                 {" "}و{" "}
-                <a href="#" className="text-[#1276E3] hover:underline">سياسة الخصوصية</a>
+                <Link to="/privacy" className="text-[#1276E3] hover:underline">سياسة الخصوصية</Link>
               </label>
             </div>
 

@@ -125,6 +125,18 @@ function hasDraftContent(form: FormState) {
   );
 }
 
+function isBankStatementBlocked(data: any, fileName?: string): boolean {
+  if (!data) return false;
+  if (data.status === "needs_bank_statement_review" || data.documentType === "bank_statement" || data.docType === "STATEMENT") return true;
+  const text = [
+    fileName,
+    data.message,
+    data.notes,
+    ...(Array.isArray(data.warnings) ? data.warnings : []),
+  ].filter(Boolean).join("\n").toLowerCase();
+  return /bank[\s_-]*statement|account[\s_-]*statement|statement of account|كشف\s+حساب|كشف\s*الحساب/.test(text);
+}
+
 function readExpenseDraft(): { formData: FormState; extractionSummary: ExtractionSummary | null; updatedAt: string } | null {
   if (typeof localStorage === "undefined") return null;
   try {
@@ -628,6 +640,23 @@ export function Expenses() {
         defaultTaxRate: 0.15,
         currency: "SAR",
       });
+      if (isBankStatementBlocked(data, file.name)) {
+        setExtractionSummary({
+          fileName: file.name,
+          vendor: null,
+          total: null,
+          tax: null,
+          subtotal: null,
+          date: null,
+          documentNumber: null,
+          confidence: data?.confidence ?? null,
+          model: data?._meta?.model || null,
+          lineCount: 0,
+          warnings: [data?.message || "تم اكتشاف كشف حساب بنكي. لم يتم تحويله إلى مصروف."],
+        });
+        push("error", "تم اكتشاف كشف حساب بنكي. لم يتم تعبئة المصروف أو حفظه.");
+        return;
+      }
       const totals = extractionTotals(data);
       const lineItems = normalizeLineItems(data);
       const payments = normalizePayments(data, totals.total, formData.paymentMethod);
