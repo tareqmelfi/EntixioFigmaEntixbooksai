@@ -127,7 +127,7 @@ function hasDraftContent(form: FormState) {
 
 function isBankStatementBlocked(data: any, fileName?: string): boolean {
   if (!data) return false;
-  if (data.status === "needs_bank_statement_review" || data.documentType === "bank_statement" || data.docType === "STATEMENT") return true;
+  if (data.status === "needs_bank_statement_review" || data.documentType === "bank_statement") return true;
   const text = [
     fileName,
     data.message,

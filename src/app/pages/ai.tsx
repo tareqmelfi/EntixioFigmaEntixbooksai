@@ -3,13 +3,14 @@
  *
  * - Chat with Claude · يقدر يضيف عملاء/فواتير/مصروفات/سندات
  * - Upload N files (any type) → batch OCR → classification table
- * - Auto-create expenses where confidence > 0.6, excluding bank statements
+ * - Route OCR documents conservatively: expenses, purchase bills, bank review, or manual review
  */
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, Upload, Loader2, Bot, User, FileText, CheckCircle2, AlertCircle, X, MessageSquare, Plus, Archive } from "lucide-react";
+import { Link } from "react-router";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { api, ApiError, AgentConversation, AgentMessage, ExpenseLine, ExpensePaymentSplit, OcrResult } from "../lib/api";
+import { api, ApiError, AgentConversation, AgentMessage, Contact, ExpenseLine, ExpensePaymentSplit, OcrResult } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 
 interface Msg {
@@ -47,6 +48,14 @@ interface BatchSummary {
     total?: number;
     currency?: string;
     lineCount?: number;
+    docType?: string;
+    route?: DocumentRoute;
+    recordType?: "expense" | "bill" | "bank_statement" | "review";
+    recordId?: string;
+    recordNumber?: string;
+    destinationLabel?: string;
+    destinationHref?: string;
+    actionLabel?: string;
     createdNumber?: string;
     duplicateNumber?: string;
     blockedMessage?: string;
@@ -86,6 +95,19 @@ async function readAsBase64(file: File): Promise<string> {
 }
 
 type ExpenseMethod = ExpensePaymentSplit["method"];
+type DocumentRoute = "expense" | "bill" | "bank_statement" | "contract_review" | "manual_review";
+
+type CreatedRecordMeta = {
+  recordType: "expense" | "bill" | "bank_statement" | "review";
+  recordId?: string;
+  recordNumber?: string;
+  destinationLabel: string;
+  destinationHref?: string;
+  actionLabel: string;
+  createdNumber?: string;
+  duplicateNumber?: string;
+  blockedMessage?: string;
+};
 
 function normalizeMoney(value: unknown): number | null {
   const n = typeof value === "number" ? value : Number(value);
@@ -108,6 +130,148 @@ function normalizeTaxRate(value: unknown): number | null {
   if (n == null) return null;
   if (n > 1) return n / 100;
   return n;
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysIso(value: string | null | undefined, days: number): string {
+  const base = value ? new Date(value) : new Date();
+  if (Number.isNaN(base.getTime())) return todayIso();
+  base.setDate(base.getDate() + days);
+  return base.toISOString().slice(0, 10);
+}
+
+function normalizeDocType(e?: OcrResult): string {
+  return String(e?.docType || e?.documentType || "OTHER").toUpperCase();
+}
+
+function isPaymentEvidence(e: OcrResult): boolean {
+  const hasSplit = Array.isArray(e.payments) && e.payments.some((p) => normalizeMoney(p.amount) != null || p.method);
+  return Boolean(e.paymentMethod || hasSplit);
+}
+
+function classifyDocumentRoute(e: OcrResult | undefined, fileName?: string): DocumentRoute {
+  if (!e) return "manual_review";
+  if (isBankStatementBlockedResult(e, fileName)) return "bank_statement";
+  const docType = normalizeDocType(e);
+  const text = [
+    docType,
+    fileName,
+    e.summary,
+    ...(Array.isArray(e.tags) ? e.tags : []),
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  if (docType === "STATEMENT") return "manual_review";
+  if (docType === "CONTRACT" || /contract|agreement|عقد|اتفاقية|مقاولة|ضمانة|warranty|guarantee/.test(text)) {
+    return "contract_review";
+  }
+  if (docType === "RECEIPT") return "expense";
+  if ((docType === "INVOICE" || docType === "BILL") && isPaymentEvidence(e)) return "expense";
+  if (docType === "INVOICE" || docType === "BILL") return "bill";
+  return "manual_review";
+}
+
+function routeLabel(route: DocumentRoute): string {
+  if (route === "expense") return "مصروف نقدي";
+  if (route === "bill") return "فاتورة مشتريات";
+  if (route === "bank_statement") return "كشف/تسوية بنكية";
+  if (route === "contract_review") return "مراجعة عقود";
+  return "مراجعة يدوية";
+}
+
+function defaultRouteMeta(route: DocumentRoute): CreatedRecordMeta {
+  if (route === "bank_statement") {
+    return {
+      recordType: "bank_statement",
+      destinationLabel: "تسوية البنوك",
+      destinationHref: "/app/bank-reconciliation",
+      actionLabel: "لم يسجل كمصروف",
+      blockedMessage: "تم اكتشاف كشف حساب/حركة بنكية. وجّهها للتسوية البنكية بدل المصروفات.",
+    };
+  }
+  if (route === "contract_review") {
+    return {
+      recordType: "review",
+      destinationLabel: "مراجعة العقود",
+      actionLabel: "لم يسجل تلقائياً",
+      blockedMessage: "هذا يبدو عقداً/اتفاقية. يحتاج مراجعة قبل إنشاء التزام أو فاتورة.",
+    };
+  }
+  if (route === "manual_review") {
+    return {
+      recordType: "review",
+      destinationLabel: "مراجعة يدوية",
+      actionLabel: "لم يسجل تلقائياً",
+      blockedMessage: "المستند غير كافٍ للتسجيل الآمن. يحتاج مراجعة.",
+    };
+  }
+  return {
+    recordType: route === "bill" ? "bill" : "expense",
+    destinationLabel: route === "bill" ? "فواتير المشتريات" : "المصروفات",
+    destinationHref: route === "bill" ? "/app/purchases/bills" : "/app/expenses",
+    actionLabel: route === "bill" ? "جاهز كفاتورة مشتريات" : "جاهز كمصروف",
+  };
+}
+
+function buildBillLines(e: OcrResult, total: number) {
+  const lines = Array.isArray(e.lineItems) ? e.lineItems : [];
+  const mapped = lines
+    .map((line: any) => {
+      const quantity = normalizeMoney(line.quantity) || 1;
+      const subtotal = normalizeMoney(line.subtotal ?? line.lineTotal);
+      const unitPrice = normalizeMoney(line.unitPrice) ?? (subtotal != null ? subtotal / quantity : null);
+      const description = String(line.description || "").trim();
+      if (!description || unitPrice == null) return null;
+      return {
+        productId: null,
+        description,
+        quantity,
+        unitPrice,
+      };
+    })
+    .filter(Boolean) as Array<{ productId: null; description: string; quantity: number; unitPrice: number }>;
+
+  if (mapped.length > 0) return mapped;
+  return [{
+    productId: null,
+    description: e.summary || e.documentNumber || e.vendor || "OCR purchase bill",
+    quantity: 1,
+    unitPrice: normalizeMoney(e.subtotal) ?? total,
+  }];
+}
+
+async function findOrCreateSupplier(e: OcrResult): Promise<Contact> {
+  const displayName = (e.vendor || "مورد غير معروف").trim();
+  const taxId = e.vendorVat?.trim() || null;
+  const q = taxId || displayName.slice(0, 60);
+  const existing = await api.contacts.list({ type: "SUPPLIER", q, limit: 200 }).catch(() => ({ items: [] as Contact[] }));
+  const byTax = taxId
+    ? existing.items.find((c) => c.taxId === taxId || c.vatNumber === taxId)
+    : undefined;
+  const byName = existing.items.find((c) => c.displayName.trim().toLowerCase() === displayName.toLowerCase());
+  if (byTax || byName) return (byTax || byName)!;
+  return api.contacts.create({
+    displayName,
+    type: "SUPPLIER",
+    isSupplier: true,
+    entityKind: "COMPANY",
+    taxId,
+    vatNumber: taxId,
+    country: "SA",
+    notes: "Created from Entix AI OCR batch routing",
+  });
+}
+
+function toolResultHref(tool: string, result: any): string | null {
+  if (!result || result.error) return null;
+  const name = String(tool || "").toLowerCase();
+  if (name.includes("expense")) return "/app/expenses";
+  if (name.includes("bill")) return result.id ? `/app/purchases/bills/${result.id}` : "/app/purchases/bills";
+  if (name.includes("invoice")) return result.id ? `/app/invoices/${result.id}` : "/app/invoices";
+  if (name.includes("contact")) return result.id ? `/app/contacts/${result.id}` : "/app/contacts";
+  return null;
 }
 
 function buildExpenseLines(e: OcrResult): ExpenseLine[] {
@@ -156,7 +320,7 @@ function buildPaymentSplits(e: OcrResult, total: number, fallbackMethod: Expense
 
 function isBankStatementBlockedResult(e: OcrResult | undefined, fileName?: string): boolean {
   if (!e) return false;
-  if (e.status === "needs_bank_statement_review" || e.documentType === "bank_statement" || e.docType === "STATEMENT") return true;
+  if (e.status === "needs_bank_statement_review" || e.documentType === "bank_statement") return true;
   const text = [
     fileName,
     e.message,
@@ -196,6 +360,8 @@ export function AI() {
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toasts, push, dismiss } = useToasts();
+  const lastMessage = messages[messages.length - 1];
+  const waitingForPersistedReply = Boolean(activeConversationId && !busy && !loadingMessages && lastMessage?.role === "user");
 
   const refreshConversations = async () => {
     const r = await api.agent.conversations.list({ limit: 50 });
@@ -257,8 +423,35 @@ export function AI() {
   }, [activeConversationId]);
 
   useEffect(() => {
+    if (!activeConversationId || !waitingForPersistedReply) return;
+    let alive = true;
+    let attempts = 0;
+    const poll = async () => {
+      attempts += 1;
+      try {
+        const r = await api.agent.conversations.messages(activeConversationId);
+        if (!alive) return;
+        setMessages(r.messages.map(mapAgentMessage));
+        const newest = r.messages[r.messages.length - 1];
+        if (newest?.role === "assistant" || attempts >= 30) alive = false;
+      } catch {
+        if (attempts >= 5) alive = false;
+      }
+    };
+    const id = window.setInterval(() => {
+      if (alive) poll();
+      else window.clearInterval(id);
+    }, 3000);
+    poll();
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [activeConversationId, waitingForPersistedReply]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, busy, waitingForPersistedReply]);
 
   const addFiles = async (files: FileList | File[]) => {
     const arr = Array.from(files);
@@ -291,16 +484,20 @@ export function AI() {
 
   const removePending = (id: string) => setPending((prev) => prev.filter((p) => p.id !== id));
 
-  const handleProcessBatch = async () => {
-    if (pending.length === 0) return;
+  const handleProcessBatch = async (noteOverride?: string) => {
+    const batchFiles = pending;
+    if (batchFiles.length === 0) return;
+    const note = (noteOverride ?? input).trim();
     setBusy(true);
     setError(null);
+    setInput("");
 
+    const fileText = batchFiles.length === 1
+      ? `📎 رفعت ملف: ${batchFiles[0].name} · اقرأه وصنّفه`
+      : `📎 رفعت ${batchFiles.length} ملف · اقرأها وصنّفها`;
     const userMsg: Msg = {
       role: "user",
-      content: pending.length === 1
-        ? `📎 رفعت ملف: ${pending[0].name} · اقرأه واسجّله`
-        : `📎 رفعت ${pending.length} ملف · اقرأها وصنّفها`,
+      content: note ? `${fileText}\n\nطلبي: ${note}` : fileText,
     };
     setMessages((prev) => [...prev, userMsg]);
 
@@ -310,29 +507,79 @@ export function AI() {
       await api.agent.conversations.appendMessage(conversationIdForBatch, {
         role: "user",
         content: userMsg.content,
-        metadata: { source: "ocr-batch-upload", fileCount: pending.length },
+        metadata: { source: "ocr-batch-upload", fileCount: batchFiles.length, hint: note || null, fileNames: batchFiles.map((f) => f.name) },
       });
 
       const r = await api.ocr.extractBatch({
-        files: pending.map((p) => ({ fileBase64: p.base64, mimeType: p.mime, fileName: p.name })),
-        hint: input.trim() || undefined,
+        files: batchFiles.map((p) => ({ fileBase64: p.base64, mimeType: p.mime, fileName: p.name })),
+        hint: note || undefined,
       });
 
-      // Auto-create expenses for high-confidence items, but never for bank statements.
-      let createdCount = 0;
+      // Route documents by accounting intent before persistence.
+      let createdExpenseCount = 0;
+      let createdBillCount = 0;
       let blockedStatementCount = 0;
-      const createdByFile = new Map<string, { createdNumber?: string; duplicateNumber?: string }>();
-      const pendingByName = new Map(pending.map((p) => [p.name, p]));
+      let reviewCount = 0;
+      const createdByFile = new Map<string, CreatedRecordMeta>();
+      const pendingByName = new Map(batchFiles.map((p) => [p.name, p]));
       for (const item of r.files) {
         if (!item.ok || !item.extracted) continue;
         const e = item.extracted;
-        if (isBankStatementBlockedResult(e, item.fileName)) {
+        const route = classifyDocumentRoute(e, item.fileName);
+        if (route === "bank_statement") {
           blockedStatementCount += 1;
+          createdByFile.set(item.fileName || "", defaultRouteMeta(route));
           continue;
         }
         const conf = e.confidence || 0;
         const total = normalizeMoney(e.total);
-        if (conf > 0.6 && total != null && total > 0) {
+        if ((route === "contract_review" || route === "manual_review") || conf <= 0.6 || total == null || total <= 0) {
+          reviewCount += 1;
+          createdByFile.set(item.fileName || "", defaultRouteMeta(route));
+          continue;
+        }
+
+        if (route === "bill") {
+          try {
+            const supplier = await findOrCreateSupplier(e);
+            const saved: any = await api.bills.create({
+              contactId: supplier.id,
+              billNumber: e.documentNumber || undefined,
+              status: "DRAFT",
+              issueDate: e.issueDate || todayIso(),
+              dueDate: e.dueDate || addDaysIso(e.issueDate, 30),
+              currency: e.currency || "SAR",
+              notes: [
+                "Created by Entix AI OCR as purchase bill draft.",
+                e.summary || null,
+                item.fileName ? `Source file: ${item.fileName}` : null,
+                e.vendorVat ? `Supplier VAT: ${e.vendorVat}` : null,
+                note ? `User note: ${note}` : null,
+              ].filter(Boolean).join("\n"),
+              lines: buildBillLines(e, total),
+            });
+            createdBillCount += 1;
+            createdByFile.set(item.fileName || "", {
+              recordType: "bill",
+              recordId: saved?.id,
+              recordNumber: saved?.billNumber,
+              destinationLabel: "فاتورة مشتريات",
+              destinationHref: saved?.id ? `/app/purchases/bills/${saved.id}` : "/app/purchases/bills",
+              actionLabel: "أُنشئت كمسودة",
+              createdNumber: saved?.billNumber,
+            });
+          } catch (err: any) {
+            reviewCount += 1;
+            createdByFile.set(item.fileName || "", {
+              ...defaultRouteMeta("manual_review"),
+              blockedMessage: err instanceof ApiError ? err.message : "تعذر إنشاء فاتورة المشتريات. يحتاج مراجعة.",
+            });
+            console.warn("[ai] auto-create purchase bill failed", err);
+          }
+          continue;
+        }
+
+        if (route === "expense") {
           try {
             const sourceFile = item.fileName ? pendingByName.get(item.fileName) : undefined;
             const taxAmount = normalizeMoney(e.taxAmount) || 0;
@@ -369,23 +616,38 @@ export function AI() {
               ].filter(Boolean).join(" · "),
               currency: e.currency || "SAR",
             });
-            createdCount += 1;
+            createdExpenseCount += 1;
             createdByFile.set(item.fileName || "", {
+              recordType: "expense",
+              recordId: saved?.id,
+              recordNumber: saved?.number,
+              destinationLabel: "مصروف نقدي",
+              destinationHref: "/app/expenses",
+              actionLabel: "أُنشئ كمصروف",
               createdNumber: saved?.number,
               duplicateNumber: saved?.duplicateExpense?.number,
             });
           } catch (err) {
             console.warn("[ai] auto-create expense failed", err);
+            reviewCount += 1;
+            createdByFile.set(item.fileName || "", {
+              ...defaultRouteMeta("manual_review"),
+              blockedMessage: err instanceof ApiError ? err.message : "تعذر إنشاء المصروف. يحتاج مراجعة.",
+            });
           }
         }
       }
 
       // Build per-file rows after persistence, so duplicate and saved numbers show in the same table.
       const rows = r.files.map((f) => {
-        const meta = createdByFile.get(f.fileName || "") || {};
+        const route = classifyDocumentRoute(f.extracted, f.fileName);
+        const fallbackMeta = defaultRouteMeta(route);
+        const meta = createdByFile.get(f.fileName || "") || fallbackMeta;
         return {
           name: f.fileName,
           ok: f.ok,
+          docType: normalizeDocType(f.extracted),
+          route,
           vendor: f.extracted?.vendor || undefined,
           vendorVat: f.extracted?.vendorVat || undefined,
           documentNumber: f.extracted?.documentNumber || undefined,
@@ -393,9 +655,15 @@ export function AI() {
           total: typeof f.extracted?.total === "number" ? f.extracted.total : undefined,
           currency: f.extracted?.currency || undefined,
           lineCount: Array.isArray(f.extracted?.lineItems) ? f.extracted!.lineItems.length : undefined,
+          recordType: meta.recordType,
+          recordId: meta.recordId,
+          recordNumber: meta.recordNumber || meta.createdNumber,
+          destinationLabel: meta.destinationLabel,
+          destinationHref: meta.destinationHref,
+          actionLabel: meta.actionLabel,
           createdNumber: meta.createdNumber,
           duplicateNumber: meta.duplicateNumber,
-          blockedMessage: isBankStatementBlockedResult(f.extracted, f.fileName) ? (f.extracted?.message || "تم اكتشاف كشف حساب بنكي ولم يتم تحويله إلى مصروف.") : undefined,
+          blockedMessage: meta.blockedMessage || (isBankStatementBlockedResult(f.extracted, f.fileName) ? (f.extracted?.message || "تم اكتشاف كشف حساب بنكي ولم يتم تحويله إلى مصروف.") : undefined),
           error: f.error,
         };
       });
@@ -411,8 +679,11 @@ export function AI() {
       };
 
       let assistantContent = `معالجة ${r.summary.totalFiles} ملف · ✅ ${r.summary.successful} نجح · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} فشل · ` : ""}إجمالي القيمة: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`;
-      if (createdCount > 0) assistantContent += `\n\n✨ تم إنشاء ${createdCount} مصروف تلقائياً (الثقة > 60%)`;
-      if (blockedStatementCount > 0) assistantContent += `\n\nتم منع ${blockedStatementCount} كشف حساب بنكي من التحول إلى مصروف. يحتاج مراجعة/تسوية بنكية.`;
+      if (createdExpenseCount > 0) assistantContent += `\n\n✨ تم إنشاء ${createdExpenseCount} مصروف تلقائياً.`;
+      if (createdBillCount > 0) assistantContent += `\n\n🧾 تم إنشاء ${createdBillCount} فاتورة مشتريات كمسودة للمراجعة.`;
+      if (blockedStatementCount > 0) assistantContent += `\n\nتم توجيه ${blockedStatementCount} كشف/حركة بنكية إلى التسوية بدل تحويلها لمصروف.`;
+      if (reviewCount > 0) assistantContent += `\n\n${reviewCount} ملف يحتاج مراجعة قبل التسجيل.`;
+      assistantContent += `\n\nالفرق المختصر: فاتورة المشتريات مطالبة من مورد وقد تكون غير مدفوعة، أما المصروف فهو صرف/إيصال مدفوع فعلياً.`;
       const duplicateCount = rows.filter((row) => row.duplicateNumber).length;
       if (duplicateCount > 0) assistantContent += `\n⚠️ تم تعليم ${duplicateCount} كمكرر محتمل بدل تجاهله.`;
 
@@ -442,11 +713,11 @@ export function AI() {
 
   const handleSend = async (textOverride?: string) => {
     const text = (textOverride ?? input).trim();
-    if (!text || busy) return;
+    if (busy || (!text && pending.length === 0)) return;
 
     // If files are pending, route through batch processing
     if (pending.length > 0) {
-      handleProcessBatch();
+      await handleProcessBatch(text);
       return;
     }
 
@@ -614,19 +885,36 @@ export function AI() {
                 {m.batchSummary && (
                   <div className="mt-3 space-y-3">
                     <div className="rounded-lg border border-[#E5E7EB] overflow-hidden bg-white">
-                      <table className="w-full text-xs">
+                      <div className="overflow-x-auto">
+                      <table className="min-w-[920px] w-full text-xs">
                         <thead className="bg-[#F9FAFB]"><tr>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">الملف</th>
+                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">النوع</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المورد</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">رقم/ضريبة</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">التاريخ</th>
                           <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المبلغ</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">الحالة</th>
+                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المكان / الحالة</th>
                         </tr></thead>
                         <tbody>
                           {m.batchSummary.rows.map((r, j) => (
                             <tr key={j} className="border-t border-[#F3F4F6]">
-                              <td className="py-2 px-3 text-[#0B1B49] truncate max-w-[180px]" title={r.name}>{r.name}</td>
+                              <td className="py-2 px-3 text-[#0B1B49] max-w-[220px]" title={r.name}>
+                                {r.destinationHref ? (
+                                  <Link to={r.destinationHref} className="block truncate text-[#1276E3] hover:underline" title={r.name}>
+                                    {r.name}
+                                  </Link>
+                                ) : (
+                                  <span className="block truncate">{r.name}</span>
+                                )}
+                                {r.recordNumber && <span className="font-english text-[10px] text-[#6B7280]">{r.recordNumber}</span>}
+                              </td>
+                              <td className="py-2 px-3">
+                                <span className="inline-flex rounded-md bg-[#EEF6FF] px-2 py-0.5 text-[11px] text-[#0B1B49]" style={{ fontWeight: 700 }}>
+                                  {routeLabel((r.route || "manual_review") as DocumentRoute)}
+                                </span>
+                                {r.docType && <div className="font-english text-[10px] text-[#9CA3AF] mt-1">{r.docType}</div>}
+                              </td>
                               <td className="py-2 px-3 text-[#374151]">{r.vendor || "—"}</td>
                               <td className="py-2 px-3 text-[#374151]">
                                 <div className="font-english">{r.documentNumber || "—"}</div>
@@ -638,23 +926,34 @@ export function AI() {
                                 {typeof r.total === "number" ? `${r.total.toLocaleString()} ${r.currency || ""}` : "—"}
                               </td>
                               <td className="py-2 px-3">
-                                {r.blockedMessage ? (
-                                  <div className="flex flex-col gap-0.5 text-amber-700">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <span className="text-[10px]">{r.blockedMessage}</span>
-                                  </div>
-                                ) : r.ok ? (
-                                  <div className="flex flex-col gap-0.5">
-                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                    {r.createdNumber && <span className="font-english text-[10px] text-[#1276E3]">{r.createdNumber}</span>}
-                                    {r.duplicateNumber && <span className="font-english text-[10px] text-amber-700">مكرر: {r.duplicateNumber}</span>}
-                                  </div>
-                                ) : <span className="text-red-600 text-xs">{r.error || "فشل"}</span>}
+                                <div className="flex flex-col gap-1">
+                                  {r.destinationHref ? (
+                                    <Link to={r.destinationHref} className="font-english text-[#1276E3] hover:underline" style={{ fontWeight: 700 }}>
+                                      {r.recordNumber || r.destinationLabel}
+                                    </Link>
+                                  ) : (
+                                    <span className="text-[#374151]" style={{ fontWeight: 700 }}>{r.destinationLabel || "—"}</span>
+                                  )}
+                                  {r.actionLabel && <span className="text-[10px] text-[#6B7280]">{r.actionLabel}</span>}
+                                  {r.blockedMessage ? (
+                                    <div className="flex items-start gap-1 text-amber-700">
+                                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                      <span className="text-[10px] leading-4">{r.blockedMessage}</span>
+                                    </div>
+                                  ) : r.ok ? (
+                                    <div className="flex items-center gap-1 text-green-700">
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                      <span className="text-[10px]">تمت القراءة</span>
+                                    </div>
+                                  ) : <span className="text-red-600 text-xs">{r.error || "فشل"}</span>}
+                                  {r.duplicateNumber && <span className="font-english text-[10px] text-amber-700">مكرر: {r.duplicateNumber}</span>}
+                                </div>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
 
                     {/* Classification chips */}
@@ -678,13 +977,25 @@ export function AI() {
 
                 {m.toolResults && m.toolResults.length > 0 && (
                   <div className="mt-3 space-y-1.5">
-                    {m.toolResults.map((tr, j) => (
-                      <div key={j} className="rounded border border-[#E5E7EB] bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2">
-                        {tr.result?.error ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
-                        <span className="font-english text-[#6B7280]">{tr.tool}</span>
-                        {tr.result?.id && <span className="font-english text-[#1276E3]">→ {tr.result.number || tr.result.id}</span>}
-                      </div>
-                    ))}
+                    {m.toolResults.map((tr, j) => {
+                      const href = toolResultHref(tr.tool, tr.result);
+                      const inner = (
+                        <>
+                          {tr.result?.error ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
+                          <span className="font-english text-[#6B7280]">{tr.tool}</span>
+                          {tr.result?.id && <span className="font-english text-[#1276E3]">→ {tr.result.number || tr.result.billNumber || tr.result.invoiceNumber || tr.result.id}</span>}
+                        </>
+                      );
+                      return href ? (
+                        <Link key={j} to={href} className="rounded border border-[#E5E7EB] bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-white hover:underline">
+                          {inner}
+                        </Link>
+                      ) : (
+                        <div key={j} className="rounded border border-[#E5E7EB] bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2">
+                          {inner}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -701,6 +1012,16 @@ export function AI() {
               </div>
             </div>
           )}
+          {waitingForPersistedReply && !busy && (
+            <div className="flex gap-3">
+              <div className="shrink-0 h-8 w-8 rounded-full bg-[#1276E3]/10 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-[#1276E3]" />
+              </div>
+              <div className="bg-[#F4FCFF] border border-[#E5E7EB] rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-[#6B7280]">
+                <Loader2 className="h-4 w-4 animate-spin" /> بانتظار الرد المحفوظ من السيرفر...
+              </div>
+            </div>
+          )}
         </CardContent>
 
         {/* Pending files strip */}
@@ -710,7 +1031,7 @@ export function AI() {
               <p className="text-xs text-[#6B7280]"><span className="font-english">{pending.length}</span> ملف جاهز · OCR + تصنيف تلقائي + إنشاء مصروفات آمن</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPending([])} className="border-[#E5E7EB]">إفراغ</Button>
-                <Button size="sm" onClick={handleProcessBatch} disabled={busy} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+                <Button size="sm" onClick={() => handleProcessBatch()} disabled={busy} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `معالجة ${pending.length}`}
                 </Button>
               </div>
