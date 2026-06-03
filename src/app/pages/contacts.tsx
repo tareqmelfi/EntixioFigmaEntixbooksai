@@ -352,14 +352,14 @@ export function Contacts() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed">
+              <table className="w-full min-w-[980px] text-sm table-fixed">
                 <colgroup>
-                  <col style={{ width: "32%" }} />
-                  <col style={{ width: "16%" }} />
-                  <col style={{ width: "22%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: "10%" }} />
+                  <col className="w-[340px]" />
+                  <col className="w-[150px]" />
+                  <col className="w-[240px]" />
+                  <col className="w-[140px]" />
+                  <col className="w-[90px]" />
+                  <col className="w-[120px]" />
                 </colgroup>
                 <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
                   <tr>
@@ -382,8 +382,8 @@ export function Contacts() {
                               <Avatar className="h-4 w-4 text-[#1276E3]" />
                             </div>
                             <div className="min-w-0 flex-1 overflow-hidden">
-                              <div className="block max-w-full truncate text-[#0B1B49] font-semibold hover:underline" title={c.displayName}>{c.displayName}</div>
-                              {c.legalName && c.legalName !== c.displayName && <div className="text-xs text-[#9CA3AF] truncate">{c.legalName}</div>}
+                              <div dir="auto" className="block w-full truncate text-[#0B1B49] font-semibold hover:underline" title={c.displayName} style={{ unicodeBidi: "plaintext" }}>{c.displayName}</div>
+                              {c.legalName && c.legalName !== c.displayName && <div dir="auto" className="w-full truncate text-xs text-[#9CA3AF]" style={{ unicodeBidi: "plaintext" }}>{c.legalName}</div>}
                               {(c.customCode || c.shortCode) && (
                                 <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-[#9CA3AF]">
                                   {c.customCode && <span dir="ltr" className="font-english">{c.customCode}</span>}

@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { Building2, Plus, Trash2, Loader2 } from "lucide-react";
+import { Building2, Plus, Trash2, Loader2, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 
 export function FixedAssets() {
@@ -15,6 +15,7 @@ export function FixedAssets() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
   const [form, setForm] = useState({
     code: "", name: "", category: "",
     acquisitionDate: new Date().toISOString().slice(0, 10),
@@ -53,10 +54,11 @@ export function FixedAssets() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("حذف الأصل؟") — replace with InlineConfirm */ 
-try { await api.fixedAssets.remove(id); refresh(); }
+    try { await api.fixedAssets.remove(id); refresh(); }
     catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
+
+  const formatMoney = (value: any) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   return (
     <div className="space-y-6">
@@ -85,25 +87,64 @@ try { await api.fixedAssets.remove(id); refresh(); }
         <CardContent>
           {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
            items.length === 0 ? <div className="py-12 text-center"><Building2 className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد أصول ثابتة</p></div> :
-          (<table className="w-full"><thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التصنيف</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>تاريخ الاقتناء</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التكلفة</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العمر الإنتاجي</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
-          </tr></thead><tbody>
-            {items.map(a => <tr key={a.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-              <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{a.code}</td>
-              <td className="py-3 px-4 text-sm text-[#0B1B49]">{a.name}</td>
-              <td className="py-3 px-4 text-sm text-[#374151]">{a.category || "—"}</td>
-              <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{a.acquisitionDate?.slice(0, 10)}</td>
-              <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(a.acquisitionCost).toLocaleString()}</td>
-              <td className="py-3 px-4 font-english text-sm text-[#6B7280]">{a.usefulLifeYears} سنة</td>
-              <td className="py-3 px-4"><button onClick={() => handleDelete(a.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></td>
-            </tr>)}
-          </tbody></table>)}
+          (<div className="overflow-x-auto">
+            <table className="w-full table-fixed min-w-[900px] text-sm">
+              <colgroup>
+                <col className="w-[120px]" />
+                <col className="w-[280px]" />
+                <col className="w-[150px]" />
+                <col className="w-[130px]" />
+                <col className="w-[130px]" />
+                <col className="w-[120px]" />
+                <col className="w-[110px]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التصنيف</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>تاريخ الاقتناء</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التكلفة</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العمر الإنتاجي</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(a => <tr key={a.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                  <td className="py-3 px-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAsset(a)}
+                      className="max-w-full truncate font-english text-sm text-[#1276E3] hover:underline"
+                      style={{ fontWeight: 700 }}
+                    >
+                      {a.code}
+                    </button>
+                  </td>
+                  <td className="py-3 px-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAsset(a)}
+                      className="block max-w-full truncate text-start text-sm text-[#0B1B49] hover:text-[#1276E3] hover:underline"
+                      title={a.name}
+                    >
+                      {a.name}
+                    </button>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-[#374151] truncate">{a.category || "—"}</td>
+                  <td className="py-3 px-4 font-english text-xs text-[#6B7280]" dir="ltr">{a.acquisitionDate?.slice(0, 10)}</td>
+                  <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }} dir="ltr">{formatMoney(a.acquisitionCost)}</td>
+                  <td className="py-3 px-4 text-sm text-[#6B7280]">{a.usefulLifeYears} سنة</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setSelectedAsset(a)} className="rounded-md p-1.5 text-[#1276E3] hover:bg-blue-50" title="فتح الأصل"><Eye className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(a.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف الأصل"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>)}
         </CardContent>
       </Card>
 
@@ -127,6 +168,38 @@ try { await api.fixedAssets.remove(id); refresh(); }
             <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
           </form>
         </SidePanel>
+      <SidePanel open={!!selectedAsset} onClose={() => setSelectedAsset(null)}>
+        {selectedAsset && (
+          <div className="py-4 space-y-4">
+            <div>
+              <div className="font-english text-xs text-[#1276E3]" dir="ltr">{selectedAsset.code}</div>
+              <h2 className="text-[#0B1B49] text-lg font-semibold mt-1">{selectedAsset.name}</h2>
+              <p className="text-sm text-[#6B7280] mt-1">{selectedAsset.category || "بدون تصنيف"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
+                <div className="text-xs text-[#6B7280]">التكلفة</div>
+                <div className="font-english text-[#0B1B49] mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(selectedAsset.acquisitionCost)}</div>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
+                <div className="text-xs text-[#6B7280]">القيمة المتبقية</div>
+                <div className="font-english text-[#0B1B49] mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(selectedAsset.salvageValue)}</div>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
+                <div className="text-xs text-[#6B7280]">تاريخ الاقتناء</div>
+                <div className="font-english text-[#0B1B49] mt-1" dir="ltr">{selectedAsset.acquisitionDate?.slice(0, 10)}</div>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
+                <div className="text-xs text-[#6B7280]">العمر الإنتاجي</div>
+                <div className="text-[#0B1B49] mt-1" style={{ fontWeight: 700 }}>{selectedAsset.usefulLifeYears} سنة</div>
+              </div>
+            </div>
+            <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm text-[#6B7280]">
+              هذا العرض يثبت أن الأصل قابل للفتح من الرمز أو الاسم. ربط الأصل تلقائياً من فاتورة مشتريات يحتاج حفظ حساب السطر/نوع الأصل في بيانات سطور المشتريات.
+            </div>
+          </div>
+        )}
+      </SidePanel>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );

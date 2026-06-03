@@ -6,6 +6,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
+import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError } from "../lib/api";
 
 type ProductRow = {
@@ -89,6 +90,16 @@ export function Inventory() {
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const warehouseById = useMemo(() => new Map(warehouses.map((w) => [w.id, w])), [warehouses]);
+  const productOptions = useMemo(() => products.map((p) => ({
+    id: p.id,
+    label: p.nameAr || p.name,
+    sublabel: [p.sku, p.type].filter(Boolean).join(" · "),
+  })), [products]);
+  const warehouseOptions = useMemo(() => warehouses.map((w) => ({
+    id: w.id,
+    label: w.name,
+    sublabel: w.code,
+  })), [warehouses]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -141,6 +152,38 @@ export function Inventory() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const createProductInline = async (name: string) => {
+    const created = await api.products.create({
+      sku: null,
+      name: name.trim(),
+      nameAr: name.trim(),
+      type: "INVENTORY",
+      unitPrice: 0,
+      costPrice: 0,
+    });
+    setProducts((prev) => [created, ...prev]);
+    push("success", `تم إنشاء الصنف ${created.nameAr || created.name}`);
+    return created.id;
+  };
+
+  const createWarehouseInline = async (name: string) => {
+    const usedCodes = new Set(warehouses.map((w) => w.code));
+    let index = warehouses.length + 1;
+    let code = `WH-${String(index).padStart(3, "0")}`;
+    while (usedCodes.has(code)) {
+      index += 1;
+      code = `WH-${String(index).padStart(3, "0")}`;
+    }
+    const created = await api.inventory.createWarehouse({
+      code,
+      name: name.trim(),
+      isPrimary: warehouses.length === 0,
+    });
+    setWarehouses((prev) => [created, ...prev]);
+    push("success", `تم إنشاء المستودع ${created.name}`);
+    return created.id;
   };
 
   const createMovement = async (e: React.FormEvent) => {
@@ -282,32 +325,38 @@ export function Inventory() {
           </div>
           <div className="space-y-2">
             <Label>الصنف *</Label>
-            <Select value={movementForm.productId} onValueChange={(productId) => setMovementForm({ ...movementForm, productId })}>
-              <SelectTrigger><SelectValue placeholder="اختر الصنف" /></SelectTrigger>
-              <SelectContent>
-                {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.nameAr || p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              value={movementForm.productId}
+              onChange={(productId) => setMovementForm({ ...movementForm, productId })}
+              onCreate={createProductInline}
+              items={productOptions}
+              placeholder="ابحث عن صنف أو اكتب صنف جديد..."
+              createLabel={(q) => `+ إنشاء صنف مخزني "${q}"`}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>{movementForm.mode === "transfer" ? "من مستودع *" : "المستودع *"}</Label>
-              <Select value={movementForm.warehouseId} onValueChange={(warehouseId) => setMovementForm({ ...movementForm, warehouseId })}>
-                <SelectTrigger><SelectValue placeholder="اختر المستودع" /></SelectTrigger>
-                <SelectContent>
-                  {warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={movementForm.warehouseId}
+                onChange={(warehouseId) => setMovementForm({ ...movementForm, warehouseId })}
+                onCreate={createWarehouseInline}
+                items={warehouseOptions}
+                placeholder="ابحث عن مستودع أو اكتب مستودع جديد..."
+                createLabel={(q) => `+ إنشاء مستودع "${q}"`}
+              />
             </div>
             {movementForm.mode === "transfer" && (
               <div className="space-y-2">
                 <Label>إلى مستودع *</Label>
-                <Select value={movementForm.toWarehouseId} onValueChange={(toWarehouseId) => setMovementForm({ ...movementForm, toWarehouseId })}>
-                  <SelectTrigger><SelectValue placeholder="اختر الوجهة" /></SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableCombobox
+                  value={movementForm.toWarehouseId}
+                  onChange={(toWarehouseId) => setMovementForm({ ...movementForm, toWarehouseId })}
+                  onCreate={createWarehouseInline}
+                  items={warehouseOptions.filter((w) => w.id !== movementForm.warehouseId)}
+                  placeholder="ابحث عن وجهة أو اكتب مستودع جديد..."
+                  createLabel={(q) => `+ إنشاء مستودع "${q}"`}
+                />
               </div>
             )}
           </div>

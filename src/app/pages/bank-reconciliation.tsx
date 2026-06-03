@@ -1,7 +1,7 @@
 /**
  * Bank Reconciliation · UX-115 · Wafeq/Zoho-style
  * Upload statement → parse → review per-row matches → commit
- * Supports CSV / MT940 / OFX · KSA bank profiles (RJHI, NCB, Riyad, etc.) + Generic
+ * Supports PDF / CSV / MT940 / OFX · KSA/US-friendly bank statement intake
  */
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -29,6 +29,17 @@ type ParsedRow = {
   matchScore?: number;
   matchLabel?: string;
   decision?: "accept" | "create_voucher" | "skip";
+  sourceFile?: string;
+};
+
+type StatementFormat = "csv" | "mt940" | "ofx" | "pdf";
+
+type UploadedStatementFile = {
+  name: string;
+  format: StatementFormat;
+  mimeType?: string;
+  text?: string;
+  base64?: string;
 };
 
 function fileToBase64(file: File) {
@@ -52,6 +63,32 @@ function bankIdentifier(bank: any) {
   return bank?.iban || bank?.accountNumber || "";
 }
 
+function inferStatementFormat(file: File): StatementFormat {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext === "pdf" || file.type === "application/pdf") return "pdf";
+  if (ext === "ofx" || ext === "qfx") return "ofx";
+  if (ext === "mt940" || ext === "sta" || ext === "swift") return "mt940";
+  return "csv";
+}
+
+async function readStatementFile(file: File): Promise<UploadedStatementFile> {
+  const detected = inferStatementFormat(file);
+  if (detected === "pdf") {
+    return {
+      name: file.name,
+      format: "pdf",
+      mimeType: file.type || "application/pdf",
+      base64: await fileToBase64(file),
+    };
+  }
+  return {
+    name: file.name,
+    format: detected,
+    mimeType: file.type || "text/plain",
+    text: await file.text(),
+  };
+}
+
 export function BankReconciliation() {
   const { toasts, push, dismiss } = useToasts();
   const [searchParams] = useSearchParams();
@@ -59,11 +96,8 @@ export function BankReconciliation() {
   const [profiles, setProfiles] = useState<{ id: string; label: string }[]>([]);
   const [bankAccountId, setBankAccountId] = useState("");
   const [profile, setProfile] = useState("GENERIC");
-  const [format, setFormat] = useState<"csv" | "mt940" | "ofx" | "pdf">("csv");
-  const [fileText, setFileText] = useState("");
-  const [fileBase64, setFileBase64] = useState("");
-  const [fileMimeType, setFileMimeType] = useState("");
-  const [filename, setFilename] = useState("");
+  const [format, setFormat] = useState<StatementFormat>("pdf");
+  const [selectedFiles, setSelectedFiles] = useState<UploadedStatementFile[]>([]);
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [step, setStep] = useState<"upload" | "review" | "done">("upload");
@@ -88,53 +122,63 @@ export function BankReconciliation() {
   }, [push, bankAccountId, searchParams]);
   useEffect(() => { loadInit(); }, [loadInit]);
 
-  const handleFile = async (file: File) => {
-    setFilename(file.name);
-    setFileMimeType(file.type || "");
-    setFileText("");
-    setFileBase64("");
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext === "pdf" || file.type === "application/pdf") {
-      setFormat("pdf");
-      setFileBase64(await fileToBase64(file));
+  const handleFiles = async (files: FileList | File[]) => {
+    const allowed = Array.from(files).filter((file) => {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      return ["pdf", "csv", "mt940", "sta", "ofx", "qif", "qfx", "txt"].includes(ext || "") || file.type === "application/pdf";
+    });
+    if (allowed.length === 0) {
+      push("error", "اختر ملف PDF أو CSV/MT940/OFX، وليس مجلد فارغ أو صيغة غير مدعومة");
       return;
     }
-    if (ext === "ofx") setFormat("ofx");
-    else if (ext === "mt940" || ext === "sta") setFormat("mt940");
-    else setFormat("csv");
-    const text = await file.text();
-    setFileText(text);
+    try {
+      const readFiles = await Promise.all(allowed.map(readStatementFile));
+      setSelectedFiles(readFiles);
+      setFormat(readFiles[0]?.format || "pdf");
+      push("success", readFiles.length === 1 ? `تم اختيار ${readFiles[0].name}` : `تم اختيار ${readFiles.length} ملفات كشف`);
+    } catch {
+      push("error", "تعذر قراءة الملف المختار");
+    }
   };
 
   const handleParse = async () => {
     if (!bankAccountId) { push("error", "اختر حساباً بنكياً"); return; }
-    if (format === "pdf" && !fileBase64) { push("error", "ارفع ملف PDF للكشف"); return; }
-    if (format !== "pdf" && !fileText.trim()) { push("error", "ارفع ملف الكشف"); return; }
+    if (selectedFiles.length === 0) { push("error", "ارفع ملف كشف واحد على الأقل"); return; }
     setBusy(true);
     try {
-      const res = await api.bankImport.parse({
-        bankAccountId,
-        format,
-        profile,
-        text: format === "pdf" ? undefined : fileText,
-        fileBase64: format === "pdf" ? fileBase64 : undefined,
-        fileName: filename || undefined,
-        mimeType: fileMimeType || (format === "pdf" ? "application/pdf" : undefined),
-      });
-      const parsed = (res.rows || []).map((r: any) => ({
-        ...r,
-        matchKind: r.match?.type && r.match.type !== "unknown" ? r.match.type : "none",
-        matchId: r.match?.id,
-        matchScore: r.match?.confidence,
-        matchLabel: r.match?.id ? `${r.match.type} · ${r.match.reason}` : r.match?.reason,
-        decision: r.match?.type && r.match.type !== "unknown" ? "accept" : "create_voucher",
-      })) as ParsedRow[];
+      const parsed: ParsedRow[] = [];
+      let matched = 0;
+      let unmatched = 0;
+      const models = new Set<string>();
+      for (const file of selectedFiles) {
+        const res = await api.bankImport.parse({
+          bankAccountId,
+          format: file.format,
+          profile,
+          text: file.format === "pdf" ? undefined : file.text,
+          fileBase64: file.format === "pdf" ? file.base64 : undefined,
+          fileName: file.name,
+          mimeType: file.mimeType || (file.format === "pdf" ? "application/pdf" : undefined),
+        });
+        matched += res.matched || 0;
+        unmatched += res.unmatched || 0;
+        if (res.ai?.model) models.add(res.ai.model);
+        parsed.push(...((res.rows || []).map((r: any) => ({
+          ...r,
+          sourceFile: file.name,
+          matchKind: r.match?.type && r.match.type !== "unknown" ? r.match.type : "none",
+          matchId: r.match?.id,
+          matchScore: r.match?.confidence,
+          matchLabel: r.match?.id ? `${r.match.type} · ${r.match.reason}` : r.match?.reason,
+          decision: r.match?.type && r.match.type !== "unknown" ? "accept" : "create_voucher",
+        })) as ParsedRow[]));
+      }
       setRows(parsed);
-      setStats({ matched: res.matched || 0, unmatched: res.unmatched || 0 });
-      setParseSource(res.ai || null);
+      setStats({ matched, unmatched });
+      setParseSource(models.size ? { model: Array.from(models).join(", "), source: "batch" } : null);
       setStep("review");
-      const source = res.ai?.model ? ` · AI ${res.ai.model}` : "";
-      push("success", `تم استخراج ${parsed.length} حركة · مطابقة ${res.matched} · غير مطابقة ${res.unmatched}${source}`);
+      const source = models.size ? ` · AI ${Array.from(models).join(", ")}` : "";
+      push("success", `تم استخراج ${parsed.length} حركة من ${selectedFiles.length} ملف · مطابقة ${matched} · غير مطابقة ${unmatched}${source}`);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الاستخراج");
     } finally { setBusy(false); }
@@ -176,10 +220,11 @@ export function BankReconciliation() {
   };
 
   const reset = () => {
-    setStep("upload"); setRows([]); setStats(null); setFileText(""); setFileBase64(""); setFileMimeType(""); setFilename(""); setParseSource(null);
+    setStep("upload"); setRows([]); setStats(null); setSelectedFiles([]); setParseSource(null);
   };
 
   const selectedBank = bankAccounts.find((bank) => bank.id === bankAccountId);
+  const directoryInputProps = { webkitdirectory: "true", directory: "" } as any;
 
   return (
     <div className="space-y-6">
@@ -237,8 +282,8 @@ export function BankReconciliation() {
                 <Select value={format} onValueChange={(v) => setFormat(v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="csv">CSV</SelectItem>
                     <SelectItem value="pdf">PDF (AI)</SelectItem>
+                    <SelectItem value="csv">CSV</SelectItem>
                     <SelectItem value="mt940">MT940 (SWIFT)</SelectItem>
                     <SelectItem value="ofx">OFX</SelectItem>
                   </SelectContent>
@@ -259,27 +304,39 @@ export function BankReconciliation() {
 
             <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-8 text-center hover:border-[#1276E3] transition">
               <FileText className="h-10 w-10 text-[#9CA3AF] mx-auto mb-2" />
-              <input type="file" id="bank-stmt" accept=".pdf,application/pdf,.csv,.mt940,.sta,.ofx,.qif,.txt" hidden
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-              <label htmlFor="bank-stmt" className="cursor-pointer">
-                {filename ? (
+              <input type="file" id="bank-stmt" accept=".pdf,application/pdf,.csv,.mt940,.sta,.ofx,.qif,.qfx,.txt" multiple hidden
+                onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }} />
+              <input type="file" id="bank-stmt-folder" accept=".pdf,application/pdf" multiple hidden {...directoryInputProps}
+                onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }} />
+              <div className="cursor-pointer">
+                {selectedFiles.length > 0 ? (
                   <div>
-                    <div className="text-sm text-[#0B1B49] font-medium">{filename}</div>
+                    <div className="text-sm text-[#0B1B49] font-medium">
+                      {selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} ملفات كشف مختارة`}
+                    </div>
                     <div className="text-xs text-[#9CA3AF] mt-1">
-                      {format === "pdf" ? "PDF · قراءة ذكية" : `${(fileText.length / 1024).toFixed(1)} KB`} · اضغط لتغيير الملف
+                      {selectedFiles.map((f) => f.format.toUpperCase()).join(" · ")} · يمكنك تغيير الملفات
                     </div>
                   </div>
                 ) : (
                   <>
                     <div className="text-sm text-[#1276E3] font-medium">اختر ملفاً للرفع</div>
-                    <div className="text-xs text-[#9CA3AF] mt-1">PDF كشف البنك أو CSV/MT940/OFX</div>
+                    <div className="text-xs text-[#9CA3AF] mt-1">PDF كشف البنك أو CSV/MT940/OFX · يدعم أكثر من ملف PDF</div>
                   </>
                 )}
-              </label>
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <label htmlFor="bank-stmt" className="rounded-md border border-[#1276E3] bg-white px-3 py-1.5 text-xs text-[#1276E3] hover:bg-blue-50">
+                    اختيار ملف أو عدة ملفات
+                  </label>
+                  <label htmlFor="bank-stmt-folder" className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs text-[#374151] hover:bg-[#F9FAFB]">
+                    اختيار مجلد PDF
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={handleParse} disabled={busy || (format === "pdf" ? !fileBase64 : !fileText)} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button onClick={handleParse} disabled={busy || selectedFiles.length === 0} className="bg-[#1276E3] hover:bg-[#1060C0]">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
                 استخراج الحركات والمطابقة التلقائية
               </Button>
@@ -342,6 +399,7 @@ export function BankReconciliation() {
                         <td className="px-3 py-2">
                           <div className="text-[#0B1B49] truncate">{r.description}</div>
                           {r.reference && <div className="text-xs text-[#9CA3AF] font-english" dir="ltr">{r.reference}</div>}
+                          {r.sourceFile && <div className="text-[11px] text-[#9CA3AF] font-english truncate" dir="ltr">{r.sourceFile}</div>}
                         </td>
                         <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-green-700" : "text-red-700"}`} dir="ltr">
                           {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString()}

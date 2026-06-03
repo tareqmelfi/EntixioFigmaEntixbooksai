@@ -20,7 +20,7 @@
  *  - Per-line tax mode override (when bulk = "custom")
  *  - Bilingual digit normalization
  */
-import { useRef, useState, useMemo, KeyboardEvent, ClipboardEvent } from "react";
+import { useRef, useState, useMemo, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
 import { Plus, Trash2, GripVertical, Settings2 } from "lucide-react";
 import { Input } from "./ui/input";
 import { SearchableCombobox } from "./searchable-combobox";
@@ -116,6 +116,62 @@ export function computeTotals(lines: InvoiceLine[]) {
 
 const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: false };
 
+function normalizeNumberCell(value: string) {
+  return normalizeDigits(value)
+    .replace(/[^\d.,-]/g, "")
+    .replace(/,/g, "")
+    .trim();
+}
+
+function isNumericCell(value: string) {
+  const cleaned = normalizeNumberCell(value);
+  return /^-?\d+(\.\d+)?$/.test(cleaned);
+}
+
+function splitStructuredRow(row: string, hasTabs: boolean) {
+  return (hasTabs ? row.split("\t") : row.split(",")).map((cell) => cell.trim()).filter(Boolean);
+}
+
+function isLikelyHeaderRow(cols: string[]) {
+  const label = cols.join(" ").toLowerCase();
+  return /description|item|qty|quantity|price|amount|الوصف|الصنف|الكمية|السعر|المبلغ/.test(label);
+}
+
+function AutoGrowTextarea({
+  value,
+  onChange,
+  onKeyDown,
+  placeholder,
+}: {
+  value: string;
+  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  placeholder: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const resize = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 30), 160)}px`;
+  };
+  useEffect(() => { resize(); }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      onInput={resize}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      rows={1}
+      style={{ minHeight: "30px", maxHeight: "160px", resize: "none", overflow: "hidden" }}
+      className="w-full border-0 focus:ring-1 focus:ring-[#1276E3]/30 bg-transparent text-xs leading-5 py-1 px-2 outline-none"
+    />
+  );
+}
+
 export function ItemsTable({
   lines,
   setLines,
@@ -188,36 +244,45 @@ export function ItemsTable({
   };
 
   const handlePaste = async (e: ClipboardEvent<HTMLDivElement>) => {
-    // UX-185: skip auto-split if user pastes inside a textarea (description multi-line)
     const target = e.target as HTMLElement;
-    if (target && target.tagName === "TEXTAREA") return;
     const text = e.clipboardData.getData("text/plain");
     if (!text) return;
     const rows = text.split(/\r?\n/).filter((r) => r.trim());
-    if (rows.length < 2 && !text.includes("\t")) return;
+    const hasTabs = text.includes("\t");
+    const commaCount = (rows[0]?.match(/,/g) || []).length;
+    const looksLikeCsv = rows.length >= 2 && commaCount > 0 && rows.every((r) => (r.match(/,/g) || []).length === commaCount);
+    const structuredPaste = hasTabs || looksLikeCsv || (target?.tagName !== "TEXTAREA" && rows.length > 1);
+    if (!structuredPaste) return;
 
     e.preventDefault();
     const inclusive = mode === "all-inclusive";
 
-    // Detect if pasted text has clear column structure (tabs OR consistent comma columns)
-    const hasTabs = text.includes("\t");
-    const looksLikeCsv = rows.length >= 2 && rows.every((r) => (r.match(/,/g) || []).length === (rows[0].match(/,/g) || []).length);
-
     if (hasTabs || looksLikeCsv) {
-      // Deterministic split (current path)
       const newRows: InvoiceLine[] = [];
       for (const row of rows) {
-        const cols = hasTabs ? row.split("\t") : row.split(",");
-        const description = (cols[0] || "").trim();
-        if (!description) continue;
-        let quantity = "1", unitPrice = "";
-        if (cols.length >= 3) {
-          quantity = normalizeDigits((cols[1] || "1").trim());
-          unitPrice = normalizeDigits((cols[2] || "").trim());
-        } else if (cols.length === 2) {
-          unitPrice = normalizeDigits((cols[1] || "").trim());
-        }
-        newRows.push({ ...newLine(defaultTaxRate, inclusive), description, quantity, unitPrice });
+        const cols = splitStructuredRow(row, hasTabs);
+        if (cols.length === 0 || isLikelyHeaderRow(cols)) continue;
+        const numericIndexes = cols.map((col, idx) => isNumericCell(col) ? idx : -1).filter((idx) => idx >= 0);
+        const priceIndex = numericIndexes.length ? numericIndexes[numericIndexes.length - 1] : undefined;
+        const qtyIndex = numericIndexes.length >= 2 ? numericIndexes[numericIndexes.length - 2] : undefined;
+        const textCells = cols.filter((_, idx) => idx !== priceIndex && idx !== qtyIndex);
+        const firstText = textCells[0] || cols[0] || "";
+        const product = products.find((p) =>
+          p.name.toLowerCase() === firstText.toLowerCase() ||
+          (p.sku || "").toLowerCase() === firstText.toLowerCase()
+        );
+        const descriptionCells = product ? textCells.slice(1) : textCells;
+        const description = (descriptionCells.join(" · ") || product?.name || firstText).trim();
+        if (!description && priceIndex === undefined) continue;
+        newRows.push({
+          ...newLine(defaultTaxRate, inclusive),
+          productId: product?.id,
+          accountId: product?.accountId,
+          description,
+          quantity: qtyIndex !== undefined ? normalizeNumberCell(cols[qtyIndex]) : "1",
+          unitPrice: priceIndex !== undefined ? normalizeNumberCell(cols[priceIndex]) : "",
+          taxRate: product?.taxRate ?? defaultTaxRate,
+        });
       }
       if (newRows.length > 0) {
         const startEmpty = lines.length === 1 && !lines[0].description && !lines[0].unitPrice;
@@ -291,7 +356,19 @@ export function ItemsTable({
         className="rounded-lg border border-[#E5E7EB] overflow-hidden bg-white"
       >
         <div className="overflow-x-auto">
-          <table className="w-full" style={{ minWidth: showAccount ? "1200px" : "900px" }}>
+          <table className="w-full table-fixed text-sm" style={{ minWidth: showAccount ? "1040px" : "820px" }}>
+            <colgroup>
+              <col className="w-8" />
+              <col className="w-40" />
+              <col />
+              <col className="w-20" />
+              <col className="w-24" />
+              {showAccount && <col className="w-36" />}
+              {showTax && <col className="w-24" />}
+              {showTaxAmount && <col className="w-24" />}
+              <col className="w-24" />
+              <col className="w-10" />
+            </colgroup>
             <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
               <tr>
                 <th className="py-2.5 px-2 w-8"></th>
@@ -352,8 +429,8 @@ export function ItemsTable({
                         />
                       </td>
                     )}
-                    <td className="px-2 py-1">
-                      <textarea
+                    <td className="px-2 py-1 align-top">
+                      <AutoGrowTextarea
                         value={line.description}
                         onChange={(e) => updateLine(i, { description: e.target.value })}
                         onKeyDown={(e) => {
@@ -365,9 +442,6 @@ export function ItemsTable({
                           // Shift+Enter is allowed default behavior (newline)
                         }}
                         placeholder="الوصف · Shift+Enter لسطر جديد داخل الخلية"
-                        rows={1}
-                        style={{ minHeight: "32px", resize: "vertical" }}
-                        className="w-full border-0 focus:ring-1 focus:ring-[#1276E3]/30 bg-transparent text-sm py-1 px-2 outline-none"
                       />
                     </td>
                     <td className="px-2 py-1">
@@ -378,7 +452,7 @@ export function ItemsTable({
                         onChange={(e) => updateLine(i, { quantity: normalizeDigits(e.target.value) })}
                         onKeyDown={(e) => handleKeyDown(e, i, false)}
                         dir="ltr"
-                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-8 font-english bg-transparent"
+                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-7 font-english bg-transparent text-xs"
                       />
                     </td>
                     <td className="px-2 py-1">
@@ -389,7 +463,7 @@ export function ItemsTable({
                         onChange={(e) => updateLine(i, { unitPrice: normalizeDigits(e.target.value) })}
                         onKeyDown={(e) => handleKeyDown(e, i, i === realLineCount - 1)}
                         dir="ltr"
-                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-8 font-english bg-transparent"
+                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-7 font-english bg-transparent text-xs"
                       />
                     </td>
                     {showAccount && (
@@ -417,7 +491,7 @@ export function ItemsTable({
                             const [rate, inc] = e.target.value.split("-");
                             updateLine(i, { taxRate: Number(rate), taxInclusive: inc === "in" });
                           }}
-                          className="w-full h-8 rounded-md border-0 bg-transparent px-2 text-xs focus:ring-1 focus:ring-[#1276E3]/30"
+                          className="w-full h-7 rounded-md border-0 bg-transparent px-1.5 text-[11px] leading-tight focus:ring-1 focus:ring-[#1276E3]/30"
                         >
                           <option value="0.15-ex">15% غير شامل</option>
                           <option value="0.15-in">15% شامل</option>

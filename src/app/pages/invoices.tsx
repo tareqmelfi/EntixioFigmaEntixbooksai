@@ -437,12 +437,12 @@ export function Invoices() {
             </div>
           }
         >
-          <div className="max-w-7xl mx-auto space-y-4">
+          <div className="max-w-7xl mx-auto space-y-3">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
 
             {/* Top row · 6 fields per Wafeq screenshot · 2026-05-05 */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">جهة الاتصال *</Label>
                 <SearchableCombobox
                   value={form.contactId}
@@ -463,29 +463,29 @@ export function Invoices() {
                   createLabel={(q) => `+ إنشاء "${q}"`}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-8 text-xs" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">تاريخ الاستحقاق *</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-8 text-xs" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">رقم الفاتورة</Label>
                 <Input value={form.invoiceNumber} onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })}
-                  placeholder="# تلقائي" dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+                  placeholder="# تلقائي" dir="ltr" className="border-[#E5E7EB] font-english h-8 text-xs" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">المرجع</Label>
-                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع العميل" className="border-[#E5E7EB] h-9 text-sm" />
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع العميل" className="border-[#E5E7EB] h-8 text-xs" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">الدفع الإلكتروني</Label>
                 <button
                   type="button"
                   onClick={() => { window.location.href = "/app/settings?tab=payments"; }}
-                  className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-3 text-xs flex items-center justify-between hover:border-[#1276E3]"
+                  className="w-full h-8 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-xs flex items-center justify-between hover:border-[#1276E3]"
                 >
                   <span className="flex items-center gap-1">
                     <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded">MC</span>
@@ -497,37 +497,37 @@ export function Invoices() {
             </div>
 
             {/* Second row · currency + tax mode + brand template + documents button */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">العملة</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">المبالغ</Label>
                 <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
-                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs leading-tight"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all-exclusive">غير شاملة الضريبة</SelectItem>
-                    <SelectItem value="all-inclusive">شاملة الضريبة</SelectItem>
-                    <SelectItem value="custom">مخصصة لكل بند</SelectItem>
+                    <SelectItem value="all-exclusive" className="text-xs">غير شاملة الضريبة</SelectItem>
+                    <SelectItem value="all-inclusive" className="text-xs">شاملة الضريبة</SelectItem>
+                    <SelectItem value="custom" className="text-xs">مخصصة لكل بند</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">قالب العلامة التجارية</Label>
                 <Select value={form.brandTemplate} onValueChange={(v) => setForm({ ...form, brandTemplate: v })}>
-                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {BRAND_TEMPLATES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-[#374151] text-xs">شروط الدفع</Label>
                 <Select value={form.paymentTerms} onValueChange={(v) => {
                   const t = PAYMENT_TERMS.find((p) => p.value === v);
@@ -539,7 +539,7 @@ export function Invoices() {
                     setForm({ ...form, paymentTerms: v });
                   }
                 }}>
-                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PAYMENT_TERMS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
