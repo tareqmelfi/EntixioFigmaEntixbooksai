@@ -1,7 +1,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --font-size: 16px;
+  --font-size: 15px;
   --background: #F1F5F9;
   --foreground: #0B1B49;
   --card: #ffffff;
@@ -141,6 +141,20 @@
     font-size: var(--font-size);
   }
 
+  html[dir="rtl"] {
+    font-size: 14.5px;
+  }
+
+  @media (max-width: 640px) {
+    html {
+      font-size: 14.5px;
+    }
+
+    html[dir="rtl"] {
+      font-size: 14px;
+    }
+  }
+
   h1 {
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
@@ -166,21 +180,28 @@
   }
 
   label {
-    font-size: var(--text-base);
+    font-size: 0.875rem;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   button {
-    font-size: var(--text-base);
+    font-size: 0.875rem;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  input {
-    font-size: var(--text-base);
+  input,
+  textarea,
+  select {
+    font-size: 0.875rem;
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+
+  textarea {
+    min-height: 2.75rem;
+    resize: vertical;
   }
 
   /* ── RTL-safe Recharts: force LTR inside chart containers ── */

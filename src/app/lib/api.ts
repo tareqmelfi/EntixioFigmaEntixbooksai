@@ -13,6 +13,8 @@ const API_BASE =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
   'https://api.entix.io'
 
+export const API_BASE_URL = API_BASE
+
 // ── Org state ────────────────────────────────────────────────────────────────
 let orgId: string | null = null
 
@@ -126,6 +128,8 @@ export const api = {
     get: (id: string) => request<Org>(`/orgs/${id}`, { skipOrg: true }),
     update: (id: string, data: Partial<Org>) =>
       request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
+    remove: (id: string, data: { confirmName: string }) =>
+      request<{ ok: true; deletedOrgId: string; nextOrgId: string | null }>(`/orgs/${id}`, { method: 'DELETE', body: data, skipOrg: true }),
     members: (id: string) =>
       request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),
     inviteMember: (id: string, data: { email: string; role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER' }) =>

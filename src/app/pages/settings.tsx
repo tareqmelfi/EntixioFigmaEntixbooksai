@@ -2,7 +2,8 @@
  * Settings · org info + members + auth · wired to /orgs · /orgs/:id/members
  */
 import { useEffect, useState, useCallback } from "react";
-import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink, Database, RotateCcw, ShieldCheck } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink, Database, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -36,6 +37,7 @@ function initialSettingsTab(): SettingsTab {
 
 export function Settings() {
   const [tab, setTab] = useState<SettingsTab>(initialSettingsTab);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [org, setOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +63,20 @@ export function Settings() {
   const [inboxStatus, setInboxStatus] = useState<any>(null);
   const { toasts, push, dismiss } = useToasts();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const requested = searchParams.get("tab");
+    if (SETTINGS_TABS.includes(requested as SettingsTab)) {
+      setTab(requested as SettingsTab);
+    }
+  }, [searchParams]);
+
+  const selectTab = (nextTab: SettingsTab) => {
+    setTab(nextTab);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", nextTab);
+    setSearchParams(next, { replace: false });
+  };
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -192,7 +208,7 @@ await authStore.logout();
         <p className="text-[#6B7280] mt-1">{org?.name}</p>
       </div>
 
-      <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
+      <div className="flex gap-1 border-b border-[#E5E7EB] overflow-x-auto pb-px [scrollbar-width:none]">
         {(([
           ["company", "بيانات الشركة", "Company"],
           ["data", "البيانات", "Data"],
@@ -209,8 +225,8 @@ await authStore.logout();
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
           <button
             key={k}
-            onClick={() => setTab(k as any)}
-            className={`px-4 py-2 text-sm transition-colors border-b-2 -mb-px ${tab === k ? "border-[#1276E3] text-[#1276E3] font-medium" : "border-transparent text-[#6B7280] hover:text-[#0B1B49]"}`}
+            onClick={() => selectTab(k as SettingsTab)}
+            className={`shrink-0 min-w-[76px] max-w-[132px] whitespace-normal px-2 sm:px-3 py-2 text-center text-[12px] sm:text-sm leading-4 transition-colors border-b-2 -mb-px ${tab === k ? "border-[#1276E3] text-[#1276E3] font-medium" : "border-transparent text-[#6B7280] hover:text-[#0B1B49]"}`}
           >{t(label, labelEn)}</button>
         ))}
       </div>
@@ -441,6 +457,20 @@ await authStore.logout();
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ التغييرات</>}
               </Button>
             </div>
+
+            <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-800">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span>تحتاج حذف هذه الشركة؟ الحذف متاح للمالك فقط ويتطلب كتابة اسم الشركة للتأكيد.</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => selectTab("data")}
+                  className="shrink-0 border-red-200 bg-white text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="me-2 h-4 w-4" /> فتح الحذف
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -630,7 +660,9 @@ function DataResetTab({
   refresh: () => Promise<void>;
 }) {
   const [confirmName, setConfirmName] = useState("");
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [busy, setBusy] = useState<"blank" | "demo" | "clean_company" | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [audit, setAudit] = useState<AuditLogItem[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(true);
 
@@ -675,6 +707,25 @@ function DataResetTab({
   };
 
   const disabled = !!busy || (confirmName.trim() !== org.name && confirmName.trim() !== org.slug);
+  const deleteDisabled = deleting || (deleteConfirmName.trim() !== org.name && deleteConfirmName.trim() !== org.slug);
+
+  const deleteCompany = async () => {
+    if (deleteDisabled) {
+      push("error", "اكتب اسم الشركة أو slug كما هو للحذف");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const result = await api.orgs.remove(org.id, { confirmName: deleteConfirmName.trim() });
+      if (result.nextOrgId) setOrgId(result.nextOrgId);
+      push("success", "تم حذف الشركة والتبديل إلى شركة أخرى");
+      setTimeout(() => window.location.assign("/app/settings?tab=company"), 500);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل حذف الشركة");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -724,6 +775,39 @@ function DataResetTab({
               onClick={() => runReset("clean_company")}
               action="إنشاء نسخة"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-red-200 bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-700">
+            <Trash2 className="h-5 w-5" /> حذف الشركة
+          </CardTitle>
+          <CardDescription>
+            يحذف الشركة الحالية وكل بياناتها التابعة. لا يمكن حذف آخر شركة في الحساب، والحذف متاح للمالك فقط.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800">
+            للتأكيد اكتب <span className="font-semibold">{org.name}</span> أو <span className="font-english">{org.slug}</span> كما هو.
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder={org.name}
+              className="border-red-200"
+            />
+            <Button
+              type="button"
+              onClick={deleteCompany}
+              disabled={deleteDisabled}
+              variant="outline"
+              className="shrink-0 border-red-300 text-red-700 hover:bg-red-50"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> حذف الشركة</>}
+            </Button>
           </div>
         </CardContent>
       </Card>

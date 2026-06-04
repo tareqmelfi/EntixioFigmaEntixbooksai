@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Instagram, Linkedin, Youtube, Twitter, Facebook, Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
+import { EntixWordmark } from "./entix-brand";
 
 export function SharedFooter() {
   const { language, t } = useLanguage();
@@ -28,7 +29,7 @@ export function SharedFooter() {
       { label: "قاموس المحاسبة", labelEn: "Accounting glossary", href: "/glossary" },
     ],
     company: [
-      { label: "عن Entix Books", labelEn: "About Entix Books", href: "/about" },
+      { label: "عن ENTIX.IO", labelEn: "About ENTIX.IO", href: "/about" },
       { label: "الفريق", labelEn: "Team", href: "/team" },
       { label: "الوظائف", labelEn: "Careers", href: "/careers" },
       { label: "اتصل بنا", labelEn: "Contact", href: "/contact" },
@@ -57,11 +58,8 @@ export function SharedFooter() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                <span className="text-white" style={{ fontSize: "16px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
-              </div>
-              <span className="text-white" style={{ fontSize: "20px", fontWeight: 700 }}>Entix Books</span>
+            <div className="flex items-center mb-4">
+              <EntixWordmark size={23} light />
             </div>
             <p className="text-[#94A3B8] max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
               {t(
@@ -212,7 +210,7 @@ export function SharedFooter() {
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#64748B] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
-              &copy; 2026 Entix Books. All rights reserved.
+              &copy; 2026 ENTIX.IO. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {footerLinks.legal.map((link) => (

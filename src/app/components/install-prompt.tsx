@@ -85,7 +85,7 @@ export function InstallPrompt() {
           <Smartphone className="h-5 w-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[#0B1B49] mb-1" style={{ fontSize: "15px", fontWeight: 700 }}>تثبيت Entix Books</h3>
+          <h3 className="text-[#0B1B49] mb-1" style={{ fontSize: "15px", fontWeight: 700 }}>تثبيت ENTIX.IO</h3>
           {deferred ? (
             <p className="text-[#6B7280] mb-3" style={{ fontSize: "13px", lineHeight: 1.5 }}>
               ثبّت التطبيق ليعمل أوفلاين ويفتح من الشاشة الرئيسية مباشرة.

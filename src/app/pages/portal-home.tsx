@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
+import { EntixWordmark } from "../components/entix-brand";
 
 const CUR = "SR";
 
@@ -60,11 +61,8 @@ export function PortalHome() {
       {/* Portal Header */}
       <header className="bg-white border-b border-[#E5E7EB] px-6 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1276E3]">
-              <span className="font-english text-sm text-white" style={{ fontWeight: 700 }}>EB</span>
-            </div>
-            <span className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>شركة Entix Books العالمية</span>
+          <div className="flex items-center">
+            <EntixWordmark size={20} />
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -126,7 +124,7 @@ export function PortalHome() {
           <>
             <div>
               <h2 className="text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>مرحباً أحمد 👋</h2>
-              <p className="text-sm text-[#6B7280] mt-0.5">بوابة: شركة Entix Books العالمية</p>
+              <p className="text-sm text-[#6B7280] mt-0.5">بوابة: شركة ENTIX.IO العالمية</p>
             </div>
 
             {/* KPIs */}
@@ -241,7 +239,7 @@ export function PortalHome() {
                 <div className="grid grid-cols-2 gap-6 mb-6 p-4 rounded-lg bg-[#F9FAFB]">
                   <div>
                     <p className="text-xs text-[#9CA3AF]" style={{ fontWeight: 500 }}>من</p>
-                    <p className="text-sm text-[#0B1B49] mt-0.5" style={{ fontWeight: 600 }}>شركة Entix Books العالمية</p>
+                    <p className="text-sm text-[#0B1B49] mt-0.5" style={{ fontWeight: 600 }}>شركة ENTIX.IO العالمية</p>
                     <p className="text-xs text-[#6B7280]">الرياض، المملكة العربية السعودية</p>
                     <p className="text-xs text-[#6B7280] font-english mt-0.5">VAT: 300000000000001</p>
                   </div>
@@ -389,7 +387,7 @@ export function PortalHome() {
       {/* Portal Footer */}
       <div className="text-center py-6 border-t border-[#E5E7EB] mt-12">
         <span className="text-xs text-[#9CA3AF]">مقدم من </span>
-        <span className="text-xs text-[#9CA3AF] font-english" style={{ fontWeight: 600 }}>Entix Books</span>
+        <span className="text-xs text-[#9CA3AF] font-english" style={{ fontWeight: 600 }}>ENTIX.IO</span>
       </div>
     </div>
   );

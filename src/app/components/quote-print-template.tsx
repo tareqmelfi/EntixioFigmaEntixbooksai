@@ -126,7 +126,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                   color: "#fff", fontWeight: 800, fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
                 }}>EB</div>
                 <div>
-                  <div style={{ fontSize: "16px", fontWeight: 700, color: "#0B1B49" }}>Entix Books</div>
+                  <div style={{ fontSize: "16px", fontWeight: 700, color: "#0B1B49" }}>ENTIX.IO</div>
                   <div style={{ fontSize: "10px", color: "#6B7280" }}>نظام المحاسبة السحابي</div>
                 </div>
               </div>
@@ -315,8 +315,8 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
                   color: "#fff", fontWeight: 800, fontSize: "12px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
                 }}>EB</div>
                 <div>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0B1B49" }}>Entix Books</div>
-                  <div style={{ fontSize: "9px", color: "#6B7280" }}>شركة Entix Books العالمية</div>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0B1B49" }}>ENTIX.IO</div>
+                  <div style={{ fontSize: "9px", color: "#6B7280" }}>شركة ENTIX.IO العالمية</div>
                 </div>
               </div>
               <div style={{ fontSize: "9px", color: "#6B7280", marginTop: "4px" }}>
@@ -465,7 +465,7 @@ export const QuotePrintTemplate = forwardRef<HTMLDivElement, Props>(({ quote }, 
           padding: "14px 50px", borderTop: "1px solid #E5E7EB", marginTop: "20px",
           display: "flex", justifyContent: "space-between", fontSize: "8px", color: "#9CA3AF",
         }}>
-          <span>تم إنشاؤه بواسطة Entix Books — نظام المحاسبة السحابي</span>
+          <span>تم إنشاؤه بواسطة ENTIX.IO — نظام المحاسبة السحابي</span>
           <span style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>www.entixbooks.com</span>
         </div>
       </div>

@@ -29,6 +29,14 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const authState = authStore.getState();
+  const currentCompanyName = authState.user?.company || t("الشركة الحالية", "Current company");
+  const currentCompanyInitials = currentCompanyName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase() || "E";
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -183,7 +191,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             </button>
 
             {showProfile && (
-              <div className="absolute start-0 z-50 mt-1 w-72 rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+              <div className="absolute start-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-[#F3F4F6]">
                   <div className="flex items-center gap-3">
@@ -198,60 +206,72 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   </div>
                 </div>
 
-                {/* Company */}
+                {/* Current company */}
                 <div className="px-4 py-2 border-b border-[#F3F4F6]">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded bg-[#1276E3]">
-                        <span className="font-english text-xs text-white" style={{ fontWeight: 700 }}>EB</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#1276E3]">
+                        <span className="font-english text-xs text-white" style={{ fontWeight: 700 }}>{currentCompanyInitials}</span>
                       </div>
-                      <span className="text-sm text-[#374151] truncate" style={{ maxWidth: "150px" }}>{t("شركة Entix Books العالمية", "Entix Books Global")}</span>
+                      <span className="line-clamp-2 min-w-0 text-sm leading-5 text-[#374151]">{currentCompanyName}</span>
                     </div>
-                    <button className="text-xs text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>{t("تغيير", "Change")}</button>
+                    <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)} className="shrink-0 text-xs text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>
+                      {t("تغيير", "Change")}
+                    </Link>
                   </div>
                 </div>
 
                 {/* Menu Items */}
                 <div className="py-1">
-                  <Link to="/app/settings" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Building2 className="h-4 w-4 text-[#6B7280]" />{t("إعدادات المنشأة", "Company settings")}
+                  <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)}>
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إعدادات المنشأة", "Company settings")}</span>
                     </button>
                   </Link>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                    <CreditCard className="h-4 w-4 text-[#6B7280]" />{t("الباقة والاشتراك", "Plan & billing")}
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                    <Users className="h-4 w-4 text-[#6B7280]" />{t("إدارة ودعوة المستخدمين", "Manage users")}
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                    <Lock className="h-4 w-4 text-[#6B7280]" />{t("إقفال الفترات", "Close periods")}
-                  </button>
+                  <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("الباقة والاشتراك", "Plan & billing")}</span>
+                    </button>
+                  </Link>
+                  <Link to="/app/settings?tab=members" onClick={() => setShowProfile(false)}>
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <Users className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة ودعوة المستخدمين", "Manage users")}</span>
+                    </button>
+                  </Link>
+                  <Link to="/app/fiscal-periods" onClick={() => setShowProfile(false)}>
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إقفال الفترات", "Close periods")}</span>
+                    </button>
+                  </Link>
                 </div>
 
                 <div className="border-t border-[#F3F4F6] py-1">
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                    <Settings className="h-4 w-4 text-[#6B7280]" />{t("إدارة جميع اشتراكاتي", "Manage subscriptions")}
-                  </button>
+                  <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <Settings className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة جميع اشتراكاتي", "Manage subscriptions")}</span>
+                    </button>
+                  </Link>
                   <Link to="/app/roadmap" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Star className="h-4 w-4 text-[#6B7280]" />{t("الطلب أو التصويت على ميزة", "Request or vote on a feature")}
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <Star className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("الطلب أو التصويت على ميزة", "Request or vote on a feature")}</span>
                     </button>
                   </Link>
                 </div>
 
                 <div className="border-t border-[#F3F4F6] py-1">
-                  <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                    <Activity className="h-4 w-4 text-[#22C55E]" />{t("حالة النظام", "System status")}
-                  </button>
+                  <Link to="/app/system-status" onClick={() => setShowProfile(false)}>
+                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
+                      <Activity className="mt-0.5 h-4 w-4 shrink-0 text-[#22C55E]" /><span className="min-w-0 flex-1 whitespace-normal">{t("حالة النظام", "System status")}</span>
+                    </button>
+                  </Link>
                 </div>
 
                 <div className="border-t border-[#F3F4F6] py-1">
                   <button 
                     onClick={() => { authStore.logout(); navigate("/"); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start transition-colors cursor-pointer"
+                    className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start transition-colors cursor-pointer"
                   >
-                    <LogOut className="h-4 w-4" />{t("تسجيل الخروج", "Sign out")}
+                    <LogOut className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج", "Sign out")}</span>
                   </button>
                 </div>
               </div>

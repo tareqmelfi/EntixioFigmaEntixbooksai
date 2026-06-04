@@ -168,7 +168,7 @@ export function ReportDocument({
 
       {resolved.showFooter && (
         <footer className="flex items-center justify-between border-t border-slate-200 px-8 py-4 text-xs text-slate-500">
-          <span>Entix Books · {report.id}</span>
+          <span>ENTIX.IO · {report.id}</span>
           {resolved.showPreparedBy && <span>Prepared for {report.org.name}</span>}
           <span className="print-page-number">Page 1</span>
         </footer>

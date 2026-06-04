@@ -8,6 +8,16 @@ import { ChevronDown, Plus, Check, Building2, X } from "lucide-react";
 import { api, Org, setOrgId } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
 
+function orgInitials(name?: string | null) {
+  const cleaned = (name || "").trim();
+  if (!cleaned) return "?";
+  const latinWords = cleaned.match(/[A-Za-z0-9]+/g);
+  if (latinWords?.length) {
+    return latinWords.slice(0, 2).map((word) => word.charAt(0)).join("").toUpperCase();
+  }
+  return cleaned.charAt(0).toUpperCase();
+}
+
 interface Props {
   className?: string;
   /** "sidebar" = full-width button (default) · "header-chip" = compact pill with logo for app-header */
@@ -83,7 +93,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
             ) : (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
-                {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
+                {orgInitials(activeOrg?.name)}
               </div>
             )}
             <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[260px]">
@@ -121,7 +131,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                       <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-cover bg-white border border-[#F3F4F6] shrink-0" />
                     ) : (
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-[#1276E3] text-white text-xs font-english" style={{ fontWeight: 700 }}>
-                        {(o.name || "?").trim().charAt(0).toUpperCase()}
+                        {orgInitials(o.name)}
                       </div>
                     )}
                     <div className="flex flex-col items-start gap-0.5 min-w-0">
@@ -175,7 +185,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
           ) : (
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
-              {(activeOrg?.name || "?").trim().charAt(0).toUpperCase()}
+              {orgInitials(activeOrg?.name)}
             </div>
           )}
           <div className="flex flex-col items-start gap-0 min-w-0">
@@ -193,7 +203,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-[480px] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
+        <div className="absolute end-0 top-full z-[60] mt-1 w-[min(22rem,calc(100vw-2rem))] max-h-[480px] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
           {/* Search bar · Wafeq style */}
           <div className="p-2 border-b border-[#F3F4F6]">
             <input
@@ -209,7 +219,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           {/* Create new · top action */}
           <button
             onClick={() => { setOpen(false); setShowCreate(true); }}
-            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-[#1276E3] hover:bg-[#F4FCFF] border-b border-[#F3F4F6]"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#1276E3] hover:bg-[#F4FCFF] border-b border-[#F3F4F6]"
             style={{ fontWeight: 600 }}
           >
             <Plus className="h-4 w-4" />
@@ -230,7 +240,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                   setSeedMessage({ kind: "error", text: `فشل: ${e?.message || "خطأ غير معروف"}` });
                 }
               }}
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-green-700 hover:bg-green-50 border-b border-[#F3F4F6]"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm leading-5 text-green-700 hover:bg-green-50 border-b border-[#F3F4F6]"
               style={{ fontWeight: 600 }}
             >
               <Plus className="h-4 w-4" />
@@ -258,20 +268,20 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 {o.logoUrl ? (
                   <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
                 ) : (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english" style={{ fontWeight: 700 }}>
-                    {(o.name || "?").trim().charAt(0).toUpperCase()}
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-xs font-english" style={{ fontWeight: 700 }}>
+                    {orgInitials(o.name)}
                   </div>
                 )}
                 <div className="flex flex-col items-start gap-0 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 w-full">
-                    <span className="truncate font-medium text-start">{o.name}</span>
+                  <div className="flex items-start gap-2 w-full">
+                    <span className="line-clamp-2 text-start text-[13px] font-medium leading-5">{o.name}</span>
                     {activeOrg?.id === o.id && (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
                         مختارة حالياً
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-[#6B7280] font-english">
+                  <span className="text-[10px] text-[#6B7280] font-english leading-4">
                     {o.country} · {o.baseCurrency}
                   </span>
                 </div>

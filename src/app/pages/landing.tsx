@@ -127,11 +127,11 @@ export function Landing() {
   }, []);
 
   const faqs = [
-    { q: t("هل Entix Books متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", "Is Entix Books compatible with Saudi e-invoicing requirements?"), a: t("نعم، Entix Books متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي المطلوب.", "Yes. Entix Books is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") },
-    { q: t("هل يمكنني العمل بدون إنترنت؟", "Can I work without internet?"), a: t("نعم، يدعم Entix Books العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً على الجهاز وتتم المزامنة تلقائياً عند عودة الاتصال بالإنترنت. يمكنك جدولة المزامنة نهاية اليوم أو القيام بها يدوياً.", "Yes. Entix Books supports offline work, keeps data locally, and syncs when the connection returns.") },
-    { q: t("هل يمكن تثبيته على سيرفر خاص؟", "Can it run on a private server?"), a: t("نعم، في الباقة المؤسسية يمكنك تثبيت Entix Books على VPS الخاص بك مع قاعدة بيانات PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي المحلي.", "Yes. Enterprise deployments can run on a private VPS with PostgreSQL, backups, and full data control.") },
+    { q: t("هل ENTIX.IO متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO compatible with Saudi e-invoicing requirements?"), a: t("نعم، ENTIX.IO متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي المطلوب.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") },
+    { q: t("هل يمكنني العمل بدون إنترنت؟", "Can I work without internet?"), a: t("نعم، يدعم ENTIX.IO العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً على الجهاز وتتم المزامنة تلقائياً عند عودة الاتصال بالإنترنت. يمكنك جدولة المزامنة نهاية اليوم أو القيام بها يدوياً.", "Yes. ENTIX.IO supports offline work, keeps data locally, and syncs when the connection returns.") },
+    { q: t("هل يمكن تثبيته على سيرفر خاص؟", "Can it run on a private server?"), a: t("نعم، في الباقة المؤسسية يمكنك تثبيت ENTIX.IO على VPS الخاص بك مع قاعدة بيانات PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي المحلي.", "Yes. Enterprise deployments can run on a private VPS with PostgreSQL, backups, and full data control.") },
     { q: t("كيف يتم تأمين البيانات؟", "How is data secured?"), a: t("نستخدم تشفير AES-256 للبيانات المخزنة وTLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي وإمكانية تصدير البيانات في أي وقت بصيغة JSON.", "Data is protected with encrypted storage, secure transport, automated backups, and export options.") },
-    { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم Entix Books الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً.", "Yes. Entix Books supports SAR, USD, and additional currencies with exchange-rate workflows.") },
+    { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً.", "Yes. ENTIX.IO supports SAR, USD, and additional currencies with exchange-rate workflows.") },
   ];
 
   const handleNavigate = (path: string) => {
@@ -158,8 +158,8 @@ export function Landing() {
             </h1>
             <p className="text-[#6B7280] mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
               {t(
-                "Entix Books نظام محاسبة سحابي يعمل أونلاين وأوفلاين. متوافق مع ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
-                "Entix Books is a cloud accounting platform that works online and offline. It supports ZATCA workflows, Arabic RTL, English LTR, and the daily financial operations of growing businesses."
+                "ENTIX.IO نظام محاسبة سحابي يعمل أونلاين وأوفلاين. متوافق مع ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
+                "ENTIX.IO is a cloud accounting platform that works online and offline. It supports ZATCA workflows, Arabic RTL, English LTR, and the daily financial operations of growing businesses."
               )}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -290,8 +290,8 @@ export function Landing() {
             <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("يعمل بدون إنترنت", "Works without internet")}</h2>
             <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.8 }}>
               {t(
-                "صُمم Entix Books لحل مشكلة الاتصال في القطاعات المختلفة. اعمل محلياً وزامن بياناتك عند توفر الاتصال.",
-                "Entix Books is designed for teams that cannot depend on perfect connectivity. Work locally, then sync when the connection is available."
+                "صُمم ENTIX.IO لحل مشكلة الاتصال في القطاعات المختلفة. اعمل محلياً وزامن بياناتك عند توفر الاتصال.",
+                "ENTIX.IO is designed for teams that cannot depend on perfect connectivity. Work locally, then sync when the connection is available."
               )}
             </p>
           </div>
@@ -433,8 +433,8 @@ export function Landing() {
               </h2>
               <p className="text-[#94A3B8] max-w-xl mx-auto mb-8" style={{ fontSize: "16px", lineHeight: 1.8 }}>
                 {t(
-                  "انضم لآلاف الشركات السعودية التي تثق في Entix Books لإدارة حساباتها بكفاءة وأمان.",
-                  "Use Entix Books to manage accounting, invoices, expenses, and reports with a cleaner bilingual workflow."
+                  "انضم لآلاف الشركات السعودية التي تثق في ENTIX.IO لإدارة حساباتها بكفاءة وأمان.",
+                  "Use ENTIX.IO to manage accounting, invoices, expenses, and reports with a cleaner bilingual workflow."
                 )}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

@@ -14,6 +14,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
+import { EntixWordmark } from "./entix-brand";
 
 const EN_TEXT: Record<string, string> = {
   "لوحة التحكم": "Dashboard",
@@ -372,12 +373,10 @@ function SidebarContent({
           <Link
             to="/app"
             onClick={onClose}
-            className="font-english tracking-tight select-none hover:opacity-80 transition-opacity"
-            style={{ fontWeight: 800, fontSize: "1.125rem", letterSpacing: "-0.02em", lineHeight: 1 }}
+            className="select-none hover:opacity-80 transition-opacity"
             title={tr("الرئيسية · ENTIX")}
           >
-            <span style={{ color: "#0B1B49" }}>ENTIX</span>
-            <span style={{ color: "#1276E3" }}>.IO</span>
+            <EntixWordmark size={18} />
           </Link>
         </div>
 

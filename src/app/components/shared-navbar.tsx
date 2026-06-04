@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { Menu, X, ChevronDown, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
+import { EntixWordmark } from "./entix-brand";
 
 interface DropdownItem {
   label: string;
@@ -95,11 +96,8 @@ export function SharedNavbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-md">
-            <span className="text-white" style={{ fontSize: "16px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
-          </div>
-          <span className="text-[#0B1A47]" style={{ fontSize: "20px", fontWeight: 700 }}>Entix Books</span>
+        <Link to="/" className="flex items-center hover:opacity-90 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
+          <EntixWordmark size={25} />
         </Link>
 
         {/* Desktop Navigation */}

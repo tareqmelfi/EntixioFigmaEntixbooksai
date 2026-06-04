@@ -4,6 +4,7 @@ import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud, Globe } from "lucide-react
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
+import { EntixWordmark } from "../components/entix-brand";
 
 export function Login() {
   const navigate = useNavigate();
@@ -81,11 +82,8 @@ export function Login() {
             </button>
           </div>
           
-          <div className="flex items-center gap-2.5 mb-10">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center shadow-sm">
-              <span className="text-white" style={{ fontSize: "17px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
-            </div>
-            <span className="text-[#0B1A47]" style={{ fontSize: "22px", fontWeight: 700 }}>Entix Books</span>
+          <div className="flex items-center mb-10">
+            <EntixWordmark size={27} />
           </div>
 
           <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("تسجيل الدخول", "Sign in")}</h1>
@@ -200,10 +198,7 @@ export function Login() {
         
         <div className="text-center max-w-md relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-8 border border-white/10">
-              <span className="text-white" style={{ fontSize: "32px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
-            </div>
-            <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br />Entix Books</h2>
+            <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br /><EntixWordmark size={34} light /></h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
                 "نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين. متوافق مع ZATCA ومصمم خصيصاً للسوق السعودي.",

@@ -1,5 +1,5 @@
 /**
- * Entix Books — Unified Chart Styling System
+ * ENTIX.IO — Unified Chart Styling System
  * ──────────────────────────────────────────
  * Rule: Titles stay bold and clear. Everything else (axes, grid, legend)
  *       is deliberately muted so the data visuals (bars, lines) are the hero.

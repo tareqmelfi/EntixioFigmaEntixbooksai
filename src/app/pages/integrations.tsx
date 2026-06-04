@@ -59,7 +59,7 @@ export function Integrations() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>التكاملات</h1>
-          <p className="text-[#6B7280] mt-1">اربط Entix Books مع خدماتك المفضلة</p>
+          <p className="text-[#6B7280] mt-1">اربط ENTIX.IO مع خدماتك المفضلة</p>
         </div>
       </div>
 

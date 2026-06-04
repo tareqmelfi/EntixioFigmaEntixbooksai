@@ -14,7 +14,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem("entix-language");
-    return (saved === "en" ? "en" : "ar") as Language;
+    return (saved === "ar" ? "ar" : "en") as Language;
   });
 
   useEffect(() => {
@@ -22,10 +22,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     // Update document lang and dir for Google Translate compatibility
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
-    
+    document.body.dir = language === "ar" ? "rtl" : "ltr";
     document.body.style.fontFamily = language === "ar"
-      ? "'Noto Sans Arabic', system-ui, -apple-system, sans-serif"
-      : "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ? "var(--entix-font-ar)"
+      : "var(--entix-font-en)";
   }, [language]);
 
   const toggleLanguage = () => {

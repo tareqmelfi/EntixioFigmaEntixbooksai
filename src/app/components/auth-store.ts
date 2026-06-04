@@ -1,5 +1,5 @@
 /**
- * Entix Books · Auth Store (better-auth backed)
+ * ENTIX.IO · Auth Store (better-auth backed)
  *
  * Same public API as the old localStorage-based store · same hook signature.
  * Internally uses better-auth REST endpoints + cookie sessions on api.entix.io.

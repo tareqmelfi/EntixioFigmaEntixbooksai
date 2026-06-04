@@ -430,7 +430,7 @@ export function PricingPage() {
               لا زلت غير متأكد؟
             </h2>
             <p className="text-white/80 text-lg mb-8" style={{ lineHeight: 1.8 }}>
-              جرّب Entix Books مجاناً لمدة 14 يوم. لا حاجة لبطاقة ائتمانية.
+              جرّب ENTIX.IO مجاناً لمدة 14 يوم. لا حاجة لبطاقة ائتمانية.
             </p>
             <button
               onClick={() => navigate("/register")}

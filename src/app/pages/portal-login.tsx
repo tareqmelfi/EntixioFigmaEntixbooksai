@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Mail, ArrowRight, Shield } from "lucide-react";
+import { EntixWordmark } from "../components/entix-brand";
 
 type Step = "email" | "otp";
 
@@ -48,12 +49,7 @@ export function PortalLogin() {
         <div className="rounded-2xl bg-white border border-[#E5E7EB] p-8" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1276E3]">
-                <span className="font-english text-lg text-white" style={{ fontWeight: 700 }}>EB</span>
-              </div>
-            </div>
-            <h1 className="text-[#0B1B49] mt-2" style={{ fontSize: "1.25rem", fontWeight: 700 }}>شركة Entix Books العالمية</h1>
+            <h1 className="mt-2"><EntixWordmark size={22} /></h1>
             <p className="text-sm text-[#6B7280] mt-1">بوابة الأطراف</p>
           </div>
 
@@ -158,7 +154,7 @@ export function PortalLogin() {
         <div className="text-center mt-6 flex items-center justify-center gap-2">
           <Shield className="h-3.5 w-3.5 text-[#9CA3AF]" />
           <span className="text-xs text-[#9CA3AF]">هذا الرابط آمن ومقدم من</span>
-          <span className="text-xs text-[#9CA3AF] font-english" style={{ fontWeight: 600 }}>Entix Books — entix.io</span>
+          <span className="text-xs text-[#9CA3AF] font-english" style={{ fontWeight: 600 }}>ENTIX.IO — entix.io</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 /**
- * Entix Books — Data Service Layer (Repository Pattern)
+ * ENTIX.IO — Data Service Layer (Repository Pattern)
  * ─────────────────────────────────────────────────────
  * Architecture: All data access goes through this abstraction layer.
  * 

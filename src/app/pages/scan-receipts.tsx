@@ -61,7 +61,7 @@ export function ScanReceipts() {
             </div>
             <h3 className="text-[#0B1B49]" style={{ fontWeight: 700 }}>التقاط بالهاتف</h3>
             <p className="text-xs text-[#6B7280] mt-2 leading-5">
-              حمّل تطبيق Entix Books للجوال والتقط الإيصالات بكاميرا الهاتف
+              حمّل تطبيق ENTIX.IO للجوال والتقط الإيصالات بكاميرا الهاتف
             </p>
             <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-blue-50 text-[#1276E3] font-semibold">قريباً</span>
           </CardContent>

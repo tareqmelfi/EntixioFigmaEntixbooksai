@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
+import { EntixWordmark } from "../components/entix-brand";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -153,11 +154,8 @@ export function Features() {
       {/* Invoice Header */}
       <div className="flex items-start justify-between mb-8 pb-6 border-b border-gray-100">
         <div>
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0B1A47] to-[#1A2D5C] flex items-center justify-center">
-              <span className="text-white" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>E</span>
-            </div>
-            <span className="text-[#0B1A47]" style={{ fontSize: "18px", fontWeight: 700 }}>Entix Books</span>
+          <div className="flex items-center mb-2">
+            <EntixWordmark size={21} />
           </div>
           <p className="text-[#6B7280] text-sm">الرياض، المملكة العربية السعودية</p>
           <p className="text-[#6B7280] text-sm" dir="ltr">+966 800 430 088</p>
@@ -450,7 +448,7 @@ export function Features() {
               جاهز لتجربة أفضل نظام محاسبي؟
             </h2>
             <p className="text-white/80 text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              ابدأ اليوم واكتشف كيف يمكن لـ Entix Books تحويل طريقة إدارتك لحساباتك المالية
+              ابدأ اليوم واكتشف كيف يمكن لـ ENTIX.IO تحويل طريقة إدارتك لحساباتك المالية
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 

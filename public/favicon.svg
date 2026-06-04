@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Entix Books">
-  <rect width="64" height="64" rx="14" fill="#1276E3"/>
-  <path d="M18 17h30v8H27v7h18v7H27v8h22v8H18z" fill="#fff"/>
-  <path d="M18 17h9v38h-9z" fill="#05B6FA"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ENTIX.IO">
+  <rect width="64" height="64" rx="14" fill="#0B1B49"/>
+  <path d="M14 15h28v8H23v6h16v7H23v7h20v8H14z" fill="#FFFFFF"/>
+  <path d="M47 42h7v9h-7z" fill="#1276E3"/>
+  <circle cx="50.5" cy="34" r="3.5" fill="#05B6FA"/>
+  <path d="M14 54h40v4H14z" fill="#05B6FA"/>
 </svg>

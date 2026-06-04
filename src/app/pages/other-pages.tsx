@@ -4,7 +4,7 @@ export function Team() {
   return (
     <PlaceholderPage
       title="فريق العمل"
-      description="قريباً! تعرف على الفريق الذي يعمل على تطوير Entix Books."
+      description="قريباً! تعرف على الفريق الذي يعمل على تطوير ENTIX.IO."
     />
   );
 }
@@ -40,7 +40,7 @@ export function Changelog() {
   return (
     <PlaceholderPage
       title="سجل التحديثات"
-      description="قريباً! تابع جميع التحديثات والتحسينات الجديدة في Entix Books."
+      description="قريباً! تابع جميع التحديثات والتحسينات الجديدة في ENTIX.IO."
     />
   );
 }
@@ -58,7 +58,7 @@ export function CaseStudies() {
   return (
     <PlaceholderPage
       title="دراسات الحالة"
-      description="قريباً! اقرأ قصص نجاح عملائنا وكيف حسّنوا أعمالهم مع Entix Books."
+      description="قريباً! اقرأ قصص نجاح عملائنا وكيف حسّنوا أعمالهم مع ENTIX.IO."
     />
   );
 }

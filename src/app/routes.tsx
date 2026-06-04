@@ -62,6 +62,7 @@ import { Reports } from "./pages/reports";
 import { ReportView } from "./pages/report-view";
 import { ReportPrintDesigner } from "./pages/report-print-designer";
 import { Settings } from "./pages/settings";
+import { SystemStatus } from "./pages/system-status";
 import { Notifications } from "./pages/notifications";
 import { InboxPage } from "./pages/inbox";
 import { ScanReceipts } from "./pages/scan-receipts";
@@ -202,6 +203,7 @@ export const router = createBrowserRouter([
       { path: "reports/cash-flow", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "reports/profit-loss", element: <Reports />, errorElement: <ErrorBoundary /> },
       { path: "settings", element: <Settings />, errorElement: <ErrorBoundary /> },
+      { path: "system-status", element: <SystemStatus />, errorElement: <ErrorBoundary /> },
       { path: "notifications", element: <Notifications />, errorElement: <ErrorBoundary /> },
       { path: "admin", element: <AdminDashboard />, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: <FeatureRoadmap />, errorElement: <ErrorBoundary /> },
