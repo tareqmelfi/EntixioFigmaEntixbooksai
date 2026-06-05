@@ -49,7 +49,7 @@ export function PortalLogin() {
         <div className="rounded-2xl bg-white border border-[#E5E7EB] p-8" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
           {/* Logo */}
           <div className="text-center mb-8">
-            <h1 className="mt-2"><EntixWordmark size={22} /></h1>
+            <h1 className="mt-2"><EntixWordmark size={30} /></h1>
             <p className="text-sm text-[#6B7280] mt-1">بوابة الأطراف</p>
           </div>
 

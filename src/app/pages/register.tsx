@@ -70,7 +70,7 @@ export function Register() {
           </Link>
 
           <div className="flex items-center mb-8">
-            <EntixWordmark size={27} />
+            <EntixWordmark size={34} />
           </div>
 
           <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>إنشاء حساب جديد</h1>

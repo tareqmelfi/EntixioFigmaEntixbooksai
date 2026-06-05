@@ -72,7 +72,7 @@ export function ForgotPassword() {
         </Link>
 
         <div className="flex items-center mb-10">
-          <EntixWordmark size={27} />
+          <EntixWordmark size={34} />
         </div>
 
         {sent ? (

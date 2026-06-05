@@ -83,7 +83,7 @@ export function Login() {
           </div>
           
           <div className="flex items-center mb-10">
-            <EntixWordmark size={27} />
+            <EntixWordmark size={34} />
           </div>
 
           <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("تسجيل الدخول", "Sign in")}</h1>
@@ -198,7 +198,7 @@ export function Login() {
         
         <div className="text-center max-w-md relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br /><EntixWordmark size={34} light /></h2>
+            <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br /><EntixWordmark size={39} light /></h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
                 "نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين. متوافق مع ZATCA ومصمم خصيصاً للسوق السعودي.",

@@ -19,7 +19,7 @@ export function EntixWordmark({ className, size = 20, light = false }: EntixWord
       className={cn("font-english inline-flex items-baseline select-none", className)}
       dir="ltr"
       aria-label="ENTIX.IO"
-      style={{ fontSize: size, fontWeight: 800, letterSpacing: 0, lineHeight: 1 }}
+      style={{ fontSize: size, fontWeight: 850, letterSpacing: 0, lineHeight: 1 }}
     >
       <span style={{ color: baseColor }}>ENTIX</span>
       <span style={{ color: accentColor }}>.</span>

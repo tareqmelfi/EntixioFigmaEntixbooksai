@@ -59,7 +59,7 @@ export function SharedFooter() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
             <div className="flex items-center mb-4">
-              <EntixWordmark size={23} light />
+              <EntixWordmark size={30} light />
             </div>
             <p className="text-[#94A3B8] max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
               {t(

@@ -97,7 +97,7 @@ export function SharedNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center hover:opacity-90 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
-          <EntixWordmark size={25} />
+          <EntixWordmark size={34} />
         </Link>
 
         {/* Desktop Navigation */}

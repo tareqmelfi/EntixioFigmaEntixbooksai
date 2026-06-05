@@ -155,7 +155,7 @@ export function Features() {
       <div className="flex items-start justify-between mb-8 pb-6 border-b border-gray-100">
         <div>
           <div className="flex items-center mb-2">
-            <EntixWordmark size={21} />
+            <EntixWordmark size={30} />
           </div>
           <p className="text-[#6B7280] text-sm">الرياض، المملكة العربية السعودية</p>
           <p className="text-[#6B7280] text-sm" dir="ltr">+966 800 430 088</p>
