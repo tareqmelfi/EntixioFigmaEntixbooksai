@@ -17,7 +17,7 @@
  *     }}
  *   />
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Images, Upload, Sparkles, X, FileText, Image as ImageIcon, Loader2, Eye } from "lucide-react";
 import { Button } from "./ui/button";
 import { api } from "../lib/api";
@@ -52,6 +52,12 @@ interface FileItem {
   note?: string;
   extracted?: boolean;
   extracting?: boolean;
+}
+
+function toInitialFileItems(initialFiles: Array<{ name: string; url: string; type: string }>): FileItem[] {
+  return initialFiles
+    .filter((f) => f.url)
+    .map((f, i) => ({ id: `init-${i}`, file: null, extractFile: null, name: f.name, url: f.url, type: f.type }));
 }
 
 type ProcessingState = {
@@ -103,9 +109,7 @@ export function DocumentPreviewPane({
   enableExtract = true,
   autoExtract = false,
 }: DocumentPreviewProps) {
-  const [files, setFiles] = useState<FileItem[]>(
-    initialFiles.map((f, i) => ({ id: `init-${i}`, file: null, extractFile: null, name: f.name, url: f.url, type: f.type })),
-  );
+  const [files, setFiles] = useState<FileItem[]>(() => toInitialFileItems(initialFiles));
   const [activeId, setActiveId] = useState<string | null>(initialFiles[0] ? `init-0` : null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,10 +119,24 @@ export function DocumentPreviewPane({
   const filesRef = useRef<FileItem[]>(files);
 
   const active = files.find((f) => f.id === activeId);
+  const initialFilesSignature = useMemo(
+    () => initialFiles.map((f) => `${f.name}\u001f${f.type}\u001f${f.url}`).join("\u001e"),
+    [initialFiles],
+  );
 
   useEffect(() => {
     filesRef.current = files;
   }, [files]);
+
+  useEffect(() => {
+    const next = toInitialFileItems(initialFiles);
+    setFiles((current) => {
+      current.forEach((f) => { if (f.file && f.url.startsWith("blob:")) URL.revokeObjectURL(f.url); });
+      return next;
+    });
+    setActiveId(next[0]?.id || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFilesSignature]);
 
   const addFiles = async (incoming: FileList | File[]) => {
     setError(null);

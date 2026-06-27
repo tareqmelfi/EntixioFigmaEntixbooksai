@@ -118,15 +118,15 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
         </div>
 
         {open && (
-          <div className="absolute end-0 top-full z-[60] mt-1 w-80 max-h-[420px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+          <div className="absolute end-0 top-full z-[60] mt-1 w-[min(22rem,calc(100vw-1.5rem))] max-h-[420px] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
             <div className="p-1">
               {orgs.map((o) => (
                 <button
                   key={o.id}
                   onClick={() => handleSelect(o)}
-                  className="flex w-full items-center justify-between gap-2 rounded px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F4FCFF]"
+                  className="flex w-full flex-row-reverse items-center justify-between gap-2 rounded px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F4FCFF]"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex min-w-0 flex-row-reverse items-center gap-2">
                     {o.logoUrl ? (
                       <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-cover bg-white border border-[#F3F4F6] shrink-0" />
                     ) : (
@@ -134,8 +134,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                         {orgInitials(o.name)}
                       </div>
                     )}
-                    <div className="flex flex-col items-start gap-0.5 min-w-0">
-                      <span className="truncate font-medium">{o.name}</span>
+                    <div className="flex min-w-0 flex-col items-end gap-0.5 text-end">
+                      <span className="max-w-[15rem] truncate font-medium">{o.name}</span>
                       <span className="text-xs text-[#6B7280] font-english">{o.country} · {o.baseCurrency}</span>
                     </div>
                   </div>
@@ -203,7 +203,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       </button>
 
       {open && (
-        <div className="absolute inset-x-0 top-full z-[60] mt-1 max-h-[min(70vh,520px)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
+        <div className="absolute end-0 top-full z-[60] mt-1 w-[min(23rem,calc(100vw-1.5rem))] max-h-[min(70vh,520px)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
           {/* Search bar · Wafeq style */}
           <div className="p-2 border-b border-[#F3F4F6]">
             <input
@@ -219,7 +219,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           {/* Create new · top action */}
           <button
             onClick={() => { setOpen(false); setShowCreate(true); }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs leading-5 text-[#1276E3] hover:bg-[#F4FCFF] border-b border-[#F3F4F6]"
+            className="flex w-full flex-row-reverse items-center justify-between gap-2 px-3 py-2 text-xs leading-5 text-[#1276E3] hover:bg-[#F4FCFF] border-b border-[#F3F4F6]"
             style={{ fontWeight: 600 }}
           >
             <Plus className="h-4 w-4" />
@@ -240,7 +240,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                   setSeedMessage({ kind: "error", text: `فشل: ${e?.message || "خطأ غير معروف"}` });
                 }
               }}
-              className="flex w-full items-start gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50 border-b border-[#F3F4F6]"
+              className="flex w-full flex-row-reverse items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50 border-b border-[#F3F4F6]"
               style={{ fontWeight: 600 }}
             >
               <Plus className="h-4 w-4" />
@@ -263,7 +263,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               <button
                 key={o.id}
                 onClick={() => handleSelect(o)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F4FCFF] border-b border-[#F3F4F6] last:border-b-0"
+                className="flex w-full flex-row-reverse items-center gap-2 px-3 py-2 text-sm text-[#0B1B49] hover:bg-[#F4FCFF] border-b border-[#F3F4F6] last:border-b-0"
               >
                 {o.logoUrl ? (
                   <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-cover bg-white border border-[#F3F4F6] shrink-0" />
@@ -272,9 +272,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                     {orgInitials(o.name)}
                   </div>
                 )}
-                <div className="flex flex-col items-start gap-0 min-w-0 flex-1">
-                  <div className="flex items-start gap-1.5 w-full">
-                    <span className="line-clamp-2 text-start text-[12px] font-medium leading-5">{o.name}</span>
+                <div className="flex min-w-0 flex-1 flex-col items-end gap-0 text-end">
+                  <div className="flex w-full flex-row-reverse items-start gap-1.5">
+                    <span className="line-clamp-2 text-end text-[12px] font-medium leading-5">{o.name}</span>
                     {activeOrg?.id === o.id && (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
                         مختارة حالياً

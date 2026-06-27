@@ -182,6 +182,16 @@ function hasDraftContent(form: FormState) {
   );
 }
 
+function attachmentPreviewUrl(attachment: UploadedAttachment) {
+  if (!attachment.base64) return "";
+  const type = attachment.type || "application/octet-stream";
+  if (/heic|heif/i.test(type) || /\.(heic|heif)$/i.test(attachment.name)) return "";
+  if (type.startsWith("image/") || type === "application/pdf" || /\.pdf$/i.test(attachment.name)) {
+    return `data:${type};base64,${attachment.base64}`;
+  }
+  return "";
+}
+
 function isBankStatementBlocked(data: any, fileName?: string): boolean {
   if (!data) return false;
   if (data.status === "needs_bank_statement_review" || data.documentType === "bank_statement") return true;
@@ -914,7 +924,7 @@ export function Expenses() {
     ? formData.attachments.map((a) => ({
         name: a.name,
         type: a.type,
-        url: a.type.startsWith("image/") && !/heic|heif/i.test(a.type) ? `data:${a.type};base64,${a.base64}` : "",
+        url: attachmentPreviewUrl(a),
       }))
     : [];
 

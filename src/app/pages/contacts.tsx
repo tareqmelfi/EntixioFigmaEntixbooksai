@@ -464,7 +464,7 @@ export function Contacts() {
               });
               const hasExtractedIdentity = Boolean(
                 data.displayName || data.legalName || data.email || data.phone || data.vatNumber
-                || data.crNumber || data.nationalId || data.addressLine1 || data.city || data.region,
+                || data.crNumber || data.nationalId,
               );
               setForm(prev => ({
                 ...prev,

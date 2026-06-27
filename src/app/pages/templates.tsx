@@ -24,7 +24,7 @@ const templates: Template[] = [
   { id: "T-002", name: "فاتورة مبيعات - حديث", type: "فاتورة بيع", icon: FileText, description: "تصميم عصري بألوان الهوية مع QR Code", lastModified: "2026-02-20", isDefault: false, status: "نشط" },
   { id: "T-003", name: "عرض سعر - احترافي", type: "عرض سعر", icon: FileSpreadsheet, description: "قالب عرض أسعار مع شروط وأحكام", lastModified: "2026-02-15", isDefault: true, status: "نشط" },
   { id: "T-004", name: "سند قبض", type: "سند قبض", icon: Receipt, description: "سند قبض رسمي مع رقم مرجعي", lastModified: "2026-01-10", isDefault: true, status: "نشط" },
-  { id: "T-005", name: "سند دفع", type: "سند دفع", icon: CreditCard, description: "سند دفع للموردين", lastModified: "2026-01-10", isDefault: true, status: "نشط" },
+  { id: "T-005", name: "سند صرف", type: "سند صرف", icon: CreditCard, description: "سند صرف للموردين", lastModified: "2026-01-10", isDefault: true, status: "نشط" },
   { id: "T-006", name: "إشعار دائن", type: "إشعار دائن", icon: ScrollText, description: "قالب إشعار دائن متوافق مع ZATCA", lastModified: "2026-01-05", isDefault: true, status: "نشط" },
   { id: "T-007", name: "فاتورة مبيعات - مبسط", type: "فاتورة بيع", icon: FileText, description: "فاتورة مبسطة للمبيعات الصغيرة (POS)", lastModified: "2025-12-20", isDefault: false, status: "مسودة" },
 ];
