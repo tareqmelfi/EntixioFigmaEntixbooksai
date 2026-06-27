@@ -4,7 +4,7 @@
  * UX pattern: FullPageForm (replaces content area on create/sign · مطابق Wafeq) + InlineConfirm + Toasts.
  */
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -73,6 +73,7 @@ const BRAND_TEMPLATES = [
 ];
 
 export function Invoices() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
@@ -147,18 +148,18 @@ export function Invoices() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Auto-open create form when ?new=1 (from Sales Dashboard quick-create)
+  // Auto-open create form when /new or ?new=1 (from Sales Dashboard quick-create)
   useEffect(() => {
-    if (searchParams.get("new") === "1") {
+    if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
       setForm(EMPTY_FORM);
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
       setCreateOpen(true);
-      // Clean the URL after opening
-      setSearchParams({}, { replace: true });
+      // Clean the query URL after opening, but keep canonical /new routes stable.
+      if (searchParams.get("new") === "1") setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [location.pathname, searchParams, setSearchParams]);
 
   const filtered = items.filter(i => {
     if (filterStatus !== "ALL" && i.status !== filterStatus) return false;

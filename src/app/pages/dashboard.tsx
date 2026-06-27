@@ -527,7 +527,7 @@ export function Dashboard() {
                   const trendPct = (b as any).trendPct ?? 4;
                   const trendUp = trendPct >= 0;
                   return (
-                    <Link key={b.id} to={`/app/bank-accounts`} className="block group">
+                    <Link key={b.id} to={`/app/bank-accounts/${b.id}`} className="block group">
                       <div className="rounded-lg border border-[#E5E7EB] hover:border-[#1276E3] transition p-2.5 bg-white">
                         <div className="flex items-center justify-between gap-2">
                           {/* Right side · name + logo placeholder */}

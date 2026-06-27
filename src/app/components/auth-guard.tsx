@@ -24,6 +24,15 @@ const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days · same as better-auth se
 
 interface Hint { ok: boolean; ts: number }
 
+function hasLocalQaAuthBypass(): boolean {
+  if (!(import.meta.env.DEV && import.meta.env.VITE_QA_AUTH_BYPASS === "1")) return false;
+  if (typeof window === "undefined") return false;
+
+  const localHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+  const params = new URLSearchParams(window.location.search);
+  return localHosts.has(window.location.hostname) && params.get("__qa_auth") === "1";
+}
+
 function readHint(): boolean {
   try {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(HINT_KEY) : null;
@@ -47,6 +56,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState(authStore.getState());
   const location = useLocation();
   const optimistic = readHint();
+  const localQaAuthBypass = hasLocalQaAuthBypass();
 
   useEffect(() => {
     return authStore.subscribe((s) => {
@@ -55,6 +65,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!s.loading) writeHint(s.isAuthenticated);
     });
   }, []);
+
+  if (localQaAuthBypass) return <>{children}</>;
 
   // 1. Session check still running → don't redirect, don't flash login
   if (state.loading) {

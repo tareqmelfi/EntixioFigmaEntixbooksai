@@ -79,7 +79,7 @@ const modules: FeatureModule[] = [
     bgColor: "bg-[#166534]/10",
     features: [
       { name: "فواتير المشتريات", status: "live", description: "إدارة فواتير الموردين مع ربط المورد", details: ["إنشاء / عرض / حذف", "ربط بالمورد مع بحث ذكي", "بنود مع ضريبة"] },
-      { name: "سندات الدفع", status: "live", description: "تسجيل المدفوعات للموردين" },
+      { name: "سندات الصرف", status: "live", description: "تسجيل المبالغ المصروفة للموردين" },
       { name: "المصروفات النقدية", status: "live", description: "تسجيل المصاريف اليومية مع التصنيف" },
       { name: "ربط المشتريات بالمدفوعات", status: "partial", description: "تخصيص المدفوعات على فواتير الشراء", details: ["يحتاج: شاشة تخصيص مدفوعات على فواتير متعددة"] },
     ],

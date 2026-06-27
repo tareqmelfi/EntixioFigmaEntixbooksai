@@ -55,6 +55,12 @@ type FormState = {
   amount: string;
   taxAmount: string;
   totalAmount: string;
+  sourceCurrency: string;
+  baseCurrency: string;
+  exchangeRate: string;
+  actualPaidCurrency: string;
+  actualPaidAmount: string;
+  fxTreatment: FxTreatment;
   paymentMethod: ApiExpense["paymentMethod"];
   description: string;
   vendorName: string;
@@ -82,6 +88,45 @@ type ExtractionSummary = {
   warnings: string[];
 };
 
+type FxTreatment = "MERGE_INTO_EXPENSE" | "FX_LOSS" | "BANK_FEE";
+
+type CurrencySettlement = {
+  sourceCurrency: string;
+  baseCurrency: string;
+  actualPaidCurrency: string;
+  sourceTotal: number;
+  exchangeRate: number;
+  bookBaseAmount: number;
+  actualPaidAmount: number;
+  actualRate: number;
+  difference: number;
+  treatment: FxTreatment;
+  treatmentLabel: string;
+  isCrossCurrency: boolean;
+};
+
+const CURRENCIES = [
+  { value: "SAR", label: "ريال سعودي · SAR" },
+  { value: "USD", label: "دولار أمريكي · USD" },
+  { value: "EUR", label: "يورو · EUR" },
+  { value: "AED", label: "درهم إماراتي · AED" },
+  { value: "GBP", label: "جنيه إسترليني · GBP" },
+];
+
+const FX_TREATMENT_LABELS: Record<FxTreatment, string> = {
+  MERGE_INTO_EXPENSE: "ادمج الفرق في تكلفة المصروف",
+  FX_LOSS: "سجل الفرق كخسارة / ربح فرق عملة",
+  BANK_FEE: "سجل الفرق كتكلفة تحويل أو رسوم بنك",
+};
+
+const DEFAULT_RATES_TO_SAR: Record<string, number> = {
+  SAR: 1,
+  USD: 3.75,
+  EUR: 4.1,
+  AED: 1.02,
+  GBP: 4.8,
+};
+
 const EXPENSE_DRAFT_KEY = "entix.expenses.currentDraft.v2";
 
 function emptyForm(): FormState {
@@ -91,6 +136,12 @@ function emptyForm(): FormState {
     amount: "",
     taxAmount: "",
     totalAmount: "",
+    sourceCurrency: "SAR",
+    baseCurrency: "SAR",
+    exchangeRate: "1",
+    actualPaidCurrency: "SAR",
+    actualPaidAmount: "",
+    fxTreatment: "FX_LOSS",
     paymentMethod: "CASH",
     description: "",
     vendorName: "",
@@ -112,6 +163,12 @@ function hasDraftContent(form: FormState) {
     || form.amount.trim()
     || form.taxAmount.trim()
     || form.totalAmount.trim()
+    || form.sourceCurrency !== empty.sourceCurrency
+    || form.baseCurrency !== empty.baseCurrency
+    || form.exchangeRate !== empty.exchangeRate
+    || form.actualPaidCurrency !== empty.actualPaidCurrency
+    || form.actualPaidAmount.trim()
+    || form.fxTreatment !== empty.fxTreatment
     || form.description.trim()
     || form.vendorName.trim()
     || form.supplierTaxId.trim()
@@ -227,6 +284,94 @@ function num(value: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function normalizeCurrency(value: any, fallback = "SAR"): string {
+  const raw = String(value || "").trim().toUpperCase();
+  const code = raw.match(/[A-Z]{3}/)?.[0];
+  if (code && CURRENCIES.some((currency) => currency.value === code)) return code;
+  return fallback;
+}
+
+function defaultExchangeRate(sourceCurrency: string, baseCurrency: string): number {
+  if (sourceCurrency === baseCurrency) return 1;
+  if (baseCurrency === "SAR") return DEFAULT_RATES_TO_SAR[sourceCurrency] || 1;
+  if (sourceCurrency === "SAR" && DEFAULT_RATES_TO_SAR[baseCurrency]) {
+    return Number((1 / DEFAULT_RATES_TO_SAR[baseCurrency]).toFixed(6));
+  }
+  const sourceToSar = DEFAULT_RATES_TO_SAR[sourceCurrency];
+  const baseToSar = DEFAULT_RATES_TO_SAR[baseCurrency];
+  if (sourceToSar && baseToSar) return Number((sourceToSar / baseToSar).toFixed(6));
+  return 1;
+}
+
+function roundMoney(value: number): number {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function detectedDocumentCurrency(data: any, fallback = "SAR"): string {
+  return normalizeCurrency(
+    data?.currency
+      || data?.documentCurrency
+      || data?.sourceCurrency
+      || data?.totals?.currency
+      || data?.totals?.sourceCurrency
+      || data?._meta?.currency
+      || data?._meta?.sourceCurrency,
+    fallback,
+  );
+}
+
+function calculateCurrencySettlement(form: FormState, sourceTotal: number): CurrencySettlement {
+  const sourceCurrency = normalizeCurrency(form.sourceCurrency);
+  const baseCurrency = normalizeCurrency(form.baseCurrency, sourceCurrency);
+  const actualPaidCurrency = normalizeCurrency(form.actualPaidCurrency, baseCurrency);
+  const exchangeRate = Number(normalizeDigits(form.exchangeRate || "0")) || defaultExchangeRate(sourceCurrency, baseCurrency);
+  const bookBaseAmount = roundMoney(sourceTotal * exchangeRate);
+  const actualPaidAmountInput = Number(normalizeDigits(form.actualPaidAmount || "0"));
+  const actualPaidAmount = roundMoney(
+    actualPaidAmountInput > 0
+      ? actualPaidAmountInput
+      : (actualPaidCurrency === sourceCurrency ? sourceTotal : bookBaseAmount),
+  );
+  const actualRate = sourceTotal > 0 ? roundMoney(actualPaidAmount / sourceTotal) : exchangeRate;
+  const difference = roundMoney(actualPaidAmount - bookBaseAmount);
+  return {
+    sourceCurrency,
+    baseCurrency,
+    actualPaidCurrency,
+    sourceTotal: roundMoney(sourceTotal),
+    exchangeRate,
+    bookBaseAmount,
+    actualPaidAmount,
+    actualRate,
+    difference,
+    treatment: form.fxTreatment,
+    treatmentLabel: FX_TREATMENT_LABELS[form.fxTreatment],
+    isCrossCurrency: sourceCurrency !== baseCurrency || sourceCurrency !== actualPaidCurrency,
+  };
+}
+
+function enrichPaymentSplits(
+  payments: ExpensePaymentSplit[],
+  settlement: CurrencySettlement,
+): ExpensePaymentSplit[] {
+  return payments.map((payment) => {
+    const currency = normalizeCurrency(payment.currency, settlement.actualPaidCurrency);
+    const amount = Number(payment.amount || 0);
+    const rate = currency === settlement.sourceCurrency
+      ? settlement.exchangeRate
+      : (currency === settlement.baseCurrency ? 1 : defaultExchangeRate(currency, settlement.baseCurrency));
+    return {
+      ...payment,
+      currency,
+      exchangeRate: rate,
+      baseAmount: roundMoney(currency === settlement.baseCurrency ? amount : amount * rate),
+      fxDifference: settlement.isCrossCurrency ? settlement.difference : 0,
+      fxTreatment: settlement.treatment,
+      notes: payment.notes || (settlement.isCrossCurrency ? settlement.treatmentLabel : null),
+    };
+  });
+}
+
 function cleanVendorName(value: any): string {
   const raw = String(value || "").replace(/\s+/g, " ").trim();
   if (!raw) return "";
@@ -269,17 +414,23 @@ function normalizeLineItems(data: any): ExpenseLine[] {
       const quantity = num(line?.quantity) || 1;
       const lineTotal = num(line?.lineTotal);
       const unitPrice = num(line?.unitPrice) ?? (lineTotal != null ? lineTotal / quantity : 0);
+      const discountAmount = num(line?.discountAmount ?? line?.discount) || 0;
+      const subtotal = num(line?.subtotal) ?? Math.max(0, (quantity * unitPrice) - discountAmount);
       return {
         description,
         quantity,
         unitPrice,
+        discountAmount,
         taxRate: num(line?.taxRate),
         taxInclusive: Boolean(line?.taxInclusive),
-        lineTotal,
-        subtotal: num(line?.subtotal),
+        lineTotal: lineTotal ?? subtotal,
+        subtotal,
         category: line?.category || inferLineCategory(description),
         accountName: line?.accountName || suggestLineAccount(description),
+        costCenter: line?.costCenter || null,
+        projectCode: line?.projectCode || null,
         sku: line?.sku || null,
+        sourceCurrency: detectedDocumentCurrency(data),
         notes: line?.notes || null,
       };
     })
@@ -315,7 +466,7 @@ function normalizePaymentMethod(value: any): ApiExpense["paymentMethod"] {
   return "OTHER";
 }
 
-function normalizePayments(data: any, total: number, fallbackMethod: ApiExpense["paymentMethod"]): ExpensePaymentSplit[] {
+function normalizePayments(data: any, total: number, fallbackMethod: ApiExpense["paymentMethod"], currency = "SAR"): ExpensePaymentSplit[] {
   const fromModel = Array.isArray(data?.payments) ? data.payments : [];
   const payments = fromModel
     .map((payment: any) => {
@@ -324,6 +475,7 @@ function normalizePayments(data: any, total: number, fallbackMethod: ApiExpense[
       return {
         method: normalizePaymentMethod(payment?.method || payment?.accountName || payment?.notes),
         amount,
+        currency: normalizeCurrency(payment?.currency, currency),
         reference: payment?.reference || null,
         cardLast4: payment?.cardLast4 || String(payment?.reference || "").match(/\*{2,}(\d{4})/)?.[1] || null,
         accountName: payment?.accountName || null,
@@ -332,7 +484,7 @@ function normalizePayments(data: any, total: number, fallbackMethod: ApiExpense[
     })
     .filter(Boolean) as ExpensePaymentSplit[];
   if (payments.length) return payments;
-  return total > 0 ? [{ method: fallbackMethod, amount: total, reference: null, cardLast4: null, accountName: null, notes: null }] : [];
+  return total > 0 ? [{ method: fallbackMethod, amount: total, currency, reference: null, cardLast4: null, accountName: null, notes: null }] : [];
 }
 
 function paymentTotal(payments: ExpensePaymentSplit[]): number {
@@ -470,6 +622,16 @@ export function Expenses() {
   const avg = Number(summary.avgTotal || 0);
 
   function openCreate() {
+    setEditingId(null);
+    setFormData(emptyForm());
+    setExtractionSummary(null);
+    setDraftSavedAt(null);
+    setDraftNotice(null);
+    setCreateError(null);
+    setCreateOpen(true);
+  }
+
+  function openDraft() {
     const draft = readExpenseDraft();
     setEditingId(null);
     if (draft && hasDraftContent(draft.formData)) {
@@ -516,6 +678,9 @@ export function Expenses() {
   }
 
   function openEdit(expense: ApiExpense) {
+    const settlement = (expense.extractedJson as any)?.currencySettlement || {};
+    const sourceCurrency = normalizeCurrency(settlement.sourceCurrency || expense.currency || "SAR");
+    const baseCurrency = normalizeCurrency(settlement.baseCurrency || settlement.actualPaidCurrency || expense.currency || "SAR", sourceCurrency);
     setEditingId(expense.id);
     setCreateError(null);
     setExtractionSummary(null);
@@ -525,6 +690,12 @@ export function Expenses() {
       amount: String(Number(expense.subtotal ?? expense.amount ?? 0)),
       taxAmount: String(Number(expense.taxAmount || 0)),
       totalAmount: String(Number(expense.total || 0)),
+      sourceCurrency,
+      baseCurrency,
+      exchangeRate: String(settlement.exchangeRate || defaultExchangeRate(sourceCurrency, baseCurrency)),
+      actualPaidCurrency: normalizeCurrency(settlement.actualPaidCurrency || baseCurrency, baseCurrency),
+      actualPaidAmount: settlement.actualPaidAmount ? String(settlement.actualPaidAmount) : "",
+      fxTreatment: (settlement.treatment as FxTreatment) || "FX_LOSS",
       paymentMethod: expense.paymentMethod,
       description: expense.description || "",
       vendorName: expense.contact?.displayName || expense.vendorName || "",
@@ -552,17 +723,29 @@ export function Expenses() {
     const subtotal = Number(normalizeDigits(formData.amount || "0"));
     const taxAmount = Number(normalizeDigits(formData.taxAmount || "0"));
     const totalAmount = Number(normalizeDigits(formData.totalAmount || String(subtotal + taxAmount)));
+    const settlement = calculateCurrencySettlement(formData, totalAmount);
     const splits = formData.paymentSplits
-      .map((payment) => ({ ...payment, amount: Number(normalizeDigits(String(payment.amount || 0))) }))
+      .map((payment) => ({
+        ...payment,
+        amount: Number(normalizeDigits(String(payment.amount || 0))),
+        currency: normalizeCurrency(payment.currency, settlement.actualPaidCurrency),
+      }))
       .filter((payment) => payment.amount > 0);
-    const finalSplits = splits.length ? splits : [{ method: formData.paymentMethod, amount: totalAmount, reference: null }];
+    const finalSplits = enrichPaymentSplits(
+      splits.length
+        ? splits
+        : [{ method: formData.paymentMethod, amount: settlement.actualPaidAmount || totalAmount, currency: settlement.actualPaidCurrency, reference: null }],
+      settlement,
+    );
     const splitTotal = paymentTotal(finalSplits);
+    const expectedPaymentTotal = settlement.isCrossCurrency ? settlement.actualPaidAmount : totalAmount;
+    const expectedPaymentCurrency = settlement.isCrossCurrency ? settlement.actualPaidCurrency : settlement.sourceCurrency;
     if (!formData.category.trim() || totalAmount <= 0) {
       setCreateError("الرجاء تعبئة التصنيف والمبلغ");
       return;
     }
-    if (Math.abs(splitTotal - totalAmount) > 0.05) {
-      setCreateError(`مجموع المدفوعات ${money(splitTotal)} لا يطابق إجمالي الفاتورة ${money(totalAmount)}`);
+    if (Math.abs(splitTotal - expectedPaymentTotal) > 0.05) {
+      setCreateError(`مجموع المدفوعات ${money(splitTotal, expectedPaymentCurrency)} لا يطابق المبلغ المتوقع ${money(expectedPaymentTotal, expectedPaymentCurrency)}`);
       return;
     }
     setBusy(true);
@@ -574,6 +757,7 @@ export function Expenses() {
         amount: subtotal || Math.max(0, totalAmount - taxAmount),
         subtotal: subtotal || Math.max(0, totalAmount - taxAmount),
         totalAmount,
+        currency: settlement.sourceCurrency,
         taxAmount,
         paymentMethod: formData.paymentMethod,
         description: formData.description || formData.notes || null,
@@ -581,7 +765,7 @@ export function Expenses() {
         supplierTaxId: formData.supplierTaxId || null,
         documentNumber: formData.documentNumber || null,
         reference: formData.documentNumber || null,
-        lineItems: formData.lineItems,
+        lineItems: formData.lineItems.map((line) => ({ ...line, sourceCurrency: line.sourceCurrency || settlement.sourceCurrency })),
         paymentSplits: finalSplits,
         notes: formData.notes || null,
         attachmentName: primaryAttachment?.name || null,
@@ -589,7 +773,14 @@ export function Expenses() {
         attachmentSizeBytes: primaryAttachment?.size || null,
         attachmentBase64: primaryAttachment?.base64 || null,
         attachmentCount: formData.attachments.length,
-        extractedJson: formData.extractedJson ? { ...formData.extractedJson, paymentSplits: finalSplits, attachments: formData.attachments.map(({ name, type, size }) => ({ name, type, size })) } : null,
+        extractedJson: {
+          ...(formData.extractedJson || {}),
+          sourceCurrency: settlement.sourceCurrency,
+          baseCurrency: settlement.baseCurrency,
+          currencySettlement: settlement,
+          paymentSplits: finalSplits,
+          attachments: formData.attachments.map(({ name, type, size }) => ({ name, type, size })),
+        },
         ocrConfidence: formData.ocrConfidence,
         autoCreateSupplier: true,
       };
@@ -638,7 +829,7 @@ export function Expenses() {
         mimeType: mimeTypeForFile(file),
         target: "expense",
         defaultTaxRate: 0.15,
-        currency: "SAR",
+        currency: formData.sourceCurrency || "SAR",
       });
       if (isBankStatementBlocked(data, file.name)) {
         setExtractionSummary({
@@ -659,23 +850,34 @@ export function Expenses() {
       }
       const totals = extractionTotals(data);
       const lineItems = normalizeLineItems(data);
-      const payments = normalizePayments(data, totals.total, formData.paymentMethod);
+      const sourceCurrency = detectedDocumentCurrency(data, formData.sourceCurrency || "SAR");
+      const baseCurrency = normalizeCurrency(formData.baseCurrency, sourceCurrency === "SAR" ? "SAR" : formData.baseCurrency || "SAR");
+      const exchangeRate = formData.exchangeRate && formData.exchangeRate !== "1"
+        ? formData.exchangeRate
+        : String(defaultExchangeRate(sourceCurrency, baseCurrency));
+      const payments = normalizePayments(data, totals.total, formData.paymentMethod, sourceCurrency);
       const warnings = buildExtractionWarnings(data, items, totals.total || null);
       const supplierTaxId = data?.issuer?.taxId || "";
       const vendorName = cleanVendorName(data?.issuer?.name);
+      const bookBaseAmount = roundMoney(totals.total * (Number(exchangeRate) || defaultExchangeRate(sourceCurrency, baseCurrency)));
       setFormData((f) => ({
         ...f,
         category: f.category || inferCategory(data),
         amount: totals.subtotal ? String(totals.subtotal) : f.amount,
         taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
         totalAmount: totals.total ? String(totals.total) : f.totalAmount,
+        sourceCurrency,
+        baseCurrency,
+        exchangeRate,
+        actualPaidCurrency: f.actualPaidCurrency || baseCurrency,
+        actualPaidAmount: f.actualPaidAmount || (sourceCurrency !== baseCurrency ? String(bookBaseAmount) : ""),
         date: data?.issueDate || f.date,
         vendorName: vendorName || f.vendorName,
         supplierTaxId: supplierTaxId || f.supplierTaxId,
         documentNumber: data?.documentNumber || f.documentNumber,
         description: data?.notes || data?.documentNumber || f.description,
         notes: data?.notes || f.notes,
-        lineItems: lineItems.length ? lineItems : f.lineItems,
+        lineItems: lineItems.length ? lineItems.map((line) => ({ ...line, sourceCurrency })) : f.lineItems,
         paymentSplits: payments.length ? payments : f.paymentSplits,
         paymentMethod: payments[0]?.method || f.paymentMethod,
         extractedJson: data,
@@ -701,6 +903,11 @@ export function Expenses() {
   }
 
   const formTotal = Number(normalizeDigits(formData.totalAmount || "0")) || (Number(normalizeDigits(formData.amount || "0")) + Number(normalizeDigits(formData.taxAmount || "0")));
+  const currencySettlement = calculateCurrencySettlement(formData, formTotal);
+  const paymentRows = formData.paymentSplits.length
+    ? formData.paymentSplits
+    : [{ method: formData.paymentMethod, amount: currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currency: currencySettlement.actualPaidCurrency, reference: null } as ExpensePaymentSplit];
+  const paymentRowsTotal = paymentTotal(paymentRows);
   const hasActiveDraft = !editingId && hasDraftContent(formData);
   const savedAtLabel = draftTimeLabel(draftSavedAt);
   const initialFiles = formData.attachments.length
@@ -751,8 +958,9 @@ export function Expenses() {
             </div>
           }
         >
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,460px)_1fr] max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.1fr)] max-w-7xl mx-auto items-start">
             <DocumentPreviewPane
+              className="xl:sticky xl:top-4 min-h-[640px]"
               hint="ارفع إيصالاً أو فاتورة مصروف"
               onFilesAdded={handleFilesAdded}
               onExtract={handleExtract}
@@ -893,6 +1101,93 @@ export function Expenses() {
                 </div>
               </div>
 
+              <div className="rounded-lg border border-[#BFDBFE] bg-[#F8FBFF] p-3">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#0B1B49]">تسوية العملة والدفع الفعلي</h3>
+                    <p className="text-xs text-[#6B7280]">افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.</p>
+                  </div>
+                  {currencySettlement.isCrossCurrency && (
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${currencySettlement.difference > 0 ? "bg-amber-100 text-amber-800" : currencySettlement.difference < 0 ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>
+                      فرق {money(Math.abs(currencySettlement.difference), currencySettlement.actualPaidCurrency)}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#374151]">عملة الفاتورة</Label>
+                    <Select value={formData.sourceCurrency} onValueChange={(sourceCurrency) => {
+                      const exchangeRate = String(defaultExchangeRate(sourceCurrency, formData.baseCurrency));
+                      const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
+                      setFormData({
+                        ...formData,
+                        sourceCurrency,
+                        exchangeRate,
+                        actualPaidAmount: sourceCurrency === formData.baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
+                      });
+                    }}>
+                      <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#374151]">عملة الدفاتر</Label>
+                    <Select value={formData.baseCurrency} onValueChange={(baseCurrency) => {
+                      const exchangeRate = String(defaultExchangeRate(formData.sourceCurrency, baseCurrency));
+                      const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
+                      setFormData({
+                        ...formData,
+                        baseCurrency,
+                        actualPaidCurrency: baseCurrency,
+                        exchangeRate,
+                        actualPaidAmount: formData.sourceCurrency === baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
+                      });
+                    }}>
+                      <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#374151]">سعر السوق / العادل</Label>
+                    <Input dir="ltr" inputMode="decimal" value={formData.exchangeRate} onChange={(e) => setFormData({ ...formData, exchangeRate: normalizeDigits(e.target.value) })} className="h-9 border-[#E5E7EB] font-english text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#374151]">المسحوب فعلياً</Label>
+                    <Input dir="ltr" inputMode="decimal" placeholder={String(currencySettlement.bookBaseAmount || 0)} value={formData.actualPaidAmount} onChange={(e) => setFormData({ ...formData, actualPaidAmount: normalizeDigits(e.target.value) })} className="h-9 border-[#E5E7EB] font-english text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#374151]">عملة السحب</Label>
+                    <Select value={formData.actualPaidCurrency} onValueChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}>
+                      <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr]">
+                  <div className="rounded-md border border-[#E5E7EB] bg-white p-2">
+                    <p className="text-[11px] text-[#6B7280]">إجمالي الفاتورة</p>
+                    <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(currencySettlement.sourceTotal, currencySettlement.sourceCurrency)}</p>
+                  </div>
+                  <div className="rounded-md border border-[#E5E7EB] bg-white p-2">
+                    <p className="text-[11px] text-[#6B7280]">القيمة العادلة</p>
+                    <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(currencySettlement.bookBaseAmount, currencySettlement.baseCurrency)}</p>
+                  </div>
+                  <div className="rounded-md border border-[#E5E7EB] bg-white p-2">
+                    <p className="text-[11px] text-[#6B7280]">السحب البنكي</p>
+                    <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#374151]">معالجة الفرق</Label>
+                    <Select value={formData.fxTreatment} onValueChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}>
+                      <SelectTrigger className="h-9 border-[#E5E7EB] bg-white text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(FX_TREATMENT_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               <div className="rounded-lg border border-[#E5E7EB] bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] px-3 py-2">
                   <div>
@@ -905,28 +1200,32 @@ export function Expenses() {
                     className="h-8 border-[#E5E7EB] text-xs"
                     onClick={() => setFormData((f) => ({
                       ...f,
-                      lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, taxRate: 0.15, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة" }],
+                      lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, discountAmount: 0, taxRate: 0.15, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة", costCenter: "", projectCode: "", sourceCurrency: f.sourceCurrency }],
                     }))}
                   >
                     <Plus className="me-1 h-3.5 w-3.5" /> إضافة بند
                   </Button>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px] text-sm">
+                  <table className="w-full min-w-[1180px] text-sm">
                     <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
                       <tr>
                         <th className="px-2 py-2 text-start">الوصف</th>
+                        <th className="px-2 py-2 text-start">التصنيف</th>
                         <th className="px-2 py-2 text-start">الحساب</th>
+                        <th className="px-2 py-2 text-start">مشروع / مركز</th>
                         <th className="px-2 py-2 text-start">الكمية</th>
                         <th className="px-2 py-2 text-start">السعر</th>
+                        <th className="px-2 py-2 text-start">خصم</th>
                         <th className="px-2 py-2 text-start">VAT</th>
+                        <th className="px-2 py-2 text-start">شامل؟</th>
                         <th className="px-2 py-2 text-start">الإجمالي</th>
                         <th className="px-2 py-2" />
                       </tr>
                     </thead>
                     <tbody>
                       {formData.lineItems.length === 0 && (
-                        <tr><td colSpan={7} className="px-3 py-4 text-center text-xs text-[#6B7280]">لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.</td></tr>
+                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-[#6B7280]">لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.</td></tr>
                       )}
                       {formData.lineItems.map((line, idx) => (
                         <tr key={idx} className="border-t border-[#F3F4F6]">
@@ -937,19 +1236,34 @@ export function Expenses() {
                             }} className="h-8 border-[#E5E7EB]" />
                           </td>
                           <td className="px-2 py-2">
+                            <Input value={line.category || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, category: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                          </td>
+                          <td className="px-2 py-2">
                             <Input value={line.accountName || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountName: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="grid grid-cols-2 gap-1">
+                              <Input placeholder="Project" value={line.projectCode || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, projectCode: e.target.value } : item) }))} className="h-8 border-[#E5E7EB] font-english" />
+                              <Input placeholder="Cost center" value={line.costCenter || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, costCenter: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                            </div>
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.quantity || 1)} onChange={(e) => {
                               const quantity = Number(normalizeDigits(e.target.value || "1"));
-                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, quantity, lineTotal: quantity * Number(item.unitPrice || 0) } : item) }));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, quantity, lineTotal: Math.max(0, quantity * Number(item.unitPrice || 0) - Number(item.discountAmount || 0)) } : item) }));
                             }} className="h-8 w-20 border-[#E5E7EB] font-english" />
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.unitPrice || 0)} onChange={(e) => {
                               const unitPrice = Number(normalizeDigits(e.target.value || "0"));
-                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, unitPrice, lineTotal: Number(item.quantity || 1) * unitPrice } : item) }));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, unitPrice, lineTotal: Math.max(0, Number(item.quantity || 1) * unitPrice - Number(item.discountAmount || 0)) } : item) }));
                             }} className="h-8 w-24 border-[#E5E7EB] font-english" />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input dir="ltr" inputMode="decimal" value={String(line.discountAmount || 0)} onChange={(e) => {
+                              const discountAmount = Number(normalizeDigits(e.target.value || "0"));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, discountAmount, lineTotal: Math.max(0, Number(item.quantity || 1) * Number(item.unitPrice || 0) - discountAmount) } : item) }));
+                            }} className="h-8 w-20 border-[#E5E7EB] font-english" />
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.taxRate ?? 0.15)} onChange={(e) => {
@@ -957,7 +1271,16 @@ export function Expenses() {
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxRate } : item) }));
                             }} className="h-8 w-20 border-[#E5E7EB] font-english" />
                           </td>
-                          <td className="px-2 py-2 font-english">{money(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)))}</td>
+                          <td className="px-2 py-2">
+                            <Select value={line.taxInclusive ? "yes" : "no"} onValueChange={(value) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxInclusive: value === "yes" } : item) }))}>
+                              <SelectTrigger className="h-8 w-20 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="yes">شامل</SelectItem>
+                                <SelectItem value="no">غير شامل</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-2 py-2 font-english">{money(line.lineTotal ?? Math.max(0, ((line.quantity || 1) * (line.unitPrice || 0)) - Number(line.discountAmount || 0)), formData.sourceCurrency)}</td>
                           <td className="px-2 py-2 text-center">
                             <button type="button" onClick={() => setFormData((f) => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
                               <Trash2 className="h-4 w-4" />
@@ -980,16 +1303,16 @@ export function Expenses() {
                     type="button"
                     variant="outline"
                     className="h-8 border-[#E5E7EB] text-xs"
-                    onClick={() => setFormData((f) => ({ ...f, paymentSplits: [...f.paymentSplits, { method: "CASH", amount: 0, reference: null }] }))}
+                    onClick={() => setFormData((f) => ({ ...f, paymentSplits: [...f.paymentSplits, { method: "CASH", amount: 0, currency: f.actualPaidCurrency, reference: null }] }))}
                   >
                     <Plus className="me-1 h-3.5 w-3.5" /> إضافة دفعة
                   </Button>
                 </div>
                 <div className="space-y-2 p-3">
-                  {(formData.paymentSplits.length ? formData.paymentSplits : [{ method: formData.paymentMethod, amount: formTotal, reference: null }]).map((payment, idx) => (
-                    <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[170px_1fr_130px_36px]">
+                  {paymentRows.map((payment, idx) => (
+                    <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[160px_140px_1fr_130px_36px]">
                       <Select value={payment.method} onValueChange={(method) => setFormData((f) => {
-                        const splits = f.paymentSplits.length ? f.paymentSplits : [{ method: f.paymentMethod, amount: formTotal, reference: null }];
+                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
                       })}>
                         <SelectTrigger className="h-9 border-[#E5E7EB]"><SelectValue /></SelectTrigger>
@@ -997,13 +1320,20 @@ export function Expenses() {
                           {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                      <Select value={normalizeCurrency(payment.currency, formData.actualPaidCurrency)} onValueChange={(currency) => setFormData((f) => {
+                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
+                        return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, currency } : item) };
+                      })}>
+                        <SelectTrigger className="h-9 border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                        <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.value}</SelectItem>)}</SelectContent>
+                      </Select>
                       <Input placeholder="مرجع / آخر 4 أرقام البطاقة" value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
-                        const splits = f.paymentSplits.length ? f.paymentSplits : [{ method: f.paymentMethod, amount: formTotal, reference: null }];
+                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, reference: e.target.value } : item) };
                       })} className="h-9 border-[#E5E7EB]" />
                       <Input dir="ltr" inputMode="decimal" value={String(payment.amount || "")} onChange={(e) => setFormData((f) => {
                         const amount = Number(normalizeDigits(e.target.value || "0"));
-                        const splits = f.paymentSplits.length ? f.paymentSplits : [{ method: f.paymentMethod, amount: formTotal, reference: null }];
+                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, amount } : item) };
                       })} className="h-9 border-[#E5E7EB] font-english" />
                       <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
@@ -1011,8 +1341,10 @@ export function Expenses() {
                       </button>
                     </div>
                   ))}
-                  <div className={`text-xs ${Math.abs(paymentTotal(formData.paymentSplits.length ? formData.paymentSplits : [{ method: formData.paymentMethod, amount: formTotal } as ExpensePaymentSplit]) - formTotal) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>
-                    مجموع المدفوعات: <span className="font-english">{money(paymentTotal(formData.paymentSplits.length ? formData.paymentSplits : [{ method: formData.paymentMethod, amount: formTotal } as ExpensePaymentSplit]))}</span>
+                  <div className={`text-xs ${Math.abs(paymentRowsTotal - (currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal)) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>
+                    مجموع المدفوعات: <span className="font-english">{money(paymentRowsTotal, currencySettlement.actualPaidCurrency)}</span>
+                    <span className="mx-1 text-[#9CA3AF]">/</span>
+                    المتوقع: <span className="font-english">{money(currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currencySettlement.isCrossCurrency ? currencySettlement.actualPaidCurrency : currencySettlement.sourceCurrency)}</span>
                   </div>
                 </div>
               </div>
@@ -1023,7 +1355,11 @@ export function Expenses() {
               </div>
 
               <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-sm text-[#0B1B49]">
-                سيتم حفظ الإجمالي <span className="font-english font-semibold">{money(formTotal)}</span> مع {formData.attachments.length ? `${formData.attachments.length} مرفق` : "بدون مرفق"}.
+                سيتم حفظ الفاتورة <span className="font-english font-semibold">{money(formTotal, currencySettlement.sourceCurrency)}</span>
+                {currencySettlement.isCrossCurrency && (
+                  <> · السحب الفعلي <span className="font-english font-semibold">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</span></>
+                )}
+                {" "}مع {formData.attachments.length ? `${formData.attachments.length} مرفق` : "بدون مرفق"}.
               </div>
             </div>
           </div>
@@ -1039,6 +1375,7 @@ export function Expenses() {
       ? selected.paymentSplits
       : [{ method: selected.paymentMethod, amount: Number(selected.total || 0), reference: selected.reference || null }];
     const vendorName = selected.contact?.displayName || selected.vendorName || "غير محدد";
+    const selectedSettlement = (selected.extractedJson as any)?.currencySettlement as CurrencySettlement | undefined;
     return (
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1102,6 +1439,35 @@ export function Expenses() {
               </CardContent>
             </Card>
 
+            {selectedSettlement && (
+              <Card className="border-[#BFDBFE] bg-[#F8FBFF]">
+                <CardHeader><CardTitle className="text-[#0B1B49]">تسوية العملة</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-[#6B7280]">عملة الفاتورة</p>
+                      <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B7280]">القيمة العادلة</p>
+                      <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B7280]">السحب البنكي</p>
+                      <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B7280]">الفرق</p>
+                      <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-amber-700" : selectedSettlement.difference < 0 ? "text-emerald-700" : "text-[#0B1B49]"}`}>
+                        {money(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
+                      </p>
+                      <p className="text-[11px] text-[#6B7280]">{selectedSettlement.treatmentLabel}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="border-[#E5E7EB]">
               <CardHeader><CardTitle className="text-[#0B1B49]">المدفوعات</CardTitle></CardHeader>
               <CardContent>
@@ -1121,7 +1487,7 @@ export function Expenses() {
                           <td className="px-3 py-2">{PAYMENT_METHOD_LABELS[payment.method]}</td>
                           <td className="px-3 py-2 font-english">{payment.reference || payment.cardLast4 || "—"}</td>
                           <td className="px-3 py-2">{payment.accountName || "—"}</td>
-                          <td className="px-3 py-2 font-english">{money(payment.amount, selected.currency)}</td>
+                          <td className="px-3 py-2 font-english">{money(payment.amount, payment.currency || selected.currency)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1221,7 +1587,7 @@ export function Expenses() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={openCreate} className="h-8 border-[#E5E7EB] text-xs">إكمال المسودة</Button>
+              <Button type="button" variant="outline" onClick={openDraft} className="h-8 border-[#E5E7EB] text-xs">إكمال المسودة</Button>
               <Button
                 type="button"
                 variant="outline"

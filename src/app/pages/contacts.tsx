@@ -462,11 +462,15 @@ export function Contacts() {
                 fileName: file.name,
                 mimeType: file.type || "application/octet-stream",
               });
+              const hasExtractedIdentity = Boolean(
+                data.displayName || data.legalName || data.email || data.phone || data.vatNumber
+                || data.crNumber || data.nationalId || data.addressLine1 || data.city || data.region,
+              );
               setForm(prev => ({
                 ...prev,
                 displayName: data.displayName || prev.displayName,
                 legalName: data.legalName || prev.legalName,
-                entityKind: data.entityKind || prev.entityKind,
+                entityKind: prev.entityKind,
                 country: data.country || prev.country,
                 vatNumber: data.vatNumber ? formatTaxId(data.vatNumber, data.country || prev.country) : prev.vatNumber,
                 crNumber: data.crNumber ? formatCrNumber(data.crNumber, data.country || prev.country) : prev.crNumber,
@@ -481,9 +485,12 @@ export function Contacts() {
                 isSupplier: data.isSupplier ?? prev.isSupplier,
                 isForeign: (data.country || prev.country) !== "SA",
               }));
-              push("success", `✨ ${data.notes || "تم استخراج البيانات"} (ثقة ${(data.confidence * 100).toFixed(0)}%)`);
-              // Auto-advance to step 2 so user sees filled fields
-              setWizard(w => ({ ...w, step: 2 }));
+              if (hasExtractedIdentity) {
+                push("success", `✨ ${data.notes || "تم استخراج البيانات"} (ثقة ${(data.confidence * 100).toFixed(0)}%)`);
+                setWizard(w => ({ ...w, step: 2 }));
+              } else {
+                push("warning", "لم أجد بيانات كافية في المستند. بقيت في خطوة النوع حتى تراجع الاختيار أو تدخل البيانات يدوياً.");
+              }
             } catch (e: any) {
               push("error", e instanceof ApiError ? e.message : "فشل قراءة المستند");
             }
@@ -616,7 +623,7 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
           <Sparkles className="h-6 w-6 text-[#1276E3]" />
           <div className="flex-1">
             <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>تعبئة تلقائية بالذكاء</div>
-            <p className="text-xs text-[#6B7280] mt-0.5">ارفع السجل التجاري · رسالة EIN · شهادة الزكاة · والذكاء يقرأها ويعبّي البيانات</p>
+            <p className="text-xs text-[#6B7280] mt-0.5">ارفع جواز/هوية للفرد أو سجل تجاري · رسالة EIN · شهادة الزكاة للمنشآت، والذكاء يقرأها ويعبّي البيانات</p>
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />

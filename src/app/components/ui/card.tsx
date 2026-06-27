@@ -61,15 +61,18 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-content"
-      className={cn("px-6 [&:last-child]:pb-6", className)}
-      {...props}
-    />
-  );
-}
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<"div">
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    data-slot="card-content"
+    className={cn("px-6 [&:last-child]:pb-6", className)}
+    {...props}
+  />
+));
+CardContent.displayName = "CardContent";
 
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (

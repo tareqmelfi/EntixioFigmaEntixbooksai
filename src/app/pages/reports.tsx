@@ -1123,7 +1123,7 @@ function buildPreviewRows(
       const lastCash = summary.cashFlowTrend[summary.cashFlowTrend.length - 1];
       return [
         { label: "النقد الداخل", value: money(lastCash?.in || summary.kpi.receipts, currency), note: "من سندات القبض والحركات النقدية." },
-        { label: "النقد الخارج", value: money(lastCash?.out || summary.kpi.payments, currency), note: "من سندات الدفع والمصروفات." },
+        { label: "النقد الخارج", value: money(lastCash?.out || summary.kpi.payments, currency), note: "من سندات الصرف والمصروفات." },
         { label: "الصافي", value: money(lastCash?.net || summary.kpi.receipts - summary.kpi.payments, currency), note: report.id.includes("indirect") ? "الطريقة غير المباشرة تحتاج أرصدة افتتاحية وإقفال الفترة." : "تدفق مباشر من البيانات الحالية." },
       ];
     }
@@ -1156,7 +1156,7 @@ function buildPreviewRows(
       { label: "إجمالي المشتريات", value: money(summary.kpi.purchases, currency), note: "من فواتير الموردين." },
       { label: "إجمالي المصروفات", value: money(summary.kpi.expenses, currency), note: "من المصروفات النقدية والمرفقات المقروءة OCR." },
       { label: "الذمم الدائنة", value: money(summary.kpi.accountsPayable, currency), note: "رصيد الموردين المفتوح." },
-      { label: "مدفوعات", value: money(summary.kpi.payments, currency), note: "سندات الدفع والحركات النقدية." },
+      { label: "مصروفات نقدية", value: money(summary.kpi.payments, currency), note: "سندات الصرف والحركات النقدية." },
     ];
   }
 

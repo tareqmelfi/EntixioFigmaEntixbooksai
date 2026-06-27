@@ -1176,19 +1176,28 @@ export interface ExpenseLine {
   description: string
   quantity?: number
   unitPrice?: number
+  discountAmount?: number | null
   taxRate?: number | null
   taxInclusive?: boolean | null
   lineTotal?: number | null
   subtotal?: number | null
   category?: string | null
   accountName?: string | null
+  costCenter?: string | null
+  projectCode?: string | null
   sku?: string | null
+  sourceCurrency?: string | null
   notes?: string | null
 }
 
 export interface ExpensePaymentSplit {
   method: Expense['paymentMethod']
   amount: number
+  currency?: string | null
+  exchangeRate?: number | null
+  baseAmount?: number | null
+  fxDifference?: number | null
+  fxTreatment?: string | null
   reference?: string | null
   cardLast4?: string | null
   accountName?: string | null

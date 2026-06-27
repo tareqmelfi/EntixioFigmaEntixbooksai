@@ -5,6 +5,11 @@ import { EntixWordmark } from "./entix-brand";
 
 export function SharedFooter() {
   const { language, t } = useLanguage();
+  const appStores = [
+    { name: "App Store", store: "Apple", available: false },
+    { name: "Google Play", store: "Google", available: false },
+    { name: "AppGallery", store: "Huawei", available: false },
+  ] as const;
   const footerLinks = {
     product: [
       { label: "المميزات", labelEn: "Features", href: "/features" },
@@ -176,16 +181,16 @@ export function SharedFooter() {
 
         {/* Download apps section */}
         <div className="bg-white/5 rounded-2xl p-6 mb-12 border border-white/10">
-          <h4 className="text-white mb-4" style={{ fontSize: "16px", fontWeight: 600 }}>{t("حمّل التطبيق", "Download the app")}</h4>
+          <h4 className="text-white mb-4" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h4>
           <div className="flex flex-wrap gap-3">
-            {[
-              { name: "App Store", store: "Apple", available: true },
-              { name: "Google Play", store: "Google", available: true },
-              { name: "AppGallery", store: "Huawei", available: true },
-            ].map((app) => (
+            {appStores.map((app) => (
               <button
                 key={app.store}
-                className="flex items-center gap-2.5 bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2.5 rounded-xl transition-all cursor-pointer group"
+                className={`flex items-center gap-2.5 border px-4 py-2.5 rounded-xl transition-all ${
+                  app.available
+                    ? "bg-white/10 hover:bg-white/20 border-white/20 cursor-pointer group"
+                    : "bg-white/5 border-white/10 cursor-not-allowed opacity-70"
+                }`}
                 disabled={!app.available}
               >
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
@@ -195,7 +200,7 @@ export function SharedFooter() {
                 </div>
                 <div className="text-right">
                   <div className="text-[#94A3B8] group-hover:text-white transition-colors" style={{ fontSize: "10px" }}>
-                    {t("متوفر على", "Available on")}
+                    {app.available ? t("متوفر على", "Available on") : t("قريباً", "Coming soon")}
                   </div>
                   <div className="text-white" style={{ fontSize: "13px", fontWeight: 600 }}>
                     {app.name}
@@ -204,13 +209,19 @@ export function SharedFooter() {
               </button>
             ))}
           </div>
+          <p className="mt-3 text-[#94A3B8]" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+            {t(
+              "تطبيقات iPhone وAndroid ما زالت في QA خاص ولم تُنشر بعد على المتاجر.",
+              "iPhone and Android companion apps are still in private QA and are not yet live on app stores."
+            )}
+          </p>
         </div>
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#64748B] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
-              &copy; 2026 ENTIX.IO. All rights reserved.
+              &copy; 2026 ENTIX.IO. Owned by شركة سبيك بروز للاستثمار · CR 3400010090. Operated and powered by ENSIDEX LLC.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {footerLinks.legal.map((link) => (

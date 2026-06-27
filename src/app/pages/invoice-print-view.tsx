@@ -59,7 +59,57 @@ export function InvoicePrintView() {
   }, [loading, invoice, org]);
 
   if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  if (error || !invoice || !org) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "red" }}>{error || "تعذر التحميل"}</div>;
+  if (error || !invoice || !org) {
+    const isUnauthorized = String(error || "").toLowerCase().includes("unauthorized");
+    const title = isUnauthorized ? "Sign in required" : "Invoice unavailable";
+    const message = isUnauthorized
+      ? "Please sign in to view or print this invoice."
+      : "This invoice could not be loaded. It may have been moved, deleted, or you may not have access.";
+
+    return (
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#F4F7FB",
+        color: "#0B1B49",
+        fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+        padding: 24,
+      }}>
+        <div style={{
+          width: "min(440px, 100%)",
+          background: "white",
+          border: "1px solid #E5EAF2",
+          borderRadius: 10,
+          boxShadow: "0 12px 36px rgba(11,27,73,0.08)",
+          padding: 28,
+          textAlign: "center",
+        }}>
+          <div style={{ fontWeight: 900, fontSize: 24, letterSpacing: 0, marginBottom: 18 }}>
+            ENTIX<span style={{ color: "#1276E3" }}>.IO</span>
+          </div>
+          <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>{title}</h1>
+          <p style={{ margin: "0 0 22px", color: "#607089", lineHeight: 1.6 }}>{message}</p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #D8E1EE", background: "white", color: "#0B1B49", fontWeight: 700, cursor: "pointer" }}
+            >
+              Go back
+            </button>
+            <a
+              href="/login"
+              style={{ padding: "10px 16px", borderRadius: 8, background: "#1276E3", color: "white", textDecoration: "none", fontWeight: 800 }}
+            >
+              Sign in
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Language: ?lang= override · else org.defaultInvoiceLanguage · else infer from country
   const orgDefaultLang = (org as any).defaultInvoiceLanguage as ("ar" | "en" | undefined);

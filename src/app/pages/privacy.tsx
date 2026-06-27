@@ -142,8 +142,8 @@ export function Privacy() {
             </h2>
             <p className="text-[#374151] m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr
-                ? "ENTIX.IO هو منتج محاسبة وفوترة وذكاء اصطناعي تديره ENSIDEX LLC، Wyoming, USA. هذه السياسة تشرح كيف نتعامل مع بيانات مستخدمي المنصة."
-                : "ENTIX.IO is an accounting, invoicing, and AI workflow product operated by ENSIDEX LLC, Wyoming, USA. This policy explains how we handle information for users and workspaces."}
+                ? "ENTIX.IO هو منتج محاسبة وفوترة وذكاء اصطناعي مملوك لشركة سبيك بروز للاستثمار، سجل تجاري 3400010090، وتتم إدارته وتشغيله بواسطة ENSIDEX LLC. هذه السياسة تشرح كيف نتعامل مع بيانات مستخدمي المنصة."
+                : "ENTIX.IO is an accounting, invoicing, and AI workflow product owned by شركة سبيك بروز للاستثمار, CR 3400010090, and operated and powered by ENSIDEX LLC. This policy explains how we handle information for users and workspaces."}
             </p>
           </div>
 

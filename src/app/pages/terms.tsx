@@ -56,7 +56,7 @@ const enSections = [
   {
     icon: Scale,
     title: "6. Governing entity and contact",
-    body: "ENTIX.IO is operated by ENSIDEX LLC, Wyoming, USA. These terms are written for a US-first commercial product and may be supplemented for local markets when required.",
+    body: "ENTIX.IO is owned by شركة سبيك بروز للاستثمار, CR 3400010090, and operated and powered by ENSIDEX LLC. These terms may be supplemented for local markets when required.",
     items: [
       "Questions: legal@entix.io.",
       "Privacy questions: privacy@entix.io.",
@@ -118,7 +118,7 @@ const arSections = [
   {
     icon: Scale,
     title: "٦. الكيان والتواصل",
-    body: "تدير ENSIDEX LLC، Wyoming, USA منتج ENTIX.IO. هذه الشروط مكتوبة كمنتج تجاري يستهدف السوق الأمريكي أولاً وقد تضاف ملاحق محلية عند الحاجة.",
+    body: "ENTIX.IO مملوك لشركة سبيك بروز للاستثمار، سجل تجاري 3400010090، وتتم إدارته وتشغيله بواسطة ENSIDEX LLC. قد تضاف ملاحق محلية لهذه الشروط عند الحاجة.",
     items: [
       "الأسئلة القانونية: legal@entix.io.",
       "أسئلة الخصوصية: privacy@entix.io.",
