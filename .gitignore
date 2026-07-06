@@ -3,3 +3,8 @@ dist
 build
 .vite
 .netlify
+
+# QA artifacts + local archives (2026-07-06)
+qa-reports/
+**/99-Archive/
+.DS_Store

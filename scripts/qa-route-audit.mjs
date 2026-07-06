@@ -15,6 +15,8 @@ const runStamp = timestampForFile();
 const screenshotDir = path.join(reportDir, "screenshots", runStamp);
 const autoStart = process.env.QA_AUTO_START !== "0";
 const useBrowser = process.env.QA_BROWSER === "1";
+const storageStatePath = process.env.QA_STORAGE_STATE ? path.resolve(process.env.QA_STORAGE_STATE) : null;
+const routeDelayMs = Number.parseInt(process.env.QA_ROUTE_DELAY_MS || (isLocalQaBase() ? "0" : "400"), 10);
 
 const routes = [
   group("Public website", [
@@ -127,6 +129,7 @@ try {
   for (const target of routes) {
     const result = await auditRoute(target, browserRuntime);
     routeResults.push(result);
+    if (routeDelayMs > 0) await sleep(routeDelayMs);
   }
 
   const buildEvidence = await collectBuildEvidence();
@@ -139,11 +142,14 @@ try {
       httpRouteAudit: true,
       browserRuntimeAudit: Boolean(browserRuntime),
       browserRuntimeReason: browserRuntime
-        ? "Playwright runtime available and QA_BROWSER=1."
+        ? storageStatePath
+          ? `Playwright runtime available with storage state: ${storageStatePath}`
+          : "Playwright runtime available and QA_BROWSER=1."
         : useBrowser
           ? "QA_BROWSER=1 was requested, but Playwright is not installed in this project."
           : "Set QA_BROWSER=1 after installing Playwright to execute JavaScript and capture console/runtime errors.",
-      localAuthBypass: "Protected app routes are tested with ?__qa_auth=1; this works only in Vite dev with VITE_QA_AUTH_BYPASS=1.",
+      localAuthBypass: "Protected app routes are tested with ?__qa_auth=1 on local Vite only. Production app routes require QA_STORAGE_STATE from a real signed-in test session.",
+      routeDelayMs,
     },
     buildEvidence,
     summary,
@@ -229,7 +235,9 @@ async function auditRoute(target, browserRuntime) {
     addCheck(result, "Route fetch", false, error instanceof Error ? error.message : String(error));
   }
 
-  result.status = result.checks.some((check) => check.pass === false) ? "fail" : "pass";
+  if (result.status !== "blocked-auth") {
+    result.status = result.checks.some((check) => check.pass === false) ? "fail" : "pass";
+  }
   if (result.status === "fail") {
     if (!result.solutions.length) {
       result.solutions.push("Open the failing route locally, inspect console/runtime stack, then patch the page component or route mapping.");
@@ -243,7 +251,12 @@ async function auditRouteInBrowser(target, result, playwright) {
   try {
     await mkdir(screenshotDir, { recursive: true });
     browser = await playwright.chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const contextOptions = {
+      viewport: { width: 1440, height: 1000 },
+    };
+    if (storageStatePath) contextOptions.storageState = storageStatePath;
+    const context = await browser.newContext(contextOptions);
+    const page = await context.newPage();
     const consoleErrors = [];
     page.on("console", (message) => {
       if (["error", "warning"].includes(message.type())) {
@@ -260,7 +273,14 @@ async function auditRouteInBrowser(target, result, playwright) {
     addCheck(result, "Browser body content", bodyText.trim().length > 20, bodyText.trim().slice(0, 120));
     addCheck(result, "Browser fatal signature", !hasErrorBoundary, hasErrorBoundary ? "error boundary/fatal text visible" : "none visible");
     addCheck(result, "Browser screenshot", true, screenshotPath);
-    await auditInteractions(page, target, result);
+    if (isProductionAuthRedirect(target, page.url(), bodyText)) {
+      result.status = "blocked-auth";
+      result.challenges.push("Production protected route redirected to sign-in, so internal UI interactions were not proven in this run.");
+      result.solutions.push("Run again with QA_STORAGE_STATE pointing to a Playwright storage-state JSON captured from a signed-in production test account.");
+      addCheck(result, "Production auth session", null, "blocked: signed-in production QA session required");
+    } else {
+      await auditInteractions(page, target, result);
+    }
     const relevantConsoleErrors = consoleErrors.filter((message) => !isExpectedLocalQaAuthNoise(target, message));
     const ignoredConsoleErrors = consoleErrors.length - relevantConsoleErrors.length;
     addCheck(
@@ -536,6 +556,24 @@ function isExpectedLocalQaAuthNoise(target, message) {
   return /401|unauthorized|\[orgs\] load failed|\[notifications\] fetch failed/.test(message);
 }
 
+function isProductionAuthRedirect(target, currentUrl, bodyText) {
+  if (target.auth !== "local-qa-bypass") return false;
+  if (isLocalQaBase()) return false;
+  const url = new URL(currentUrl);
+  const text = bodyText.toLowerCase();
+  return url.pathname === "/login" || (
+    text.includes("sign in")
+    && text.includes("enter your details")
+    && !text.includes("dashboard")
+    && !text.includes("لوحة التحكم")
+  );
+}
+
+function isLocalQaBase() {
+  const host = new URL(baseUrl).hostname;
+  return ["127.0.0.1", "localhost", "::1"].includes(host);
+}
+
 function addCheck(result, name, pass, details) {
   result.checks.push({ name, pass, details });
 }
@@ -564,10 +602,12 @@ async function collectBuildEvidence() {
 
 function summarize(results) {
   const failed = results.filter((result) => result.status === "fail").length;
+  const blockedAuth = results.filter((result) => result.status === "blocked-auth").length;
   return {
     total: results.length,
-    passed: results.length - failed,
+    passed: results.length - failed - blockedAuth,
     failed,
+    blockedAuth,
     skippedBrowserRuntime: results.filter((result) => result.checks.some((check) => check.name === "Browser runtime" && check.pass === null)).length,
   };
 }
@@ -587,6 +627,7 @@ function renderMarkdown(report) {
   lines.push(`- Total routes: ${report.summary.total}`);
   lines.push(`- Passed: ${report.summary.passed}`);
   lines.push(`- Failed: ${report.summary.failed}`);
+  lines.push(`- Blocked by auth session: ${report.summary.blockedAuth || 0}`);
   lines.push(`- Browser runtime checks skipped: ${report.summary.skippedBrowserRuntime}`);
   lines.push("");
   lines.push(`## QA Mode`);
@@ -627,6 +668,7 @@ function printConsoleSummary(report, jsonPath, markdownPath) {
   console.log(`Target: ${report.baseUrl}`);
   console.log(`Routes: ${report.summary.passed}/${report.summary.total} passed`);
   console.log(`Failed: ${report.summary.failed}`);
+  console.log(`Blocked by auth session: ${report.summary.blockedAuth || 0}`);
   console.log(`Browser runtime: ${report.qaMode.browserRuntimeAudit ? "enabled" : "skipped"}`);
   console.log(`JSON: ${jsonPath}`);
   console.log(`Markdown: ${markdownPath}`);
@@ -661,6 +703,10 @@ async function waitForServer(targetBaseUrl, timeoutMs, throwOnTimeout = false) {
   }
   if (throwOnTimeout) throw new Error(`Timed out waiting for ${targetBaseUrl}`);
   return false;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function tryLoadPlaywright() {
