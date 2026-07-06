@@ -185,7 +185,7 @@ export function InvoicePrintView() {
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 14mm !important; max-width: none !important; page-break-after: always; }
+          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 8mm 12mm 12mm !important; max-width: none !important; page-break-after: always; }
           .invoice-page:last-child { page-break-after: auto; }
         }
         @page { size: A4; margin: 14mm 12mm; }
@@ -202,7 +202,7 @@ export function InvoicePrintView() {
           </button>
         </div>
 
-        <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "24mm 18mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+        <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           {/* Header · logo + Tax Invoice title */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
@@ -215,13 +215,21 @@ export function InvoicePrintView() {
               </div>
             </div>
             <div style={{ textAlign: "end" }}>
-              {printLogo ? (
-                <img src={printLogo} alt={org.name} style={{ maxHeight: 80, maxWidth: 200, objectFit: "contain", display: "block", marginInlineStart: "auto" }} />
-              ) : (
-                <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
-              )}
-              <div style={{ marginTop: 6, color: "#6B7280", fontSize: 11 }}>{org.legalName || org.name}</div>
-              {orgAddress && <div style={{ color: "#6B7280", fontSize: 11 }}>{orgAddress}</div>}
+              {/* Logo in the corner · company name (AR bold colored + EN) starts beside it */}
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "flex-end" }}>
+                <div style={{ textAlign: "end", paddingTop: 2 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: primary, lineHeight: 1.35 }}>{org.name}</div>
+                  {org.legalName && org.legalName !== org.name && (
+                    <div style={{ fontWeight: 700, fontSize: 12, color: primary, direction: "ltr" }}>{org.legalName}</div>
+                  )}
+                </div>
+                {printLogo ? (
+                  <img src={printLogo} alt={org.name} style={{ maxHeight: 104, maxWidth: 230, objectFit: "contain", display: "block" }} />
+                ) : (
+                  <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
+                )}
+              </div>
+              {orgAddress && <div style={{ marginTop: 6, color: "#6B7280", fontSize: 11 }}>{orgAddress}</div>}
               {(org as any).email && <div style={{ color: "#6B7280", fontSize: 11 }}>{(org as any).email}</div>}
               {(org as any).phone && <div style={{ color: "#6B7280", fontSize: 11 }}><span className="num">{(org as any).phone}</span></div>}
               {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 11 }}>{isKsa ? "الرقم الضريبي" : "EIN"}: <span className="num">{org.vatNumber}</span></div>}
@@ -233,12 +241,12 @@ export function InvoicePrintView() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 18, paddingBottom: 12, borderBottom: "1px solid #F3F4F6" }}>
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
-              <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 13 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
-              {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 10 }}>{contact.legalName}</div>)}
-              {contactAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{contactAddress}</div>}
-              {contact?.email && <div style={{ color: "#6B7280", fontSize: 10 }}>{contact.email}</div>}
-              {contact?.phone && <div style={{ color: "#6B7280", fontSize: 10 }}><span className="num">{contact.phone}</span></div>}
-              {(contact as any)?.taxId && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "الرقم الضريبي" : "Tax ID"}: <span className="num">{(contact as any).taxId}</span></div>}
+              <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
+              {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.legalName}</div>)}
+              {contactAddress && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contactAddress}</div>}
+              {contact?.email && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.email}</div>}
+              {contact?.phone && <div style={{ color: "#6B7280", fontSize: 9.5 }}><span className="num">{contact.phone}</span></div>}
+              {((contact as any)?.vatNumber || (contact as any)?.taxId) && <div style={{ color: "#374151", fontSize: 10, fontWeight: 600 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{(contact as any).vatNumber || (contact as any).taxId}</span></div>}
             </div>
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "تفاصيل الفاتورة" : "Invoice Details"}</h2>
@@ -360,7 +368,7 @@ export function InvoicePrintView() {
 
         {/* Optional Page 2 · Terms & Conditions (only if exists) */}
         {(invoice as any).termsConditions && (
-          <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "24mm 18mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+          <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: primary, marginTop: 0 }}>الشروط والأحكام · Terms & Conditions</h2>
             <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{(invoice as any).termsConditions}</div>
             {/* Signature box (placeholder · ready for e-sig integration) */}
