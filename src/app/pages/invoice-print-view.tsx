@@ -185,7 +185,8 @@ export function InvoicePrintView() {
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 8mm 12mm 12mm !important; width: 210mm !important; max-width: 210mm !important; box-sizing: border-box !important; page-break-after: always; }
+          html, body { width: 210mm; }
+          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 8mm 12mm 12mm !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; page-break-after: always; }
           .invoice-page:last-child { page-break-after: auto; }
         }
         @page { size: A4; margin: 0; }
@@ -222,6 +223,14 @@ export function InvoicePrintView() {
                   {org.legalName && org.legalName !== org.name && (
                     <div style={{ fontWeight: 700, fontSize: 12, color: primary, direction: "ltr" }}>{org.legalName}</div>
                   )}
+                  {/* Company details stacked directly under the name · beside the logo (saves vertical space) */}
+                  <div style={{ marginTop: 4 }}>
+                    {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
+                    {(org as any).email && <div style={{ color: "#6B7280", fontSize: 10 }}>{(org as any).email}</div>}
+                    {(org as any).phone && <div style={{ color: "#6B7280", fontSize: 10 }}><span className="num">{(org as any).phone}</span></div>}
+                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{org.vatNumber}</span></div>}
+                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "السجل التجاري" : "C.R."}: <span className="num">{org.crNumber}</span></div>}
+                  </div>
                 </div>
                 {printLogo ? (
                   <img src={printLogo} alt={org.name} style={{ maxHeight: 128, maxWidth: 240, objectFit: "contain", display: "block" }} />
@@ -229,11 +238,6 @@ export function InvoicePrintView() {
                   <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
                 )}
               </div>
-              {orgAddress && <div style={{ marginTop: 6, color: "#6B7280", fontSize: 11 }}>{orgAddress}</div>}
-              {(org as any).email && <div style={{ color: "#6B7280", fontSize: 11 }}>{(org as any).email}</div>}
-              {(org as any).phone && <div style={{ color: "#6B7280", fontSize: 11 }}><span className="num">{(org as any).phone}</span></div>}
-              {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 11 }}>{isKsa ? "الرقم الضريبي" : "EIN"}: <span className="num">{org.vatNumber}</span></div>}
-              {org.crNumber && <div style={{ color: "#6B7280", fontSize: 11 }}>{isKsa ? "السجل التجاري" : "Filing #"}: <span className="num">{org.crNumber}</span></div>}
             </div>
           </div>
 
@@ -242,6 +246,7 @@ export function InvoicePrintView() {
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
               <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
+              {(contact as any)?.customCode && <div style={{ color: primary, fontSize: 9.5, fontWeight: 700, marginBottom: 1 }}>{isKsa ? "رمز العميل" : "Customer Code"}: <span className="num">{(contact as any).customCode}</span></div>}
               {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.legalName}</div>)}
               {contactAddress && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contactAddress}</div>}
               {contact?.email && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.email}</div>}
@@ -254,7 +259,7 @@ export function InvoicePrintView() {
                 <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num" style={{ textAlign: "end", color: accent, fontWeight: 600 }}>{invoice.invoiceNumber}</span>
                 <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
                 {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
-                {(invoice as any).reference && <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num" style={{ textAlign: "end" }}>{(invoice as any).reference}</span></>}
+                {(() => { const ref = (invoice as any).reference || (String((invoice as any).termsConditions || "").match(/^Ref:\s*(.+)/)?.[1] ?? null); return ref ? <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num" style={{ textAlign: "end" }}>{ref}</span></> : null; })()}
               </div>
             </div>
           </div>
@@ -317,7 +322,7 @@ export function InvoicePrintView() {
                     background: "transparent",
                   }}>
                     <img src={stampUrl} alt={isKsa ? "ختم" : "Seal"} style={{
-                      maxHeight: 100, maxWidth: 130,
+                      maxHeight: 118, maxWidth: 118,
                       objectFit: "contain",
                       opacity: 0.85,
                       mixBlendMode: "multiply",
