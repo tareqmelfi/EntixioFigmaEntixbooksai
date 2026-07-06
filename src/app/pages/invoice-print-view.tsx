@@ -51,6 +51,13 @@ export function InvoicePrintView() {
     })();
   }, [id]);
 
+  // PDF filename = document.title → "EN-INV-xxx · Customer" instead of the app name
+  useEffect(() => {
+    if (invoice) {
+      document.title = `${invoice.invoiceNumber}${contact?.displayName ? " · " + contact.displayName : ""}`;
+    }
+  }, [invoice, contact]);
+
   // Auto-trigger print dialog once data is ready · suppress with ?noprint=1 (QA / link sharing)
   const noPrint = searchParams.get("noprint") === "1";
   useEffect(() => {
