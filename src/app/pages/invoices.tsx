@@ -888,7 +888,7 @@ export function Invoices() {
                     className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
                   >
                     <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-[#1276E3] inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
-                    <td className="py-3 px-4 text-sm text-[#374151]" title={i.contact?.displayName || ""}><span className="block max-w-[200px] truncate">{i.contact?.displayName || "—"}</span></td>
+                    <td className="py-3 px-4 text-sm text-[#374151] w-full max-w-0" title={i.contact?.displayName || ""}><span className="block truncate">{i.contact?.displayName || "—"}</span></td>
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
                     <td className="py-3 px-4">

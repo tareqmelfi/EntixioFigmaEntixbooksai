@@ -226,8 +226,6 @@ export function InvoicePrintView() {
                   {/* Company details stacked directly under the name · Arabic lines RTL-aligned · Latin lines LTR */}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
-                    {(org as any).email && <div style={{ color: "#6B7280", fontSize: 10, direction: "ltr", textAlign: "left" }}>{(org as any).email}</div>}
-                    {(org as any).phone && <div style={{ color: "#6B7280", fontSize: 10, direction: "ltr", textAlign: "left" }}><span className="num">{(org as any).phone}</span></div>}
                     {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{org.vatNumber}</span></div>}
                     {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "السجل التجاري" : "C.R."}: <span className="num">{org.crNumber}</span></div>}
                   </div>
@@ -402,8 +400,15 @@ export function InvoicePrintView() {
 
           {/* Footer · thank-you only · stamp moved next to totals */}
           <div style={{ marginTop: 20, paddingTop: 10, borderTop: `2px solid ${primary}`, color: "#6B7280", fontSize: 10.5, textAlign: "center" }}>
+            {/* Contact channels · moved from header to footer */}
+            {((org as any).phone || (org as any).email || (org as any).website) && (
+              <div style={{ marginBottom: 3, display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
+                {(org as any).phone && <span className="num">{(org as any).phone}</span>}
+                {(org as any).email && <span style={{ direction: "ltr", display: "inline-block" }}>{(org as any).email}</span>}
+                {(org as any).website && <span style={{ direction: "ltr", display: "inline-block" }}>{(org as any).website}</span>}
+              </div>
+            )}
             <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>
-            {(org as any).website && <div>{(org as any).website}</div>}
           </div>
         </div>
       </div>
