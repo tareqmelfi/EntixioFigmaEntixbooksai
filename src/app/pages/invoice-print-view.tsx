@@ -380,7 +380,7 @@ export function InvoicePrintView() {
         </div>
 
         {/* Optional Page 2 · Terms & Conditions (only if exists) */}
-        {(invoice as any).termsConditions && (
+        {(invoice as any).termsConditions && !/^Ref:\s*\S+$/.test(String((invoice as any).termsConditions).trim()) && (
           <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: primary, marginTop: 0 }}>الشروط والأحكام · Terms & Conditions</h2>
             <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{(invoice as any).termsConditions}</div>
