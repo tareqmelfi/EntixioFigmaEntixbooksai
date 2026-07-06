@@ -269,8 +269,8 @@ export function InvoicePrintView() {
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 24 }}>
             <thead>
               <tr>
-                {["#", isKsa ? "الوصف · Description" : "Description", isKsa ? "الكمية" : "Qty", isKsa ? "السعر" : "Price", isKsa ? "VAT" : "Tax", isKsa ? "الإجمالي" : "Amount"].map((h, i) => (
-                  <th key={i} style={{ background: accent, color: "white", padding: "6px 10px", fontSize: 10.5, fontWeight: 600, textAlign: i >= 2 ? "end" : "start" }}>{h}</th>
+                {["#", isKsa ? "الوصف · Description" : "Description", isKsa ? "الكمية" : "Qty", isKsa ? "السعر" : "Price", isKsa ? "الخاضع للضريبة" : "Taxable", isKsa ? "الضريبة 15%" : "VAT", isKsa ? "الإجمالي" : "Amount"].map((h, i) => (
+                  <th key={i} style={{ background: accent, color: "white", padding: "6px 8px", fontSize: 10, fontWeight: 600, textAlign: i >= 2 ? "end" : "start", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -297,7 +297,8 @@ export function InvoicePrintView() {
                     </td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString()}</td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{p.toFixed(2)}</td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{vatRate}%</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{base.toFixed(2)}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{Math.max(lineTotal - base, 0).toFixed(2)}</td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{lineTotal.toFixed(2)}</td>
                   </tr>
                 );
