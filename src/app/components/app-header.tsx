@@ -191,7 +191,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             </button>
 
             {showProfile && (
-              <div className="absolute start-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+              <div className="absolute end-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-[#F3F4F6]">
                   <div className="flex items-center gap-3">

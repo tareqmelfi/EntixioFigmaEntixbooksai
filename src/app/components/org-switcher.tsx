@@ -97,7 +97,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               </div>
             )}
             <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[260px]">
-              <span className="truncate text-sm text-[#0B1B49] leading-tight" style={{ fontWeight: 600 }}>
+              <span className="line-clamp-2 break-words text-sm text-[#0B1B49] leading-tight" style={{ fontWeight: 600 }}>
                 {activeOrg ? activeOrg.name : "اختر شركة"}
               </span>
               {activeOrg && (
@@ -189,7 +189,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             </div>
           )}
           <div className="flex flex-col items-start gap-0 min-w-0">
-            <span className="truncate text-sm text-[#0B1B49] leading-tight max-w-[180px]" style={{ fontWeight: 600 }}>
+            <span className="line-clamp-2 break-words text-sm text-[#0B1B49] leading-tight max-w-[180px]" style={{ fontWeight: 600 }}>
               {activeOrg ? activeOrg.name : "اختر شركة"}
             </span>
             {activeOrg && (
