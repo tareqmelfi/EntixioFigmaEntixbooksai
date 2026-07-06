@@ -347,6 +347,8 @@ export const api = {
     count: () => request<{ unread: number }>('/api/notifications/count'),
     markRead: (id: string) => request<NotificationItem>(`/api/notifications/${id}/read`, { method: 'PATCH' }),
     markAllRead: () => request<{ updated: number }>('/api/notifications/mark-all-read', { method: 'POST' }),
+    create: (data: { type: string; title: string; body?: string; link?: string; refType?: string; refId?: string }) =>
+      request<NotificationItem>('/api/notifications', { method: 'POST', body: JSON.stringify(data) }),
     remove: (id: string) => request<{ ok: true }>(`/api/notifications/${id}`, { method: 'DELETE' }),
   },
 

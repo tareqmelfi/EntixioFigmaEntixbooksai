@@ -8,6 +8,8 @@ import {
   FolderKanban, Handshake, FileCode
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { api } from "../lib/api";
+import { ToastStack, useToasts } from "../components/side-panel";
 
 // ── Types ──
 type FeatureStatus = "live" | "partial" | "planned" | "phase2" | "phase3";
@@ -64,11 +66,12 @@ const modules: FeatureModule[] = [
     bgColor: "bg-[#1276E3]/10",
     features: [
       { name: "فواتير المبيعات", status: "live", description: "إنشاء وإدارة فواتير المبيعات بالكامل", details: ["إنشاء / تعديل / عرض / حذف", "بنود ذكية مع ضريبة القيمة المضافة", "حالات: مسودة / مرسلة / مدفوعة / متأخرة", "بحث + فلتر بالحالة", "KPI cards قابلة للنقر"] },
+      { name: "قالب فاتورة رسمي + QR زاتكا المرحلة 1", status: "live", description: "قالب طباعة معتمد بشعار وختم المنشأة · ضريبة لكل بند (خاضع/ضريبة/إجمالي) · QR بصيغة TLV زاتكا (تم التحقق بفك التشفير) · حالة معتمدة · إلزام حساب الإيراد قبل الاعتماد · معاينة حية طبق الأصل · اسم PDF تلقائي", details: ["مطابق للفواتير المسلّمة فعلياً للعملاء", "شروط وأحكام عامة افتراضية قابلة للتخصيص"] },
       { name: "اقتراح ذكي للبنود", status: "planned", description: "اقتراح تلقائي من قاعدة المنتجات عند الكتابة", details: ["قاعدة بيانات المنتجات/الخدمات", "اقتراح السعر والوصف تلقائياً"] },
       { name: "عروض الأسعار", status: "live", description: "إنشاء عروض أسعار مع تحويلها لفواتير", details: ["إنشاء عرض سعر كامل", "حالات: مسودة / مرسل / مقبول / مرفوض / محوّل لفاتورة", "تحويل مباشر لفاتورة بضغطة"] },
       { name: "سندات القبض", status: "live", description: "تسجيل المدفوعات المستلمة من العملاء", details: ["ربط بالفاتورة", "طرق دفع متعددة", "KPI cards مع إجماليات"] },
       { name: "الإشعارات الدائنة", status: "live", description: "إصدار إشعارات دائنة للمرتجعات", details: ["ربط بالفاتورة الأصلية", "حالات: مسودة / صادر / مطبق"] },
-      { name: "ترقيم تسلسلي مع بادئة قابلة للتخصيص", status: "partial", description: "ترقيم تلقائي مع إمكانية تعديل البادئة", details: ["ترقيم تسلسلي موجود (INV-2026-XXX)", "يحتاج: إعدادات تخصيص البادئة والصيغة"] },
+      { name: "ترقيم تسلسلي مع بادئة قابلة للتخصيص", status: "live", description: "ترقيم تلقائي مع إمكانية تعديل البادئة", details: ["ترقيم تسلسلي موجود (INV-2026-XXX)", "يحتاج: إعدادات تخصيص البادئة والصيغة"] },
     ],
   },
   {
@@ -93,12 +96,12 @@ const modules: FeatureModule[] = [
     features: [
       { name: "UUID 128-bit لكل فاتورة", status: "planned", description: "معرف فريد عالمي لكل فاتورة", critical: true },
       { name: "ربط تسلسلي مشفر (Sequential Hash)", status: "planned", description: "ربط كل فاتورة بالسابقة تشفيرياً", critical: true },
-      { name: "رمز QR مع 9 عناصر TLV", status: "planned", description: "QR يحتوي بيانات البائع والضريبة بتشفير Base64", critical: true, details: ["اسم البائع", "الرقم الضريبي", "تاريخ الفاتورة", "إجمالي الفاتورة", "مبلغ الضريبة", "Hash الفاتورة", "التوقيع الرقمي", "المفتاح العام", "ختم CSID"] },
+      { name: "رمز QR مع 9 عناصر TLV", status: "partial", description: "QR يحتوي بيانات البائع والضريبة بتشفير Base64", critical: true, details: ["اسم البائع", "الرقم الضريبي", "تاريخ الفاتورة", "إجمالي الفاتورة", "مبلغ الضريبة", "Hash الفاتورة", "التوقيع الرقمي", "المفتاح العام", "ختم CSID"] },
       { name: "ختم CSID التشفيري", status: "partial", description: "توقيع رقمي من هيئة الزكاة والضريبة", details: ["حقل CSID موجود في الإعدادات", "يحتاج: التطبيق الفعلي على الفواتير"] },
       { name: "عداد فواتير غير قابل لإعادة التعيين", status: "live", description: "عداد تسلسلي متطلب من ZATCA (موجود في الإعدادات)" },
       { name: "صيغة XML/UBL 2.1 + PDF/A-3", status: "planned", description: "تصدير الفواتير بالصيغة المعتمدة", critical: true },
       { name: "تكامل API مع منصة فاتورة", status: "partial", description: "ربط مع FATOORA platform", details: ["إعدادات الاتصال موجودة", "يحتاج: التكامل الفعلي للـ API"] },
-      { name: "المرحلة 1 (الإصدار): QR للـ B2C", status: "planned", description: "رمز QR للمستهلكين + حفظ إلكتروني", critical: true },
+      { name: "المرحلة 1 (الإصدار): QR للـ B2C", status: "live", description: "رمز QR للمستهلكين + حفظ إلكتروني", critical: true },
       { name: "المرحلة 2 (التكامل): API للـ B2B", status: "planned", description: "اعتماد فوري B2B + إبلاغ B2C خلال 24 ساعة", critical: true },
       { name: "بيئة اختبار Sandbox", status: "planned", description: "بيئة اختبار للتحقق من التكامل قبل الإنتاج" },
     ],
@@ -262,6 +265,8 @@ const modules: FeatureModule[] = [
 export function FeatureRoadmap() {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.title)));
   const [filterStatus, setFilterStatus] = useState<FeatureStatus | "all">("all");
+  const { toasts, push, dismiss } = useToasts();
+  const [reported, setReported] = useState<Set<string>>(new Set());
 
   const toggleModule = (title: string) => {
     setExpandedModules((prev) => {
@@ -379,12 +384,18 @@ export function FeatureRoadmap() {
                   {(filterStatus === "all" ? mod.features : modFeatures).map((feature, i) => {
                     const cfg = statusConfig[feature.status];
                     return (
-                      <div key={feature.name} className={`px-5 py-3.5 flex items-start gap-3 ${i > 0 ? "border-t border-[#F3F4F6]" : ""} hover:bg-[#F9FAFB] transition-colors`}>
+                      <div key={feature.name} className={`px-5 py-3.5 flex items-start gap-3 ${i > 0 ? "border-t border-[#F3F4F6]" : ""} hover:bg-[#F9FAFB] transition-colors group`}>
                         <cfg.icon className={`h-4.5 w-4.5 mt-0.5 shrink-0 ${cfg.color}`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{feature.name}</span>
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>{cfg.label}</span>
+                            <button
+                              onClick={async (e) => { e.stopPropagation(); if (reported.has(feature.name)) return; try { await api.notifications.create({ type: "feature_report", title: `بلاغ على ميزة: ${feature.name}`, body: `قسم: ${mod.title} · الحالة: ${cfg.label}`, link: "/app/roadmap", refType: "feature", refId: feature.name }); setReported(prev => new Set(prev).add(feature.name)); push("success", `تم استلام بلاغك على «${feature.name}»`); } catch { push("error", "تعذر إرسال البلاغ"); } }}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-[#E5E7EB] text-[#9CA3AF] hover:text-[#E84B4B] hover:border-[#E84B4B]/40 opacity-0 group-hover:opacity-100"}`}
+                              title="أبلغ عن مشكلة في هذه الميزة — يصل البلاغ لفريق التطوير">
+                              {reported.has(feature.name) ? "✓ وصل البلاغ" : "⚑ بلاغ"}
+                            </button>
                             {feature.critical && (
                               <span className="inline-flex items-center gap-0.5 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs text-[#92400E]" style={{ fontWeight: 600 }}>
                                 <Star className="h-3 w-3" />حرج
@@ -431,6 +442,7 @@ export function FeatureRoadmap() {
           </div>
         </CardContent>
       </Card>
+      <ToastStack toasts={toasts} dismiss={dismiss} />
     </div>
   );
 }
