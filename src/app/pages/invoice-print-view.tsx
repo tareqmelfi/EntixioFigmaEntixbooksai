@@ -157,7 +157,7 @@ export function InvoicePrintView() {
     for (const b of bytes) bin += String.fromCharCode(b);
     return btoa(bin);
   };
-  const sellerName = (org as any).legalName || org.name || "";
+  const sellerName = org.name || (org as any).legalName || ""; // Arabic registered name first (ZATCA TLV tag 1)
   const sellerVat = (org as any).vatNumber || "";
   const issuedAt = (() => { try { return new Date(invoice.issueDate as any).toISOString(); } catch { return new Date().toISOString(); } })();
   const vatAmount = safeNum((invoice as any).taxTotal);
@@ -185,10 +185,10 @@ export function InvoicePrintView() {
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 8mm 12mm 12mm !important; max-width: none !important; page-break-after: always; }
+          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 8mm 12mm 12mm !important; width: 210mm !important; max-width: 210mm !important; box-sizing: border-box !important; page-break-after: always; }
           .invoice-page:last-child { page-break-after: auto; }
         }
-        @page { size: A4; margin: 14mm 12mm; }
+        @page { size: A4; margin: 0; }
       `}</style>
 
       <div dir={isKsa ? "rtl" : "ltr"} style={{ color: accent, fontSize: 13, lineHeight: 1.5 }}>
@@ -224,7 +224,7 @@ export function InvoicePrintView() {
                   )}
                 </div>
                 {printLogo ? (
-                  <img src={printLogo} alt={org.name} style={{ maxHeight: 104, maxWidth: 230, objectFit: "contain", display: "block" }} />
+                  <img src={printLogo} alt={org.name} style={{ maxHeight: 128, maxWidth: 240, objectFit: "contain", display: "block" }} />
                 ) : (
                   <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
                 )}
@@ -264,7 +264,7 @@ export function InvoicePrintView() {
             <thead>
               <tr>
                 {["#", isKsa ? "الوصف · Description" : "Description", isKsa ? "الكمية" : "Qty", isKsa ? "السعر" : "Price", isKsa ? "VAT" : "Tax", isKsa ? "الإجمالي" : "Amount"].map((h, i) => (
-                  <th key={i} style={{ background: accent, color: "white", padding: "10px 12px", fontSize: 11, fontWeight: 600, textAlign: i >= 2 ? "end" : "start" }}>{h}</th>
+                  <th key={i} style={{ background: accent, color: "white", padding: "6px 10px", fontSize: 10.5, fontWeight: 600, textAlign: i >= 2 ? "end" : "start" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -277,14 +277,22 @@ export function InvoicePrintView() {
                 const relRate = l.taxRate && typeof l.taxRate === "object" ? safeNum((l.taxRate as any).rate) : safeNum(l.taxRate);
                 const base = q * p - safeNum(l.discount);
                 const vatRate = relRate > 0 ? Math.round(relRate * 100) : (base > 0 && lineTotal > base + 0.005 ? Math.round((lineTotal / base - 1) * 100) : 0);
+                // First description line = product name (bold) · remaining lines = details
+                const descLines = String(l.description || "").split("\n");
+                const descHead = descLines[0];
+                const descRest = descLines.slice(1).join("\n");
+                const cell = { padding: "5px 10px", borderBottom: "1px solid #F3F4F6", fontSize: 11 } as const;
                 return (
                   <tr key={i}>
-                    <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6", textAlign: "end", fontFamily: "monospace" }}>{i + 1}</td>
-                    <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6" }}>{l.description}</td>
-                    <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6", textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString()}</td>
-                    <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6", textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{p.toFixed(2)}</td>
-                    <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6", textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{vatRate}%</td>
-                    <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6", textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{lineTotal.toFixed(2)}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace" }}>{i + 1}</td>
+                    <td style={cell}>
+                      <div style={{ fontWeight: 700 }}>{descHead}</div>
+                      {descRest && <div style={{ whiteSpace: "pre-wrap", color: "#6B7280", fontSize: 10, lineHeight: 1.45 }}>{descRest}</div>}
+                    </td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString()}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{p.toFixed(2)}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{vatRate}%</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{lineTotal.toFixed(2)}</td>
                   </tr>
                 );
               })}
