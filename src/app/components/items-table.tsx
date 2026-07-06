@@ -467,13 +467,13 @@ export function ItemsTable({
                       />
                     </td>
                     {showAccount && (
-                      <td className="px-2 py-1">
+                      <td className="px-2 py-1 max-w-[150px] overflow-hidden">
                         <SearchableCombobox
                           value={line.accountId || ""}
                           onChange={(id) => updateLine(i, { accountId: id })}
                           items={accountItems}
                           placeholder="حساب"
-                          className="border-0"
+                          className="border-0 max-w-full overflow-hidden"
                           onCreate={onCreateAccount ? async (name) => {
                             const a = await onCreateAccount(name);
                             updateLine(i, { accountId: a.id });

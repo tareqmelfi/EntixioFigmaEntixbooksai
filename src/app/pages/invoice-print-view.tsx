@@ -60,6 +60,8 @@ export function InvoicePrintView() {
 
   // Auto-trigger print dialog once data is ready · suppress with ?noprint=1 (QA / link sharing)
   const noPrint = searchParams.get("noprint") === "1";
+  // embed=1 → clean inline mirror (used by the app's preview pane)
+  const embed = searchParams.get("embed") === "1";
   useEffect(() => {
     if (!loading && invoice && org && !noPrint) {
       const t = setTimeout(() => window.print(), 700);
@@ -197,11 +199,12 @@ export function InvoicePrintView() {
           .invoice-page:last-child { page-break-after: auto; }
         }
         @page { size: A4; margin: 0; }
+        ${embed ? ".invoice-page{ margin: 8px auto !important; zoom: 0.78; box-shadow: none !important; } body{ background: white; }" : ""}
       `}</style>
 
       <div dir={isKsa ? "rtl" : "ltr"} style={{ color: accent, fontSize: 13, lineHeight: 1.5 }}>
         {/* Action bar (no-print) */}
-        <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: "flex", gap: 8 }}>
+        <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: embed ? "none" : "flex", gap: 8 }}>
           <button onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: primary, color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
             <Printer style={{ display: "inline-block", verticalAlign: "middle", height: 14, width: 14, marginInlineEnd: 6 }} /> طباعة / حفظ PDF
           </button>

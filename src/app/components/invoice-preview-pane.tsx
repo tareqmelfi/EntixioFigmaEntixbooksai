@@ -157,8 +157,11 @@ export function InvoicePreviewPane({
         </div>
       </div>
 
-      {/* Body · scrollable preview */}
-      <div className="flex-1 overflow-y-auto p-6 bg-[#F4FCFF]">
+      {/* Body · live mirror of the printable invoice (exact copy of what prints) */}
+      <div className="flex-1 bg-[#F4FCFF]">
+        <iframe key={doc.id} src={`/print/invoice/${doc.id}?lang=ar&noprint=1&embed=1`} title="معاينة الفاتورة" style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+      </div>
+      <div className="hidden flex-1 overflow-y-auto p-6 bg-[#F4FCFF]">
         <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 max-w-3xl mx-auto">
           {/* Document head */}
           <div className="flex items-start justify-between mb-6 pb-4 border-b border-[#E5E7EB]">

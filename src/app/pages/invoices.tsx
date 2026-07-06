@@ -231,6 +231,11 @@ export function Invoices() {
     // Validate lines · at least one row with description AND unitPrice
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
     if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
+    // Accounting integrity: approval requires a revenue account on every line (draft is allowed without)
+    if (action !== "draft" && validLines.some((l) => !l.accountId)) {
+      setCreateError("لا يمكن الاعتماد: اختر حساب الإيراد لكل بند أولاً — احفظها كمسودة إذا لم تكتمل");
+      return;
+    }
     setBusy(true);
     try {
       // draft → DRAFT · approve → APPROVED (locked, not yet sent) · send → SENT
@@ -246,6 +251,7 @@ export function Invoices() {
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: validLines.map((l) => ({
           productId: l.productId || null,
+          accountId: l.accountId || null, // revenue account · required by server for non-DRAFT
           taxRate: typeof l.taxRate === "number" ? l.taxRate : 0.15, // send numeric rate · server recomputes (B1 fix)
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
