@@ -51,9 +51,10 @@ export function InvoicePrintView() {
     })();
   }, [id]);
 
-  // Auto-trigger print dialog once data is ready
+  // Auto-trigger print dialog once data is ready · suppress with ?noprint=1 (QA / link sharing)
+  const noPrint = searchParams.get("noprint") === "1";
   useEffect(() => {
-    if (!loading && invoice && org) {
+    if (!loading && invoice && org && !noPrint) {
       const t = setTimeout(() => window.print(), 700);
       return () => clearTimeout(t);
     }
