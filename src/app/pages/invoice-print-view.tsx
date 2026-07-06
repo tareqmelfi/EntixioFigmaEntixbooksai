@@ -218,16 +218,16 @@ export function InvoicePrintView() {
             <div style={{ textAlign: "end" }}>
               {/* Logo in the corner · company name (AR bold colored + EN) starts beside it */}
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "flex-end" }}>
-                <div style={{ textAlign: "end", paddingTop: 2 }}>
+                <div style={{ textAlign: "start", paddingTop: 2 }}>
                   <div style={{ fontWeight: 800, fontSize: 16, color: primary, lineHeight: 1.35 }}>{org.name}</div>
                   {org.legalName && org.legalName !== org.name && (
-                    <div style={{ fontWeight: 700, fontSize: 12, color: primary, direction: "ltr" }}>{org.legalName}</div>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: primary, direction: "ltr", textAlign: "left" }}>{org.legalName}</div>
                   )}
-                  {/* Company details stacked directly under the name · beside the logo (saves vertical space) */}
+                  {/* Company details stacked directly under the name · Arabic lines RTL-aligned · Latin lines LTR */}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
-                    {(org as any).email && <div style={{ color: "#6B7280", fontSize: 10 }}>{(org as any).email}</div>}
-                    {(org as any).phone && <div style={{ color: "#6B7280", fontSize: 10 }}><span className="num">{(org as any).phone}</span></div>}
+                    {(org as any).email && <div style={{ color: "#6B7280", fontSize: 10, direction: "ltr", textAlign: "left" }}>{(org as any).email}</div>}
+                    {(org as any).phone && <div style={{ color: "#6B7280", fontSize: 10, direction: "ltr", textAlign: "left" }}><span className="num">{(org as any).phone}</span></div>}
                     {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{org.vatNumber}</span></div>}
                     {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "السجل التجاري" : "C.R."}: <span className="num">{org.crNumber}</span></div>}
                   </div>
@@ -246,7 +246,7 @@ export function InvoicePrintView() {
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
               <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
-              {(contact as any)?.customCode && <div style={{ color: primary, fontSize: 9.5, fontWeight: 700, marginBottom: 1 }}>{isKsa ? "رمز العميل" : "Customer Code"}: <span className="num">{(contact as any).customCode}</span></div>}
+
               {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.legalName}</div>)}
               {contactAddress && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contactAddress}</div>}
               {contact?.email && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.email}</div>}
@@ -260,6 +260,7 @@ export function InvoicePrintView() {
                 <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
                 {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
                 {(() => { const ref = (invoice as any).reference || (String((invoice as any).termsConditions || "").match(/^Ref:\s*(.+)/)?.[1] ?? null); return ref ? <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num" style={{ textAlign: "end" }}>{ref}</span></> : null; })()}
+                {(contact as any)?.customCode && <><span style={{ color: "#6B7280" }}>{isKsa ? "رمز العميل" : "Customer Code"}</span><span className="num" style={{ textAlign: "end", color: primary, fontWeight: 600 }}>{(contact as any).customCode}</span></>}
               </div>
             </div>
           </div>
@@ -322,7 +323,7 @@ export function InvoicePrintView() {
                     background: "transparent",
                   }}>
                     <img src={stampUrl} alt={isKsa ? "ختم" : "Seal"} style={{
-                      maxHeight: 118, maxWidth: 118,
+                      maxHeight: 155, maxWidth: 155,
                       objectFit: "contain",
                       opacity: 0.85,
                       mixBlendMode: "multiply",
@@ -372,31 +373,38 @@ export function InvoicePrintView() {
             </div>
           )}
 
+          {/* Terms & Conditions · inline (flows naturally · breaks to next page only when content overflows) */}
+          {(() => {
+            const raw = String((invoice as any).termsConditions || "").trim();
+            const custom = raw && !/^Ref:\s*\S+$/.test(raw) ? raw : null;
+            const defaultTerms = isKsa
+              ? "1. تعتبر هذه الفاتورة مستنداً رسمياً صادراً وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك للفوترة الإلكترونية.\n2. يستحق السداد وفق شروط الدفع الموضحة أعلاه، ولا تعتبر هذه الفاتورة سند قبض وإبراء ذمة إلا بعد سداد كامل المبلغ المستحق.\n3. يرجى إبلاغنا بأي ملاحظة على هذه الفاتورة خلال 7 أيام من تاريخ الإصدار، وبعدها تعتبر نهائية ومقبولة.\n4. تتم أي إرجاعات أو استبدالات وفق السياسة المتفق عليها وبالحالة الأصلية للأصناف."
+              : "1. This invoice is an official document issued per ZATCA e-invoicing requirements.\n2. Payment is due per the terms stated above; this invoice is not a receipt until fully settled.\n3. Any objection must be raised within 7 days of the issue date, after which the invoice is final.\n4. Returns and exchanges follow the agreed policy and require items in original condition.";
+            const terms = custom || defaultTerms;
+            return (
+              <div style={{ marginTop: 18 }}>
+                <h2 style={{ fontSize: 11.5, fontWeight: 700, color: primary, margin: "0 0 5px" }}>{isKsa ? "الشروط والأحكام · Terms & Conditions" : "Terms & Conditions"}</h2>
+                <div style={{ fontSize: 9, color: "#6B7280", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{terms}</div>
+                <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 24 }}>توقيع البائع · Seller Signature</div>
+                    <div style={{ borderTop: "1px solid #D1D5DB", paddingTop: 5, fontSize: 10, color: "#9CA3AF" }}>{org.legalName || org.name}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 24 }}>توقيع العميل · Customer Signature</div>
+                    <div style={{ borderTop: "1px solid #D1D5DB", paddingTop: 5, fontSize: 10, color: "#9CA3AF" }}>{contact?.legalName || contact?.displayName || "—"}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Footer · thank-you only · stamp moved next to totals */}
-          <div style={{ marginTop: 28, paddingTop: 12, borderTop: `2px solid ${primary}`, color: "#6B7280", fontSize: 11, textAlign: "center" }}>
+          <div style={{ marginTop: 20, paddingTop: 10, borderTop: `2px solid ${primary}`, color: "#6B7280", fontSize: 10.5, textAlign: "center" }}>
             <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>
             {(org as any).website && <div>{(org as any).website}</div>}
           </div>
         </div>
-
-        {/* Optional Page 2 · Terms & Conditions (only if exists) */}
-        {(invoice as any).termsConditions && !/^Ref:\s*\S+$/.test(String((invoice as any).termsConditions).trim()) && (
-          <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: primary, marginTop: 0 }}>الشروط والأحكام · Terms & Conditions</h2>
-            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{(invoice as any).termsConditions}</div>
-            {/* Signature box (placeholder · ready for e-sig integration) */}
-            <div style={{ marginTop: 48, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
-              <div>
-                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 32 }}>توقيع البائع · Seller Signature</div>
-                <div style={{ borderTop: "1px solid #D1D5DB", paddingTop: 6, fontSize: 11, color: "#9CA3AF" }}>{org.legalName || org.name}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 32 }}>توقيع العميل · Customer Signature</div>
-                <div style={{ borderTop: "1px solid #D1D5DB", paddingTop: 6, fontSize: 11, color: "#9CA3AF" }}>{contact?.legalName || contact?.displayName || "—"}</div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
