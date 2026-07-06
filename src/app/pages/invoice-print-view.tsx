@@ -384,16 +384,7 @@ export function InvoicePrintView() {
               <div style={{ marginTop: 18 }}>
                 <h2 style={{ fontSize: 11.5, fontWeight: 700, color: primary, margin: "0 0 5px" }}>{isKsa ? "الشروط والأحكام · Terms & Conditions" : "Terms & Conditions"}</h2>
                 <div style={{ fontSize: 9, color: "#6B7280", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{terms}</div>
-                <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 24 }}>توقيع البائع · Seller Signature</div>
-                    <div style={{ borderTop: "1px solid #D1D5DB", paddingTop: 5, fontSize: 10, color: "#9CA3AF" }}>{org.legalName || org.name}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 24 }}>توقيع العميل · Customer Signature</div>
-                    <div style={{ borderTop: "1px solid #D1D5DB", paddingTop: 5, fontSize: 10, color: "#9CA3AF" }}>{contact?.legalName || contact?.displayName || "—"}</div>
-                  </div>
-                </div>
+                {/* Signatures removed from default template · available on demand via the توقيع action (DocuSeal · sign.ensidex.com) */}
               </div>
             );
           })()}
