@@ -137,13 +137,13 @@ export function InvoicePreviewPane({
             </button>
           )}
           <div className="inline-flex rounded-md border border-[#E5E7EB] overflow-hidden">
-            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=ar`, '_blank')}
+            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=ar&noprint=1`, '_blank')}
               className="px-2 py-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex items-center gap-1 text-xs"
               title="طباعة بالعربي">
               <Printer className="h-3.5 w-3.5" /> عربي
             </button>
             <span className="w-px bg-[#E5E7EB]" />
-            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=en`, '_blank')}
+            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=en&noprint=1`, '_blank')}
               className="px-2 py-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex items-center gap-1 text-xs font-english"
               title="Print in English">
               <Printer className="h-3.5 w-3.5" /> EN

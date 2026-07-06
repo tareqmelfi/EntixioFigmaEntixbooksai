@@ -124,7 +124,7 @@ export function InvoicePrintView() {
 
   const total = safeNum(invoice.total);
   const subtotal = safeNum(invoice.subtotal);
-  const tax = safeNum(invoice.taxAmount);
+  const tax = safeNum((invoice as any).taxTotal ?? (invoice as any).taxAmount);
   const paid = safeNum(invoice.amountPaid);
   const due = total - paid;
   const currency = invoice.currency || "SAR";
@@ -216,7 +216,7 @@ export function InvoicePrintView() {
             </div>
             <div style={{ textAlign: "end" }}>
               {printLogo ? (
-                <img src={printLogo} alt={org.name} style={{ maxHeight: 80, maxWidth: 200, objectFit: "contain" }} />
+                <img src={printLogo} alt={org.name} style={{ maxHeight: 80, maxWidth: 200, objectFit: "contain", display: "block", marginInlineStart: "auto" }} />
               ) : (
                 <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
               )}
@@ -264,8 +264,11 @@ export function InvoicePrintView() {
               {lines.map((l: any, i: number) => {
                 const q = safeNum(l.quantity);
                 const p = safeNum(l.unitPrice);
-                const lineTotal = safeNum(l.total) || (q * p);
-                const vatRate = safeNum(l.taxRate) * 100;
+                // line.subtotal is stored tax-inclusive · l.taxRate may be a relation object {rate} or numeric
+                const lineTotal = safeNum(l.subtotal) || safeNum(l.total) || (q * p);
+                const relRate = l.taxRate && typeof l.taxRate === "object" ? safeNum((l.taxRate as any).rate) : safeNum(l.taxRate);
+                const base = q * p - safeNum(l.discount);
+                const vatRate = relRate > 0 ? Math.round(relRate * 100) : (base > 0 && lineTotal > base + 0.005 ? Math.round((lineTotal / base - 1) * 100) : 0);
                 return (
                   <tr key={i}>
                     <td style={{ padding: 12, borderBottom: "1px solid #F3F4F6", textAlign: "end", fontFamily: "monospace" }}>{i + 1}</td>
@@ -343,7 +346,7 @@ export function InvoicePrintView() {
           )}
 
           {invoice.notes && (
-            <div style={{ marginTop: 24, padding: "12px 14px", background: "#FFFBEB", borderInlineEnd: "3px solid #F59E0B", borderRadius: 6, fontSize: 12, color: "#78350F" }}>
+            <div style={{ marginTop: 24, padding: "12px 14px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 12, color: "#374151" }}>
               <strong>{isKsa ? "ملاحظات:" : "Notes:"}</strong> {invoice.notes}
             </div>
           )}

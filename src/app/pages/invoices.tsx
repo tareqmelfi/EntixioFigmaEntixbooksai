@@ -349,7 +349,11 @@ export function Invoices() {
     } finally { setPayBusy(false); }
   };
 
-    const openEdit = (inv: Invoice) => {
+    const openEdit = async (inv: Invoice) => {
+    // List rows don't include lines · fetch the full invoice so edit never opens empty
+    if (!inv.lines || !(inv.lines as any[]).length) {
+      try { inv = await api.invoices.get(inv.id) as Invoice; } catch { /* fall back to row data */ }
+    }
     setEditingInvoice(inv);
     setForm({
       ...EMPTY_FORM,
@@ -884,7 +888,7 @@ export function Invoices() {
                     className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
                   >
                     <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-[#1276E3] inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
-                    <td className="py-3 px-4 text-sm text-[#374151] max-w-[220px] truncate" title={i.contact?.displayName || ""}>{i.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-sm text-[#374151]" title={i.contact?.displayName || ""}><span className="block max-w-[200px] truncate">{i.contact?.displayName || "—"}</span></td>
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
                     <td className="py-3 px-4">
