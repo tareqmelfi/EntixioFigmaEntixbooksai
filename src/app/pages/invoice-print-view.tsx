@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Invoice, Org, Contact } from "../lib/api";
 import { Loader2, Printer, X } from "lucide-react";
+import qrcode from "qrcode-generator";
 
 function safeNum(v: any, d = 0): number {
   const n = Number(v);
@@ -143,19 +144,36 @@ export function InvoicePrintView() {
   // Show QR for all countries (not just KSA · UX-186)
   const showQr = true;
 
-  // Generate ZATCA-style QR placeholder (TLV base64) · use a simple SVG placeholder
-  // In production: use library like qrcode.react · for now placeholder until library added
-  const qrSvg = showQr ? (
-    <svg viewBox="0 0 100 100" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="100" height="100" fill="white" stroke="#E5E7EB" strokeWidth="1" />
-      {/* simple grid pattern · placeholder for actual QR */}
-      {Array.from({ length: 25 }).map((_, i) => {
-        const r = Math.floor(i / 5), c = i % 5;
-        const filled = ((r + c) % 2 === 0) || (i % 3 === 0);
-        return filled ? <rect key={i} x={c * 18 + 5} y={r * 18 + 5} width="14" height="14" fill={accent} /> : null;
-      })}
-    </svg>
-  ) : null;
+  // Real ZATCA Phase-1 QR · TLV tags 1-5 (seller · VAT no · timestamp · total · VAT) → base64 → QR
+  const tlvBase64 = (fields: Array<[number, string]>): string => {
+    const enc = new TextEncoder();
+    const bytes: number[] = [];
+    for (const [tag, value] of fields) {
+      const v = enc.encode(value);
+      bytes.push(tag, v.length, ...Array.from(v));
+    }
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  };
+  const sellerName = (org as any).legalName || org.name || "";
+  const sellerVat = (org as any).vatNumber || "";
+  const issuedAt = (() => { try { return new Date(invoice.issueDate as any).toISOString(); } catch { return new Date().toISOString(); } })();
+  const vatAmount = safeNum((invoice as any).taxTotal);
+  const qrPayload = sellerVat
+    ? tlvBase64([[1, sellerName], [2, sellerVat], [3, issuedAt], [4, total.toFixed(2)], [5, vatAmount.toFixed(2)]])
+    : null;
+  const qrSvg = showQr && qrPayload ? (() => {
+    const qr = qrcode(0, "M");
+    qr.addData(qrPayload);
+    qr.make();
+    return (
+      <div
+        style={{ width: 100, height: 100 }}
+        dangerouslySetInnerHTML={{ __html: qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true }) }}
+      />
+    );
+  })() : null;
 
   return (
     <>

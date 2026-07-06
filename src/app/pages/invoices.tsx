@@ -24,11 +24,12 @@ import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { api, ApiError, Invoice, Contact } from "../lib/api";
 
 const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", SENT: "مرسلة", VIEWED: "مُشاهَدة", PAID: "مدفوعة",
+  DRAFT: "مسودة", APPROVED: "معتمدة", SENT: "مرسلة", VIEWED: "مُشاهَدة", PAID: "مدفوعة",
   PARTIAL: "مدفوعة جزئياً", OVERDUE: "متأخرة", CANCELLED: "ملغاة",
 };
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-700",
+  APPROVED: "bg-emerald-100 text-emerald-700",
   SENT: "bg-blue-100 text-blue-700",
   VIEWED: "bg-indigo-100 text-indigo-700",
   PAID: "bg-green-100 text-green-700",
@@ -232,9 +233,8 @@ export function Invoices() {
     if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
     setBusy(true);
     try {
-      // For now: draft always saves as DRAFT · approve+send saves as SENT
-      // TODO: when backend supports APPROVED state, map approve → APPROVED, send → SENT
-      const status = action === "draft" ? "DRAFT" : "SENT";
+      // draft → DRAFT · approve → APPROVED (locked, not yet sent) · send → SENT
+      const status = action === "draft" ? "DRAFT" : action === "approve" ? "APPROVED" : "SENT";
       const inv = await api.invoices.create({
         contactId: form.contactId,
         invoiceNumber: form.invoiceNumber || undefined,
@@ -246,6 +246,7 @@ export function Invoices() {
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: validLines.map((l) => ({
           productId: l.productId || null,
+          taxRate: typeof l.taxRate === "number" ? l.taxRate : 0.15, // send numeric rate · server recomputes (B1 fix)
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
           unitPrice: l.taxInclusive
@@ -299,8 +300,8 @@ export function Invoices() {
   // Approve a DRAFT invoice · transitions DRAFT → SENT (backend: status=APPROVED state coming · for now uses SENT)
   const handleApprove = async (inv: Invoice) => {
     try {
-      const updated = await api.invoices.update(inv.id, { status: "SENT" });
-      setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "SENT" } as Invoice : x));
+      const updated = await api.invoices.update(inv.id, { status: "APPROVED" });
+      setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "APPROVED" } as Invoice : x));
       push("success", `تم اعتماد ${inv.invoiceNumber}`);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الاعتماد");
@@ -882,8 +883,8 @@ export function Invoices() {
                     onClick={() => setPreviewId(previewId === i.id ? null : i.id)}
                     className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
                   >
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
-                    <td className="py-3 px-4 text-sm text-[#374151] truncate" title={i.contact?.displayName || ""}>{i.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-[#1276E3] inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
+                    <td className="py-3 px-4 text-sm text-[#374151] max-w-[220px] truncate" title={i.contact?.displayName || ""}>{i.contact?.displayName || "—"}</td>
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
                     <td className="py-3 px-4">
