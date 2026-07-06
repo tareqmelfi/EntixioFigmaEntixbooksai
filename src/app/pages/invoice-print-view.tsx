@@ -221,7 +221,7 @@ export function InvoicePrintView() {
                 <div style={{ textAlign: "start", paddingTop: 2 }}>
                   <div style={{ fontWeight: 800, fontSize: 16, color: primary, lineHeight: 1.35 }}>{org.name}</div>
                   {org.legalName && org.legalName !== org.name && (
-                    <div style={{ fontWeight: 700, fontSize: 12, color: primary, direction: "ltr", textAlign: "left" }}>{org.legalName}</div>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: primary, direction: "ltr", textAlign: "right" }}>{org.legalName}</div>
                   )}
                   {/* Company details stacked directly under the name · Arabic lines RTL-aligned · Latin lines LTR */}
                   <div style={{ marginTop: 4 }}>
@@ -231,7 +231,7 @@ export function InvoicePrintView() {
                   </div>
                 </div>
                 {printLogo ? (
-                  <img src={printLogo} alt={org.name} style={{ maxHeight: 128, maxWidth: 240, objectFit: "contain", display: "block" }} />
+                  <img src={printLogo} alt={org.name} style={{ maxHeight: 110, maxWidth: 220, objectFit: "contain", display: "block" }} />
                 ) : (
                   <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
                 )}
@@ -240,7 +240,7 @@ export function InvoicePrintView() {
           </div>
 
           {/* Bill-to + invoice details · compact (no box · saves vertical space) */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 18, paddingBottom: 12, borderBottom: "1px solid #F3F4F6" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 8, paddingBottom: 10, borderBottom: "1px solid #F3F4F6" }}>
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
               <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
