@@ -16,9 +16,25 @@ function figmaAssetResolver() {
   }
 }
 
+// Stamps the current build time into index.html so the deployed bundle can
+// always be verified against the source commit, instead of relying on a
+// manually-edited, easily-forgotten meta tag.
+function buildTimeStamp() {
+  return {
+    name: 'build-time-stamp',
+    transformIndexHtml(html: string) {
+      return html.replace(
+        /<meta name="build-time" content="[^"]*" \/>/,
+        `<meta name="build-time" content="${new Date().toISOString()}" />`,
+      )
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     figmaAssetResolver(),
+    buildTimeStamp(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
