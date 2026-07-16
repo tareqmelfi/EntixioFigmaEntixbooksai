@@ -22,6 +22,7 @@ export function Projects() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", startDate: "", endDate: "", status: "ACTIVE" });
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -48,8 +49,8 @@ export function Projects() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("حذف المشروع؟") — replace with InlineConfirm */ 
-try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    setPendingDelete(null);
+    try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
     catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
@@ -79,7 +80,7 @@ try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== 
               <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{p.startDate?.slice(0, 10) || "—"}</td>
               <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{p.endDate?.slice(0, 10) || "—"}</td>
               <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[p.status] || ""}`}>{STATUS_LABELS[p.status] || p.status}</span></td>
-              <td className="py-3 px-4"><button onClick={() => handleDelete(p.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></td>
+              <td className="py-3 px-4">{pendingDelete === p.id ? (<InlineConfirm onConfirm={() => handleDelete(p.id)} onCancel={() => setPendingDelete(null)} />) : (<button onClick={() => setPendingDelete(p.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>)}</td>
             </tr>)}
           </tbody></table>)}
         </CardContent>

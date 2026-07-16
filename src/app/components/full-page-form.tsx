@@ -41,10 +41,10 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
   }, [onClose, disableEscape]);
 
   return (
-    <div className="-m-6 sm:-m-8 min-h-[calc(100vh-4rem)] flex flex-col bg-[#F4FCFF] relative">
+    <div className="-m-4 sm:-m-6 min-h-[calc(100vh-4rem)] flex flex-col bg-[#F4FCFF] relative">
       {/* Header bar · NOT sticky · scrolls with content (fixes banner-cover bug) */}
       <div className="bg-white border-b border-[#E5E7EB] shadow-sm flex-shrink-0">
-        <div className="px-6 sm:px-8 py-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -66,20 +66,20 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
           </div>
         </div>
         {toolbar && (
-          <div className="px-6 sm:px-8 py-2 border-t border-[#F3F4F6] bg-[#F9FAFB]">
+          <div className="px-4 sm:px-6 lg:px-8 py-2 border-t border-[#F3F4F6] bg-[#F9FAFB]">
             {toolbar}
           </div>
         )}
       </div>
 
       {/* Body · normal flow · no overflow trap */}
-      <div className="flex-1 px-6 sm:px-8 py-6">
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </div>
 
       {/* Footer bar · sticky at bottom · contains action buttons */}
       <div className="sticky bottom-0 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
-        <div className="px-6 sm:px-8 py-3">
+        <div className="px-4 sm:px-6 lg:px-8 py-3">
           {footer}
         </div>
       </div>

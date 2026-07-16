@@ -62,7 +62,7 @@ export interface AccountOption {
 
 interface Props {
   lines: InvoiceLine[];
-  setLines: (lines: InvoiceLine[]) => void;
+  setLines: React.Dispatch<React.SetStateAction<InvoiceLine[]>>;
   mode: TaxMode;
   onModeChange: (m: TaxMode) => void;
   defaultTaxRate?: number;
@@ -86,7 +86,7 @@ export function newLine(taxRate = 0.15, taxInclusive = false): InvoiceLine {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     description: "",
     quantity: "1",
-    unitPrice: "",
+    unitPrice: "0",
     taxRate,
     taxInclusive,
   };
@@ -221,20 +221,31 @@ export function ItemsTable({
   };
 
   const onProductPick = (idx: number, product: ProductOption) => {
+    const existing = displayLines[idx];
+    const templateDescription = product.name;
+    const userDescription = existing?.description?.trim() || "";
+    const combined = userDescription
+      ? `${templateDescription}\n${userDescription}`
+      : templateDescription;
     updateLine(idx, {
       productId: product.id,
-      description: product.name,
-      unitPrice: String(product.unitPrice),
-      accountId: product.accountId || displayLines[idx].accountId,
-      taxRate: product.taxRate ?? displayLines[idx].taxRate,
+      description: combined,
+      unitPrice: String(product.unitPrice ?? 0),
+      accountId: product.accountId || existing?.accountId,
+      taxRate: product.taxRate ?? existing?.taxRate ?? defaultTaxRate,
     });
   };
 
   const handleModeChange = (m: TaxMode) => {
     onModeChange(m);
-    if (m === "all-inclusive") setLines(lines.map((l) => ({ ...l, taxInclusive: true })));
-    else if (m === "all-exclusive") setLines(lines.map((l) => ({ ...l, taxInclusive: false })));
+    if (m === "all-inclusive") setLines(lines.map((l: InvoiceLine) => ({ ...l, taxInclusive: true })));
+    else if (m === "all-exclusive") setLines(lines.map((l: InvoiceLine) => ({ ...l, taxInclusive: false })));
   };
+
+  void handleModeChange;
+
+  const _totals = computeTotals(lines);
+  void _totals;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, idx: number, isLast: boolean) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -318,22 +329,23 @@ export function ItemsTable({
           taxRate: r.taxRate ?? defaultTaxRate,
           taxInclusive: r.taxInclusive ?? inclusive,
         }));
-        setLines((prev) => prev.filter((l) => l.id !== aiPlaceholder.id).concat(aiRows));
+        setLines((prev: InvoiceLine[]) => prev.filter((l) => l.id !== aiPlaceholder.id).concat(aiRows));
       } else {
         // AI couldn't parse · keep first line as the entire blob
-        setLines((prev) =>
+        setLines((prev: InvoiceLine[]) =>
           prev.map((l) => (l.id === aiPlaceholder.id ? { ...l, description: text.slice(0, 200) } : l)),
         );
       }
     } catch (err) {
       // On error · just put the raw text in description
-      setLines((prev) =>
+      setLines((prev: InvoiceLine[]) =>
         prev.map((l) => (l.id === aiPlaceholder.id ? { ...l, description: text.slice(0, 200) } : l)),
       );
     }
   };
 
   const totals = computeTotals(lines);
+  void totals;
 
   const showAccount = !hidden.account && (accounts.length > 0 || !!onCreateAccount);
   const showTax = !hidden.tax;
@@ -356,38 +368,38 @@ export function ItemsTable({
         className="rounded-lg border border-[#E5E7EB] overflow-hidden bg-white"
       >
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-sm" style={{ minWidth: showAccount ? "1040px" : "820px" }}>
+          <table className="w-full text-sm" style={{ minWidth: "100%" }}>
             <colgroup>
               <col className="w-8" />
-              <col className="w-40" />
-              <col />
-              <col className="w-20" />
-              <col className="w-24" />
-              {showAccount && <col className="w-36" />}
-              {showTax && <col className="w-24" />}
-              {showTaxAmount && <col className="w-24" />}
-              <col className="w-24" />
+              <col className="min-w-[140px] w-[15%]" />
+              <col className="min-w-[220px] w-[30%]" />
+              <col className="min-w-[72px] w-[8%]" />
+              <col className="min-w-[96px] w-[10%]" />
+              {showAccount && <col className="min-w-[180px] w-[18%]" />}
+              {showTax && <col className="min-w-[100px] w-[10%]" />}
+              {showTaxAmount && <col className="min-w-[96px] w-[9%]" />}
+              <col className="min-w-[96px] w-[9%]" />
               <col className="w-10" />
             </colgroup>
             <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
               <tr>
                 <th className="py-2.5 px-2 w-8"></th>
                 {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
-                  <th className="py-2.5 px-3 text-start w-44" style={{ fontWeight: 600 }}>الصنف</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الصنف</th>
                 )}
                 <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الوصف</th>
-                <th className="py-2.5 px-3 text-start w-20" style={{ fontWeight: 600 }}>الكمية</th>
-                <th className="py-2.5 px-3 text-start w-28" style={{ fontWeight: 600 }}>السعر</th>
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الكمية</th>
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>السعر</th>
                 {showAccount && (
-                  <th className="py-2.5 px-3 text-start w-40" style={{ fontWeight: 600 }}>الحساب</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الحساب</th>
                 )}
                 {showTax && (
-                  <th className="py-2.5 px-3 text-start w-24" style={{ fontWeight: 600 }}>الضريبة</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الضريبة</th>
                 )}
                 {showTaxAmount && (
-                  <th className="py-2.5 px-3 text-start w-28" style={{ fontWeight: 600 }}>مبلغ الضريبة</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>مبلغ الضريبة</th>
                 )}
-                <th className="py-2.5 px-3 text-start w-28" style={{ fontWeight: 600 }}>المبلغ ({currency})</th>
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>المبلغ ({currency})</th>
                 <th className="py-2.5 px-2 w-10"></th>
               </tr>
             </thead>
@@ -467,13 +479,13 @@ export function ItemsTable({
                       />
                     </td>
                     {showAccount && (
-                      <td className="px-2 py-1 max-w-[150px] overflow-hidden">
+                      <td className="px-2 py-1">
                         <SearchableCombobox
                           value={line.accountId || ""}
                           onChange={(id) => updateLine(i, { accountId: id })}
                           items={accountItems}
                           placeholder="حساب"
-                          className="border-0 max-w-full overflow-hidden"
+                          className="border-0"
                           onCreate={onCreateAccount ? async (name) => {
                             const a = await onCreateAccount(name);
                             updateLine(i, { accountId: a.id });

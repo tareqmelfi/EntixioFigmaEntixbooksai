@@ -15,6 +15,7 @@ export function Branches() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", code: "", address: "" });
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -37,8 +38,8 @@ export function Branches() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("حذف الفرع؟") — replace with InlineConfirm */ 
-try { await api.branches.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    setPendingDelete(null);
+    try { await api.branches.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
     catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
@@ -64,7 +65,7 @@ try { await api.branches.remove(id); setItems(prev => prev.filter(x => x.id !== 
               <td className="py-3 px-4 text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>{b.name}</td>
               <td className="py-3 px-4 font-english text-sm text-[#6B7280]">{b.code || "—"}</td>
               <td className="py-3 px-4 text-sm text-[#374151]">{b.address || "—"}</td>
-              <td className="py-3 px-4"><button onClick={() => handleDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></td>
+              <td className="py-3 px-4">{pendingDelete === b.id ? (<InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} />) : (<button onClick={() => setPendingDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>)}</td>
             </tr>)}
           </tbody></table>)}
         </CardContent>

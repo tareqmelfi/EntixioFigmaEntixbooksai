@@ -39,6 +39,7 @@ export function Notifications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"ALL" | "UNREAD">("ALL");
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -61,8 +62,8 @@ export function Notifications() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("حذف الإشعار؟") — replace with InlineConfirm */ 
-try {
+    setPendingDelete(null);
+    try {
       await api.notifications.remove(id);
       setItems(arr => arr.filter(x => x.id !== id));
     } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
@@ -125,10 +126,17 @@ try {
                     <p className="text-sm text-[#0B1B49]" style={{ fontWeight: !n.readAt ? 600 : 500 }}>{n.title}</p>
                     {n.body && <p className="text-sm text-[#6B7280] mt-1">{n.body}</p>}
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
-                    className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
-                  ><Trash2 className="h-4 w-4" /></button>
+                  {pendingDelete === n.id ? (
+                    <InlineConfirm
+                      onConfirm={() => handleDelete(n.id)}
+                      onCancel={() => setPendingDelete(null)}
+                    />
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPendingDelete(n.id); }}
+                      className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                    ><Trash2 className="h-4 w-4" /></button>
+                  )}
                 </div>
               ))}
             </div>

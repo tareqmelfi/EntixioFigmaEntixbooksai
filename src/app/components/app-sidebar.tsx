@@ -109,7 +109,8 @@ const sections: MenuSection[] = [
         path: "/app/products",
         children: [
           { title: "المنتجات والخدمات", icon: Layers, path: "/app/products" },
-          { title: "المخزون والمستودعات", icon: Warehouse, path: "/app/inventory" },
+          { title: "المخزون والمستودعات", icon: Warehouse, path: "/app/warehouses" },
+          { title: "حركات المخزون", icon: ScrollText, path: "/app/stock-movements" },
         ],
       },
       {
@@ -194,7 +195,8 @@ const searchPages = [
   { label: "قائمة الاتصال", path: "/app/contacts" },
   { label: "الرواتب والموظفين", path: "/app/payroll" },
   { label: "المنتجات والخدمات", path: "/app/products" },
-  { label: "المخزون والمستودعات", path: "/app/inventory" },
+  { label: "المخزون والمستودعات", path: "/app/warehouses" },
+  { label: "حركات المخزون", path: "/app/stock-movements" },
   { label: "القيود اليدوية", path: "/app/journal-entries" },
   { label: "شجرة الحسابات", path: "/app/chart-of-accounts" },
   { label: "الضرائب", path: "/app/taxes" },

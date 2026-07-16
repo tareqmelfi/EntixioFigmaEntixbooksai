@@ -150,6 +150,7 @@ export const router = createBrowserRouter([
       { path: "receipts/new", element: <Receipts />, errorElement: <ErrorBoundary /> },
       { path: "credit-notes", element: <CreditNotes />, errorElement: <ErrorBoundary /> },
       { path: "credit-notes/new", element: <CreditNotes />, errorElement: <ErrorBoundary /> },
+      { path: "credit-notes/:id", element: <CreditNotes />, errorElement: <ErrorBoundary /> },
       // Purchases
       { path: "purchases", element: <PurchasesDashboard />, errorElement: <ErrorBoundary /> },
       { path: "purchases/bills", element: <PurchaseBills />, errorElement: <ErrorBoundary /> },
@@ -187,6 +188,8 @@ export const router = createBrowserRouter([
       { path: "products", element: <Products />, errorElement: <ErrorBoundary /> },
       { path: "products/:id", element: <ProductDetail />, errorElement: <ErrorBoundary /> },
       { path: "inventory", element: <Inventory />, errorElement: <ErrorBoundary /> },
+      { path: "warehouses", element: <Inventory />, errorElement: <ErrorBoundary /> },
+      { path: "stock-movements", element: <Inventory />, errorElement: <ErrorBoundary /> },
       // Payroll & Employees
       { path: "payroll", element: <Payroll />, errorElement: <ErrorBoundary /> },
       { path: "employees", element: <Employees />, errorElement: <ErrorBoundary /> },

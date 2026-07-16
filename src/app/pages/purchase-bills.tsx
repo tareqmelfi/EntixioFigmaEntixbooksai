@@ -27,16 +27,26 @@ const CURRENCIES = [
 ];
 
 const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", RECEIVED: "مستلمة", PAID: "مدفوعة", PARTIAL: "مدفوعة جزئياً",
+  DRAFT: "مسودة", RECEIVED: "مستلمة", DUE: "مستحقة", PAID: "مدفوعة", PARTIAL: "مدفوعة جزئياً",
   OVERDUE: "متأخرة", CANCELLED: "ملغاة",
 };
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-700",
   RECEIVED: "bg-blue-100 text-blue-700",
+  DUE: "bg-indigo-100 text-indigo-700",
   PAID: "bg-green-100 text-green-700",
   PARTIAL: "bg-amber-100 text-amber-700",
   OVERDUE: "bg-red-100 text-red-700",
   CANCELLED: "bg-gray-100 text-gray-500",
+};
+
+type PaymentSplit = {
+  id: string;
+  method: string;
+  amount: string;
+  accountId: string;
+  reference: string;
+  notes: string;
 };
 
 const EMPTY_FORM = {
@@ -68,6 +78,8 @@ export function PurchaseBills() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
+  const [showPaymentSplits, setShowPaymentSplits] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -110,6 +122,8 @@ export function PurchaseBills() {
     setForm(EMPTY_FORM);
     setLines([newLine()]);
     setTaxMode("all-exclusive");
+    setPaymentSplits([]);
+    setShowPaymentSplits(false);
     setCreateError(null);
     setEditingId(null);
     setCreateOpen(true);
@@ -126,6 +140,16 @@ export function PurchaseBills() {
     } as any);
     const linesData = (b.lines || []).map((l: any) => ({ description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice), accountId: l.accountId || "", productId: l.productId || "" }));
     setLines(linesData.length > 0 ? linesData : [newLine()]);
+    const storedSplits: PaymentSplit[] = Array.isArray(b.paymentSplits) ? b.paymentSplits.map((s: any, i: number) => ({
+      id: s.id || `split-${i}-${Date.now()}`,
+      method: s.method || "BANK_TRANSFER",
+      amount: String(s.amount ?? ""),
+      accountId: s.accountId || "",
+      reference: s.reference || "",
+      notes: s.notes || "",
+    })) : [];
+    setPaymentSplits(storedSplits);
+    setShowPaymentSplits(storedSplits.length > 0);
     setTaxMode("all-exclusive");
     setCreateError(null);
     setEditingId(b.id);
@@ -140,7 +164,19 @@ export function PurchaseBills() {
     if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
     setBusy(true);
     try {
-      const status = action === "draft" ? "DRAFT" : "RECEIVED";
+      const totals = computeTotals(lines);
+      const splitTotal = showPaymentSplits
+        ? paymentSplits.reduce((s, sp) => s + (Number(normalizeDigits(sp.amount)) || 0), 0)
+        : 0;
+      const hasSplits = showPaymentSplits && paymentSplits.length > 0 && splitTotal > 0;
+      let status: string;
+      if (action === "draft") {
+        status = "DRAFT";
+      } else if (hasSplits) {
+        status = splitTotal >= totals.total - 0.01 ? "PAID" : "PARTIAL";
+      } else {
+        status = "DUE";
+      }
       const payload: any = {
         contactId: form.contactId,
         billNumber: form.billNumber || undefined,
@@ -158,6 +194,15 @@ export function PurchaseBills() {
             ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
             : Number(normalizeDigits(l.unitPrice)),
         })),
+        paymentSplits: hasSplits
+          ? paymentSplits.map((sp) => ({
+              method: sp.method || "BANK_TRANSFER",
+              amount: Number(normalizeDigits(sp.amount)) || 0,
+              accountId: sp.accountId || null,
+              reference: sp.reference || null,
+              notes: sp.notes || null,
+            }))
+          : [],
       };
       const b = editingId
         ? await api.bills.update(editingId, payload)
@@ -230,7 +275,7 @@ export function PurchaseBills() {
                   }}
                   items={suppliers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
                   placeholder="ابحث عن مورد..."
-                  createLabel={(q) => `+ إنشاء "${q}"`}
+                  createLabel={(q) => `+ إنشاء مورد "${q}"`}
                 />
               </div>
               <div className="space-y-1.5">
@@ -284,7 +329,7 @@ export function PurchaseBills() {
               direction="purchases"
               minRows={10}
               products={products.map((p: any) => ({
-                id: p.id, code: p.code, name: p.name, sellPrice: Number(p.sellPrice || 0), costPrice: Number(p.costPrice || 0),
+                id: p.id, code: p.code, name: p.name, unitPrice: Number(p.unitPrice || 0),
                 taxRate: p.taxRate ? Number(p.taxRate) : 0.15, taxInclusive: !!p.taxInclusive,
                 accountId: p.expenseAccountId || p.revenueAccountId,
               }))}
@@ -292,7 +337,7 @@ export function PurchaseBills() {
               onCreateProduct={async (name) => {
                 const p = await (api as any).products.create({ code: `P-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, sellPrice: 0, kind: "GOOD", isActive: true });
                 setProducts((prev) => [p, ...prev]);
-                return { id: p.id, code: p.code, name: p.name, sellPrice: Number(p.sellPrice || 0), costPrice: Number(p.costPrice || 0), taxRate: 0.15, taxInclusive: false };
+                return { id: p.id, code: p.code, name: p.name, unitPrice: Number(p.unitPrice || 0), taxRate: 0.15, taxInclusive: false };
               }}
               onCreateAccount={async (name) => {
                 const a = await (api as any).accounts.create({ code: `EXP-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, type: "EXPENSE" });
@@ -300,6 +345,134 @@ export function PurchaseBills() {
                 return { id: a.id, code: a.code, name: a.name, type: a.type };
               }}
             />
+
+            {/* Payment Splits · optional + BNPL clearing support */}
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[#0B1B49]" style={{ fontWeight: 600 }}>تفاصيل الدفع</h3>
+                  <p className="text-[#6B7280] text-xs">اختياري · اتركه فارغاً لترك الفاتورة مستحقة</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!showPaymentSplits) {
+                      setShowPaymentSplits(true);
+                      if (paymentSplits.length === 0) {
+                        setPaymentSplits([{ id: `${Date.now()}`, method: "BANK_TRANSFER", amount: "", accountId: "", reference: "", notes: "" }]);
+                      }
+                    } else {
+                      setShowPaymentSplits(false);
+                    }
+                  }}
+                  className="border-[#E5E7EB] text-[#374151] hover:bg-[#F4FCFF]"
+                >
+                  {showPaymentSplits ? "إخفاء الدفع" : "+ إضافة دفعة"}
+                </Button>
+              </div>
+
+              {showPaymentSplits && (
+                <div className="space-y-2">
+                  {paymentSplits.map((split, idx) => (
+                    <div key={split.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start">
+                      <div className="md:col-span-2">
+                        <Select value={split.method} onValueChange={(v) => {
+                          const next = [...paymentSplits];
+                          next[idx].method = v;
+                          setPaymentSplits(next);
+                        }}>
+                          <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CASH">نقد</SelectItem>
+                            <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
+                            <SelectItem value="CARD">بطاقة</SelectItem>
+                            <SelectItem value="STC_PAY">STC Pay</SelectItem>
+                            <SelectItem value="MADA">مدى</SelectItem>
+                            <SelectItem value="CHECK">شيك</SelectItem>
+                            <SelectItem value="CLEARING">حساب تسوية</SelectItem>
+                            <SelectItem value="OTHER">أخرى</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="المبلغ"
+                          value={split.amount}
+                          dir="ltr"
+                          className="h-9 border-[#E5E7EB] font-english text-sm"
+                          onChange={(e) => {
+                            const next = [...paymentSplits];
+                            next[idx].amount = e.target.value;
+                            setPaymentSplits(next);
+                          }}
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <SearchableCombobox
+                          value={split.accountId}
+                          onChange={(id) => {
+                            const next = [...paymentSplits];
+                            next[idx].accountId = id;
+                            setPaymentSplits(next);
+                          }}
+                          items={accounts.map((a: any) => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.type }))}
+                          placeholder={split.method === "CLEARING" ? "حساب تسوية" : "حساب / بنك"}
+                          className="border-0"
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <Input
+                          placeholder="مرجع"
+                          value={split.reference}
+                          className="h-9 border-[#E5E7EB] text-sm"
+                          onChange={(e) => {
+                            const next = [...paymentSplits];
+                            next[idx].reference = e.target.value;
+                            setPaymentSplits(next);
+                          }}
+                        />
+                      </div>
+                      <div className="md:col-span-1 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentSplits(paymentSplits.filter((_, i) => i !== idx))}
+                          className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                          title="حذف"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentSplits([...paymentSplits, { id: `${Date.now()}-${paymentSplits.length}`, method: "BANK_TRANSFER", amount: "", accountId: "", reference: "", notes: "" }])}
+                      className="border-[#E5E7EB] text-[#374151] hover:bg-[#F4FCFF]"
+                    >
+                      + دفعة أخرى
+                    </Button>
+                    {(() => {
+                      const totals = computeTotals(lines);
+                      const paid = paymentSplits.reduce((s, sp) => s + (Number(normalizeDigits(sp.amount)) || 0), 0);
+                      const remaining = Math.max(0, totals.total - paid);
+                      return (
+                        <div className="text-sm text-[#6B7280]">
+                          المجموع: <span className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>{paid.toFixed(2)}</span> · متبقي: <span className="font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>{remaining.toFixed(2)}</span> {form.currency}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <DocumentDropZone
               compact
@@ -309,7 +482,7 @@ export function PurchaseBills() {
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
-                  push("warning", "لم يتم استخراج بنود من المستند");
+                  push("error", "لم يتم استخراج بنود من المستند");
                   return;
                 }
                 const newLines: InvoiceLine[] = data.lines.map((l: any) => ({

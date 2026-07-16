@@ -20,7 +20,7 @@
  *     }}
  *   />
  */
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect, DragEvent as ReactDragEvent } from "react";
 import { Upload, FileText, Image, Loader2, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -98,6 +98,7 @@ export function DocumentDropZone({
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [globalDrag, setGlobalDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
@@ -136,12 +137,45 @@ export function DocumentDropZone({
     }
   };
 
-  const handleDrop = async (e: DragEvent) => {
+  const handleDrop = async (e: ReactDragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) await handleFile(file);
   };
+
+  const handleGlobalDragOver = (e: globalThis.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) {
+      e.preventDefault();
+      setGlobalDrag(true);
+    }
+  };
+
+  const handleGlobalDragLeave = (e: globalThis.DragEvent) => {
+    if (e.relatedTarget === null) setGlobalDrag(false);
+  };
+
+  const handleGlobalDrop = async (e: globalThis.DragEvent) => {
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      e.preventDefault();
+      e.stopPropagation();
+      setGlobalDrag(false);
+      await handleFile(file);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("dragover", handleGlobalDragOver);
+    window.addEventListener("dragleave", handleGlobalDragLeave);
+    window.addEventListener("drop", handleGlobalDrop);
+    return () => {
+      window.removeEventListener("dragover", handleGlobalDragOver);
+      window.removeEventListener("dragleave", handleGlobalDragLeave);
+      window.removeEventListener("drop", handleGlobalDrop);
+    };
+  }, []);
 
   const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,15 +200,24 @@ export function DocumentDropZone({
 
   if (compact) {
     return (
-      <div
-        className={`rounded-lg border-2 border-dashed transition-colors px-4 py-3 flex items-center justify-between gap-3 ${
-          dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white"
-        } ${className}`}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onPaste={handlePaste}
-      >
+      <>
+        {globalDrag && (
+          <div className="fixed inset-0 z-[100] bg-[#1276E3]/10 border-4 border-[#1276E3] border-dashed flex items-center justify-center pointer-events-none">
+            <div className="bg-white rounded-xl shadow-xl px-8 py-6 text-center">
+              <Upload className="h-10 w-10 text-[#1276E3] mx-auto mb-3" />
+              <p className="text-[#0B1B49] font-semibold">أفلت الملف هنا لرفعه</p>
+            </div>
+          </div>
+        )}
+        <div
+          className={`rounded-lg border-2 border-dashed transition-colors px-4 py-3 flex items-center justify-between gap-3 ${
+            dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white"
+          } ${className}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onPaste={handlePaste}
+        >
         <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
         <div className="flex items-center gap-3 text-sm text-[#6B7280] min-w-0">
           {busy ? (
@@ -202,21 +245,31 @@ export function DocumentDropZone({
           تصفح الملفات
         </button>
       </div>
-    );
-  }
+    </>
+  );
+}
 
-  // Full-size drop zone
+// Full-size drop zone
   return (
-    <div
-      className={`rounded-xl border-2 border-dashed transition-colors p-8 text-center cursor-pointer ${
-        dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white hover:border-[#1276E3]"
-      } ${className}`}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={handleDrop}
-      onClick={() => !busy && inputRef.current?.click()}
-      onPaste={handlePaste}
-    >
+    <>
+      {globalDrag && (
+        <div className="fixed inset-0 z-[100] bg-[#1276E3]/10 border-4 border-[#1276E3] border-dashed flex items-center justify-center pointer-events-none">
+          <div className="bg-white rounded-xl shadow-xl px-8 py-6 text-center">
+            <Upload className="h-10 w-10 text-[#1276E3] mx-auto mb-3" />
+            <p className="text-[#0B1B49] font-semibold">أفلت الملف هنا لرفعه</p>
+          </div>
+        </div>
+      )}
+      <div
+        className={`rounded-xl border-2 border-dashed transition-colors p-8 text-center cursor-pointer ${
+          dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white hover:border-[#1276E3]"
+        } ${className}`}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => !busy && inputRef.current?.click()}
+        onPaste={handlePaste}
+      >
       <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
       {busy ? (
         <div className="flex flex-col items-center gap-3 py-2">
@@ -255,6 +308,7 @@ export function DocumentDropZone({
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

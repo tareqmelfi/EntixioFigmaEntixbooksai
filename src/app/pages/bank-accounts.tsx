@@ -96,6 +96,7 @@ export function BankAccounts() {
   const [defaultCountry, setDefaultCountry] = useState("SA");
   const [defaultCurrency, setDefaultCurrency] = useState("SAR");
   const [form, setForm] = useState(blankForm());
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,8 +190,8 @@ export function BankAccounts() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("هل تريد حذف الحساب البنكي؟") — replace with InlineConfirm */ 
-try {
+    setPendingDelete(null);
+    try {
       await api.bankAccounts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
     } catch (e: any) { push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed")); }
@@ -293,7 +294,11 @@ try {
                     <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{accountIdentifier(b)}</td>
                     <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(b.balance).toLocaleString()} {b.currency}</td>
                     <td className="py-3 px-4">
-                      <button onClick={() => handleDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      {pendingDelete === b.id ? (
+                        <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />
+                      ) : (
+                        <button onClick={() => setPendingDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                      )}
                     </td>
                   </tr>
                 ))}

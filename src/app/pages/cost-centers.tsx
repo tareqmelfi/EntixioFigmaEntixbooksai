@@ -15,6 +15,7 @@ export function CostCenters() {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ code: "", name: "" });
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -37,8 +38,8 @@ export function CostCenters() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("حذف مركز التكلفة؟") — replace with InlineConfirm */ 
-try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
+    setPendingDelete(null);
+    try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
     catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
   };
 
@@ -62,7 +63,7 @@ try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !
             {items.map(c => <tr key={c.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
               <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{c.code}</td>
               <td className="py-3 px-4 text-sm text-[#0B1B49]">{c.name}</td>
-              <td className="py-3 px-4"><button onClick={() => handleDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></td>
+              <td className="py-3 px-4">{pendingDelete === c.id ? (<InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />) : (<button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>)}</td>
             </tr>)}
           </tbody></table>)}
         </CardContent>

@@ -146,14 +146,17 @@ export function SearchableCombobox({
           onClick={() => !disabled && setOpen(true)}
           disabled={disabled}
           className="w-full flex items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50"
+          title={selected?.label || placeholder}
         >
-          <span className={selected ? "text-[#0B1B49]" : "text-[#9CA3AF]"}>
+          <span className={selected ? "text-[#0B1B49] truncate" : "text-[#9CA3AF] truncate"}>
             {selected?.label || placeholder}
           </span>
-          <ChevronDown className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+          <ChevronDown className="h-4 w-4 text-[#9CA3AF] shrink-0 ms-2" />
         </button>
       ) : (
-        <div className="w-full rounded-md border border-[#1276E3] bg-white shadow-sm">
+        <div className="absolute z-50 w-full min-w-[260px] max-w-[420px] rounded-md border border-[#1276E3] bg-white shadow-lg"
+          style={{ top: "calc(100% + 2px)", insetInlineStart: 0 }}
+        >
           <div className="flex items-center gap-2 px-3 py-2 border-b border-[#F3F4F6]">
             <Search className="h-4 w-4 text-[#9CA3AF] shrink-0" />
             <input
@@ -194,6 +197,7 @@ export function SearchableCombobox({
                 type="button"
                 onClick={() => handleSelect(item.id)}
                 className="w-full text-start flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-[#F9FAFB]"
+                title={`${item.label}${item.sublabel ? ` · ${item.sublabel}` : ""}`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[#0B1B49] truncate">{item.label}</div>

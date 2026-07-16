@@ -8,6 +8,7 @@
  * Difference: links to original invoice (optional) · negative impact on receivables.
  */
 import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router";
 import { Plus, Search, Trash2, Loader2, ScrollText, ArrowDownLeft, FileText, ScanLine } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -61,6 +62,11 @@ interface CreditNote {
 }
 
 export function CreditNotes() {
+  const params = useParams();
+  const navigate = useNavigate();
+  const editId = params.id;
+  const isEditing = Boolean(editId);
+
   const [items, setItems] = useState<CreditNote[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -93,20 +99,54 @@ export function CreditNotes() {
       setProducts((productsRes as any).items || []);
       // When /api/credit-notes ships, replace this:
       try {
-        // @ts-ignore · API may not have this method yet
-        if (api.creditNotes && typeof api.creditNotes.list === "function") {
-          // @ts-ignore
-          const cnRes = await api.creditNotes.list({ limit: 200 });
-          setItems(cnRes.items);
-        } else {
-          setItems([]); // no backend yet · UI-only stage
-        }
+        const cnRes = await api.creditNotes.list({ limit: 200 });
+        setItems(cnRes.items);
       } catch (_) { setItems([]); }
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل التحميل");
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Load existing credit note for editing
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setCreateOpen(true);
+      try {
+        const cn = await api.creditNotes.get(editId);
+        if (cancelled) return;
+        setForm({
+          contactId: cn.contactId,
+          originalInvoiceId: cn.originalInvoiceId || "",
+          issueDate: (cn.issueDate || "").slice(0, 10),
+          reason: cn.reason || "RETURN",
+          notes: cn.notes || "",
+        });
+        const mapped = (cn.lines || []).map((line: any) => ({
+          ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0.15, false),
+          originalInvoiceLineId: line.originalInvoiceLineId || undefined,
+          productId: line.productId || undefined,
+          description: line.description,
+          quantity: String(line.quantity || "1"),
+          unitPrice: String(line.unitPrice || "0"),
+          taxRate: line.taxRate ? Number(line.taxRate.rate) : 0.15,
+          taxRateId: line.taxRateId || null,
+        }));
+        setLines(mapped.length > 0 ? mapped : [newLine()]);
+      } catch (e: any) {
+        if (!cancelled) {
+          push("error", e instanceof ApiError ? e.message : "تعذر تحميل الإشعار");
+          navigate("/app/credit-notes", { replace: true });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [editId, navigate, push]);
 
   const filtered = items.filter(c =>
     !searchQuery || c.noteNumber.includes(searchQuery) ||
@@ -122,7 +162,11 @@ export function CreditNotes() {
     setCreateError(null);
     setCreateOpen(true);
   };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+  const closeCreate = () => {
+    if (isEditing) { navigate("/app/credit-notes", { replace: true }); return; }
+    setCreateOpen(false);
+    setCreateError(null);
+  };
 
   const loadInvoiceLines = async (invoiceId: string) => {
     if (!invoiceId) {
@@ -164,32 +208,33 @@ export function CreditNotes() {
     if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل"); return; }
     setBusy(true);
     try {
-      // @ts-ignore · API.creditNotes shipping with backend
-      if (api.creditNotes && typeof api.creditNotes.create === "function") {
-        // @ts-ignore
-        const cn = await api.creditNotes.create({
-          contactId: form.contactId,
-          originalInvoiceId: form.originalInvoiceId || null,
-          issueDate: form.issueDate,
-          reason: form.reason,
-          notes: form.notes || null,
-          lines: validLines.map((l) => ({
-            originalInvoiceLineId: (l as any).originalInvoiceLineId || null,
-            productId: l.productId || null,
-            description: l.description,
-            quantity: Number(normalizeDigits(l.quantity)) || 1,
-            unitPrice: l.taxInclusive
-              ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
-              : Number(normalizeDigits(l.unitPrice)),
-            taxRateId: (l as any).taxRateId || null,
-          })),
-        });
+      const payload = {
+        contactId: form.contactId,
+        originalInvoiceId: form.originalInvoiceId || null,
+        issueDate: form.issueDate,
+        reason: form.reason,
+        notes: form.notes || null,
+        lines: validLines.map((l) => ({
+          originalInvoiceLineId: (l as any).originalInvoiceLineId || null,
+          productId: l.productId || null,
+          description: l.description,
+          quantity: Number(normalizeDigits(l.quantity)) || 1,
+          unitPrice: l.taxInclusive
+            ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
+            : Number(normalizeDigits(l.unitPrice)),
+          taxRateId: (l as any).taxRateId || null,
+        })),
+      };
+      if (isEditing && editId) {
+        const cn = await api.creditNotes.update(editId, payload);
+        push("success", `تم تحديث الإشعار ${cn.noteNumber}`);
+        navigate("/app/credit-notes", { replace: true });
+      } else {
+        const cn = await api.creditNotes.create(payload);
         setItems((prev) => [cn, ...prev]);
         push("success", `تم إنشاء إشعار دائن ${cn.noteNumber}`);
-      } else {
-        push("warning", "API الإشعارات الدائنة لم يتم تفعيله بعد · النموذج جاهز");
+        closeCreate();
       }
-      closeCreate();
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
     } finally { setBusy(false); }
@@ -198,11 +243,7 @@ export function CreditNotes() {
   const handleDelete = async (id: string) => {
     setPendingDelete(null);
     try {
-      // @ts-ignore
-      if (api.creditNotes && typeof api.creditNotes.remove === "function") {
-        // @ts-ignore
-        await api.creditNotes.remove(id);
-      }
+      await api.creditNotes.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       push("success", "تم حذف الإشعار");
     } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
@@ -217,7 +258,7 @@ export function CreditNotes() {
     return (
       <>
         <FullPageForm
-          title="إشعار دائن جديد"
+          title={isEditing ? "تعديل إشعار دائن" : "إشعار دائن جديد"}
           subtitle="ربط الإشعار بفاتورة الأصلية اختياري · سيخصم القيمة من رصيد العميل"
           onClose={closeCreate}
           disableEscape={busy}
@@ -420,6 +461,13 @@ export function CreditNotes() {
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] || c.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => navigate(`/app/credit-notes/${c.id}`)}
+                          className="rounded-md p-1.5 text-[#1276E3] hover:bg-[#F4FCFF]"
+                          title="تعديل"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </button>
                         {pendingDelete === c.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (

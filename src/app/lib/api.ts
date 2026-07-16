@@ -627,7 +627,9 @@ export const api = {
   // Credit notes (إشعارات دائنة)
   creditNotes: {
     list: (params?: { limit?: number }) => request<{ items: any[] }>('/api/credit-notes', { query: params }),
+    get: (id: string) => request<any>(`/api/credit-notes/${id}`),
     create: (data: any) => request<any>('/api/credit-notes', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/credit-notes/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/credit-notes/${id}`, { method: 'DELETE' }),
   },
 

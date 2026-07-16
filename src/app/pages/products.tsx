@@ -5,7 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
+import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 
 const IMAGE_STORE_KEY = "entix_product_images_v1";
@@ -32,6 +32,7 @@ export function Products() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [localImages, setLocalImages] = useState<Record<string, string>>({});
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -126,9 +127,10 @@ export function Products() {
   };
 
   const handleDelete = async (id: string) => {
-    /* TODO-UX1: was confirm("حذف؟") — replace with InlineConfirm */ 
+    setPendingDelete(id);
     try { await api.products.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
     catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل"); }
+    finally { setPendingDelete(null); }
   };
 
   return (
