@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "react-router";
+import { useState, useRef, useEffect } from "react";
 import {
-  Search, Plus, X, Building2, User, Globe, MapPin, ChevronDown,
-  ExternalLink, FileText, AlertTriangle
+  Search, Plus, X, Building2, User, Globe, MapPin,
+  ExternalLink, AlertTriangle
 } from "lucide-react";
 import { useContacts, type Party, type RoleType, type EntityLocation } from "./contacts-store";
 
@@ -28,13 +27,34 @@ const withholdingClassifications = [
 interface ContactSearchInputProps {
   value: string;
   onChange: (name: string, partyId?: string) => void;
+  onCreate?: (name: string, data: {
+    entityLocation: EntityLocation;
+    type: "organization" | "person";
+    nameEn?: string;
+    country: string;
+    currency: string;
+    taxNumber?: string;
+    commercialReg?: string;
+    itn?: string;
+    leiCode?: string;
+    licenseNumber?: string;
+    withholdingTaxRate?: number;
+    transactionClassification?: string;
+    email?: string;
+    phone?: string;
+  }) => Promise<{ id: string; name?: string; displayName?: string } | null | void>;
   roleFilter?: RoleType;
   placeholder?: string;
   label?: string;
 }
 
 export function ContactSearchInput({
-  value, onChange, roleFilter, placeholder = "اكتب اسم العميل أو المورد...", label,
+  value,
+  onChange,
+  onCreate,
+  roleFilter,
+  placeholder = "اكتب اسم العميل أو المورد...",
+  label,
 }: ContactSearchInputProps) {
   const { searchParties, addParty, getPartyByName } = useContacts();
   const [query, setQuery] = useState(value);
@@ -135,7 +155,31 @@ export function ContactSearchInput({
     setQcPhone("");
   };
 
-  const handleQuickCreate = () => {
+  const handleQuickCreate = async () => {
+    if (onCreate) {
+      const created = await onCreate(query.trim(), {
+        entityLocation: qcEntityLocation,
+        type: qcType,
+        nameEn: qcNameEn || undefined,
+        country: qcCountry,
+        currency: qcCurrency,
+        taxNumber: qcEntityLocation === "local" ? qcTaxNumber || undefined : undefined,
+        commercialReg: qcEntityLocation === "local" ? qcCommercialReg || undefined : undefined,
+        itn: qcEntityLocation === "foreign" ? qcItn || undefined : undefined,
+        leiCode: qcLeiCode || undefined,
+        licenseNumber: qcLicense || undefined,
+        withholdingTaxRate: qcEntityLocation === "foreign" ? qcWithholdingRate : undefined,
+        transactionClassification: qcEntityLocation === "foreign" ? qcTransClass || undefined : undefined,
+        email: qcEmail || undefined,
+        phone: qcPhone || undefined,
+      });
+      if (created) {
+        setQuery(created.displayName ?? created.name ?? query.trim());
+        onChange(created.displayName ?? created.name ?? query.trim(), created.id);
+        setShowQuickCreate(false);
+        return;
+      }
+    }
     const defaultRole: RoleType = roleFilter || "عميل";
     const country = countries.find((c) => c.code === qcCountry);
     const newParty = addParty({

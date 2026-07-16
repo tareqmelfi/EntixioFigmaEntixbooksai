@@ -12,7 +12,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
-import { SearchableCombobox } from "../components/searchable-combobox";
+import { ContactSearchInput } from "../components/contact-search-input";
+import { useContacts } from "../components/contacts-store";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -80,6 +81,7 @@ export function PurchaseBills() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [showPaymentSplits, setShowPaymentSplits] = useState(false);
+  const [duplicate, setDuplicate] = useState<{ open: boolean; matches: any[]; pendingSubmit: ("draft" | "approve") | null }>({ open: false, matches: [], pendingSubmit: null });
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -204,6 +206,22 @@ export function PurchaseBills() {
             }))
           : [],
       };
+
+      // Duplicate detection check before final submission
+      if (action === "approve" && !editingId) {
+        const dups = await api.bills.checkDuplicate({
+          contactId: payload.contactId,
+          total: totals.total,
+          issueDate: payload.issueDate,
+          excludeId: editingId || undefined,
+        });
+        if (dups && dups.length > 0) {
+          setDuplicate({ open: true, matches: dups, pendingSubmit: action });
+          setBusy(false);
+          return;
+        }
+      }
+
       const b = editingId
         ? await api.bills.update(editingId, payload)
         : await api.bills.create(payload);
@@ -213,6 +231,19 @@ export function PurchaseBills() {
       closeCreate();
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
+    } finally { setBusy(false); }
+  };
+
+  const confirmMerge = async (targetBillId: string) => {
+    setBusy(true);
+    try {
+      const merged = await api.bills.merge(targetBillId, { sourceDocumentId: editingId ? undefined : undefined });
+      push("success", "تم دمج المستند مع الفاتورة المحددة");
+      setDuplicate({ open: false, matches: [], pendingSubmit: null });
+      closeCreate();
+      refresh();
+    } catch (e: any) {
+      setCreateError(e instanceof ApiError ? e.message : "فشل الدمج");
     } finally { setBusy(false); }
   };
 
@@ -264,18 +295,27 @@ export function PurchaseBills() {
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[#374151] text-xs">المورد *</Label>
-                <SearchableCombobox
-                  value={form.contactId}
-                  onChange={(id) => setForm({ ...form, contactId: id })}
-                  onCreate={async (name) => {
+                <ContactSearchInput
+                  value={suppliers.find((c) => c.id === form.contactId)?.displayName || ""}
+                  onChange={async (name, id) => {
+                    if (id) {
+                      setForm({ ...form, contactId: id });
+                      return;
+                    }
                     const c = await api.contacts.create({ displayName: name, type: "SUPPLIER" });
                     setSuppliers((prev) => [c, ...prev]);
+                    setForm({ ...form, contactId: c.id });
                     push("success", `تم إنشاء ${c.displayName}`);
-                    return c.id;
                   }}
-                  items={suppliers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                  placeholder="ابحث عن مورد..."
-                  createLabel={(q) => `+ إنشاء مورد "${q}"`}
+                  onCreate={async (name, data) => {
+                    const c = await api.contacts.create({ displayName: name, type: "SUPPLIER", ...data });
+                    setSuppliers((prev) => [c, ...prev]);
+                    setForm({ ...form, contactId: c.id });
+                    push("success", `تم إنشاء ${c.displayName}`);
+                    return { id: c.id, displayName: c.displayName };
+                  }}
+                  roleFilter="مورد"
+                  placeholder="ابحث أو أنشئ مورد..."
                 />
               </div>
               <div className="space-y-1.5">
@@ -542,6 +582,52 @@ export function PurchaseBills() {
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+        {/* Duplicate detection dialog */}
+        {duplicate.open && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-amber-100 p-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-[#0B1B49]">فاتورة محتملة مكررة</h3>
+                  <p className="text-sm text-[#6B7280]">وجدنا فواتير سابقة بنفس المورد والتاريخ/المبلغ تقريباً.</p>
+                </div>
+              </div>
+              <div className="divide-y divide-[#E5E7EB] border border-[#E5E7EB] rounded-xl overflow-hidden">
+                {duplicate.matches.map((m: any) => (
+                  <div key={m.id} className="flex items-center justify-between p-3 hover:bg-[#F9FAFB]">
+                    <div>
+                      <p className="text-sm text-[#0B1B49] font-medium">{m.billNumber || "فاتورة بدون رقم"}</p>
+                      <p className="text-xs text-[#6B7280]">{m.contact?.displayName} · {Number(m.total).toFixed(2)} {m.currency} · {m.issueDate?.slice(0, 10)}</p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => confirmMerge(m.id)}>
+                      دمج كمستند
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setDuplicate({ open: false, matches: [], pendingSubmit: null })}>
+                  مراجعة البيانات
+                </Button>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    const action = duplicate.pendingSubmit;
+                    setDuplicate({ open: false, matches: [], pendingSubmit: null });
+                    if (action) await handleSubmit(action);
+                  }}
+                  className="bg-[#1276E3] hover:bg-[#0B5FBF]"
+                >
+                  إنشاء فاتورة جديدة
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }

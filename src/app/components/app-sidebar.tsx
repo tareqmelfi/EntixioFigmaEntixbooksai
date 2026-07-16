@@ -1,15 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard, FileText, ShoppingCart, Calculator,
-  Package, Users, BarChart3, Settings, LogOut,
-  ChevronDown, ChevronLeft, Sparkles, Receipt,
+  Package, Users, BarChart3, Settings,
+  ChevronLeft, Sparkles, Receipt,
   FileSpreadsheet, CreditCard, ScrollText, BookOpen,
   Calculator as CalculatorIcon, FolderOpen, Wallet,
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
   Plug, FileCode, HelpCircle, Globe,
-  Mail, UserCheck, Briefcase, ClipboardList, Users2, Inbox, Camera,
-  Pin, PinOff, MousePointer, EyeOff,
+  Users2, Inbox, Camera,
+  Pin, MousePointer, EyeOff,
+  PanelRightClose,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { OrgSwitcher } from "./org-switcher";
@@ -235,6 +236,7 @@ export function AppSidebar({
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -277,10 +279,8 @@ export function AppSidebar({
   // Static sidebar (pinned mode, desktop only)
   if (isStatic) {
     return (
-      <aside className="flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white">
+      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-card transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}>
         <SidebarContent
-          mode={mode}
-          onModeChange={onModeChange}
           cycleMode={cycleMode}
           modeLabel={modeLabel}
           ModeIcon={ModeIcon}
@@ -296,6 +296,8 @@ export function AppSidebar({
           searchRef={searchRef}
           searchResults={searchResults}
           navigate={navigate}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
         />
       </aside>
     );
@@ -305,7 +307,7 @@ export function AppSidebar({
   return (
     <aside
       className={`
-        flex h-full w-64 shrink-0 flex-col border-e border-[#E5E7EB] bg-white
+        flex h-full w-64 shrink-0 flex-col border-e border-border bg-card
         fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-xl
         ${isOpen ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}
         ${className}
@@ -315,8 +317,6 @@ export function AppSidebar({
       }}
     >
       <SidebarContent
-        mode={mode}
-        onModeChange={onModeChange}
         cycleMode={cycleMode}
         modeLabel={modeLabel}
         ModeIcon={ModeIcon}
@@ -340,13 +340,11 @@ export function AppSidebar({
 
 /* ─── Shared sidebar content ─── */
 function SidebarContent({
-  mode, onModeChange, cycleMode, modeLabel, ModeIcon,
+  cycleMode, modeLabel, ModeIcon,
   openMenus, toggleMenu, isActive, hasActiveChild, isParentPathActive,
   searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
-  navigate, onClose,
+  navigate, onClose, collapsed, setCollapsed,
 }: {
-  mode: SidebarMode;
-  onModeChange: (m: SidebarMode) => void;
   cycleMode: () => void;
   modeLabel: string;
   ModeIcon: React.ElementType;
@@ -363,52 +361,65 @@ function SidebarContent({
   searchResults: { label: string; path: string }[];
   navigate: (p: string) => void;
   onClose?: () => void;
+  collapsed?: boolean;
+  setCollapsed?: (c: boolean) => void;
 }) {
   const { language, toggleLanguage, t } = useLanguage();
   const tr = useSidebarText();
 
+  const ModeIconTyped = ModeIcon as React.ComponentType<{ className?: string }>;
+
   return (
     <>
-      {/* ── Sidebar header · ENTIX.IO right-aligned · pin removed (no value · UX-170) ── */}
-      <div className="border-b border-[#E5E7EB] p-4">
-        <div className="mb-3 flex items-center">
+      {/* ── Sidebar header · ENTIX.IO right-aligned · collapse toggle top-right ── */}
+      <div className="border-b border-border p-4">
+        <div className="mb-3 flex items-center justify-between">
           <Link
             to="/app"
             onClick={onClose}
-            className="select-none hover:opacity-80 transition-opacity"
+            className={`select-none hover:opacity-80 transition-opacity ${collapsed ? "mx-auto" : ""}`}
             title={tr("الرئيسية · ENTIX")}
           >
-            <EntixWordmark size={18} />
+            {!collapsed && <EntixWordmark size={18} />}
           </Link>
+          {setCollapsed && (
+            <button
+              type="button"
+              onClick={() => setCollapsed!(!collapsed)}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={collapsed ? "توسيع" : "طي"}
+            >
+              <PanelRightClose className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
+            </button>
+          )}
         </div>
 
         {/* Active org switcher · Wafeq-style with logo + search + "مختارة حالياً" tag */}
-        <OrgSwitcher />
+        {!collapsed && <OrgSwitcher />}
 
-
-
+        {!collapsed && (
         <div className="relative" ref={searchRef}>
-          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
+          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder={tr("اذهب إلى صفحة...")}
-            className="w-full rounded-md border border-[#E5E7EB] bg-white ps-9 pe-8 py-2 text-sm text-[#0B1B49] placeholder:text-[#9CA3AF] focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
+            className="w-full rounded-md border border-border bg-card ps-9 pe-8 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
           />
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(""); setSearchFocused(false); }} className="absolute end-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#374151]">
-              <span className="font-english text-xs bg-[#F3F4F6] rounded px-1.5 py-0.5" style={{ fontWeight: 600 }}>XF</span>
+            <button onClick={() => { setSearchQuery(""); setSearchFocused(false); }} className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80">
+              <span className="font-english text-xs bg-accent rounded px-1.5 py-0.5" style={{ fontWeight: 600 }}>XF</span>
             </button>
           )}
           {searchFocused && searchResults.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white shadow-lg py-1 max-h-60 overflow-y-auto">
+            <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg py-1 max-h-60 overflow-y-auto">
               {searchResults.map((r) => (
                 <button
                   key={r.path}
                   onClick={() => { navigate(r.path); setSearchQuery(""); setSearchFocused(false); onClose?.(); }}
-                  className="w-full text-start px-3 py-2 text-sm text-[#374151] hover:bg-[#EFF6FF] hover:text-[#1276E3] transition-colors"
+                  className="w-full text-start px-3 py-2 text-sm text-foreground/80 hover:bg-primary/5 hover:text-primary transition-colors"
                 >
                   {tr(r.label)}
                 </button>
@@ -416,14 +427,15 @@ function SidebarContent({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {sections.map((section, si) => (
           <div key={si} className={si > 0 ? "mt-3" : ""}>
-            {section.label && (
-              <div className="mb-1.5 px-3 text-[11px] tracking-wider text-[#9CA3AF] text-start" style={{ fontWeight: 600 }}>
+            {!collapsed && section.label && (
+              <div className="mb-1.5 px-3 text-[11px] tracking-wider text-muted-foreground text-start" style={{ fontWeight: 600 }}>
                 {tr(section.label)}
               </div>
             )}
@@ -439,11 +451,12 @@ function SidebarContent({
                       isActive={isActive}
                       isParentActive={hasActiveChild(item.children) || isParentPathActive(item.path)}
                       onNavigate={onClose}
+                      collapsed={collapsed}
                     />
                   );
                 }
                 return (
-                  <SidebarLink key={item.title} item={item} active={isActive(item.path)} onClick={onClose} />
+                  <SidebarLink key={item.title} item={item} active={isActive(item.path)} onClick={onClose} collapsed={collapsed} />
                 );
               })}
             </div>
@@ -452,49 +465,53 @@ function SidebarContent({
       </nav>
 
       {/* ── Bottom ── */}
-      <div className="border-t border-[#E5E7EB] p-3 space-y-0.5">
-        <Link to="/app/reports" onClick={onClose}>
-          <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/reports") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
-            <BarChart3 className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-start">{tr("التقارير")}</span>
-          </button>
-        </Link>
-        <Link to="/app/roadmap" onClick={onClose}>
-          <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
-            <Map className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-start">{tr("خارطة المزايا")}</span>
-          </button>
-        </Link>
-        <Link to="/app/settings" onClick={onClose}>
-          <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/settings") ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"}`}>
-            <Settings className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-start">{tr("الإعدادات")}</span>
-          </button>
-        </Link>
+      <div className="border-t border-border p-3 space-y-0.5">
+        {!collapsed && (
+          <>
+            <Link to="/app/reports" onClick={onClose}>
+              <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/reports") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
+                <BarChart3 className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-start">{tr("التقارير")}</span>
+              </button>
+            </Link>
+            <Link to="/app/roadmap" onClick={onClose}>
+              <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
+                <Map className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-start">{tr("خارطة المزايا")}</span>
+              </button>
+            </Link>
+            <Link to="/app/settings" onClick={onClose}>
+              <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/settings") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
+                <Settings className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-start">{tr("الإعدادات")}</span>
+              </button>
+            </Link>
 
-        <div className="flex items-center gap-1 pt-1">
-          <button className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
-            <HelpCircle className="h-4 w-4 shrink-0" />
-            <span>{tr("مركز المساعدة")}</span>
-          </button>
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-            aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
-          >
-            <Globe className="h-4 w-4 shrink-0" />
-            <span className={language === "ar" ? "font-english" : ""}>{language === "ar" ? "English" : "العربية"}</span>
-          </button>
-        </div>
+            <div className="flex items-center gap-1 pt-1">
+              <button className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors">
+                <HelpCircle className="h-4 w-4 shrink-0" />
+                <span>{tr("مركز المساعدة")}</span>
+              </button>
+              <button
+                onClick={toggleLanguage}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors"
+                aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
+              >
+                <Globe className="h-4 w-4 shrink-0" />
+                <span className={language === "ar" ? "font-english" : ""}>{language === "ar" ? "English" : "العربية"}</span>
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Mode indicator */}
         <div className="hidden lg:flex items-center justify-center pt-1">
           <button
             onClick={cycleMode}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-[#9CA3AF] hover:bg-[#F3F4F6] transition-colors"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-muted-foreground hover:bg-accent transition-colors"
           >
-            <ModeIcon className="h-3 w-3" />
-            <span>{tr(modeLabel)}</span>
+            <ModeIconTyped className="h-3 w-3" />
+            {!collapsed && <span>{tr(modeLabel)}</span>}
           </button>
         </div>
       </div>
@@ -503,20 +520,21 @@ function SidebarContent({
 }
 
 /* ─── Link item ─── */
-function SidebarLink({ item, active, onClick }: { item: MenuItem; active: boolean; onClick?: () => void }) {
-  const Icon = item.icon;
+function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; active: boolean; onClick?: () => void; collapsed?: boolean }) {
+  const Icon = item.icon as React.ComponentType<{ className?: string }>;
   const tr = useSidebarText();
   return (
     <Link to={item.path!} onClick={onClick}>
       <button
-        className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-          active ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
-        }`}
+        className={`flex w-full items-center rounded-md text-sm transition-colors ${
+          active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"
+        } ${collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"}`}
+        title={tr(item.title)}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        <span className="flex-1 text-start">{tr(item.title)}</span>
-        {item.badge && (
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] text-white ${item.badge === "محدّث" ? "bg-[#F59E0B]" : "bg-[#179FC5]"}`}>
+        {!collapsed && <span className="flex-1 text-start">{tr(item.title)}</span>}
+        {!collapsed && item.badge && (
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] text-white ${item.badge === "محدّث" ? "bg-chart-4" : "bg-secondary"}`}>
             {tr(item.badge)}
           </span>
         )}
@@ -527,7 +545,7 @@ function SidebarLink({ item, active, onClick }: { item: MenuItem; active: boolea
 
 /* ─── Collapsible parent item ─── */
 function CollapsibleMenu({
-  item, isOpen, onToggle, isActive, isParentActive, onNavigate,
+  item, isOpen, onToggle, isActive, isParentActive, onNavigate, collapsed,
 }: {
   item: MenuItem;
   isOpen: boolean;
@@ -535,8 +553,9 @@ function CollapsibleMenu({
   isActive: (path?: string) => boolean;
   isParentActive: boolean;
   onNavigate?: () => void;
+  collapsed?: boolean;
 }) {
-  const Icon = item.icon;
+  const Icon = item.icon as React.ComponentType<{ className?: string }>;
   const navigate = useNavigate();
   const tr = useSidebarText();
 
@@ -548,6 +567,22 @@ function CollapsibleMenu({
     }
   };
 
+  if (collapsed) {
+    return (
+      <div>
+        <button
+          onClick={handleMainClick}
+          className={`flex w-full items-center justify-center rounded-md px-2 py-2 text-sm transition-colors ${
+            isParentActive ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"
+          }`}
+          title={tr(item.title)}
+        >
+          <Icon className="h-5 w-5 shrink-0" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex">
@@ -555,10 +590,10 @@ function CollapsibleMenu({
           onClick={handleMainClick}
           className={`flex flex-1 items-center gap-3 rounded-s-md px-3 py-2 text-sm transition-colors ${
             isParentActive && !isOpen
-              ? "bg-[#1276E3] text-white"
+              ? "bg-primary/10 text-primary"
               : isParentActive && isOpen
-              ? "bg-[#0B1B49] text-white"
-              : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+              ? "bg-foreground/5 text-foreground"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground"
           }`}
         >
           <Icon className="h-5 w-5 shrink-0" />
@@ -568,10 +603,10 @@ function CollapsibleMenu({
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           className={`rounded-e-md px-2 py-2 text-sm transition-colors ${
             isParentActive && isOpen
-              ? "bg-[#0B1B49] text-white"
+              ? "bg-foreground/5 text-foreground"
               : isParentActive && !isOpen
-              ? "bg-[#1276E3] text-white"
-              : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+              ? "bg-primary/10 text-primary"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground"
           }`}
         >
           <ChevronLeft
@@ -590,13 +625,13 @@ function CollapsibleMenu({
       >
         <div className="mt-0.5 space-y-0.5">
           {item.children!.map((child) => {
-            const ChildIcon = child.icon;
+            const ChildIcon = child.icon as React.ComponentType<{ className?: string }>;
             const active = isActive(child.path);
             return (
               <Link key={child.path + child.title} to={child.path} onClick={onNavigate}>
                 <button
                   className={`flex w-full items-center gap-3 rounded-md ps-10 pe-3 py-2 text-sm transition-colors ${
-                    active ? "bg-[#1276E3] text-white" : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+                    active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"
                   }`}
                 >
                   <ChildIcon className="h-4 w-4 shrink-0" />

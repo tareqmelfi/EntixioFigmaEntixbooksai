@@ -2,12 +2,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Bell, Settings, LogOut, Building2,
-  CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu, CheckCheck
+  CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu, CheckCheck,
+  Shield,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
 import { api, NotificationItem } from "../lib/api";
-import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 
 function timeAgo(iso: string, language: "ar" | "en"): string {
@@ -90,195 +90,212 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   };
 
   return (
-    <header className="border-b border-[#E5E7EB] bg-white px-4 sm:px-6 py-3">
-      <div className="flex items-center justify-between gap-3">
-        {/* START side (right in RTL) · mobile menu only · org info lives in sidebar (UX-169) */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <button
-            onClick={onMenuClick}
-            className="lg:hidden rounded-md p-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
-            title={t("القائمة", "Menu")}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          {/* Page title slot · could show breadcrumb later */}
-          <div className="hidden lg:block text-sm text-[#6B7280]" />
-        </div>
-
-        {/* END side (left in RTL) · actions only · ENTIX.IO wordmark moved to sidebar header */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={toggleLanguage}
-            className="hidden sm:flex items-center gap-1.5 rounded-md px-2 py-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
-            aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
-          >
-            <span className={language === "ar" ? "font-english text-xs font-semibold" : "text-xs font-semibold"}>
-              {language === "ar" ? "English" : "العربية"}
+    <>
+      {/* ZATCA integration banner · non-intrusive · RTL-aware */}
+      <div className="bg-foreground text-primary-foreground px-4 sm:px-6 py-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Shield className="h-4 w-4 shrink-0 text-emerald-500" />
+            <span className="text-sm truncate">{t("ربط ZATCA — الفاتورة الإلكترونية", "ZATCA e-invoicing connection")}</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-500 font-english" style={{ fontWeight: 600 }}>
+              {t("متصل", "Connected")}
             </span>
-          </button>
+          </div>
+          <Link to="/app/integrations/zatca" className="shrink-0 text-xs text-primary hover:underline">
+            {t("إدارة الربط", "Manage connection")}
+          </Link>
+        </div>
+      </div>
 
-          {/* Notifications */}
-          <div className="relative" ref={notifRef}>
+      <header className="border-b border-border bg-card px-4 sm:px-6 py-3">
+        <div className="flex items-center justify-between gap-3">
+          {/* START side (right in RTL) · mobile menu only */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
-              onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-              className="relative rounded-md p-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]"
+              onClick={onMenuClick}
+              className="lg:hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={t("القائمة", "Menu")}
             >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute end-1 top-1 h-4 w-4 rounded-full bg-[#EF4444] text-white text-[10px] flex items-center justify-center font-english" style={{ fontWeight: 700 }}>{unreadCount}</span>
-              )}
+              <Menu className="h-5 w-5" />
             </button>
-            {showNotifications && (
-              <div className="absolute start-0 z-50 mt-1 w-80 rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-[#F3F4F6]">
-                  <span className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>
-                    {t("الإشعارات", "Notifications")}{unreadCount > 0 && <span className="ms-2 text-xs text-[#1276E3] font-english">({unreadCount})</span>}
-                  </span>
-                  {unreadCount > 0 && (
-                    <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-[#1276E3] hover:underline">
-                      <CheckCheck className="h-3 w-3" /> {t("تحديد الكل كمقروء", "Mark all read")}
-                    </button>
-                  )}
-                </div>
-                <div className="max-h-72 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-[#9CA3AF]">{t("لا توجد إشعارات", "No notifications")}</div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => handleNotifClick(n)}
-                        className={`flex gap-3 px-4 py-3 border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB] transition-colors cursor-pointer ${!n.readAt ? "bg-[#EFF6FF]/30" : ""}`}
-                      >
-                        <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-[#1276E3]" : "bg-transparent"}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-[#0B1B49]" style={{ fontWeight: !n.readAt ? 600 : 400 }}>{n.title}</p>
-                          {n.body && <p className="text-xs text-[#6B7280] mt-0.5 line-clamp-2">{n.body}</p>}
-                          <p className="text-xs text-[#9CA3AF] mt-1">{timeAgo(n.createdAt, language)}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="px-4 py-2 border-t border-[#F3F4F6]">
-                  <Link to="/app/notifications" onClick={() => setShowNotifications(false)} className="block w-full text-center text-xs text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>
-                    {t("عرض كل الإشعارات", "View all notifications")}
-                  </Link>
-                </div>
-              </div>
-            )}
+            <div className="hidden lg:block text-sm text-muted-foreground" />
           </div>
 
-          {/* Inbox */}
-          <button className="relative rounded-md p-2 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49]">
-            <Mail className="h-5 w-5" />
-          </button>
-
-          {/* Profile Dropdown */}
-          <div className="relative" ref={profileRef}>
+          {/* END side (left in RTL) · actions only */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
-              className="flex items-center gap-3 rounded-md border border-transparent px-2 py-1 hover:bg-[#F3F4F6] transition-colors"
+              onClick={toggleLanguage}
+              className="hidden sm:flex items-center gap-1.5 rounded-md px-2 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
             >
-              <div className="text-end">
-                <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>{authState.user?.name || t("مستخدم", "User")}</div>
-                <div className="text-xs text-[#6B7280] font-english">{authState.user?.email || "user@entix.io"}</div>
-              </div>
-              <Avatar>
-                <AvatarFallback className="bg-[#1276E3] text-white">ط</AvatarFallback>
-              </Avatar>
-              <ChevronDown className="h-3.5 w-3.5 text-[#9CA3AF]" />
+              <span className={language === "ar" ? "font-english text-xs font-semibold" : "text-xs font-semibold"}>
+                {language === "ar" ? "English" : "العربية"}
+              </span>
             </button>
 
-            {showProfile && (
-              <div className="absolute end-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
-                {/* User Info */}
-                <div className="px-4 py-3 border-b border-[#F3F4F6]">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-[#1276E3] text-white text-lg">ط</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{t("حسابي", "My account")}</div>
-                      <div className="text-xs text-[#6B7280]">{authState.user?.name || t("مستخدم", "User")}</div>
-                      <div className="text-xs text-[#9CA3AF] font-english">{authState.user?.email || "user@entix.io"}</div>
-                    </div>
+            {/* Notifications */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
+                className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute end-1 top-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-english" style={{ fontWeight: 700 }}>{unreadCount}</span>
+                )}
+              </button>
+              {showNotifications && (
+                <div className="absolute start-0 z-50 mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+                      {t("الإشعارات", "Notifications")}{unreadCount > 0 && <span className="ms-2 text-xs text-primary font-english">({unreadCount})</span>}
+                    </span>
+                    {unreadCount > 0 && (
+                      <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                        <CheckCheck className="h-3 w-3" /> {t("تحديد الكل كمقروء", "Mark all read")}
+                      </button>
+                    )}
                   </div>
-                </div>
-
-                {/* Current company */}
-                <div className="px-4 py-2 border-b border-[#F3F4F6]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#1276E3]">
-                        <span className="font-english text-xs text-white" style={{ fontWeight: 700 }}>{currentCompanyInitials}</span>
-                      </div>
-                      <span className="line-clamp-2 min-w-0 text-sm leading-5 text-[#374151]">{currentCompanyName}</span>
-                    </div>
-                    <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)} className="shrink-0 text-xs text-[#1276E3] hover:underline" style={{ fontWeight: 500 }}>
-                      {t("تغيير", "Change")}
+                  <div className="max-h-72 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 text-center text-sm text-muted-foreground">{t("لا توجد إشعارات", "No notifications")}</div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotifClick(n)}
+                          className={`flex gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-accent transition-colors cursor-pointer ${!n.readAt ? "bg-primary/5" : ""}`}
+                        >
+                          <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-primary" : "bg-transparent"}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground" style={{ fontWeight: !n.readAt ? 600 : 400 }}>{n.title}</p>
+                            {n.body && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>}
+                            <p className="text-xs text-muted-foreground mt-1">{timeAgo(n.createdAt, language)}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="px-4 py-2 border-t border-border">
+                    <Link to="/app/notifications" onClick={() => setShowNotifications(false)} className="block w-full text-center text-xs text-primary hover:underline" style={{ fontWeight: 500 }}>
+                      {t("عرض كل الإشعارات", "View all notifications")}
                     </Link>
                   </div>
                 </div>
+              )}
+            </div>
 
-                {/* Menu Items */}
-                <div className="py-1">
-                  <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إعدادات المنشأة", "Company settings")}</span>
-                    </button>
-                  </Link>
-                  <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("الباقة والاشتراك", "Plan & billing")}</span>
-                    </button>
-                  </Link>
-                  <Link to="/app/settings?tab=members" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Users className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة ودعوة المستخدمين", "Manage users")}</span>
-                    </button>
-                  </Link>
-                  <Link to="/app/fiscal-periods" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إقفال الفترات", "Close periods")}</span>
-                    </button>
-                  </Link>
-                </div>
+            {/* Inbox */}
+            <button className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
+              <Mail className="h-5 w-5" />
+            </button>
 
-                <div className="border-t border-[#F3F4F6] py-1">
-                  <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Settings className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة جميع اشتراكاتي", "Manage subscriptions")}</span>
-                    </button>
-                  </Link>
-                  <Link to="/app/roadmap" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Star className="mt-0.5 h-4 w-4 shrink-0 text-[#6B7280]" /><span className="min-w-0 flex-1 whitespace-normal">{t("الطلب أو التصويت على ميزة", "Request or vote on a feature")}</span>
-                    </button>
-                  </Link>
+            {/* Profile Dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
+                className="flex items-center gap-3 rounded-md border border-transparent px-2 py-1 hover:bg-accent transition-colors"
+              >
+                <div className="text-end">
+                  <div className="text-sm text-foreground" style={{ fontWeight: 500 }}>{authState.user?.name || t("مستخدم", "User")}</div>
+                  <div className="text-xs text-muted-foreground font-english">{authState.user?.email || "user@entix.io"}</div>
                 </div>
+                <Avatar>
+                  <AvatarFallback className="bg-primary text-primary-foreground">ط</AvatarFallback>
+                </Avatar>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
 
-                <div className="border-t border-[#F3F4F6] py-1">
-                  <Link to="/app/system-status" onClick={() => setShowProfile(false)}>
-                    <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#374151] hover:bg-[#F9FAFB] text-start transition-colors">
-                      <Activity className="mt-0.5 h-4 w-4 shrink-0 text-[#22C55E]" /><span className="min-w-0 flex-1 whitespace-normal">{t("حالة النظام", "System status")}</span>
-                    </button>
-                  </Link>
-                </div>
+              {showProfile && (
+                <div className="absolute end-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+                  {/* User Info */}
+                  <div className="px-4 py-3 border-b border-border">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-lg">ط</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("حسابي", "My account")}</div>
+                        <div className="text-xs text-muted-foreground">{authState.user?.name || t("مستخدم", "User")}</div>
+                        <div className="text-xs text-muted-foreground font-english">{authState.user?.email || "user@entix.io"}</div>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="border-t border-[#F3F4F6] py-1">
-                  <button 
-                    onClick={() => { authStore.logout(); navigate("/"); }}
-                    className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-[#EF4444] hover:bg-[#FEE2E2]/30 text-start transition-colors cursor-pointer"
-                  >
-                    <LogOut className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج", "Sign out")}</span>
-                  </button>
+                  {/* Current company */}
+                  <div className="px-4 py-2 border-b border-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary">
+                          <span className="font-english text-xs text-primary-foreground" style={{ fontWeight: 700 }}>{currentCompanyInitials}</span>
+                        </div>
+                        <span className="line-clamp-2 min-w-0 text-sm leading-5 text-foreground">{currentCompanyName}</span>
+                      </div>
+                      <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)} className="shrink-0 text-xs text-primary hover:underline" style={{ fontWeight: 500 }}>
+                        {t("تغيير", "Change")}
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-1">
+                    <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إعدادات المنشأة", "Company settings")}</span>
+                      </button>
+                    </Link>
+                    <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("الباقة والاشتراك", "Plan & billing")}</span>
+                      </button>
+                    </Link>
+                    <Link to="/app/settings?tab=members" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <Users className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة ودعوة المستخدمين", "Manage users")}</span>
+                      </button>
+                    </Link>
+                    <Link to="/app/fiscal-periods" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إقفال الفترات", "Close periods")}</span>
+                      </button>
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-border py-1">
+                    <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <Settings className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة جميع اشتراكاتي", "Manage subscriptions")}</span>
+                      </button>
+                    </Link>
+                    <Link to="/app/roadmap" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <Star className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("الطلب أو التصويت على ميزة", "Request or vote on a feature")}</span>
+                      </button>
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-border py-1">
+                    <Link to="/app/system-status" onClick={() => setShowProfile(false)}>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                        <Activity className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span className="min-w-0 flex-1 whitespace-normal">{t("حالة النظام", "System status")}</span>
+                      </button>
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-border py-1">
+                    <button 
+                      onClick={() => { authStore.logout(); navigate("/"); }}
+                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-destructive hover:bg-destructive/10 text-start transition-colors cursor-pointer"
+                    >
+                      <LogOut className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج", "Sign out")}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

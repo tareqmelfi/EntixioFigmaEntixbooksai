@@ -278,6 +278,8 @@ export const api = {
     create: (data: any) => request<any>('/api/bills', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/bills/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/bills/${id}`, { method: 'DELETE' }),
+    checkDuplicate: (data: { contactId: string; total: number; issueDate: string; excludeId?: string }) => request<any[]>('/api/bills/check-duplicate', { method: 'POST', body: data }),
+    merge: (targetBillId: string, data: { sourceDocumentId?: string }) => request<any>(`/api/bills/${targetBillId}/merge`, { method: 'POST', body: data }),
   },
 
   // Branches
