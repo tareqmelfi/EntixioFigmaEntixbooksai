@@ -75,7 +75,6 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // strip "data:mime/type;base64," prefix
       const idx = result.indexOf("base64,");
       resolve(idx >= 0 ? result.slice(idx + 7) : result);
     };
@@ -106,9 +105,8 @@ export function DocumentDropZone({
     setSuccess(null);
     setError(null);
     try {
-      // 100MB limit · large PDFs are downscaled by the AI extractor
       if (file.size > 100 * 1024 * 1024) {
-        throw new Error("الملف أكبر من 100MB · جرّب ملف أصغر أو قسّمه");
+        throw new Error("الملف أكبر من 100MB · جرّب ملفاً أصغر أو قسّمه");
       }
       const base64 = await fileToBase64(file);
       const data: ExtractedDocument = await (api as any).agent.extractDocument({
@@ -202,67 +200,66 @@ export function DocumentDropZone({
     return (
       <>
         {globalDrag && (
-          <div className="fixed inset-0 z-[100] bg-[#1276E3]/10 border-4 border-[#1276E3] border-dashed flex items-center justify-center pointer-events-none">
-            <div className="bg-white rounded-xl shadow-xl px-8 py-6 text-center">
-              <Upload className="h-10 w-10 text-[#1276E3] mx-auto mb-3" />
-              <p className="text-[#0B1B49] font-semibold">أفلت الملف هنا لرفعه</p>
+          <div className="fixed inset-0 z-[100] bg-primary/10 border-4 border-primary border-dashed flex items-center justify-center pointer-events-none">
+            <div className="bg-card rounded-xl shadow-xl px-8 py-6 text-center">
+              <Upload className="h-10 w-10 text-primary mx-auto mb-3" />
+              <p className="text-foreground font-semibold">أفلت الملف هنا لرفعه</p>
             </div>
           </div>
         )}
         <div
           className={`rounded-lg border-2 border-dashed transition-colors px-4 py-3 flex items-center justify-between gap-3 ${
-            dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white"
+            dragOver ? "border-primary bg-primary/5" : "border-border bg-card"
           } ${className}`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onPaste={handlePaste}
         >
-        <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
-        <div className="flex items-center gap-3 text-sm text-[#6B7280] min-w-0">
-          {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[#1276E3] shrink-0" />
-          ) : success ? (
-            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-          ) : error ? (
-            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
-          ) : (
-            <Upload className="h-4 w-4 text-[#1276E3] shrink-0" />
-          )}
-          <span className="truncate">
-            {busy ? "جارٍ الاستخراج بالذكاء الاصطناعي..." :
-             success ? success :
-             error ? error :
-             "اسحب ملفاً هنا · تصفح PDF · صور · AI OCR ← Excel تلقائي"}
-          </span>
+          <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
+          <div className="flex items-center gap-3 text-sm text-muted-foreground min-w-0">
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+            ) : success ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+            ) : error ? (
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            ) : (
+              <Upload className="h-4 w-4 text-primary shrink-0" />
+            )}
+            <span className="truncate">
+              {busy ? "جارٍ الاستخراج بالذكاء الاصطناعي..." :
+               success ? success :
+               error ? error :
+               "اسحب ملفاً هنا · تصفح PDF · صور · AI OCR ← Excel تلقائي"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="text-sm text-primary hover:underline disabled:opacity-50 shrink-0"
+          >
+            تصفح الملفات
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          className="text-sm text-[#1276E3] hover:underline disabled:opacity-50 shrink-0"
-        >
-          تصفح الملفات
-        </button>
-      </div>
-    </>
-  );
-}
+      </>
+    );
+  }
 
-// Full-size drop zone
   return (
     <>
       {globalDrag && (
-        <div className="fixed inset-0 z-[100] bg-[#1276E3]/10 border-4 border-[#1276E3] border-dashed flex items-center justify-center pointer-events-none">
-          <div className="bg-white rounded-xl shadow-xl px-8 py-6 text-center">
-            <Upload className="h-10 w-10 text-[#1276E3] mx-auto mb-3" />
-            <p className="text-[#0B1B49] font-semibold">أفلت الملف هنا لرفعه</p>
+        <div className="fixed inset-0 z-[100] bg-primary/10 border-4 border-primary border-dashed flex items-center justify-center pointer-events-none">
+          <div className="bg-card rounded-xl shadow-xl px-8 py-6 text-center">
+            <Upload className="h-10 w-10 text-primary mx-auto mb-3" />
+            <p className="text-foreground font-semibold">أفلت الملف هنا لرفعه</p>
           </div>
         </div>
       )}
       <div
         className={`rounded-xl border-2 border-dashed transition-colors p-8 text-center cursor-pointer ${
-          dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white hover:border-[#1276E3]"
+          dragOver ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary"
         } ${className}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -270,44 +267,44 @@ export function DocumentDropZone({
         onClick={() => !busy && inputRef.current?.click()}
         onPaste={handlePaste}
       >
-      <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
-      {busy ? (
-        <div className="flex flex-col items-center gap-3 py-2">
-          <Loader2 className="h-8 w-8 animate-spin text-[#1276E3]" />
-          <p className="text-sm text-[#6B7280]">جارٍ تحليل المستند بالذكاء الاصطناعي...</p>
-        </div>
-      ) : success ? (
-        <div className="flex flex-col items-center gap-3 py-2">
-          <CheckCircle2 className="h-8 w-8 text-green-600" />
-          <p className="text-sm text-[#374151]">{success}</p>
-          <button onClick={(e) => { e.stopPropagation(); setSuccess(null); }} className="text-xs text-[#1276E3] hover:underline">
-            رفع ملف آخر
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-2 py-2">
-          <div className="flex items-center gap-2 text-[#1276E3]">
-            <FileText className="h-6 w-6" />
-            <Image className="h-6 w-6" />
-            <Upload className="h-6 w-6" />
+        <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
+        {busy ? (
+          <div className="flex flex-col items-center gap-3 py-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">جارٍ تحليل المستند بالذكاء الاصطناعي...</p>
           </div>
-          <p className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>
-            اسحب أي مستند هنا أو اضغط للتصفح
-          </p>
-          <p className="text-xs text-[#6B7280]">
-            PDF · صور · Excel · CSV · سيتم استخراج البنود تلقائياً بالذكاء الاصطناعي
-          </p>
-          <p className="text-xs text-[#9CA3AF] mt-1">
-            💡 يمكنك حتى رفع عرض سعر · سنحوّله لفاتورة مبيعات بضغطة
-          </p>
-          {error && (
-            <div className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded-md flex items-center gap-1">
-              <AlertTriangle className="h-3.5 w-3.5" /> {error}
-              <button onClick={(e) => { e.stopPropagation(); setError(null); }} className="ms-1"><X className="h-3 w-3" /></button>
+        ) : success ? (
+          <div className="flex flex-col items-center gap-3 py-2">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            <p className="text-sm text-foreground">{success}</p>
+            <button onClick={(e) => { e.stopPropagation(); setSuccess(null); }} className="text-xs text-primary hover:underline">
+              رفع ملف آخر
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-2">
+            <div className="flex items-center gap-2 text-primary">
+              <FileText className="h-6 w-6" />
+              <Image className="h-6 w-6" />
+              <Upload className="h-6 w-6" />
             </div>
-          )}
-        </div>
-      )}
+            <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+              اسحب أي مستند هنا أو اضغط للتصفح
+            </p>
+            <p className="text-xs text-muted-foreground">
+              PDF · صور · Excel · CSV · سيتم استخراج البنود تلقائياً بالذكاء الاصطناعي
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              يمكنك حتى رفع عرض سعر · سنحوّله لفاتورة مبيعات بضغطة
+            </p>
+            {error && (
+              <div className="mt-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 px-3 py-1.5 rounded-md flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" /> {error}
+                <button onClick={(e) => { e.stopPropagation(); setError(null); }} className="ms-1"><X className="h-3 w-3" /></button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
