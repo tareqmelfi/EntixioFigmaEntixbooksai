@@ -21,7 +21,7 @@
  *  - Bilingual digit normalization
  */
 import { useRef, useState, useMemo, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
-import { Plus, Trash2, GripVertical, Settings2 } from "lucide-react";
+import { Plus, Trash2, Settings2, Square, SquareCheck } from "lucide-react";
 import { Input } from "./ui/input";
 import { SearchableCombobox } from "./searchable-combobox";
 import { BarcodeScannerButton } from "./barcode-scanner";
@@ -79,6 +79,8 @@ interface Props {
   minRows?: number;
   /** Direction: "sales" affects defaults (income accounts) · "purchases" → expense accounts */
   direction?: "sales" | "purchases";
+  /** Optional external key to reset history when form changes */
+  formKey?: string;
 }
 
 export function newLine(taxRate = 0.15, taxInclusive = false): InvoiceLine {
@@ -167,7 +169,7 @@ function AutoGrowTextarea({
       placeholder={placeholder}
       rows={1}
       style={{ minHeight: "30px", maxHeight: "160px", resize: "none", overflow: "hidden" }}
-      className="w-full border-0 focus:ring-1 focus:ring-[#1276E3]/30 bg-transparent text-xs leading-5 py-1 px-2 outline-none"
+      className="w-full border-0 focus:ring-1 focus:ring-primary/30 bg-transparent text-xs leading-5 py-1 px-2 outline-none"
     />
   );
 }
@@ -185,10 +187,92 @@ export function ItemsTable({
   onCreateAccount,
   minRows = 10,
   direction = "sales",
+  formKey,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN_COLS);
   const [colsOpen, setColsOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Undo / Redo history
+  const historyRef = useRef<{ past: InvoiceLine[][]; present: InvoiceLine[]; future: InvoiceLine[][] }>({ past: [], present: lines, future: [] });
+  const isUndoingRef = useRef(false);
+
+  useEffect(() => {
+    if (isUndoingRef.current) { isUndoingRef.current = false; return; }
+    historyRef.current.past.push(historyRef.current.present);
+    historyRef.current.present = lines;
+    if (historyRef.current.past.length > 50) historyRef.current.past.shift();
+  }, [lines]);
+
+  useEffect(() => {
+    historyRef.current = { past: [], present: lines, future: [] };
+  }, [formKey]);
+
+  const undo = () => {
+    const { past, present } = historyRef.current;
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    historyRef.current.past = past.slice(0, -1);
+    historyRef.current.future = [present, ...historyRef.current.future];
+    historyRef.current.present = previous;
+    isUndoingRef.current = true;
+    setLines(previous);
+  };
+
+  const redo = () => {
+    const { future, present } = historyRef.current;
+    if (future.length === 0) return;
+    const next = future[0];
+    historyRef.current.future = future.slice(1);
+    historyRef.current.past = [...historyRef.current.past, present];
+    historyRef.current.present = next;
+    isUndoingRef.current = true;
+    setLines(next);
+  };
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        e.shiftKey ? redo() : undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    document.addEventListener("keydown", handler as any);
+    return () => document.removeEventListener("keydown", handler as any);
+  }, []);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+  };
+
+  const toggleSelectAll = () => {
+    const realIds = lines.map((l) => l.id);
+    const allSelected = realIds.every((id) => selected.has(id));
+    if (allSelected) {
+      const next = new Set(selected);
+      realIds.forEach((id) => next.delete(id));
+      setSelected(next);
+    } else {
+      const next = new Set(selected);
+      realIds.forEach((id) => next.add(id));
+      setSelected(next);
+    }
+  };
+
+  const deleteSelected = () => {
+    if (selected.size === 0) return;
+    setLines(lines.filter((l) => !selected.has(l.id)));
+    setSelected(new Set());
+  };
+
+  const allSelected = lines.length > 0 && lines.every((l) => selected.has(l.id));
 
   // Pad lines to minRows for visual consistency · empty rows are filtered on submit
   const displayLines = useMemo(() => {
@@ -365,7 +449,7 @@ export function ItemsTable({
       <div
         ref={containerRef}
         onPaste={handlePaste}
-        className="rounded-lg border border-[#E5E7EB] overflow-hidden bg-white"
+        className="rounded-lg border border-border overflow-hidden bg-card"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ minWidth: "100%" }}>
@@ -381,9 +465,18 @@ export function ItemsTable({
               <col className="min-w-[96px] w-[9%]" />
               <col className="w-10" />
             </colgroup>
-            <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+            <thead className="bg-muted/50 text-xs text-muted-foreground">
               <tr>
-                <th className="py-2.5 px-2 w-8"></th>
+                <th className="py-2.5 px-2 w-8">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="text-muted-foreground/70 hover:text-foreground"
+                    title={allSelected ? "إلغاء تحديد الكل" : "تحديد الكل"}
+                  >
+                    {allSelected ? <SquareCheck className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                  </button>
+                </th>
                 {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
                   <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الصنف</th>
                 )}
@@ -413,9 +506,16 @@ export function ItemsTable({
                 const isReal = i < realLineCount;
 
                 return (
-                  <tr key={line.id} className="border-t border-[#F3F4F6] hover:bg-[#FAFBFC]">
+                  <tr key={line.id} className="border-t border-border/50 hover:bg-muted/30">
                     <td className="px-1 py-1 text-center">
-                      <GripVertical className="h-3.5 w-3.5 text-[#D1D5DB] mx-auto cursor-grab" />
+                      <button
+                        type="button"
+                        onClick={() => isReal && toggleSelect(line.id)}
+                        className="text-muted-foreground/70 hover:text-foreground disabled:opacity-30"
+                        disabled={!isReal}
+                      >
+                        {isReal && selected.has(line.id) ? <SquareCheck className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                      </button>
                     </td>
                     {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
                       <td className="px-2 py-1">
@@ -464,7 +564,7 @@ export function ItemsTable({
                         onChange={(e) => updateLine(i, { quantity: normalizeDigits(e.target.value) })}
                         onKeyDown={(e) => handleKeyDown(e, i, false)}
                         dir="ltr"
-                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-7 font-english bg-transparent text-xs"
+                        className="border-0 focus:ring-1 focus:ring-primary/30 h-7 font-english bg-transparent text-xs"
                       />
                     </td>
                     <td className="px-2 py-1">
@@ -475,7 +575,7 @@ export function ItemsTable({
                         onChange={(e) => updateLine(i, { unitPrice: normalizeDigits(e.target.value) })}
                         onKeyDown={(e) => handleKeyDown(e, i, i === realLineCount - 1)}
                         dir="ltr"
-                        className="border-0 focus:ring-1 focus:ring-[#1276E3]/30 h-7 font-english bg-transparent text-xs"
+                        className="border-0 focus:ring-1 focus:ring-primary/30 h-7 font-english bg-transparent text-xs"
                       />
                     </td>
                     {showAccount && (
@@ -503,7 +603,7 @@ export function ItemsTable({
                             const [rate, inc] = e.target.value.split("-");
                             updateLine(i, { taxRate: Number(rate), taxInclusive: inc === "in" });
                           }}
-                          className="w-full h-7 rounded-md border-0 bg-transparent px-1.5 text-[11px] leading-tight focus:ring-1 focus:ring-[#1276E3]/30"
+                          className="w-full h-7 rounded-md border-0 bg-transparent px-1.5 text-[11px] leading-tight focus:ring-1 focus:ring-primary/30"
                         >
                           <option value="0.15-ex">15% غير شامل</option>
                           <option value="0.15-in">15% شامل</option>
@@ -513,11 +613,11 @@ export function ItemsTable({
                       </td>
                     )}
                     {showTaxAmount && (
-                      <td className="px-3 py-1 font-english text-sm text-[#6B7280]">
+                      <td className="px-3 py-1 font-english text-sm text-muted-foreground">
                         {gross > 0 ? lineTax.toFixed(2) : ""}
                       </td>
                     )}
-                    <td className="px-3 py-1 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>
+                    <td className="px-3 py-1 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>
                       {gross > 0 ? lineTotal.toFixed(2) : ""}
                     </td>
                     <td className="px-1 py-1">
@@ -525,7 +625,7 @@ export function ItemsTable({
                         <button
                           type="button"
                           onClick={() => removeRow(i)}
-                          className="rounded-md p-1.5 text-[#9CA3AF] hover:bg-red-50 hover:text-red-600"
+                          className="rounded-md p-1.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
                           title="حذف السطر"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -540,24 +640,34 @@ export function ItemsTable({
         </div>
 
         {/* Footer · add row + cashier input + barcode + columns toggle */}
-        <div className="border-t border-[#F3F4F6] px-3 py-2 bg-[#F9FAFB] flex items-center justify-between gap-2">
+        <div className="border-t border-border/50 px-3 py-2 bg-muted/50 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={addRow}
-              className="text-sm text-[#1276E3] hover:underline flex items-center gap-1"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
             >
               <Plus className="h-3.5 w-3.5" /> إضافة سطر
             </button>
 
+            {selected.size > 0 && (
+              <button
+                type="button"
+                onClick={deleteSelected}
+                className="text-sm text-destructive hover:underline flex items-center gap-1"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> حذف {selected.size} سطر
+              </button>
+            )}
+
             {/* Cashier mode · type SKU/code + Enter → product drops in */}
             {products.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-[#6B7280]">كاشير:</span>
+                <span className="text-xs text-muted-foreground">كاشير:</span>
                 <input
                   type="text"
                   placeholder="ادخل الكود + Enter"
-                  className="text-sm rounded border border-[#E5E7EB] px-2 py-1 w-40 font-english focus:ring-1 focus:ring-[#1276E3]/30"
+                  className="text-sm rounded border border-border px-2 py-1 w-40 font-english focus:ring-1 focus:ring-primary/30"
                   dir="ltr"
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
@@ -631,19 +741,19 @@ export function ItemsTable({
             <button
               type="button"
               onClick={() => setColsOpen(!colsOpen)}
-              className="text-xs text-[#6B7280] hover:text-[#0B1B49] flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#E5E7EB] bg-white"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card"
             >
               <Settings2 className="h-3.5 w-3.5" />
               الأعمدة ({hiddenCount} مخفية)
             </button>
             {colsOpen && (
-              <div className="absolute end-0 top-full mt-1 w-44 rounded-md border border-[#E5E7EB] bg-white shadow-lg p-2 z-10">
+              <div className="absolute end-0 top-full mt-1 w-44 rounded-md border border-border bg-card shadow-lg p-2 z-10">
                 {[
                   { key: "account" as const, label: "الحساب" },
                   { key: "tax" as const, label: "الضريبة" },
                   { key: "taxAmount" as const, label: "مبلغ الضريبة" },
                 ].map((c) => (
-                  <label key={c.key} className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-[#F9FAFB] rounded cursor-pointer">
+                  <label key={c.key} className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted/50 rounded cursor-pointer">
                     <input
                       type="checkbox"
                       checked={!hidden[c.key]}
