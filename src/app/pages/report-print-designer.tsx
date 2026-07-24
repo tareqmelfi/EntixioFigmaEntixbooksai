@@ -53,7 +53,7 @@ export function ReportPrintDesigner() {
   }, [id, from, to, demo]);
 
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
-  const selectClass = "h-10 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm outline-none focus:border-[#1276E3]";
+  const selectClass = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-[#1276E3]";
 
   const update = <K extends keyof ReportPrintSettings>(key: K, value: ReportPrintSettings[K]) => {
     setSaved(false);
@@ -119,13 +119,13 @@ export function ReportPrintDesigner() {
         }
       `}</style>
 
-      <div className="report-designer-chrome flex flex-col gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="report-designer-chrome flex flex-col gap-3 rounded-xl border border-border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <button onClick={() => navigate(`/app/reports/${id}${window.location.search}`)} className="mb-2 inline-flex items-center gap-2 text-sm text-[#6B7280] hover:text-[#0B1B49]">
+          <button onClick={() => navigate(`/app/reports/${id}${window.location.search}`)} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowRight className="h-4 w-4" /> الرجوع للتقرير
           </button>
-          <h1 className="text-2xl font-bold text-[#0B1B49]">مصمم التقرير والطباعة</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">تحكم في الشعار والشكل ثم اطبع أو احفظ PDF.</p>
+          <h1 className="text-2xl font-bold text-foreground">مصمم التقرير والطباعة</h1>
+          <p className="mt-1 text-sm text-muted-foreground">تحكم في الشعار والشكل ثم اطبع أو احفظ PDF.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={saveSettings} disabled={saving || !org}>
@@ -142,16 +142,16 @@ export function ReportPrintDesigner() {
       {error && <div className="report-designer-chrome rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {loading ? (
-        <div className="rounded-xl border border-[#E5E7EB] bg-white py-20 text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#1276E3]" />
-          <div className="mt-3 text-sm text-[#6B7280]">جاري تجهيز المعاينة...</div>
+        <div className="rounded-xl border border-border bg-white py-20 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <div className="mt-3 text-sm text-muted-foreground">جاري تجهيز المعاينة...</div>
         </div>
       ) : report ? (
         <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="report-designer-chrome space-y-4">
-            <Card className="border-[#E5E7EB]">
+            <Card className="border-border">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-[#0B1B49]">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   <Palette className="h-4 w-4" />إعدادات الشكل
                 </CardTitle>
               </CardHeader>
@@ -201,10 +201,10 @@ export function ReportPrintDesigner() {
                 </Control>
                 <div className="grid grid-cols-2 gap-3">
                   <Control label="اللون الأساسي">
-                    <input value={resolved.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-white p-1" />
+                    <input value={resolved.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-white p-1" />
                   </Control>
                   <Control label="لون التمييز">
-                    <input value={resolved.accentColor} onChange={(e) => update("accentColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-white p-1" />
+                    <input value={resolved.accentColor} onChange={(e) => update("accentColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-white p-1" />
                   </Control>
                 </div>
                 <Toggle label="معلومات الشركة" checked={resolved.showCompanyInfo} onChange={(value) => update("showCompanyInfo", value)} />
@@ -227,7 +227,7 @@ export function ReportPrintDesigner() {
 function Control({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block space-y-1 text-sm">
-      <span className="font-semibold text-[#374151]">{label}</span>
+      <span className="font-semibold text-foreground/80">{label}</span>
       {children}
     </label>
   );
@@ -235,7 +235,7 @@ function Control({ label, children }: { label: string; children: ReactNode }) {
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm text-[#374151]">
+    <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm text-foreground/80">
       <span>{label}</span>
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-[#1276E3]" />
     </label>

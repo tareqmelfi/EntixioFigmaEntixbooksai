@@ -33,6 +33,9 @@ export function Register() {
     const result = await authStore.register(email, password, name, company);
     setLoading(false);
     if (result.success) navigate("/app");
+    else if (result.error?.includes('registration_disabled') || result.error?.includes('sign_up_disabled')) {
+      setError("التسجيل مغلق حالياً — يرجى التواصل مع الدعم للحصول على دعوة");
+    }
     else setError(result.error || "حدث خطأ");
   };
 
@@ -64,7 +67,7 @@ export function Register() {
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           className="w-full max-w-md py-8"
         >
-          <Link to="/" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] mb-8 transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
+          <Link to="/" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground mb-8 transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </Link>
@@ -73,8 +76,8 @@ export function Register() {
             <EntixWordmark size={34} />
           </div>
 
-          <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>إنشاء حساب جديد</h1>
-          <p className="text-[#6B7280] mb-8" style={{ fontSize: "15px" }}>ابدأ تجربتك المجانية — لا حاجة لبطاقة ائتمان</p>
+          <h1 className="text-foreground mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>إنشاء حساب جديد</h1>
+          <p className="text-muted-foreground mb-8" style={{ fontSize: "15px" }}>ابدأ تجربتك المجانية — لا حاجة لبطاقة ائتمان</p>
 
           {error && (
             <motion.div 
@@ -88,58 +91,58 @@ export function Register() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>الاسم</label>
+                <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>الاسم</label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="محمد"
-                  className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
                   style={{ fontSize: "14px" }}
                   required
                 />
               </div>
               <div>
-                <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>اسم الشركة</label>
+                <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>اسم الشركة</label>
                 <input
                   type="text"
                   value={company}
                   onChange={e => setCompany(e.target.value)}
                   placeholder="شركة المثال"
-                  className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
                   style={{ fontSize: "14px" }}
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>البريد الإلكتروني</label>
+              <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>البريد الإلكتروني</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
-                className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
                 style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: "right" }}
                 required
               />
             </div>
             <div>
-              <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>كلمة المرور</label>
+              <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>كلمة المرور</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="8 أحرف على الأقل"
-                  className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
                   style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: "right" }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] cursor-pointer"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-muted-foreground cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -148,18 +151,18 @@ export function Register() {
 
             <div className="flex items-start gap-2 pt-1">
               <input type="checkbox" id="terms" className="mt-1 accent-[#1276E3]" required />
-              <label htmlFor="terms" className="text-[#6B7280]" style={{ fontSize: "13px", lineHeight: 1.6, fontWeight: 400 }}>
+              <label htmlFor="terms" className="text-muted-foreground" style={{ fontSize: "13px", lineHeight: 1.6, fontWeight: 400 }}>
                 بإنشاء حساب فأنت توافق على{" "}
-                <Link to="/terms" className="text-[#1276E3] hover:underline">الشروط والأحكام</Link>
+                <Link to="/terms" className="text-primary hover:underline">الشروط والأحكام</Link>
                 {" "}و{" "}
-                <Link to="/privacy" className="text-[#1276E3] hover:underline">سياسة الخصوصية</Link>
+                <Link to="/privacy" className="text-primary hover:underline">سياسة الخصوصية</Link>
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1276E3] hover:bg-[#0B5FBF] disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
+              className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
               {loading ? (
@@ -174,7 +177,7 @@ export function Register() {
           {googleEnabled && (
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-[#E5E7EB]" />
-            <span className="text-[#9CA3AF]" style={{ fontSize: "12px" }}>أو</span>
+            <span className="text-muted-foreground/60" style={{ fontSize: "12px" }}>أو</span>
             <div className="flex-1 h-px bg-[#E5E7EB]" />
           </div>
           )}
@@ -184,7 +187,7 @@ export function Register() {
             type="button"
             onClick={handleGoogle}
             disabled={googleLoading}
-            className="w-full bg-white border border-[#E5E7EB] hover:border-[#1276E3] hover:bg-[#F9FAFB] disabled:opacity-60 text-[#0B1A47] py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
+            className="w-full bg-white border border-border hover:border-[#1276E3] hover:bg-muted disabled:opacity-60 text-foreground py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
             style={{ fontSize: "15px", fontWeight: 600 }}
           >
             {googleLoading ? (
@@ -202,15 +205,15 @@ export function Register() {
           )}
 
           <div className="mt-6 text-center">
-            <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>لديك حساب بالفعل؟ </span>
-            <Link to="/login" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>تسجيل الدخول</Link>
+            <span className="text-muted-foreground" style={{ fontSize: "14px" }}>لديك حساب بالفعل؟ </span>
+            <Link to="/login" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>تسجيل الدخول</Link>
           </div>
         </motion.div>
       </div>
 
       {/* Left side - Brand */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0B1A47] via-[#0F2156] to-[#1A2D5C] items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-[#1276E3]/10 rounded-full blur-3xl" />
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0B1B49] via-[#0F2156] to-[#1A2D5C] items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-20 w-56 h-56 bg-[#349FC4]/10 rounded-full blur-3xl" />
         
         <div className="text-center max-w-md relative z-10">

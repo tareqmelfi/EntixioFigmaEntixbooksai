@@ -186,45 +186,45 @@ export function Receipts() {
       <div className={`space-y-6 transition-all ${selected ? "flex-1 min-w-0" : "w-full"}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>سندات القبض</h1>
-            <p className="text-[#6B7280] mt-1">المبالغ المُستلمة من العملاء · ربط مباشر بالفاتورة وبالعميل</p>
+            <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>سندات القبض</h1>
+            <p className="text-muted-foreground mt-1">المبالغ المُستلمة من العملاء · ربط مباشر بالفاتورة وبالعميل</p>
           </div>
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => { resetForm(); setOpen(true); }}>
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => { resetForm(); setOpen(true); }}>
             <Plus className="me-2 h-4 w-4" /> سند قبض جديد
           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">عدد السندات</div>
-            <div className="font-english font-bold text-[#0B1B49] mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{items.length}</div>
+          <Card className="border-border"><CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">عدد السندات</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{items.length}</div>
           </CardContent></Card>
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">إجمالي المقبوض</div>
+          <Card className="border-border"><CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">إجمالي المقبوض</div>
             <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString()} SR</div>
           </CardContent></Card>
-          <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-            <div className="text-xs text-[#6B7280]">متوسط السند</div>
-            <div className="font-english font-bold text-[#0B1B49] mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString()} SR</div>
+          <Card className="border-border"><CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">متوسط السند</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString()} SR</div>
           </CardContent></Card>
         </div>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[#0B1B49] flex items-center gap-2"><ReceiptIcon className="h-4 w-4" /> سجل السندات</CardTitle>
+            <CardTitle className="text-foreground flex items-center gap-2"><ReceiptIcon className="h-4 w-4" /> سجل السندات</CardTitle>
             <div className="relative w-64">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
               <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث..." className="pe-9 border-[#E5E7EB]" />
+                placeholder="بحث..." className="pe-9 border-border" />
             </div>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+              <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <ReceiptIcon className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
-                <p className="text-sm text-[#6B7280]">{searchQuery ? "لا نتائج" : "لا توجد سندات قبض بعد"}</p>
+                <p className="text-sm text-muted-foreground">{searchQuery ? "لا نتائج" : "لا توجد سندات قبض بعد"}</p>
               </div>
             ) : (
               <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
@@ -236,7 +236,7 @@ export function Receipts() {
                   <col style={{ width: "100px" }} />
                   <col style={{ width: "120px" }} />
                 </colgroup>
-                <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead className="bg-muted text-xs text-muted-foreground">
                   <tr>
                     <th className="text-start px-4 py-2.5 font-medium">رقم</th>
                     <th className="text-start px-4 py-2.5 font-medium">التاريخ</th>
@@ -249,15 +249,15 @@ export function Receipts() {
                 <tbody>
                   {filtered.map((v) => (
                     <tr key={v.id}
-                      className={`border-t border-[#F3F4F6] cursor-pointer hover:bg-[#F4FCFF] ${selected?.id === v.id ? "bg-[#EFF8FF]" : ""}`}
+                      className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === v.id ? "bg-[#EFF8FF]" : ""}`}
                       onClick={() => openSelected(v)}>
-                      <td className="px-4 py-3 font-english font-semibold text-[#1276E3] truncate" dir="ltr">{v.number}</td>
-                      <td className="px-4 py-3 font-english text-[#374151]" dir="ltr">{v.date.slice(0, 10)}</td>
-                      <td className="px-4 py-3 truncate text-[#0B1B49]">{v.contact?.displayName || "—"}</td>
+                      <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
+                      <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
+                      <td className="px-4 py-3 truncate text-foreground">{v.contact?.displayName || "—"}</td>
                       <td className="px-4 py-3 text-end font-english font-semibold text-green-700" dir="ltr">{Number(v.amount).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-center text-xs text-[#6B7280]">{METHOD_LABELS[v.paymentMethod]}</td>
+                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">{METHOD_LABELS[v.paymentMethod]}</td>
                       <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
-                        <button onClick={() => handlePrint(v)} className="p-1.5 text-[#1276E3] hover:bg-blue-50 rounded" title="طباعة">
+                        <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-blue-50 rounded" title="طباعة">
                           <Printer className="h-4 w-4" />
                         </button>
                       </td>
@@ -272,14 +272,14 @@ export function Receipts() {
 
       {/* DETAIL PANEL */}
       {selected && (
-        <Card className="border-[#E5E7EB] w-[460px] flex-shrink-0 self-start sticky top-4">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-[#F3F4F6]">
+        <Card className="border-border w-[460px] flex-shrink-0 self-start sticky top-4">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/50">
             <div>
-              <div className="font-english font-bold text-[#1276E3]" dir="ltr">{selected.number}</div>
-              <div className="text-xs text-[#6B7280] mt-0.5">{selected.contact?.displayName || "—"}</div>
+              <div className="font-english font-bold text-primary" dir="ltr">{selected.number}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{selected.contact?.displayName || "—"}</div>
             </div>
             <button onClick={() => setSelected(null)} className="p-1 hover:bg-gray-100 rounded">
-              <X className="h-4 w-4 text-[#6B7280]" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
@@ -292,33 +292,33 @@ export function Receipts() {
             </div>
 
             <div className="text-sm space-y-1.5">
-              <div className="flex justify-between"><span className="text-[#6B7280]">التاريخ</span><span className="font-english" dir="ltr">{selected.date.slice(0, 10)}</span></div>
-              {selected.reference && <div className="flex justify-between"><span className="text-[#6B7280]">المرجع</span><span className="font-english text-xs" dir="ltr">{selected.reference}</span></div>}
-              {selected.invoiceId && <div className="flex justify-between"><span className="text-[#6B7280]">فاتورة مرتبطة</span><span className="font-english text-xs text-[#1276E3]" dir="ltr">{selected.invoiceId.slice(-8)}</span></div>}
-              {selected.notes && <div className="pt-2 border-t border-[#F3F4F6] text-xs text-[#374151]">{selected.notes}</div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">التاريخ</span><span className="font-english" dir="ltr">{selected.date.slice(0, 10)}</span></div>
+              {selected.reference && <div className="flex justify-between"><span className="text-muted-foreground">المرجع</span><span className="font-english text-xs" dir="ltr">{selected.reference}</span></div>}
+              {selected.invoiceId && <div className="flex justify-between"><span className="text-muted-foreground">فاتورة مرتبطة</span><span className="font-english text-xs text-primary" dir="ltr">{selected.invoiceId.slice(-8)}</span></div>}
+              {selected.notes && <div className="pt-2 border-t border-border/50 text-xs text-foreground/80">{selected.notes}</div>}
             </div>
 
             {/* Attachments */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs text-[#6B7280] flex items-center gap-1">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <Paperclip className="h-3 w-3" /> المرفقات ({attachments.length})
                 </div>
                 <input ref={fileRef} type="file" hidden
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
-                <button onClick={() => fileRef.current?.click()} className="text-xs text-[#1276E3] hover:underline flex items-center gap-1">
+                <button onClick={() => fileRef.current?.click()} className="text-xs text-primary hover:underline flex items-center gap-1">
                   <Upload className="h-3 w-3" /> رفع
                 </button>
               </div>
               {attachments.length === 0 ? (
-                <div className="text-xs text-[#9CA3AF] text-center py-2 border border-dashed rounded">لا مرفقات</div>
+                <div className="text-xs text-muted-foreground/60 text-center py-2 border border-dashed rounded">لا مرفقات</div>
               ) : (
                 <div className="space-y-1">
                   {attachments.map((a) => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded border border-[#E5E7EB] text-xs">
-                      <Paperclip className="h-3 w-3 text-[#6B7280] flex-shrink-0" />
+                    <div key={a.id} className="flex items-center gap-2 p-2 rounded border border-border text-xs">
+                      <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 truncate">{a.filename}</div>
-                      <a href={a.url} download={a.filename} className="text-[#1276E3] p-1 hover:bg-blue-50 rounded"><Download className="h-3 w-3" /></a>
+                      <a href={a.url} download={a.filename} className="text-primary p-1 hover:bg-blue-50 rounded"><Download className="h-3 w-3" /></a>
                       <button onClick={async () => {
                         try {
                           await api.vouchers.attachments.remove(selected.id, a.id);
@@ -332,14 +332,14 @@ export function Receipts() {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-[#F3F4F6]">
-              <Button onClick={() => handlePrint(selected)} className="bg-[#1276E3] hover:bg-[#1060C0] text-white">
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
+              <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-white">
                 <Printer className="h-4 w-4 me-1" /> طباعة / PDF
               </Button>
               <Button onClick={() => {
                 setEmailForm({ to: (selected.contact as any)?.email || "", subject: "", message: "" });
                 setEmailDialog(true);
-              }} variant="outline" className="border-[#E5E7EB]">
+              }} variant="outline" className="border-border">
                 <Mail className="h-4 w-4 me-1" /> إرسال للعميل
               </Button>
               {pendingDelete === selected.id ? (
@@ -362,12 +362,12 @@ export function Receipts() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between p-5 border-b border-[#F3F4F6]">
-                <h2 className="text-lg text-[#0B1B49] font-bold flex items-center gap-2">
+              <div className="flex items-center justify-between p-5 border-b border-border/50">
+                <h2 className="text-lg text-foreground font-bold flex items-center gap-2">
                   <ReceiptIcon className="h-5 w-5" /> سند قبض جديد
                 </h2>
-                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-[#F3F4F6] rounded">
-                  <X className="h-5 w-5 text-[#6B7280]" />
+                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-muted/50 rounded">
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
               <div className="p-5 space-y-4">
@@ -402,7 +402,7 @@ export function Receipts() {
                         invoiceId: e.target.value,
                         amount: inv ? String(Number(inv.total) - Number(inv.amountPaid || 0)) : form.amount,
                       });
-                    }} className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+                    }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
                       <option value="">— غير مرتبط —</option>
                       {invoices.map((inv) => (
                         <option key={inv.id} value={inv.id}>
@@ -438,7 +438,7 @@ export function Receipts() {
                   <div>
                     <Label className="text-xs">الحساب البنكي المُستلم فيه</Label>
                     <select value={form.bankAccountId} onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
-                      className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+                      className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
                       <option value="">— اختر —</option>
                       {bankAccounts.map((b) => (
                         <option key={b.id} value={b.id}>{b.bankName || b.name} · {b.accountNumber || b.iban}</option>
@@ -458,9 +458,9 @@ export function Receipts() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 p-5 border-t border-[#F3F4F6]">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
-                <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <div className="flex justify-end gap-2 p-5 border-t border-border/50">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">إلغاء</Button>
+                <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
                 </Button>
               </div>
@@ -473,8 +473,8 @@ export function Receipts() {
       {emailDialog && selected && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setEmailDialog(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-[#F3F4F6]">
-              <h2 className="text-lg text-[#0B1B49] font-bold">إرسال السند للعميل</h2>
+            <div className="flex items-center justify-between p-5 border-b border-border/50">
+              <h2 className="text-lg text-foreground font-bold">إرسال السند للعميل</h2>
               <button onClick={() => setEmailDialog(false)} className="p-1 hover:bg-gray-100 rounded"><X className="h-4 w-4" /></button>
             </div>
             <div className="p-5 space-y-3">
@@ -489,12 +489,12 @@ export function Receipts() {
               <div>
                 <Label className="text-xs">رسالة (اختيارية)</Label>
                 <textarea value={emailForm.message} onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
-                  rows={4} className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2" placeholder="رسالة إضافية للعميل..." />
+                  rows={4} className="w-full text-sm rounded border border-border px-3 py-2" placeholder="رسالة إضافية للعميل..." />
               </div>
             </div>
-            <div className="flex justify-end gap-2 p-5 border-t border-[#F3F4F6]">
-              <Button type="button" variant="outline" onClick={() => setEmailDialog(false)} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" onClick={handleEmail} className="bg-[#1276E3] hover:bg-[#1060C0]">
+            <div className="flex justify-end gap-2 p-5 border-t border-border/50">
+              <Button type="button" variant="outline" onClick={() => setEmailDialog(false)} className="border-border">إلغاء</Button>
+              <Button type="button" onClick={handleEmail} className="bg-primary hover:bg-primary/90">
                 <Mail className="h-4 w-4 me-1" /> إرسال
               </Button>
             </div>

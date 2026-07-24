@@ -127,10 +127,10 @@ export function Employees() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الموظفون</h1>
-          <p className="text-[#6B7280] mt-1">سجل الموظفين مربوط بقائمة الاتصال ويستخدم نفس قاعدة البيانات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الموظفون</h1>
+          <p className="text-muted-foreground mt-1">سجل الموظفين مربوط بقائمة الاتصال ويستخدم نفس قاعدة البيانات</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />موظف جديد</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />موظف جديد</Button>
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -141,25 +141,25 @@ export function Employees() {
         <Metric label="موظفون لديهم هوية" value={items.filter((item) => item.nationalId).length.toString()} />
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <CardTitle>سجل الموظفين</CardTitle>
             <div className="relative w-full md:w-72">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الهوية..." className="ps-10 border-[#E5E7EB]" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الهوية..." className="ps-10 border-border" />
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-[#1276E3]" /></div>
+            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
           ) : filtered.length === 0 ? (
-            <div className="py-12 text-center"><Users className="mx-auto h-10 w-10 text-[#9CA3AF]" /><p className="mt-3 text-sm text-[#6B7280]">لا يوجد موظفون مطابقون</p></div>
+            <div className="py-12 text-center"><Users className="mx-auto h-10 w-10 text-muted-foreground/60" /><p className="mt-3 text-sm text-muted-foreground">لا يوجد موظفون مطابقون</p></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px]">
-                <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">الموظف</th>
                   <th className="px-4 py-3 text-start">التواصل</th>
                   <th className="px-4 py-3 text-start">الهوية</th>
@@ -168,17 +168,17 @@ export function Employees() {
                 </tr></thead>
                 <tbody>
                   {filtered.map((item) => (
-                    <tr key={item.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                    <tr key={item.id} className="border-b border-border/50 hover:bg-primary/5">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-[#0B1B49]">{item.displayName}</div>
-                        <div className="text-xs text-[#9CA3AF] font-english">{item.customCode || item.id}</div>
+                        <div className="font-medium text-foreground">{item.displayName}</div>
+                        <div className="text-xs text-muted-foreground/60 font-english">{item.customCode || item.id}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-[#374151]">
+                      <td className="px-4 py-3 text-sm text-foreground/80">
                         <div className="font-english">{item.email || "—"}</div>
-                        <div className="font-english text-[#6B7280]">{item.phone || "—"}</div>
+                        <div className="font-english text-muted-foreground">{item.phone || "—"}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm font-english text-[#374151]">{item.nationalId || "—"}</td>
-                      <td className="px-4 py-3 text-sm font-english text-[#374151]">{item.country}</td>
+                      <td className="px-4 py-3 text-sm font-english text-foreground/80">{item.nationalId || "—"}</td>
+                      <td className="px-4 py-3 text-sm font-english text-foreground/80">{item.country}</td>
                       <td className="px-4 py-3">
                         <button disabled={busy} onClick={() => removeEmployee(item.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50">
                           <Trash2 className="h-4 w-4" />
@@ -196,8 +196,8 @@ export function Employees() {
       <SidePanel open={open} onClose={() => setOpen(false)}>
         <form onSubmit={createEmployee} className="space-y-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#0B1B49]">موظف جديد</h2>
-            <p className="text-sm text-[#6B7280]">الموظف يحفظ كجهة اتصال بدور موظف.</p>
+            <h2 className="text-lg font-semibold text-foreground">موظف جديد</h2>
+            <p className="text-sm text-muted-foreground">الموظف يحفظ كجهة اتصال بدور موظف.</p>
           </div>
           <div className="space-y-2"><Label>الاسم *</Label><Input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="اسم الموظف" /></div>
           <div className="grid grid-cols-2 gap-3">
@@ -237,9 +237,9 @@ export function Employees() {
             <div className="space-y-2"><Label>Bank ID</Label><Input value={form.bankId} onChange={(e) => setForm({ ...form, bankId: e.target.value.toUpperCase() })} dir="ltr" className="font-english" placeholder="RJHI" /></div>
           </div>
           <div className="space-y-2"><Label>ملاحظات</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="المسمى الوظيفي أو القسم" /></div>
-          <div className="flex justify-end gap-2 border-t border-[#E5E7EB] pt-3">
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
           </div>
         </form>
       </SidePanel>
@@ -250,9 +250,9 @@ export function Employees() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
-      <div className="text-xs text-[#6B7280]">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-[#0B1B49] font-english">{value}</div>
+    <div className="rounded-lg border border-border bg-white px-4 py-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>
   );
 }

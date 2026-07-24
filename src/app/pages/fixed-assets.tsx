@@ -63,30 +63,30 @@ export function FixedAssets() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الأصول الثابتة</h1><p className="text-[#6B7280] mt-1">إدارة الأصول مع الإهلاك التلقائي</p></div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />أصل جديد</Button>
+        <div><h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الأصول الثابتة</h1><p className="text-muted-foreground mt-1">إدارة الأصول مع الإهلاك التلقائي</p></div>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />أصل جديد</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي التكلفة</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCost.toLocaleString()}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">إجمالي التكلفة</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCost.toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">الإهلاك المتراكم</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">الإهلاك المتراكم</div>
           <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">صافي القيمة الدفترية</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">صافي القيمة الدفترية</div>
           <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString()}</div>
         </CardContent></Card>
       </div>
 
-      <Card className="border-[#E5E7EB]">
-        <CardHeader><CardTitle className="text-[#0B1B49]">قائمة الأصول · {items.length}</CardTitle></CardHeader>
+      <Card className="border-border">
+        <CardHeader><CardTitle className="text-foreground">قائمة الأصول · {items.length}</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
-           items.length === 0 ? <div className="py-12 text-center"><Building2 className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد أصول ثابتة</p></div> :
+          {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
+           items.length === 0 ? <div className="py-12 text-center"><Building2 className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد أصول ثابتة</p></div> :
           (<div className="overflow-x-auto">
             <table className="w-full table-fixed min-w-[900px] text-sm">
               <colgroup>
@@ -99,7 +99,7 @@ export function FixedAssets() {
                 <col className="w-[110px]" />
               </colgroup>
               <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
                   <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
                   <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التصنيف</th>
@@ -110,12 +110,12 @@ export function FixedAssets() {
                 </tr>
               </thead>
               <tbody>
-                {items.map(a => <tr key={a.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                {items.map(a => <tr key={a.id} className="border-b border-border/50 hover:bg-primary/5">
                   <td className="py-3 px-4">
                     <button
                       type="button"
                       onClick={() => setSelectedAsset(a)}
-                      className="max-w-full truncate font-english text-sm text-[#1276E3] hover:underline"
+                      className="max-w-full truncate font-english text-sm text-primary hover:underline"
                       style={{ fontWeight: 700 }}
                     >
                       {a.code}
@@ -125,19 +125,19 @@ export function FixedAssets() {
                     <button
                       type="button"
                       onClick={() => setSelectedAsset(a)}
-                      className="block max-w-full truncate text-start text-sm text-[#0B1B49] hover:text-[#1276E3] hover:underline"
+                      className="block max-w-full truncate text-start text-sm text-foreground hover:text-primary hover:underline"
                       title={a.name}
                     >
                       {a.name}
                     </button>
                   </td>
-                  <td className="py-3 px-4 text-sm text-[#374151] truncate">{a.category || "—"}</td>
-                  <td className="py-3 px-4 font-english text-xs text-[#6B7280]" dir="ltr">{a.acquisitionDate?.slice(0, 10)}</td>
-                  <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }} dir="ltr">{formatMoney(a.acquisitionCost)}</td>
-                  <td className="py-3 px-4 text-sm text-[#6B7280]">{a.usefulLifeYears} سنة</td>
+                  <td className="py-3 px-4 text-sm text-foreground/80 truncate">{a.category || "—"}</td>
+                  <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{a.acquisitionDate?.slice(0, 10)}</td>
+                  <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }} dir="ltr">{formatMoney(a.acquisitionCost)}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">{a.usefulLifeYears} سنة</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setSelectedAsset(a)} className="rounded-md p-1.5 text-[#1276E3] hover:bg-blue-50" title="فتح الأصل"><Eye className="h-4 w-4" /></button>
+                      <button onClick={() => setSelectedAsset(a)} className="rounded-md p-1.5 text-primary hover:bg-blue-50" title="فتح الأصل"><Eye className="h-4 w-4" /></button>
                       <button onClick={() => handleDelete(a.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف الأصل"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
@@ -149,7 +149,7 @@ export function FixedAssets() {
       </Card>
 
       <SidePanel open={open} onClose={() => setOpen(false)}>
-        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">أصل ثابت جديد</h2></div>
+        <div className="mb-3"><h2 className="text-foreground text-lg font-semibold">أصل ثابت جديد</h2></div>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <div className="grid grid-cols-2 gap-3">
@@ -165,36 +165,36 @@ export function FixedAssets() {
               <div className="space-y-2"><Label>التكلفة *</Label><Input type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>القيمة المتبقية</Label><Input type="number" step="0.01" min="0" value={form.salvageValue} onChange={(e) => setForm({ ...form, salvageValue: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
-            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : "حفظ"}</Button></div>
           </form>
         </SidePanel>
       <SidePanel open={!!selectedAsset} onClose={() => setSelectedAsset(null)}>
         {selectedAsset && (
           <div className="py-4 space-y-4">
             <div>
-              <div className="font-english text-xs text-[#1276E3]" dir="ltr">{selectedAsset.code}</div>
-              <h2 className="text-[#0B1B49] text-lg font-semibold mt-1">{selectedAsset.name}</h2>
-              <p className="text-sm text-[#6B7280] mt-1">{selectedAsset.category || "بدون تصنيف"}</p>
+              <div className="font-english text-xs text-primary" dir="ltr">{selectedAsset.code}</div>
+              <h2 className="text-foreground text-lg font-semibold mt-1">{selectedAsset.name}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{selectedAsset.category || "بدون تصنيف"}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
-                <div className="text-xs text-[#6B7280]">التكلفة</div>
-                <div className="font-english text-[#0B1B49] mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(selectedAsset.acquisitionCost)}</div>
+              <div className="rounded-lg border border-border bg-white p-3">
+                <div className="text-xs text-muted-foreground">التكلفة</div>
+                <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(selectedAsset.acquisitionCost)}</div>
               </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
-                <div className="text-xs text-[#6B7280]">القيمة المتبقية</div>
-                <div className="font-english text-[#0B1B49] mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(selectedAsset.salvageValue)}</div>
+              <div className="rounded-lg border border-border bg-white p-3">
+                <div className="text-xs text-muted-foreground">القيمة المتبقية</div>
+                <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(selectedAsset.salvageValue)}</div>
               </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
-                <div className="text-xs text-[#6B7280]">تاريخ الاقتناء</div>
-                <div className="font-english text-[#0B1B49] mt-1" dir="ltr">{selectedAsset.acquisitionDate?.slice(0, 10)}</div>
+              <div className="rounded-lg border border-border bg-white p-3">
+                <div className="text-xs text-muted-foreground">تاريخ الاقتناء</div>
+                <div className="font-english text-foreground mt-1" dir="ltr">{selectedAsset.acquisitionDate?.slice(0, 10)}</div>
               </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
-                <div className="text-xs text-[#6B7280]">العمر الإنتاجي</div>
-                <div className="text-[#0B1B49] mt-1" style={{ fontWeight: 700 }}>{selectedAsset.usefulLifeYears} سنة</div>
+              <div className="rounded-lg border border-border bg-white p-3">
+                <div className="text-xs text-muted-foreground">العمر الإنتاجي</div>
+                <div className="text-foreground mt-1" style={{ fontWeight: 700 }}>{selectedAsset.usefulLifeYears} سنة</div>
               </div>
             </div>
-            <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm text-[#6B7280]">
+            <div className="rounded-lg border border-border bg-muted p-3 text-sm text-muted-foreground">
               هذا العرض يثبت أن الأصل قابل للفتح من الرمز أو الاسم. ربط الأصل تلقائياً من فاتورة مشتريات يحتاج حفظ حساب السطر/نوع الأصل في بيانات سطور المشتريات.
             </div>
           </div>

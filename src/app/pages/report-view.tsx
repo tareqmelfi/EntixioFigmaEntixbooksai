@@ -80,13 +80,13 @@ export function ReportView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <button onClick={() => navigate("/app/reports")} className="mb-2 inline-flex items-center gap-2 text-sm text-[#6B7280] hover:text-[#0B1B49]">
+          <button onClick={() => navigate("/app/reports")} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowRight className="h-4 w-4" /> التقارير
           </button>
-          <h1 className="text-2xl font-bold text-[#0B1B49]">{report?.title || "تقرير"}</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">{report?.englishTitle || "Live report"}</p>
+          <h1 className="text-2xl font-bold text-foreground">{report?.title || "تقرير"}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{report?.englishTitle || "Live report"}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setDemo((value) => !value)}>
@@ -104,18 +104,18 @@ export function ReportView() {
         </div>
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-          <label className="space-y-1 text-sm text-[#374151]">
+          <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">من تاريخ</span>
-            <input value={from} onChange={(event) => setFrom(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-[#E5E7EB] px-3 outline-none focus:border-[#1276E3]" />
+            <input value={from} onChange={(event) => setFrom(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-[#1276E3]" />
           </label>
-          <label className="space-y-1 text-sm text-[#374151]">
+          <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">إلى تاريخ</span>
-            <input value={to} onChange={(event) => setTo(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-[#E5E7EB] px-3 outline-none focus:border-[#1276E3]" />
+            <input value={to} onChange={(event) => setTo(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-[#1276E3]" />
           </label>
-          <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-sm text-[#374151]">
-            الحالة: <span className="font-semibold text-[#0B1B49]">{report?.status === "demo" ? "ديمو" : report?.status === "live" ? "لايف" : "فارغ"}</span>
+          <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
+            الحالة: <span className="font-semibold text-foreground">{report?.status === "demo" ? "ديمو" : report?.status === "live" ? "لايف" : "فارغ"}</span>
           </div>
         </CardContent>
       </Card>
@@ -123,9 +123,9 @@ export function ReportView() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {loading ? (
-        <div className="rounded-xl border border-[#E5E7EB] bg-white py-20 text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#1276E3]" />
-          <div className="mt-3 text-sm text-[#6B7280]">جاري تحميل التقرير...</div>
+        <div className="rounded-xl border border-border bg-white py-20 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <div className="mt-3 text-sm text-muted-foreground">جاري تحميل التقرير...</div>
         </div>
       ) : report ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -133,20 +133,20 @@ export function ReportView() {
             <ReportDocument report={report} settings={settings} onRowClick={setSelectedRow} />
           </div>
           <aside className="space-y-3">
-            <Card className="border-[#E5E7EB]">
+            <Card className="border-border">
               <CardContent className="p-4">
-                <h2 className="text-lg font-bold text-[#0B1B49]">تفاصيل الصف</h2>
+                <h2 className="text-lg font-bold text-foreground">تفاصيل الصف</h2>
                 {selectedRow ? (
                   <div className="mt-4 space-y-3">
                     <div className="rounded-lg bg-[#F8FAFC] p-3">
-                      <div className="text-sm font-semibold text-[#0B1B49]">{selectedRow.label}</div>
-                      {selectedRow.note && <div className="mt-1 text-xs leading-5 text-[#6B7280]">{selectedRow.note}</div>}
+                      <div className="text-sm font-semibold text-foreground">{selectedRow.label}</div>
+                      {selectedRow.note && <div className="mt-1 text-xs leading-5 text-muted-foreground">{selectedRow.note}</div>}
                     </div>
                     <div className="space-y-2">
                       {Object.entries(selectedRow.values).map(([key, value]) => (
                         <div key={key} className="flex items-center justify-between gap-3 border-b border-[#EEF2F7] pb-2 text-sm">
-                          <span className="text-[#6B7280]">{key}</span>
-                          <span className="font-semibold text-[#0B1B49]">{String(value ?? "—")}</span>
+                          <span className="text-muted-foreground">{key}</span>
+                          <span className="font-semibold text-foreground">{String(value ?? "—")}</span>
                         </div>
                       ))}
                     </div>
@@ -157,7 +157,7 @@ export function ReportView() {
                     )}
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm leading-6 text-[#6B7280]">اضغط على أي صف داخل التقرير لعرض تفاصيله والانتقال للمستند أو الحساب المرتبط.</p>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">اضغط على أي صف داخل التقرير لعرض تفاصيله والانتقال للمستند أو الحساب المرتبط.</p>
                 )}
               </CardContent>
             </Card>

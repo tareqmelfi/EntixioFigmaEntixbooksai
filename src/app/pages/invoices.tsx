@@ -434,12 +434,12 @@ export function Invoices() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
               <div className="flex items-center gap-2">
-                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
                   {busy ? "..." : "حفظ كمسودة"}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-[#1276E3] text-[#1276E3] hover:bg-blue-50" title="اعتماد + قفل التعديل">
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-[#1276E3] text-primary hover:bg-blue-50" title="اعتماد + قفل التعديل">
                   {busy ? "..." : "اعتماد"}
                 </Button>
                 <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title="إرسال للعميل بالبريد">
@@ -455,7 +455,7 @@ export function Invoices() {
             {/* Top row · 6 fields per Wafeq screenshot · 2026-05-05 */}
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">جهة الاتصال *</Label>
+                <Label className="text-foreground/80 text-xs">جهة الاتصال *</Label>
                 <SearchableCombobox
                   value={form.contactId}
                   onChange={(id) => {
@@ -476,34 +476,34 @@ export function Invoices() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-8 text-xs" />
+                <Label className="text-foreground/80 text-xs">تاريخ الإصدار *</Label>
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">تاريخ الاستحقاق *</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-8 text-xs" />
+                <Label className="text-foreground/80 text-xs">تاريخ الاستحقاق *</Label>
+                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-border font-english h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">رقم الفاتورة</Label>
+                <Label className="text-foreground/80 text-xs">رقم الفاتورة</Label>
                 <Input value={form.invoiceNumber} onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })}
-                  placeholder="# تلقائي" dir="ltr" className="border-[#E5E7EB] font-english h-8 text-xs" />
+                  placeholder="# تلقائي" dir="ltr" className="border-border font-english h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">المرجع</Label>
-                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع العميل" className="border-[#E5E7EB] h-8 text-xs" />
+                <Label className="text-foreground/80 text-xs">المرجع</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع العميل" className="border-border h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">الدفع الإلكتروني</Label>
+                <Label className="text-foreground/80 text-xs">الدفع الإلكتروني</Label>
                 <button
                   type="button"
                   onClick={() => { window.location.href = "/app/settings?tab=payments"; }}
-                  className="w-full h-8 rounded-md border border-[#E5E7EB] bg-white px-2.5 text-xs flex items-center justify-between hover:border-[#1276E3]"
+                  className="w-full h-8 rounded-md border border-border bg-white px-2.5 text-xs flex items-center justify-between hover:border-[#1276E3]"
                 >
                   <span className="flex items-center gap-1">
                     <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded">MC</span>
                     <span className="bg-blue-600 text-white text-[10px] font-bold px-1 rounded">VISA</span>
                   </span>
-                  <span className="text-[#1276E3]">إعداد الدفع</span>
+                  <span className="text-primary">إعداد الدفع</span>
                 </button>
               </div>
             </div>
@@ -511,18 +511,18 @@ export function Invoices() {
             {/* Second row · currency + tax mode + brand template + documents button */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">العملة</Label>
+                <Label className="text-foreground/80 text-xs">العملة</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">المبالغ</Label>
+                <Label className="text-foreground/80 text-xs">المبالغ</Label>
                 <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
-                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs leading-tight"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-border text-xs leading-tight"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all-exclusive" className="text-xs">غير شاملة الضريبة</SelectItem>
                     <SelectItem value="all-inclusive" className="text-xs">شاملة الضريبة</SelectItem>
@@ -531,16 +531,16 @@ export function Invoices() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">قالب العلامة التجارية</Label>
+                <Label className="text-foreground/80 text-xs">قالب العلامة التجارية</Label>
                 <Select value={form.brandTemplate} onValueChange={(v) => setForm({ ...form, brandTemplate: v })}>
-                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {BRAND_TEMPLATES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[#374151] text-xs">شروط الدفع</Label>
+                <Label className="text-foreground/80 text-xs">شروط الدفع</Label>
                 <Select value={form.paymentTerms} onValueChange={(v) => {
                   const t = PAYMENT_TERMS.find((p) => p.value === v);
                   if (t) {
@@ -551,7 +551,7 @@ export function Invoices() {
                     setForm({ ...form, paymentTerms: v });
                   }
                 }}>
-                  <SelectTrigger className="h-8 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PAYMENT_TERMS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
@@ -626,34 +626,34 @@ export function Invoices() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[#374151] text-xs">شروط الدفع · ملاحظة للعميل</Label>
+                  <Label className="text-foreground/80 text-xs">شروط الدفع · ملاحظة للعميل</Label>
                   <textarea
                     rows={3}
                     placeholder="مثلاً: الدفع خلال 30 يوم من تاريخ الفاتورة عبر تحويل بنكي..."
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm"
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">الإجمالي</Label>
-                <div className="rounded-lg border border-[#E5E7EB] bg-white p-4 space-y-2">
+                <Label className="text-foreground/80 text-xs">الإجمالي</Label>
+                <div className="rounded-lg border border-border bg-white p-4 space-y-2">
                   {(() => {
                     const totals = computeTotals(lines);
                     return (
                       <>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-[#6B7280]">المجموع الفرعي</span>
-                          <span className="font-english text-[#0B1B49]">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                          <span className="text-muted-foreground">المجموع الفرعي</span>
+                          <span className="font-english text-foreground">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-[#6B7280]">ضريبة القيمة المضافة (15%)</span>
-                          <span className="font-english text-[#0B1B49]">{form.currency} {totals.tax.toFixed(2)}</span>
+                          <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
+                          <span className="font-english text-foreground">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
-                          <span className="text-[#0B1B49]" style={{ fontWeight: 600 }}>الإجمالي:</span>
-                          <span className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="text-foreground" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                             {form.currency} {totals.total.toFixed(2)}
                           </span>
                         </div>
@@ -670,8 +670,8 @@ export function Invoices() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeRecordPayment}>
           <div className="bg-white rounded-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#0B1B49]" style={{ fontWeight: 700, fontSize: "1.05rem" }}>💰 تسجيل دفعة على {payFor.invoiceNumber}</h3>
-              <button onClick={closeRecordPayment} className="text-[#9CA3AF]">✕</button>
+              <h3 className="text-foreground" style={{ fontWeight: 700, fontSize: "1.05rem" }}>💰 تسجيل دفعة على {payFor.invoiceNumber}</h3>
+              <button onClick={closeRecordPayment} className="text-muted-foreground/60">✕</button>
             </div>
             <div className="space-y-3">
               <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900">
@@ -680,13 +680,13 @@ export function Invoices() {
                 {" · "}المتبقي: <span className="font-english font-semibold">{(Number(payFor.total) - Number(payFor.amountPaid || 0)).toFixed(2)}</span>
               </div>
               <div>
-                <label className="text-xs text-[#374151]">المبلغ *</label>
-                <input value={payForm.amount} onChange={(e) => setPayForm({...payForm, amount: normalizeDigits(e.target.value)})} dir="ltr" className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm font-english" />
+                <label className="text-xs text-foreground/80">المبلغ *</label>
+                <input value={payForm.amount} onChange={(e) => setPayForm({...payForm, amount: normalizeDigits(e.target.value)})} dir="ltr" className="w-full rounded-md border border-border px-3 py-2 text-sm font-english" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#374151]">طريقة الدفع</label>
-                  <select value={payForm.method} onChange={(e) => setPayForm({...payForm, method: e.target.value})} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                  <label className="text-xs text-foreground/80">طريقة الدفع</label>
+                  <select value={payForm.method} onChange={(e) => setPayForm({...payForm, method: e.target.value})} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                     <option value="BANK_TRANSFER">تحويل بنكي</option>
                     <option value="CASH">نقدي</option>
                     <option value="CARD">بطاقة</option>
@@ -696,17 +696,17 @@ export function Invoices() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-[#374151]">التاريخ</label>
-                  <input type="date" value={payForm.date} onChange={(e) => setPayForm({...payForm, date: e.target.value})} dir="ltr" className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm font-english" />
+                  <label className="text-xs text-foreground/80">التاريخ</label>
+                  <input type="date" value={payForm.date} onChange={(e) => setPayForm({...payForm, date: e.target.value})} dir="ltr" className="w-full rounded-md border border-border px-3 py-2 text-sm font-english" />
                 </div>
               </div>
               <div>
-                <label className="text-xs text-[#374151]">ملاحظات</label>
-                <input value={payForm.notes} onChange={(e) => setPayForm({...payForm, notes: e.target.value})} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
+                <label className="text-xs text-foreground/80">ملاحظات</label>
+                <input value={payForm.notes} onChange={(e) => setPayForm({...payForm, notes: e.target.value})} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-5">
-              <button onClick={closeRecordPayment} className="px-4 py-2 rounded-md border border-[#E5E7EB] text-sm">إلغاء</button>
+              <button onClick={closeRecordPayment} className="px-4 py-2 rounded-md border border-border text-sm">إلغاء</button>
               <button onClick={handleRecordPayment} disabled={payBusy} className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm" style={{fontWeight:600}}>
                 {payBusy ? "..." : "حفظ الدفعة + إنشاء سند قبض"}
               </button>
@@ -782,8 +782,8 @@ export function Invoices() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button type="button" variant="outline" onClick={closeSign} className="border-border">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
                 <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
               </Button>
             </div>
@@ -798,8 +798,8 @@ export function Invoices() {
                 <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
             </div>
             <div className="space-y-2"><Label>الرسالة المرفقة</Label>
-              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
-            <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
+              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-border px-3 py-2 text-sm" /></div>
+            <p className="text-xs text-muted-foreground">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -816,39 +816,39 @@ export function Invoices() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المبيعات</h1>
-          <p className="text-[#6B7280] mt-1">إدارة فواتير العملاء</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المبيعات</h1>
+          <p className="text-muted-foreground mt-1">إدارة فواتير العملاء</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
       </div>
 
       <div className={`grid grid-cols-1 ${splitMode ? "md:grid-cols-2" : "md:grid-cols-4"} gap-4`}>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">إجمالي الفواتير</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">المُحصَّل</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">المُحصَّل</div>
           <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">المستحق</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">المستحق</div>
           <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">عدد الفواتير</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">عدد الفواتير</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
       </div>
 
       <div className={`grid grid-cols-1 ${splitMode ? "lg:grid-cols-[1fr_1.2fr]" : ""} gap-4`}>
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <CardTitle className="text-[#0B1B49]">قائمة الفواتير</CardTitle>
+            <CardTitle className="text-foreground">قائمة الفواتير</CardTitle>
             <div className="flex items-center gap-3">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-40 border-border text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">الكل · {items.length}</SelectItem>
                   {Object.entries(STATUS_LABELS).map(([s, label]) => (
@@ -856,14 +856,14 @@ export function Invoices() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-56 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-56 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
-            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد فواتير</p></div>
+            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير</p></div>
           ) : (
             <table className="w-full table-fixed">
               <colgroup>
@@ -876,7 +876,7 @@ export function Invoices() {
                 {!splitMode && <col style={{ width: "11%" }} />}{/* المتبقي */}
                 <col style={{ width: "12%" }} />{/* إجراءات */}
               </colgroup>
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
                 {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>}
@@ -891,12 +891,12 @@ export function Invoices() {
                   <tr
                     key={i.id}
                     onClick={() => setPreviewId(previewId === i.id ? null : i.id)}
-                    className={`border-b border-[#F3F4F6] cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-[#F4FCFF]"}`}
+                    className={`border-b border-border/50 cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-primary/5"}`}
                   >
-                    <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-[#1276E3] inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
-                    <td className="py-3 px-4 text-sm text-[#374151] w-full max-w-0" title={i.contact?.displayName || ""}><span className="block truncate">{i.contact?.displayName || "—"}</span></td>
-                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
-                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
+                    <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 w-full max-w-0" title={i.contact?.displayName || ""}><span className="block truncate">{i.contact?.displayName || "—"}</span></td>
+                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
+                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
                         <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span>
@@ -907,13 +907,13 @@ export function Invoices() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-[#0B1B49] inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-[#9CA3AF]">{i.currency}</span></span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>}
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
                         {/* SENT/APPROVED → Sign button */}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
-                          <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
+                          <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
                           </button>
                         )}

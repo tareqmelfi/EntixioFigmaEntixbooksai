@@ -550,9 +550,9 @@ function renderStoredAttachment(expense: ApiExpense) {
   const attachment = selectedAttachment(expense);
   if (!attachment) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] bg-[#F9FAFB] text-center">
-        <FileImage className="mb-3 h-10 w-10 text-[#9CA3AF]" />
-        <p className="text-sm text-[#6B7280]">لا يوجد مرفق محفوظ لهذا المصروف</p>
+      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted text-center">
+        <FileImage className="mb-3 h-10 w-10 text-muted-foreground/60" />
+        <p className="text-sm text-muted-foreground">لا يوجد مرفق محفوظ لهذا المصروف</p>
       </div>
     );
   }
@@ -568,10 +568,10 @@ function renderStoredAttachment(expense: ApiExpense) {
     return <iframe title={attachment.name} src={attachment.url} className="h-[620px] w-full rounded-lg bg-white" />;
   }
   return (
-    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-center">
-      <FileImage className="mb-3 h-10 w-10 text-[#1276E3]" />
-      <p className="font-english text-sm text-[#0B1B49]">{attachment.name}</p>
-      <p className="mt-1 text-xs text-[#6B7280]">المرفق محفوظ، لكن هذه الصيغة لا تظهر مباشرة داخل المتصفح.</p>
+    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-border bg-muted text-center">
+      <FileImage className="mb-3 h-10 w-10 text-primary" />
+      <p className="font-english text-sm text-foreground">{attachment.name}</p>
+      <p className="mt-1 text-xs text-muted-foreground">المرفق محفوظ، لكن هذه الصيغة لا تظهر مباشرة داخل المتصفح.</p>
     </div>
   );
 }
@@ -961,8 +961,8 @@ export function Expenses() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : editingId ? "تحديث" : "حفظ"}
               </Button>
             </div>
@@ -980,20 +980,20 @@ export function Expenses() {
 
             <div className="space-y-4">
               {hasActiveDraft && (
-                <div className="rounded-lg border border-[#D7F0FF] bg-white px-3 py-3 text-sm text-[#0B1B49]">
+                <div className="rounded-lg border border-[#D7F0FF] bg-white px-3 py-3 text-sm text-foreground">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 font-semibold">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                         <span>مسودة محفوظة تلقائياً</span>
-                        {savedAtLabel && <span className="font-english text-xs font-normal text-[#6B7280]">{savedAtLabel}</span>}
+                        {savedAtLabel && <span className="font-english text-xs font-normal text-muted-foreground">{savedAtLabel}</span>}
                       </div>
-                      <p className="mt-1 text-xs text-[#6B7280]">لو رجعت للقائمة أو قفلت الشاشة، ترجع تكمل نفس المصروف من زر المسودة.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">لو رجعت للقائمة أو قفلت الشاشة، ترجع تكمل نفس المصروف من زر المسودة.</p>
                     </div>
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-8 border-[#E5E7EB] text-xs"
+                      className="h-8 border-border text-xs"
                       onClick={() => {
                         clearExpenseDraft();
                         setFormData(emptyForm());
@@ -1006,16 +1006,16 @@ export function Expenses() {
                       حذف المسودة وبدء جديد
                     </Button>
                   </div>
-                  {draftNotice && <div className="mt-2 rounded-md bg-[#F4FCFF] px-2 py-1 text-xs text-[#0B5CAD]">{draftNotice}</div>}
+                  {draftNotice && <div className="mt-2 rounded-md bg-primary/5 px-2 py-1 text-xs text-[#0B5CAD]">{draftNotice}</div>}
                 </div>
               )}
               {extractionSummary && (
-                <div className="rounded-lg border border-[#D7F0FF] bg-[#F4FCFF] px-3 py-3 text-sm text-[#0B1B49]">
+                <div className="rounded-lg border border-[#D7F0FF] bg-primary/5 px-3 py-3 text-sm text-foreground">
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="font-semibold">تمت قراءة المرفق وتعبئة بيانات المورد والضريبة والأصناف</div>
-                      <div className="mt-1 text-xs text-[#6B7280]">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         <span className="font-english">{extractionSummary.fileName}</span>
                         {extractionSummary.vendor ? <> · {extractionSummary.vendor}</> : null}
                         {extractionSummary.documentNumber ? <> · رقم <span className="font-english">{extractionSummary.documentNumber}</span></> : null}
@@ -1045,36 +1045,36 @@ export function Expenses() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">المورد / الجهة</Label>
-                  <Input placeholder="مثال: شركة الكهرباء" value={formData.vendorName} onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })} className="border-[#E5E7EB]" />
-                  <p className="text-xs text-[#6B7280]">إذا لم يكن المورد مسجلاً سيتم إنشاؤه تلقائياً كجهة موردة.</p>
+                  <Label className="text-foreground/80">المورد / الجهة</Label>
+                  <Input placeholder="مثال: شركة الكهرباء" value={formData.vendorName} onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })} className="border-border" />
+                  <p className="text-xs text-muted-foreground">إذا لم يكن المورد مسجلاً سيتم إنشاؤه تلقائياً كجهة موردة.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">الرقم الضريبي للمورد</Label>
-                  <Input dir="ltr" placeholder="300000000000003" value={formData.supplierTaxId} onChange={(e) => setFormData({ ...formData, supplierTaxId: normalizeDigits(e.target.value) })} className="border-[#E5E7EB] font-english" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="text-[#374151]">التصنيف *</Label>
-                  <Input placeholder="مثال: ضيافة ووجبات · فواتير خدمات" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-[#E5E7EB]" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[#374151]">رقم الفاتورة / الإيصال</Label>
-                  <Input dir="ltr" placeholder="429299" value={formData.documentNumber} onChange={(e) => setFormData({ ...formData, documentNumber: normalizeDigits(e.target.value) })} className="border-[#E5E7EB] font-english" />
+                  <Label className="text-foreground/80">الرقم الضريبي للمورد</Label>
+                  <Input dir="ltr" placeholder="300000000000003" value={formData.supplierTaxId} onChange={(e) => setFormData({ ...formData, supplierTaxId: normalizeDigits(e.target.value) })} className="border-border font-english" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">التاريخ *</Label>
-                  <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" />
+                  <Label className="text-foreground/80">التصنيف *</Label>
+                  <Input placeholder="مثال: ضيافة ووجبات · فواتير خدمات" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-border" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">طريقة الدفع *</Label>
+                  <Label className="text-foreground/80">رقم الفاتورة / الإيصال</Label>
+                  <Input dir="ltr" placeholder="429299" value={formData.documentNumber} onChange={(e) => setFormData({ ...formData, documentNumber: normalizeDigits(e.target.value) })} className="border-border font-english" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-foreground/80">التاريخ *</Label>
+                  <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} required dir="ltr" className="border-border font-english" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground/80">طريقة الدفع *</Label>
                   <Select value={formData.paymentMethod} onValueChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}>
-                    <SelectTrigger className="border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="CASH">نقداً</SelectItem>
                       <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
@@ -1090,32 +1090,32 @@ export function Expenses() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">قبل الضريبة *</Label>
+                  <Label className="text-foreground/80">قبل الضريبة *</Label>
                   <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.amount} onChange={(e) => {
                     const amount = normalizeDigits(e.target.value);
                     const tax = Number(normalizeDigits(formData.taxAmount || "0"));
                     setFormData({ ...formData, amount, totalAmount: String((Number(amount || 0) + tax).toFixed(2)) });
-                  }} required dir="ltr" className="border-[#E5E7EB] font-english" />
+                  }} required dir="ltr" className="border-border font-english" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">ضريبة VAT</Label>
+                  <Label className="text-foreground/80">ضريبة VAT</Label>
                   <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.taxAmount} onChange={(e) => {
                     const taxAmount = normalizeDigits(e.target.value);
                     const amount = Number(normalizeDigits(formData.amount || "0"));
                     setFormData({ ...formData, taxAmount, totalAmount: String((amount + Number(taxAmount || 0)).toFixed(2)) });
-                  }} dir="ltr" className="border-[#E5E7EB] font-english" />
+                  }} dir="ltr" className="border-border font-english" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[#374151]">الإجمالي</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: normalizeDigits(e.target.value) })} dir="ltr" className="border-[#E5E7EB] font-english" />
+                  <Label className="text-foreground/80">الإجمالي</Label>
+                  <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: normalizeDigits(e.target.value) })} dir="ltr" className="border-border font-english" />
                 </div>
               </div>
 
               <div className="rounded-lg border border-[#BFDBFE] bg-[#F8FBFF] p-3">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-[#0B1B49]">تسوية العملة والدفع الفعلي</h3>
-                    <p className="text-xs text-[#6B7280]">افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.</p>
+                    <h3 className="text-sm font-semibold text-foreground">تسوية العملة والدفع الفعلي</h3>
+                    <p className="text-xs text-muted-foreground">افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.</p>
                   </div>
                   {currencySettlement.isCrossCurrency && (
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${currencySettlement.difference > 0 ? "bg-amber-100 text-amber-800" : currencySettlement.difference < 0 ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>
@@ -1125,7 +1125,7 @@ export function Expenses() {
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-[#374151]">عملة الفاتورة</Label>
+                    <Label className="text-xs text-foreground/80">عملة الفاتورة</Label>
                     <Select value={formData.sourceCurrency} onValueChange={(sourceCurrency) => {
                       const exchangeRate = String(defaultExchangeRate(sourceCurrency, formData.baseCurrency));
                       const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
@@ -1136,12 +1136,12 @@ export function Expenses() {
                         actualPaidAmount: sourceCurrency === formData.baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
                       });
                     }}>
-                      <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-[#374151]">عملة الدفاتر</Label>
+                    <Label className="text-xs text-foreground/80">عملة الدفاتر</Label>
                     <Select value={formData.baseCurrency} onValueChange={(baseCurrency) => {
                       const exchangeRate = String(defaultExchangeRate(formData.sourceCurrency, baseCurrency));
                       const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
@@ -1153,43 +1153,43 @@ export function Expenses() {
                         actualPaidAmount: formData.sourceCurrency === baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
                       });
                     }}>
-                      <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-[#374151]">سعر السوق / العادل</Label>
-                    <Input dir="ltr" inputMode="decimal" value={formData.exchangeRate} onChange={(e) => setFormData({ ...formData, exchangeRate: normalizeDigits(e.target.value) })} className="h-9 border-[#E5E7EB] font-english text-sm" />
+                    <Label className="text-xs text-foreground/80">سعر السوق / العادل</Label>
+                    <Input dir="ltr" inputMode="decimal" value={formData.exchangeRate} onChange={(e) => setFormData({ ...formData, exchangeRate: normalizeDigits(e.target.value) })} className="h-9 border-border font-english text-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-[#374151]">المسحوب فعلياً</Label>
-                    <Input dir="ltr" inputMode="decimal" placeholder={String(currencySettlement.bookBaseAmount || 0)} value={formData.actualPaidAmount} onChange={(e) => setFormData({ ...formData, actualPaidAmount: normalizeDigits(e.target.value) })} className="h-9 border-[#E5E7EB] font-english text-sm" />
+                    <Label className="text-xs text-foreground/80">المسحوب فعلياً</Label>
+                    <Input dir="ltr" inputMode="decimal" placeholder={String(currencySettlement.bookBaseAmount || 0)} value={formData.actualPaidAmount} onChange={(e) => setFormData({ ...formData, actualPaidAmount: normalizeDigits(e.target.value) })} className="h-9 border-border font-english text-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-[#374151]">عملة السحب</Label>
+                    <Label className="text-xs text-foreground/80">عملة السحب</Label>
                     <Select value={formData.actualPaidCurrency} onValueChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}>
-                      <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr]">
-                  <div className="rounded-md border border-[#E5E7EB] bg-white p-2">
-                    <p className="text-[11px] text-[#6B7280]">إجمالي الفاتورة</p>
-                    <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(currencySettlement.sourceTotal, currencySettlement.sourceCurrency)}</p>
+                  <div className="rounded-md border border-border bg-white p-2">
+                    <p className="text-[11px] text-muted-foreground">إجمالي الفاتورة</p>
+                    <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.sourceTotal, currencySettlement.sourceCurrency)}</p>
                   </div>
-                  <div className="rounded-md border border-[#E5E7EB] bg-white p-2">
-                    <p className="text-[11px] text-[#6B7280]">القيمة العادلة</p>
-                    <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(currencySettlement.bookBaseAmount, currencySettlement.baseCurrency)}</p>
+                  <div className="rounded-md border border-border bg-white p-2">
+                    <p className="text-[11px] text-muted-foreground">القيمة العادلة</p>
+                    <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.bookBaseAmount, currencySettlement.baseCurrency)}</p>
                   </div>
-                  <div className="rounded-md border border-[#E5E7EB] bg-white p-2">
-                    <p className="text-[11px] text-[#6B7280]">السحب البنكي</p>
-                    <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</p>
+                  <div className="rounded-md border border-border bg-white p-2">
+                    <p className="text-[11px] text-muted-foreground">السحب البنكي</p>
+                    <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-[#374151]">معالجة الفرق</Label>
+                    <Label className="text-xs text-foreground/80">معالجة الفرق</Label>
                     <Select value={formData.fxTreatment} onValueChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}>
-                      <SelectTrigger className="h-9 border-[#E5E7EB] bg-white text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 border-border bg-white text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.entries(FX_TREATMENT_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                       </SelectContent>
@@ -1198,16 +1198,16 @@ export function Expenses() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[#E5E7EB] bg-white">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] px-3 py-2">
+              <div className="rounded-lg border border-border bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-[#0B1B49]">تقسيم البنود</h3>
-                    <p className="text-xs text-[#6B7280]">راجع الأصناف المقروءة وعدل الحساب لكل بند قبل الحفظ.</p>
+                    <h3 className="text-sm font-semibold text-foreground">تقسيم البنود</h3>
+                    <p className="text-xs text-muted-foreground">راجع الأصناف المقروءة وعدل الحساب لكل بند قبل الحفظ.</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-8 border-[#E5E7EB] text-xs"
+                    className="h-8 border-border text-xs"
                     onClick={() => setFormData((f) => ({
                       ...f,
                       lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, discountAmount: 0, taxRate: 0.15, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة", costCenter: "", projectCode: "", sourceCurrency: f.sourceCurrency }],
@@ -1218,7 +1218,7 @@ export function Expenses() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1180px] text-sm">
-                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                    <thead className="bg-muted text-xs text-muted-foreground">
                       <tr>
                         <th className="px-2 py-2 text-start">الوصف</th>
                         <th className="px-2 py-2 text-start">التصنيف</th>
@@ -1235,55 +1235,55 @@ export function Expenses() {
                     </thead>
                     <tbody>
                       {formData.lineItems.length === 0 && (
-                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-[#6B7280]">لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.</td></tr>
+                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.</td></tr>
                       )}
                       {formData.lineItems.map((line, idx) => (
-                        <tr key={idx} className="border-t border-[#F3F4F6]">
+                        <tr key={idx} className="border-t border-border/50">
                           <td className="px-2 py-2">
                             <Input value={line.description || ""} onChange={(e) => {
                               const description = e.target.value;
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, description, category: item.category || inferLineCategory(description), accountName: item.accountName || suggestLineAccount(description) } : item) }));
-                            }} className="h-8 border-[#E5E7EB]" />
+                            }} className="h-8 border-border" />
                           </td>
                           <td className="px-2 py-2">
-                            <Input value={line.category || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, category: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                            <Input value={line.category || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, category: e.target.value } : item) }))} className="h-8 border-border" />
                           </td>
                           <td className="px-2 py-2">
-                            <Input value={line.accountName || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountName: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                            <Input value={line.accountName || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountName: e.target.value } : item) }))} className="h-8 border-border" />
                           </td>
                           <td className="px-2 py-2">
                             <div className="grid grid-cols-2 gap-1">
-                              <Input placeholder="Project" value={line.projectCode || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, projectCode: e.target.value } : item) }))} className="h-8 border-[#E5E7EB] font-english" />
-                              <Input placeholder="Cost center" value={line.costCenter || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, costCenter: e.target.value } : item) }))} className="h-8 border-[#E5E7EB]" />
+                              <Input placeholder="Project" value={line.projectCode || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, projectCode: e.target.value } : item) }))} className="h-8 border-border font-english" />
+                              <Input placeholder="Cost center" value={line.costCenter || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, costCenter: e.target.value } : item) }))} className="h-8 border-border" />
                             </div>
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.quantity || 1)} onChange={(e) => {
                               const quantity = Number(normalizeDigits(e.target.value || "1"));
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, quantity, lineTotal: Math.max(0, quantity * Number(item.unitPrice || 0) - Number(item.discountAmount || 0)) } : item) }));
-                            }} className="h-8 w-20 border-[#E5E7EB] font-english" />
+                            }} className="h-8 w-20 border-border font-english" />
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.unitPrice || 0)} onChange={(e) => {
                               const unitPrice = Number(normalizeDigits(e.target.value || "0"));
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, unitPrice, lineTotal: Math.max(0, Number(item.quantity || 1) * unitPrice - Number(item.discountAmount || 0)) } : item) }));
-                            }} className="h-8 w-24 border-[#E5E7EB] font-english" />
+                            }} className="h-8 w-24 border-border font-english" />
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.discountAmount || 0)} onChange={(e) => {
                               const discountAmount = Number(normalizeDigits(e.target.value || "0"));
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, discountAmount, lineTotal: Math.max(0, Number(item.quantity || 1) * Number(item.unitPrice || 0) - discountAmount) } : item) }));
-                            }} className="h-8 w-20 border-[#E5E7EB] font-english" />
+                            }} className="h-8 w-20 border-border font-english" />
                           </td>
                           <td className="px-2 py-2">
                             <Input dir="ltr" inputMode="decimal" value={String(line.taxRate ?? 0.15)} onChange={(e) => {
                               const taxRate = Number(normalizeDigits(e.target.value || "0"));
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxRate } : item) }));
-                            }} className="h-8 w-20 border-[#E5E7EB] font-english" />
+                            }} className="h-8 w-20 border-border font-english" />
                           </td>
                           <td className="px-2 py-2">
                             <Select value={line.taxInclusive ? "yes" : "no"} onValueChange={(value) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxInclusive: value === "yes" } : item) }))}>
-                              <SelectTrigger className="h-8 w-20 border-[#E5E7EB] text-xs"><SelectValue /></SelectTrigger>
+                              <SelectTrigger className="h-8 w-20 border-border text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="yes">شامل</SelectItem>
                                 <SelectItem value="no">غير شامل</SelectItem>
@@ -1303,16 +1303,16 @@ export function Expenses() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[#E5E7EB] bg-white">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F3F4F6] px-3 py-2">
+              <div className="rounded-lg border border-border bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-[#0B1B49]">تقسيم المدفوعات</h3>
-                    <p className="text-xs text-[#6B7280]">يدعم الدفع الجزئي: كاش + بطاقة + تحويل.</p>
+                    <h3 className="text-sm font-semibold text-foreground">تقسيم المدفوعات</h3>
+                    <p className="text-xs text-muted-foreground">يدعم الدفع الجزئي: كاش + بطاقة + تحويل.</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-8 border-[#E5E7EB] text-xs"
+                    className="h-8 border-border text-xs"
                     onClick={() => setFormData((f) => ({ ...f, paymentSplits: [...f.paymentSplits, { method: "CASH", amount: 0, currency: f.actualPaidCurrency, reference: null }] }))}
                   >
                     <Plus className="me-1 h-3.5 w-3.5" /> إضافة دفعة
@@ -1325,7 +1325,7 @@ export function Expenses() {
                         const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
                       })}>
-                        <SelectTrigger className="h-9 border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                         </SelectContent>
@@ -1334,18 +1334,18 @@ export function Expenses() {
                         const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, currency } : item) };
                       })}>
-                        <SelectTrigger className="h-9 border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
                         <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.value}</SelectItem>)}</SelectContent>
                       </Select>
                       <Input placeholder="مرجع / آخر 4 أرقام البطاقة" value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
                         const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, reference: e.target.value } : item) };
-                      })} className="h-9 border-[#E5E7EB]" />
+                      })} className="h-9 border-border" />
                       <Input dir="ltr" inputMode="decimal" value={String(payment.amount || "")} onChange={(e) => setFormData((f) => {
                         const amount = Number(normalizeDigits(e.target.value || "0"));
                         const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, amount } : item) };
-                      })} className="h-9 border-[#E5E7EB] font-english" />
+                      })} className="h-9 border-border font-english" />
                       <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -1353,18 +1353,18 @@ export function Expenses() {
                   ))}
                   <div className={`text-xs ${Math.abs(paymentRowsTotal - (currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal)) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>
                     مجموع المدفوعات: <span className="font-english">{money(paymentRowsTotal, currencySettlement.actualPaidCurrency)}</span>
-                    <span className="mx-1 text-[#9CA3AF]">/</span>
+                    <span className="mx-1 text-muted-foreground/60">/</span>
                     المتوقع: <span className="font-english">{money(currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currencySettlement.isCrossCurrency ? currencySettlement.actualPaidCurrency : currencySettlement.sourceCurrency)}</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#374151]">ملاحظات</Label>
-                <textarea rows={3} placeholder="تفاصيل إضافية..." value={formData.notes || formData.description} onChange={(e) => setFormData({ ...formData, notes: e.target.value, description: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
+                <Label className="text-foreground/80">ملاحظات</Label>
+                <textarea rows={3} placeholder="تفاصيل إضافية..." value={formData.notes || formData.description} onChange={(e) => setFormData({ ...formData, notes: e.target.value, description: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
               </div>
 
-              <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-sm text-[#0B1B49]">
+              <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground">
                 سيتم حفظ الفاتورة <span className="font-english font-semibold">{money(formTotal, currencySettlement.sourceCurrency)}</span>
                 {currencySettlement.isCrossCurrency && (
                   <> · السحب الفعلي <span className="font-english font-semibold">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</span></>
@@ -1390,28 +1390,28 @@ export function Expenses() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => setSelected(null)} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={() => setSelected(null)} className="border-border">
               <ArrowRight className="me-2 h-4 w-4" /> المصروفات
             </Button>
             <div>
-              <h1 className="text-[#0B1B49]" style={{ fontSize: "1.2rem", fontWeight: 700 }}>مصروف <span className="font-english">{selected.number}</span></h1>
-              <p className="text-sm text-[#6B7280]">{vendorName} · {selected.category}</p>
+              <h1 className="text-foreground" style={{ fontSize: "1.2rem", fontWeight: 700 }}>مصروف <span className="font-english">{selected.number}</span></h1>
+              <p className="text-sm text-muted-foreground">{vendorName} · {selected.category}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => { setSearchQuery(vendorName); setSelected(null); }} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={() => { setSearchQuery(vendorName); setSelected(null); }} className="border-border">
               <Building2 className="me-2 h-4 w-4" /> مصاريف الجهة
             </Button>
-            <Button variant="outline" onClick={openCreate} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={openCreate} className="border-border">
               <CopyPlus className="me-2 h-4 w-4" /> مصروف جديد
             </Button>
-            <Button variant="outline" onClick={() => openEdit(selected)} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={() => openEdit(selected)} className="border-border">
               <Edit3 className="me-2 h-4 w-4" /> تعديل
             </Button>
-            <Button variant="outline" onClick={() => push("info", "الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات")} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={() => push("info", "الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات")} className="border-border">
               <Send className="me-2 h-4 w-4" /> إرسال
             </Button>
-            <Button variant="outline" onClick={() => push("info", "ربط المصروف بالحساب البنكي/القيد سيكون من شاشة المطابقة البنكية")} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={() => push("info", "ربط المصروف بالحساب البنكي/القيد سيكون من شاشة المطابقة البنكية")} className="border-border">
               <Link2 className="me-2 h-4 w-4" /> ربط حساب
             </Button>
             {pendingDelete === selected.id ? (
@@ -1426,24 +1426,24 @@ export function Expenses() {
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_430px]">
           <div className="space-y-4">
-            <Card className="border-[#E5E7EB]">
+            <Card className="border-border">
               <CardContent className="p-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <div>
-                    <p className="text-xs text-[#6B7280]">الإجمالي</p>
-                    <p className="font-english text-[#0B1B49]" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{money(selected.total, selected.currency)}</p>
+                    <p className="text-xs text-muted-foreground">الإجمالي</p>
+                    <p className="font-english text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{money(selected.total, selected.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-[#6B7280]">قبل الضريبة</p>
-                    <p className="font-english text-sm text-[#0B1B49]">{money(selected.subtotal ?? selected.amount, selected.currency)}</p>
+                    <p className="text-xs text-muted-foreground">قبل الضريبة</p>
+                    <p className="font-english text-sm text-foreground">{money(selected.subtotal ?? selected.amount, selected.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-[#6B7280]">VAT</p>
-                    <p className="font-english text-sm text-[#0B1B49]">{money(selected.taxAmount, selected.currency)}</p>
+                    <p className="text-xs text-muted-foreground">VAT</p>
+                    <p className="font-english text-sm text-foreground">{money(selected.taxAmount, selected.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-[#6B7280]">طريقة الدفع</p>
-                    <p className="text-sm text-[#0B1B49]">{paymentSplits.length > 1 ? `${paymentSplits.length} دفعات` : PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
+                    <p className="text-xs text-muted-foreground">طريقة الدفع</p>
+                    <p className="text-sm text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} دفعات` : PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1451,39 +1451,39 @@ export function Expenses() {
 
             {selectedSettlement && (
               <Card className="border-[#BFDBFE] bg-[#F8FBFF]">
-                <CardHeader><CardTitle className="text-[#0B1B49]">تسوية العملة</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-foreground">تسوية العملة</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <div>
-                      <p className="text-xs text-[#6B7280]">عملة الفاتورة</p>
-                      <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
+                      <p className="text-xs text-muted-foreground">عملة الفاتورة</p>
+                      <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-[#6B7280]">القيمة العادلة</p>
-                      <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
+                      <p className="text-xs text-muted-foreground">القيمة العادلة</p>
+                      <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-[#6B7280]">السحب البنكي</p>
-                      <p className="font-english text-sm font-semibold text-[#0B1B49]">{money(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
+                      <p className="text-xs text-muted-foreground">السحب البنكي</p>
+                      <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-[#6B7280]">الفرق</p>
-                      <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-amber-700" : selectedSettlement.difference < 0 ? "text-emerald-700" : "text-[#0B1B49]"}`}>
+                      <p className="text-xs text-muted-foreground">الفرق</p>
+                      <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-amber-700" : selectedSettlement.difference < 0 ? "text-emerald-700" : "text-foreground"}`}>
                         {money(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
                       </p>
-                      <p className="text-[11px] text-[#6B7280]">{selectedSettlement.treatmentLabel}</p>
+                      <p className="text-[11px] text-muted-foreground">{selectedSettlement.treatmentLabel}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            <Card className="border-[#E5E7EB]">
-              <CardHeader><CardTitle className="text-[#0B1B49]">المدفوعات</CardTitle></CardHeader>
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-foreground">المدفوعات</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[520px] text-sm">
-                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                    <thead className="bg-muted text-xs text-muted-foreground">
                       <tr>
                         <th className="px-3 py-2 text-start">الطريقة</th>
                         <th className="px-3 py-2 text-start">المرجع</th>
@@ -1493,7 +1493,7 @@ export function Expenses() {
                     </thead>
                     <tbody>
                       {paymentSplits.map((payment, idx) => (
-                        <tr key={idx} className="border-t border-[#F3F4F6]">
+                        <tr key={idx} className="border-t border-border/50">
                           <td className="px-3 py-2">{PAYMENT_METHOD_LABELS[payment.method]}</td>
                           <td className="px-3 py-2 font-english">{payment.reference || payment.cardLast4 || "—"}</td>
                           <td className="px-3 py-2">{payment.accountName || "—"}</td>
@@ -1506,28 +1506,28 @@ export function Expenses() {
               </CardContent>
             </Card>
 
-            <Card className="border-[#E5E7EB]">
-              <CardHeader><CardTitle className="text-[#0B1B49]">بيانات المصروف</CardTitle></CardHeader>
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-foreground">بيانات المصروف</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                <div><span className="text-[#6B7280]">رقم المصروف:</span> <span className="font-english">{selected.number}</span></div>
-                <div><span className="text-[#6B7280]">رقم الفاتورة:</span> <span className="font-english">{selected.documentNumber || selected.reference || "—"}</span></div>
-                <div><span className="text-[#6B7280]">التاريخ:</span> <span className="font-english">{selected.date.slice(0, 10)}</span></div>
-                <div><span className="text-[#6B7280]">التصنيف:</span> <span>{selected.category}</span></div>
-                <div><span className="text-[#6B7280]">المورد:</span> <span>{vendorName}</span></div>
-                <div><span className="text-[#6B7280]">الرقم الضريبي:</span> <span className="font-english">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</span></div>
-                {selected.description && <div className="md:col-span-2"><span className="text-[#6B7280]">الوصف:</span> <span>{selected.description}</span></div>}
-                {selected.notes && <div className="md:col-span-2"><span className="text-[#6B7280]">ملاحظات:</span> <span>{selected.notes}</span></div>}
+                <div><span className="text-muted-foreground">رقم المصروف:</span> <span className="font-english">{selected.number}</span></div>
+                <div><span className="text-muted-foreground">رقم الفاتورة:</span> <span className="font-english">{selected.documentNumber || selected.reference || "—"}</span></div>
+                <div><span className="text-muted-foreground">التاريخ:</span> <span className="font-english">{selected.date.slice(0, 10)}</span></div>
+                <div><span className="text-muted-foreground">التصنيف:</span> <span>{selected.category}</span></div>
+                <div><span className="text-muted-foreground">المورد:</span> <span>{vendorName}</span></div>
+                <div><span className="text-muted-foreground">الرقم الضريبي:</span> <span className="font-english">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</span></div>
+                {selected.description && <div className="md:col-span-2"><span className="text-muted-foreground">الوصف:</span> <span>{selected.description}</span></div>}
+                {selected.notes && <div className="md:col-span-2"><span className="text-muted-foreground">ملاحظات:</span> <span>{selected.notes}</span></div>}
                 {selected.duplicateOfId && <div className="md:col-span-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">يوجد مصروف مشابه وتم تعليمه للمراجعة.</div>}
               </CardContent>
             </Card>
 
-            <Card className="border-[#E5E7EB]">
-              <CardHeader><CardTitle className="text-[#0B1B49]">الأصناف والضريبة</CardTitle></CardHeader>
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-foreground">الأصناف والضريبة</CardTitle></CardHeader>
               <CardContent>
                 {lineItems.length ? (
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[640px] text-sm">
-                      <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                      <thead className="bg-muted text-xs text-muted-foreground">
                         <tr>
                           <th className="px-3 py-2 text-start">الوصف</th>
                           <th className="px-3 py-2 text-start">الحساب</th>
@@ -1539,7 +1539,7 @@ export function Expenses() {
                       </thead>
                       <tbody>
                         {lineItems.map((line, idx) => (
-                          <tr key={idx} className="border-t border-[#F3F4F6]">
+                          <tr key={idx} className="border-t border-border/50">
                             <td className="px-3 py-2">{line.description}</td>
                             <td className="px-3 py-2">{line.accountName || line.category || "—"}</td>
                             <td className="px-3 py-2 font-english">{line.quantity || 1}</td>
@@ -1552,7 +1552,7 @@ export function Expenses() {
                     </table>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-[#E5E7EB] bg-[#F9FAFB] px-3 py-4 text-sm text-[#6B7280]">
+                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                     لا توجد أصناف محفوظة لهذا المصروف. ارفع الإيصال أو عدل المصروف لإضافتها.
                   </div>
@@ -1561,11 +1561,11 @@ export function Expenses() {
             </Card>
           </div>
 
-          <Card className="border-[#E5E7EB]">
+          <Card className="border-border">
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-[#0B1B49]">المرفق الأصلي</CardTitle>
-                <span className="font-english text-xs text-[#6B7280]">{selected.attachmentName || selected.receiptUrl || "—"}</span>
+                <CardTitle className="text-foreground">المرفق الأصلي</CardTitle>
+                <span className="font-english text-xs text-muted-foreground">{selected.attachmentName || selected.receiptUrl || "—"}</span>
               </div>
             </CardHeader>
             <CardContent>{renderStoredAttachment(selected)}</CardContent>
@@ -1580,24 +1580,24 @@ export function Expenses() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المصروفات النقدية</h1>
-          <p className="text-[#6B7280] mt-1">إدارة المصروفات اليومية مع قراءة الفواتير والمرفقات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المصروفات النقدية</h1>
+          <p className="text-muted-foreground mt-1">إدارة المصروفات اليومية مع قراءة الفواتير والمرفقات</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
       </div>
 
       {draftAvailable && (
-        <div className="rounded-lg border border-[#D7F0FF] bg-[#F4FCFF] px-4 py-3 text-sm text-[#0B1B49]">
+        <div className="rounded-lg border border-[#D7F0FF] bg-primary/5 px-4 py-3 text-sm text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               <div>
                 <div className="font-semibold">يوجد مصروف محفوظ كمسودة تلقائية</div>
-                <div className="text-xs text-[#6B7280]">لن تضيع البيانات لو خرجت من الشاشة قبل الحفظ النهائي.</div>
+                <div className="text-xs text-muted-foreground">لن تضيع البيانات لو خرجت من الشاشة قبل الحفظ النهائي.</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={openDraft} className="h-8 border-[#E5E7EB] text-xs">إكمال المسودة</Button>
+              <Button type="button" variant="outline" onClick={openDraft} className="h-8 border-border text-xs">إكمال المسودة</Button>
               <Button
                 type="button"
                 variant="outline"
@@ -1617,27 +1617,27 @@ export function Expenses() {
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="border-[#E5E7EB]">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">إجمالي المصروفات</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(total)}</div><p className="text-xs text-[#6B7280] mt-1">إجمالي</p></CardContent>
+        <Card className="border-border">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">إجمالي المصروفات</CardTitle></CardHeader>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(total)}</div><p className="text-xs text-muted-foreground mt-1">إجمالي</p></CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">عدد المصروفات</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-[#6B7280] mt-1">مصروف</p></CardContent>
+        <Card className="border-border">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">عدد المصروفات</CardTitle></CardHeader>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-muted-foreground mt-1">مصروف</p></CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-[#6B7280]">متوسط المصروف</CardTitle></CardHeader>
-          <CardContent><div className="text-[#0B1B49] font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(items.length ? avg : 0)}</div><p className="text-xs text-[#6B7280] mt-1">لكل مصروف</p></CardContent>
+        <Card className="border-border">
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">متوسط المصروف</CardTitle></CardHeader>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(items.length ? avg : 0)}</div><p className="text-xs text-muted-foreground mt-1">لكل مصروف</p></CardContent>
         </Card>
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-[#0B1B49]">قائمة المصروفات</CardTitle>
+            <CardTitle className="text-foreground">قائمة المصروفات</CardTitle>
             <div className="relative">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-              <Input placeholder="بحث بالمورد، رقم الفاتورة، التصنيف..." className="w-full min-w-[260px] ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Input placeholder="بحث بالمورد، رقم الفاتورة، التصنيف..." className="w-full min-w-[260px] ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -1653,37 +1653,37 @@ export function Expenses() {
                 <col style={{ width: "12%" }} />
               </colgroup>
               <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                  <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>رقم</th>
-                  <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المورد / التصنيف</th>
-                  <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
-                  <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>التاريخ</th>
-                  <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>المبلغ</th>
-                  <th className="py-3 px-4 text-start text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>إجراءات</th>
+                <tr className="border-b border-border bg-muted">
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>رقم</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>المورد / التصنيف</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>التاريخ</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>المبلغ</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>إجراءات</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={6} className="py-8 text-center text-[#6B7280] text-sm">جارٍ التحميل...</td></tr>}
+                {loading && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">جارٍ التحميل...</td></tr>}
                 {!loading && filtered.length === 0 && (
-                  <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد مصروفات · اضغط "مصروف جديد" لإضافة أول مصروف</p></td></tr>
+                  <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد مصروفات · اضغط "مصروف جديد" لإضافة أول مصروف</p></td></tr>
                 )}
                 {!loading && filtered.map((e) => (
-                  <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF] transition-colors cursor-pointer">
-                    <td className="py-3 px-4"><span className="font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{e.number}</span></td>
+                  <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer">
+                    <td className="py-3 px-4"><span className="font-english text-sm text-primary" style={{ fontWeight: 600 }}>{e.number}</span></td>
                     <td className="py-3 px-4">
-                      <div className="truncate text-sm text-[#374151]">{e.contact?.displayName || e.vendorName || "—"}</div>
-                      <div className="truncate text-xs text-[#6B7280]">{e.category}</div>
+                      <div className="truncate text-sm text-foreground/80">{e.contact?.displayName || e.vendorName || "—"}</div>
+                      <div className="truncate text-xs text-muted-foreground">{e.category}</div>
                     </td>
-                    <td className="py-3 px-4"><span className="font-english text-sm text-[#6B7280]">{e.documentNumber || e.reference || "—"}</span></td>
-                    <td className="py-3 px-4"><span className="font-english text-sm text-[#6B7280]">{e.date.slice(0, 10)}</span></td>
+                    <td className="py-3 px-4"><span className="font-english text-sm text-muted-foreground">{e.documentNumber || e.reference || "—"}</span></td>
+                    <td className="py-3 px-4"><span className="font-english text-sm text-muted-foreground">{e.date.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
-                      <span className="font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{money(e.total, e.currency)}</span>
-                      {Number(e.taxAmount) > 0 && <div className="font-english text-[11px] text-[#6B7280]">VAT {money(e.taxAmount, e.currency)}</div>}
+                      <span className="font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{money(e.total, e.currency)}</span>
+                      {Number(e.taxAmount) > 0 && <div className="font-english text-[11px] text-muted-foreground">VAT {money(e.taxAmount, e.currency)}</div>}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1" onClick={(ev) => ev.stopPropagation()}>
-                        <button onClick={() => openExpense(e)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><Eye className="h-4 w-4" /></button>
-                        {e.attachmentCount ? <FileImage className="h-4 w-4 text-[#1276E3]" /> : null}
+                        <button onClick={() => openExpense(e)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50"><Eye className="h-4 w-4" /></button>
+                        {e.attachmentCount ? <FileImage className="h-4 w-4 text-primary" /> : null}
                         {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-emerald-600" /> : null}
                         {pendingDelete === e.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />

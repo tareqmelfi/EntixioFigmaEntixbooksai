@@ -138,10 +138,10 @@ export function InboxPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-            <InboxIcon className="h-6 w-6 text-[#1276E3]" /> البريد الوارد
+          <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+            <InboxIcon className="h-6 w-6 text-primary" /> البريد الوارد
           </h1>
-          <p className="text-sm text-[#6B7280] mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             مرّر الفواتير من المورّدين إلى عنوانك المخصّص · والذكاء يستخرجها كمسودات جاهزة للاعتماد
           </p>
         </div>
@@ -151,22 +151,22 @@ export function InboxPage() {
       <Card className={mailboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white" : "border-amber-200 bg-amber-50"}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <Mail className="h-5 w-5 text-[#1276E3] shrink-0" />
+            <Mail className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-[#6B7280]">عنوان البريد الخاص بمنشأتك</div>
-              <code className="text-sm text-[#0B1B49] font-english font-semibold">{forwardAddress}</code>
+              <div className="text-xs text-muted-foreground">عنوان البريد الخاص بمنشأتك</div>
+              <code className="text-sm text-foreground font-english font-semibold">{forwardAddress}</code>
             </div>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(forwardAddress);
                 push("success","تم نسخ العنوان");
               }}
-              className="px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
             >
               <Copy className="h-3.5 w-3.5" /> نسخ
             </button>
           </div>
-          <p className={`text-xs mt-2 ${mailboxStatus?.configured ? "text-[#6B7280]" : "text-amber-800"}`}>
+          <p className={`text-xs mt-2 ${mailboxStatus?.configured ? "text-muted-foreground" : "text-amber-800"}`}>
             {mailboxStatus?.configured
               ? "اطلب من مورّديك إرسال فواتيرهم لهذا العنوان · أو انسخ بريدك إلى هذا العنوان (CC) عند تلقّي الفواتير"
               : "العنوان غير جاهز للاستلام بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه مع الموردين."}
@@ -182,8 +182,8 @@ export function InboxPage() {
             onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${
               filter === s
-                ? "bg-[#1276E3] text-white"
-                : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#1276E3]/40"
+                ? "bg-primary text-white"
+                : "bg-white border border-border text-muted-foreground hover:border-[#1276E3]/40"
             }`}
           >
             {s === "ALL" ? "الكل" : STATUS_LABEL[s]?.label || s}
@@ -194,17 +194,17 @@ export function InboxPage() {
       {/* Two-pane layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left · list */}
-        <Card className="lg:col-span-5 border-[#E5E7EB] max-h-[70vh] overflow-y-auto">
+        <Card className="lg:col-span-5 border-border max-h-[70vh] overflow-y-auto">
           <CardContent className="p-0">
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-[#1276E3]" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : items.length === 0 ? (
               <div className="text-center py-16 px-6">
                 <InboxIcon className="h-12 w-12 text-[#E5E7EB] mx-auto mb-3" />
-                <p className="text-sm text-[#6B7280]">صندوق الوارد فارغ</p>
-                <p className="text-xs text-[#9CA3AF] mt-1">حوّل أي فاتورة إلى <span className="font-english">{forwardAddress}</span> لترى الذكاء يستخرجها هنا</p>
+                <p className="text-sm text-muted-foreground">صندوق الوارد فارغ</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">حوّل أي فاتورة إلى <span className="font-english">{forwardAddress}</span> لترى الذكاء يستخرجها هنا</p>
               </div>
             ) : (
               <ul>
@@ -215,31 +215,31 @@ export function InboxPage() {
                     <li
                       key={m.id}
                       onClick={() => loadDetail(m.id)}
-                      className={`px-4 py-3 cursor-pointer border-b border-[#F3F4F6] last:border-0 transition ${
-                        active ? "bg-[#F4FCFF] border-l-4 border-l-[#1276E3]" : "hover:bg-[#FAFBFC]"
+                      className={`px-4 py-3 cursor-pointer border-b border-border/50 last:border-0 transition ${
+                        active ? "bg-primary/5 border-l-4 border-l-[#1276E3]" : "hover:bg-[#FAFBFC]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm text-[#0B1B49] truncate font-english">{m.from}</div>
-                          <div className="text-xs text-[#6B7280] truncate mt-0.5">{m.subject || "(بدون عنوان)"}</div>
+                          <div className="text-sm text-foreground truncate font-english">{m.from}</div>
+                          <div className="text-xs text-muted-foreground truncate mt-0.5">{m.subject || "(بدون عنوان)"}</div>
                           <div className="flex items-center gap-2 mt-1.5">
                             <span className={`text-xs px-1.5 py-0.5 rounded ${sl.bg} ${sl.text}`}>
                               {sl.label}
                             </span>
                             {m.attachmentCount > 0 && (
-                              <span className="text-xs text-[#9CA3AF] flex items-center gap-0.5">
+                              <span className="text-xs text-muted-foreground/60 flex items-center gap-0.5">
                                 <Paperclip className="h-3 w-3" /> <span className="font-english">{m.attachmentCount}</span>
                               </span>
                             )}
                             {m.extractedTotal != null && (
-                              <span className="text-xs text-[#0B1B49] font-english">
+                              <span className="text-xs text-foreground font-english">
                                 {m.extractedTotal.toLocaleString()} {m.extractedCurrency || "SAR"}
                               </span>
                             )}
                           </div>
                         </div>
-                        <span className="text-xs text-[#9CA3AF] font-english shrink-0">
+                        <span className="text-xs text-muted-foreground/60 font-english shrink-0">
                           {new Date(m.createdAt).toLocaleDateString("ar-SA", { day: "numeric", month: "short" })}
                         </span>
                       </div>
@@ -252,12 +252,12 @@ export function InboxPage() {
         </Card>
 
         {/* Right · detail */}
-        <Card className="lg:col-span-7 border-[#E5E7EB]">
+        <Card className="lg:col-span-7 border-border">
           <CardContent className="p-0">
             {!detail ? (
               <div className="text-center py-20 px-6">
                 <Mail className="h-12 w-12 text-[#E5E7EB] mx-auto mb-3" />
-                <p className="text-sm text-[#9CA3AF]">اختر رسالة من القائمة</p>
+                <p className="text-sm text-muted-foreground/60">اختر رسالة من القائمة</p>
               </div>
             ) : (
               <DetailPane
@@ -295,9 +295,9 @@ function DetailPane({
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-base text-[#0B1B49]" style={{ fontWeight: 600 }}>{detail.subject || "(بدون عنوان)"}</div>
-            <div className="text-sm text-[#6B7280] mt-1 font-english">من: {detail.fromAddress}</div>
-            <div className="text-xs text-[#9CA3AF] mt-0.5 font-english">إلى: {detail.toAddress}</div>
+            <div className="text-base text-foreground" style={{ fontWeight: 600 }}>{detail.subject || "(بدون عنوان)"}</div>
+            <div className="text-sm text-muted-foreground mt-1 font-english">من: {detail.fromAddress}</div>
+            <div className="text-xs text-muted-foreground/60 mt-0.5 font-english">إلى: {detail.toAddress}</div>
           </div>
           <span className={`text-xs px-2 py-1 rounded ${sl.bg} ${sl.text}`}>{sl.label}</span>
         </div>
@@ -306,15 +306,15 @@ function DetailPane({
       {/* Attachments */}
       {detail.attachments.length > 0 && (
         <div className="p-5">
-          <div className="text-xs text-[#6B7280] mb-2 flex items-center gap-1.5">
+          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
             <Paperclip className="h-3.5 w-3.5" /> المرفقات
           </div>
           <div className="flex flex-wrap gap-2">
             {detail.attachments.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] text-xs">
-                <FileText className="h-3.5 w-3.5 text-[#1276E3]" />
-                <span className="text-[#374151] font-english">{a.filename}</span>
-                <span className="text-[#9CA3AF] font-english">· {(a.sizeBytes / 1024).toFixed(0)}KB</span>
+              <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-[#FAFBFC] text-xs">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <span className="text-foreground/80 font-english">{a.filename}</span>
+                <span className="text-muted-foreground/60 font-english">· {(a.sizeBytes / 1024).toFixed(0)}KB</span>
               </div>
             ))}
           </div>
@@ -325,11 +325,11 @@ function DetailPane({
       {ex && (
         <div className="p-5 bg-[#FAFBFC]">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-xs text-[#6B7280] flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-[#1276E3]" /> ما استخرجه الذكاء
+            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> ما استخرجه الذكاء
             </div>
             {ex.confidence != null && (
-              <span className="text-xs text-[#9CA3AF] font-english">ثقة: {(ex.confidence * 100).toFixed(0)}%</span>
+              <span className="text-xs text-muted-foreground/60 font-english">ثقة: {(ex.confidence * 100).toFixed(0)}%</span>
             )}
           </div>
 
@@ -344,9 +344,9 @@ function DetailPane({
 
           {/* Lines table */}
           {lines.length > 0 && (
-            <div className="mt-4 rounded-lg border border-[#E5E7EB] bg-white overflow-x-auto">
+            <div className="mt-4 rounded-lg border border-border bg-white overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-[#F9FAFB] text-[#6B7280]">
+                <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className="text-start px-3 py-2 font-medium">الوصف</th>
                     <th className="text-end px-3 py-2 font-medium">الكمية</th>
@@ -357,8 +357,8 @@ function DetailPane({
                 </thead>
                 <tbody>
                   {lines.map((l: any, i: number) => (
-                    <tr key={i} className="border-t border-[#F3F4F6]">
-                      <td className="px-3 py-1.5 text-[#374151]">{l.description || "—"}</td>
+                    <tr key={i} className="border-t border-border/50">
+                      <td className="px-3 py-1.5 text-foreground/80">{l.description || "—"}</td>
                       <td className="px-3 py-1.5 text-end font-english">{l.quantity}</td>
                       <td className="px-3 py-1.5 text-end font-english">{Number(l.unitPrice || 0).toLocaleString()}</td>
                       <td className="px-3 py-1.5 text-end font-english">{((l.taxRate || 0) * 100).toFixed(0)}%</td>
@@ -397,7 +397,7 @@ function DetailPane({
               <button
                 onClick={onReprocess}
                 disabled={busy}
-                className="px-4 py-2 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> إعادة الاستخراج
               </button>
@@ -413,7 +413,7 @@ function DetailPane({
             <button
               onClick={onReprocess}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               استخراج بالذكاء
@@ -435,8 +435,8 @@ function DetailPane({
 function Field({ label, value, mono, bold }: { label: string; value?: string | null; mono?: boolean; bold?: boolean }) {
   return (
     <div>
-      <div className="text-xs text-[#9CA3AF]">{label}</div>
-      <div className={`text-sm text-[#0B1B49] ${mono ? "font-english" : ""} ${bold ? "font-semibold" : ""}`}>
+      <div className="text-xs text-muted-foreground/60">{label}</div>
+      <div className={`text-sm text-foreground ${mono ? "font-english" : ""} ${bold ? "font-semibold" : ""}`}>
         {value || <span className="text-[#D1D5DB]">—</span>}
       </div>
     </div>

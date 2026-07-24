@@ -57,7 +57,7 @@ export function SharedFooter() {
   ];
 
   return (
-    <footer className="bg-[#0B1A47] text-white" dir={language === "ar" ? "rtl" : "ltr"}>
+    <footer className="bg-[#0B1B49] text-white" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Main footer content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
@@ -76,15 +76,15 @@ export function SharedFooter() {
             {/* Contact info */}
             <div className="space-y-2.5 mb-6">
               <a href="mailto:support@entix.io" className="flex items-center gap-2.5 text-[#94A3B8] hover:text-white transition-colors group cursor-pointer">
-                <Mail className="w-4 h-4 text-[#1276E3] group-hover:text-[#349FC4] transition-colors" />
+                <Mail className="w-4 h-4 text-primary group-hover:text-[#349FC4] transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>support@entix.io</span>
               </a>
               <a href="tel:+966800430088" className="flex items-center gap-2.5 text-[#94A3B8] hover:text-white transition-colors group cursor-pointer">
-                <Phone className="w-4 h-4 text-[#1276E3] group-hover:text-[#349FC4] transition-colors" />
+                <Phone className="w-4 h-4 text-primary group-hover:text-[#349FC4] transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr" }}>+966 800 430 088</span>
               </a>
               <div className="flex items-start gap-2.5 text-[#94A3B8]">
-                <MapPin className="w-4 h-4 text-[#1276E3] mt-0.5 flex-shrink-0" />
+                <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span style={{ fontSize: "13px" }}>{t("الرياض، المملكة العربية السعودية", "Riyadh, Saudi Arabia")}</span>
               </div>
             </div>

@@ -242,13 +242,13 @@ export function Inventory() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المخزون والمستودعات</h1>
-          <p className="text-[#6B7280] mt-1">تتبع الكميات، المستودعات، الاستلام، الصرف، والتحويلات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المخزون والمستودعات</h1>
+          <p className="text-muted-foreground mt-1">تتبع الكميات، المستودعات، الاستلام، الصرف، والتحويلات</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />تحديث</Button>
           <Button variant="outline" onClick={() => setWarehouseOpen(true)}><Warehouse className="me-2 h-4 w-4" />مستودع جديد</Button>
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setMovementOpen(true)}><Plus className="me-2 h-4 w-4" />حركة مخزون</Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => setMovementOpen(true)}><Plus className="me-2 h-4 w-4" />حركة مخزون</Button>
         </div>
       </div>
 
@@ -267,13 +267,13 @@ export function Inventory() {
         <TabButton active={activeTab === "movements"} onClick={() => setActiveTab("movements")}>الحركات</TabButton>
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <CardTitle>{activeTab === "stock" ? "أرصدة المخزون" : activeTab === "warehouses" ? "المستودعات" : "سجل الحركات"}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-[#1276E3]" /></div>
+            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
           ) : activeTab === "stock" ? (
             <StockTable rows={stock} productById={productById} />
           ) : activeTab === "warehouses" ? (
@@ -287,21 +287,21 @@ export function Inventory() {
       <SidePanel open={warehouseOpen} onClose={() => setWarehouseOpen(false)}>
         <form onSubmit={createWarehouse} className="space-y-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#0B1B49]">مستودع جديد</h2>
-            <p className="text-sm text-[#6B7280]">أضف مستودع أو فرع تخزين فعلي.</p>
+            <h2 className="text-lg font-semibold text-foreground">مستودع جديد</h2>
+            <p className="text-sm text-muted-foreground">أضف مستودع أو فرع تخزين فعلي.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2"><Label>الرمز *</Label><Input required value={warehouseForm.code} onChange={(e) => setWarehouseForm({ ...warehouseForm, code: e.target.value.toUpperCase() })} dir="ltr" className="font-english" placeholder="MAIN" /></div>
             <div className="space-y-2"><Label>الاسم *</Label><Input required value={warehouseForm.name} onChange={(e) => setWarehouseForm({ ...warehouseForm, name: e.target.value })} placeholder="المستودع الرئيسي" /></div>
           </div>
           <div className="space-y-2"><Label>العنوان</Label><Input value={warehouseForm.address} onChange={(e) => setWarehouseForm({ ...warehouseForm, address: e.target.value })} placeholder="الرياض · حي..." /></div>
-          <label className="flex items-center gap-2 text-sm text-[#0B1B49]">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={warehouseForm.isPrimary} onChange={(e) => setWarehouseForm({ ...warehouseForm, isPrimary: e.target.checked })} />
             مستودع رئيسي
           </label>
-          <div className="flex justify-end gap-2 border-t border-[#E5E7EB] pt-3">
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
             <Button type="button" variant="outline" onClick={() => setWarehouseOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
           </div>
         </form>
       </SidePanel>
@@ -309,8 +309,8 @@ export function Inventory() {
       <SidePanel open={movementOpen} onClose={() => setMovementOpen(false)}>
         <form onSubmit={createMovement} className="space-y-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#0B1B49]">حركة مخزون</h2>
-            <p className="text-sm text-[#6B7280]">سجل استلام، صرف، أو تحويل بين المستودعات.</p>
+            <h2 className="text-lg font-semibold text-foreground">حركة مخزون</h2>
+            <p className="text-sm text-muted-foreground">سجل استلام، صرف، أو تحويل بين المستودعات.</p>
           </div>
           <div className="space-y-2">
             <Label>نوع الحركة</Label>
@@ -378,9 +378,9 @@ export function Inventory() {
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 border-t border-[#E5E7EB] pt-3">
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
             <Button type="button" variant="outline" onClick={() => setMovementOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "جارٍ التسجيل..." : "تسجيل الحركة"}</Button>
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "جارٍ التسجيل..." : "تسجيل الحركة"}</Button>
           </div>
         </form>
       </SidePanel>
@@ -391,16 +391,16 @@ export function Inventory() {
 
 function Metric({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "warn" }) {
   return (
-    <div className={`rounded-lg border px-4 py-3 ${tone === "warn" ? "border-amber-200 bg-amber-50" : "border-[#E5E7EB] bg-white"}`}>
-      <div className="text-xs text-[#6B7280]">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-[#0B1B49] font-english">{value}</div>
+    <div className={`rounded-lg border px-4 py-3 ${tone === "warn" ? "border-amber-200 bg-amber-50" : "border-border bg-white"}`}>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>
   );
 }
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-[#1276E3] bg-[#EAF4FF] text-[#1276E3]" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F9FAFB]"}`}>
+    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-[#1276E3] bg-[#EAF4FF] text-primary" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}>
       {children}
     </button>
   );
@@ -411,7 +411,7 @@ function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px]">
-        <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+        <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
           <th className="px-4 py-3 text-start">الصنف</th>
           <th className="px-4 py-3 text-start">المستودع</th>
           <th className="px-4 py-3 text-start">الكمية</th>
@@ -424,13 +424,13 @@ function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<
             const quantity = Number(row.quantity || 0);
             const averageCost = Number(row.averageCost || 0);
             return (
-              <tr key={row.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+              <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-[#0B1B49]">{product?.nameAr || product?.name || "صنف غير معروف"}</div>
-                  <div className="text-xs text-[#9CA3AF] font-english">{product?.sku || row.productId}</div>
+                  <div className="font-medium text-foreground">{product?.nameAr || product?.name || "صنف غير معروف"}</div>
+                  <div className="text-xs text-muted-foreground/60 font-english">{product?.sku || row.productId}</div>
                 </td>
-                <td className="px-4 py-3 text-sm text-[#374151]">{row.warehouse?.name || row.warehouseId}</td>
-                <td className="px-4 py-3 text-sm font-semibold text-[#0B1B49] font-english">{qty(quantity)}</td>
+                <td className="px-4 py-3 text-sm text-foreground/80">{row.warehouse?.name || row.warehouseId}</td>
+                <td className="px-4 py-3 text-sm font-semibold text-foreground font-english">{qty(quantity)}</td>
                 <td className="px-4 py-3 text-sm font-english">{money(averageCost)}</td>
                 <td className="px-4 py-3 text-sm font-semibold font-english">{money(quantity * averageCost)}</td>
               </tr>
@@ -447,15 +447,15 @@ function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {rows.map((row) => (
-        <div key={row.id} className="rounded-lg border border-[#E5E7EB] bg-white p-4">
+        <div key={row.id} className="rounded-lg border border-border bg-white p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="font-semibold text-[#0B1B49]">{row.name}</div>
-              <div className="text-xs text-[#6B7280] font-english">{row.code}</div>
+              <div className="font-semibold text-foreground">{row.name}</div>
+              <div className="text-xs text-muted-foreground font-english">{row.code}</div>
             </div>
-            {row.isPrimary && <span className="rounded bg-blue-50 px-2 py-1 text-xs text-[#1276E3]">رئيسي</span>}
+            {row.isPrimary && <span className="rounded bg-blue-50 px-2 py-1 text-xs text-primary">رئيسي</span>}
           </div>
-          {row.address && <div className="mt-3 text-sm text-[#6B7280]">{row.address}</div>}
+          {row.address && <div className="mt-3 text-sm text-muted-foreground">{row.address}</div>}
         </div>
       ))}
     </div>
@@ -467,7 +467,7 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px]">
-        <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+        <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
           <th className="px-4 py-3 text-start">التاريخ</th>
           <th className="px-4 py-3 text-start">الحركة</th>
           <th className="px-4 py-3 text-start">الصنف</th>
@@ -482,16 +482,16 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
             const quantityValue = Number(row.quantity || 0);
             const inbound = quantityValue >= 0;
             return (
-              <tr key={row.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                <td className="px-4 py-3 text-sm text-[#6B7280] font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString("en-GB") : "—"}</td>
+              <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
+                <td className="px-4 py-3 text-sm text-muted-foreground font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString("en-GB") : "—"}</td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                     {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
                     {movementLabels[row.type] || row.type}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-[#0B1B49]">{product?.nameAr || product?.name || row.productId}</td>
-                <td className="px-4 py-3 text-sm text-[#374151]">{warehouse?.name || row.warehouseId}</td>
+                <td className="px-4 py-3 text-sm text-foreground">{product?.nameAr || product?.name || row.productId}</td>
+                <td className="px-4 py-3 text-sm text-foreground/80">{warehouse?.name || row.warehouseId}</td>
                 <td className="px-4 py-3 text-sm font-semibold font-english">{qty(quantityValue)}</td>
                 <td className="px-4 py-3 text-sm font-english">{money(row.unitCost)}</td>
               </tr>
@@ -504,5 +504,5 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
 }
 
 function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return <div className="py-12 text-center text-[#9CA3AF]">{icon}<p className="mt-3 text-sm text-[#6B7280]">{text}</p></div>;
+  return <div className="py-12 text-center text-muted-foreground/60">{icon}<p className="mt-3 text-sm text-muted-foreground">{text}</p></div>;
 }

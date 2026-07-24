@@ -201,10 +201,10 @@ export function BankAccounts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الحسابات البنكية", "Bank accounts")}</h1>
-          <p className="text-[#6B7280] mt-1">{t("إدارة حسابات البنوك والصناديق النقدية", "Manage bank accounts and cash accounts")}</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الحسابات البنكية", "Bank accounts")}</h1>
+          <p className="text-muted-foreground mt-1">{t("إدارة حسابات البنوك والصناديق النقدية", "Manage bank accounts and cash accounts")}</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openNewAccount}><Plus className="me-2 h-4 w-4" />{t("حساب جديد", "New account")}</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openNewAccount}><Plus className="me-2 h-4 w-4" />{t("حساب جديد", "New account")}</Button>
       </div>
 
       {error && !open && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -215,30 +215,30 @@ export function BankAccounts() {
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="mb-2 flex items-center gap-2">
-                  <Link to="/app/bank-accounts" className="text-xs text-[#1276E3] hover:underline">{t("كل الحسابات", "All accounts")}</Link>
-                  <span className="text-xs text-[#9CA3AF]">/</span>
-                  <span className="text-xs text-[#6B7280]">{selectedAccount.currency}</span>
+                  <Link to="/app/bank-accounts" className="text-xs text-primary hover:underline">{t("كل الحسابات", "All accounts")}</Link>
+                  <span className="text-xs text-muted-foreground/60">/</span>
+                  <span className="text-xs text-muted-foreground">{selectedAccount.currency}</span>
                 </div>
-                <h2 className="text-lg font-semibold text-[#0B1B49]">{selectedAccount.name}</h2>
+                <h2 className="text-lg font-semibold text-foreground">{selectedAccount.name}</h2>
                 <p className="mt-1 text-sm text-[#4B5563]">{selectedAccount.bankName || t("حساب بنكي", "Bank account")}</p>
                 <div className="mt-3 grid gap-2 text-xs md:grid-cols-3">
                   <div className="rounded-md bg-white/70 px-3 py-2">
-                    <div className="text-[#6B7280]">{t("الدولة", "Country")}</div>
-                    <div className="font-english text-[#0B1B49]" dir="ltr">{selectedAccount.country || "—"}</div>
+                    <div className="text-muted-foreground">{t("الدولة", "Country")}</div>
+                    <div className="font-english text-foreground" dir="ltr">{selectedAccount.country || "—"}</div>
                   </div>
                   <div className="rounded-md bg-white/70 px-3 py-2">
-                    <div className="text-[#6B7280]">{t("التفاصيل البنكية", "Bank details")}</div>
-                    <div className="font-english text-[#0B1B49]" dir="ltr">{accountIdentifier(selectedAccount)}</div>
+                    <div className="text-muted-foreground">{t("التفاصيل البنكية", "Bank details")}</div>
+                    <div className="font-english text-foreground" dir="ltr">{accountIdentifier(selectedAccount)}</div>
                   </div>
                   <div className="rounded-md bg-white/70 px-3 py-2">
-                    <div className="text-[#6B7280]">{t("الرصيد", "Balance")}</div>
-                    <div className="font-english text-[#0B1B49]" dir="ltr">{Number(selectedAccount.balance).toLocaleString()} {selectedAccount.currency}</div>
+                    <div className="text-muted-foreground">{t("الرصيد", "Balance")}</div>
+                    <div className="font-english text-foreground" dir="ltr">{Number(selectedAccount.balance).toLocaleString()} {selectedAccount.currency}</div>
                   </div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link to={`/app/bank-reconciliation?bankAccountId=${selectedAccount.id}`}>
-                  <Button className="bg-[#1276E3] hover:bg-[#1060C0]">
+                  <Button className="bg-primary hover:bg-primary/90">
                     {t("استيراد كشف / تسوية", "Import statement / reconcile")}
                     <ArrowRight className="ms-2 h-4 w-4" />
                   </Button>
@@ -250,34 +250,34 @@ export function BankAccounts() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">{t("إجمالي الأرصدة", "Total balance")}</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalBalance.toLocaleString()}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الأرصدة", "Total balance")}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalBalance.toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">{t("عدد الحسابات", "Accounts")}</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">{t("عدد الحسابات", "Accounts")}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">{t("العملات", "Currencies")}</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{new Set(items.map(b => b.currency)).size}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">{t("العملات", "Currencies")}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{new Set(items.map(b => b.currency)).size}</div>
         </CardContent></Card>
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-[#0B1B49]">{t("قائمة الحسابات", "Accounts list")}</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+            <CardTitle className="text-foreground">{t("قائمة الحسابات", "Accounts list")}</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
-            <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">{t("لا توجد حسابات بنكية بعد", "No bank accounts yet")}</p></div>
+            <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد حسابات بنكية بعد", "No bank accounts yet")}</p></div>
           ) : (
             <table className="w-full">
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الاسم", "Name")}</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("البنك", "Bank")}</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التفاصيل البنكية", "Bank details")}</th>
@@ -286,13 +286,13 @@ export function BankAccounts() {
               </tr></thead>
               <tbody>
                 {filtered.map(b => (
-                  <tr key={b.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                  <tr key={b.id} className="border-b border-border/50 hover:bg-primary/5">
                     <td className="py-3 px-4 text-sm" style={{ fontWeight: 500 }}>
-                      <Link to={`/app/bank-accounts/${b.id}`} className="text-[#0B1B49] hover:text-[#1276E3] hover:underline">{b.name}</Link>
+                      <Link to={`/app/bank-accounts/${b.id}`} className="text-foreground hover:text-primary hover:underline">{b.name}</Link>
                     </td>
-                    <td className="py-3 px-4 text-sm text-[#374151]">{b.bankName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{accountIdentifier(b)}</td>
-                    <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(b.balance).toLocaleString()} {b.currency}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80">{b.bankName || "—"}</td>
+                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{accountIdentifier(b)}</td>
+                    <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.balance).toLocaleString()} {b.currency}</td>
                     <td className="py-3 px-4">
                       {pendingDelete === b.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />
@@ -309,15 +309,15 @@ export function BankAccounts() {
       </Card>
 
       <SidePanel open={open} onClose={() => setOpen(false)}>
-        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">{t("حساب بنكي جديد", "New bank account")}</h2></div>
+        <div className="mb-3"><h2 className="text-foreground text-lg font-semibold">{t("حساب بنكي جديد", "New bank account")}</h2></div>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-              <div className="space-y-2"><Label className="text-[#374151]">{t("اسم الحساب *", "Account name *")}</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("مثال: الحساب الجاري الرئيسي", "Example: Main operating account")} required className="border-[#E5E7EB]" /></div>
+              <div className="space-y-2"><Label className="text-foreground/80">{t("اسم الحساب *", "Account name *")}</Label>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("مثال: الحساب الجاري الرئيسي", "Example: Main operating account")} required className="border-border" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-[#374151]">{t("الدولة *", "Country *")}</Label>
-                  <select value={form.country} onChange={(e) => handleCountryChange(e.target.value)} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                <div className="space-y-2"><Label className="text-foreground/80">{t("الدولة *", "Country *")}</Label>
+                  <select value={form.country} onChange={(e) => handleCountryChange(e.target.value)} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                     <option value="SA">{t("السعودية", "Saudi Arabia")}</option>
                     <option value="AE">{t("الإمارات", "United Arab Emirates")}</option>
                     <option value="KW">{t("الكويت", "Kuwait")}</option>
@@ -331,10 +331,10 @@ export function BankAccounts() {
                     <option value="DE">{t("ألمانيا", "Germany")}</option>
                     <option value="FR">{t("فرنسا", "France")}</option>
                   </select></div>
-                <div className="space-y-2"><Label className="text-[#374151]">{t("العملة", "Currency")}</Label>
-                  <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <div className="space-y-2"><Label className="text-foreground/80">{t("العملة", "Currency")}</Label>
+                  <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-border font-english" /></div>
               </div>
-              <div className="space-y-2"><Label className="text-[#374151]">{t("البنك", "Bank")}</Label>
+              <div className="space-y-2"><Label className="text-foreground/80">{t("البنك", "Bank")}</Label>
                 {form.country === "SA" ? (
                   <select
                     value={form.bankName}
@@ -344,7 +344,7 @@ export function BankAccounts() {
                       const match = Object.values(KSA_BANKS).find((b) => b.name === v);
                       setForm({ ...form, bankName: v, swiftCode: match ? match.swift + "XXX" : form.swiftCode });
                     }}
-                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white"
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
                   >
                     <option value="">{t("اختر بنكاً...", "Choose a bank...")}</option>
                     {Object.values(KSA_BANKS).map((b) => (<option key={b.swift} value={b.name}>{b.name}</option>))}
@@ -357,7 +357,7 @@ export function BankAccounts() {
                       value={form.bankName}
                       onChange={(e) => setForm({ ...form, bankName: e.target.value })}
                       placeholder={form.country === "US" ? "Mercury / Column N.A." : "Bank name"}
-                      className="border-[#E5E7EB]"
+                      className="border-border"
                     />
                     {form.country === "US" && (
                       <datalist id="us-bank-suggestions">
@@ -369,7 +369,7 @@ export function BankAccounts() {
               </div>
 
               {form.country === "US" && (
-                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-[#0B1B49]">
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="font-semibold">{t("صيغة الحسابات الأمريكية", "US bank account format")}</div>
@@ -399,7 +399,7 @@ export function BankAccounts() {
               {/* KSA + Gulf · IBAN-based */}
               {(form.country === "SA" || form.country === "AE" || form.country === "KW" || form.country === "QA" || form.country === "BH" || form.country === "OM" || form.country === "JO") && (
                 <>
-                  <div className="space-y-2"><Label className="text-[#374151]">IBAN *</Label>
+                  <div className="space-y-2"><Label className="text-foreground/80">IBAN *</Label>
                     <Input value={form.iban} onChange={(e) => {
                       const cleaned = e.target.value.replace(/\s/g, "").toUpperCase();
                       const next: any = { ...form, iban: cleaned };
@@ -413,17 +413,17 @@ export function BankAccounts() {
                       }
                       setForm(next);
                     }}
-                      placeholder={form.country === "SA" ? "SA00 0000 0000 0000 0000 0000" : "Country IBAN"} maxLength={34} dir="ltr" className="border-[#E5E7EB] font-english" />
+                      placeholder={form.country === "SA" ? "SA00 0000 0000 0000 0000 0000" : "Country IBAN"} maxLength={34} dir="ltr" className="border-border font-english" />
                     {form.country === "SA" && form.iban.length >= 8 && (() => {
                       const d = detectKsaBank(form.iban);
                       return d ? <p className="text-[10px] text-green-700 mt-1">{t("تم التعرّف", "Detected")}: {d.name}</p> : <p className="text-[10px] text-amber-600 mt-1">{t("لم يتم التعرّف · أدخل البنك يدوياً", "Not detected. Enter the bank manually.")}</p>;
                     })()}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2"><Label className="text-[#374151]">{t("رمز SWIFT/BIC", "SWIFT/BIC code")}</Label>
-                      <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="RJHISARIXXX" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                    <div className="space-y-2"><Label className="text-[#374151]">{t("رقم الحساب (اختياري)", "Account number (optional)")}</Label>
-                      <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                    <div className="space-y-2"><Label className="text-foreground/80">{t("رمز SWIFT/BIC", "SWIFT/BIC code")}</Label>
+                      <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="RJHISARIXXX" maxLength={11} dir="ltr" className="border-border font-english" /></div>
+                    <div className="space-y-2"><Label className="text-foreground/80">{t("رقم الحساب (اختياري)", "Account number (optional)")}</Label>
+                      <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
                   </div>
                 </>
               )}
@@ -432,38 +432,38 @@ export function BankAccounts() {
               {form.country === "US" && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2"><Label className="text-[#374151]">Routing Number * <span className="text-[#9CA3AF] text-xs">(ABA)</span></Label>
-                      <Input value={form.routingNumber} onChange={(e) => setForm({ ...form, routingNumber: e.target.value.replace(/\D/g, "") })} placeholder="123456789" maxLength={9} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                    <div className="space-y-2"><Label className="text-[#374151]">Account Number *</Label>
-                      <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                    <div className="space-y-2"><Label className="text-foreground/80">Routing Number * <span className="text-muted-foreground/60 text-xs">(ABA)</span></Label>
+                      <Input value={form.routingNumber} onChange={(e) => setForm({ ...form, routingNumber: e.target.value.replace(/\D/g, "") })} placeholder="123456789" maxLength={9} dir="ltr" className="border-border font-english" /></div>
+                    <div className="space-y-2"><Label className="text-foreground/80">Account Number *</Label>
+                      <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
                   </div>
-                  <div className="space-y-2"><Label className="text-[#374151]">SWIFT/BIC <span className="text-[#9CA3AF] text-xs">{t("(للتحويلات الدولية)", "(international wires)")}</span></Label>
-                    <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="CHASUS33" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                  <div className="space-y-2"><Label className="text-foreground/80">SWIFT/BIC <span className="text-muted-foreground/60 text-xs">{t("(للتحويلات الدولية)", "(international wires)")}</span></Label>
+                    <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="CHASUS33" maxLength={11} dir="ltr" className="border-border font-english" /></div>
                 </>
               )}
 
               {/* UK / EU · IBAN + SWIFT */}
               {(form.country === "GB" || form.country === "DE" || form.country === "FR") && (
                 <>
-                  <div className="space-y-2"><Label className="text-[#374151]">IBAN *</Label>
-                    <Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })} placeholder="GB00 NWBK 0000 0000 0000 00" maxLength={34} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
-                  <div className="space-y-2"><Label className="text-[#374151]">SWIFT/BIC *</Label>
-                    <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="NWBKGB2L" maxLength={11} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                  <div className="space-y-2"><Label className="text-foreground/80">IBAN *</Label>
+                    <Input value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })} placeholder="GB00 NWBK 0000 0000 0000 00" maxLength={34} dir="ltr" className="border-border font-english" /></div>
+                  <div className="space-y-2"><Label className="text-foreground/80">SWIFT/BIC *</Label>
+                    <Input value={form.swiftCode} onChange={(e) => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })} placeholder="NWBKGB2L" maxLength={11} dir="ltr" className="border-border font-english" /></div>
                 </>
               )}
 
               {/* Egypt · Account number only */}
               {form.country === "EG" && (
-                <div className="space-y-2"><Label className="text-[#374151]">{t("رقم الحساب *", "Account number *")}</Label>
-                  <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <div className="space-y-2"><Label className="text-foreground/80">{t("رقم الحساب *", "Account number *")}</Label>
+                  <Input value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
               )}
 
-              <div className="space-y-2"><Label className="text-[#374151]">{t("الرصيد الافتتاحي", "Opening balance")}</Label>
-                <Input type="number" step="0.01" value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+              <div className="space-y-2"><Label className="text-foreground/80">{t("الرصيد الافتتاحي", "Opening balance")}</Label>
+                <Input type="number" step="0.01" value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} dir="ltr" className="border-border font-english" /></div>
             </div>
-            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">{t("إلغاء", "Cancel")}</Button>
-              <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? t("جارٍ الحفظ...", "Saving...") : t("حفظ", "Save")}</Button>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">{t("إلغاء", "Cancel")}</Button>
+              <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? t("جارٍ الحفظ...", "Saving...") : t("حفظ", "Save")}</Button>
             </div>
           </form>
         </SidePanel>

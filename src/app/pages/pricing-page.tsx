@@ -57,7 +57,7 @@ export function PricingPage() {
       nameEn: "Enterprise",
       price: { monthly: 299, yearly: 2990 }, // ~16% discount
       desc: "للمؤسسات الكبيرة",
-      color: "#0B1A47",
+      color: "#0B1B49",
       features: {
         invoices: "فواتير غير محدودة",
         users: "مستخدمون غير محدودون",
@@ -142,7 +142,7 @@ export function PricingPage() {
       <SharedNavbar />
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] text-white">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white">
         <div className="max-w-7xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
@@ -166,7 +166,7 @@ export function PricingPage() {
                 onClick={() => setBillingCycle("monthly")}
                 className={`px-6 py-2.5 rounded-xl transition-all cursor-pointer ${
                   billingCycle === "monthly"
-                    ? "bg-white text-[#0B1A47] shadow-lg"
+                    ? "bg-white text-foreground shadow-lg"
                     : "bg-white/10 text-white hover:bg-white/20"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 600 }}
@@ -177,7 +177,7 @@ export function PricingPage() {
                 onClick={() => setBillingCycle("yearly")}
                 className={`px-6 py-2.5 rounded-xl transition-all cursor-pointer relative ${
                   billingCycle === "yearly"
-                    ? "bg-white text-[#0B1A47] shadow-lg"
+                    ? "bg-white text-foreground shadow-lg"
                     : "bg-white/10 text-white hover:bg-white/20"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 600 }}
@@ -218,23 +218,23 @@ export function PricingPage() {
                 )}
                 
                 <div className="mb-8">
-                  <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "24px", fontWeight: 700 }}>
+                  <h3 className="text-foreground mb-2" style={{ fontSize: "24px", fontWeight: 700 }}>
                     {plan.name}
                   </h3>
-                  <p className="text-[#6B7280]" style={{ fontSize: "14px" }}>
+                  <p className="text-muted-foreground" style={{ fontSize: "14px" }}>
                     {plan.desc}
                   </p>
                 </div>
 
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2 mb-2" dir="ltr">
-                    <span className="text-[#0B1A47]" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                    <span className="text-foreground" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {plan.price[billingCycle] === 0 
                         ? "مجاني" 
                         : plan.price[billingCycle].toLocaleString("en-US")}
                     </span>
                     {plan.price[billingCycle] > 0 && (
-                      <span className="text-[#6B7280]" style={{ fontSize: "16px" }}>
+                      <span className="text-muted-foreground" style={{ fontSize: "16px" }}>
                         SR / {billingCycle === "monthly" ? "شهر" : "سنة"}
                       </span>
                     )}
@@ -250,8 +250,8 @@ export function PricingPage() {
                   onClick={() => navigate("/register")}
                   className={`w-full py-3.5 rounded-xl transition-all mb-8 cursor-pointer ${
                     plan.popular
-                      ? "bg-[#1276E3] hover:bg-[#0B5FBF] text-white shadow-lg shadow-[#1276E3]/25"
-                      : "bg-gray-100 hover:bg-gray-200 text-[#0B1A47]"
+                      ? "bg-primary hover:bg-primary/80 text-white shadow-lg shadow-[#1276E3]/25"
+                      : "bg-gray-100 hover:bg-gray-200 text-foreground"
                   }`}
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >
@@ -259,7 +259,7 @@ export function PricingPage() {
                 </button>
 
                 <div className="space-y-4">
-                  <h4 className="text-[#374151] mb-4" style={{ fontSize: "14px", fontWeight: 600 }}>
+                  <h4 className="text-foreground/80 mb-4" style={{ fontSize: "14px", fontWeight: 600 }}>
                     ما ستحصل عليه:
                   </h4>
                   {Object.entries(plan.features).map(([key, value]) => (
@@ -273,7 +273,7 @@ export function PricingPage() {
                       ) : (
                         <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
                       )}
-                      <span className="text-[#374151]" style={{ fontSize: "14px" }}>
+                      <span className="text-foreground/80" style={{ fontSize: "14px" }}>
                         {typeof value === "boolean" ? key : value}
                       </span>
                     </div>
@@ -290,7 +290,7 @@ export function PricingPage() {
         <div className="max-w-7xl mx-auto text-center">
           <button
             onClick={() => setShowComparison(!showComparison)}
-            className="inline-flex items-center gap-2 bg-white border-2 border-[#1276E3] text-[#1276E3] px-8 py-3.5 rounded-xl hover:bg-[#1276E3] hover:text-white transition-all cursor-pointer shadow-lg"
+            className="inline-flex items-center gap-2 bg-white border-2 border-[#1276E3] text-primary px-8 py-3.5 rounded-xl hover:bg-primary hover:text-white transition-all cursor-pointer shadow-lg"
             style={{ fontSize: "16px", fontWeight: 600 }}
           >
             {showComparison ? "إخفاء" : "عرض"} جدول المقارنة التفصيلي
@@ -308,7 +308,7 @@ export function PricingPage() {
           className="py-12 px-4 sm:px-6 lg:px-8 bg-white"
         >
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-[#0B1A47] mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
               مقارنة شاملة بين الباقات
             </h2>
             
@@ -316,12 +316,12 @@ export function PricingPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-gray-200">
-                    <th className="text-right p-4 text-[#0B1A47]" style={{ fontSize: "15px", fontWeight: 600 }}>
+                    <th className="text-right p-4 text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
                       الميزة
                     </th>
                     {plans.map((plan) => (
                       <th key={plan.name} className="p-4 text-center" style={{ minWidth: "150px" }}>
-                        <div className="text-[#0B1A47]" style={{ fontSize: "16px", fontWeight: 700 }}>
+                        <div className="text-foreground" style={{ fontSize: "16px", fontWeight: 700 }}>
                           {plan.name}
                         </div>
                       </th>
@@ -332,13 +332,13 @@ export function PricingPage() {
                   {comparisonFeatures.map((category) => (
                     <>
                       <tr key={category.category} className="bg-gray-100">
-                        <td colSpan={4} className="p-4 text-[#0B1A47]" style={{ fontSize: "15px", fontWeight: 700 }}>
+                        <td colSpan={4} className="p-4 text-foreground" style={{ fontSize: "15px", fontWeight: 700 }}>
                           {category.category}
                         </td>
                       </tr>
                       {category.features.map((feature, i) => (
                         <tr key={feature.name} className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
-                          <td className="p-4 text-[#374151]" style={{ fontSize: "14px" }}>
+                          <td className="p-4 text-foreground/80" style={{ fontSize: "14px" }}>
                             {feature.name}
                           </td>
                           <td className="p-4 text-center">
@@ -349,7 +349,7 @@ export function PricingPage() {
                                 <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
                               )
                             ) : (
-                              <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>{feature.free}</span>
+                              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{feature.free}</span>
                             )}
                           </td>
                           <td className="p-4 text-center">
@@ -360,7 +360,7 @@ export function PricingPage() {
                                 <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
                               )
                             ) : (
-                              <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>{feature.pro}</span>
+                              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{feature.pro}</span>
                             )}
                           </td>
                           <td className="p-4 text-center">
@@ -371,7 +371,7 @@ export function PricingPage() {
                                 <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
                               )
                             ) : (
-                              <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>{feature.enterprise}</span>
+                              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{feature.enterprise}</span>
                             )}
                           </td>
                         </tr>
@@ -388,7 +388,7 @@ export function PricingPage() {
       {/* FAQ */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-[#0B1A47] mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
+          <h2 className="text-foreground mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
             الأسئلة الشائعة
           </h2>
           <div className="space-y-4">
@@ -402,12 +402,12 @@ export function PricingPage() {
                 className="bg-white rounded-xl p-6 border border-gray-200 hover:border-[#1276E3]/30 hover:shadow-lg transition-all"
               >
                 <div className="flex items-start gap-3">
-                  <HelpCircle className="w-5 h-5 text-[#1276E3] flex-shrink-0 mt-1" />
+                  <HelpCircle className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
                   <div>
-                    <h3 className="text-[#0B1A47] mb-2" style={{ fontSize: "16px", fontWeight: 600 }}>
+                    <h3 className="text-foreground mb-2" style={{ fontSize: "16px", fontWeight: 600 }}>
                       {faq.q}
                     </h3>
-                    <p className="text-[#6B7280]" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+                    <p className="text-muted-foreground" style={{ fontSize: "14px", lineHeight: 1.8 }}>
                       {faq.a}
                     </p>
                   </div>
@@ -419,7 +419,7 @@ export function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1A47] to-[#1276E3]">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] to-[#1276E3]">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -434,7 +434,7 @@ export function PricingPage() {
             </p>
             <button
               onClick={() => navigate("/register")}
-              className="bg-white hover:bg-gray-50 text-[#0B1A47] px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 mx-auto cursor-pointer"
+              className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
               ابدأ تجربتك المجانية الآن

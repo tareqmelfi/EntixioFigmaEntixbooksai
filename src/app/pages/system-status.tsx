@@ -38,17 +38,17 @@ function StatusCard({ item, language }: { item: CheckItem; language: "ar" | "en"
   const classes = stateClasses(item.state);
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             <div className="rounded-lg bg-[#EFF6FF] p-2">
-              <Icon className="h-5 w-5 text-[#1276E3]" />
+              <Icon className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-[#0B1B49]">{item.title}</h3>
-              <p className="mt-1 text-xs leading-5 text-[#6B7280]">{item.description}</p>
-              {item.detail && <p className="mt-2 break-words text-xs text-[#374151]">{item.detail}</p>}
+              <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p>
+              {item.detail && <p className="mt-2 break-words text-xs text-foreground/80">{item.detail}</p>}
             </div>
           </div>
           <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${classes}`}>
@@ -153,8 +153,8 @@ export function SystemStatus() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[1.75rem] font-bold text-[#0B1B49]">{t("حالة النظام", "System status")}</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">{t("فحص سريع لأجزاء التشغيل الأساسية في ENTIX.IO.", "Quick check for the core ENTIX.IO operating surfaces.")}</p>
+          <h1 className="text-[1.75rem] font-bold text-foreground">{t("حالة النظام", "System status")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("فحص سريع لأجزاء التشغيل الأساسية في ENTIX.IO.", "Quick check for the core ENTIX.IO operating surfaces.")}</p>
         </div>
         <Button onClick={runChecks} disabled={checking} variant="outline" className="border-[#D1D5DB]">
           <RefreshCw className={`me-2 h-4 w-4 ${checking ? "animate-spin" : ""}`} />
@@ -164,7 +164,7 @@ export function SystemStatus() {
 
       <Card className={hasIssues ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50"}>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm text-[#0B1B49]">
+          <CardTitle className="flex items-center gap-2 text-sm text-foreground">
             {hasIssues ? <AlertTriangle className="h-4 w-4 text-amber-600" /> : <CheckCircle2 className="h-4 w-4 text-green-600" />}
             {hasIssues ? t("يوجد عناصر تحتاج مراجعة", "Some services need review") : t("الخدمات الأساسية تعمل", "Core services are operational")}
           </CardTitle>

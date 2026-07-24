@@ -60,24 +60,24 @@ export function TaxRateSelect({ value, onChange, type = "both", placeholder = "�
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-sm text-start font-english focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
+        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm text-start font-english focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
       >
         {displayValue}
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-[260px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden" style={{ maxHeight: "320px" }}>
+        <div className="absolute z-50 mt-1 w-[260px] rounded-lg border border-border bg-white shadow-lg overflow-hidden" style={{ maxHeight: "320px" }}>
           {/* Actions */}
-          <div className="border-b border-[#E5E7EB]">
-            <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-[#F9FAFB] transition-colors">
-              <Settings className="h-4 w-4 text-[#6B7280]" />
-              <span className="text-sm text-[#374151]">إعداد ضريبة تلقائية</span>
-              <ExternalLink className="h-3 w-3 text-[#6B7280] ms-auto" />
+          <div className="border-b border-border">
+            <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-foreground/80">إعداد ضريبة تلقائية</span>
+              <ExternalLink className="h-3 w-3 text-muted-foreground ms-auto" />
             </button>
-            <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-[#F9FAFB] transition-colors border-b border-[#E5E7EB]">
-              <Plus className="h-4 w-4 text-[#1276E3]" />
-              <span className="text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>إنشاء نسبة ضريبة جديدة</span>
-              <ExternalLink className="h-3 w-3 text-[#1276E3] ms-auto" />
+            <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors border-b border-border">
+              <Plus className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إنشاء نسبة ضريبة جديدة</span>
+              <ExternalLink className="h-3 w-3 text-primary ms-auto" />
             </button>
           </div>
 
@@ -87,10 +87,10 @@ export function TaxRateSelect({ value, onChange, type = "both", placeholder = "�
                 key={tr.id}
                 onClick={() => handleSelect(tr)}
                 onMouseEnter={() => setHighlightIndex(i)}
-                className={`w-full text-start px-3 py-2.5 flex items-center justify-between transition-colors ${highlightIndex === i ? "bg-[#EFF6FF]" : "hover:bg-[#F9FAFB]"} ${tr.rate === value ? "bg-[#F0F9FF]" : ""}`}
+                className={`w-full text-start px-3 py-2.5 flex items-center justify-between transition-colors ${highlightIndex === i ? "bg-[#EFF6FF]" : "hover:bg-muted"} ${tr.rate === value ? "bg-[#F0F9FF]" : ""}`}
               >
-                <span className="text-sm text-[#0B1B49]">{tr.name}</span>
-                <span className="text-sm font-english text-[#6B7280]" style={{ fontWeight: 500 }}>{tr.rate}%</span>
+                <span className="text-sm text-foreground">{tr.name}</span>
+                <span className="text-sm font-english text-muted-foreground" style={{ fontWeight: 500 }}>{tr.rate}%</span>
               </button>
             ))}
           </div>

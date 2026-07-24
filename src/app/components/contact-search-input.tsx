@@ -222,11 +222,11 @@ export function ContactSearchInput({
 
   return (
     <div ref={containerRef} className="relative">
-      {label && <label className="block text-sm text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>{label}</label>}
+      {label && <label className="block text-sm text-foreground/80 mb-1.5" style={{ fontWeight: 500 }}>{label}</label>}
 
       {/* Input */}
       <div className="relative">
-        <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
+        <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -235,12 +235,12 @@ export function ContactSearchInput({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-[#E5E7EB] bg-white py-2.5 ps-10 pe-10 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 transition-colors"
+          className="w-full rounded-lg border border-border bg-white py-2.5 ps-10 pe-10 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 transition-colors"
         />
         {query && (
           <button
             onClick={() => { setQuery(""); onChange(""); inputRef.current?.focus(); }}
-            className="absolute end-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#9CA3AF] hover:text-[#6B7280]"
+            className="absolute end-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground/60 hover:text-muted-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -249,7 +249,7 @@ export function ContactSearchInput({
 
       {/* Selected party badge */}
       {selectedParty && !isOpen && (
-        <div className="mt-1.5 flex items-center gap-2 text-xs text-[#6B7280]">
+        <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           {selectedParty.entityLocation === "foreign" ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[#92400E]" style={{ fontWeight: 500 }}>
               <Globe className="h-3 w-3" />{countries.find((c) => c.code === selectedParty.country)?.flag} كيان أجنبي — {selectedParty.currency}
@@ -265,7 +265,7 @@ export function ContactSearchInput({
               href={`https://search.gleif.org/#/record/${selectedParty.leiCode}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[#1276E3] hover:underline"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
             >
               LEI <ExternalLink className="h-3 w-3" />
             </a>
@@ -282,7 +282,7 @@ export function ContactSearchInput({
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden"
+          className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-white shadow-lg overflow-hidden"
           style={{ maxHeight: "320px" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "280px" }}>
@@ -293,7 +293,7 @@ export function ContactSearchInput({
                   onClick={() => handleSelect(party)}
                   onMouseEnter={() => setHighlightIndex(i)}
                   className={`w-full text-start px-4 py-2.5 flex items-center gap-3 transition-colors ${
-                    highlightIndex === i ? "bg-[#EFF6FF]" : "hover:bg-[#F9FAFB]"
+                    highlightIndex === i ? "bg-[#EFF6FF]" : "hover:bg-muted"
                   }`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
@@ -307,27 +307,27 @@ export function ContactSearchInput({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 500 }}>{party.name}</span>
-                      {party.nameEn && <span className="text-xs text-[#9CA3AF] font-english truncate">{party.nameEn}</span>}
+                      <span className="text-sm text-foreground truncate" style={{ fontWeight: 500 }}>{party.name}</span>
+                      {party.nameEn && <span className="text-xs text-muted-foreground/60 font-english truncate">{party.nameEn}</span>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {party.entityLocation === "foreign" ? (
                         <span className="text-xs text-[#F59E0B]">{countries.find((c) => c.code === party.country)?.flag} أجنبي</span>
                       ) : (
-                        <span className="text-xs text-[#6B7280]">🇸🇦 محلي</span>
+                        <span className="text-xs text-muted-foreground">🇸🇦 محلي</span>
                       )}
                       {party.roles.map((r) => (
-                        <span key={r} className="text-xs text-[#9CA3AF]">{r}</span>
+                        <span key={r} className="text-xs text-muted-foreground/60">{r}</span>
                       ))}
                     </div>
                   </div>
                   {party.taxNumber && (
-                    <span className="text-xs font-english text-[#9CA3AF] shrink-0">ض: {party.taxNumber.slice(0, 6)}...</span>
+                    <span className="text-xs font-english text-muted-foreground/60 shrink-0">ض: {party.taxNumber.slice(0, 6)}...</span>
                   )}
                 </button>
               ))
             ) : query.trim() ? (
-              <div className="px-4 py-3 text-sm text-[#6B7280] text-center">لا توجد نتائج لـ "{query}"</div>
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center">لا توجد نتائج لـ "{query}"</div>
             ) : null}
           </div>
 
@@ -336,16 +336,16 @@ export function ContactSearchInput({
             <button
               onClick={openQuickCreate}
               onMouseEnter={() => setHighlightIndex(results.length)}
-              className={`w-full text-start px-4 py-3 flex items-center gap-2 border-t border-[#E5E7EB] transition-colors ${
-                highlightIndex === results.length ? "bg-[#EFF6FF]" : "hover:bg-[#F9FAFB]"
+              className={`w-full text-start px-4 py-3 flex items-center gap-2 border-t border-border transition-colors ${
+                highlightIndex === results.length ? "bg-[#EFF6FF]" : "hover:bg-muted"
               }`}
             >
               <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center shrink-0">
-                <Plus className="h-4 w-4 text-[#1276E3]" />
+                <Plus className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <span className="text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>إضافة "{query}" كجهة اتصال جديدة...</span>
-                <p className="text-xs text-[#9CA3AF]">اضغط Enter للإضافة السريعة</p>
+                <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إضافة "{query}" كجهة اتصال جديدة...</span>
+                <p className="text-xs text-muted-foreground/60">اضغط Enter للإضافة السريعة</p>
               </div>
             </button>
           )}
@@ -357,38 +357,38 @@ export function ContactSearchInput({
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={(e) => { if (e.target === e.currentTarget) setShowQuickCreate(false); }}>
           <div className="w-full max-w-lg rounded-xl bg-white shadow-xl mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <h3 className="text-[#0B1B49]" style={{ fontSize: "1.125rem", fontWeight: 700 }}>إضافة جهة اتصال جديدة</h3>
-                <p className="text-xs text-[#6B7280] mt-0.5">بيانات أساسية — يمكنك تعديلها لاحقاً من ملف الجهة</p>
+                <h3 className="text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700 }}>إضافة جهة اتصال جديدة</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">بيانات أساسية — يمكنك تعديلها لاحقاً من ملف الجهة</p>
               </div>
-              <button onClick={() => setShowQuickCreate(false)} className="rounded-lg p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowQuickCreate(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50"><X className="h-5 w-5" /></button>
             </div>
 
             <div className="p-5 space-y-4 overflow-y-auto" style={{ maxHeight: "70vh" }}>
               {/* Entity Location Toggle */}
               <div>
-                <label className="text-xs text-[#6B7280] mb-2 block" style={{ fontWeight: 600 }}>نوع الكيان</label>
+                <label className="text-xs text-muted-foreground mb-2 block" style={{ fontWeight: 600 }}>نوع الكيان</label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleLocationChange("local")}
                     className={`flex-1 rounded-lg border-2 px-4 py-3 text-center transition-all ${
-                      qcEntityLocation === "local" ? "border-[#1276E3] bg-[#EFF6FF]" : "border-[#E5E7EB] hover:border-[#D1D5DB]"
+                      qcEntityLocation === "local" ? "border-[#1276E3] bg-[#EFF6FF]" : "border-border hover:border-[#D1D5DB]"
                     }`}
                   >
-                    <MapPin className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "local" ? "text-[#1276E3]" : "text-[#9CA3AF]"}`} />
+                    <MapPin className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "local" ? "text-primary" : "text-muted-foreground/60"}`} />
                     <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "local" ? "#1276E3" : "#374151" }}>🇸🇦 داخل المملكة</p>
-                    <p className="text-xs text-[#9CA3AF] mt-0.5">سجل تجاري، رقم ضريبي</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">سجل تجاري، رقم ضريبي</p>
                   </button>
                   <button
                     onClick={() => handleLocationChange("foreign")}
                     className={`flex-1 rounded-lg border-2 px-4 py-3 text-center transition-all ${
-                      qcEntityLocation === "foreign" ? "border-[#F59E0B] bg-[#FEF3C7]/30" : "border-[#E5E7EB] hover:border-[#D1D5DB]"
+                      qcEntityLocation === "foreign" ? "border-[#F59E0B] bg-[#FEF3C7]/30" : "border-border hover:border-[#D1D5DB]"
                     }`}
                   >
-                    <Globe className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "foreign" ? "text-[#F59E0B]" : "text-[#9CA3AF]"}`} />
+                    <Globe className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "foreign" ? "text-[#F59E0B]" : "text-muted-foreground/60"}`} />
                     <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "foreign" ? "#F59E0B" : "#374151" }}>🌍 خارج المملكة</p>
-                    <p className="text-xs text-[#9CA3AF] mt-0.5">ITN، LEI، ضريبة استقطاع</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">ITN، LEI، ضريبة استقطاع</p>
                   </button>
                 </div>
               </div>
@@ -396,30 +396,30 @@ export function ContactSearchInput({
               {/* Name & Type */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>الاسم (عربي)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الاسم (عربي)</label>
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>الاسم (إنجليزي)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الاسم (إنجليزي)</label>
                   <input
                     value={qcNameEn}
                     onChange={(e) => setQcNameEn(e.target.value)}
                     placeholder="English name"
-                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                     dir="ltr"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>التصنيف</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>التصنيف</label>
                   <div className="flex gap-2">
-                    <button onClick={() => setQcType("organization")} className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-colors ${qcType === "organization" ? "border-[#1276E3] bg-[#EFF6FF] text-[#1276E3]" : "border-[#E5E7EB] text-[#6B7280]"}`} style={{ fontWeight: 600 }}>
+                    <button onClick={() => setQcType("organization")} className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-colors ${qcType === "organization" ? "border-[#1276E3] bg-[#EFF6FF] text-primary" : "border-border text-muted-foreground"}`} style={{ fontWeight: 600 }}>
                       <Building2 className="h-3.5 w-3.5 mx-auto mb-0.5" />منشأة
                     </button>
-                    <button onClick={() => setQcType("person")} className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-colors ${qcType === "person" ? "border-[#1276E3] bg-[#EFF6FF] text-[#1276E3]" : "border-[#E5E7EB] text-[#6B7280]"}`} style={{ fontWeight: 600 }}>
+                    <button onClick={() => setQcType("person")} className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-colors ${qcType === "person" ? "border-[#1276E3] bg-[#EFF6FF] text-primary" : "border-border text-muted-foreground"}`} style={{ fontWeight: 600 }}>
                       <User className="h-3.5 w-3.5 mx-auto mb-0.5" />فرد
                     </button>
                   </div>
@@ -430,7 +430,7 @@ export function ContactSearchInput({
               {qcEntityLocation === "foreign" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>الدولة</label>
+                    <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الدولة</label>
                     <select
                       value={qcCountry}
                       onChange={(e) => {
@@ -438,7 +438,7 @@ export function ContactSearchInput({
                         const c = countries.find((c) => c.code === e.target.value);
                         if (c) setQcCurrency(c.currency);
                       }}
-                      className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none"
                     >
                       {countries.filter((c) => c.code !== "SA").map((c) => (
                         <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
@@ -446,11 +446,11 @@ export function ContactSearchInput({
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>العملة</label>
+                    <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>العملة</label>
                     <input
                       value={qcCurrency}
                       onChange={(e) => setQcCurrency(e.target.value)}
-                      className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                       dir="ltr"
                     />
                   </div>
@@ -459,28 +459,28 @@ export function ContactSearchInput({
 
               {/* Tax / Legal IDs */}
               <div>
-                <label className="text-xs text-[#6B7280] mb-2 block" style={{ fontWeight: 600 }}>
+                <label className="text-xs text-muted-foreground mb-2 block" style={{ fontWeight: 600 }}>
                   {qcEntityLocation === "local" ? "البيانات الضريبية والتجارية" : "البيانات الضريبية والقانونية"}
                 </label>
                 {qcEntityLocation === "local" ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-[#9CA3AF] mb-1 block">الرقم الضريبي (VAT)</label>
+                      <label className="text-xs text-muted-foreground/60 mb-1 block">الرقم الضريبي (VAT)</label>
                       <input
                         value={qcTaxNumber}
                         onChange={(e) => setQcTaxNumber(e.target.value)}
                         placeholder="300XXXXXXXXXX003"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                         dir="ltr"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-[#9CA3AF] mb-1 block">السجل التجاري</label>
+                      <label className="text-xs text-muted-foreground/60 mb-1 block">السجل التجاري</label>
                       <input
                         value={qcCommercialReg}
                         onChange={(e) => setQcCommercialReg(e.target.value)}
                         placeholder="1010XXXXXX"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                         dir="ltr"
                       />
                     </div>
@@ -489,36 +489,36 @@ export function ContactSearchInput({
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-[#9CA3AF] mb-1 block">ITN (رقم ضريبي دولي)</label>
+                        <label className="text-xs text-muted-foreground/60 mb-1 block">ITN (رقم ضريبي دولي)</label>
                         <input
                           value={qcItn}
                           onChange={(e) => setQcItn(e.target.value)}
                           placeholder="XX-XXXXXXX"
-                          className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                          className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                           dir="ltr"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-[#9CA3AF] mb-1 flex items-center gap-1">
+                        <label className="text-xs text-muted-foreground/60 mb-1 flex items-center gap-1">
                           LEI Code
-                          <a href="https://search.gleif.org/" target="_blank" rel="noopener noreferrer" className="text-[#1276E3]"><ExternalLink className="h-3 w-3" /></a>
+                          <a href="https://search.gleif.org/" target="_blank" rel="noopener noreferrer" className="text-primary"><ExternalLink className="h-3 w-3" /></a>
                         </label>
                         <input
                           value={qcLeiCode}
                           onChange={(e) => setQcLeiCode(e.target.value)}
                           placeholder="XXXXXXXXXXXXXXXXXXXX"
-                          className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                          className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                           dir="ltr"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-[#9CA3AF] mb-1 block">رقم الترخيص / التسجيل</label>
+                      <label className="text-xs text-muted-foreground/60 mb-1 block">رقم الترخيص / التسجيل</label>
                       <input
                         value={qcLicense}
                         onChange={(e) => setQcLicense(e.target.value)}
                         placeholder="اختياري"
-                        className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                         dir="ltr"
                       />
                     </div>
@@ -531,28 +531,28 @@ export function ContactSearchInput({
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs text-[#9CA3AF] mb-1 block">نسبة الاستقطاع %</label>
+                          <label className="text-xs text-muted-foreground/60 mb-1 block">نسبة الاستقطاع %</label>
                           <input
                             type="number"
                             value={qcWithholdingRate}
                             onChange={(e) => setQcWithholdingRate(+e.target.value)}
-                            className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                            className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                             dir="ltr" min={0} max={100}
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-[#9CA3AF] mb-1 block">تصنيف المعاملة</label>
+                          <label className="text-xs text-muted-foreground/60 mb-1 block">تصنيف المعاملة</label>
                           <select
                             value={qcTransClass}
                             onChange={(e) => setQcTransClass(e.target.value)}
-                            className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none"
+                            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none"
                           >
                             <option value="">اختر...</option>
                             {withholdingClassifications.map((c) => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
                       </div>
-                      <p className="text-xs text-[#9CA3AF] mt-2">سيتم تطبيق ضريبة الاستقطاع تلقائياً على كل معاملة مع هذا الكيان الأجنبي وإدراجها في الإقرار الضريبي الشهري.</p>
+                      <p className="text-xs text-muted-foreground/60 mt-2">سيتم تطبيق ضريبة الاستقطاع تلقائياً على كل معاملة مع هذا الكيان الأجنبي وإدراجها في الإقرار الضريبي الشهري.</p>
                     </div>
                   </div>
                 )}
@@ -561,22 +561,22 @@ export function ContactSearchInput({
               {/* Contact info (optional) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>البريد الإلكتروني</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>البريد الإلكتروني</label>
                   <input
                     value={qcEmail}
                     onChange={(e) => setQcEmail(e.target.value)}
                     placeholder="email@example.com"
-                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                     dir="ltr" type="email"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#6B7280] mb-1 block" style={{ fontWeight: 600 }}>الهاتف</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الهاتف</label>
                   <input
                     value={qcPhone}
                     onChange={(e) => setQcPhone(e.target.value)}
                     placeholder="+966 5X XXX XXXX"
-                    className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm font-english"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                     dir="ltr" type="tel"
                   />
                 </div>
@@ -584,14 +584,14 @@ export function ContactSearchInput({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between border-t border-[#E5E7EB] px-5 py-3 bg-[#F9FAFB]">
-              <p className="text-xs text-[#9CA3AF]">يمكنك إكمال البيانات لاحقاً من ملف الجهة</p>
+            <div className="flex items-center justify-between border-t border-border px-5 py-3 bg-muted">
+              <p className="text-xs text-muted-foreground/60">يمكنك إكمال البيانات لاحقاً من ملف الجهة</p>
               <div className="flex gap-2">
-                <button onClick={() => setShowQuickCreate(false)} className="rounded-lg border border-[#E5E7EB] px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F3F4F6] transition-colors" style={{ fontWeight: 500 }}>إلغاء</button>
+                <button onClick={() => setShowQuickCreate(false)} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50 transition-colors" style={{ fontWeight: 500 }}>إلغاء</button>
                 <button
                   onClick={handleQuickCreate}
                   disabled={!query.trim()}
-                  className="rounded-lg bg-[#1276E3] px-4 py-2 text-sm text-white hover:bg-[#1060C0] disabled:opacity-50 transition-colors"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
                   <Plus className="h-4 w-4 inline-block me-1" />

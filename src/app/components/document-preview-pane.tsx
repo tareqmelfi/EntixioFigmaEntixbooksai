@@ -275,37 +275,37 @@ export function DocumentPreviewPane({
   }, []);
 
   return (
-    <div className={`flex flex-col bg-white border border-[#E5E7EB] rounded-lg overflow-hidden ${className}`}>
+    <div className={`flex flex-col bg-white border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Empty state */}
       {files.length === 0 ? (
         <div
-          className={`flex-1 flex flex-col items-center justify-center min-h-[280px] m-3 rounded-lg border-2 border-dashed transition ${dragOver ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB]"}`}
+          className={`flex-1 flex flex-col items-center justify-center min-h-[280px] m-3 rounded-lg border-2 border-dashed transition ${dragOver ? "border-[#1276E3] bg-primary/5" : "border-border"}`}
           onDrop={handleDrop}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
         >
-          <Upload className="h-10 w-10 text-[#9CA3AF] mb-3" />
-          <p className="text-sm text-[#0B1B49] font-medium">{hint}</p>
-          <p className="text-xs text-[#9CA3AF] mt-1">PDF · JPG · PNG · HEIC · صور من الجوال · حتى {maxSizeMb}MB</p>
-          <div className="mt-3 inline-flex rounded-lg border border-[#E5E7EB] bg-white p-1 text-xs">
+          <Upload className="h-10 w-10 text-muted-foreground/60 mb-3" />
+          <p className="text-sm text-foreground font-medium">{hint}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">PDF · JPG · PNG · HEIC · صور من الجوال · حتى {maxSizeMb}MB</p>
+          <div className="mt-3 inline-flex rounded-lg border border-border bg-white p-1 text-xs">
             <button
               type="button"
               onClick={() => setArchiveOriginal(false)}
-              className={`rounded-md px-2.5 py-1.5 transition ${!archiveOriginal ? "bg-[#0B1B49] text-white" : "text-[#6B7280] hover:bg-[#F9FAFB]"}`}
+              className={`rounded-md px-2.5 py-1.5 transition ${!archiveOriginal ? "bg-[#0B1B49] text-white" : "text-muted-foreground hover:bg-muted"}`}
             >
               أرشفة ممسوحة
             </button>
             <button
               type="button"
               onClick={() => setArchiveOriginal(true)}
-              className={`rounded-md px-2.5 py-1.5 transition ${archiveOriginal ? "bg-[#0B1B49] text-white" : "text-[#6B7280] hover:bg-[#F9FAFB]"}`}
+              className={`rounded-md px-2.5 py-1.5 transition ${archiveOriginal ? "bg-[#0B1B49] text-white" : "text-muted-foreground hover:bg-muted"}`}
             >
               حفظ كامل
             </button>
           </div>
           <input ref={fileRef} type="file" hidden multiple accept={accept}
             onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }} />
-          <Button onClick={() => fileRef.current?.click()} variant="outline" className="mt-4 border-[#E5E7EB]">
+          <Button onClick={() => fileRef.current?.click()} variant="outline" className="mt-4 border-border">
             <Upload className="h-4 w-4 me-2" /> اختر ملفاً
           </Button>
           {processing && (
@@ -318,32 +318,32 @@ export function DocumentPreviewPane({
       ) : (
         <>
           {/* Toolbar */}
-          <div className="flex items-center justify-between p-2 border-b border-[#F3F4F6] bg-[#F9FAFB]">
-            <div className="flex items-center gap-2 text-xs text-[#6B7280] truncate">
-              <Images className="h-4 w-4 text-[#1276E3] flex-shrink-0" />
+          <div className="flex items-center justify-between p-2 border-b border-border/50 bg-muted">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+              <Images className="h-4 w-4 text-primary flex-shrink-0" />
               <span className="truncate">{active?.name || "—"}</span>
-              {files.length > 1 && <span className="text-[#9CA3AF] font-english">({files.length})</span>}
+              {files.length > 1 && <span className="text-muted-foreground/60 font-english">({files.length})</span>}
               {active?.extracted && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />}
             </div>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setArchiveOriginal((value) => !value)}
-                className={`h-7 rounded-md border px-2 text-[11px] transition ${archiveOriginal ? "border-[#0B1B49] bg-[#0B1B49] text-white" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F9FAFB]"}`}
+                className={`h-7 rounded-md border px-2 text-[11px] transition ${archiveOriginal ? "border-[#0B1B49] bg-[#0B1B49] text-white" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}
                 title="يؤثر على الملفات الجديدة التي ترفعها بعد تغيير الخيار"
               >
                 {archiveOriginal ? "حفظ كامل" : "أرشفة ممسوحة"}
               </button>
               {enableExtract && active?.file && onExtract && (
                 <Button onClick={handleExtract} disabled={active.extracting}
-                  size="sm" className="bg-[#1276E3] hover:bg-[#1060C0] text-white text-xs h-7 px-2">
+                  size="sm" className="bg-primary hover:bg-primary/90 text-white text-xs h-7 px-2">
                   {active.extracting ? <Loader2 className="h-3 w-3 animate-spin me-1" /> : <Sparkles className="h-3 w-3 me-1" />}
                   {active.extracting ? "جاري الاستخراج" : active.extracted ? "تم الاستخراج" : "استخراج البيانات"}
                 </Button>
               )}
               <input ref={fileRef} type="file" hidden multiple accept={accept}
                 onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }} />
-              <button onClick={() => fileRef.current?.click()} className="p-1.5 text-[#1276E3] hover:bg-blue-50 rounded" title="إضافة ملف">
+              <button onClick={() => fileRef.current?.click()} className="p-1.5 text-primary hover:bg-blue-50 rounded" title="إضافة ملف">
                 <Upload className="h-4 w-4" />
               </button>
             </div>
@@ -371,7 +371,7 @@ export function DocumentPreviewPane({
             )}
           </div>
           {active?.note && (
-            <div className="px-3 py-2 bg-[#F4FCFF] border-t border-[#D7F0FF] text-xs text-[#0B5CAD] flex items-start gap-2">
+            <div className="px-3 py-2 bg-primary/5 border-t border-[#D7F0FF] text-xs text-[#0B5CAD] flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
               <span>{active.note}</span>
             </div>
@@ -379,20 +379,20 @@ export function DocumentPreviewPane({
 
           {/* Thumbnails strip */}
           {files.length > 1 && (
-            <div className="flex gap-2 p-2 border-t border-[#F3F4F6] overflow-x-auto bg-white">
+            <div className="flex gap-2 p-2 border-t border-border/50 overflow-x-auto bg-white">
               {files.map((f) => (
                 <button key={f.id}
                   onClick={() => setActiveId(f.id)}
-                  className={`flex-shrink-0 relative group ${f.id === activeId ? "ring-2 ring-[#1276E3]" : "ring-1 ring-[#E5E7EB]"} rounded p-2 hover:bg-[#F9FAFB]`}
+                  className={`flex-shrink-0 relative group ${f.id === activeId ? "ring-2 ring-[#1276E3]" : "ring-1 ring-[#E5E7EB]"} rounded p-2 hover:bg-muted`}
                 >
-                  <div className="w-12 h-14 flex items-center justify-center text-[#6B7280]">
+                  <div className="w-12 h-14 flex items-center justify-center text-muted-foreground">
                     {f.extracted ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : f.type.startsWith("image/") ? <ImageIcon className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <X className="h-2.5 w-2.5" />
                   </button>
-                  <div className="text-[10px] text-[#6B7280] truncate w-12 mt-1">{f.name}</div>
+                  <div className="text-[10px] text-muted-foreground truncate w-12 mt-1">{f.name}</div>
                 </button>
               ))}
             </div>
@@ -413,7 +413,7 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
   const percent = total > 0 ? Math.max(8, Math.min(100, Math.round((current / total) * 100))) : 62;
   const done = state.phase === "done";
   return (
-    <div className={`rounded-lg border ${done ? "border-emerald-200 bg-emerald-50" : "border-[#D7F0FF] bg-[#F4FCFF]"} ${compact ? "px-3 py-2" : "px-3 py-3"} shadow-sm`}>
+    <div className={`rounded-lg border ${done ? "border-emerald-200 bg-emerald-50" : "border-[#D7F0FF] bg-primary/5"} ${compact ? "px-3 py-2" : "px-3 py-3"} shadow-sm`}>
       <div className="flex items-start gap-2">
         <div className={`relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${done ? "bg-emerald-100" : "bg-[#0B1B49]"}`}>
           {done ? (
@@ -427,17 +427,17 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className={`text-sm font-semibold ${done ? "text-emerald-800" : "text-[#0B1B49]"}`}>{state.title}</p>
-            {!done && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1276E3]" />}
+            <p className={`text-sm font-semibold ${done ? "text-emerald-800" : "text-foreground"}`}>{state.title}</p>
+            {!done && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
           </div>
-          <p className="mt-0.5 text-xs text-[#6B7280]">{state.detail}</p>
-          {state.fileName && <p className="mt-1 truncate font-english text-[11px] text-[#6B7280]">{state.fileName}</p>}
+          <p className="mt-0.5 text-xs text-muted-foreground">{state.detail}</p>
+          {state.fileName && <p className="mt-1 truncate font-english text-[11px] text-muted-foreground">{state.fileName}</p>}
           {!compact && !done && (
             <div className="mt-2 flex items-center gap-2">
               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white">
-                <div className="h-full rounded-full bg-[#1276E3] transition-all duration-500" style={{ width: `${percent}%` }} />
+                <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${percent}%` }} />
               </div>
-              {total > 1 && <span className="font-english text-[11px] text-[#6B7280]">{current}/{total}</span>}
+              {total > 1 && <span className="font-english text-[11px] text-muted-foreground">{current}/{total}</span>}
             </div>
           )}
           {!compact && !done && (
@@ -473,8 +473,8 @@ function renderPreview(item: FileItem) {
           <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-3">
             <AlertTriangle className="h-7 w-7 text-amber-600" />
           </div>
-          <p className="text-sm text-[#0B1B49] font-medium mb-2">{item.name}</p>
-          <p className="text-xs text-[#6B7280] leading-5">
+          <p className="text-sm text-foreground font-medium mb-2">{item.name}</p>
+          <p className="text-xs text-muted-foreground leading-5">
             صيغة HEIC من الآيفون لا تظهر دائماً داخل المتصفح، لكنها تُرسل للسيرفر للتحويل إلى JPG قبل الاستخراج.
           </p>
         </div>
@@ -491,9 +491,9 @@ function renderPreview(item: FileItem) {
   // Default: download link
   return (
     <div className="text-center p-8">
-      <FileText className="h-16 w-16 text-[#9CA3AF] mx-auto mb-3" />
-      <p className="text-sm text-[#0B1B49] font-medium mb-2">{item.name}</p>
-      <a href={item.url} download={item.name} className="text-[#1276E3] text-sm hover:underline inline-flex items-center gap-1">
+      <FileText className="h-16 w-16 text-muted-foreground/60 mx-auto mb-3" />
+      <p className="text-sm text-foreground font-medium mb-2">{item.name}</p>
+      <a href={item.url} download={item.name} className="text-primary text-sm hover:underline inline-flex items-center gap-1">
         <Eye className="h-3 w-3" /> فتح
       </a>
     </div>

@@ -766,15 +766,15 @@ export function AI() {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
-      <aside className="hidden xl:flex w-72 shrink-0 flex-col rounded-lg border border-[#E5E7EB] bg-white overflow-hidden">
-        <div className="border-b border-[#E5E7EB] p-3 flex items-center justify-between gap-2">
+      <aside className="hidden xl:flex w-72 shrink-0 flex-col rounded-lg border border-border bg-white overflow-hidden">
+        <div className="border-b border-border p-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[#0B1B49] text-sm" style={{ fontWeight: 700 }}>المحادثات</p>
-            <p className="text-[#9CA3AF] text-xs mt-0.5">محفوظة حسب الشركة</p>
+            <p className="text-foreground text-sm" style={{ fontWeight: 700 }}>المحادثات</p>
+            <p className="text-muted-foreground/60 text-xs mt-0.5">محفوظة حسب الشركة</p>
           </div>
           <button
             onClick={startNewConversation}
-            className="h-8 w-8 shrink-0 rounded-md bg-[#1276E3] text-white flex items-center justify-center hover:bg-[#0B5FBF]"
+            className="h-8 w-8 shrink-0 rounded-md bg-primary text-white flex items-center justify-center hover:bg-primary/80"
             title="محادثة جديدة"
           >
             <Plus className="h-4 w-4" />
@@ -782,10 +782,10 @@ export function AI() {
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
           {loadingConversations && (
-            <div className="text-xs text-[#9CA3AF] px-2 py-3">جار تحميل المحادثات...</div>
+            <div className="text-xs text-muted-foreground/60 px-2 py-3">جار تحميل المحادثات...</div>
           )}
           {!loadingConversations && conversations.length === 0 && (
-            <div className="rounded-md border border-dashed border-[#D1D5DB] p-3 text-xs text-[#6B7280] leading-6">
+            <div className="rounded-md border border-dashed border-[#D1D5DB] p-3 text-xs text-muted-foreground leading-6">
               لا توجد محادثات محفوظة بعد.
             </div>
           )}
@@ -797,15 +797,15 @@ export function AI() {
                 onClick={() => setActiveConversationId(conversation.id)}
                 className={`w-full text-start rounded-md border px-3 py-2.5 transition-colors ${
                   selected
-                    ? "border-[#1276E3] bg-[#F4FCFF] text-[#0B1B49]"
-                    : "border-transparent hover:border-[#E5E7EB] hover:bg-[#F9FAFB] text-[#374151]"
+                    ? "border-[#1276E3] bg-primary/5 text-foreground"
+                    : "border-transparent hover:border-border hover:bg-muted text-foreground/80"
                 }`}
               >
                 <div className="flex items-start gap-2">
-                  <MessageSquare className={`h-4 w-4 mt-0.5 shrink-0 ${selected ? "text-[#1276E3]" : "text-[#9CA3AF]"}`} />
+                  <MessageSquare className={`h-4 w-4 mt-0.5 shrink-0 ${selected ? "text-primary" : "text-muted-foreground/60"}`} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm" style={{ fontWeight: selected ? 700 : 600 }}>{conversation.title}</p>
-                    <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-[#9CA3AF]">
+                    <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground/60">
                       <span>{formatConversationTime(conversation.lastMessageAt)}</span>
                       {typeof conversation.messageCount === "number" && <span className="font-english">{conversation.messageCount}</span>}
                     </div>
@@ -820,37 +820,37 @@ export function AI() {
       <div className="flex min-w-0 flex-1 flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-[#1276E3]/10 p-3"><Sparkles className="h-7 w-7 text-[#1276E3]" /></div>
+          <div className="rounded-lg bg-primary/10 p-3"><Sparkles className="h-7 w-7 text-primary" /></div>
           <div>
-            <h1 className="text-[#0B1B49]" style={{ fontSize: "1.5rem", fontWeight: 700 }}>المساعد الذكي</h1>
-            <p className="text-[#6B7280] text-sm mt-0.5">اطلب · ارفع · اسأل · ينفذ مباشرة في الـDB · يدعم ملفات متعددة</p>
+            <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>المساعد الذكي</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">اطلب · ارفع · اسأل · ينفذ مباشرة في الـDB · يدعم ملفات متعددة</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {activeConversationId && messages.length > 0 && (
-            <Button variant="outline" onClick={archiveActiveConversation} className="border-[#E5E7EB]">
+            <Button variant="outline" onClick={archiveActiveConversation} className="border-border">
               <Archive className="me-2 h-4 w-4" /> أرشفة
             </Button>
           )}
-          <Button variant="outline" onClick={startNewConversation} className="border-[#E5E7EB]">
+          <Button variant="outline" onClick={startNewConversation} className="border-border">
             <Plus className="me-2 h-4 w-4" /> محادثة جديدة
           </Button>
         </div>
       </div>
 
-      <Card className="border-[#E5E7EB] flex-1 overflow-hidden flex flex-col">
+      <Card className="border-border flex-1 overflow-hidden flex flex-col">
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef as any}>
           {loadingMessages && (
-            <div className="flex items-center justify-center h-full text-sm text-[#6B7280] gap-2">
+            <div className="flex items-center justify-center h-full text-sm text-muted-foreground gap-2">
               <Loader2 className="h-4 w-4 animate-spin" /> جار تحميل المحادثة...
             </div>
           )}
 
           {!loadingMessages && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <Bot className="h-16 w-16 text-[#1276E3] mb-4" />
-              <h2 className="text-[#0B1B49] mb-2" style={{ fontSize: "1.25rem", fontWeight: 600 }}>كيف أقدر أساعدك؟</h2>
-              <p className="text-[#6B7280] text-sm mb-6 max-w-md">
+              <Bot className="h-16 w-16 text-primary mb-4" />
+              <h2 className="text-foreground mb-2" style={{ fontSize: "1.25rem", fontWeight: 600 }}>كيف أقدر أساعدك؟</h2>
+              <p className="text-muted-foreground text-sm mb-6 max-w-md">
                 ارفع فاتورة (أو 50 فاتورة دفعة وحدة) لاستخراجها · اطلب تقرير · أضف عميل/مصروف بكلمة
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full max-w-2xl">
@@ -858,7 +858,7 @@ export function AI() {
                   <button
                     key={i}
                     onClick={() => handleSend(p)}
-                    className="text-start text-sm rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F4FCFF] hover:border-[#1276E3]/40 px-4 py-3 transition-colors"
+                    className="text-start text-sm rounded-lg border border-border bg-muted hover:bg-primary/5 hover:border-[#1276E3]/40 px-4 py-3 transition-colors"
                   >
                     {p}
                   </button>
@@ -869,12 +869,12 @@ export function AI() {
 
           {!loadingMessages && messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-              <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${m.role === "user" ? "bg-[#0B1B49]" : "bg-[#1276E3]/10"}`}>
-                {m.role === "user" ? <User className="h-4 w-4 text-white" /> : <Bot className="h-4 w-4 text-[#1276E3]" />}
+              <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${m.role === "user" ? "bg-[#0B1B49]" : "bg-primary/10"}`}>
+                {m.role === "user" ? <User className="h-4 w-4 text-white" /> : <Bot className="h-4 w-4 text-primary" />}
               </div>
-              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-[#0B1B49] text-white ms-auto" : "bg-[#F4FCFF] text-[#0B1B49] border border-[#E5E7EB]"}`}>
+              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-[#0B1B49] text-white ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
                 {m.attachment && (
-                  <div className="mb-2 rounded-lg border border-[#E5E7EB]/40 p-2 bg-white/10 flex items-center gap-2">
+                  <div className="mb-2 rounded-lg border border-border/40 p-2 bg-white/10 flex items-center gap-2">
                     <FileText className="h-4 w-4 shrink-0" />
                     <span className="text-xs">{m.attachment.name}</span>
                   </div>
@@ -884,57 +884,57 @@ export function AI() {
                 {/* Batch summary table */}
                 {m.batchSummary && (
                   <div className="mt-3 space-y-3">
-                    <div className="rounded-lg border border-[#E5E7EB] overflow-hidden bg-white">
+                    <div className="rounded-lg border border-border overflow-hidden bg-white">
                       <div className="overflow-x-auto">
                       <table className="min-w-[920px] w-full text-xs">
-                        <thead className="bg-[#F9FAFB]"><tr>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">الملف</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">النوع</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المورد</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">رقم/ضريبة</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">التاريخ</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المبلغ</th>
-                          <th className="py-2 px-3 text-start font-medium text-[#6B7280]">المكان / الحالة</th>
+                        <thead className="bg-muted"><tr>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">الملف</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">النوع</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">المورد</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">رقم/ضريبة</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">التاريخ</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">المبلغ</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">المكان / الحالة</th>
                         </tr></thead>
                         <tbody>
                           {m.batchSummary.rows.map((r, j) => (
-                            <tr key={j} className="border-t border-[#F3F4F6]">
-                              <td className="py-2 px-3 text-[#0B1B49] max-w-[220px]" title={r.name}>
+                            <tr key={j} className="border-t border-border/50">
+                              <td className="py-2 px-3 text-foreground max-w-[220px]" title={r.name}>
                                 {r.destinationHref ? (
-                                  <Link to={r.destinationHref} className="block truncate text-[#1276E3] hover:underline" title={r.name}>
+                                  <Link to={r.destinationHref} className="block truncate text-primary hover:underline" title={r.name}>
                                     {r.name}
                                   </Link>
                                 ) : (
                                   <span className="block truncate">{r.name}</span>
                                 )}
-                                {r.recordNumber && <span className="font-english text-[10px] text-[#6B7280]">{r.recordNumber}</span>}
+                                {r.recordNumber && <span className="font-english text-[10px] text-muted-foreground">{r.recordNumber}</span>}
                               </td>
                               <td className="py-2 px-3">
-                                <span className="inline-flex rounded-md bg-[#EEF6FF] px-2 py-0.5 text-[11px] text-[#0B1B49]" style={{ fontWeight: 700 }}>
+                                <span className="inline-flex rounded-md bg-[#EEF6FF] px-2 py-0.5 text-[11px] text-foreground" style={{ fontWeight: 700 }}>
                                   {routeLabel((r.route || "manual_review") as DocumentRoute)}
                                 </span>
-                                {r.docType && <div className="font-english text-[10px] text-[#9CA3AF] mt-1">{r.docType}</div>}
+                                {r.docType && <div className="font-english text-[10px] text-muted-foreground/60 mt-1">{r.docType}</div>}
                               </td>
-                              <td className="py-2 px-3 text-[#374151]">{r.vendor || "—"}</td>
-                              <td className="py-2 px-3 text-[#374151]">
+                              <td className="py-2 px-3 text-foreground/80">{r.vendor || "—"}</td>
+                              <td className="py-2 px-3 text-foreground/80">
                                 <div className="font-english">{r.documentNumber || "—"}</div>
-                                {r.vendorVat && <div className="font-english text-[10px] text-[#6B7280]">{r.vendorVat}</div>}
-                                {typeof r.lineCount === "number" && r.lineCount > 0 && <div className="text-[10px] text-[#1276E3]">بنود: {r.lineCount}</div>}
+                                {r.vendorVat && <div className="font-english text-[10px] text-muted-foreground">{r.vendorVat}</div>}
+                                {typeof r.lineCount === "number" && r.lineCount > 0 && <div className="text-[10px] text-primary">بنود: {r.lineCount}</div>}
                               </td>
-                              <td className="py-2 px-3 font-english text-[#6B7280]">{r.date || "—"}</td>
-                              <td className="py-2 px-3 font-english text-[#0B1B49]" style={{ fontWeight: 600 }}>
+                              <td className="py-2 px-3 font-english text-muted-foreground">{r.date || "—"}</td>
+                              <td className="py-2 px-3 font-english text-foreground" style={{ fontWeight: 600 }}>
                                 {typeof r.total === "number" ? `${r.total.toLocaleString()} ${r.currency || ""}` : "—"}
                               </td>
                               <td className="py-2 px-3">
                                 <div className="flex flex-col gap-1">
                                   {r.destinationHref ? (
-                                    <Link to={r.destinationHref} className="font-english text-[#1276E3] hover:underline" style={{ fontWeight: 700 }}>
+                                    <Link to={r.destinationHref} className="font-english text-primary hover:underline" style={{ fontWeight: 700 }}>
                                       {r.recordNumber || r.destinationLabel}
                                     </Link>
                                   ) : (
-                                    <span className="text-[#374151]" style={{ fontWeight: 700 }}>{r.destinationLabel || "—"}</span>
+                                    <span className="text-foreground/80" style={{ fontWeight: 700 }}>{r.destinationLabel || "—"}</span>
                                   )}
-                                  {r.actionLabel && <span className="text-[10px] text-[#6B7280]">{r.actionLabel}</span>}
+                                  {r.actionLabel && <span className="text-[10px] text-muted-foreground">{r.actionLabel}</span>}
                                   {r.blockedMessage ? (
                                     <div className="flex items-start gap-1 text-amber-700">
                                       <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -959,15 +959,15 @@ export function AI() {
                     {/* Classification chips */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                       {Object.entries(m.batchSummary.index.byDocType).slice(0, 8).map(([k, v]) => (
-                        <div key={`d-${k}`} className="rounded border border-[#E5E7EB] bg-white px-2 py-1 flex justify-between"><span className="text-[#6B7280]">{k}</span><span className="font-english text-[#1276E3]">{v}</span></div>
+                        <div key={`d-${k}`} className="rounded border border-border bg-white px-2 py-1 flex justify-between"><span className="text-muted-foreground">{k}</span><span className="font-english text-primary">{v}</span></div>
                       ))}
                     </div>
                     {Object.keys(m.batchSummary.index.byVendor).length > 0 && (
                       <div>
-                        <p className="text-xs text-[#6B7280] mb-1">حسب المورد:</p>
+                        <p className="text-xs text-muted-foreground mb-1">حسب المورد:</p>
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(m.batchSummary.index.byVendor).slice(0, 12).map(([k, v]) => (
-                            <span key={`v-${k}`} className="text-xs px-2 py-0.5 rounded bg-[#F4FCFF] text-[#1276E3]">{k} · {v}</span>
+                            <span key={`v-${k}`} className="text-xs px-2 py-0.5 rounded bg-primary/5 text-primary">{k} · {v}</span>
                           ))}
                         </div>
                       </div>
@@ -982,16 +982,16 @@ export function AI() {
                       const inner = (
                         <>
                           {tr.result?.error ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
-                          <span className="font-english text-[#6B7280]">{tr.tool}</span>
-                          {tr.result?.id && <span className="font-english text-[#1276E3]">→ {tr.result.number || tr.result.billNumber || tr.result.invoiceNumber || tr.result.id}</span>}
+                          <span className="font-english text-muted-foreground">{tr.tool}</span>
+                          {tr.result?.id && <span className="font-english text-primary">→ {tr.result.number || tr.result.billNumber || tr.result.invoiceNumber || tr.result.id}</span>}
                         </>
                       );
                       return href ? (
-                        <Link key={j} to={href} className="rounded border border-[#E5E7EB] bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-white hover:underline">
+                        <Link key={j} to={href} className="rounded border border-border bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-white hover:underline">
                           {inner}
                         </Link>
                       ) : (
-                        <div key={j} className="rounded border border-[#E5E7EB] bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2">
+                        <div key={j} className="rounded border border-border bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2">
                           {inner}
                         </div>
                       );
@@ -1004,20 +1004,20 @@ export function AI() {
 
           {busy && (
             <div className="flex gap-3">
-              <div className="shrink-0 h-8 w-8 rounded-full bg-[#1276E3]/10 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-[#1276E3]" />
+              <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-primary" />
               </div>
-              <div className="bg-[#F4FCFF] border border-[#E5E7EB] rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-[#6B7280]">
+              <div className="bg-primary/5 border border-border rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> جارٍ المعالجة...
               </div>
             </div>
           )}
           {waitingForPersistedReply && !busy && (
             <div className="flex gap-3">
-              <div className="shrink-0 h-8 w-8 rounded-full bg-[#1276E3]/10 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-[#1276E3]" />
+              <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-primary" />
               </div>
-              <div className="bg-[#F4FCFF] border border-[#E5E7EB] rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-[#6B7280]">
+              <div className="bg-primary/5 border border-border rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> بانتظار الرد المحفوظ من السيرفر...
               </div>
             </div>
@@ -1026,23 +1026,23 @@ export function AI() {
 
         {/* Pending files strip */}
         {pending.length > 0 && (
-          <div className="border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
+          <div className="border-t border-border bg-muted p-3">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-[#6B7280]"><span className="font-english">{pending.length}</span> ملف جاهز · OCR + تصنيف تلقائي + إنشاء مصروفات آمن</p>
+              <p className="text-xs text-muted-foreground"><span className="font-english">{pending.length}</span> ملف جاهز · OCR + تصنيف تلقائي + إنشاء مصروفات آمن</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPending([])} className="border-[#E5E7EB]">إفراغ</Button>
-                <Button size="sm" onClick={() => handleProcessBatch()} disabled={busy} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+                <Button variant="outline" size="sm" onClick={() => setPending([])} className="border-border">إفراغ</Button>
+                <Button size="sm" onClick={() => handleProcessBatch()} disabled={busy} className="bg-primary hover:bg-primary/80">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `معالجة ${pending.length}`}
                 </Button>
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
               {pending.map((f) => (
-                <div key={f.id} className="flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-xs">
-                  <FileText className="h-3.5 w-3.5 text-[#1276E3] shrink-0" />
+                <div key={f.id} className="flex items-center gap-1.5 rounded-md border border-border bg-white px-2 py-1 text-xs">
+                  <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
                   <span className="truncate max-w-[160px]" title={f.name}>{f.name}</span>
-                  <span className="font-english text-[#9CA3AF]">{fmtSize(f.size)}</span>
-                  <button onClick={() => removePending(f.id)} className="text-[#9CA3AF] hover:text-red-600"><X className="h-3 w-3" /></button>
+                  <span className="font-english text-muted-foreground/60">{fmtSize(f.size)}</span>
+                  <button onClick={() => removePending(f.id)} className="text-muted-foreground/60 hover:text-red-600"><X className="h-3 w-3" /></button>
                 </div>
               ))}
             </div>
@@ -1051,7 +1051,7 @@ export function AI() {
 
         {/* Input */}
         <div
-          className="border-t border-[#E5E7EB] p-3"
+          className="border-t border-border p-3"
           onDragOver={(e) => { e.preventDefault(); }}
           onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files); }}
         >
@@ -1067,7 +1067,7 @@ export function AI() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={busy}
-              className="h-10 w-10 shrink-0 rounded-md border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1276E3] disabled:opacity-50"
+              className="h-10 w-10 shrink-0 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-primary disabled:opacity-50"
               title="رفع ملفات (يدعم الدفعات حتى 50 ملف)"
             >
               <Upload className="h-4 w-4" />
@@ -1078,14 +1078,14 @@ export function AI() {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder={pending.length > 0 ? `أضف ملاحظة (اختياري) ثم اضغط معالجة...` : "اسأل المساعد · أو اكتب طلب..."}
               rows={1}
-              className="flex-1 resize-none rounded-md border border-[#E5E7EB] px-3 py-2.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
+              className="flex-1 resize-none rounded-md border border-border px-3 py-2.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
               disabled={busy}
             />
-            <Button onClick={() => handleSend()} disabled={busy || (!input.trim() && pending.length === 0)} className="bg-[#1276E3] hover:bg-[#0B5FBF] h-10 px-4">
+            <Button onClick={() => handleSend()} disabled={busy || (!input.trim() && pending.length === 0)} className="bg-primary hover:bg-primary/80 h-10 px-4">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
-          <p className="text-xs text-[#9CA3AF] mt-2 text-center">
+          <p className="text-xs text-muted-foreground/60 mt-2 text-center">
             اسحب الملفات هنا · أو اضغط ⬆️ · يدعم PDF · صور · Excel · CSV · أي نوع · حتى 50 ملف دفعة وحدة
           </p>
         </div>

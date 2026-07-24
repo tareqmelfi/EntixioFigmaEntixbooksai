@@ -54,7 +54,7 @@ export function CameraCapture({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={disabled}
-        className={`bg-[#1276E3] hover:bg-[#0B5FBF] disabled:opacity-60 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${className}`}
+        className={`bg-primary hover:bg-primary/80 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${className}`}
         style={{ fontSize: "14px", fontWeight: 600 }}
       >
         <Camera className="h-4 w-4" />
@@ -100,7 +100,7 @@ export function UploadButton({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={`bg-white border border-[#E5E7EB] hover:border-[#1276E3] hover:bg-[#F9FAFB] text-[#0B1B49] px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${className}`}
+        className={`bg-white border border-border hover:border-[#1276E3] hover:bg-muted text-foreground px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${className}`}
         style={{ fontSize: "14px", fontWeight: 600 }}
       >
         <Upload className="h-4 w-4" />

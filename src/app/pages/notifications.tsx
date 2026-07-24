@@ -82,15 +82,15 @@ export function Notifications() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات</h1>
-          <p className="text-[#6B7280] mt-1">{items.length} إشعار · {unreadCount} غير مقروء</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات</h1>
+          <p className="text-muted-foreground mt-1">{items.length} إشعار · {unreadCount} غير مقروء</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setFilter(filter === "ALL" ? "UNREAD" : "ALL")} className="border-[#E5E7EB]">
+          <Button variant="outline" onClick={() => setFilter(filter === "ALL" ? "UNREAD" : "ALL")} className="border-border">
             {filter === "ALL" ? "غير المقروءة فقط" : "كل الإشعارات"}
           </Button>
           {unreadCount > 0 && (
-            <Button onClick={handleMarkAll} className="bg-[#1276E3] hover:bg-[#1060C0]">
+            <Button onClick={handleMarkAll} className="bg-primary hover:bg-primary/90">
               <CheckCheck className="me-2 h-4 w-4" /> تحديد الكل كمقروء
             </Button>
           )}
@@ -99,32 +99,32 @@ export function Notifications() {
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      <Card className="border-[#E5E7EB]">
-        <CardHeader><CardTitle className="text-[#0B1B49]">آخر الإشعارات</CardTitle></CardHeader>
+      <Card className="border-border">
+        <CardHeader><CardTitle className="text-foreground">آخر الإشعارات</CardTitle></CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+            <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : items.length === 0 ? (
             <div className="py-16 text-center">
-              <Bell className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" />
-              <p className="text-sm text-[#6B7280]">{filter === "UNREAD" ? "لا توجد إشعارات غير مقروءة" : "لا توجد إشعارات بعد"}</p>
+              <Bell className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" />
+              <p className="text-sm text-muted-foreground">{filter === "UNREAD" ? "لا توجد إشعارات غير مقروءة" : "لا توجد إشعارات بعد"}</p>
             </div>
           ) : (
             <div>
               {items.map(n => (
                 <div
                   key={n.id}
-                  className={`flex items-start gap-4 px-6 py-4 border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB] cursor-pointer transition-colors ${!n.readAt ? "bg-[#EFF6FF]/30" : ""}`}
+                  className={`flex items-start gap-4 px-6 py-4 border-b border-border/50 last:border-0 hover:bg-muted cursor-pointer transition-colors ${!n.readAt ? "bg-[#EFF6FF]/30" : ""}`}
                   onClick={() => handleClick(n)}
                 >
-                  <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-[#1276E3]" : "bg-transparent"}`} />
+                  <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-primary" : "bg-transparent"}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs px-2 py-0.5 rounded bg-[#F4FCFF] text-[#1276E3]">{TYPE_LABELS[n.type] || n.type}</span>
-                      <span className="text-xs text-[#9CA3AF]">{timeAgo(n.createdAt)}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-primary/5 text-primary">{TYPE_LABELS[n.type] || n.type}</span>
+                      <span className="text-xs text-muted-foreground/60">{timeAgo(n.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-[#0B1B49]" style={{ fontWeight: !n.readAt ? 600 : 500 }}>{n.title}</p>
-                    {n.body && <p className="text-sm text-[#6B7280] mt-1">{n.body}</p>}
+                    <p className="text-sm text-foreground" style={{ fontWeight: !n.readAt ? 600 : 500 }}>{n.title}</p>
+                    {n.body && <p className="text-sm text-muted-foreground mt-1">{n.body}</p>}
                   </div>
                   {pendingDelete === n.id ? (
                     <InlineConfirm

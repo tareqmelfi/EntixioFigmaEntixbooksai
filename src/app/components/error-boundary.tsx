@@ -27,7 +27,7 @@ export function ErrorBoundary() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4FCFF] to-white p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl border border-[#E5E7EB] p-8 text-center">
+        <div className="bg-white rounded-2xl shadow-xl border border-border p-8 text-center">
           {/* Icon */}
           <div className="w-16 h-16 rounded-full bg-[#FEE2E2] flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="h-8 w-8 text-[#DC2626]" />
@@ -36,32 +36,32 @@ export function ErrorBoundary() {
           {/* Status Code */}
           {errorStatus && (
             <div className="mb-4">
-              <span className="font-english text-6xl text-[#0B1A47]" style={{ fontWeight: 800 }}>
+              <span className="font-english text-6xl text-foreground" style={{ fontWeight: 800 }}>
                 {errorStatus}
               </span>
             </div>
           )}
 
           {/* Title */}
-          <h1 className="text-[#0B1A47] mb-3" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+          <h1 className="text-foreground mb-3" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
             {errorStatus === 404 ? "الصفحة غير موجودة" : "حدث خطأ"}
           </h1>
 
           {/* Message */}
-          <p className="text-[#6B7280] mb-8 leading-relaxed">
+          <p className="text-muted-foreground mb-8 leading-relaxed">
             {errorMessage}
           </p>
 
           {/* Actions */}
           <div className="flex flex-col gap-3">
-            <Button asChild className="w-full bg-[#1276E3] hover:bg-[#1060C0] text-white">
+            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white">
               <Link to="/app" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
                 <span>العودة للرئيسية</span>
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="w-full border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]">
+            <Button asChild variant="outline" className="w-full border-border text-muted-foreground hover:bg-muted">
               <button onClick={() => window.history.back()} className="flex items-center justify-center gap-2">
                 <ArrowRight className="h-4 w-4" />
                 <span>رجوع</span>
@@ -72,10 +72,10 @@ export function ErrorBoundary() {
           {/* Debug info in development */}
           {import.meta.env.DEV && error instanceof Error && (
             <details className="mt-8 text-start">
-              <summary className="text-xs text-[#9CA3AF] cursor-pointer hover:text-[#6B7280] mb-2">
+              <summary className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground mb-2">
                 تفاصيل الخطأ (Development Mode)
               </summary>
-              <pre className="text-xs bg-[#F3F4F6] rounded-lg p-3 overflow-auto max-h-48 text-[#374151] font-english" dir="ltr">
+              <pre className="text-xs bg-muted/50 rounded-lg p-3 overflow-auto max-h-48 text-foreground/80 font-english" dir="ltr">
                 {error.stack}
               </pre>
             </details>
@@ -83,7 +83,7 @@ export function ErrorBoundary() {
         </div>
 
         {/* Footer hint */}
-        <p className="text-center text-xs text-[#9CA3AF] mt-6">
+        <p className="text-center text-xs text-muted-foreground/60 mt-6">
           إذا استمرت المشكلة، يرجى التواصل مع الدعم الفني
         </p>
       </div>
@@ -95,39 +95,39 @@ export function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4FCFF] to-white p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl border border-[#E5E7EB] p-8 text-center">
+        <div className="bg-white rounded-2xl shadow-xl border border-border p-8 text-center">
           {/* Icon */}
           <div className="w-16 h-16 rounded-full bg-[#DBEAFE] flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="h-8 w-8 text-[#1276E3]" />
+            <AlertTriangle className="h-8 w-8 text-primary" />
           </div>
 
           {/* 404 */}
           <div className="mb-4">
-            <span className="font-english text-6xl text-[#0B1A47]" style={{ fontWeight: 800 }}>
+            <span className="font-english text-6xl text-foreground" style={{ fontWeight: 800 }}>
               404
             </span>
           </div>
 
           {/* Title */}
-          <h1 className="text-[#0B1A47] mb-3" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+          <h1 className="text-foreground mb-3" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
             الصفحة غير موجودة
           </h1>
 
           {/* Message */}
-          <p className="text-[#6B7280] mb-8 leading-relaxed">
+          <p className="text-muted-foreground mb-8 leading-relaxed">
             عذراً، الصفحة التي تبحث عنها غير موجودة أو تم نقلها إلى موقع آخر.
           </p>
 
           {/* Actions */}
           <div className="flex flex-col gap-3">
-            <Button asChild className="w-full bg-[#1276E3] hover:bg-[#1060C0] text-white">
+            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white">
               <Link to="/app" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
                 <span>العودة للرئيسية</span>
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="w-full border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]">
+            <Button asChild variant="outline" className="w-full border-border text-muted-foreground hover:bg-muted">
               <Link to="/app/contacts" className="flex items-center justify-center gap-2">
                 <span>جميع جهات الاتصال</span>
               </Link>

@@ -20,7 +20,7 @@ export function Features() {
       icon: FileText,
       title: "فواتير إلكترونية متوافقة",
       desc: "إنشاء فواتير احترافية متوافقة بالكامل مع المرحلة الثانية من ZATCA مع QR Code وتوقيع رقمي",
-      color: "#0B1A47",
+      color: "#0B1B49",
       details: [
         "توافق كامل مع متطلبات هيئة الزكاة والضريبة والجمارك",
         "توليد QR Code تلقائي لكل فاتورة",
@@ -157,21 +157,21 @@ export function Features() {
           <div className="flex items-center mb-2">
             <EntixWordmark size={30} />
           </div>
-          <p className="text-[#6B7280] text-sm">الرياض، المملكة العربية السعودية</p>
-          <p className="text-[#6B7280] text-sm" dir="ltr">+966 800 430 088</p>
+          <p className="text-muted-foreground text-sm">الرياض، المملكة العربية السعودية</p>
+          <p className="text-muted-foreground text-sm" dir="ltr">+966 800 430 088</p>
         </div>
         <div className="text-left">
-          <h3 className="text-[#0B1A47] text-2xl font-bold mb-2">فاتورة ضريبية</h3>
-          <p className="text-[#6B7280] text-sm">رقم: INV-2026-001</p>
-          <p className="text-[#6B7280] text-sm">التاريخ: 18 مارس 2026</p>
+          <h3 className="text-foreground text-2xl font-bold mb-2">فاتورة ضريبية</h3>
+          <p className="text-muted-foreground text-sm">رقم: INV-2026-001</p>
+          <p className="text-muted-foreground text-sm">التاريخ: 18 مارس 2026</p>
         </div>
       </div>
 
       {/* Customer info */}
       <div className="mb-6">
-        <p className="text-[#6B7280] text-sm mb-1">العميل</p>
-        <p className="text-[#0B1A47] font-semibold">شركة التقنية المتقدمة</p>
-        <p className="text-[#6B7280] text-sm">الرقم الضريبي: 300123456789003</p>
+        <p className="text-muted-foreground text-sm mb-1">العميل</p>
+        <p className="text-foreground font-semibold">شركة التقنية المتقدمة</p>
+        <p className="text-muted-foreground text-sm">الرقم الضريبي: 300123456789003</p>
       </div>
 
       {/* Items table */}
@@ -179,24 +179,24 @@ export function Features() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-right p-3 text-[#374151] text-sm font-semibold">البند</th>
-              <th className="text-center p-3 text-[#374151] text-sm font-semibold">الكمية</th>
-              <th className="text-center p-3 text-[#374151] text-sm font-semibold">السعر</th>
-              <th className="text-left p-3 text-[#374151] text-sm font-semibold">المجموع</th>
+              <th className="text-right p-3 text-foreground/80 text-sm font-semibold">البند</th>
+              <th className="text-center p-3 text-foreground/80 text-sm font-semibold">الكمية</th>
+              <th className="text-center p-3 text-foreground/80 text-sm font-semibold">السعر</th>
+              <th className="text-left p-3 text-foreground/80 text-sm font-semibold">المجموع</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-gray-100">
-              <td className="p-3 text-[#0B1A47]">خدمات استشارية محاسبية</td>
-              <td className="text-center p-3 text-[#6B7280]" dir="ltr">10</td>
-              <td className="text-center p-3 text-[#6B7280]" dir="ltr">500.00</td>
-              <td className="text-left p-3 text-[#0B1A47]" dir="ltr">5,000.00</td>
+              <td className="p-3 text-foreground">خدمات استشارية محاسبية</td>
+              <td className="text-center p-3 text-muted-foreground" dir="ltr">10</td>
+              <td className="text-center p-3 text-muted-foreground" dir="ltr">500.00</td>
+              <td className="text-left p-3 text-foreground" dir="ltr">5,000.00</td>
             </tr>
             <tr className="border-b border-gray-100">
-              <td className="p-3 text-[#0B1A47]">تدريب على الأنظمة المالية</td>
-              <td className="text-center p-3 text-[#6B7280]" dir="ltr">5</td>
-              <td className="text-center p-3 text-[#6B7280]" dir="ltr">300.00</td>
-              <td className="text-left p-3 text-[#0B1A47]" dir="ltr">1,500.00</td>
+              <td className="p-3 text-foreground">تدريب على الأنظمة المالية</td>
+              <td className="text-center p-3 text-muted-foreground" dir="ltr">5</td>
+              <td className="text-center p-3 text-muted-foreground" dir="ltr">300.00</td>
+              <td className="text-left p-3 text-foreground" dir="ltr">1,500.00</td>
             </tr>
           </tbody>
         </table>
@@ -206,16 +206,16 @@ export function Features() {
       <div className="flex justify-end mb-6">
         <div className="w-64 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-[#6B7280]">المجموع الفرعي</span>
-            <span className="text-[#0B1A47]" dir="ltr">6,500.00 SR</span>
+            <span className="text-muted-foreground">المجموع الفرعي</span>
+            <span className="text-foreground" dir="ltr">6,500.00 SR</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-[#6B7280]">ضريبة القيمة المضافة (15%)</span>
-            <span className="text-[#0B1A47]" dir="ltr">975.00 SR</span>
+            <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
+            <span className="text-foreground" dir="ltr">975.00 SR</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-gray-200">
-            <span className="text-[#0B1A47] font-bold">الإجمالي</span>
-            <span className="text-[#0B1A47] font-bold text-lg" dir="ltr">7,475.00 SR</span>
+            <span className="text-foreground font-bold">الإجمالي</span>
+            <span className="text-foreground font-bold text-lg" dir="ltr">7,475.00 SR</span>
           </div>
         </div>
       </div>
@@ -226,23 +226,23 @@ export function Features() {
           <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
             <div className="grid grid-cols-4 gap-0.5">
               {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-[#0B1A47]' : 'bg-transparent'}`} />
+                <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-[#0B1B49]' : 'bg-transparent'}`} />
               ))}
             </div>
           </div>
-          <div className="text-sm text-[#6B7280]">
+          <div className="text-sm text-muted-foreground">
             <p>رمز QR للفاتورة</p>
             <p className="text-xs">متوافق مع ZATCA</p>
           </div>
         </div>
         <div className="flex gap-2">
           <button className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-            <Download className="w-4 h-4 text-[#6B7280]" />
+            <Download className="w-4 h-4 text-muted-foreground" />
           </button>
           <button className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-            <Share2 className="w-4 h-4 text-[#6B7280]" />
+            <Share2 className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button className="p-2.5 bg-[#1276E3] hover:bg-[#0B5FBF] text-white rounded-lg transition-colors">
+          <button className="p-2.5 bg-primary hover:bg-primary/80 text-white rounded-lg transition-colors">
             <Eye className="w-4 h-4" />
           </button>
         </div>
@@ -255,7 +255,7 @@ export function Features() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-[#0B1A47] to-[#122354] rounded-2xl shadow-2xl p-6"
+      className="bg-gradient-to-br from-[#0B1B49] to-[#122354] rounded-2xl shadow-2xl p-6"
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
@@ -299,9 +299,9 @@ export function Features() {
       <SharedNavbar />
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
         {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-[#1276E3]/20 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-[#349FC4]/20 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto relative z-10">
@@ -328,7 +328,7 @@ export function Features() {
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 
                 onClick={() => navigate("/register")}
-                className="bg-white hover:bg-gray-50 text-[#0B1A47] px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 ابدأ تجربتك المجانية
@@ -350,10 +350,10 @@ export function Features() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
               شاهد النظام في العمل
             </h2>
-            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
               واجهات احترافية سهلة الاستخدام مصممة لتوفير أفضل تجربة محاسبية
             </p>
           </div>
@@ -369,8 +369,8 @@ export function Features() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all cursor-pointer ${
                   activeTab === tab.id
-                    ? "bg-[#1276E3] text-white shadow-lg shadow-[#1276E3]/25"
-                    : "bg-white text-[#6B7280] hover:bg-gray-50 border border-gray-200"
+                    ? "bg-primary text-white shadow-lg shadow-[#1276E3]/25"
+                    : "bg-white text-muted-foreground hover:bg-gray-50 border border-gray-200"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
@@ -392,10 +392,10 @@ export function Features() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
               مميزات شاملة ومتكاملة
             </h2>
-            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
               نظام محاسبي متكامل يغطي جميع احتياجاتك المالية والإدارية
             </p>
           </div>
@@ -416,15 +416,15 @@ export function Features() {
                 >
                   <feature.icon className="w-6 h-6" style={{ color: feature.color }} />
                 </div>
-                <h3 className="text-[#0B1A47] mb-3" style={{ fontSize: "18px", fontWeight: 600 }}>
+                <h3 className="text-foreground mb-3" style={{ fontSize: "18px", fontWeight: 600 }}>
                   {feature.title}
                 </h3>
-                <p className="text-[#6B7280] mb-4" style={{ fontSize: "14px", lineHeight: 1.7 }}>
+                <p className="text-muted-foreground mb-4" style={{ fontSize: "14px", lineHeight: 1.7 }}>
                   {feature.desc}
                 </p>
                 <ul className="space-y-2">
                   {feature.details.slice(0, 4).map((detail) => (
-                    <li key={detail} className="flex items-start gap-2 text-[#6B7280]" style={{ fontSize: "13px" }}>
+                    <li key={detail} className="flex items-start gap-2 text-muted-foreground" style={{ fontSize: "13px" }}>
                       <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0 mt-0.5" />
                       <span>{detail}</span>
                     </li>
@@ -437,7 +437,7 @@ export function Features() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1A47] to-[#1276E3]">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] to-[#1276E3]">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -453,7 +453,7 @@ export function Features() {
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 
                 onClick={() => navigate("/register")}
-                className="bg-white hover:bg-gray-50 text-[#0B1A47] px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 cursor-pointer"
+                className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "16px", fontWeight: 600 }}
               >
                 ابدأ تجربتك المجانية — 14 يوم

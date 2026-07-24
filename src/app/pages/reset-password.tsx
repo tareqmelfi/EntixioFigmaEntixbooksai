@@ -73,7 +73,7 @@ export function ResetPassword() {
       >
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] mb-10 transition-colors"
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground mb-10 transition-colors"
           style={{ fontSize: "14px", fontWeight: 500 }}
         >
           <BackIcon className="w-4 h-4" />
@@ -87,34 +87,34 @@ export function ResetPassword() {
         {done ? (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
             <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "22px", fontWeight: 700 }}>
+            <h1 className="text-foreground mb-2" style={{ fontSize: "22px", fontWeight: 700 }}>
               {t("تم بنجاح", "Password updated")}
             </h1>
-            <p className="text-[#374151] mb-2" style={{ fontSize: "14px", lineHeight: 1.7 }}>
+            <p className="text-foreground/80 mb-2" style={{ fontSize: "14px", lineHeight: 1.7 }}>
               {t("تم تعيين كلمة المرور الجديدة. سيتم تحويلك لصفحة تسجيل الدخول...", "Your new password has been saved. Redirecting to sign in...")}
             </p>
           </div>
         ) : !token ? (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
             <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto mb-3" />
-            <h1 className="text-[#0B1A47] mb-2 text-center" style={{ fontSize: "20px", fontWeight: 700 }}>
+            <h1 className="text-foreground mb-2 text-center" style={{ fontSize: "20px", fontWeight: 700 }}>
               {t("رابط غير صالح", "Invalid link")}
             </h1>
-            <p className="text-[#374151] text-center mb-4" style={{ fontSize: "14px", lineHeight: 1.7 }}>
+            <p className="text-foreground/80 text-center mb-4" style={{ fontSize: "14px", lineHeight: 1.7 }}>
               {t("الرابط منتهي الصلاحية أو تم استخدامه. الرجاء طلب رابط استرداد جديد.", "This link has expired or was already used. Request a new reset link.")}
             </p>
             <div className="text-center">
-              <Link to="/forgot-password" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>
+              <Link to="/forgot-password" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>
                 {t("طلب رابط جديد", "Request a new link")}
               </Link>
             </div>
           </div>
         ) : (
           <>
-            <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>
+            <h1 className="text-foreground mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>
               {t("إعادة تعيين كلمة المرور", "Reset your password")}
             </h1>
-            <p className="text-[#6B7280] mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>
+            <p className="text-muted-foreground mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>
               {t("اختر كلمة مرور جديدة قوية لحسابك.", "Choose a new secure password for your account.")}
             </p>
 
@@ -131,7 +131,7 @@ export function ResetPassword() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>
+                <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>
                   {t("كلمة المرور الجديدة", "New password")}
                 </label>
                 <div className="relative">
@@ -141,7 +141,7 @@ export function ResetPassword() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     minLength={8}
-                    className={`w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all ${isArabic ? "pe-12" : "ps-12"}`}
+                    className={`w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all ${isArabic ? "pe-12" : "ps-12"}`}
                     style={{
                       fontSize: "14px",
                       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -154,19 +154,19 @@ export function ResetPassword() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute ${isArabic ? "left-3.5" : "right-3.5"} top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280]`}
+                    className={`absolute ${isArabic ? "left-3.5" : "right-3.5"} top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-muted-foreground`}
                     aria-label={showPassword ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="text-[#9CA3AF] mt-1.5" style={{ fontSize: "12px" }}>
+                <p className="text-muted-foreground/60 mt-1.5" style={{ fontSize: "12px" }}>
                   {t("على الأقل 8 أحرف", "At least 8 characters")}
                 </p>
               </div>
 
               <div>
-                <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>
+                <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>
                   {t("تأكيد كلمة المرور", "Confirm password")}
                 </label>
                 <input
@@ -174,7 +174,7 @@ export function ResetPassword() {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
                   style={{
                     fontSize: "14px",
                     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -188,7 +188,7 @@ export function ResetPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#1276E3] hover:bg-[#0B5FBF] disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25"
+                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {loading ? (

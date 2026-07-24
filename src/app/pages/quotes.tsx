@@ -229,9 +229,9 @@ export function Quotes() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
               <div className="flex items-center gap-2">
-                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
                   {busy ? "..." : "حفظ كمسودة"}
                 </Button>
                 <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title="إرسال للعميل">
@@ -247,7 +247,7 @@ export function Quotes() {
             {/* Top fields row */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">العميل *</Label>
+                <Label className="text-foreground/80 text-xs">العميل *</Label>
                 <SearchableCombobox
                   value={form.contactId}
                   onChange={(id) => setForm({ ...form, contactId: id })}
@@ -263,37 +263,37 @@ export function Quotes() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">تاريخ العرض *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+                <Label className="text-foreground/80 text-xs">تاريخ العرض *</Label>
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">صالح حتى *</Label>
-                <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+                <Label className="text-foreground/80 text-xs">صالح حتى *</Label>
+                <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-border font-english h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">رقم العرض</Label>
-                <Input value={form.quoteNumber} onChange={(e) => setForm({ ...form, quoteNumber: e.target.value })} placeholder="# تلقائي" dir="ltr" className="border-[#E5E7EB] font-english h-9 text-sm" />
+                <Label className="text-foreground/80 text-xs">رقم العرض</Label>
+                <Input value={form.quoteNumber} onChange={(e) => setForm({ ...form, quoteNumber: e.target.value })} placeholder="# تلقائي" dir="ltr" className="border-border font-english h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">المرجع</Label>
-                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع داخلي" className="border-[#E5E7EB] h-9 text-sm" />
+                <Label className="text-foreground/80 text-xs">المرجع</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع داخلي" className="border-border h-9 text-sm" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">العملة</Label>
+                <Label className="text-foreground/80 text-xs">العملة</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">المبالغ</Label>
+                <Label className="text-foreground/80 text-xs">المبالغ</Label>
                 <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
-                  <SelectTrigger className="h-9 border-[#E5E7EB] text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all-exclusive">غير شاملة الضريبة</SelectItem>
                     <SelectItem value="all-inclusive">شاملة الضريبة</SelectItem>
@@ -354,33 +354,33 @@ export function Quotes() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">شروط ومدة التنفيذ</Label>
+                <Label className="text-foreground/80 text-xs">شروط ومدة التنفيذ</Label>
                 <textarea
                   rows={3}
                   placeholder="شروط الدفع · مدة التنفيذ · ضمانات..."
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[#374151] text-xs">الإجمالي</Label>
-                <div className="rounded-lg border border-[#E5E7EB] bg-white p-4 space-y-2">
+                <Label className="text-foreground/80 text-xs">الإجمالي</Label>
+                <div className="rounded-lg border border-border bg-white p-4 space-y-2">
                   {(() => {
                     const totals = computeTotals(lines);
                     return (
                       <>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-[#6B7280]">المجموع الفرعي</span>
+                          <span className="text-muted-foreground">المجموع الفرعي</span>
                           <span className="font-english">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-[#6B7280]">الضريبة (15%)</span>
+                          <span className="text-muted-foreground">الضريبة (15%)</span>
                           <span className="font-english">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
-                          <span className="text-[#0B1B49]" style={{ fontWeight: 600 }}>الإجمالي:</span>
-                          <span className="font-english text-[#0B1B49]" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="text-foreground" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                             {form.currency} {totals.total.toFixed(2)}
                           </span>
                         </div>
@@ -408,8 +408,8 @@ export function Quotes() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeSign} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button type="button" variant="outline" onClick={closeSign} className="border-border">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
                 <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
               </Button>
             </div>
@@ -424,8 +424,8 @@ export function Quotes() {
                 <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
             </div>
             <div className="space-y-2"><Label>الرسالة المرفقة</Label>
-              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" /></div>
-            <p className="text-xs text-[#6B7280]">سيستلم الموقّع رابطاً عبر البريد لمراجعة العرض وتوقيعه · صلاحية الرابط 30 يوم.</p>
+              <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-border px-3 py-2 text-sm" /></div>
+            <p className="text-xs text-muted-foreground">سيستلم الموقّع رابطاً عبر البريد لمراجعة العرض وتوقيعه · صلاحية الرابط 30 يوم.</p>
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -437,45 +437,45 @@ export function Quotes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>عروض الأسعار</h1>
-          <p className="text-[#6B7280] mt-1">إدارة عروض الأسعار للعملاء</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>عروض الأسعار</h1>
+          <p className="text-muted-foreground mt-1">إدارة عروض الأسعار للعملاء</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />عرض سعر جديد</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />عرض سعر جديد</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي العروض</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">إجمالي العروض</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">معلقة (في انتظار الرد)</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">معلقة (في انتظار الرد)</div>
           <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{pending}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">مقبولة</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">مقبولة</div>
           <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{accepted}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">القيمة الإجمالية</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">القيمة الإجمالية</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-[#0B1B49]">قائمة العروض</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-64 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+            <CardTitle className="text-foreground">قائمة العروض</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
-            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد عروض أسعار بعد</p></div>
+            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد عروض أسعار بعد</p></div>
           ) : (
             <table className="w-full">
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>رقم العرض</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
@@ -486,17 +486,17 @@ export function Quotes() {
               </tr></thead>
               <tbody>
                 {filtered.map(q => (
-                  <tr key={q.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                    <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{q.quoteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-[#374151]">{q.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{q.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{q.validUntil?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(q.total).toLocaleString()} {q.currency}</td>
+                  <tr key={q.id} className="border-b border-border/50 hover:bg-primary/5">
+                    <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{q.quoteNumber}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80">{q.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{q.issueDate?.slice(0, 10)}</td>
+                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{q.validUntil?.slice(0, 10)}</td>
+                    <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(q.total).toLocaleString()} {q.currency}</td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`}>{STATUS_LABELS[q.status] || q.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 flex-wrap">
                         {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
-                          <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
+                          <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
                           </button>
                         )}

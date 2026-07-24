@@ -142,16 +142,16 @@ export function Terms() {
             <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-[#0B1B49] flex items-center justify-center shadow-lg">
               <Scale className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-[#0B1B49] mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
+            <h1 className="text-foreground mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
               {isAr ? "الشروط والأحكام" : "ENTIX.IO Terms of Service"}
             </h1>
-            <p className="text-[#6B7280]" style={{ fontSize: "0.95rem" }}>
+            <p className="text-muted-foreground" style={{ fontSize: "0.95rem" }}>
               {isAr ? "آخر تحديث: 4 يونيو 2026" : "Last updated: June 4, 2026"}
             </p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-200">
-            <p className="text-[#374151] m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+            <p className="text-foreground/80 m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr
                 ? "باستخدامك ENTIX.IO، فإنك توافق على هذه الشروط. إذا كنت تستخدم الخدمة نيابة عن منشأة، فأنت تؤكد أن لديك الصلاحية لإلزامها بهذه الشروط."
                 : "By using ENTIX.IO, you agree to these Terms. If you use the service on behalf of a company, you confirm that you are authorized to bind that company to these Terms."}
@@ -164,15 +164,15 @@ export function Terms() {
               return (
                 <section key={section.title}>
                   <div className="flex items-center gap-3 mb-4">
-                    <Icon className="w-5 h-5 text-[#0B1B49]" />
-                    <h2 className="text-[#0B1B49] m-0" style={{ fontSize: "1.15rem", fontWeight: 700 }}>
+                    <Icon className="w-5 h-5 text-foreground" />
+                    <h2 className="text-foreground m-0" style={{ fontSize: "1.15rem", fontWeight: 700 }}>
                       {section.title}
                     </h2>
                   </div>
-                  <p className="text-[#374151]" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+                  <p className="text-foreground/80" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
                     {section.body}
                   </p>
-                  <ul className="text-[#374151] space-y-2" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+                  <ul className="text-foreground/80 space-y-2" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
                     {section.items.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
@@ -183,10 +183,10 @@ export function Terms() {
           </div>
 
           <div className="bg-[#F8FAFC] rounded-lg p-6 mt-12 border border-[#CBD5E1]">
-            <h3 className="text-[#0B1B49] mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
+            <h3 className="text-foreground mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
               {isAr ? "ملاحظة مهمة" : "Important note"}
             </h3>
-            <p className="text-[#374151]" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+            <p className="text-foreground/80" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr
                 ? "هذه الصفحة نسخة تشغيلية مبدئية للمنتج ويجب مراجعتها قانونياً قبل إطلاق عام واسع أو عقود مؤسسية."
                 : "This is an operational product draft and should be reviewed by counsel before broad public launch or enterprise agreements."}

@@ -80,25 +80,25 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-4 inset-x-4 z-50 lg:bottom-6 lg:right-6 lg:left-auto lg:max-w-sm">
-      <div className="rounded-2xl bg-white border border-[#E5E7EB] shadow-lg p-4 flex items-start gap-3">
+      <div className="rounded-2xl bg-white border border-border shadow-lg p-4 flex items-start gap-3">
         <div className="rounded-xl bg-[#0B1B49] p-2.5 flex-shrink-0">
           <Smartphone className="h-5 w-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[#0B1B49] mb-1" style={{ fontSize: "15px", fontWeight: 700 }}>تثبيت ENTIX.IO</h3>
+          <h3 className="text-foreground mb-1" style={{ fontSize: "15px", fontWeight: 700 }}>تثبيت ENTIX.IO</h3>
           {deferred ? (
-            <p className="text-[#6B7280] mb-3" style={{ fontSize: "13px", lineHeight: 1.5 }}>
+            <p className="text-muted-foreground mb-3" style={{ fontSize: "13px", lineHeight: 1.5 }}>
               ثبّت التطبيق ليعمل أوفلاين ويفتح من الشاشة الرئيسية مباشرة.
             </p>
           ) : (
-            <p className="text-[#6B7280] mb-3" style={{ fontSize: "13px", lineHeight: 1.5 }}>
+            <p className="text-muted-foreground mb-3" style={{ fontSize: "13px", lineHeight: 1.5 }}>
               لتثبيت التطبيق على iPhone: اضغط زر المشاركة <span className="font-english">⎙</span> ثم "إضافة إلى الشاشة الرئيسية".
             </p>
           )}
           {deferred && (
             <button
               onClick={install}
-              className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-4 py-2 rounded-lg flex items-center gap-1.5"
+              className="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg flex items-center gap-1.5"
               style={{ fontSize: "13px", fontWeight: 600 }}
             >
               <Download className="h-4 w-4" />
@@ -106,7 +106,7 @@ export function InstallPrompt() {
             </button>
           )}
         </div>
-        <button onClick={dismiss} className="text-[#9CA3AF] hover:text-[#6B7280] flex-shrink-0">
+        <button onClick={dismiss} className="text-muted-foreground/60 hover:text-muted-foreground flex-shrink-0">
           <X className="h-4 w-4" />
         </button>
       </div>

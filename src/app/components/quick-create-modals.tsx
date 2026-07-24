@@ -46,15 +46,15 @@ function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, childre
       />
       {/* Centered card */}
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-[#F3F4F6]">
+        <div className="flex items-start justify-between gap-3 p-5 border-b border-border/50">
           <div className="min-w-0">
-            <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 700 }}>{title}</h2>
-            {subtitle && <p className="text-[#6B7280] text-xs mt-1">{subtitle}</p>}
+            <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 700 }}>{title}</h2>
+            {subtitle && <p className="text-muted-foreground text-xs mt-1">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
             disabled={busy}
-            className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] flex-shrink-0"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 flex-shrink-0"
           >
             <X className="h-4 w-4" />
           </button>
@@ -63,9 +63,9 @@ function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, childre
           {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
           {children}
         </div>
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6] bg-[#F9FAFB] rounded-b-2xl">
-          <Button type="button" variant="outline" onClick={onClose} disabled={busy} className="border-[#E5E7EB]">إلغاء</Button>
-          <Button type="button" onClick={onSubmit} disabled={busy} className="bg-[#1276E3] hover:bg-[#0B5FBF] min-w-[100px]">
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50 bg-muted rounded-b-2xl">
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy} className="border-border">إلغاء</Button>
+          <Button type="button" onClick={onSubmit} disabled={busy} className="bg-primary hover:bg-primary/80 min-w-[100px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : submitLabel}
           </Button>
         </div>
@@ -158,35 +158,35 @@ export function QuickCreateAccount({ initialName, defaultType = "EXPENSE", onCre
       error={error}
     >
       <div className="space-y-2">
-        <Label className="text-[#374151] text-xs">اسم الحساب *</Label>
+        <Label className="text-foreground/80 text-xs">اسم الحساب *</Label>
         <Input
           ref={nameInputRef}
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="مثال: مصروفات مستشفى · إيرادات استشارات"
-          className="border-[#E5E7EB]"
+          className="border-border"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-[#374151] text-xs">الفئة *</Label>
+          <Label className="text-foreground/80 text-xs">الفئة *</Label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-2 text-sm"
+            className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
             {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div className="space-y-2">
-          <Label className="text-[#374151] text-xs">الكود (اختياري)</Label>
+          <Label className="text-foreground/80 text-xs">الكود (اختياري)</Label>
           <Input
             id="qa-code"
             value={code}
             onChange={(e) => setCode(normalizeDigits(e.target.value))}
             placeholder="تلقائي"
             dir="ltr"
-            className="border-[#E5E7EB] font-english h-9"
+            className="border-border font-english h-9"
           />
         </div>
       </div>
@@ -294,39 +294,39 @@ export function QuickCreateProduct({
       error={error}
     >
       <div className="space-y-2">
-        <Label className="text-[#374151] text-xs">اسم المنتج *</Label>
+        <Label className="text-foreground/80 text-xs">اسم المنتج *</Label>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="مثال: استشارة تقنية · تطوير تطبيق"
-          className="border-[#E5E7EB]"
+          className="border-border"
         />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-2">
-          <Label className="text-[#374151] text-xs">النوع</Label>
+          <Label className="text-foreground/80 text-xs">النوع</Label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-2 text-sm"
+            className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
             {PRODUCT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div className="space-y-2 col-span-2">
-          <Label className="text-[#374151] text-xs">SKU / باركود (اختياري)</Label>
+          <Label className="text-foreground/80 text-xs">SKU / باركود (اختياري)</Label>
           <Input
             value={sku}
             onChange={(e) => setSku(e.target.value)}
             placeholder="تلقائي"
             dir="ltr"
-            className="border-[#E5E7EB] font-english h-9"
+            className="border-border font-english h-9"
           />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-[#374151] text-xs">السعر *</Label>
+          <Label className="text-foreground/80 text-xs">السعر *</Label>
           <Input
             id="qp-price"
             type="text"
@@ -335,15 +335,15 @@ export function QuickCreateProduct({
             onChange={(e) => setUnitPrice(normalizeDigits(e.target.value))}
             placeholder="0.00"
             dir="ltr"
-            className="border-[#E5E7EB] font-english h-9"
+            className="border-border font-english h-9"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[#374151] text-xs">نسبة الضريبة</Label>
+          <Label className="text-foreground/80 text-xs">نسبة الضريبة</Label>
           <select
             value={taxRate}
             onChange={(e) => setTaxRate(e.target.value)}
-            className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-2 text-sm"
+            className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
             <option value="0.15">15% (قياسية)</option>
             <option value="0">0% (صفر)</option>
@@ -353,11 +353,11 @@ export function QuickCreateProduct({
       </div>
       {incomeAccounts.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-[#374151] text-xs">حساب الإيراد (اختياري)</Label>
+          <Label className="text-foreground/80 text-xs">حساب الإيراد (اختياري)</Label>
           <select
             value={incomeAccountId}
             onChange={(e) => setIncomeAccountId(e.target.value)}
-            className="w-full h-9 rounded-md border border-[#E5E7EB] bg-white px-2 text-sm"
+            className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
             <option value="">— اختر حساب —</option>
             {incomeAccounts.map((a) => (

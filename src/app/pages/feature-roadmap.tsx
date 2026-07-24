@@ -46,7 +46,7 @@ const modules: FeatureModule[] = [
     title: "المحاسبة العامة",
     titleEn: "General Ledger",
     icon: Calculator,
-    color: "text-[#0B1B49]",
+    color: "text-foreground",
     bgColor: "bg-[#0B1B49]/10",
     features: [
       { name: "دليل الحسابات", status: "live", description: "شجرة حسابات متعددة المستويات مع إمكانية التوسيع والطي", details: ["هيكل شجري تفاعلي", "تصنيفات: أصل / التزام / حقوق ملكية / إيراد / مصروف", "بحث وفلترة متقدمة", "KPI cards قابلة للنقر مع فلترة الشجرة"] },
@@ -62,8 +62,8 @@ const modules: FeatureModule[] = [
     title: "المبيعات",
     titleEn: "Sales",
     icon: FileText,
-    color: "text-[#1276E3]",
-    bgColor: "bg-[#1276E3]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "فواتير المبيعات", status: "live", description: "إنشاء وإدارة فواتير المبيعات بالكامل", details: ["إنشاء / تعديل / عرض / حذف", "بنود ذكية مع ضريبة القيمة المضافة", "حالات: مسودة / مرسلة / مدفوعة / متأخرة", "بحث + فلتر بالحالة", "KPI cards قابلة للنقر"] },
       { name: "قالب فاتورة رسمي + QR زاتكا المرحلة 1", status: "live", description: "قالب طباعة معتمد بشعار وختم المنشأة · ضريبة لكل بند (خاضع/ضريبة/إجمالي) · QR بصيغة TLV زاتكا (تم التحقق بفك التشفير) · حالة معتمدة · إلزام حساب الإيراد قبل الاعتماد · معاينة حية طبق الأصل · اسم PDF تلقائي", details: ["مطابق للفواتير المسلّمة فعلياً للعملاء", "شروط وأحكام عامة افتراضية قابلة للتخصيص"] },
@@ -212,7 +212,7 @@ const modules: FeatureModule[] = [
     title: "التكاملات والمطورين",
     titleEn: "Integrations & Developer",
     icon: Plug,
-    color: "text-[#374151]",
+    color: "text-foreground/80",
     bgColor: "bg-[#374151]/10",
     features: [
       { name: "REST API", status: "live", description: "واجهة برمجية كاملة للتكامل مع أنظمة خارجية" },
@@ -296,21 +296,21 @@ export function FeatureRoadmap() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>خارطة المزايا</h1>
-        <p className="text-[#6B7280] mt-1">مراجعة شاملة لجميع مزايا المنصة وحالة التنفيذ</p>
+        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>خارطة المزايا</h1>
+        <p className="text-muted-foreground mt-1">مراجعة شاملة لجميع مزايا المنصة وحالة التنفيذ</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         <button onClick={() => setFilterStatus(filterStatus === "all" ? "all" : "all")} className="text-start">
-          <Card className={`border-[#E5E7EB] hover:shadow-md transition-all ${filterStatus === "all" ? "ring-2 ring-[#1276E3]/20" : ""}`}>
+          <Card className={`border-border hover:shadow-md transition-all ${filterStatus === "all" ? "ring-2 ring-[#1276E3]/20" : ""}`}>
             <CardContent className="p-4">
-              <p className="text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>الإجمالي</p>
-              <p className="font-english text-[#0B1B49] mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.total}</p>
+              <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>الإجمالي</p>
+              <p className="font-english text-foreground mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.total}</p>
               <div className="w-full bg-[#E5E7EB] rounded-full h-1.5 mt-2">
-                <div className="bg-[#1276E3] h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
+                <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
               </div>
-              <p className="text-xs text-[#6B7280] mt-1 font-english">{completionRate}% مكتمل</p>
+              <p className="text-xs text-muted-foreground mt-1 font-english">{completionRate}% مكتمل</p>
             </CardContent>
           </Card>
         </button>
@@ -319,9 +319,9 @@ export function FeatureRoadmap() {
           const count = stats[status];
           return (
             <button key={status} onClick={() => setFilterStatus(filterStatus === status ? "all" : status)} className="text-start">
-              <Card className={`border-[#E5E7EB] hover:shadow-md transition-all ${filterStatus === status ? "ring-2 ring-[#1276E3]/20" : ""}`}>
+              <Card className={`border-border hover:shadow-md transition-all ${filterStatus === status ? "ring-2 ring-[#1276E3]/20" : ""}`}>
                 <CardContent className="p-4">
-                  <p className="text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>{cfg.label}</p>
+                  <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{cfg.label}</p>
                   <p className={`font-english mt-1 ${cfg.color}`} style={{ fontSize: "1.5rem", fontWeight: 700 }}>{count}</p>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>
                     <cfg.icon className="h-3 w-3" />{cfg.label}
@@ -354,10 +354,10 @@ export function FeatureRoadmap() {
           const totalCount = mod.features.length;
 
           return (
-            <Card key={mod.title} className="border-[#E5E7EB] overflow-hidden">
+            <Card key={mod.title} className="border-border overflow-hidden">
               <button
                 onClick={() => toggleModule(mod.title)}
-                className="w-full text-start px-5 py-4 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+                className="w-full text-start px-5 py-4 flex items-center justify-between hover:bg-muted transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className={`rounded-lg p-2.5 ${mod.bgColor}`}>
@@ -365,34 +365,34 @@ export function FeatureRoadmap() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[#0B1B49]" style={{ fontWeight: 700 }}>{mod.title}</span>
-                      {mod.titleEn && <span className="text-xs text-[#9CA3AF] font-english">{mod.titleEn}</span>}
+                      <span className="text-foreground" style={{ fontWeight: 700 }}>{mod.title}</span>
+                      {mod.titleEn && <span className="text-xs text-muted-foreground/60 font-english">{mod.titleEn}</span>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-[#6B7280] font-english">{liveCount}/{totalCount} مفعّل</span>
+                      <span className="text-xs text-muted-foreground font-english">{liveCount}/{totalCount} مفعّل</span>
                       <div className="w-16 bg-[#E5E7EB] rounded-full h-1">
                         <div className="bg-[#22C55E] h-1 rounded-full" style={{ width: `${(liveCount / totalCount) * 100}%` }} />
                       </div>
                     </div>
                   </div>
                 </div>
-                {isExpanded ? <ChevronDown className="h-5 w-5 text-[#9CA3AF]" /> : <ChevronRight className="h-5 w-5 text-[#9CA3AF]" />}
+                {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground/60" /> : <ChevronRight className="h-5 w-5 text-muted-foreground/60" />}
               </button>
 
               {isExpanded && (
-                <div className="border-t border-[#E5E7EB]">
+                <div className="border-t border-border">
                   {(filterStatus === "all" ? mod.features : modFeatures).map((feature, i) => {
                     const cfg = statusConfig[feature.status];
                     return (
-                      <div key={feature.name} className={`px-5 py-3.5 flex items-start gap-3 ${i > 0 ? "border-t border-[#F3F4F6]" : ""} hover:bg-[#F9FAFB] transition-colors group`}>
+                      <div key={feature.name} className={`px-5 py-3.5 flex items-start gap-3 ${i > 0 ? "border-t border-border/50" : ""} hover:bg-muted transition-colors group`}>
                         <cfg.icon className={`h-4.5 w-4.5 mt-0.5 shrink-0 ${cfg.color}`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{feature.name}</span>
+                            <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>{feature.name}</span>
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>{cfg.label}</span>
                             <button
                               onClick={async (e) => { e.stopPropagation(); if (reported.has(feature.name)) return; try { await api.notifications.create({ type: "feature_report", title: `بلاغ على ميزة: ${feature.name}`, body: `قسم: ${mod.title} · الحالة: ${cfg.label}`, link: "/app/roadmap", refType: "feature", refId: feature.name }); setReported(prev => new Set(prev).add(feature.name)); push("success", `تم استلام بلاغك على «${feature.name}»`); } catch { push("error", "تعذر إرسال البلاغ"); } }}
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-[#E5E7EB] text-[#9CA3AF] hover:text-[#E84B4B] hover:border-[#E84B4B]/40 opacity-0 group-hover:opacity-100"}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-border text-muted-foreground/60 hover:text-[#E84B4B] hover:border-[#E84B4B]/40 opacity-0 group-hover:opacity-100"}`}
                               title="أبلغ عن مشكلة في هذه الميزة — يصل البلاغ لفريق التطوير">
                               {reported.has(feature.name) ? "✓ وصل البلاغ" : "⚑ بلاغ"}
                             </button>
@@ -402,11 +402,11 @@ export function FeatureRoadmap() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-[#6B7280] mt-0.5">{feature.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{feature.description}</p>
                           {feature.details && feature.details.length > 0 && (
                             <ul className="mt-1.5 space-y-0.5">
                               {feature.details.map((d, j) => (
-                                <li key={j} className="text-xs text-[#9CA3AF] flex items-start gap-1.5">
+                                <li key={j} className="text-xs text-muted-foreground/60 flex items-start gap-1.5">
                                   <span className="mt-1.5 h-1 w-1 rounded-full bg-[#D1D5DB] shrink-0" />
                                   {d}
                                 </li>
@@ -425,9 +425,9 @@ export function FeatureRoadmap() {
       </div>
 
       {/* Legend */}
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardContent className="p-5">
-          <h3 className="text-[#0B1B49] mb-3" style={{ fontWeight: 700 }}>دليل الحالات</h3>
+          <h3 className="text-foreground mb-3" style={{ fontWeight: 700 }}>دليل الحالات</h3>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {Object.entries(statusConfig).map(([key, cfg]) => (
               <div key={key} className="flex items-center gap-2">

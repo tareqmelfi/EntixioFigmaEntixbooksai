@@ -95,14 +95,14 @@ export function FiscalPeriods() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الفترات المالية</h1>
-          <p className="text-[#6B7280] mt-1">قفل الفترات · إغلاق سنوي · ترحيل الأرباح المحتجزة</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الفترات المالية</h1>
+          <p className="text-muted-foreground mt-1">قفل الفترات · إغلاق سنوي · ترحيل الأرباح المحتجزة</p>
         </div>
         <div className="flex items-center gap-2">
           <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))}
             className="w-24 font-english text-center" dir="ltr" />
           {items.length === 0 && (
-            <Button onClick={handleInit} disabled={busy === "init"} className="bg-[#1276E3] hover:bg-[#1060C0]">
+            <Button onClick={handleInit} disabled={busy === "init"} className="bg-primary hover:bg-primary/90">
               {busy === "init" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Plus className="h-4 w-4 me-2" />}
               إنشاء فترات {year}
             </Button>
@@ -111,24 +111,24 @@ export function FiscalPeriods() {
       </div>
 
       {loading ? (
-        <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+        <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
       ) : items.length === 0 ? (
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="py-12 text-center">
             <CalendarDays className="h-12 w-12 text-[#E5E7EB] mx-auto mb-3" />
-            <p className="text-sm text-[#6B7280]">لم يتم إنشاء فترات لعام {year}</p>
-            <p className="text-xs text-[#9CA3AF] mt-1">اضغط "إنشاء فترات" لإنشاء 12 فترة شهرية</p>
+            <p className="text-sm text-muted-foreground">لم يتم إنشاء فترات لعام {year}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">اضغط "إنشاء فترات" لإنشاء 12 فترة شهرية</p>
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardHeader>
-            <CardTitle className="text-[#0B1B49]">فترات السنة المالية {year}</CardTitle>
+            <CardTitle className="text-foreground">فترات السنة المالية {year}</CardTitle>
             <CardDescription>افتح/أقفل/أغلق · الإغلاق ينشئ قيد إغلاق آلي ويرحّل صافي الدخل إلى الأرباح المحتجزة</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full text-sm">
-              <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+              <thead className="bg-muted text-xs text-muted-foreground">
                 <tr>
                   <th className="text-start px-4 py-2.5 font-medium">الفترة</th>
                   <th className="text-start px-4 py-2.5 font-medium">من</th>
@@ -140,12 +140,12 @@ export function FiscalPeriods() {
               </thead>
               <tbody>
                 {items.map(p => (
-                  <tr key={p.id} className="border-t border-[#F3F4F6]">
-                    <td className="px-4 py-3 text-[#0B1B49] font-medium">
+                  <tr key={p.id} className="border-t border-border/50">
+                    <td className="px-4 py-3 text-foreground font-medium">
                       <span className="font-english me-1" dir="ltr">{p.periodNumber}</span> · {monthName(p.periodNumber)}
                     </td>
-                    <td className="px-4 py-3 font-english text-[#374151]" dir="ltr">{p.startDate.slice(0, 10)}</td>
-                    <td className="px-4 py-3 font-english text-[#374151]" dir="ltr">{p.endDate.slice(0, 10)}</td>
+                    <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{p.startDate.slice(0, 10)}</td>
+                    <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{p.endDate.slice(0, 10)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         p.status === "CLOSED" ? "bg-gray-100 text-gray-700" :
@@ -168,7 +168,7 @@ export function FiscalPeriods() {
                       {p.status === "LOCKED" && (
                         <span className="flex items-center gap-1 justify-end">
                           <Button size="sm" variant="outline" onClick={() => handleUnlock(p.id)} disabled={busy === p.id}
-                            className="border-[#E5E7EB]">
+                            className="border-border">
                             <Unlock className="h-3 w-3 me-1" /> فتح
                           </Button>
                           <Button size="sm" onClick={() => handlePreview(p.id)} disabled={busy === p.id}
@@ -178,7 +178,7 @@ export function FiscalPeriods() {
                         </span>
                       )}
                       {p.status === "CLOSED" && (
-                        <span className="text-xs text-[#9CA3AF]">— مُغلقة نهائياً —</span>
+                        <span className="text-xs text-muted-foreground/60">— مُغلقة نهائياً —</span>
                       )}
                     </td>
                   </tr>
@@ -193,24 +193,24 @@ export function FiscalPeriods() {
       {preview && pendingClose && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { setPreview(null); setPendingClose(null); }}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg text-[#0B1B49] font-bold mb-3">تأكيد إغلاق الفترة</h2>
-            <p className="text-xs text-[#6B7280] mb-4">سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية <span className="font-bold text-red-600">غير قابلة للتراجع</span>.</p>
-            <div className="rounded-lg border border-[#E5E7EB] divide-y divide-[#F3F4F6]">
+            <h2 className="text-lg text-foreground font-bold mb-3">تأكيد إغلاق الفترة</h2>
+            <p className="text-xs text-muted-foreground mb-4">سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية <span className="font-bold text-red-600">غير قابلة للتراجع</span>.</p>
+            <div className="rounded-lg border border-border divide-y divide-[#F3F4F6]">
               <div className="flex justify-between p-3 text-sm">
-                <span className="text-[#6B7280]">إجمالي الإيرادات</span>
+                <span className="text-muted-foreground">إجمالي الإيرادات</span>
                 <span className="font-english font-semibold text-green-700" dir="ltr">{preview.combinedRevenue.toLocaleString()}</span>
               </div>
               <div className="flex justify-between p-3 text-sm">
-                <span className="text-[#6B7280]">إجمالي المصروفات</span>
+                <span className="text-muted-foreground">إجمالي المصروفات</span>
                 <span className="font-english font-semibold text-red-700" dir="ltr">{preview.combinedExpense.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between p-3 text-sm bg-[#F9FAFB]">
-                <span className="text-[#0B1B49] font-bold">صافي الدخل</span>
+              <div className="flex justify-between p-3 text-sm bg-muted">
+                <span className="text-foreground font-bold">صافي الدخل</span>
                 <span className={`font-english font-bold ${preview.netIncome >= 0 ? "text-green-700" : "text-red-700"}`} dir="ltr">{preview.netIncome.toLocaleString()}</span>
               </div>
             </div>
             <div className="flex gap-2 justify-end mt-4">
-              <Button variant="outline" onClick={() => { setPreview(null); setPendingClose(null); }} className="border-[#E5E7EB]">إلغاء</Button>
+              <Button variant="outline" onClick={() => { setPreview(null); setPendingClose(null); }} className="border-border">إلغاء</Button>
               <Button onClick={handleClose} disabled={busy === pendingClose} className="bg-red-600 hover:bg-red-700 text-white">
                 {busy === pendingClose ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
                 تأكيد الإغلاق

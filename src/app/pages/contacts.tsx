@@ -298,10 +298,10 @@ export function Contacts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>جهات الاتصال</h1>
-          <p className="text-[#6B7280] mt-1">إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>جهات الاتصال</h1>
+          <p className="text-muted-foreground mt-1">إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}>
           <Plus className="me-2 h-4 w-4" /> إضافة جهة
         </Button>
       </div>
@@ -331,24 +331,24 @@ export function Contacts() {
       </div>
 
       {/* Table card */}
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-[#0B1B49] flex items-center gap-2"><Filter className="h-4 w-4" /> قائمة جهات الاتصال ({filtered.length})</CardTitle>
+            <CardTitle className="text-foreground flex items-center gap-2"><Filter className="h-4 w-4" /> قائمة جهات الاتصال ({filtered.length})</CardTitle>
             <div className="relative w-72 max-w-full">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-              <Input placeholder="بحث بالاسم · الرمز · البريد · الرقم الضريبي..." className="ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Input placeholder="بحث بالاسم · الرمز · البريد · الرقم الضريبي..." className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+            <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
               <Users className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
-              <p className="text-sm text-[#6B7280]">لا توجد جهات اتصال مطابقة</p>
-              <button onClick={openCreate} className="text-sm text-[#1276E3] hover:underline mt-2">+ إضافة جهة جديدة</button>
+              <p className="text-sm text-muted-foreground">لا توجد جهات اتصال مطابقة</p>
+              <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">+ إضافة جهة جديدة</button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -361,7 +361,7 @@ export function Contacts() {
                   <col className="w-[90px]" />
                   <col className="w-[120px]" />
                 </colgroup>
-                <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead className="bg-muted text-xs text-muted-foreground">
                   <tr>
                     <th className="text-start px-4 py-2.5 font-medium">الاسم</th>
                     <th className="text-start px-4 py-2.5 font-medium">الأدوار</th>
@@ -375,19 +375,19 @@ export function Contacts() {
                   {filtered.map(c => {
                     const Avatar = c.entityKind === "INDIVIDUAL" ? User : Building2;
                     return (
-                      <tr key={c.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF]">
+                      <tr key={c.id} className="border-t border-border/50 hover:bg-primary/5">
                         <td className="px-4 py-3 overflow-hidden align-middle" style={{ maxWidth: 0 }}>
                           <Link to={`/app/contacts/${c.id}`} className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
-                            <div className="w-8 h-8 rounded-full bg-[#F4FCFF] flex items-center justify-center shrink-0">
-                              <Avatar className="h-4 w-4 text-[#1276E3]" />
+                            <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center shrink-0">
+                              <Avatar className="h-4 w-4 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1 overflow-hidden">
-                              <div dir="auto" className="block w-full truncate text-[#0B1B49] font-semibold hover:underline" title={c.displayName} style={{ unicodeBidi: "plaintext" }}>{c.displayName}</div>
-                              {c.legalName && c.legalName !== c.displayName && <div dir="auto" className="w-full truncate text-xs text-[#9CA3AF]" style={{ unicodeBidi: "plaintext" }}>{c.legalName}</div>}
+                              <div dir="auto" className="block w-full truncate text-foreground font-semibold hover:underline" title={c.displayName} style={{ unicodeBidi: "plaintext" }}>{c.displayName}</div>
+                              {c.legalName && c.legalName !== c.displayName && <div dir="auto" className="w-full truncate text-xs text-muted-foreground/60" style={{ unicodeBidi: "plaintext" }}>{c.legalName}</div>}
                               {(c.customCode || c.shortCode) && (
-                                <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-[#9CA3AF]">
+                                <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground/60">
                                   {c.customCode && <span dir="ltr" className="font-english">{c.customCode}</span>}
-                                  {c.shortCode && <span dir="ltr" className="rounded bg-[#F3F4F6] px-1 font-english text-[#6B7280]">{c.shortCode}</span>}
+                                  {c.shortCode && <span dir="ltr" className="rounded bg-muted/50 px-1 font-english text-muted-foreground">{c.shortCode}</span>}
                                 </div>
                               )}
                             </div>
@@ -402,20 +402,20 @@ export function Contacts() {
                             {c.isForeign && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">خارجي</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#6B7280] space-y-0.5 text-start overflow-hidden align-middle" style={{ maxWidth: 0 }}>
+                        <td className="px-4 py-3 text-xs text-muted-foreground space-y-0.5 text-start overflow-hidden align-middle" style={{ maxWidth: 0 }}>
                           {c.email && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Mail className="h-3 w-3 shrink-0" /><span className="truncate font-english" title={c.email} style={{ fontVariantNumeric: "tabular-nums" }}>{c.email}</span></div>}
                           {c.phone && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Phone className="h-3 w-3 shrink-0" /><span className="truncate font-english" title={c.phone} style={{ fontVariantNumeric: "tabular-nums" }}>{c.phone}</span></div>}
                         </td>
-                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.vatNumber || c.taxId || "—"}</span></td>
-                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-[#374151] uppercase">{c.country}</span></td>
+                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{c.vatNumber || c.taxId || "—"}</span></td>
+                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-foreground/80 uppercase">{c.country}</span></td>
                         <td className="px-2 py-3 text-end">
                           <div className="flex items-center gap-1 justify-end">
-                            <Link to={`/app/contacts/${c.id}`} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="فتح"><ExternalLink className="h-4 w-4" /></Link>
-                            <button onClick={() => openEdit(c)} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F4FCFF] hover:text-[#1276E3]" title="تعديل"><Edit2 className="h-4 w-4" /></button>
+                            <Link to={`/app/contacts/${c.id}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title="فتح"><ExternalLink className="h-4 w-4" /></Link>
+                            <button onClick={() => openEdit(c)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title="تعديل"><Edit2 className="h-4 w-4" /></button>
                             {pendingDelete === c.id ? (
                               <span className="flex items-center gap-1 text-xs">
                                 <button onClick={() => handleDelete(c.id)} className="px-2 py-1 rounded bg-red-600 text-white">تأكيد</button>
-                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-[#E5E7EB]">إلغاء</button>
+                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-border">إلغاء</button>
                               </span>
                             ) : (
                               <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-4 w-4" /></button>
@@ -503,15 +503,15 @@ export function Contacts() {
 
 // ── Subcomponents ────────────────────────────────────────────────────────────
 function pillClass(active: boolean) {
-  return `px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${active ? "bg-[#1276E3] text-white" : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#1276E3]/40"}`;
+  return `px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${active ? "bg-primary text-white" : "bg-white border border-border text-muted-foreground hover:border-[#1276E3]/40"}`;
 }
 
-function KpiCard({ label, value, hint, active, onClick, valueColor = "text-[#0B1B49]" }: { label: string; value: string; hint: string; active: boolean; onClick: () => void; valueColor?: string }) {
+function KpiCard({ label, value, hint, active, onClick, valueColor = "text-foreground" }: { label: string; value: string; hint: string; active: boolean; onClick: () => void; valueColor?: string }) {
   return (
-    <button onClick={onClick} className={`text-start rounded-lg border px-4 py-3 transition ${active ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] bg-white hover:border-[#1276E3]/40"}`}>
-      <div className="text-xs text-[#6B7280]">{label}</div>
+    <button onClick={onClick} className={`text-start rounded-lg border px-4 py-3 transition ${active ? "border-[#1276E3] bg-primary/5" : "border-border bg-white hover:border-[#1276E3]/40"}`}>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`font-english font-bold mt-1 ${valueColor}`} style={{ fontSize: "1.5rem" }}>{value}</div>
-      {hint && <div className="text-xs text-[#9CA3AF] mt-0.5">{hint}</div>}
+      {hint && <div className="text-xs text-muted-foreground/60 mt-0.5">{hint}</div>}
     </button>
   );
 }
@@ -535,18 +535,18 @@ function WizardModal(props: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#F3F4F6]">
-          <h2 className="text-lg text-[#0B1B49]" style={{ fontWeight: 700 }}>{isEditing ? "تعديل جهة اتصال" : "إضافة جهة اتصال"}</h2>
-          <button onClick={onClose} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-5 w-5 text-[#6B7280]" /></button>
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <h2 className="text-lg text-foreground" style={{ fontWeight: 700 }}>{isEditing ? "تعديل جهة اتصال" : "إضافة جهة اتصال"}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-muted/50 rounded"><X className="h-5 w-5 text-muted-foreground" /></button>
         </div>
 
         {/* Stepper */}
-        <div className="px-5 py-4 border-b border-[#F3F4F6]">
+        <div className="px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-2 text-xs">
             {[1, 2, 3, 4].map(s => (
               <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`h-7 w-7 rounded-full flex items-center justify-center font-english font-semibold ${step === s ? "bg-[#1276E3] text-white" : step > s ? "bg-[#1276E3]/20 text-[#1276E3]" : "bg-[#F3F4F6] text-[#9CA3AF]"}`}>{s}</div>
-                <span className={step === s ? "text-[#0B1B49] font-semibold" : "text-[#9CA3AF]"}>
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center font-english font-semibold ${step === s ? "bg-primary text-white" : step > s ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/60"}`}>{s}</div>
+                <span className={step === s ? "text-foreground font-semibold" : "text-muted-foreground/60"}>
                   {s === 1 ? "النوع" : s === 2 ? "البيانات" : s === 3 ? "الأدوار" : "التفاصيل"}
                 </span>
                 {s < 4 && <div className="flex-1 h-px bg-[#E5E7EB]" />}
@@ -564,16 +564,16 @@ function WizardModal(props: {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-5 border-t border-[#F3F4F6]">
-          <Button type="button" variant="outline" onClick={step === 1 ? onClose : onPrev} className="border-[#E5E7EB]">
+        <div className="flex items-center justify-between p-5 border-t border-border/50">
+          <Button type="button" variant="outline" onClick={step === 1 ? onClose : onPrev} className="border-border">
             {step === 1 ? "إلغاء" : <><ChevronRight className="h-4 w-4 me-1" /> السابق</>}
           </Button>
           {step < 4 ? (
-            <Button onClick={onNext} disabled={!canProceed} className="bg-[#1276E3] hover:bg-[#1060C0]">
+            <Button onClick={onNext} disabled={!canProceed} className="bg-primary hover:bg-primary/90">
               التالي <ChevronLeft className="h-4 w-4 ms-1" />
             </Button>
           ) : (
-            <Button onClick={onSave} disabled={busy || !canProceed} className="bg-[#1276E3] hover:bg-[#1060C0]">
+            <Button onClick={onSave} disabled={busy || !canProceed} className="bg-primary hover:bg-primary/90">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditing ? "حفظ التعديلات" : "حفظ جهة الاتصال")}
             </Button>
           )}
@@ -595,7 +595,7 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#374151]">هل هي منظمة أم فرد؟</p>
+      <p className="text-sm text-foreground/80">هل هي منظمة أم فرد؟</p>
       <div className="grid grid-cols-2 gap-3">
         {(["INDIVIDUAL", "COMPANY"] as const).map(k => {
           const Icon = k === "INDIVIDUAL" ? User : Building2;
@@ -605,12 +605,12 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
               key={k}
               type="button"
               onClick={() => setForm({ ...form, entityKind: k })}
-              className={`p-6 rounded-xl border-2 transition flex flex-col items-center gap-3 ${active ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] hover:border-[#1276E3]/40"}`}
+              className={`p-6 rounded-xl border-2 transition flex flex-col items-center gap-3 ${active ? "border-[#1276E3] bg-primary/5" : "border-border hover:border-[#1276E3]/40"}`}
             >
-              <Icon className={`h-10 w-10 ${active ? "text-[#1276E3]" : "text-[#9CA3AF]"}`} />
+              <Icon className={`h-10 w-10 ${active ? "text-primary" : "text-muted-foreground/60"}`} />
               <div>
-                <div className="font-semibold text-[#0B1B49]">{k === "INDIVIDUAL" ? "فرد" : "منظمة"}</div>
-                <div className="text-xs text-[#9CA3AF] mt-0.5">{k === "INDIVIDUAL" ? "شخص طبيعي" : "شركة أو مؤسسة"}</div>
+                <div className="font-semibold text-foreground">{k === "INDIVIDUAL" ? "فرد" : "منظمة"}</div>
+                <div className="text-xs text-muted-foreground/60 mt-0.5">{k === "INDIVIDUAL" ? "شخص طبيعي" : "شركة أو مؤسسة"}</div>
               </div>
             </button>
           );
@@ -618,16 +618,16 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
       </div>
 
       {/* AI · upload registration / EIN letter / passport → auto-fill */}
-      <div className="rounded-xl border-2 border-dashed border-[#1276E3]/30 bg-[#F4FCFF] p-4">
+      <div className="rounded-xl border-2 border-dashed border-[#1276E3]/30 bg-primary/5 p-4">
         <div className="flex items-center gap-3">
-          <Sparkles className="h-6 w-6 text-[#1276E3]" />
+          <Sparkles className="h-6 w-6 text-primary" />
           <div className="flex-1">
-            <div className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>تعبئة تلقائية بالذكاء</div>
-            <p className="text-xs text-[#6B7280] mt-0.5">ارفع جواز/هوية للفرد أو سجل تجاري · رسالة EIN · شهادة الزكاة للمنشآت، والذكاء يقرأها ويعبّي البيانات</p>
+            <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>تعبئة تلقائية بالذكاء</div>
+            <p className="text-xs text-muted-foreground mt-0.5">ارفع جواز/هوية للفرد أو سجل تجاري · رسالة EIN · شهادة الزكاة للمنشآت، والذكاء يقرأها ويعبّي البيانات</p>
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
-          <Button type="button" variant="outline" disabled={aiBusy} onClick={() => fileRef.current?.click()} className="border-[#1276E3] text-[#1276E3]">
+          <Button type="button" variant="outline" disabled={aiBusy} onClick={() => fileRef.current?.click()} className="border-[#1276E3] text-primary">
             {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4 me-1.5" /> رفع مستند</>}
           </Button>
         </div>
@@ -640,106 +640,106 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
   const isKsa = form.country === "SA";
   return (
     <div className="space-y-3">
-      <p className="text-sm text-[#374151]">{form.entityKind === "COMPANY" ? "بيانات المنظمة" : "بيانات الفرد"}</p>
+      <p className="text-sm text-foreground/80">{form.entityKind === "COMPANY" ? "بيانات المنظمة" : "بيانات الفرد"}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs text-[#6B7280]">الاسم *</Label>
-          <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={form.entityKind === "COMPANY" ? "مثال: شركة التقنية المتقدمة" : "مثال: أحمد محمد"} className="border-[#E5E7EB]" />
+          <Label className="text-xs text-muted-foreground">الاسم *</Label>
+          <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={form.entityKind === "COMPANY" ? "مثال: شركة التقنية المتقدمة" : "مثال: أحمد محمد"} className="border-border" />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">الاسم بالإنجليزية</Label>
-          <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="e.g. Advanced Tech Co." dir="ltr" className="border-[#E5E7EB] font-english" />
+          <Label className="text-xs text-muted-foreground">الاسم بالإنجليزية</Label>
+          <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="e.g. Advanced Tech Co." dir="ltr" className="border-border font-english" />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">رمز العميل/الجهة</Label>
+          <Label className="text-xs text-muted-foreground">رمز العميل/الجهة</Label>
           <Input
             value={form.customCode}
             onChange={(e) => setForm({ ...form, customCode: e.target.value.toUpperCase() })}
             placeholder="EN-CLI-SNBL"
             dir="ltr"
-            className="border-[#E5E7EB] font-english"
+            className="border-border font-english"
           />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">رمز مختصر للفواتير</Label>
+          <Label className="text-xs text-muted-foreground">رمز مختصر للفواتير</Label>
           <Input
             value={form.shortCode}
             onChange={(e) => setForm({ ...form, shortCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) })}
             placeholder="SNBL"
             maxLength={4}
             dir="ltr"
-            className="border-[#E5E7EB] font-english"
+            className="border-border font-english"
           />
-          <p className="mt-1 text-xs text-[#9CA3AF]">حتى 4 أحرف، مثال: SNBL لإصدار أرقام مثل EN-SNBL-INV.</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">حتى 4 أحرف، مثال: SNBL لإصدار أرقام مثل EN-SNBL-INV.</p>
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">البريد الإلكتروني</Label>
-          <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" dir="ltr" className="border-[#E5E7EB] font-english" />
+          <Label className="text-xs text-muted-foreground">البريد الإلكتروني</Label>
+          <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" dir="ltr" className="border-border font-english" />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">رقم الهاتف</Label>
-          <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+966 5X XXX XXXX" dir="ltr" className="border-[#E5E7EB] font-english" />
+          <Label className="text-xs text-muted-foreground">رقم الهاتف</Label>
+          <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+966 5X XXX XXXX" dir="ltr" className="border-border font-english" />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">الدولة</Label>
+          <Label className="text-xs text-muted-foreground">الدولة</Label>
           <select value={form.country} onChange={(e) => {
             const c = COUNTRY_OPTIONS.find(o => o.code === e.target.value);
             setForm({ ...form, country: e.target.value, defaultCurrency: c?.currency || "SAR", isForeign: e.target.value !== "SA" });
-          }} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+          }} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
             {COUNTRY_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">العملة الافتراضية</Label>
-          <Input value={form.defaultCurrency} onChange={(e) => setForm({ ...form, defaultCurrency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-[#E5E7EB] font-english" />
+          <Label className="text-xs text-muted-foreground">العملة الافتراضية</Label>
+          <Input value={form.defaultCurrency} onChange={(e) => setForm({ ...form, defaultCurrency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-border font-english" />
         </div>
         {isKsa && form.entityKind === "COMPANY" && (
           <>
             <div>
-              <Label className="text-xs text-[#6B7280]">الرقم الضريبي</Label>
+              <Label className="text-xs text-muted-foreground">الرقم الضريبي</Label>
               <Input
                 value={form.vatNumber}
                 onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
                 onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, vatNumber: formatTaxId(txt, form.country) }); }}
-                placeholder="300 XXX XXX XXX X 003" maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english"
+                placeholder="300 XXX XXX XXX X 003" maxLength={20} dir="ltr" className="border-border font-english"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#6B7280]">السجل التجاري</Label>
+              <Label className="text-xs text-muted-foreground">السجل التجاري</Label>
               <Input
                 value={form.crNumber}
                 onChange={(e) => setForm({ ...form, crNumber: formatCrNumber(e.target.value, form.country) })}
                 onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, crNumber: formatCrNumber(txt, form.country) }); }}
-                placeholder="1010XXXXXX" maxLength={10} dir="ltr" className="border-[#E5E7EB] font-english"
+                placeholder="1010XXXXXX" maxLength={10} dir="ltr" className="border-border font-english"
               />
             </div>
           </>
         )}
         {isKsa && form.entityKind === "INDIVIDUAL" && (
           <div className="col-span-1 md:col-span-2">
-            <Label className="text-xs text-[#6B7280]">رقم الهوية الوطنية / الإقامة</Label>
-            <Input value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} placeholder="10XXXXXXXX" maxLength={10} dir="ltr" className="border-[#E5E7EB] font-english" />
+            <Label className="text-xs text-muted-foreground">رقم الهوية الوطنية / الإقامة</Label>
+            <Input value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} placeholder="10XXXXXXXX" maxLength={10} dir="ltr" className="border-border font-english" />
           </div>
         )}
         {!isKsa && (
           <>
             <div>
-              <Label className="text-xs text-[#6B7280]">Tax ID (EIN / VAT / TRN)</Label>
+              <Label className="text-xs text-muted-foreground">Tax ID (EIN / VAT / TRN)</Label>
               <Input
                 value={form.vatNumber}
                 onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
                 onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, vatNumber: formatTaxId(txt, form.country) }); }}
-                placeholder={form.country === "US" ? "XX-XXXXXXX" : "Tax ID"} maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english"
+                placeholder={form.country === "US" ? "XX-XXXXXXX" : "Tax ID"} maxLength={20} dir="ltr" className="border-border font-english"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#6B7280]">LEI Code (اختياري)</Label>
-              <Input value={form.leiCode} onChange={(e) => setForm({ ...form, leiCode: e.target.value })} placeholder="20 chars" maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english" />
+              <Label className="text-xs text-muted-foreground">LEI Code (اختياري)</Label>
+              <Input value={form.leiCode} onChange={(e) => setForm({ ...form, leiCode: e.target.value })} placeholder="20 chars" maxLength={20} dir="ltr" className="border-border font-english" />
             </div>
             <div className="col-span-1 md:col-span-2">
-              <Label className="text-xs text-[#6B7280]">نسبة ضريبة الاستقطاع (%)</Label>
-              <Input type="number" min="0" max="100" step="0.5" value={form.withholdingTaxRate} onChange={(e) => setForm({ ...form, withholdingTaxRate: e.target.value })} placeholder="5" dir="ltr" className="border-[#E5E7EB] font-english" />
-              <p className="text-xs text-[#9CA3AF] mt-1">سيتم حجز هذه النسبة تلقائياً عند فاتورة الشراء</p>
+              <Label className="text-xs text-muted-foreground">نسبة ضريبة الاستقطاع (%)</Label>
+              <Input type="number" min="0" max="100" step="0.5" value={form.withholdingTaxRate} onChange={(e) => setForm({ ...form, withholdingTaxRate: e.target.value })} placeholder="5" dir="ltr" className="border-border font-english" />
+              <p className="text-xs text-muted-foreground/60 mt-1">سيتم حجز هذه النسبة تلقائياً عند فاتورة الشراء</p>
             </div>
           </>
         )}
@@ -751,7 +751,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-[#374151]">اختر الأدوار <span className="text-[#9CA3AF]">(يمكن اختيار أكثر من دور)</span></p>
+      <p className="text-sm text-foreground/80">اختر الأدوار <span className="text-muted-foreground/60">(يمكن اختيار أكثر من دور)</span></p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {ROLES.map(r => {
           const active = form[r.key];
@@ -761,13 +761,13 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               key={r.key}
               type="button"
               onClick={() => setForm({ ...form, [r.key]: !active } as any)}
-              className={`p-3 rounded-lg border-2 transition flex items-center justify-between ${active ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB] hover:border-[#1276E3]/40"}`}
+              className={`p-3 rounded-lg border-2 transition flex items-center justify-between ${active ? "border-[#1276E3] bg-primary/5" : "border-border hover:border-[#1276E3]/40"}`}
             >
-              <span className="flex items-center gap-2 text-sm text-[#0B1B49]">
+              <span className="flex items-center gap-2 text-sm text-foreground">
                 <span className={`p-1.5 rounded ${r.bg} ${r.text}`}><Icon className="h-3.5 w-3.5" /></span>
                 {r.label}
               </span>
-              <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? "border-[#1276E3] bg-[#1276E3]" : "border-[#E5E7EB]"}`}>
+              <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? "border-[#1276E3] bg-primary" : "border-border"}`}>
                 {active && <span className="text-white text-xs">✓</span>}
               </span>
             </button>
@@ -786,9 +786,9 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#374151]">تفاصيل إضافية</p>
+      <p className="text-sm text-foreground/80">تفاصيل إضافية</p>
       <div>
-        <Label className="text-xs text-[#6B7280] flex items-center gap-1.5">العنوان <span className="text-[10px] text-[#1276E3]">✨ ابدأ الكتابة لاقتراحات تلقائية</span></Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">العنوان <span className="text-[10px] text-primary">✨ ابدأ الكتابة لاقتراحات تلقائية</span></Label>
         <AddressAutocomplete
           value={form.addressLine1}
           country={form.country}
@@ -806,32 +806,32 @@ function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <Label className="text-xs text-[#6B7280]">المدينة</Label>
-          <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="الرياض" className="border-[#E5E7EB]" />
+          <Label className="text-xs text-muted-foreground">المدينة</Label>
+          <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="الرياض" className="border-border" />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">المنطقة</Label>
-          <Input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="منطقة الرياض" className="border-[#E5E7EB]" />
+          <Label className="text-xs text-muted-foreground">المنطقة</Label>
+          <Input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} placeholder="منطقة الرياض" className="border-border" />
         </div>
         <div>
-          <Label className="text-xs text-[#6B7280]">الرمز البريدي</Label>
-          <Input value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} placeholder="12345" dir="ltr" className="border-[#E5E7EB] font-english" />
+          <Label className="text-xs text-muted-foreground">الرمز البريدي</Label>
+          <Input value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} placeholder="12345" dir="ltr" className="border-border font-english" />
         </div>
       </div>
       <div>
-        <Label className="text-xs text-[#6B7280]">ملاحظات</Label>
-        <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="أي ملاحظات إضافية..." rows={3} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
+        <Label className="text-xs text-muted-foreground">ملاحظات</Label>
+        <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="أي ملاحظات إضافية..." rows={3} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
       </div>
 
       {/* Live preview */}
-      <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] p-4">
-        <div className="text-xs text-[#9CA3AF] mb-2">معاينة</div>
+      <div className="rounded-lg border border-border bg-[#FAFBFC] p-4">
+        <div className="text-xs text-muted-foreground/60 mb-2">معاينة</div>
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center font-bold">
             {(form.displayName || "؟").slice(0, 2)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[#0B1B49] font-semibold truncate">{form.displayName || "—"}</div>
+            <div className="text-foreground font-semibold truncate">{form.displayName || "—"}</div>
             <div className="flex flex-wrap gap-1 mt-1">
               {ROLES.filter(r => form[r.key]).map(r => (
                 <span key={r.key} className={`text-xs px-1.5 py-0.5 rounded ${r.bg} ${r.text}`}>{r.label}</span>

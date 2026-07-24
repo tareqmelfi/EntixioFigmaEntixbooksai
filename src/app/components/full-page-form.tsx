@@ -41,23 +41,23 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
   }, [onClose, disableEscape]);
 
   return (
-    <div className="-m-4 sm:-m-6 min-h-[calc(100vh-4rem)] flex flex-col bg-[#F4FCFF] relative">
+    <div className="-m-4 sm:-m-6 min-h-[calc(100vh-4rem)] flex flex-col bg-primary/5 relative">
       {/* Header bar · NOT sticky · scrolls with content (fixes banner-cover bug) */}
-      <div className="bg-white border-b border-[#E5E7EB] shadow-sm flex-shrink-0">
+      <div className="bg-white border-b border-border shadow-sm flex-shrink-0">
         <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49] transition-colors flex-shrink-0"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors flex-shrink-0"
               aria-label="إغلاق وعودة للقائمة"
               title="إغلاق (Esc)"
             >
               <X className="h-5 w-5" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-[#0B1B49] truncate" style={{ fontSize: "1.125rem", fontWeight: 700 }}>{title}</h1>
-              {subtitle && <p className="text-[#6B7280] text-xs mt-0.5 truncate">{subtitle}</p>}
+              <h1 className="text-foreground truncate" style={{ fontSize: "1.125rem", fontWeight: 700 }}>{title}</h1>
+              {subtitle && <p className="text-muted-foreground text-xs mt-0.5 truncate">{subtitle}</p>}
             </div>
           </div>
           {/* Footer actions duplicated in header for fast access */}
@@ -66,7 +66,7 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
           </div>
         </div>
         {toolbar && (
-          <div className="px-4 sm:px-6 lg:px-8 py-2 border-t border-[#F3F4F6] bg-[#F9FAFB]">
+          <div className="px-4 sm:px-6 lg:px-8 py-2 border-t border-border/50 bg-muted">
             {toolbar}
           </div>
         )}
@@ -78,7 +78,7 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
       </div>
 
       {/* Footer bar · sticky at bottom · contains action buttons */}
-      <div className="sticky bottom-0 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+      <div className="sticky bottom-0 bg-white border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
         <div className="px-4 sm:px-6 lg:px-8 py-3">
           {footer}
         </div>

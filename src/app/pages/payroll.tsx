@@ -170,16 +170,16 @@ export function Payroll() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الرواتب</h1>
-          <p className="text-[#6B7280] mt-1">حساب مسير الرواتب مع GOSI وSANED بناءً على الموظفين المسجلين</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الرواتب</h1>
+          <p className="text-muted-foreground mt-1">حساب مسير الرواتب مع GOSI وSANED بناءً على الموظفين المسجلين</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} dir="ltr" className="w-36 font-english" />
-          <Button variant="outline" className="border-[#E5E7EB]" onClick={saveRun} disabled={busy || loading}>
+          <Button variant="outline" className="border-border" onClick={saveRun} disabled={busy || loading}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
             حفظ المسير
           </Button>
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={calculate} disabled={busy || loading}>
+          <Button className="bg-primary hover:bg-primary/90" onClick={calculate} disabled={busy || loading}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Calculator className="me-2 h-4 w-4" />}
             حساب المسير
           </Button>
@@ -196,19 +196,19 @@ export function Payroll() {
         <Metric label="تكلفة صاحب العمل" value={`${money(totals?.employerCost)} SAR`} />
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader><CardTitle>إعدادات WPS / مدد</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-2"><Label>رقم صاحب العمل</Label><Input value={settings.employerId} onChange={(e) => setSettings({ ...settings, employerId: e.target.value })} dir="ltr" className="font-english" /></div>
             <div className="space-y-2"><Label>رقم المنشأة</Label><Input value={settings.establishmentId} onChange={(e) => setSettings({ ...settings, establishmentId: e.target.value })} dir="ltr" className="font-english" /></div>
             <div className="space-y-2"><Label>العملة</Label><Input value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value.toUpperCase().slice(0, 3) })} dir="ltr" className="font-english" /></div>
-            <div className="flex items-end"><Button variant="outline" className="w-full border-[#E5E7EB]" onClick={saveSettings} disabled={busy}>حفظ الإعدادات</Button></div>
+            <div className="flex items-end"><Button variant="outline" className="w-full border-border" onClick={saveSettings} disabled={busy}>حفظ الإعدادات</Button></div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle>مسير الشهر</CardTitle>
@@ -217,16 +217,16 @@ export function Payroll() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-[#1276E3]" /></div>
+            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
           ) : employees.length === 0 ? (
             <div className="py-12 text-center">
-              <Wallet className="mx-auto h-10 w-10 text-[#9CA3AF]" />
-              <p className="mt-3 text-sm text-[#6B7280]">أضف موظفين من صفحة الموظفين قبل حساب الرواتب.</p>
+              <Wallet className="mx-auto h-10 w-10 text-muted-foreground/60" />
+              <p className="mt-3 text-sm text-muted-foreground">أضف موظفين من صفحة الموظفين قبل حساب الرواتب.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1040px]">
-                <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-3 py-3 text-start">الموظف</th>
                   <th className="px-3 py-3 text-start">الجنسية</th>
                   <th className="px-3 py-3 text-start">أساسي</th>
@@ -239,7 +239,7 @@ export function Payroll() {
                 </tr></thead>
                 <tbody>
                   {rows.map((row, index) => (
-                    <tr key={index} className="border-b border-[#F3F4F6]">
+                    <tr key={index} className="border-b border-border/50">
                       <td className="px-3 py-2">
                         <Select value={row.employeeId} onValueChange={(employeeId) => updateRow(index, { employeeId })}>
                           <SelectTrigger className="min-w-48"><SelectValue placeholder="اختر الموظف" /></SelectTrigger>
@@ -280,12 +280,12 @@ export function Payroll() {
       </Card>
 
       {results.length > 0 && (
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardHeader><CardTitle>نتيجة الحساب</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px]">
-                <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">الموظف</th>
                   <th className="px-4 py-3 text-start">الإجمالي</th>
                   <th className="px-4 py-3 text-start">GOSI الموظف</th>
@@ -296,12 +296,12 @@ export function Payroll() {
                   {results.map((result) => {
                     const employee = employeeById.get(result.employeeId);
                     return (
-                      <tr key={result.employeeId} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                        <td className="px-4 py-3 text-sm text-[#0B1B49]">{employee?.displayName || result.employeeId}</td>
+                      <tr key={result.employeeId} className="border-b border-border/50 hover:bg-primary/5">
+                        <td className="px-4 py-3 text-sm text-foreground">{employee?.displayName || result.employeeId}</td>
                         <td className="px-4 py-3 text-sm font-english">{money(result.grossSalary)}</td>
                         <td className="px-4 py-3 text-sm font-english">{money(result.employeeGosi)}</td>
                         <td className="px-4 py-3 text-sm font-english">{money(result.employerGosi)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-[#0B1B49] font-english">{money(result.netSalary)}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-foreground font-english">{money(result.netSalary)}</td>
                       </tr>
                     );
                   })}
@@ -312,15 +312,15 @@ export function Payroll() {
         </Card>
       )}
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader><CardTitle>مسيرات محفوظة</CardTitle></CardHeader>
         <CardContent>
           {runs.length === 0 ? (
-            <div className="py-8 text-center text-sm text-[#6B7280]">لا توجد مسيرات محفوظة بعد</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">لا توجد مسيرات محفوظة بعد</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px]">
-                <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">الرقم</th>
                   <th className="px-4 py-3 text-start">الفترة</th>
                   <th className="px-4 py-3 text-start">الحالة</th>
@@ -330,16 +330,16 @@ export function Payroll() {
                 </tr></thead>
                 <tbody>
                   {runs.map((run) => (
-                    <tr key={run.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                      <td className="px-4 py-3 text-sm font-english text-[#1276E3] font-semibold">{run.runNumber}</td>
+                    <tr key={run.id} className="border-b border-border/50 hover:bg-primary/5">
+                      <td className="px-4 py-3 text-sm font-english text-primary font-semibold">{run.runNumber}</td>
                       <td className="px-4 py-3 text-sm font-english">{run.period}</td>
                       <td className="px-4 py-3 text-xs"><span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700">{run.status}</span></td>
-                      <td className="px-4 py-3 text-sm font-english text-[#0B1B49] font-semibold">{money(run.netSalary)} {run.currency}</td>
+                      <td className="px-4 py-3 text-sm font-english text-foreground font-semibold">{money(run.netSalary)} {run.currency}</td>
                       <td className="px-4 py-3 text-sm font-english">{run.lines?.length || 0}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank")}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[#1276E3] hover:bg-blue-50"
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50"
                         >
                           <Download className="h-3.5 w-3.5" /> SIF
                         </button>
@@ -366,9 +366,9 @@ function MoneyInput({ value, onChange }: { value: string; onChange: (value: stri
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
-      <div className="text-xs text-[#6B7280]">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-[#0B1B49] font-english">{value}</div>
+    <div className="rounded-lg border border-border bg-white px-4 py-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>
   );
 }

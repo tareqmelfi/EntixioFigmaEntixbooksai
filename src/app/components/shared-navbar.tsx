@@ -108,7 +108,7 @@ export function SharedNavbar() {
                 <>
                   <button
                     onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
-                    className="flex items-center gap-1.5 px-4 py-2 text-[#374151] hover:text-[#0B1A47] hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2 text-foreground/80 hover:text-foreground hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
                     style={{ fontSize: "15px", fontWeight: 500 }}
                   >
                     {t(item.label, item.labelEn)}
@@ -135,11 +135,11 @@ export function SharedNavbar() {
                               i !== item.dropdown!.length - 1 ? "border-b border-gray-50" : ""
                             }`}
                           >
-                            <div className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 600 }}>
+                            <div className="text-foreground" style={{ fontSize: "14px", fontWeight: 600 }}>
                               {t(subItem.label, subItem.labelEn)}
                             </div>
                             {subItem.desc && (
-                              <div className="text-[#6B7280] mt-0.5" style={{ fontSize: "12px" }}>
+                              <div className="text-muted-foreground mt-0.5" style={{ fontSize: "12px" }}>
                                 {t(subItem.desc, subItem.descEn)}
                               </div>
                             )}
@@ -152,7 +152,7 @@ export function SharedNavbar() {
               ) : (
                 <Link
                   to={item.href!}
-                  className="block px-4 py-2 text-[#374151] hover:text-[#0B1A47] hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
+                  className="block px-4 py-2 text-foreground/80 hover:text-foreground hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 500 }}
                 >
                   {t(item.label, item.labelEn)}
@@ -166,7 +166,7 @@ export function SharedNavbar() {
         <div className="hidden lg:flex items-center gap-3">
           <button
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-[#374151] hover:border-[#1276E3]/30 hover:bg-[#F4FCFF] hover:text-[#0B1A47] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-[#1276E3]/30 hover:bg-primary/5 hover:text-foreground transition-colors"
             style={{ fontSize: "13px", fontWeight: 600 }}
             aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
           >
@@ -175,7 +175,7 @@ export function SharedNavbar() {
           </button>
           <button 
             onClick={() => navigate("/login")}
-            className="text-[#0B1A47] hover:text-[#1276E3] transition-colors cursor-pointer px-4 py-2.5" 
+            className="text-foreground hover:text-primary transition-colors cursor-pointer px-4 py-2.5" 
             style={{ fontSize: "14px", fontWeight: 500 }}
           >
             {t("تسجيل الدخول", "Sign in")}
@@ -192,7 +192,7 @@ export function SharedNavbar() {
         {/* Mobile hamburger */}
         <button 
           onClick={() => setMobileNav(!mobileNav)} 
-          className="lg:hidden p-2 text-[#0B1A47] hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+          className="lg:hidden p-2 text-foreground hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
         >
           {mobileNav ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -212,7 +212,7 @@ export function SharedNavbar() {
                 <div key={item.label}>
                   {item.dropdown ? (
                     <>
-                      <div className="text-[#6B7280] px-3 py-2" style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      <div className="text-muted-foreground px-3 py-2" style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                         {t(item.label, item.labelEn)}
                       </div>
                       <div className="space-y-1 mb-3">
@@ -220,7 +220,7 @@ export function SharedNavbar() {
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className="w-full text-start px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                            className="w-full text-start px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
                             style={{ fontSize: "15px", fontWeight: 500 }}
                           >
                             {t(subItem.label, subItem.labelEn)}
@@ -231,7 +231,7 @@ export function SharedNavbar() {
                   ) : (
                     <button
                       onClick={() => handleNavigate(item.href!)}
-                      className="w-full text-start px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                      className="w-full text-start px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
                       style={{ fontSize: "15px", fontWeight: 500 }}
                     >
                       {t(item.label, item.labelEn)}
@@ -242,7 +242,7 @@ export function SharedNavbar() {
               <hr className="border-gray-100 my-4" />
               <button
                 onClick={toggleLanguage}
-                className="w-full flex items-center justify-between px-3 py-2.5 text-[#374151] hover:bg-gray-50 hover:text-[#0B1A47] rounded-lg transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 <span>{t("اللغة", "Language")}</span>
@@ -253,7 +253,7 @@ export function SharedNavbar() {
               </button>
               <button 
                 onClick={() => handleNavigate("/login")} 
-                className="w-full text-start text-[#0B1A47] px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                className="w-full text-start text-foreground px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
                 {t("تسجيل الدخول", "Sign in")}

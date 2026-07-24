@@ -264,8 +264,8 @@ export function CreditNotes() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-[#E5E7EB]">إلغاء</Button>
-              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : "حفظ كمسودة"}
               </Button>
             </div>
@@ -274,7 +274,7 @@ export function CreditNotes() {
           <div className="max-w-3xl mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
             <div className="space-y-2">
-              <Label className="text-[#374151]">العميل *</Label>
+              <Label className="text-foreground/80">العميل *</Label>
               <SearchableCombobox
                 value={form.contactId}
                 onChange={(id) => setForm({ ...form, contactId: id, originalInvoiceId: "" })}
@@ -291,7 +291,7 @@ export function CreditNotes() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-[#374151]">الفاتورة الأصلية</Label>
+                <Label className="text-foreground/80">الفاتورة الأصلية</Label>
                 <SearchableCombobox
                   value={form.originalInvoiceId}
                   onChange={loadInvoiceLines}
@@ -309,25 +309,25 @@ export function CreditNotes() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[#374151]">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-[#E5E7EB] font-english" />
+                <Label className="text-foreground/80">تاريخ الإصدار *</Label>
+                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[#374151]">سبب الإصدار *</Label>
+              <Label className="text-foreground/80">سبب الإصدار *</Label>
               <select
                 value={form.reason}
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
               >
                 {REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
             {selectedInvoice && (
-              <div className="rounded-lg border border-[#D7E9FF] bg-[#F4FCFF] px-3 py-3 text-sm text-[#0B1B49]">
+              <div className="rounded-lg border border-[#D7E9FF] bg-primary/5 px-3 py-3 text-sm text-foreground">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-[#1276E3]" />
+                    <FileText className="h-4 w-4 text-primary" />
                     <span>
                       تم ربط الإشعار بالفاتورة <span className="font-english font-semibold" dir="ltr">{selectedInvoice.invoiceNumber}</span>
                       {" "}· يمكنك تعديل الكميات أو حذف البنود قبل الحفظ.
@@ -348,9 +348,9 @@ export function CreditNotes() {
             )}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <Label className="text-[#374151]">البنود *</Label>
-                <div className="flex items-center gap-1.5 text-xs text-[#6B7280]">
-                  <ScanLine className="h-3.5 w-3.5 text-[#1276E3]" />
+                <Label className="text-foreground/80">البنود *</Label>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ScanLine className="h-3.5 w-3.5 text-primary" />
                   الليزر/الباركود يضيف الصنف مباشرة من كود المنتج
                 </div>
               </div>
@@ -380,16 +380,16 @@ export function CreditNotes() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[#374151]">ملاحظات</Label>
+              <Label className="text-foreground/80">ملاحظات</Label>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={3}
                 placeholder="تفاصيل إضافية تظهر للعميل..."
-                className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm"
               />
             </div>
-            <p className="text-xs text-[#6B7280]">💡 يمكنك لصق بنود من Excel · سيتم توزيعها تلقائياً.</p>
+            <p className="text-xs text-muted-foreground">💡 يمكنك لصق بنود من Excel · سيتم توزيعها تلقائياً.</p>
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -401,45 +401,45 @@ export function CreditNotes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات الدائنة</h1>
-          <p className="text-[#6B7280] mt-1">إدارة إشعارات الخصم والإرجاع للعملاء</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات الدائنة</h1>
+          <p className="text-muted-foreground mt-1">إدارة إشعارات الخصم والإرجاع للعملاء</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />إشعار دائن جديد</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />إشعار دائن جديد</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي الإشعارات</div>
-          <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">إجمالي الإشعارات</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">إجمالي القيمة</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">إجمالي القيمة</div>
           <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="p-5">
-          <div className="text-[#6B7280] text-sm mb-1">مطبَّقة</div>
+        <Card className="border-border"><CardContent className="p-5">
+          <div className="text-muted-foreground text-sm mb-1">مطبَّقة</div>
           <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
         </CardContent></Card>
       </div>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-[#0B1B49]">قائمة الإشعارات الدائنة</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-64 ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+            <CardTitle className="text-foreground">قائمة الإشعارات الدائنة</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
+          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
             <div className="py-12 text-center">
-              <ScrollText className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" />
-              <p className="text-sm text-[#6B7280] mb-2">لا توجد إشعارات دائنة</p>
-              <p className="text-xs text-[#9CA3AF]">اضغط "إشعار دائن جديد" لإنشاء أول إشعار</p>
+              <ScrollText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" />
+              <p className="text-sm text-muted-foreground mb-2">لا توجد إشعارات دائنة</p>
+              <p className="text-xs text-muted-foreground/60">اضغط "إشعار دائن جديد" لإنشاء أول إشعار</p>
             </div>
           ) : (
             <table className="w-full">
-              <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
@@ -450,11 +450,11 @@ export function CreditNotes() {
               </tr></thead>
               <tbody>
                 {filtered.map(c => (
-                  <tr key={c.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                    <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{c.noteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-[#374151]">{c.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-[#6B7280]">{c.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 text-xs text-[#6B7280]">{REASONS.find(r => r.value === c.reason)?.label || c.reason}</td>
+                  <tr key={c.id} className="border-b border-border/50 hover:bg-primary/5">
+                    <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{c.noteNumber}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80">{c.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{c.issueDate?.slice(0, 10)}</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{REASONS.find(r => r.value === c.reason)?.label || c.reason}</td>
                     <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>
                       <span className="inline-flex items-center gap-1"><ArrowDownLeft className="h-3 w-3" />{Number(c.total).toLocaleString()} {c.currency}</span>
                     </td>
@@ -463,7 +463,7 @@ export function CreditNotes() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`/app/credit-notes/${c.id}`)}
-                          className="rounded-md p-1.5 text-[#1276E3] hover:bg-[#F4FCFF]"
+                          className="rounded-md p-1.5 text-primary hover:bg-primary/5"
                           title="تعديل"
                         >
                           <FileText className="h-4 w-4" />

@@ -145,20 +145,20 @@ export function SearchableCombobox({
           type="button"
           onClick={() => !disabled && setOpen(true)}
           disabled={disabled}
-          className="w-full flex items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50"
+          className="w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50"
           title={selected?.label || placeholder}
         >
-          <span className={selected ? "text-[#0B1B49] truncate" : "text-[#9CA3AF] truncate"}>
+          <span className={selected ? "text-foreground truncate" : "text-muted-foreground/60 truncate"}>
             {selected?.label || placeholder}
           </span>
-          <ChevronDown className="h-4 w-4 text-[#9CA3AF] shrink-0 ms-2" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground/60 shrink-0 ms-2" />
         </button>
       ) : (
         <div className="absolute z-50 w-full min-w-[260px] max-w-[420px] rounded-md border border-[#1276E3] bg-white shadow-lg"
           style={{ top: "calc(100% + 2px)", insetInlineStart: 0 }}
         >
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-[#F3F4F6]">
-            <Search className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
+            <Search className="h-4 w-4 text-muted-foreground/60 shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -166,7 +166,7 @@ export function SearchableCombobox({
               onChange={(e) => setQuery(normalizeDigits(e.target.value))}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="flex-1 bg-transparent outline-none text-sm placeholder:text-[#9CA3AF]"
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
             />
           </div>
 
@@ -177,16 +177,16 @@ export function SearchableCombobox({
                 type="button"
                 onClick={handleCreate}
                 disabled={creating}
-                className="w-full text-start flex items-center gap-2 px-3 py-2 text-sm text-[#1276E3] hover:bg-[#F4FCFF] disabled:opacity-50"
+                className="w-full text-start flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/5 disabled:opacity-50"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span style={{ fontWeight: 500 }}>{createLabel(query.trim())}</span>
-                {creating && <span className="text-xs text-[#9CA3AF] ms-auto">جارٍ الإنشاء...</span>}
+                {creating && <span className="text-xs text-muted-foreground/60 ms-auto">جارٍ الإنشاء...</span>}
               </button>
             )}
 
             {filtered.length === 0 && !showCreate && (
-              <div className="px-3 py-4 text-sm text-[#6B7280] text-center">
+              <div className="px-3 py-4 text-sm text-muted-foreground text-center">
                 لا توجد نتائج · جرب اسماً مختلفاً
               </div>
             )}
@@ -196,16 +196,16 @@ export function SearchableCombobox({
                 key={item.id}
                 type="button"
                 onClick={() => handleSelect(item.id)}
-                className="w-full text-start flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-[#F9FAFB]"
+                className="w-full text-start flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted"
                 title={`${item.label}${item.sublabel ? ` · ${item.sublabel}` : ""}`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-[#0B1B49] truncate">{item.label}</div>
+                  <div className="text-foreground truncate">{item.label}</div>
                   {item.sublabel && (
-                    <div className="text-xs text-[#6B7280] truncate font-english">{item.sublabel}</div>
+                    <div className="text-xs text-muted-foreground truncate font-english">{item.sublabel}</div>
                   )}
                 </div>
-                {item.id === value && <Check className="h-4 w-4 text-[#1276E3] shrink-0" />}
+                {item.id === value && <Check className="h-4 w-4 text-primary shrink-0" />}
               </button>
             ))}
           </div>

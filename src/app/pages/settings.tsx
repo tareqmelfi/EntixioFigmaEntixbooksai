@@ -62,6 +62,7 @@ export function Settings() {
   const [emailStatus, setEmailStatus] = useState<any>(null);
   const [inboxStatus, setInboxStatus] = useState<any>(null);
   const { toasts, push, dismiss } = useToasts();
+  const [pendingSignOut, setPendingSignOut] = useState(false);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -194,21 +195,21 @@ export function Settings() {
   };
 
   const handleSignOut = async () => {
-    /* TODO-UX1: was confirm("هل تريد تسجيل الخروج؟") — replace with InlineConfirm */ 
-await authStore.logout();
+    setPendingSignOut(false);
+    await authStore.logout();
     window.location.href = "/login";
   };
 
-  if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-[#1276E3]" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإعدادات", "Settings")}</h1>
-        <p className="text-[#6B7280] mt-1">{org?.name}</p>
+        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإعدادات", "Settings")}</h1>
+        <p className="text-muted-foreground mt-1">{org?.name}</p>
       </div>
 
-      <div className="flex gap-1 border-b border-[#E5E7EB] overflow-x-auto pb-px [scrollbar-width:none]">
+      <div className="flex gap-1 border-b border-border overflow-x-auto pb-px [scrollbar-width:none]">
         {(([
           ["company", "بيانات الشركة", "Company"],
           ["data", "البيانات", "Data"],
@@ -226,7 +227,7 @@ await authStore.logout();
           <button
             key={k}
             onClick={() => selectTab(k as SettingsTab)}
-            className={`shrink-0 min-w-[76px] max-w-[132px] whitespace-normal px-2 sm:px-3 py-2 text-center text-[12px] sm:text-sm leading-4 transition-colors border-b-2 -mb-px ${tab === k ? "border-[#1276E3] text-[#1276E3] font-medium" : "border-transparent text-[#6B7280] hover:text-[#0B1B49]"}`}
+            className={`shrink-0 min-w-[76px] max-w-[132px] whitespace-normal px-2 sm:px-3 py-2 text-center text-[12px] sm:text-sm leading-4 transition-colors border-b-2 -mb-px ${tab === k ? "border-[#1276E3] text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >{t(label, labelEn)}</button>
         ))}
       </div>
@@ -235,51 +236,51 @@ await authStore.logout();
       {saved && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">✅ تم الحفظ</div>}
 
       {tab === "company" && (
-        <Card className="border-[#E5E7EB]">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Building2 className="h-5 w-5" /> بيانات الشركة</CardTitle><CardDescription>الاسم · الرقم الضريبي · العملة · الشعار · الختم · بيانات التواصل</CardDescription></CardHeader>
+        <Card className="border-border">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Building2 className="h-5 w-5" /> بيانات الشركة</CardTitle><CardDescription>الاسم · الرقم الضريبي · العملة · الشعار · الختم · بيانات التواصل</CardDescription></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>اسم الشركة *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border-[#E5E7EB]" /></div>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border-border" /></div>
               <div className="space-y-2"><Label>الاسم القانوني</Label>
-                <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="ENSIDEX LLC" className="border-[#E5E7EB]" /></div>
+                <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="ENSIDEX LLC" className="border-border" /></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>الدولة</Label>
-                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                   <option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="KW">الكويت</option>
                   <option value="QA">قطر</option><option value="BH">البحرين</option><option value="OM">عُمان</option>
                   <option value="EG">مصر</option><option value="US">الولايات المتحدة</option><option value="GB">المملكة المتحدة</option>
                 </select></div>
               <div className="space-y-2"><Label>العملة الأساسية</Label>
-                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                   <option value="SAR">SAR</option><option value="USD">USD</option><option value="AED">AED</option>
                   <option value="EUR">EUR</option><option value="GBP">GBP</option><option value="KWD">KWD</option>
                 </select></div>
               <div className="space-y-2"><Label>نهاية السنة المالية</Label>
                 <Select value={String(form.fiscalYearEnd)} onValueChange={(v) => setForm({ ...form, fiscalYearEnd: Number(v) })}>
-                  <SelectTrigger className="border-[#E5E7EB]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <SelectItem key={m} value={String(m)}>{["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"][m-1]}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-[#9CA3AF] mt-1">شهر إقفال الحسابات السنوي (KSA: ديسمبر افتراضي)</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">شهر إقفال الحسابات السنوي (KSA: ديسمبر افتراضي)</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>{form.country === "US" ? "EIN" : form.country === "AE" ? "TRN" : "الرقم الضريبي"}</Label>
-                <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
               <div className="space-y-2"><Label>{form.country === "US" ? "State Filing #" : "السجل التجاري"}</Label>
-                <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} dir="ltr" className="border-[#E5E7EB] font-english" /></div>
+                <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
             </div>
 
             {/* Branding · logo + stamp upload (UX-157) */}
-            <div className="border-t border-[#F3F4F6] pt-4">
-              <h3 className="text-sm text-[#0B1B49] mb-3" style={{ fontWeight: 600 }}>الشعار والختم</h3>
+            <div className="border-t border-border/50 pt-4">
+              <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>الشعار والختم</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs mb-2 block">الشعار (مربع أو طولي · يظهر على الفواتير)</Label>
-                  <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-3">
+                  <div className="border-2 border-dashed border-border rounded-lg p-3">
                     <input type="file" id="company-logo" accept="image/*" hidden
                       onChange={async (e) => {
                         const f = e.target.files?.[0]; if (!f) return;
@@ -288,23 +289,23 @@ await authStore.logout();
                       }} />
                     {form.logoUrl ? (
                       <div className="flex items-center gap-3">
-                        <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[60px] object-contain bg-white rounded border border-[#F3F4F6]" />
+                        <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
-                          <label htmlFor="company-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                          <label htmlFor="company-logo" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
                           <button type="button" onClick={() => setForm(p => ({ ...p, logoUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
                         </div>
                       </div>
                     ) : (
                       <label htmlFor="company-logo" className="cursor-pointer block text-center py-4">
-                        <div className="text-sm text-[#1276E3] font-medium">رفع الشعار</div>
-                        <div className="text-xs text-[#9CA3AF] mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                        <div className="text-sm text-primary font-medium">رفع الشعار</div>
+                        <div className="text-xs text-muted-foreground/60 mt-1">PNG · SVG · JPG · حتى 2MB</div>
                       </label>
                     )}
                   </div>
                 </div>
                 <div>
                   <Label className="text-xs mb-2 block">الختم الرسمي (يظهر على العقود + السندات)</Label>
-                  <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-3">
+                  <div className="border-2 border-dashed border-border rounded-lg p-3">
                     <input type="file" id="company-stamp" accept="image/*" hidden
                       onChange={async (e) => {
                         const f = e.target.files?.[0]; if (!f) return;
@@ -313,16 +314,16 @@ await authStore.logout();
                       }} />
                     {form.stampUrl ? (
                       <div className="flex items-center gap-3">
-                        <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-[#F3F4F6]" />
+                        <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
-                          <label htmlFor="company-stamp" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                          <label htmlFor="company-stamp" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
                           <button type="button" onClick={() => setForm(p => ({ ...p, stampUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
                         </div>
                       </div>
                     ) : (
                       <label htmlFor="company-stamp" className="cursor-pointer block text-center py-4">
-                        <div className="text-sm text-[#1276E3] font-medium">رفع الختم</div>
-                        <div className="text-xs text-[#9CA3AF] mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                        <div className="text-sm text-primary font-medium">رفع الختم</div>
+                        <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
                       </label>
                     )}
                   </div>
@@ -331,19 +332,19 @@ await authStore.logout();
             </div>
 
             {/* Contact info (UX-132) */}
-            <div className="border-t border-[#F3F4F6] pt-4">
-              <h3 className="text-sm text-[#0B1B49] mb-3" style={{ fontWeight: 600 }}>بيانات التواصل</h3>
+            <div className="border-t border-border/50 pt-4">
+              <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>بيانات التواصل</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2"><Label className="text-xs">البريد الإلكتروني</Label>
-                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" placeholder="info@company.com" className="border-[#E5E7EB] font-english" /></div>
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" placeholder="info@company.com" className="border-border font-english" /></div>
                 <div className="space-y-2"><Label className="text-xs">الهاتف</Label>
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" placeholder="+966500000000" className="border-[#E5E7EB] font-english" /></div>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" placeholder="+966500000000" className="border-border font-english" /></div>
                 <div className="space-y-2"><Label className="text-xs">الموقع</Label>
-                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} dir="ltr" placeholder="https://company.com" className="border-[#E5E7EB] font-english" /></div>
+                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} dir="ltr" placeholder="https://company.com" className="border-border font-english" /></div>
               </div>
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label className="text-xs">الصناعة</Label>
-                  <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                  <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                     <option value="">اختر...</option>
                     <option value="CONSULTING">استشارات</option>
                     <option value="RETAIL">تجارة تجزئة</option>
@@ -356,18 +357,18 @@ await authStore.logout();
                   </select>
                 </div>
                 <div className="space-y-2"><Label className="text-xs">اللغة الافتراضية للفواتير</Label>
-                  <select value={form.defaultInvoiceLanguage} onChange={(e) => setForm({ ...form, defaultInvoiceLanguage: e.target.value as "ar" | "en" })} className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                  <select value={form.defaultInvoiceLanguage} onChange={(e) => setForm({ ...form, defaultInvoiceLanguage: e.target.value as "ar" | "en" })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                     <option value="ar">عربي · Arabic</option>
                     <option value="en">إنجليزي · English</option>
                   </select>
-                  <p className="text-[10px] text-[#9CA3AF]">يحدد اللغة الافتراضية للفواتير + السندات + التقارير عند الطباعة</p>
+                  <p className="text-[10px] text-muted-foreground/60">يحدد اللغة الافتراضية للفواتير + السندات + التقارير عند الطباعة</p>
                 </div>
               </div>
             </div>
             {form.country !== "US" && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F4FCFF] border border-blue-100">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-blue-100">
                 <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
-                <label htmlFor="zatca" className="text-sm text-[#0B1B49] cursor-pointer">تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)</label>
+                <label htmlFor="zatca" className="text-sm text-foreground cursor-pointer">تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)</label>
               </div>
             )}
             {form.country === "US" && (
@@ -377,16 +378,16 @@ await authStore.logout();
             )}
             {/* Inbox forwarding alias (UX-159) · shows the unique email for this org */}
             {org && (org as any).slug && (
-              <div className="border-t border-[#F3F4F6] pt-4">
-                <h3 className="text-sm text-[#0B1B49] mb-2" style={{ fontWeight: 600 }}>
+              <div className="border-t border-border/50 pt-4">
+                <h3 className="text-sm text-foreground mb-2" style={{ fontWeight: 600 }}>
                   {t("صندوق البريد الوارد · يستلم الفواتير تلقائياً", "Inbound bills mailbox")}
                 </h3>
                 <div className={`rounded-lg border p-3 flex items-center gap-3 ${inboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white" : "border-amber-200 bg-amber-50"}`}>
                   <div className="flex-1 min-w-0">
-                    <code className="text-sm text-[#0B1B49] font-english font-semibold block truncate" dir="ltr">
+                    <code className="text-sm text-foreground font-english font-semibold block truncate" dir="ltr">
                       {inboxStatus?.address || `bills+${(org as any).slug}@entix.io`}
                     </code>
-                    <p className={`text-xs mt-1 ${inboxStatus?.configured ? "text-[#6B7280]" : "text-amber-800"}`}>
+                    <p className={`text-xs mt-1 ${inboxStatus?.configured ? "text-muted-foreground" : "text-amber-800"}`}>
                       {inboxStatus?.configured
                         ? t('أرسل أي فاتورة من المورد إلى هذا الإيميل · يقوم الذكاء بتحليلها وإنشاء مسودة في "البريد الوارد" تلقائياً', 'Forward supplier bills to this mailbox. Entix will parse them into Inbox drafts automatically.')
                         : t("هذا العنوان غير مفعّل كبريد حقيقي بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه.", "This address is not live yet. Configure inbound email routing and INBOX_WEBHOOK_TOKEN on the server before using it.")}
@@ -405,7 +406,7 @@ await authStore.logout();
                       navigator.clipboard.writeText(inboxStatus?.address || `bills+${(org as any).slug}@entix.io`);
                       push("success", t("تم نسخ العنوان", "Address copied"));
                     }}
-                    className="shrink-0 px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-sm hover:bg-[#F4FCFF] transition"
+                    className="shrink-0 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition"
                   >
                     {t("نسخ", "Copy")}
                   </button>
@@ -439,7 +440,7 @@ await authStore.logout();
                   <button
                     type="button"
                     onClick={() => setSeedArmed(false)}
-                    className="px-3 py-2 text-sm rounded-md border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]"
+                    className="px-3 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted"
                   >
                     إلغاء
                   </button>
@@ -453,7 +454,7 @@ await authStore.logout();
                   ✨ تعبئة بيانات تجريبية كاملة
                 </button>
               )}
-              <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ التغييرات</>}
               </Button>
             </div>
@@ -479,22 +480,22 @@ await authStore.logout();
       {tab === "data" && org && <DataResetTab org={org} setOrg={setOrg} push={push} refresh={refresh} />}
 
       {tab === "ai" && (
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Sparkles className="h-5 w-5" /> الذكاء الاصطناعي · الاشتراك والمفتاح</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-foreground"><Sparkles className="h-5 w-5" /> الذكاء الاصطناعي · الاشتراك والمفتاح</CardTitle>
             <CardDescription>اختر الباقة · أو ضع مفتاحك الخاص (BYOK) · لا تكاليف إضافية علينا</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {!aiConfig ? (
-              <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+              <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : (
               <>
                 {/* Current usage bar */}
-                <div className="rounded-lg border border-[#E5E7EB] p-4 bg-[#F9FAFB]">
+                <div className="rounded-lg border border-border p-4 bg-muted">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>الباقة الحالية: {MODE_LABELS[aiConfig.mode].label}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">المخصص: {MODE_LABELS[aiConfig.mode].alloc} · السعر: {MODE_LABELS[aiConfig.mode].price}</p>
+                      <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>الباقة الحالية: {MODE_LABELS[aiConfig.mode].label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">المخصص: {MODE_LABELS[aiConfig.mode].alloc} · السعر: {MODE_LABELS[aiConfig.mode].price}</p>
                     </div>
                     {aiConfig.disabled && (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200">
@@ -504,24 +505,24 @@ await authStore.logout();
                   </div>
                   {aiConfig.mode !== "BYOK" && aiConfig.mode !== "PAYG" && (
                     <>
-                      <div className="flex items-center justify-between text-xs text-[#6B7280] mt-3 mb-1">
-                        <span>المستخدَم: <span className="font-english text-[#0B1B49]">${Number(aiConfig.spentThisPeriod).toFixed(2)}</span></span>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 mb-1">
+                        <span>المستخدَم: <span className="font-english text-foreground">${Number(aiConfig.spentThisPeriod).toFixed(2)}</span></span>
                         <span className="font-english">${Number(aiConfig.monthlyAllocation).toFixed(2)} + ${Number(aiConfig.creditBalance).toFixed(2)} رصيد</span>
                       </div>
                       <div className="h-2 rounded-full bg-[#E5E7EB] overflow-hidden">
                         <div
-                          className={`h-full transition-all ${aiConfig.percentUsed >= 1 ? "bg-red-500" : aiConfig.percentUsed >= 0.8 ? "bg-amber-500" : "bg-[#1276E3]"}`}
+                          className={`h-full transition-all ${aiConfig.percentUsed >= 1 ? "bg-red-500" : aiConfig.percentUsed >= 0.8 ? "bg-amber-500" : "bg-primary"}`}
                           style={{ width: `${Math.min(aiConfig.percentUsed * 100, 100)}%` }}
                         />
                       </div>
-                      <p className="text-xs text-[#9CA3AF] font-english mt-1">{(aiConfig.percentUsed * 100).toFixed(0)}% used</p>
+                      <p className="text-xs text-muted-foreground/60 font-english mt-1">{(aiConfig.percentUsed * 100).toFixed(0)}% used</p>
                     </>
                   )}
                 </div>
 
                 {/* Mode selector */}
                 <div>
-                  <Label className="text-[#374151]">اختر الباقة</Label>
+                  <Label className="text-foreground/80">اختر الباقة</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                     {(Object.entries(MODE_LABELS) as [AiKeyMode, typeof MODE_LABELS[AiKeyMode]][]).map(([k, m]) => (
                       <button
@@ -530,39 +531,39 @@ await authStore.logout();
                         disabled={aiBusy || aiConfig.mode === k || aiConfig.disabled}
                         className={`text-start rounded-lg border p-3 transition-all ${
                           aiConfig.mode === k
-                            ? "border-[#1276E3] bg-[#F4FCFF]"
-                            : "border-[#E5E7EB] hover:border-[#1276E3]/40 hover:bg-[#F9FAFB]"
+                            ? "border-[#1276E3] bg-primary/5"
+                            : "border-border hover:border-[#1276E3]/40 hover:bg-muted"
                         } ${aiBusy ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         <div className="flex items-center justify-between">
-                          <p className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{m.label}</p>
-                          {aiConfig.mode === k && <span className="text-xs text-[#1276E3]">✓ نشطة</span>}
+                          <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>{m.label}</p>
+                          {aiConfig.mode === k && <span className="text-xs text-primary">✓ نشطة</span>}
                         </div>
-                        <p className="text-xs text-[#6B7280] mt-1">{m.alloc} · <span className="font-english">{m.price}</span></p>
-                        {k === "BYOK" && <p className="text-xs text-[#1276E3] mt-1">↓ ضع مفتاحك أدناه</p>}
+                        <p className="text-xs text-muted-foreground mt-1">{m.alloc} · <span className="font-english">{m.price}</span></p>
+                        {k === "BYOK" && <p className="text-xs text-primary mt-1">↓ ضع مفتاحك أدناه</p>}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* BYOK form */}
-                <div className="rounded-lg border border-[#E5E7EB] p-4">
+                <div className="rounded-lg border border-border p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Key className="h-4 w-4 text-[#1276E3]" />
-                    <h3 className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>مفتاحي الخاص (BYOK)</h3>
+                    <Key className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm text-foreground" style={{ fontWeight: 600 }}>مفتاحي الخاص (BYOK)</h3>
                   </div>
-                  <p className="text-xs text-[#6B7280] mb-3">
+                  <p className="text-xs text-muted-foreground mb-3">
                     استخدم مفتاح OpenRouter أو Anthropic الخاص بك · لا تكاليف منا · المفتاح مشفّر بـAES-256-GCM في قاعدة البيانات
                   </p>
 
                   {aiConfig.byokKeyHint ? (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between rounded-md bg-[#F4FCFF] border border-blue-100 p-3">
+                      <div className="flex items-center justify-between rounded-md bg-primary/5 border border-blue-100 p-3">
                         <div>
-                          <p className="text-sm text-[#0B1B49]" style={{ fontWeight: 500 }}>
+                          <p className="text-sm text-foreground" style={{ fontWeight: 500 }}>
                             المفتاح النشط: <span className="font-english">{aiConfig.byokKeyHint}</span>
                           </p>
-                          <p className="text-xs text-[#6B7280] mt-0.5">المزود: {aiConfig.byokProvider}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">المزود: {aiConfig.byokProvider}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={async () => {
@@ -588,34 +589,34 @@ await authStore.logout();
                   ) : (
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-[#374151] text-xs">المزود</Label>
-                        <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as any)} className="w-full mt-1 rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                        <Label className="text-foreground/80 text-xs">المزود</Label>
+                        <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as any)} className="w-full mt-1 rounded-md border border-border px-3 py-2 text-sm bg-white">
                           <option value="openrouter">OpenRouter (موصى به · أسعار أفضل)</option>
                           <option value="anthropic">Anthropic (مباشر)</option>
                         </select>
                       </div>
                       <div>
-                        <Label className="text-[#374151] text-xs">المفتاح</Label>
+                        <Label className="text-foreground/80 text-xs">المفتاح</Label>
                         <Input
                           type="password"
                           value={byokKey}
                           onChange={(e) => setByokKey(e.target.value)}
                           dir="ltr"
                           placeholder="sk-or-v1-..."
-                          className="font-english border-[#E5E7EB] mt-1"
+                          className="font-english border-border mt-1"
                         />
-                        <p className="text-xs text-[#9CA3AF] mt-1">
-                          احصل على مفتاح من <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-[#1276E3] hover:underline">openrouter.ai/keys</a>
+                        <p className="text-xs text-muted-foreground/60 mt-1">
+                          احصل على مفتاح من <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-primary hover:underline">openrouter.ai/keys</a>
                         </p>
                       </div>
-                      <Button onClick={handleSaveByok} disabled={aiBusy || !byokKey} className="bg-[#1276E3] hover:bg-[#1060C0]">
+                      <Button onClick={handleSaveByok} disabled={aiBusy || !byokKey} className="bg-primary hover:bg-primary/90">
                         {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ المفتاح وتفعيل BYOK"}
                       </Button>
                     </div>
                   )}
                 </div>
 
-                <p className="text-xs text-[#6B7280]">
+                <p className="text-xs text-muted-foreground">
                   💡 يتم إعادة ضبط الاستهلاك تلقائياً كل 30 يوم · رصيد الـtop-up يضاف إلى المخصص الشهري
                 </p>
               </>
@@ -632,13 +633,17 @@ await authStore.logout();
       {tab === "plans" && org && <PlansTab org={org} setOrg={setOrg} push={push} />}
 
       {tab === "account" && (
-        <Card className="border-[#E5E7EB]">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Shield className="h-5 w-5" /> حسابي</CardTitle></CardHeader>
+        <Card className="border-border">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Shield className="h-5 w-5" /> حسابي</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-[#E5E7EB] p-4">
-              <p className="text-sm text-[#6B7280]">جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على <span className="font-english">.entix.io</span></p>
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-sm text-muted-foreground">جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على <span className="font-english">.entix.io</span></p>
             </div>
-            <Button onClick={handleSignOut} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4 me-2" /> تسجيل الخروج</Button>
+            {pendingSignOut ? (
+            <InlineConfirm onConfirm={handleSignOut} onCancel={() => setPendingSignOut(false)} label="تسجيل الخروج؟" />
+          ) : (
+            <Button onClick={() => setPendingSignOut(true)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4 me-2" /> تسجيل الخروج</Button>
+          )}
           </CardContent>
         </Card>
       )}
@@ -731,7 +736,7 @@ function DataResetTab({
     <div className="space-y-4">
       <Card className="border-[#F4B4B4] bg-white">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#0B1B49]">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Database className="h-5 w-5 text-red-600" /> إعادة ضبط البيانات
           </CardTitle>
           <CardDescription>
@@ -745,7 +750,7 @@ function DataResetTab({
               <p>اكتب <span className="font-semibold">{org.name}</span> أو <span className="font-english">{org.slug}</span> لتأكيد أي عملية.</p>
             </div>
           </div>
-          <Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={org.name} className="border-[#E5E7EB]" />
+          <Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={org.name} className="border-border" />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <ResetOption
@@ -812,20 +817,20 @@ function DataResetTab({
         </CardContent>
       </Card>
 
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardHeader>
-          <CardTitle className="text-[#0B1B49]">سجل التدقيق</CardTitle>
+          <CardTitle className="text-foreground">سجل التدقيق</CardTitle>
           <CardDescription>آخر عمليات حساسة على بيانات الشركة.</CardDescription>
         </CardHeader>
         <CardContent>
           {loadingAudit ? (
-            <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-[#1276E3]" /></div>
+            <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-primary" /></div>
           ) : audit.length === 0 ? (
-            <div className="py-8 text-center text-sm text-[#6B7280]">لا يوجد سجل تدقيق بعد</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">لا يوجد سجل تدقيق بعد</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px]">
-                <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">العملية</th>
                   <th className="px-4 py-3 text-start">النوع</th>
                   <th className="px-4 py-3 text-start">المستوى</th>
@@ -833,13 +838,13 @@ function DataResetTab({
                 </tr></thead>
                 <tbody>
                   {audit.map((item) => (
-                    <tr key={item.id} className="border-b border-[#F3F4F6]">
-                      <td className="px-4 py-3 text-sm font-english text-[#0B1B49]">{item.action}</td>
-                      <td className="px-4 py-3 text-sm text-[#374151]">{item.entityType}</td>
+                    <tr key={item.id} className="border-b border-border/50">
+                      <td className="px-4 py-3 text-sm font-english text-foreground">{item.action}</td>
+                      <td className="px-4 py-3 text-sm text-foreground/80">{item.entityType}</td>
                       <td className="px-4 py-3 text-xs">
                         <span className={`rounded px-2 py-0.5 ${item.severity === "WARNING" ? "bg-amber-100 text-amber-700" : "bg-blue-50 text-blue-700"}`}>{item.severity}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs font-english text-[#6B7280]">{new Date(item.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs font-english text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -870,13 +875,13 @@ function ResetOption({
   action: string;
 }) {
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-4">
+    <div className="rounded-lg border border-border bg-white p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-5 w-5 text-[#1276E3]" />
-        <h3 className="text-sm font-semibold text-[#0B1B49]">{title}</h3>
+        <Icon className="h-5 w-5 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
-      <p className="min-h-14 text-xs leading-6 text-[#6B7280]">{description}</p>
-      <Button type="button" disabled={disabled} onClick={onClick} className="mt-4 w-full bg-[#1276E3] hover:bg-[#1060C0]">
+      <p className="min-h-14 text-xs leading-6 text-muted-foreground">{description}</p>
+      <Button type="button" disabled={disabled} onClick={onClick} className="mt-4 w-full bg-primary hover:bg-primary/90">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : action}
       </Button>
     </div>
@@ -919,7 +924,7 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
     } finally { setBusy(false); }
   };
 
-  if (loading) return <Card className="border-[#E5E7EB]"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></CardContent></Card>;
+  if (loading) return <Card className="border-border"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></CardContent></Card>;
 
   const kinds: Array<[string, string]> = [
     ["contact", "العملاء/الموردين"],
@@ -930,9 +935,9 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
   ];
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49]">الترقيم التلقائي للمستندات</CardTitle>
+        <CardTitle className="text-foreground">الترقيم التلقائي للمستندات</CardTitle>
         <CardDescription>
           البادئة تدعم متغيرات: <code className="font-english bg-gray-100 px-1 rounded">{"{YYYY}"}</code>{" "}
           <code className="font-english bg-gray-100 px-1 rounded">{"{YY}"}</code>{" "}
@@ -941,7 +946,7 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-12 gap-2 text-xs text-[#6B7280] font-medium border-b pb-2">
+        <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground font-medium border-b pb-2">
           <div className="col-span-3">النوع</div>
           <div className="col-span-5">البادئة</div>
           <div className="col-span-2 text-center">عدد الأرقام</div>
@@ -949,16 +954,16 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
         </div>
         {kinds.map(([k, label]) => (
           <div key={k} className="grid grid-cols-12 gap-2 items-center">
-            <div className="col-span-3 text-sm text-[#0B1B49]">{label}</div>
+            <div className="col-span-3 text-sm text-foreground">{label}</div>
             <Input className="col-span-5 font-english" dir="ltr" value={config?.[k]?.prefix || ""}
               onChange={(e) => setConfig({ ...config, [k]: { ...config[k], prefix: e.target.value } })} />
             <Input className="col-span-2 font-english text-center" type="number" min="1" max="10" dir="ltr"
               value={config?.[k]?.padding || 4}
               onChange={(e) => setConfig({ ...config, [k]: { ...config[k], padding: Number(e.target.value) } })} />
-            <div className="col-span-2 font-english text-xs text-[#1276E3]" dir="ltr">{preview(k)}</div>
+            <div className="col-span-2 font-english text-xs text-primary" dir="ltr">{preview(k)}</div>
           </div>
         ))}
-        <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
+        <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90 mt-3">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
         </Button>
       </CardContent>
@@ -1046,11 +1051,11 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   };
 
   const Provider = ({ name, label, fields }: { name: string; label: string; fields: Array<[string, string, "text" | "secret"]> }) => (
-    <div className="rounded-lg border border-[#E5E7EB] p-4 space-y-3">
+    <div className="rounded-lg border border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[#0B1B49] font-medium">{label}</div>
-          <div className="text-xs text-[#9CA3AF]">{settings[name]?.enabled ? t("مفعّل", "Enabled") : t("غير مفعّل", "Disabled")}</div>
+          <div className="text-foreground font-medium">{label}</div>
+          <div className="text-xs text-muted-foreground/60">{settings[name]?.enabled ? t("مفعّل", "Enabled") : t("غير مفعّل", "Disabled")}</div>
         </div>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input type="checkbox" checked={!!settings[name]?.enabled}
@@ -1059,7 +1064,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         </label>
       </div>
       {settings[name]?.enabled && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#F3F4F6]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/50">
           {fields.map(([fk, fl, ft]) => (
             <div key={fk}>
               <Label className="text-xs">{fl}</Label>
@@ -1074,18 +1079,18 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   );
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49]">{t("بوابات الدفع", "Payment gateways")}</CardTitle>
+        <CardTitle className="text-foreground">{t("بوابات الدفع", "Payment gateways")}</CardTitle>
         <CardDescription>{t("روابط دفع للفواتير · USD/SAR", "Invoice payment links · USD/SAR")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
 
         {/* ── Stripe · OAuth Connect (recommended) ─────────────────────── */}
-        <div className="rounded-lg border border-[#E5E7EB] p-4 space-y-3">
+        <div className="rounded-lg border border-border p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <div className="text-[#0B1B49] font-medium flex items-center gap-2">
+              <div className="text-foreground font-medium flex items-center gap-2">
                 💳 Stripe
                 {oauthStatus?.stripe?.connected && (
                   <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
@@ -1096,7 +1101,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                   <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
                 )}
               </div>
-              <div className="text-xs text-[#9CA3AF] mt-0.5">
+              <div className="text-xs text-muted-foreground/60 mt-0.5">
                 {oauthStatus?.stripe?.connected
                   ? <>{t("الحساب", "Account")}: <span className="font-english">{oauthStatus.stripe.accountId}</span> · {oauthStatus.stripe.mode} · {oauthStatus.stripe.source}</>
                   : t("بطاقات ائتمانية عالمية · USD/EUR/SAR · لا حاجة لنسخ المفاتيح", "Global cards · USD/EUR/SAR · no customer-side key paste required")}
@@ -1107,7 +1112,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("فصل", "Disconnect")}
               </Button>
             ) : oauthStatus?.stripe?.connected ? (
-              <span className="text-xs text-[#6B7280]">{t("يُدار من إعدادات الخادم/Stripe", "Managed from server/Stripe settings")}</span>
+              <span className="text-xs text-muted-foreground">{t("يُدار من إعدادات الخادم/Stripe", "Managed from server/Stripe settings")}</span>
             ) : (
               <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.connectConfigured} className="bg-[#635BFF] hover:bg-[#4F47CC] text-white">
                 <ExternalLink className="h-4 w-4 me-2" /> {t("ربط Stripe", "Connect Stripe")}
@@ -1117,10 +1122,10 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         </div>
 
         {/* ── PayPal · Partner Referrals OAuth ─────────────────────────── */}
-        <div className="rounded-lg border border-[#E5E7EB] p-4 space-y-3">
+        <div className="rounded-lg border border-border p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <div className="text-[#0B1B49] font-medium flex items-center gap-2">
+              <div className="text-foreground font-medium flex items-center gap-2">
                 🅿️ PayPal
                 {oauthStatus?.paypal?.connected && (
                   <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
@@ -1131,14 +1136,14 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                   <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
                 )}
               </div>
-              <div className="text-xs text-[#9CA3AF] mt-0.5">
+              <div className="text-xs text-muted-foreground/60 mt-0.5">
                 {oauthStatus?.paypal?.connected
                   ? <>{t("التاجر", "Merchant")}: <span className="font-english">{oauthStatus.paypal.merchantId}</span> · {oauthStatus.paypal.mode} · {oauthStatus.paypal.source}</>
                   : t("محفظة PayPal · بطاقات + رصيد PayPal", "PayPal wallet · cards + PayPal balance")}
               </div>
             </div>
             {oauthStatus?.paypal?.connected ? (
-              <span className="text-xs text-[#6B7280]">{t("للفصل: استخدم لوحة PayPal أو إعدادات الخادم", "To disconnect: use PayPal dashboard or server settings")}</span>
+              <span className="text-xs text-muted-foreground">{t("للفصل: استخدم لوحة PayPal أو إعدادات الخادم", "To disconnect: use PayPal dashboard or server settings")}</span>
             ) : (
               <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.connectConfigured} className="bg-[#003087] hover:bg-[#001E5F] text-white">
                 <ExternalLink className="h-4 w-4 me-2" /> {t("ربط PayPal", "Connect PayPal")}
@@ -1148,7 +1153,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         </div>
 
         {/* ── Moyasar / Tamara / Tabby · Manual paste (no OAuth) ────────── */}
-        <div className="text-xs text-[#6B7280] mt-2">
+        <div className="text-xs text-muted-foreground mt-2">
           {t("البوابات السعودية تتطلب نسخ المفتاح يدوياً (لا يوجد OAuth):", "Saudi gateways require manual key entry:")}
         </div>
         <Provider name="moyasar" label="🟢 Moyasar (السعودية · SAR · مدى/Apple Pay)" fields={[
@@ -1157,12 +1162,12 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         ]} />
 
         {/* ── Advanced: paste Stripe/PayPal manually (legacy / dev mode) ─ */}
-        <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-xs text-[#6B7280] underline mt-2">
+        <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-xs text-muted-foreground underline mt-2">
           {showAdvanced ? t("إخفاء", "Hide") : t("إظهار", "Show")} {t("الإعدادات المتقدمة (نسخ المفاتيح يدوياً · للمطورين)", "advanced settings (manual keys · developers)")}
         </button>
         {showAdvanced && (
-          <div className="space-y-3 pt-2 border-t border-[#F3F4F6]">
-            <label className="flex items-center gap-2 text-xs text-[#6B7280] cursor-pointer">
+          <div className="space-y-3 pt-2 border-t border-border/50">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
               <input type="checkbox" checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
               {t("إظهار المفاتيح السرية", "Show secret keys")}
             </label>
@@ -1186,7 +1191,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
           </div>
         )}
 
-        <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0] mt-3">
+        <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90 mt-3">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> {t("حفظ المفاتيح اليدوية", "Save manual keys")}</>}
         </Button>
       </CardContent>
@@ -1235,32 +1240,32 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
   };
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49]">كتالوج المنتجات</CardTitle>
+        <CardTitle className="text-foreground">كتالوج المنتجات</CardTitle>
         <CardDescription>اختر قطاعك واحصل على كتالوج جاهز · أو اعتمد كتالوج ENSIDEX الداخلي</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
-          <h3 className="text-sm font-medium text-[#0B1B49] mb-3">اختر قطاع شركتك</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">اختر قطاع شركتك</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {industries.map((ind) => (
-              <div key={ind.id} className="rounded-lg border border-[#E5E7EB] p-4 hover:border-[#1276E3] transition">
+              <div key={ind.id} className="rounded-lg border border-border p-4 hover:border-[#1276E3] transition">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{ind.icon}</span>
                       <div>
-                        <div className="text-[#0B1B49] font-medium">{ind.nameAr}</div>
-                        <div className="text-xs text-[#9CA3AF] font-english" dir="ltr">{ind.name}</div>
+                        <div className="text-foreground font-medium">{ind.nameAr}</div>
+                        <div className="text-xs text-muted-foreground/60 font-english" dir="ltr">{ind.name}</div>
                       </div>
                     </div>
-                    <p className="text-xs text-[#6B7280] mt-2 leading-relaxed">{ind.description}</p>
+                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{ind.description}</p>
                   </div>
-                  <span className="text-xs text-[#1276E3] bg-[#F4FCFF] px-2 py-0.5 rounded font-english" dir="ltr">{ind.productCount}</span>
+                  <span className="text-xs text-primary bg-primary/5 px-2 py-0.5 rounded font-english" dir="ltr">{ind.productCount}</span>
                 </div>
                 <Button onClick={() => setPendingSeed(ind.id)} disabled={busy === ind.id}
-                  variant="outline" className="w-full mt-3 border-[#E5E7EB] hover:bg-[#F4FCFF]">
+                  variant="outline" className="w-full mt-3 border-border hover:bg-primary/5">
                   {busy === ind.id ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
                   زرع
                 </Button>
@@ -1282,8 +1287,8 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="text-[#0B1B49] font-medium">كتالوج ENSIDEX الداخلي</div>
-              <p className="text-xs text-[#6B7280] mt-1">
+              <div className="text-foreground font-medium">كتالوج ENSIDEX الداخلي</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 فقط للمنشآت الداخلية المصرح لها · 50+ منتج وخدمة
               </p>
               <Button onClick={() => setPendingSeed("ensidex")} disabled={busy === "ensidex"} className="bg-amber-600 hover:bg-amber-700 text-white mt-3">
@@ -1304,13 +1309,13 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
         </div>
 
         {stats && stats.categories && stats.categories.length > 0 && (
-          <div className="rounded-lg border border-[#E5E7EB] p-4">
-            <div className="text-sm font-medium text-[#0B1B49] mb-3">الفئات الحالية</div>
+          <div className="rounded-lg border border-border p-4">
+            <div className="text-sm font-medium text-foreground mb-3">الفئات الحالية</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {stats.categories.map((c: any) => (
-                <div key={c.category} className="flex items-center justify-between p-2 rounded bg-[#F9FAFB] text-sm">
-                  <span className="text-[#0B1B49] font-english" dir="ltr">{c.category}</span>
-                  <span className="text-xs text-[#6B7280]">
+                <div key={c.category} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
+                  <span className="text-foreground font-english" dir="ltr">{c.category}</span>
+                  <span className="text-xs text-muted-foreground">
                     <span className="font-english" dir="ltr">{c.count}</span> منتج · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString()}</span>
                   </span>
                 </div>
@@ -1371,13 +1376,13 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
   };
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Users className="h-5 w-5" /> أعضاء الفريق</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-foreground"><Users className="h-5 w-5" /> أعضاء الفريق</CardTitle>
         <CardDescription>{members.length} عضو · يمكنك دعوة محاسبين، مدراء، مشاهدين</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2 items-end p-3 bg-[#F9FAFB] rounded-lg">
+        <div className="flex gap-2 items-end p-3 bg-muted rounded-lg">
           <div className="flex-1">
             <Label className="text-xs">البريد الإلكتروني</Label>
             <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
@@ -1386,14 +1391,14 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           <div>
             <Label className="text-xs">الدور</Label>
             <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)}
-              className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+              className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
               <option value="OWNER">مالك</option>
               <option value="ADMIN">مدير</option>
               <option value="ACCOUNTANT">محاسب</option>
               <option value="VIEWER">مشاهد</option>
             </select>
           </div>
-          <Button onClick={handleInvite} disabled={busy || !inviteEmail.trim()} className="bg-[#1276E3]">
+          <Button onClick={handleInvite} disabled={busy || !inviteEmail.trim()} className="bg-primary">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "دعوة"}
           </Button>
         </div>
@@ -1402,15 +1407,15 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs">
             <div className="font-medium text-amber-700 mb-1">المستخدم لم يُسجَّل بعد · انسخ الرابط وأرسله له:</div>
             <div className="flex items-center gap-2">
-              <input value={inviteUrl} readOnly className="flex-1 text-xs px-2 py-1 rounded border border-[#E5E7EB] font-english" dir="ltr" />
-              <button onClick={() => { navigator.clipboard.writeText(inviteUrl); push("success", "تم النسخ"); }} className="text-xs text-[#1276E3] hover:underline">نسخ</button>
-              <button onClick={() => setInviteUrl(null)} className="text-xs text-[#6B7280] hover:underline">إخفاء</button>
+              <input value={inviteUrl} readOnly className="flex-1 text-xs px-2 py-1 rounded border border-border font-english" dir="ltr" />
+              <button onClick={() => { navigator.clipboard.writeText(inviteUrl); push("success", "تم النسخ"); }} className="text-xs text-primary hover:underline">نسخ</button>
+              <button onClick={() => setInviteUrl(null)} className="text-xs text-muted-foreground hover:underline">إخفاء</button>
             </div>
           </div>
         )}
 
         <table className="w-full">
-          <thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+          <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
             <th className="py-3 px-4 text-start font-medium">الاسم</th>
             <th className="py-3 px-4 text-start font-medium">البريد</th>
             <th className="py-3 px-4 text-start font-medium">الدور</th>
@@ -1419,19 +1424,19 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           </tr></thead>
           <tbody>
             {members.map(m => (
-              <tr key={m.id} className="border-b border-[#F3F4F6]">
-                <td className="py-3 px-4 text-sm text-[#0B1B49]">{m.user.name || "—"}</td>
-                <td className="py-3 px-4 font-english text-sm text-[#374151]" dir="ltr">{m.user.email}</td>
+              <tr key={m.id} className="border-b border-border/50">
+                <td className="py-3 px-4 text-sm text-foreground">{m.user.name || "—"}</td>
+                <td className="py-3 px-4 font-english text-sm text-foreground/80" dir="ltr">{m.user.email}</td>
                 <td className="py-3 px-4">
                   <select value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                    className="text-xs rounded border border-[#E5E7EB] px-2 py-1 bg-white">
+                    className="text-xs rounded border border-border px-2 py-1 bg-white">
                     <option value="OWNER">مالك</option>
                     <option value="ADMIN">مدير</option>
                     <option value="ACCOUNTANT">محاسب</option>
                     <option value="VIEWER">مشاهد</option>
                   </select>
                 </td>
-                <td className="py-3 px-4 font-english text-xs text-[#6B7280]" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
+                <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
                 <td className="py-3 px-4 text-end">
                   {pendingRemove === m.id ? (
                     <InlineConfirm
@@ -1478,9 +1483,9 @@ function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
   };
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49] flex items-center gap-2">📋 ZATCA Phase 2 · الفوترة الإلكترونية</CardTitle>
+        <CardTitle className="text-foreground flex items-center gap-2">📋 ZATCA Phase 2 · الفوترة الإلكترونية</CardTitle>
         <CardDescription>تكامل مع هيئة الزكاة والضريبة والجمارك (السعودية) · UUID + QR + XML + CSID</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1491,9 +1496,9 @@ function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
                 <div className={`font-medium ${status.ready ? "text-green-700" : "text-amber-700"}`}>
                   {status.ready ? "✅ جاهز للترحيل" : "⚠️ يحتاج إعداد"}
                 </div>
-                <div className="text-xs text-[#6B7280] mt-1">{status.nextActions}</div>
+                <div className="text-xs text-muted-foreground mt-1">{status.nextActions}</div>
               </div>
-              <div className="text-end text-xs text-[#6B7280]">
+              <div className="text-end text-xs text-muted-foreground">
                 <div>الفواتير المُرحَّلة: <span className="font-english font-bold" dir="ltr">{status.invoicesProcessed || 0}</span></div>
                 <div>ICV: <span className="font-english" dir="ltr">{status.icv || 0}</span></div>
                 <div>الوضع: {status.mode}</div>
@@ -1503,9 +1508,9 @@ function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
         )}
 
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs">
-          <div className="font-medium text-[#0B1B49] mb-2">📚 خطوات الحصول على CSID:</div>
-          <ol className="space-y-1 text-[#374151] list-decimal list-inside">
-            <li>سجّل دخول في <a href="https://fatoora.zatca.gov.sa" target="_blank" rel="noreferrer" className="text-[#1276E3] hover:underline">fatoora.zatca.gov.sa</a> بهوية المنشأة</li>
+          <div className="font-medium text-foreground mb-2">📚 خطوات الحصول على CSID:</div>
+          <ol className="space-y-1 text-foreground/80 list-decimal list-inside">
+            <li>سجّل دخول في <a href="https://fatoora.zatca.gov.sa" target="_blank" rel="noreferrer" className="text-primary hover:underline">fatoora.zatca.gov.sa</a> بهوية المنشأة</li>
             <li>اختر "إصدار CSID" (Compliance / Cryptographic Stamp ID)</li>
             <li>سيُصدر لك ملفان: <code className="bg-white px-1 rounded">CSID Token</code> + <code className="bg-white px-1 rounded">Secret</code></li>
             <li>الصقهما هنا واحفظ</li>
@@ -1519,7 +1524,7 @@ function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
           </div>
           <div>
             <Label className="text-xs">الوضع</Label>
-            <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+            <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
               <option value="sandbox">Sandbox (تجريبي)</option>
               <option value="simulation">Simulation</option>
               <option value="production">Production (إنتاج)</option>
@@ -1531,7 +1536,7 @@ function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
           </div>
         </div>
 
-        <Button onClick={handleOnboard} disabled={busy} className="bg-[#1276E3]">
+        <Button onClick={handleOnboard} disabled={busy} className="bg-primary">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ وتفعيل"}
         </Button>
       </CardContent>
@@ -1577,74 +1582,74 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   };
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49]">العلامة التجارية</CardTitle>
+        <CardTitle className="text-foreground">العلامة التجارية</CardTitle>
         <CardDescription>الشعار · الختم · الألوان · الخط · تنعكس على الفواتير، السندات، العقود</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-xs mb-2 block">الشعار · Avatar (يظهر في الواجهة)</Label>
-            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-4">
               <input type="file" id="brand-logo" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("logoUrl")(f); }} />
               {logoUrl ? (
                 <div className="flex items-center gap-3">
                   <img src={logoUrl} alt="logo" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="brand-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                    <label htmlFor="brand-logo" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
                     <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
                   </div>
                 </div>
               ) : (
                 <label htmlFor="brand-logo" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-[#1276E3] font-medium">رفع شعار صغير</div>
-                  <div className="text-xs text-[#9CA3AF] mt-1">يفضّل مربع · PNG/SVG · حتى 2MB</div>
+                  <div className="text-sm text-primary font-medium">رفع شعار صغير</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">يفضّل مربع · PNG/SVG · حتى 2MB</div>
                 </label>
               )}
             </div>
-            <p className="text-[10px] text-[#9CA3AF] mt-1">يظهر في الـ org switcher + الـ header</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">يظهر في الـ org switcher + الـ header</p>
           </div>
           <div>
             <Label className="text-xs mb-2 block">شعار الطباعة · Print Logo (يظهر على الفواتير)</Label>
-            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-4">
               <input type="file" id="brand-print-logo" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("printLogoUrl")(f); }} />
               {printLogoUrl ? (
                 <div className="flex items-center gap-3">
                   <img src={printLogoUrl} alt="print logo" className="max-w-[200px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="brand-print-logo" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                    <label htmlFor="brand-print-logo" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
                     <button type="button" onClick={() => setPrintLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
                   </div>
                 </div>
               ) : (
                 <label htmlFor="brand-print-logo" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-[#1276E3] font-medium">رفع شعار للطباعة</div>
-                  <div className="text-xs text-[#9CA3AF] mt-1">يفضّل أفقي بدقة عالية · PNG/SVG · حتى 2MB</div>
+                  <div className="text-sm text-primary font-medium">رفع شعار للطباعة</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">يفضّل أفقي بدقة عالية · PNG/SVG · حتى 2MB</div>
                 </label>
               )}
             </div>
-            <p className="text-[10px] text-[#9CA3AF] mt-1">يظهر على الفواتير · السندات · العقود · لو فاضي يستخدم الـ Avatar</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">يظهر على الفواتير · السندات · العقود · لو فاضي يستخدم الـ Avatar</p>
           </div>
           <div>
             <Label className="text-xs mb-2 block">الختم الرسمي</Label>
-            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-4">
               <input type="file" id="brand-stamp" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("stampUrl")(f); }} />
               {stampUrl ? (
                 <div className="flex items-center gap-3">
                   <img src={stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="brand-stamp" className="text-xs text-[#1276E3] hover:underline cursor-pointer">تغيير</label>
+                    <label htmlFor="brand-stamp" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
                     <button type="button" onClick={() => setStampUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
                   </div>
                 </div>
               ) : (
                 <label htmlFor="brand-stamp" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-[#1276E3] font-medium">رفع الختم</div>
-                  <div className="text-xs text-[#9CA3AF] mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                  <div className="text-sm text-primary font-medium">رفع الختم</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
                 </label>
               )}
             </div>
@@ -1655,20 +1660,20 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
           <div>
             <Label className="text-xs mb-2 block">اللون الأساسي</Label>
             <div className="flex items-center gap-2">
-              <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-9 w-16 rounded border border-[#E5E7EB]" />
+              <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-9 w-16 rounded border border-border" />
               <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} dir="ltr" className="font-english" />
             </div>
           </div>
           <div>
             <Label className="text-xs mb-2 block">لون التميز</Label>
             <div className="flex items-center gap-2">
-              <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-16 rounded border border-[#E5E7EB]" />
+              <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-16 rounded border border-border" />
               <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} dir="ltr" className="font-english" />
             </div>
           </div>
           <div>
             <Label className="text-xs mb-2 block">الخط</Label>
-            <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-[#E5E7EB] px-3 py-2 bg-white">
+            <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
               <option value="Tajawal">Tajawal</option>
               <option value="Noto Sans Arabic">Noto Sans Arabic</option>
               <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
@@ -1676,12 +1681,12 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
           </div>
         </div>
 
-        <div className="rounded-lg border border-[#E5E7EB] p-4 bg-[#F9FAFB]">
-          <div className="text-xs text-[#6B7280] mb-2">معاينة</div>
+        <div className="rounded-lg border border-border p-4 bg-muted">
+          <div className="text-xs text-muted-foreground mb-2">معاينة</div>
           <div className="bg-white rounded p-4 border" style={{ borderColor: primaryColor, fontFamily }}>
             <div className="flex items-center justify-between border-b pb-2 mb-2" style={{ borderColor: primaryColor }}>
               {logoUrl ? <img src={logoUrl} alt="" className="max-h-[40px]" /> : <div style={{ color: accentColor, fontWeight: 700 }}>{org.name}</div>}
-              <div className="text-xs text-[#6B7280]">فاتورة · INV-2026-0001</div>
+              <div className="text-xs text-muted-foreground">فاتورة · INV-2026-0001</div>
             </div>
             <div className="text-sm" style={{ color: accentColor }}>
               العميل: عميل تجريبي<br />
@@ -1691,7 +1696,7 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={busy} className="bg-[#1276E3]">
+        <Button onClick={handleSave} disabled={busy} className="bg-primary">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
         </Button>
       </CardContent>
@@ -1711,9 +1716,9 @@ function PlansTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
   const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: ["جميع الميزات مفتوحة", "بدون حد على العملاء/الفواتير/AI", "Cross-org admin dashboard", "متاح فقط لمشرفي المنصة"] };
 
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-[#0B1B49]">الباقات والاشتراكات</CardTitle>
+        <CardTitle className="text-foreground">الباقات والاشتراكات</CardTitle>
         <CardDescription>اختر الباقة المناسبة · يمكن الترقية أو التخفيض في أي وقت</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1728,7 +1733,7 @@ function PlansTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
                 <div className="font-english font-bold text-2xl text-amber-700" dir="ltr">{adminPlan.price}</div>
               </div>
             </div>
-            <ul className="text-sm text-[#374151] space-y-1">
+            <ul className="text-sm text-foreground/80 space-y-1">
               {adminPlan.features.map((f, i) => (
                 <li key={i} className="flex items-center gap-2"><span className="text-green-600">✓</span>{f}</li>
               ))}
@@ -1738,27 +1743,27 @@ function PlansTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; p
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {plans.map(p => (
-            <div key={p.id} className={`rounded-lg border p-4 ${p.popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-[#E5E7EB]"} relative`}>
-              {p.popular && <div className="absolute -top-2.5 right-3 bg-[#1276E3] text-white text-xs px-2 py-0.5 rounded">الأكثر شعبية</div>}
-              <div className="text-[#0B1B49] font-bold">{p.name}</div>
-              <div className="text-2xl font-bold text-[#0B1B49] mt-2 font-english" dir="ltr">{p.price}</div>
-              <div className="text-xs text-[#6B7280] mt-3 space-y-1">
+            <div key={p.id} className={`rounded-lg border p-4 ${p.popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-border"} relative`}>
+              {p.popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">الأكثر شعبية</div>}
+              <div className="text-foreground font-bold">{p.name}</div>
+              <div className="text-2xl font-bold text-foreground mt-2 font-english" dir="ltr">{p.price}</div>
+              <div className="text-xs text-muted-foreground mt-3 space-y-1">
                 <div>👤 {p.users} مستخدمين</div>
                 <div>📄 {p.invoices}</div>
                 <div>🤖 AI: {p.ai}</div>
               </div>
-              <ul className="text-xs text-[#374151] mt-3 space-y-1">
+              <ul className="text-xs text-foreground/80 mt-3 space-y-1">
                 {p.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-1"><span className="text-green-600 mt-0.5">✓</span><span>{f}</span></li>
                 ))}
               </ul>
-              <Button className="w-full mt-4 bg-[#1276E3] hover:bg-[#1060C0]" disabled>
+              <Button className="w-full mt-4 bg-primary hover:bg-primary/90" disabled>
                 {p.id === "enterprise" ? "تواصل" : "اختيار"}
               </Button>
             </div>
           ))}
         </div>
-        <p className="text-xs text-[#9CA3AF] text-center">
+        <p className="text-xs text-muted-foreground/60 text-center">
           الفوترة عبر Stripe · اشتراك شهري قابل للإلغاء في أي وقت
         </p>
       </CardContent>

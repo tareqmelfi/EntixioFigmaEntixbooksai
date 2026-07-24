@@ -695,8 +695,8 @@ export function Reports() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مركز التقارير</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مركز التقارير</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             كل التقارير المالية والتشغيلية موجودة بفهرس واحد، مع مصطلحات متوافقة مع {profile.countryLabel}.
           </p>
         </div>
@@ -722,14 +722,14 @@ export function Reports() {
         <Metric label={profile.taxLabel} value={summary ? money(summary.kpi.vatNet, currency) : money(0, currency)} tone="info" />
       </div>
 
-      <Card className="border-[#E5E7EB] bg-white">
+      <Card className="border-border bg-white">
         <CardContent className="p-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(220px,260px)_1fr]">
             <aside className="space-y-2">
               <button
                 onClick={() => selectCategory("all")}
                 className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                  category === "all" ? "border-[#1276E3] bg-[#EAF4FF] text-[#0B1B49]" : "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#F9FAFB]"
+                  category === "all" ? "border-[#1276E3] bg-[#EAF4FF] text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                 }`}
               >
                 <span className="flex items-center gap-2"><Filter className="h-4 w-4" />كل التقارير</span>
@@ -743,7 +743,7 @@ export function Reports() {
                     key={item.id}
                     onClick={() => selectCategory(item.id)}
                     className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                      category === item.id ? "border-[#1276E3] bg-[#EAF4FF] text-[#0B1B49]" : "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#F9FAFB]"
+                      category === item.id ? "border-[#1276E3] bg-[#EAF4FF] text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                     }`}
                   >
                     <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{item.title}</span>
@@ -756,23 +756,23 @@ export function Reports() {
             <section className="space-y-4">
               <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
                 <label className="relative block">
-                  <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
+                  <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة..."
-                    className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 pe-10 text-sm outline-none focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10"
+                    className="h-11 w-full rounded-lg border border-border bg-white px-4 pe-10 text-sm outline-none focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10"
                   />
                 </label>
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-xs text-[#374151]">
-                  <span className="font-semibold text-[#0B1B49]">{profile.standardLabel}</span>
+                <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground/80">
+                  <span className="font-semibold text-foreground">{profile.standardLabel}</span>
                   <span className="mx-2 text-[#CBD5E1]">|</span>
                   <span>{profile.taxSystem}</span>
                 </div>
               </div>
 
               {loading ? (
-                <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-[#1276E3]" /></div>
+                <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
               ) : (
                 <div className="grid gap-4 xl:grid-cols-[minmax(360px,0.95fr)_minmax(420px,1.05fr)]">
                   <ReportList
@@ -830,23 +830,23 @@ function ReportList({
             key={report.id}
             onClick={() => onSelect(report.id)}
             className={`w-full rounded-lg border p-3 text-start transition ${
-              selected ? "border-[#1276E3] bg-[#F7FBFF] shadow-sm" : "border-[#E5E7EB] bg-white hover:border-[#CBD5E1] hover:bg-[#F9FAFB]"
+              selected ? "border-[#1276E3] bg-[#F7FBFF] shadow-sm" : "border-border bg-white hover:border-[#CBD5E1] hover:bg-muted"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-[#0B1B49]">{report.title}</span>
-                  {report.isNew && <span className="rounded-full bg-[#1276E3] px-2 py-0.5 text-[11px] font-semibold text-white">جديد</span>}
+                  <span className="font-semibold text-foreground">{report.title}</span>
+                  {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">جديد</span>}
                 </div>
-                <div className="mt-1 text-xs text-[#6B7280] font-english">{report.englishTitle}</div>
+                <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#4B5563]">{report.description}</p>
               </div>
               <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${category.accent}`}>{category.title}</span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={report.status} />
-              {report.formats.map((format) => <span key={format} className="rounded border border-[#E5E7EB] bg-white px-2 py-0.5 text-[11px] text-[#6B7280]">{format}</span>)}
+              {report.formats.map((format) => <span key={format} className="rounded border border-border bg-white px-2 py-0.5 text-[11px] text-muted-foreground">{format}</span>)}
             </div>
           </button>
         );
@@ -877,7 +877,7 @@ function ReportPreview({
   const status = statusMeta[report.status];
 
   return (
-    <Card className="entix-report-print border-[#E5E7EB]">
+    <Card className="entix-report-print border-border">
       <CardHeader className="border-b border-[#EEF2F7]">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
@@ -885,10 +885,10 @@ function ReportPreview({
               <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${category.accent}`}>
                 <Icon className="h-4 w-4" />
               </span>
-              <CardTitle className="text-[#0B1B49]">{report.title}</CardTitle>
-              {report.isNew && <span className="rounded-full bg-[#1276E3] px-2 py-0.5 text-[11px] font-semibold text-white">جديد</span>}
+              <CardTitle className="text-foreground">{report.title}</CardTitle>
+              {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">جديد</span>}
             </div>
-            <div className="mt-1 text-xs text-[#6B7280] font-english">{report.englishTitle}</div>
+            <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
           </div>
           <div className="no-print flex flex-wrap gap-2">
             <Button variant="outline" onClick={onPrint}>
@@ -901,14 +901,14 @@ function ReportPreview({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-4">
-        <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+        <div className="rounded-lg border border-border bg-muted p-3">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={report.status} />
-            <span className="rounded-full border border-[#E5E7EB] bg-white px-2 py-1 text-xs text-[#374151]">{profile.countryLabel}</span>
-            <span className="rounded-full border border-[#E5E7EB] bg-white px-2 py-1 text-xs text-[#374151]">{report.ksaTerm || report.usTerm || profile.standardLabel}</span>
+            <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{profile.countryLabel}</span>
+            <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{report.ksaTerm || report.usTerm || profile.standardLabel}</span>
           </div>
-          <p className="mt-3 text-sm leading-6 text-[#374151]">{report.description}</p>
-          <p className="mt-2 text-xs leading-5 text-[#6B7280]">{status.help}</p>
+          <p className="mt-3 text-sm leading-6 text-foreground/80">{report.description}</p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{status.help}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -919,13 +919,13 @@ function ReportPreview({
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#0B1B49]">معاينة التقرير</h3>
-            <span className="text-xs text-[#6B7280]">الأرقام تعرض من البيانات المتاحة الآن</span>
+            <h3 className="text-sm font-semibold text-foreground">معاينة التقرير</h3>
+            <span className="text-xs text-muted-foreground">الأرقام تعرض من البيانات المتاحة الآن</span>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-[#E5E7EB]">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[560px]">
               <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">البند</th>
                   <th className="px-4 py-3 text-start">القيمة</th>
                   <th className="px-4 py-3 text-start">ملاحظة</th>
@@ -933,10 +933,10 @@ function ReportPreview({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={`${row.label}-${row.note}`} className="border-b border-[#F3F4F6] last:border-0">
-                    <td className="px-4 py-3 text-sm font-medium text-[#0B1B49]">{row.label}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[#0B1B49] font-english">{row.value}</td>
-                    <td className="px-4 py-3 text-xs leading-5 text-[#6B7280]">{row.note}</td>
+                  <tr key={`${row.label}-${row.note}`} className="border-b border-border/50 last:border-0">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">{row.label}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground font-english">{row.value}</td>
+                    <td className="px-4 py-3 text-xs leading-5 text-muted-foreground">{row.note}</td>
                   </tr>
                 ))}
               </tbody>
@@ -968,26 +968,26 @@ function Metric({ label, value, tone }: { label: string; value: string; tone: "g
           : "border-blue-100 bg-blue-50";
   return (
     <div className={`rounded-lg border px-4 py-3 ${colors}`}>
-      <div className="text-xs text-[#6B7280]">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-[#0B1B49] font-english">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>
   );
 }
 
 function MiniFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-      <div className="text-[11px] text-[#6B7280]">{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold text-[#0B1B49]">{value}</div>
+    <div className="rounded-lg border border-border bg-white px-3 py-2">
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value}</div>
     </div>
   );
 }
 
 function InfoBlock({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
-      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[#0B1B49]">{icon}{title}</div>
-      <div className="text-xs leading-5 text-[#6B7280]">{children}</div>
+    <div className="rounded-lg border border-border bg-white p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">{icon}{title}</div>
+      <div className="text-xs leading-5 text-muted-foreground">{children}</div>
     </div>
   );
 }
@@ -1011,13 +1011,13 @@ function OperationalChart({
   const max = Math.max(1, ...rows.flatMap((row) => [Math.abs(row.a), Math.abs(row.b), Math.abs(row.c)]));
   if (rows.length === 0) return <Empty text="لا توجد بيانات كافية لهذا التقرير" />;
   return (
-    <Card className="border-[#E5E7EB]">
+    <Card className="border-border">
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent>
         <div className="space-y-4">
           {rows.map((row) => (
             <div key={row.label} className="grid gap-3 md:grid-cols-[130px_1fr_160px] md:items-center">
-              <div className="text-sm font-medium text-[#0B1B49]">{row.label}</div>
+              <div className="text-sm font-medium text-foreground">{row.label}</div>
               <div className="space-y-1.5">
                 <Bar label={cashMode ? "داخل" : "إيراد"} value={row.a} max={max} color="#1276E3" />
                 <Bar label={cashMode ? "خارج" : "مصروف"} value={row.b} max={max} color="#EF4444" />
@@ -1037,17 +1037,17 @@ function OperationalChart({
 function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   return (
     <div className="grid grid-cols-[72px_1fr_120px] items-center gap-2 text-xs">
-      <span className="text-[#6B7280]">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <div className="h-2 rounded bg-[#EEF2F7]">
         <div className="h-2 rounded" style={{ width: `${Math.min(100, (Math.abs(value) / max) * 100)}%`, background: color }} />
       </div>
-      <span className="text-end font-english text-[#374151]">{money(value, "")}</span>
+      <span className="text-end font-english text-foreground/80">{money(value, "")}</span>
     </div>
   );
 }
 
 function Empty({ text }: { text: string }) {
-  return <div className="py-10 text-center text-sm text-[#6B7280]"><BarChart3 className="mx-auto mb-3 h-9 w-9 text-[#9CA3AF]" />{text}</div>;
+  return <div className="py-10 text-center text-sm text-muted-foreground"><BarChart3 className="mx-auto mb-3 h-9 w-9 text-muted-foreground/60" />{text}</div>;
 }
 
 function downloadCsv(csv: string, filename: string) {

@@ -135,11 +135,11 @@ const TYPE_META: Record<AccountType, {
   text: string;     // chip text
   hint: string;
 }> = {
-  ASSET:     { icon: Wallet,       bg: "bg-[#F4FCFF]", text: "text-[#1276E3]", hint: "ما تملكه الشركة" },
-  LIABILITY: { icon: CreditCard,   bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "ما عليها للغير" },
-  EQUITY:    { icon: Landmark,     bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "حقوق الملاّك" },
-  REVENUE:   { icon: TrendingUp,   bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "ما تكسبه الشركة" },
-  EXPENSE:   { icon: TrendingDown, bg: "bg-[#F9FAFB]", text: "text-[#6B7280]", hint: "ما تنفقه الشركة" },
+  ASSET:     { icon: Wallet,       bg: "bg-primary/5", text: "text-primary", hint: "ما تملكه الشركة" },
+  LIABILITY: { icon: CreditCard,   bg: "bg-muted", text: "text-muted-foreground", hint: "ما عليها للغير" },
+  EQUITY:    { icon: Landmark,     bg: "bg-muted", text: "text-muted-foreground", hint: "حقوق الملاّك" },
+  REVENUE:   { icon: TrendingUp,   bg: "bg-muted", text: "text-muted-foreground", hint: "ما تكسبه الشركة" },
+  EXPENSE:   { icon: TrendingDown, bg: "bg-muted", text: "text-muted-foreground", hint: "ما تنفقه الشركة" },
 };
 
 
@@ -681,20 +681,20 @@ export function ChartOfAccounts() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>دليل الحسابات</h1>
-          <p className="text-[#6B7280] mt-1">شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>دليل الحسابات</h1>
+          <p className="text-muted-foreground mt-1">شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات</p>
         </div>
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept=".csv,text/csv,.pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif,.xlsx,.xls" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy} className="border-[#E5E7EB]">
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy} className="border-border">
             {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" />}
             استيراد ذكي
           </Button>
-          <Button variant="outline" onClick={handleExport} className="border-[#E5E7EB]">
+          <Button variant="outline" onClick={handleExport} className="border-border">
             <Download className="me-2 h-4 w-4" /> تصدير CSV
           </Button>
-          <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />حساب جديد</Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />حساب جديد</Button>
         </div>
       </div>
 
@@ -710,45 +710,45 @@ export function ChartOfAccounts() {
             <button
               key={t}
               onClick={() => setFilterType(isActive ? "ALL" : t)}
-              className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-[#1276E3] ${isActive ? "border-[#1276E3] ring-1 ring-[#1276E3]/20" : "border-[#E5E7EB]"}`}
+              className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-[#1276E3] ${isActive ? "border-[#1276E3] ring-1 ring-[#1276E3]/20" : "border-border"}`}
             >
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs text-[#6B7280]">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></span>
-                <Icon className="h-4 w-4 text-[#9CA3AF]" />
+                <span className="text-xs text-muted-foreground">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></span>
+                <Icon className="h-4 w-4 text-muted-foreground/60" />
               </div>
-              <div className="font-english text-[#0B1B49]" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
+              <div className="font-english text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
                 {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </div>
-              <p className="text-[11px] text-[#9CA3AF] mt-1.5"><span className="font-english">{typeItems.length}</span> حساب · الرصيد الإجمالي</p>
+              <p className="text-[11px] text-muted-foreground/60 mt-1.5"><span className="font-english">{typeItems.length}</span> حساب · الرصيد الإجمالي</p>
             </button>
           );
         })}
       </div>
 
       {/* Toolbar */}
-      <Card className="border-[#E5E7EB] shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardContent className="p-3">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-              <Input placeholder="بحث بالاسم أو الرمز..." className="ps-10 border-[#E5E7EB]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Input placeholder="بحث بالاسم أو الرمز..." className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-[#1276E3] text-white border-[#1276E3]" : "bg-white border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]"}`}>الكل ({items.length})</button>
-            <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-[#1276E3] hover:underline px-2">+ توسيع</button>
-            <button onClick={() => setExpanded(new Set())} className="text-xs text-[#6B7280] hover:underline px-2">طيّ</button>
-            <span className="text-xs text-[#9CA3AF] ms-auto">{flatRows.length} حساب معروض</span>
+            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-[#1276E3]" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>الكل ({items.length})</button>
+            <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">+ توسيع</button>
+            <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">طيّ</button>
+            <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} حساب معروض</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Type-grouped tree sections (UX-192) */}
       {loading ? (
-        <Card className="border-[#E5E7EB]"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></CardContent></Card>
+        <Card className="border-border"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></CardContent></Card>
       ) : items.length === 0 ? (
-        <Card className="border-[#E5E7EB] border-dashed"><CardContent className="py-16 text-center">
+        <Card className="border-border border-dashed"><CardContent className="py-16 text-center">
           <BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
-          <p className="text-sm text-[#6B7280] mb-3">لا توجد حسابات بعد</p>
-          <Button onClick={openCreate} className="bg-[#1276E3] hover:bg-[#1060C0]"><Plus className="me-2 h-4 w-4" />أضف أول حساب</Button>
+          <p className="text-sm text-muted-foreground mb-3">لا توجد حسابات بعد</p>
+          <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="me-2 h-4 w-4" />أضف أول حساب</Button>
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -767,18 +767,18 @@ export function ChartOfAccounts() {
             const sectionTotal = items.filter(a => a.type === t).reduce((s, a) => s + (a.balance ?? 0), 0);
 
             return (
-              <Card key={t} className={`border-[#E5E7EB] overflow-hidden`}>
-                <div className={`border-b border-[#E5E7EB] px-4 py-2.5 flex items-center justify-between ${meta.bg}`}>
+              <Card key={t} className={`border-border overflow-hidden`}>
+                <div className={`border-b border-border px-4 py-2.5 flex items-center justify-between ${meta.bg}`}>
                   <div className="flex items-center gap-2">
                     <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
-                      <div className="text-sm text-[#0B1B49] font-semibold">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></div>
-                      <div className="text-[10px] text-[#9CA3AF]">{sectionRoots.length} حساب رئيسي · إجمالي <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                      <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></div>
+                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} حساب رئيسي · إجمالي <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
                     onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
-                    className="text-[11px] text-[#1276E3] hover:bg-[#F4FCFF] transition px-2 py-1 rounded inline-flex items-center gap-1"
+                    className="text-[11px] text-primary hover:bg-primary/5 transition px-2 py-1 rounded inline-flex items-center gap-1"
                     title={`إضافة حساب جديد · ${TYPE_LABELS[t]}`}
                   >
                     <Plus className="h-3.5 w-3.5" /> إضافة
@@ -786,7 +786,7 @@ export function ChartOfAccounts() {
                 </div>
                 <CardContent className="p-0">
                   {visibleRoots.length === 0 ? (
-                    <div className="py-6 text-center text-xs text-[#9CA3AF]">
+                    <div className="py-6 text-center text-xs text-muted-foreground/60">
                       {searchQuery ? "لا نتائج مطابقة" : "لا توجد حسابات في هذا التصنيف"}
                     </div>
                   ) : (
@@ -801,13 +801,13 @@ export function ChartOfAccounts() {
                         };
                         visibleRoots.forEach(walk);
                         return out.map(node => (
-                          <div key={node.id} className="group flex items-center gap-2 px-3 py-2 hover:bg-[#F9FAFB] transition" style={{ paddingInlineStart: `${0.75 + node.depth * 1.25}rem` }}>
+                          <div key={node.id} className="group flex items-center gap-2 px-3 py-2 hover:bg-muted transition" style={{ paddingInlineStart: `${0.75 + node.depth * 1.25}rem` }}>
                             {/* Indent + chevron */}
                             {node.depth > 0 && (
-                              <span className="inline-block border-s border-[#E5E7EB] self-stretch -my-2 me-1" style={{ marginInlineStart: "-0.5rem" }} />
+                              <span className="inline-block border-s border-border self-stretch -my-2 me-1" style={{ marginInlineStart: "-0.5rem" }} />
                             )}
                             {node.children.length > 0 ? (
-                              <button onClick={() => toggleExpand(node.id)} className="text-[#9CA3AF] hover:text-[#1276E3] shrink-0">
+                              <button onClick={() => toggleExpand(node.id)} className="text-muted-foreground/60 hover:text-primary shrink-0">
                                 {expanded.has(node.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
                               </button>
                             ) : <span className="inline-block w-4 h-4 shrink-0" />}
@@ -815,7 +815,7 @@ export function ChartOfAccounts() {
                             <button
                               type="button"
                               onClick={() => openTransactions(node.id)}
-                              className="font-english text-xs text-[#1276E3] bg-[#F4FCFF] border border-[#E5E7EB] px-2 py-0.5 rounded shrink-0 hover:underline"
+                              className="font-english text-xs text-primary bg-primary/5 border border-border px-2 py-0.5 rounded shrink-0 hover:underline"
                               style={{ fontWeight: 700 }}
                             >
                               {node.code}
@@ -826,17 +826,17 @@ export function ChartOfAccounts() {
                               onClick={() => openTransactions(node.id)}
                               className="flex-1 min-w-0 text-start cursor-pointer"
                             >
-                              <div className="text-sm text-[#0B1B49] truncate hover:text-[#1276E3]" style={{ fontWeight: node.depth === 0 ? 600 : 500 }}>
+                              <div className="text-sm text-foreground truncate hover:text-primary" style={{ fontWeight: node.depth === 0 ? 600 : 500 }}>
                                 {node.nameAr || node.name}
                               </div>
                               {node.nameAr && node.name && (
-                                <div className="text-[10px] text-[#9CA3AF] font-english truncate">{node.name}</div>
+                                <div className="text-[10px] text-muted-foreground/60 font-english truncate">{node.name}</div>
                               )}
                             </button>
                             {/* Balance */}
                             <div className="font-english text-xs shrink-0 text-end" style={{ minWidth: "80px" }}>
                               {(node.balance ?? 0) !== 0 ? (
-                                <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-[#0B1B49]" : "text-amber-700"}`}>
+                                <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-amber-700"}`}>
                                   {(node.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
@@ -847,17 +847,17 @@ export function ChartOfAccounts() {
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
                               <button
                                 onClick={() => { setForm(defaultForm(node.type as AccountType, node.id, node)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
-                                className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]"
+                                className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary"
                                 title="إضافة حساب فرعي تحت هذا"
                               >
                                 <PlusCircle className="h-3.5 w-3.5" />
                               </button>
-                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]" title="تعديل"><Edit2 className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-[#6B7280] hover:bg-white hover:text-[#1276E3]" title="العمليات"><History className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title="تعديل"><Edit2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title="العمليات"><History className="h-3.5 w-3.5" /></button>
                               {pendingDelete === node.id ? (
                                 <span className="flex items-center gap-0.5 text-[10px]">
                                   <button onClick={() => handleDelete(node.id)} className="px-1.5 py-0.5 rounded bg-red-600 text-white">تأكيد</button>
-                                  <button onClick={() => setPendingDelete(null)} className="px-1.5 py-0.5 rounded border border-[#E5E7EB]">x</button>
+                                  <button onClick={() => setPendingDelete(null)} className="px-1.5 py-0.5 rounded border border-border">x</button>
                                 </span>
                               ) : (
                                 <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -869,7 +869,7 @@ export function ChartOfAccounts() {
                       {/* Inline add at bottom of section */}
                       <button
                         onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
-                        className="w-full px-3 py-2 text-xs text-[#9CA3AF] hover:text-[#1276E3] hover:bg-[#F9FAFB] flex items-center gap-2 border-t border-dashed border-[#E5E7EB]"
+                        className="w-full px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-muted flex items-center gap-2 border-t border-dashed border-border"
                       >
                         <Plus className="h-3.5 w-3.5" /> إضافة حساب رئيسي جديد لـ{TYPE_LABELS[t]}
                       </button>
@@ -886,37 +886,37 @@ export function ChartOfAccounts() {
       {txPanel && (
         <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={() => setTxPanel(null)}>
           <div className="bg-white shadow-xl w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-[#F3F4F6] p-5 flex items-center justify-between z-10">
+            <div className="sticky top-0 bg-white border-b border-border/50 p-5 flex items-center justify-between z-10">
               <div>
-                <h2 className="text-base text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
-                  <History className="h-5 w-5 text-[#1276E3]" />
+                <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
+                  <History className="h-5 w-5 text-primary" />
                   {txPanel.data ? `${txPanel.data.account.code} · ${txPanel.data.account.nameAr || txPanel.data.account.name}` : "جارٍ التحميل..."}
                 </h2>
                 {txPanel.data && (
-                  <p className="text-xs text-[#6B7280] mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {txPanel.data.total} عملية ·
-                    <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-[#0B1B49]" : "text-amber-700"}`}>
+                    <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-amber-700"}`}>
                       الرصيد: {txPanel.data.finalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </span>
                   </p>
                 )}
               </div>
-              <button onClick={() => setTxPanel(null)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-5 w-5 text-[#6B7280]" /></button>
+              <button onClick={() => setTxPanel(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
 
             <div className="p-5">
               {txPanel.loading ? (
-                <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div>
+                <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
               ) : !txPanel.data || txPanel.data.transactions.length === 0 ? (
                 <div className="py-12 text-center">
                   <BookOpen className="h-10 w-10 text-[#E5E7EB] mx-auto mb-2" />
-                  <p className="text-sm text-[#6B7280]">لا توجد عمليات على هذا الحساب بعد</p>
-                  <p className="text-xs text-[#9CA3AF] mt-1">العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب</p>
+                  <p className="text-sm text-muted-foreground">لا توجد عمليات على هذا الحساب بعد</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب</p>
                 </div>
               ) : (
-                <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
+                <div className="rounded-lg border border-border overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-[#F9FAFB] text-xs text-[#6B7280] sticky top-0">
+                    <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
                       <tr>
                         <th className="text-start px-3 py-2 font-medium">التاريخ</th>
                         <th className="text-start px-3 py-2 font-medium">رقم القيد</th>
@@ -928,16 +928,16 @@ export function ChartOfAccounts() {
                     </thead>
                     <tbody>
                       {txPanel.data.transactions.map((t) => (
-                        <tr key={t.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF]">
-                          <td className="px-3 py-2 font-english text-[#374151]">{t.date.slice(0, 10)}</td>
-                          <td className="px-3 py-2 font-english font-semibold text-[#1276E3]">{t.journalNumber}</td>
+                        <tr key={t.id} className="border-t border-border/50 hover:bg-primary/5">
+                          <td className="px-3 py-2 font-english text-foreground/80">{t.date.slice(0, 10)}</td>
+                          <td className="px-3 py-2 font-english font-semibold text-primary">{t.journalNumber}</td>
                           <td className="px-3 py-2">
-                            <div className="text-[#0B1B49]">{t.description}</div>
-                            {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-[#9CA3AF] mt-0.5">{t.lineDescription}</div>}
+                            <div className="text-foreground">{t.description}</div>
+                            {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{t.lineDescription}</div>}
                           </td>
-                          <td className="px-3 py-2 text-end font-english text-[#0B1B49]">{t.debit > 0 ? t.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english text-[#0B1B49]">{t.credit > 0 ? t.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english font-semibold text-[#0B1B49]">{t.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground">{t.debit > 0 ? t.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground">{t.credit > 0 ? t.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground">{t.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -953,12 +953,12 @@ export function ChartOfAccounts() {
       {importPreview && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3" onClick={() => setImportPreview(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-[#F3F4F6]">
-              <h2 className="text-base text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
-                <FileSpreadsheet className="h-5 w-5 text-[#1276E3]" /> معاينة الاستيراد
-                {importPreview.fileName && <span className="font-english text-xs text-[#6B7280]">· {importPreview.fileName}</span>}
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
+                <FileSpreadsheet className="h-5 w-5 text-primary" /> معاينة الاستيراد
+                {importPreview.fileName && <span className="font-english text-xs text-muted-foreground">· {importPreview.fileName}</span>}
               </h2>
-              <button type="button" onClick={() => setImportPreview(null)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-4 w-4 text-[#6B7280]" /></button>
+              <button type="button" onClick={() => setImportPreview(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
             </div>
 
             <div className="p-4 space-y-3 overflow-y-auto flex-1">
@@ -987,9 +987,9 @@ export function ChartOfAccounts() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
+              <div className="rounded-lg border border-border overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#F9FAFB] text-xs text-[#6B7280] sticky top-0">
+                  <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-start font-medium">الرمز</th>
                       <th className="px-3 py-2 text-start font-medium">الاسم</th>
@@ -1002,8 +1002,8 @@ export function ChartOfAccounts() {
                     {importPreview.rows.map((r, i) => {
                       const inferredType = r.type || (r.code ? (r.code.charAt(0) === '1' ? 'ASSET' : r.code.charAt(0) === '2' ? 'LIABILITY' : r.code.charAt(0) === '3' ? 'EQUITY' : r.code.charAt(0) === '4' ? 'REVENUE' : 'EXPENSE') : '?');
                       return (
-                        <tr key={i} className={`border-t border-[#F3F4F6] ${r.rowStatus === "code_duplicate" ? "bg-red-50/70" : r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review" ? "bg-amber-50/80" : "bg-emerald-50/55"}`}>
-                          <td className="px-3 py-1.5 font-english font-semibold text-[#1276E3]">{r.code}</td>
+                        <tr key={i} className={`border-t border-border/50 ${r.rowStatus === "code_duplicate" ? "bg-red-50/70" : r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review" ? "bg-amber-50/80" : "bg-emerald-50/55"}`}>
+                          <td className="px-3 py-1.5 font-english font-semibold text-primary">{r.code}</td>
                           <td className="px-3 py-1.5 font-english">
                             {r.name || '—'}
                             {r.rowStatus === "new" && <span className="ms-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">سيضاف</span>}
@@ -1018,7 +1018,7 @@ export function ChartOfAccounts() {
                               {!r.type && <span className="text-[9px] ms-1 opacity-60">(تلقائي)</span>}
                             </span>
                           </td>
-                          <td className="px-3 py-1.5 font-english text-xs text-[#6B7280]">{r.parentCode || '—'}</td>
+                          <td className="px-3 py-1.5 font-english text-xs text-muted-foreground">{r.parentCode || '—'}</td>
                         </tr>
                       );
                     })}
@@ -1026,12 +1026,12 @@ export function ChartOfAccounts() {
                 </table>
               </div>
 
-              <p className="text-xs text-[#9CA3AF]">عند الحفظ سيتم استيراد الصفوف الخضراء فقط · المعاينة تبقى محفوظة مؤقتاً لو أغلقتها ورجعت لها.</p>
+              <p className="text-xs text-muted-foreground/60">عند الحفظ سيتم استيراد الصفوف الخضراء فقط · المعاينة تبقى محفوظة مؤقتاً لو أغلقتها ورجعت لها.</p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
-              <Button type="button" variant="outline" onClick={() => setImportPreview(null)} className="border-[#E5E7EB]" disabled={importBusy}>إلغاء</Button>
-              <Button onClick={confirmImport} disabled={importBusy} className="bg-[#1276E3] hover:bg-[#1060C0]">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
+              <Button type="button" variant="outline" onClick={() => setImportPreview(null)} className="border-border" disabled={importBusy}>إلغاء</Button>
+              <Button onClick={confirmImport} disabled={importBusy} className="bg-primary hover:bg-primary/90">
                 {importBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : `استيراد ${importPreview.rows.filter(r => r.rowStatus === "new").length} حساب جاهز`}
               </Button>
             </div>
@@ -1042,12 +1042,12 @@ export function ChartOfAccounts() {
       {mergeSource && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setMergeSource(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-[#F3F4F6]">
-              <h2 className="text-base text-[#0B1B49] flex items-center gap-2" style={{ fontWeight: 700 }}>
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                 <ArrowRightLeft className="h-5 w-5 text-amber-600" />
                 نقل ودمج الحساب
               </h2>
-              <button type="button" onClick={() => setMergeSource(null)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-4 w-4 text-[#6B7280]" /></button>
+              <button type="button" onClick={() => setMergeSource(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
             </div>
             <div className="p-4 space-y-3">
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex gap-2">
@@ -1056,17 +1056,17 @@ export function ChartOfAccounts() {
                   لا أحذف الحساب إذا عليه قيود أو حسابات فرعية. اختر حساباً من نفس التصنيف ليتم نقل القيود والحسابات الفرعية إليه ثم تعطيل الحساب القديم.
                 </div>
               </div>
-              <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] p-3">
-                <div className="text-xs text-[#9CA3AF] mb-1">الحساب المراد دمجه</div>
-                <div className="font-english text-sm text-[#0B1B49] font-semibold">{mergeSource.code} · {mergeSource.nameAr || mergeSource.name}</div>
-                <div className="text-xs text-[#6B7280] mt-1">{TYPE_LABELS[mergeSource.type as AccountType]} · الرصيد {formatAmount(mergeSource.balance)}</div>
+              <div className="rounded-lg border border-border bg-[#FAFBFC] p-3">
+                <div className="text-xs text-muted-foreground/60 mb-1">الحساب المراد دمجه</div>
+                <div className="font-english text-sm text-foreground font-semibold">{mergeSource.code} · {mergeSource.nameAr || mergeSource.name}</div>
+                <div className="text-xs text-muted-foreground mt-1">{TYPE_LABELS[mergeSource.type as AccountType]} · الرصيد {formatAmount(mergeSource.balance)}</div>
               </div>
               <div>
-                <Label className="text-xs text-[#6B7280]">الحساب البديل *</Label>
+                <Label className="text-xs text-muted-foreground">الحساب البديل *</Label>
                 <select
                   value={mergeTargetId}
                   onChange={(e) => setMergeTargetId(e.target.value)}
-                  className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white font-english"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english"
                 >
                   <option value="">اختر حساباً من نفس التصنيف</option>
                   {items.filter(a => a.id !== mergeSource.id && a.type === mergeSource.type).map(a => (
@@ -1075,8 +1075,8 @@ export function ChartOfAccounts() {
                 </select>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
-              <Button type="button" variant="outline" onClick={() => setMergeSource(null)} className="border-[#E5E7EB]" disabled={mergeBusy}>إلغاء</Button>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
+              <Button type="button" variant="outline" onClick={() => setMergeSource(null)} className="border-border" disabled={mergeBusy}>إلغاء</Button>
               <Button type="button" onClick={confirmMerge} disabled={mergeBusy || !mergeTargetId} className="bg-amber-600 hover:bg-amber-700">
                 {mergeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "نقل القيود وتعطيل القديم"}
               </Button>
@@ -1089,13 +1089,13 @@ export function ChartOfAccounts() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between p-4 border-b border-[#F3F4F6]">
-                <h2 className="text-base text-[#0B1B49]" style={{ fontWeight: 700 }}>{editingId ? "تعديل حساب" : "حساب جديد"}</h2>
-                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-4 w-4 text-[#6B7280]" /></button>
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>{editingId ? "تعديل حساب" : "حساب جديد"}</h2>
+                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
               </div>
               <div className="p-4 space-y-3">
                 <div>
-                  <Label className="text-xs text-[#6B7280]">التصنيف *</Label>
+                  <Label className="text-xs text-muted-foreground">التصنيف *</Label>
                   <select value={form.type} onChange={(e) => {
                     const nextType = e.target.value as AccountType;
                     const usage = usageDefaults(nextType, `${form.name} ${form.nameAr}`);
@@ -1107,18 +1107,18 @@ export function ChartOfAccounts() {
                       ...usage,
                     }));
                   }}
-                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                     {(["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as AccountType[]).map(t => (
                       <option key={t} value={t}>{TYPE_LABELS[t]} · {t} ({TYPE_PREFIX[t]}xxxx)</option>
                     ))}
                   </select>
-                  <p className="text-xs text-[#9CA3AF] mt-1">
+                  <p className="text-xs text-muted-foreground/60 mt-1">
                     الرقم الأساسي لهذا التصنيف يبدأ بـ <span className="font-english">{TYPE_PREFIX[form.type]}xxxx</span> · الاقتراح الذكي لن يغيّر هذا التصنيف.
                   </p>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-[#6B7280]">الحساب الأب (اختياري)</Label>
+                  <Label className="text-xs text-muted-foreground">الحساب الأب (اختياري)</Label>
                   <select value={form.parentId} onChange={(e) => {
                     const parent = items.find(a => a.id === e.target.value) || null;
                     setForm(prev => ({
@@ -1127,32 +1127,32 @@ export function ChartOfAccounts() {
                       ...(cashFlowManuallyEdited ? {} : { cashFlowType: inferCashFlowType(prev.type, `${prev.name} ${prev.nameAr}`, parent) }),
                     }));
                   }}
-                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white font-english">
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english">
                     <option value="">— لا يوجد · حساب رئيسي —</option>
                     {parentOptions.map(p => (
                       <option key={p.id} value={p.id}>{p.code} · {p.nameAr || p.name}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-[#9CA3AF] mt-1">اربطه بحساب رئيسي ليصبح فرعياً وتظهر شجرة هرمية</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">اربطه بحساب رئيسي ليصبح فرعياً وتظهر شجرة هرمية</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-1">
-                    <Label className="text-xs text-[#6B7280]">الرمز * <span className="text-[#9CA3AF] text-[10px]">{!codeManuallyEdited && "(تلقائي)"}</span></Label>
+                    <Label className="text-xs text-muted-foreground">الرمز * <span className="text-muted-foreground/60 text-[10px]">{!codeManuallyEdited && "(تلقائي)"}</span></Label>
                     <Input
                       value={form.code}
                       onChange={(e) => { setForm({ ...form, code: e.target.value }); setCodeManuallyEdited(true); }}
                       placeholder={`${TYPE_PREFIX[form.type]}1000`}
-                      required dir="ltr" className="border-[#E5E7EB] font-english"
+                      required dir="ltr" className="border-border font-english"
                     />
                     {codeManuallyEdited && (
-                      <button type="button" onClick={() => { setCodeManuallyEdited(false); }} className="text-xs text-[#1276E3] hover:underline mt-1">↻ اقتراح تلقائي</button>
+                      <button type="button" onClick={() => { setCodeManuallyEdited(false); }} className="text-xs text-primary hover:underline mt-1">↻ اقتراح تلقائي</button>
                     )}
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs text-[#6B7280] flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
                       <span>الاسم بالإنجليزية *</span>
-                      <button type="button" onClick={() => aiSuggest(form.name || form.nameAr)} disabled={aiBusy} className="text-[10px] text-[#1276E3] hover:underline flex items-center gap-1 disabled:opacity-50">
+                      <button type="button" onClick={() => aiSuggest(form.name || form.nameAr)} disabled={aiBusy} className="text-[10px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50">
                         {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                         اقتراح بالذكاء
                       </button>
@@ -1163,14 +1163,14 @@ export function ChartOfAccounts() {
                       setForm({ ...form, name, ...usageDefaults(form.type, `${name} ${form.nameAr}`, parent || null) });
                     }}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.name); } }}
-                      placeholder="Office Supplies" required dir="ltr" className="border-[#E5E7EB] font-english" />
+                      placeholder="Office Supplies" required dir="ltr" className="border-border font-english" />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-[#6B7280] flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground flex items-center justify-between">
                     <span>الاسم بالعربية</span>
-                    <button type="button" onClick={() => aiSuggest(form.nameAr || form.name)} disabled={aiBusy} className="text-[10px] text-[#1276E3] hover:underline flex items-center gap-1 disabled:opacity-50">
+                    <button type="button" onClick={() => aiSuggest(form.nameAr || form.name)} disabled={aiBusy} className="text-[10px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50">
                       {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       اقتراح بالذكاء
                     </button>
@@ -1181,7 +1181,7 @@ export function ChartOfAccounts() {
                     setForm({ ...form, nameAr, ...usageDefaults(form.type, `${form.name} ${nameAr}`, parent || null) });
                   }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.nameAr); } }}
-                    placeholder="مستلزمات مكتبية · أو اكتب 'جهاز' / 'مبيعات' والذكاء يقترح" className="border-[#E5E7EB]" />
+                    placeholder="مستلزمات مكتبية · أو اكتب 'جهاز' / 'مبيعات' والذكاء يقترح" className="border-border" />
                 </div>
 
                 {aiSuggestion && (
@@ -1191,31 +1191,31 @@ export function ChartOfAccounts() {
                 )}
 
                 <div>
-                  <Label className="text-xs text-[#6B7280]">الوصف (اختياري)</Label>
-                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="استخدامات الحساب..." className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm" />
+                  <Label className="text-xs text-muted-foreground">الوصف (اختياري)</Label>
+                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="استخدامات الحساب..." className="w-full rounded-md border border-border px-3 py-2 text-sm" />
                 </div>
 
                 <div>
-                  <Label className="text-xs text-[#6B7280]">نوع التدفق النقدي *</Label>
+                  <Label className="text-xs text-muted-foreground">نوع التدفق النقدي *</Label>
                   <select value={form.cashFlowType}
                     onChange={(e) => { setCashFlowManuallyEdited(true); setForm({ ...form, cashFlowType: e.target.value as CashFlowType }); }}
-                    className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                     {(Object.keys(CASH_FLOW_META) as CashFlowType[]).map((key) => (
                       <option key={key} value={key}>{CASH_FLOW_META[key].label}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-[#9CA3AF] mt-1">{CASH_FLOW_META[form.cashFlowType].hint}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{CASH_FLOW_META[form.cashFlowType].hint}</p>
                 </div>
 
-                <div className="rounded-lg border border-[#E5E7EB] p-3 space-y-2">
-                  <div className="text-xs text-[#6B7280] font-medium">أين يظهر هذا الحساب؟</div>
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="text-xs text-muted-foreground font-medium">أين يظهر هذا الحساب؟</div>
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={form.allowPosting}
                       onChange={(e) => setForm({ ...form, allowPosting: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-[#0B1B49]">يظهر في القيود اليدوية</div>
-                      <div className="text-xs text-[#9CA3AF]">فعّله إذا كان المحاسب يقدر يختار الحساب عند تسجيل قيد يدوي</div>
+                      <div className="text-sm text-foreground">يظهر في القيود اليدوية</div>
+                      <div className="text-xs text-muted-foreground/60">فعّله إذا كان المحاسب يقدر يختار الحساب عند تسجيل قيد يدوي</div>
                     </div>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
@@ -1223,8 +1223,8 @@ export function ChartOfAccounts() {
                       onChange={(e) => setForm({ ...form, allowPayment: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-[#0B1B49]">يظهر كحساب دفع أو تحصيل</div>
-                      <div className="text-xs text-[#9CA3AF]">عادة لحسابات البنك والصندوق والبطاقات، وليس لكل حساب مصروف</div>
+                      <div className="text-sm text-foreground">يظهر كحساب دفع أو تحصيل</div>
+                      <div className="text-xs text-muted-foreground/60">عادة لحسابات البنك والصندوق والبطاقات، وليس لكل حساب مصروف</div>
                     </div>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
@@ -1232,30 +1232,30 @@ export function ChartOfAccounts() {
                       onChange={(e) => setForm({ ...form, allowExpenseClaim: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-[#0B1B49]">يظهر في مطالبات ومصاريف الموظفين</div>
-                      <div className="text-xs text-[#9CA3AF]">فعّله لحسابات المصروفات التي يستخدمها الموظفون في المطالبات</div>
+                      <div className="text-sm text-foreground">يظهر في مطالبات ومصاريف الموظفين</div>
+                      <div className="text-xs text-muted-foreground/60">فعّله لحسابات المصروفات التي يستخدمها الموظفون في المطالبات</div>
                     </div>
                   </label>
                 </div>
 
                 {/* Preview */}
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] p-3">
-                  <div className="text-xs text-[#9CA3AF] mb-1">معاينة</div>
+                <div className="rounded-lg border border-border bg-[#FAFBFC] p-3">
+                  <div className="text-xs text-muted-foreground/60 mb-1">معاينة</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-english text-sm text-[#1276E3] font-bold">{form.code || "—"}</span>
-                    <span className="text-sm text-[#0B1B49]">·</span>
-                    <span className="text-sm text-[#0B1B49] font-medium">{form.nameAr || form.name || "—"}</span>
+                    <span className="font-english text-sm text-primary font-bold">{form.code || "—"}</span>
+                    <span className="text-sm text-foreground">·</span>
+                    <span className="text-sm text-foreground font-medium">{form.nameAr || form.name || "—"}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded ms-auto ${TYPE_COLORS[form.type]}`}>{TYPE_LABELS[form.type]}</span>
                   </div>
                   {form.parentId && (() => {
                     const p = items.find(a => a.id === form.parentId);
-                    return p ? <div className="text-xs text-[#9CA3AF] mt-1 font-english">↑ تحت: {p.code} · {p.nameAr || p.name}</div> : null;
+                    return p ? <div className="text-xs text-muted-foreground/60 mt-1 font-english">↑ تحت: {p.code} · {p.nameAr || p.name}</div> : null;
                   })()}
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-[#E5E7EB]">إلغاء</Button>
-                <Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? "حفظ التعديلات" : "حفظ")}</Button>
+              <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">إلغاء</Button>
+                <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? "حفظ التعديلات" : "حفظ")}</Button>
               </div>
             </form>
           </div>

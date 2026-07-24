@@ -64,7 +64,7 @@ export function ForgotPassword() {
       >
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] mb-10 transition-colors"
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground mb-10 transition-colors"
           style={{ fontSize: "14px", fontWeight: 500 }}
         >
           <BackIcon className="w-4 h-4" />
@@ -78,14 +78,14 @@ export function ForgotPassword() {
         {sent ? (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
             <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "22px", fontWeight: 700 }}>
+            <h1 className="text-foreground mb-2" style={{ fontSize: "22px", fontWeight: 700 }}>
               {t("تحقق من بريدك", "Check your email")}
             </h1>
-            <p className="text-[#374151] mb-4" style={{ fontSize: "14px", lineHeight: 1.7 }}>
+            <p className="text-foreground/80 mb-4" style={{ fontSize: "14px", lineHeight: 1.7 }}>
               {t("إذا كان", "If")} <span className="font-english">{email}</span>{" "}
               {t("مسجلاً عندنا، فسيصلك رابط لإعادة تعيين كلمة المرور خلال دقائق.", "is registered, a password reset link will arrive within a few minutes.")}
             </p>
-            <p className="text-[#6B7280]" style={{ fontSize: "13px" }}>
+            <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
               {t("لم يصلك الرابط؟ تحقق من البريد المزعج أو", "No email yet? Check spam or")}
               <button
                 type="button"
@@ -93,7 +93,7 @@ export function ForgotPassword() {
                   setSent(false);
                   setEmail("");
                 }}
-                className="text-[#1276E3] hover:underline ms-1"
+                className="text-primary hover:underline ms-1"
               >
                 {t("جرّب مرة أخرى", "try again")}
               </button>.
@@ -101,10 +101,10 @@ export function ForgotPassword() {
           </div>
         ) : (
           <>
-            <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>
+            <h1 className="text-foreground mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>
               {t("نسيت كلمة المرور؟", "Forgot your password?")}
             </h1>
-            <p className="text-[#6B7280] mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>
+            <p className="text-muted-foreground mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>
               {t("أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة التعيين.", "Enter your email and we will send a secure reset link.")}
             </p>
 
@@ -121,17 +121,17 @@ export function ForgotPassword() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>
+                <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>
                   {t("البريد الإلكتروني", "Email address")}
                 </label>
                 <div className="relative">
-                  <Mail className={`absolute ${isArabic ? "end-4" : "start-4"} top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]`} />
+                  <Mail className={`absolute ${isArabic ? "end-4" : "start-4"} top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60`} />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
-                    className={`w-full px-4 py-3.5 ${isArabic ? "pe-12" : "ps-12"} rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all`}
+                    className={`w-full px-4 py-3.5 ${isArabic ? "pe-12" : "ps-12"} rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all`}
                     style={{
                       fontSize: "14px",
                       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -147,7 +147,7 @@ export function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#1276E3] hover:bg-[#0B5FBF] disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25"
+                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {loading ? (
@@ -162,10 +162,10 @@ export function ForgotPassword() {
             </form>
 
             <div className="mt-6 text-center">
-              <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>
+              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>
                 {t("تذكرت كلمة المرور؟ ", "Remember your password? ")}
               </span>
-              <Link to="/login" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>
+              <Link to="/login" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>
                 {t("سجّل الدخول", "Sign in")}
               </Link>
             </div>

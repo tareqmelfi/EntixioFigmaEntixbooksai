@@ -123,17 +123,17 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
         onFocus={() => { setIsOpen(true); setQuery(""); }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full rounded border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
+        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
       />
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-[300px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden" style={{ maxHeight: "350px" }}>
+        <div className="absolute z-50 mt-1 w-[300px] rounded-lg border border-border bg-white shadow-lg overflow-hidden" style={{ maxHeight: "350px" }}>
           {/* Quick actions */}
-          <div className="border-b border-[#E5E7EB]">
-            <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-[#F9FAFB] transition-colors">
-              <Plus className="h-4 w-4 text-[#1276E3]" />
-              <span className="text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>إنشاء حساب جديد</span>
-              <ExternalLink className="h-3 w-3 text-[#1276E3] ms-auto" />
+          <div className="border-b border-border">
+            <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors">
+              <Plus className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إنشاء حساب جديد</span>
+              <ExternalLink className="h-3 w-3 text-primary ms-auto" />
             </button>
           </div>
 
@@ -143,7 +143,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
               if (!accs || accs.length === 0) return null;
               return (
                 <div key={cat}>
-                  <div className="px-3 py-1.5 text-xs text-[#9CA3AF] bg-[#F9FAFB] border-b border-[#F3F4F6]" style={{ fontWeight: 600 }}>{cat}</div>
+                  <div className="px-3 py-1.5 text-xs text-muted-foreground/60 bg-muted border-b border-border/50" style={{ fontWeight: 600 }}>{cat}</div>
                   {accs.map((acc) => {
                     const flatIdx = flatResults.indexOf(acc);
                     return (
@@ -151,10 +151,10 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
                         key={acc.code}
                         onClick={() => handleSelect(acc)}
                         onMouseEnter={() => setHighlightIndex(flatIdx)}
-                        className={`w-full text-start px-3 py-2 flex items-center gap-2 transition-colors ${highlightIndex === flatIdx ? "bg-[#EFF6FF]" : "hover:bg-[#F9FAFB]"}`}
+                        className={`w-full text-start px-3 py-2 flex items-center gap-2 transition-colors ${highlightIndex === flatIdx ? "bg-[#EFF6FF]" : "hover:bg-muted"}`}
                       >
-                        <span className="text-sm font-english text-[#6B7280] w-10 shrink-0">{acc.code}</span>
-                        <span className="text-sm text-[#0B1B49]">- {acc.name}</span>
+                        <span className="text-sm font-english text-muted-foreground w-10 shrink-0">{acc.code}</span>
+                        <span className="text-sm text-foreground">- {acc.name}</span>
                       </button>
                     );
                   })}
@@ -162,7 +162,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
               );
             })}
             {flatResults.length === 0 && (
-              <div className="px-3 py-3 text-sm text-[#6B7280] text-center">لا توجد حسابات مطابقة</div>
+              <div className="px-3 py-3 text-sm text-muted-foreground text-center">لا توجد حسابات مطابقة</div>
             )}
           </div>
         </div>

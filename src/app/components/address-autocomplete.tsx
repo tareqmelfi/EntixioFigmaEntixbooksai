@@ -126,13 +126,13 @@ export function AddressAutocomplete({
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
         placeholder={placeholder || "ابدأ كتابة العنوان..."}
-        className="border-[#E5E7EB] pe-9"
+        className="border-border pe-9"
       />
-      {busy && <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-[#9CA3AF]" />}
-      {!busy && value.trim().length >= 3 && <MapPin className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />}
+      {busy && <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground/60" />}
+      {!busy && value.trim().length >= 3 && <MapPin className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />}
 
       {open && suggestions.length > 0 && (
-        <div className="absolute z-30 inset-x-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-[#E5E7EB] max-h-72 overflow-y-auto">
+        <div className="absolute z-30 inset-x-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-border max-h-72 overflow-y-auto">
           {suggestions.map((s) => {
             const place = nominatimToPlace(s);
             return (
@@ -140,12 +140,12 @@ export function AddressAutocomplete({
                 key={s.place_id}
                 type="button"
                 onClick={() => { onPick(place); setOpen(false); }}
-                className="w-full text-start px-3 py-2 hover:bg-[#F4FCFF] border-b border-[#F3F4F6] last:border-0 flex items-start gap-2"
+                className="w-full text-start px-3 py-2 hover:bg-primary/5 border-b border-border/50 last:border-0 flex items-start gap-2"
               >
-                <MapPin className="h-3.5 w-3.5 text-[#1276E3] shrink-0 mt-0.5" />
+                <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                 <div className="min-w-0 text-xs">
-                  <div className="text-[#0B1B49] truncate" style={{ fontWeight: 500 }}>{place.line1 || s.display_name.split(",")[0]}</div>
-                  <div className="text-[#6B7280] truncate mt-0.5">
+                  <div className="text-foreground truncate" style={{ fontWeight: 500 }}>{place.line1 || s.display_name.split(",")[0]}</div>
+                  <div className="text-muted-foreground truncate mt-0.5">
                     {[place.city, place.region, place.postalCode, place.country].filter(Boolean).join(" · ") || s.display_name}
                   </div>
                 </div>

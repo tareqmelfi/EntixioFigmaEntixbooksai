@@ -28,7 +28,7 @@ export function BarcodeScannerButton({ onScanned, className = "" }: Props) {
         type="button"
         onClick={() => setOpen(true)}
         title="مسح باركود (Cmd+B)"
-        className={`rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1276E3] transition-colors ${className}`}
+        className={`rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-primary transition-colors ${className}`}
       >
         <Barcode className="h-4 w-4" />
       </button>
@@ -133,24 +133,24 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
       <div className="absolute inset-0 bg-[#0B1B49]/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-[#F3F4F6]">
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
           <div>
-            <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 700 }}>
+            <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 700 }}>
               <Barcode className="inline h-4 w-4 me-2" /> مسح باركود
             </h2>
-            <p className="text-xs text-[#6B7280] mt-1">امسح باركود المنتج لتعبئة البند تلقائياً</p>
+            <p className="text-xs text-muted-foreground mt-1">امسح باركود المنتج لتعبئة البند تلقائياً</p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6]">
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Mode tabs */}
-        <div className="flex border-b border-[#F3F4F6] bg-[#F9FAFB]">
+        <div className="flex border-b border-border/50 bg-muted">
           <button
             onClick={() => setMode("camera")}
             className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 transition-colors ${
-              mode === "camera" ? "bg-white text-[#1276E3] border-b-2 border-[#1276E3]" : "text-[#6B7280]"
+              mode === "camera" ? "bg-white text-primary border-b-2 border-[#1276E3]" : "text-muted-foreground"
             }`}
           >
             <Camera className="h-3.5 w-3.5" /> الكاميرا
@@ -158,7 +158,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
           <button
             onClick={() => setMode("manual")}
             className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 transition-colors ${
-              mode === "manual" ? "bg-white text-[#1276E3] border-b-2 border-[#1276E3]" : "text-[#6B7280]"
+              mode === "manual" ? "bg-white text-primary border-b-2 border-[#1276E3]" : "text-muted-foreground"
             }`}
           >
             <Barcode className="h-3.5 w-3.5" /> إدخال يدوي
@@ -193,20 +193,20 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
           ) : (
             <div className="space-y-3">
               <div className="space-y-2">
-                <label className="text-xs text-[#374151]">الباركود / SKU</label>
+                <label className="text-xs text-foreground/80">الباركود / SKU</label>
                 <Input
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="ابحث بـSKU أو الباركود"
                   dir="ltr"
-                  className="border-[#E5E7EB] font-english"
+                  className="border-border font-english"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") submitManual();
                   }}
                   autoFocus
                 />
               </div>
-              <Button onClick={submitManual} className="w-full bg-[#1276E3] hover:bg-[#0B5FBF]">
+              <Button onClick={submitManual} className="w-full bg-primary hover:bg-primary/80">
                 بحث وتعبئة
               </Button>
             </div>

@@ -232,35 +232,35 @@ export function BankReconciliation() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>تسوية البنوك</h1>
-          <p className="text-[#6B7280] mt-1">رفع كشف حساب البنك · مطابقة الحركات تلقائياً · ترحيل بنقرة</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>تسوية البنوك</h1>
+          <p className="text-muted-foreground mt-1">رفع كشف حساب البنك · مطابقة الحركات تلقائياً · ترحيل بنقرة</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#6B7280]">
-          <span className={step === "upload" ? "text-[#1276E3] font-semibold" : ""}>1. رفع</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className={step === "upload" ? "text-primary font-semibold" : ""}>1. رفع</span>
           <ChevronRight className="h-3 w-3" />
-          <span className={step === "review" ? "text-[#1276E3] font-semibold" : ""}>2. مراجعة</span>
+          <span className={step === "review" ? "text-primary font-semibold" : ""}>2. مراجعة</span>
           <ChevronRight className="h-3 w-3" />
-          <span className={step === "done" ? "text-[#1276E3] font-semibold" : ""}>3. تأكيد</span>
+          <span className={step === "done" ? "text-primary font-semibold" : ""}>3. تأكيد</span>
         </div>
       </div>
 
       {step === "upload" && (
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[#0B1B49]"><Upload className="h-5 w-5" /> رفع كشف حساب</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-foreground"><Upload className="h-5 w-5" /> رفع كشف حساب</CardTitle>
             <CardDescription>صيغ مدعومة: PDF ذكي · CSV · MT940 · OFX · QIF</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedBank && (
-              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-[#0B1B49] flex items-center justify-between gap-3">
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-foreground flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Landmark className="h-4 w-4 text-[#1276E3] shrink-0" />
+                  <Landmark className="h-4 w-4 text-primary shrink-0" />
                   <div className="min-w-0">
                     <div className="truncate font-medium">{selectedBank.name} · {selectedBank.bankName || "Bank account"}</div>
-                    <div className="font-english text-xs text-[#6B7280]" dir="ltr">{selectedBank.currency} · {bankIdentifier(selectedBank) || selectedBank.country}</div>
+                    <div className="font-english text-xs text-muted-foreground" dir="ltr">{selectedBank.currency} · {bankIdentifier(selectedBank) || selectedBank.country}</div>
                   </div>
                 </div>
-                <Link to={`/app/bank-accounts/${selectedBank.id}`} className="shrink-0 text-xs text-[#1276E3] hover:underline">فتح الحساب</Link>
+                <Link to={`/app/bank-accounts/${selectedBank.id}`} className="shrink-0 text-xs text-primary hover:underline">فتح الحساب</Link>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -302,8 +302,8 @@ export function BankReconciliation() {
               </div>
             </div>
 
-            <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-8 text-center hover:border-[#1276E3] transition">
-              <FileText className="h-10 w-10 text-[#9CA3AF] mx-auto mb-2" />
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-[#1276E3] transition">
+              <FileText className="h-10 w-10 text-muted-foreground/60 mx-auto mb-2" />
               <input type="file" id="bank-stmt" accept=".pdf,application/pdf,.csv,.mt940,.sta,.ofx,.qif,.qfx,.txt" multiple hidden
                 onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }} />
               <input type="file" id="bank-stmt-folder" accept=".pdf,application/pdf" multiple hidden {...directoryInputProps}
@@ -311,24 +311,24 @@ export function BankReconciliation() {
               <div className="cursor-pointer">
                 {selectedFiles.length > 0 ? (
                   <div>
-                    <div className="text-sm text-[#0B1B49] font-medium">
+                    <div className="text-sm text-foreground font-medium">
                       {selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} ملفات كشف مختارة`}
                     </div>
-                    <div className="text-xs text-[#9CA3AF] mt-1">
+                    <div className="text-xs text-muted-foreground/60 mt-1">
                       {selectedFiles.map((f) => f.format.toUpperCase()).join(" · ")} · يمكنك تغيير الملفات
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="text-sm text-[#1276E3] font-medium">اختر ملفاً للرفع</div>
-                    <div className="text-xs text-[#9CA3AF] mt-1">PDF كشف البنك أو CSV/MT940/OFX · يدعم أكثر من ملف PDF</div>
+                    <div className="text-sm text-primary font-medium">اختر ملفاً للرفع</div>
+                    <div className="text-xs text-muted-foreground/60 mt-1">PDF كشف البنك أو CSV/MT940/OFX · يدعم أكثر من ملف PDF</div>
                   </>
                 )}
                 <div className="mt-4 flex items-center justify-center gap-2">
-                  <label htmlFor="bank-stmt" className="rounded-md border border-[#1276E3] bg-white px-3 py-1.5 text-xs text-[#1276E3] hover:bg-blue-50">
+                  <label htmlFor="bank-stmt" className="rounded-md border border-[#1276E3] bg-white px-3 py-1.5 text-xs text-primary hover:bg-blue-50">
                     اختيار ملف أو عدة ملفات
                   </label>
-                  <label htmlFor="bank-stmt-folder" className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs text-[#374151] hover:bg-[#F9FAFB]">
+                  <label htmlFor="bank-stmt-folder" className="rounded-md border border-border bg-white px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted">
                     اختيار مجلد PDF
                   </label>
                 </div>
@@ -336,7 +336,7 @@ export function BankReconciliation() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={handleParse} disabled={busy || selectedFiles.length === 0} className="bg-[#1276E3] hover:bg-[#1060C0]">
+              <Button onClick={handleParse} disabled={busy || selectedFiles.length === 0} className="bg-primary hover:bg-primary/90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
                 استخراج الحركات والمطابقة التلقائية
               </Button>
@@ -348,29 +348,29 @@ export function BankReconciliation() {
       {step === "review" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-              <div className="text-xs text-[#6B7280]">إجمالي الحركات</div>
-              <div className="font-english font-bold text-[#0B1B49] mt-1" style={{ fontSize: "1.5rem" }}>{rows.length}</div>
+            <Card className="border-border"><CardContent className="p-4">
+              <div className="text-xs text-muted-foreground">إجمالي الحركات</div>
+              <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }}>{rows.length}</div>
             </CardContent></Card>
-            <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-              <div className="text-xs text-[#6B7280]">مطابقة تلقائية</div>
+            <Card className="border-border"><CardContent className="p-4">
+              <div className="text-xs text-muted-foreground">مطابقة تلقائية</div>
               <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }}>{stats?.matched || 0}</div>
             </CardContent></Card>
-            <Card className="border-[#E5E7EB]"><CardContent className="p-4">
-              <div className="text-xs text-[#6B7280]">تحتاج مراجعة</div>
+            <Card className="border-border"><CardContent className="p-4">
+              <div className="text-xs text-muted-foreground">تحتاج مراجعة</div>
               <div className="font-english font-bold text-amber-700 mt-1" style={{ fontSize: "1.5rem" }}>{stats?.unmatched || 0}</div>
             </CardContent></Card>
           </div>
 
           {parseSource?.model && (
-            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-[#0B1B49]">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
               تمت قراءة الكشف عبر AI · <span className="font-english" dir="ltr">{parseSource.model}</span>
             </div>
           )}
 
-          <Card className="border-[#E5E7EB]">
+          <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-[#0B1B49]">مراجعة الحركات</CardTitle>
+              <CardTitle className="text-foreground">مراجعة الحركات</CardTitle>
               <CardDescription>اختر لكل حركة: قبول المطابقة · إنشاء سند جديد · تخطي</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -383,7 +383,7 @@ export function BankReconciliation() {
                     <col style={{ width: "200px" }} />
                     <col style={{ width: "200px" }} />
                   </colgroup>
-                  <thead className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                  <thead className="bg-muted text-xs text-muted-foreground">
                     <tr>
                       <th className="text-start px-3 py-2.5 font-medium">التاريخ</th>
                       <th className="text-start px-3 py-2.5 font-medium">البيان</th>
@@ -394,12 +394,12 @@ export function BankReconciliation() {
                   </thead>
                   <tbody>
                     {rows.map((r, i) => (
-                      <tr key={i} className="border-t border-[#F3F4F6]">
-                        <td className="px-3 py-2 font-english text-[#374151]" dir="ltr">{r.date.slice(0, 10)}</td>
+                      <tr key={i} className="border-t border-border/50">
+                        <td className="px-3 py-2 font-english text-foreground/80" dir="ltr">{r.date.slice(0, 10)}</td>
                         <td className="px-3 py-2">
-                          <div className="text-[#0B1B49] truncate">{r.description}</div>
-                          {r.reference && <div className="text-xs text-[#9CA3AF] font-english" dir="ltr">{r.reference}</div>}
-                          {r.sourceFile && <div className="text-[11px] text-[#9CA3AF] font-english truncate" dir="ltr">{r.sourceFile}</div>}
+                          <div className="text-foreground truncate">{r.description}</div>
+                          {r.reference && <div className="text-xs text-muted-foreground/60 font-english" dir="ltr">{r.reference}</div>}
+                          {r.sourceFile && <div className="text-[11px] text-muted-foreground/60 font-english truncate" dir="ltr">{r.sourceFile}</div>}
                         </td>
                         <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-green-700" : "text-red-700"}`} dir="ltr">
                           {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString()}
@@ -409,12 +409,12 @@ export function BankReconciliation() {
                             <div className="flex items-center gap-2 text-xs">
                               <Link2 className="h-3 w-3 text-green-600" />
                               <div>
-                                <div className="text-[#0B1B49]">{r.matchLabel}</div>
-                                {r.matchScore && <div className="text-[#9CA3AF]">ثقة <span className="font-english">{Math.round(r.matchScore * 100)}%</span></div>}
+                                <div className="text-foreground">{r.matchLabel}</div>
+                                {r.matchScore && <div className="text-muted-foreground/60">ثقة <span className="font-english">{Math.round(r.matchScore * 100)}%</span></div>}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-xs text-[#9CA3AF]">— لا يوجد —</span>
+                            <span className="text-xs text-muted-foreground/60">— لا يوجد —</span>
                           )}
                         </td>
                         <td className="px-3 py-2">
@@ -436,7 +436,7 @@ export function BankReconciliation() {
           </Card>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={reset} className="border-[#E5E7EB]">رجوع</Button>
+            <Button variant="outline" onClick={reset} className="border-border">رجوع</Button>
             <Button onClick={handleCommit} disabled={committing} className="bg-green-600 hover:bg-green-700 text-white">
               {committing ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
               تأكيد وترحيل {rows.filter(r => r.decision !== "skip").length} حركة
@@ -449,9 +449,9 @@ export function BankReconciliation() {
         <Card className="border-green-200 bg-green-50">
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-3" />
-            <div className="text-xl text-[#0B1B49] font-bold">تمت التسوية بنجاح</div>
-            <p className="text-sm text-[#6B7280] mt-2">جميع الحركات المعتمدة أصبحت قيوداً مرحَّلة في الدفتر العام</p>
-            <Button onClick={reset} className="bg-[#1276E3] hover:bg-[#1060C0] mt-4">رفع كشف آخر</Button>
+            <div className="text-xl text-foreground font-bold">تمت التسوية بنجاح</div>
+            <p className="text-sm text-muted-foreground mt-2">جميع الحركات المعتمدة أصبحت قيوداً مرحَّلة في الدفتر العام</p>
+            <Button onClick={reset} className="bg-primary hover:bg-primary/90 mt-4">رفع كشف آخر</Button>
           </CardContent>
         </Card>
       )}

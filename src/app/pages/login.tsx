@@ -67,14 +67,14 @@ export function Login() {
           className="w-full max-w-md"
         >
           <div className="mb-10 flex items-center justify-between gap-3">
-            <Link to="/" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0B1A47] transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
+            <Link to="/" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
               <ArrowRight className="w-4 h-4" />
               {t("العودة للرئيسية", "Back home")}
             </Link>
             <button
               type="button"
               onClick={toggleLanguage}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-[#6B7280] hover:border-[#1276E3]/30 hover:bg-[#F4FCFF]"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-muted-foreground hover:border-[#1276E3]/30 hover:bg-primary/5"
               style={{ fontSize: "13px", fontWeight: 600 }}
             >
               <Globe className="h-4 w-4" />
@@ -86,8 +86,8 @@ export function Login() {
             <EntixWordmark size={34} />
           </div>
 
-          <h1 className="text-[#0B1A47] mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("تسجيل الدخول", "Sign in")}</h1>
-          <p className="text-[#6B7280] mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>{t("أدخل بياناتك للوصول إلى حسابك", "Enter your details to access your account.")}</p>
+          <h1 className="text-foreground mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("تسجيل الدخول", "Sign in")}</h1>
+          <p className="text-muted-foreground mb-8" style={{ fontSize: "15px", lineHeight: 1.6 }}>{t("أدخل بياناتك للوصول إلى حسابك", "Enter your details to access your account.")}</p>
 
           {error && (
             <motion.div 
@@ -100,21 +100,21 @@ export function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-[#0B1A47] mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>{t("البريد الإلكتروني", "Email")}</label>
+              <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>{t("البريد الإلكتروني", "Email")}</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
-                className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
                 style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                 required
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[#0B1A47]" style={{ fontSize: "14px", fontWeight: 500 }}>{t("كلمة المرور", "Password")}</label>
-                <Link to="/forgot-password" className="text-[#1276E3] hover:underline" style={{ fontSize: "13px" }}>{t("نسيت كلمة المرور؟", "Forgot password?")}</Link>
+                <label className="text-foreground" style={{ fontSize: "14px", fontWeight: 500 }}>{t("كلمة المرور", "Password")}</label>
+                <Link to="/forgot-password" className="text-primary hover:underline" style={{ fontSize: "13px" }}>{t("نسيت كلمة المرور؟", "Forgot password?")}</Link>
               </div>
               <div className="relative">
                 <input
@@ -122,14 +122,14 @@ export function Login() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
                   style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] cursor-pointer"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-muted-foreground cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -139,7 +139,7 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1276E3] hover:bg-[#0B5FBF] disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
+              className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
               {loading ? (
@@ -155,7 +155,7 @@ export function Login() {
           {googleEnabled && (
             <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-[#E5E7EB]" />
-              <span className="text-[#9CA3AF]" style={{ fontSize: "12px" }}>{t("أو", "or")}</span>
+              <span className="text-muted-foreground/60" style={{ fontSize: "12px" }}>{t("أو", "or")}</span>
               <div className="flex-1 h-px bg-[#E5E7EB]" />
             </div>
           )}
@@ -166,7 +166,7 @@ export function Login() {
             type="button"
             onClick={handleGoogle}
             disabled={googleLoading}
-            className="w-full bg-white border border-[#E5E7EB] hover:border-[#1276E3] hover:bg-[#F9FAFB] disabled:opacity-60 text-[#0B1A47] py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
+            className="w-full bg-white border border-border hover:border-[#1276E3] hover:bg-muted disabled:opacity-60 text-foreground py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
             style={{ fontSize: "15px", fontWeight: 600 }}
           >
             {googleLoading ? (
@@ -184,16 +184,16 @@ export function Login() {
           )}
 
           <div className="mt-6 text-center">
-            <span className="text-[#6B7280]" style={{ fontSize: "14px" }}>{t("ليس لديك حساب؟ ", "No account yet? ")}</span>
-            <Link to="/register" className="text-[#1276E3] hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("إنشاء حساب جديد", "Create account")}</Link>
+            <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{t("ليس لديك حساب؟ ", "No account yet? ")}</span>
+            <Link to="/register" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("إنشاء حساب جديد", "Create account")}</Link>
           </div>
         </motion.div>
       </div>
 
       {/* Left side - Brand */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0B1A47] via-[#0F2156] to-[#1A2D5C] items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0B1B49] via-[#0F2156] to-[#1A2D5C] items-center justify-center p-12 relative overflow-hidden">
         {/* Decorative elements */}
-        <div className="absolute top-20 left-20 w-72 h-72 bg-[#1276E3]/10 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-20 w-56 h-56 bg-[#349FC4]/10 rounded-full blur-3xl" />
         
         <div className="text-center max-w-md relative z-10">

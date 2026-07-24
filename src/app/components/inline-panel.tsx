@@ -35,19 +35,19 @@ export function InlinePanel({ open, title, description, onClose, children, foote
   if (open === false) return null;
 
   const wrapper = variant === "card"
-    ? "rounded-xl border border-[#E5E7EB] bg-white shadow-sm"
+    ? "rounded-xl border border-border bg-white shadow-sm"
     : "rounded-xl";
 
   return (
     <div className={wrapper}>
-      <div className="flex items-start justify-between px-5 py-4 border-b border-[#E5E7EB]">
+      <div className="flex items-start justify-between px-5 py-4 border-b border-border">
         <div className="min-w-0">
-          <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>{title}</h2>
-          {description && <p className="text-xs text-[#6B7280] mt-0.5">{description}</p>}
+          <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{title}</h2>
+          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
         <button
           onClick={onClose}
-          className="rounded-md p-1.5 text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49] shrink-0"
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0"
           aria-label="إغلاق"
         >
           <X className="h-4 w-4" />
@@ -55,7 +55,7 @@ export function InlinePanel({ open, title, description, onClose, children, foote
       </div>
       <div className="px-5 py-5">{children}</div>
       {footer && (
-        <div className="px-5 py-3 border-t border-[#E5E7EB] bg-[#F9FAFB] rounded-b-xl">
+        <div className="px-5 py-3 border-t border-border bg-muted rounded-b-xl">
           {footer}
         </div>
       )}

@@ -645,7 +645,7 @@ export function PurchaseBills() {
               </div>
               <div className="divide-y divide-[#E5E7EB] border border-border rounded-xl overflow-hidden">
                 {duplicate.matches.map((m: any) => (
-                  <div key={m.id} className="flex items-center justify-between p-3 hover:bg-[#F9FAFB]">
+                  <div key={m.id} className="flex items-center justify-between p-3 hover:bg-muted">
                     <div>
                       <p className="text-sm text-foreground font-medium">{m.billNumber || "فاتورة بدون رقم"}</p>
                       <p className="text-xs text-muted-foreground">{m.contact?.displayName} · {Number(m.total).toFixed(2)} {m.currency} · {m.issueDate?.slice(0, 10)}</p>
@@ -667,7 +667,7 @@ export function PurchaseBills() {
                     setDuplicate({ open: false, matches: [], pendingSubmit: null });
                     if (action) await handleSubmit(action);
                   }}
-                  className="bg-[#1276E3] hover:bg-[#0B5FBF]"
+                  className="bg-primary hover:bg-primary/80"
                 >
                   إنشاء فاتورة جديدة
                 </Button>
@@ -687,7 +687,7 @@ export function PurchaseBills() {
           <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المشتريات</h1>
           <p className="text-muted-foreground mt-1">إدارة فواتير الموردين</p>
         </div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة مشتريات جديدة</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة مشتريات جديدة</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -709,16 +709,16 @@ export function PurchaseBills() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-foreground">قائمة فواتير المشتريات</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" /><Input placeholder="بحث..." className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
-            <div className="py-12 text-center"><ShoppingBag className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير مشتريات بعد</p></div>
+            <div className="py-12 text-center"><ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير مشتريات بعد</p></div>
           ) : (
             <table className="w-full">
-              <thead><tr className="border-b border-border bg-[#F9FAFB] text-xs text-muted-foreground">
+              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المورد</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
@@ -729,7 +729,7 @@ export function PurchaseBills() {
               </tr></thead>
               <tbody>
                 {filtered.map(b => (
-                  <tr key={b.id} onClick={() => openEdit(b)} className="border-b border-[#F3F4F6] hover:bg-primary/5 cursor-pointer">
+                  <tr key={b.id} onClick={() => openEdit(b)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{b.billNumber}</td>
                     <td className="py-3 px-4 text-sm text-foreground/80">{b.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{b.issueDate?.slice(0, 10)}</td>

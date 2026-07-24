@@ -25,9 +25,9 @@ export function Integration() {
       <SharedNavbar />
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-96 h-96 bg-[#349FC4]/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-[#1276E3]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div 
@@ -67,8 +67,8 @@ export function Integration() {
                 }}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
                   activeSection === section.id
-                    ? "bg-[#1276E3] text-white shadow-lg shadow-[#1276E3]/25"
-                    : "bg-gray-50 text-[#6B7280] hover:bg-gray-100"
+                    ? "bg-primary text-white shadow-lg shadow-[#1276E3]/25"
+                    : "bg-gray-50 text-muted-foreground hover:bg-gray-100"
                 }`}
                 style={{ fontSize: "14px", fontWeight: 500 }}
               >
@@ -89,14 +89,14 @@ export function Integration() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-[#1276E3] px-4 py-2 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-primary px-4 py-2 rounded-full mb-4">
               <RefreshCw className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>مزامنة ذكية</span>
             </div>
-            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
               اعمل في أي مكان، في أي وقت
             </h2>
-            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
               نظام مزامنة متقدم يتيح لك العمل بدون إنترنت مع ضمان تزامن جميع بياناتك تلقائياً
             </p>
           </motion.div>
@@ -108,7 +108,7 @@ export function Integration() {
                 icon: WifiOff,
                 title: "العمل أوفلاين",
                 desc: "استمر في العمل حتى بدون إنترنت. جميع البيانات محفوظة محلياً على جهازك.",
-                color: "#0B1A47",
+                color: "#0B1B49",
                 features: [
                   "تخزين محلي آمن بتقنية IndexedDB",
                   "معالجة فورية للمعاملات",
@@ -150,7 +150,7 @@ export function Integration() {
                 transition={{ delay: i * 0.1 }}
                 className={`rounded-2xl p-8 ${
                   mode.highlighted
-                    ? "bg-gradient-to-br from-[#0B1A47] to-[#1276E3] text-white shadow-2xl shadow-[#1276E3]/20 scale-105"
+                    ? "bg-gradient-to-br from-[#0B1B49] to-[#1276E3] text-white shadow-2xl shadow-[#1276E3]/20 scale-105"
                     : "bg-gray-50 border border-gray-200"
                 }`}
               >
@@ -166,13 +166,13 @@ export function Integration() {
                   />
                 </div>
                 <h3 
-                  className={`mb-3 ${mode.highlighted ? "text-white" : "text-[#0B1A47]"}`}
+                  className={`mb-3 ${mode.highlighted ? "text-white" : "text-foreground"}`}
                   style={{ fontSize: "19px", fontWeight: 600 }}
                 >
                   {mode.title}
                 </h3>
                 <p 
-                  className={`mb-5 ${mode.highlighted ? "text-white/80" : "text-[#6B7280]"}`}
+                  className={`mb-5 ${mode.highlighted ? "text-white/80" : "text-muted-foreground"}`}
                   style={{ fontSize: "14px", lineHeight: 1.7 }}
                 >
                   {mode.desc}
@@ -185,7 +185,7 @@ export function Integration() {
                           mode.highlighted ? "text-[#60A5FA]" : "text-[#22C55E]"
                         }`} 
                       />
-                      <span className={mode.highlighted ? "text-white/90" : "text-[#6B7280]"}>
+                      <span className={mode.highlighted ? "text-white/90" : "text-muted-foreground"}>
                         {feature}
                       </span>
                     </li>
@@ -202,7 +202,7 @@ export function Integration() {
             viewport={{ once: true }}
             className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 border border-gray-100"
           >
-            <h3 className="text-[#0B1A47] mb-8 text-center" style={{ fontSize: "22px", fontWeight: 600 }}>
+            <h3 className="text-foreground mb-8 text-center" style={{ fontSize: "22px", fontWeight: 600 }}>
               كيف تعمل المزامنة؟
             </h3>
             <div className="grid md:grid-cols-4 gap-6">
@@ -237,13 +237,13 @@ export function Integration() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#1276E3] to-[#349FC4] flex items-center justify-center shadow-lg shadow-[#1276E3]/20">
                       <step.icon className="w-7 h-7 text-white" />
                     </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#0B1A47] text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#0B1B49] text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {step.step}
                     </div>
-                    <h4 className="text-[#0B1A47] mb-2" style={{ fontSize: "15px", fontWeight: 600 }}>
+                    <h4 className="text-foreground mb-2" style={{ fontSize: "15px", fontWeight: 600 }}>
                       {step.title}
                     </h4>
-                    <p className="text-[#6B7280]" style={{ fontSize: "13px" }}>
+                    <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
                       {step.desc}
                     </p>
                   </div>
@@ -270,10 +270,10 @@ export function Integration() {
               <FileCheck className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>التزام كامل</span>
             </div>
-            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
               متوافق مع جميع المتطلبات القانونية
             </h2>
-            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
               نظام مصمم بعناية ليتوافق بالكامل مع متطلبات هيئة الزكاة والضريبة والجمارك ZATCA 
               والمعايير الدولية
             </p>
@@ -333,17 +333,17 @@ export function Integration() {
                 >
                   <compliance.icon className="w-7 h-7" style={{ color: compliance.color }} />
                 </div>
-                <h3 className="text-[#0B1A47] mb-1" style={{ fontSize: "22px", fontWeight: 700 }}>
+                <h3 className="text-foreground mb-1" style={{ fontSize: "22px", fontWeight: 700 }}>
                   {compliance.title}
                 </h3>
-                <p className="text-[#6B7280] mb-6" style={{ fontSize: "14px" }}>
+                <p className="text-muted-foreground mb-6" style={{ fontSize: "14px" }}>
                   {compliance.subtitle}
                 </p>
                 <ul className="space-y-3">
                   {compliance.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5" style={{ fontSize: "14px" }}>
                       <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: compliance.color }} />
-                      <span className="text-[#374151]">{feature}</span>
+                      <span className="text-foreground/80">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -366,11 +366,11 @@ export function Integration() {
                 viewport={{ once: true }}
                 className="bg-white rounded-xl p-6 text-center border border-gray-200 hover:border-[#1276E3]/30 hover:shadow-lg transition-all"
               >
-                <stat.icon className="w-8 h-8 mx-auto mb-3 text-[#1276E3]" />
-                <div className="text-[#0B1A47] mb-1" style={{ fontSize: "28px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                <stat.icon className="w-8 h-8 mx-auto mb-3 text-primary" />
+                <div className="text-foreground mb-1" style={{ fontSize: "28px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                   {stat.value}
                 </div>
-                <div className="text-[#6B7280]" style={{ fontSize: "13px" }}>
+                <div className="text-muted-foreground" style={{ fontSize: "13px" }}>
                   {stat.label}
                 </div>
               </motion.div>
@@ -392,10 +392,10 @@ export function Integration() {
               <Shield className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>أمان متقدم</span>
             </div>
-            <h2 className="text-[#0B1A47] mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
               حماية من الدرجة المصرفية
             </h2>
-            <p className="text-[#6B7280] max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
               بياناتك المالية محمية بأعلى معايير الأمان العالمية مع تشفير متقدم
               وحماية متعددة الطبقات
             </p>
@@ -485,12 +485,12 @@ export function Integration() {
                 >
                   <security.icon className="w-6 h-6" style={{ color: security.color }} />
                 </div>
-                <h3 className="text-[#0B1A47] mb-4" style={{ fontSize: "17px", fontWeight: 600 }}>
+                <h3 className="text-foreground mb-4" style={{ fontSize: "17px", fontWeight: 600 }}>
                   {security.title}
                 </h3>
                 <ul className="space-y-2">
                   {security.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-[#6B7280]" style={{ fontSize: "13px" }}>
+                    <li key={feature} className="flex items-start gap-2 text-muted-foreground" style={{ fontSize: "13px" }}>
                       <Circle className="w-1.5 h-1.5 flex-shrink-0 mt-1.5" style={{ fill: security.color }} />
                       <span>{feature}</span>
                     </li>
@@ -505,7 +505,7 @@ export function Integration() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-[#0B1A47] to-[#1276E3] rounded-2xl p-10 text-center text-white"
+            className="bg-gradient-to-br from-[#0B1B49] to-[#1276E3] rounded-2xl p-10 text-center text-white"
           >
             <h3 className="text-white mb-6" style={{ fontSize: "24px", fontWeight: 700 }}>
               شهادات الأمان والامتثال
@@ -532,15 +532,15 @@ export function Integration() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-[#0B1A47] mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700 }}>
               بياناتك في أمان تام
             </h2>
-            <p className="text-[#6B7280] text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
+            <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
               ابدأ اليوم بثقة تامة في نظام محمي بأعلى معايير الأمان ومتوافق مع جميع المتطلبات القانونية
             </p>
             <button 
               onClick={() => navigate("/register")}
-              className="bg-[#1276E3] hover:bg-[#0B5FBF] text-white px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-[#1276E3]/25 flex items-center gap-2 mx-auto cursor-pointer"
+              className="bg-primary hover:bg-primary/80 text-white px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-[#1276E3]/25 flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
               ابدأ تجربتك المجانية

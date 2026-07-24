@@ -76,9 +76,9 @@ export function QuickContactDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b border-[#F3F4F6]">
-          <h2 className="text-base text-[#0B1B49]" style={{ fontWeight: 700 }}>إضافة جهة جديدة</h2>
-          <button onClick={onCancel} className="p-1 hover:bg-[#F3F4F6] rounded"><X className="h-4 w-4 text-[#6B7280]" /></button>
+        <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>إضافة جهة جديدة</h2>
+          <button onClick={onCancel} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
         </div>
         <div className="p-4 space-y-3">
           {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -89,8 +89,8 @@ export function QuickContactDialog({
               const active = form.entityKind === k;
               return (
                 <button key={k} type="button" onClick={() => setForm({ ...form, entityKind: k })}
-                  className={`p-3 rounded-lg border-2 transition flex items-center gap-2 ${active ? "border-[#1276E3] bg-[#F4FCFF]" : "border-[#E5E7EB]"}`}>
-                  <Icon className={`h-4 w-4 ${active ? "text-[#1276E3]" : "text-[#9CA3AF]"}`} />
+                  className={`p-3 rounded-lg border-2 transition flex items-center gap-2 ${active ? "border-[#1276E3] bg-primary/5" : "border-border"}`}>
+                  <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground/60"}`} />
                   <span className="text-sm">{k === "INDIVIDUAL" ? "فرد" : "منظمة"}</span>
                 </button>
               );
@@ -98,16 +98,16 @@ export function QuickContactDialog({
           </div>
 
           <div>
-            <Label className="text-xs text-[#6B7280]">الاسم *</Label>
-            <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="شركة الأمل التجارية" className="border-[#E5E7EB]" />
+            <Label className="text-xs text-muted-foreground">الاسم *</Label>
+            <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="شركة الأمل التجارية" className="border-border" />
           </div>
 
           <div>
-            <Label className="text-xs text-[#6B7280]">النوع</Label>
+            <Label className="text-xs text-muted-foreground">النوع</Label>
             <div className="grid grid-cols-3 gap-1.5">
               {(["customer", "supplier", "both"] as Role[]).map(r => (
                 <button key={r} type="button" onClick={() => setForm({ ...form, role: r })}
-                  className={`text-xs px-2 py-1.5 rounded border transition ${form.role === r ? "border-[#1276E3] bg-[#F4FCFF] text-[#1276E3]" : "border-[#E5E7EB] text-[#6B7280]"}`}>
+                  className={`text-xs px-2 py-1.5 rounded border transition ${form.role === r ? "border-[#1276E3] bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>
                   {r === "customer" ? "عميل" : r === "supplier" ? "مورّد" : "كلاهما"}
                 </button>
               ))}
@@ -116,19 +116,19 @@ export function QuickContactDialog({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs text-[#6B7280]">البريد</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@x.com" dir="ltr" className="border-[#E5E7EB] font-english" />
+              <Label className="text-xs text-muted-foreground">البريد</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@x.com" dir="ltr" className="border-border font-english" />
             </div>
             <div>
-              <Label className="text-xs text-[#6B7280]">الجوال</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+966 5X XXX XXXX" dir="ltr" className="border-[#E5E7EB] font-english" />
+              <Label className="text-xs text-muted-foreground">الجوال</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+966 5X XXX XXXX" dir="ltr" className="border-border font-english" />
             </div>
           </div>
 
           <div>
-            <Label className="text-xs text-[#6B7280]">الدولة</Label>
+            <Label className="text-xs text-muted-foreground">الدولة</Label>
             <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm bg-white">
+              className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
               <option value="SA">السعودية</option>
               <option value="AE">الإمارات</option>
               <option value="KW">الكويت</option>
@@ -141,31 +141,31 @@ export function QuickContactDialog({
           {form.country === "SA" && form.entityKind === "COMPANY" && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-[#6B7280]">الرقم الضريبي</Label>
+                <Label className="text-xs text-muted-foreground">الرقم الضريبي</Label>
                 <Input
                   value={form.vatNumber}
                   onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
                   onPaste={(e) => { e.preventDefault(); const t = e.clipboardData.getData("text"); setForm({ ...form, vatNumber: formatTaxId(t, form.country) }); }}
-                  placeholder="300XXX" maxLength={20} dir="ltr" className="border-[#E5E7EB] font-english"
+                  placeholder="300XXX" maxLength={20} dir="ltr" className="border-border font-english"
                 />
               </div>
               <div>
-                <Label className="text-xs text-[#6B7280]">السجل التجاري</Label>
+                <Label className="text-xs text-muted-foreground">السجل التجاري</Label>
                 <Input
                   value={form.crNumber}
                   onChange={(e) => setForm({ ...form, crNumber: formatCrNumber(e.target.value, form.country) })}
                   onPaste={(e) => { e.preventDefault(); const t = e.clipboardData.getData("text"); setForm({ ...form, crNumber: formatCrNumber(t, form.country) }); }}
-                  placeholder="1010XX" maxLength={10} dir="ltr" className="border-[#E5E7EB] font-english"
+                  placeholder="1010XX" maxLength={10} dir="ltr" className="border-border font-english"
                 />
               </div>
             </div>
           )}
 
-          <p className="text-xs text-[#9CA3AF] pt-1">يمكن إكمال باقي البيانات (العنوان · LEI · ضريبة الاستقطاع) من صفحة جهات الاتصال</p>
+          <p className="text-xs text-muted-foreground/60 pt-1">يمكن إكمال باقي البيانات (العنوان · LEI · ضريبة الاستقطاع) من صفحة جهات الاتصال</p>
         </div>
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-[#F3F4F6]">
-          <Button type="button" variant="outline" onClick={onCancel} className="border-[#E5E7EB]">إلغاء</Button>
-          <Button type="button" onClick={handleSave} disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
+          <Button type="button" variant="outline" onClick={onCancel} className="border-border">إلغاء</Button>
+          <Button type="button" onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
           </Button>
         </div>

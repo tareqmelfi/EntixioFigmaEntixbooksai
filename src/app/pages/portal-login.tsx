@@ -44,26 +44,26 @@ export function PortalLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4FCFF] flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-primary/5 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-[400px]">
-        <div className="rounded-2xl bg-white border border-[#E5E7EB] p-8" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
+        <div className="rounded-2xl bg-white border border-border p-8" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="mt-2"><EntixWordmark size={30} /></h1>
-            <p className="text-sm text-[#6B7280] mt-1">بوابة الأطراف</p>
+            <p className="text-sm text-muted-foreground mt-1">بوابة الأطراف</p>
           </div>
 
           {step === "email" && (
             <form onSubmit={handleEmailSubmit}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>البريد الإلكتروني</label>
+                  <label className="block text-sm text-foreground/80 mb-1.5" style={{ fontWeight: 500 }}>البريد الإلكتروني</label>
                   <div className="relative">
-                    <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
+                    <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                     <input
                       type="email"
                       dir="ltr"
-                      className="w-full rounded-lg border border-[#E5E7EB] ps-10 pe-3 py-3 text-sm font-english text-[#374151] placeholder:text-[#9CA3AF] focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
+                      className="w-full rounded-lg border border-border ps-10 pe-3 py-3 text-sm font-english text-foreground/80 placeholder:text-muted-foreground/60 focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
                       placeholder="ahmed@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -73,7 +73,7 @@ export function PortalLogin() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-[#1276E3] px-4 py-3.5 text-sm text-white hover:bg-[#1060C0] transition-colors"
+                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-white hover:bg-primary/90 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
                   إرسال رمز الدخول
@@ -86,10 +86,10 @@ export function PortalLogin() {
             <form onSubmit={handleOtpSubmit}>
               <div className="space-y-5">
                 <div className="text-center">
-                  <p className="text-sm text-[#6B7280]">
+                  <p className="text-sm text-muted-foreground">
                     أرسلنا رمز من 6 أرقام إلى
                   </p>
-                  <p className="text-sm text-[#0B1B49] font-english mt-0.5" style={{ fontWeight: 600 }}>{email}</p>
+                  <p className="text-sm text-foreground font-english mt-0.5" style={{ fontWeight: 600 }}>{email}</p>
                 </div>
 
                 {/* OTP inputs */}
@@ -104,7 +104,7 @@ export function PortalLogin() {
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="h-12 w-12 rounded-lg border border-[#E5E7EB] text-center font-english text-[#0B1B49] focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
+                      className="h-12 w-12 rounded-lg border border-border text-center font-english text-foreground focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
                       style={{ fontSize: "1.5rem", fontWeight: 700 }}
                     />
                   ))}
@@ -116,13 +116,13 @@ export function PortalLogin() {
                     <button
                       type="button"
                       onClick={() => { setCountdown(60); setCanResend(false); }}
-                      className="text-xs text-[#1276E3] hover:underline"
+                      className="text-xs text-primary hover:underline"
                       style={{ fontWeight: 500 }}
                     >
                       أعد إرسال الرمز
                     </button>
                   ) : (
-                    <p className="text-xs text-[#9CA3AF]">
+                    <p className="text-xs text-muted-foreground/60">
                       ما وصلك الرمز؟ أعد الإرسال بعد <span className="font-english" style={{ fontWeight: 600 }}>{countdown}</span> ثانية
                     </p>
                   )}
@@ -131,7 +131,7 @@ export function PortalLogin() {
                 <button
                   type="submit"
                   disabled={!otp.every((d) => d)}
-                  className="w-full rounded-lg bg-[#1276E3] px-4 py-3.5 text-sm text-white hover:bg-[#1060C0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ fontWeight: 600 }}
                 >
                   دخول
@@ -140,7 +140,7 @@ export function PortalLogin() {
                 <button
                   type="button"
                   onClick={() => { setStep("email"); setOtp(["", "", "", "", "", ""]); }}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs text-[#6B7280] hover:text-[#1276E3] transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   <ArrowRight className="h-3 w-3" />
                   تغيير البريد الإلكتروني
@@ -152,9 +152,9 @@ export function PortalLogin() {
 
         {/* Footer */}
         <div className="text-center mt-6 flex items-center justify-center gap-2">
-          <Shield className="h-3.5 w-3.5 text-[#9CA3AF]" />
-          <span className="text-xs text-[#9CA3AF]">هذا الرابط آمن ومقدم من</span>
-          <span className="text-xs text-[#9CA3AF] font-english" style={{ fontWeight: 600 }}>ENTIX.IO — entix.io</span>
+          <Shield className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <span className="text-xs text-muted-foreground/60">هذا الرابط آمن ومقدم من</span>
+          <span className="text-xs text-muted-foreground/60 font-english" style={{ fontWeight: 600 }}>ENTIX.IO — entix.io</span>
         </div>
       </div>
     </div>

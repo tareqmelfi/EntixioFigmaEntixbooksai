@@ -19,7 +19,7 @@ function HalftoneTorusKnot() {
       <mesh ref={meshRef}>
         <torusKnotGeometry args={[2.5, 0.8, 128, 32, 3, 4]} />
         <meshStandardMaterial
-          color="#0B1A47"
+          color="#0B1B49"
           metalness={0.3}
           roughness={0.4}
           wireframe={false}
@@ -48,7 +48,7 @@ export function Hero3DBackground() {
         <HalftoneTorusKnot />
         
         {/* Subtle fog */}
-        <fog attach="fog" args={['#0B1A47', 5, 20]} />
+        <fog attach="fog" args={['#0B1B49', 5, 20]} />
       </Canvas>
 
       {/* Gradient Overlay (reduces visual noise) */}

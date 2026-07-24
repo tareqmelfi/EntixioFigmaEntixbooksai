@@ -46,23 +46,23 @@ export function CostCenters() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مراكز التكلفة</h1><p className="text-[#6B7280] mt-1">تتبع المصاريف والإيرادات حسب مركز التكلفة</p></div>
-        <Button className="bg-[#1276E3] hover:bg-[#1060C0]" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />مركز جديد</Button>
+        <div><h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مراكز التكلفة</h1><p className="text-muted-foreground mt-1">تتبع المصاريف والإيرادات حسب مركز التكلفة</p></div>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />مركز جديد</Button>
       </div>
 
-      <Card className="border-[#E5E7EB]">
-        <CardHeader><CardTitle className="text-[#0B1B49]">القائمة · {items.length}</CardTitle></CardHeader>
+      <Card className="border-border">
+        <CardHeader><CardTitle className="text-foreground">القائمة · {items.length}</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#1276E3]" /></div> :
-           items.length === 0 ? <div className="py-12 text-center"><Target className="h-12 w-12 mx-auto text-[#9CA3AF] mb-3" /><p className="text-sm text-[#6B7280]">لا توجد مراكز تكلفة</p></div> :
-          (<table className="w-full"><thead><tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-[#6B7280]">
+          {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
+           items.length === 0 ? <div className="py-12 text-center"><Target className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد مراكز تكلفة</p></div> :
+          (<table className="w-full"><thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
             <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
             <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
             <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
           </tr></thead><tbody>
-            {items.map(c => <tr key={c.id} className="border-b border-[#F3F4F6] hover:bg-[#F4FCFF]">
-              <td className="py-3 px-4 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{c.code}</td>
-              <td className="py-3 px-4 text-sm text-[#0B1B49]">{c.name}</td>
+            {items.map(c => <tr key={c.id} className="border-b border-border/50 hover:bg-primary/5">
+              <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{c.code}</td>
+              <td className="py-3 px-4 text-sm text-foreground">{c.name}</td>
               <td className="py-3 px-4">{pendingDelete === c.id ? (<InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />) : (<button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>)}</td>
             </tr>)}
           </tbody></table>)}
@@ -70,12 +70,12 @@ export function CostCenters() {
       </Card>
 
       <SidePanel open={open} onClose={() => setOpen(false)}>
-        <div className="mb-3"><h2 className="text-[#0B1B49] text-lg font-semibold">مركز تكلفة جديد</h2></div>
+        <div className="mb-3"><h2 className="text-foreground text-lg font-semibold">مركز تكلفة جديد</h2></div>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <div className="space-y-2"><Label>الرمز *</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CC-001" dir="ltr" className="font-english" /></div>
             <div className="space-y-2"><Label>الاسم *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="قسم المبيعات" /></div>
-            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#E5E7EB]"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-[#1276E3] hover:bg-[#1060C0]">{busy ? "..." : "حفظ"}</Button></div>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : "حفظ"}</Button></div>
           </form>
         </SidePanel>
       <ToastStack toasts={toasts} onDismiss={dismiss} />

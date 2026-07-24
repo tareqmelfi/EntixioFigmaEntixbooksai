@@ -80,7 +80,7 @@ export function SalesDashboard() {
     })).filter((s) => s.value > 0);
   }, [data]);
 
-  if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-[#1276E3]" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (error || !data) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || "تعذّر التحميل"}</div>;
 
   const cur = data.org.baseCurrency;
@@ -99,20 +99,20 @@ export function SalesDashboard() {
       {/* Hero · title + actions */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-[#0B1B49]" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المبيعات</h1>
-          <p className="text-[#6B7280] mt-1 text-sm">نظرة شاملة على مبيعاتك وفواتيرك</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المبيعات</h1>
+          <p className="text-muted-foreground mt-1 text-sm">نظرة شاملة على مبيعاتك وفواتيرك</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => navigate("/app/invoices?new=1")} className="bg-[#1276E3] hover:bg-[#0B5FBF]">
+          <Button onClick={() => navigate("/app/invoices?new=1")} className="bg-primary hover:bg-primary/80">
             <Plus className="me-1 h-4 w-4" /> فاتورة جديدة
           </Button>
-          <Button variant="outline" onClick={() => navigate("/app/quotes?new=1")} className="border-[#E5E7EB] text-[#1276E3]">
+          <Button variant="outline" onClick={() => navigate("/app/quotes?new=1")} className="border-border text-primary">
             <Plus className="me-1 h-4 w-4" /> عرض سعر
           </Button>
-          <Button variant="outline" onClick={() => navigate("/app/receipts?new=1")} className="border-[#E5E7EB] text-[#1276E3]">
+          <Button variant="outline" onClick={() => navigate("/app/receipts?new=1")} className="border-border text-primary">
             <Plus className="me-1 h-4 w-4" /> سند قبض
           </Button>
-          <Button variant="outline" onClick={() => navigate("/app/reports?type=sales")} className="border-[#E5E7EB] text-[#6B7280]">
+          <Button variant="outline" onClick={() => navigate("/app/reports?type=sales")} className="border-border text-muted-foreground">
             <Download className="me-1 h-4 w-4" /> تصدير
           </Button>
         </div>
@@ -120,37 +120,37 @@ export function SalesDashboard() {
 
       {/* 4 KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#6B7280]">إجمالي الفواتير</span>
-              <FileText className="h-4 w-4 text-[#1276E3]" />
+              <span className="text-xs text-muted-foreground">إجمالي الفواتير</span>
+              <FileText className="h-4 w-4 text-primary" />
             </div>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{data.allTime.count}</div>
+            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{data.allTime.count}</div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#6B7280]">إجمالي المبالغ</span>
-              <DollarSign className="h-4 w-4 text-[#1276E3]" />
+              <span className="text-xs text-muted-foreground">إجمالي المبالغ</span>
+              <DollarSign className="h-4 w-4 text-primary" />
             </div>
-            <div className="text-[#0B1B49] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(data.allTime.total)}</div>
+            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(data.allTime.total)}</div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#6B7280]">المحصّل</span>
+              <span className="text-xs text-muted-foreground">المحصّل</span>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </div>
             <div className="text-green-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(data.allTime.paid)}</div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#6B7280]">المتأخر</span>
+              <span className="text-xs text-muted-foreground">المتأخر</span>
               <AlertTriangle className="h-4 w-4 text-red-500" />
             </div>
             <div className="text-red-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(totalOverdue || data.allTime.outstanding)}</div>
@@ -160,40 +160,40 @@ export function SalesDashboard() {
 
       {/* 3 insight cards · top customer · most overdue · most credit */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> أكبر عميل</p>
-                <p className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{topCustomer?.name || "—"}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> أكبر عميل</p>
+                <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topCustomer?.name || "—"}</p>
               </div>
-              <div className="font-english text-[#0B1B49] text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-[#9CA3AF]">SR</span> {topCustomer ? Number(topCustomer.total).toLocaleString() : "—"}
+              <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
+                <span className="text-muted-foreground/60">SR</span> {topCustomer ? Number(topCustomer.total).toLocaleString() : "—"}
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> أكثر تأخر</p>
-                <p className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{mostOverdueCustomer?.contact || "—"}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> أكثر تأخر</p>
+                <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{mostOverdueCustomer?.contact || "—"}</p>
               </div>
               <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-[#9CA3AF]">SR</span> {mostOverdueCustomer ? Number(mostOverdueCustomer.total).toLocaleString() : "0"}
+                <span className="text-muted-foreground/60">SR</span> {mostOverdueCustomer ? Number(mostOverdueCustomer.total).toLocaleString() : "0"}
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5"><Briefcase className="h-3 w-3 text-[#1276E3]" /> أكثر كريديت</p>
-                <p className="text-sm text-[#0B1B49] truncate" style={{ fontWeight: 600 }}>{data.topCustomers[1]?.name || "—"}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Briefcase className="h-3 w-3 text-primary" /> أكثر كريديت</p>
+                <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{data.topCustomers[1]?.name || "—"}</p>
               </div>
-              <span className="text-xs text-[#1276E3] bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+              <span className="text-xs text-primary bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
                 {notificationsCount} إشعارات
               </span>
             </div>
@@ -202,28 +202,28 @@ export function SalesDashboard() {
       </div>
 
       {/* Recent invoices · 5 rows + view all */}
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-border">
         <CardContent className="p-0">
-          <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-[#F3F4F6]">
-            <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>آخر الفواتير</h2>
+          <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-border/50">
+            <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>آخر الفواتير</h2>
             <div className="relative">
-              <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
+              <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
               <Input
                 placeholder="البحث في الفواتير..."
-                className="w-64 ps-9 h-9 border-[#E5E7EB] text-sm"
+                className="w-64 ps-9 h-9 border-border text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-[#6B7280]">
+            <div className="p-12 text-center text-sm text-muted-foreground">
               لا توجد فواتير بعد · أنشئ فاتورة من زر "فاتورة جديدة" أعلاه
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F9FAFB] text-xs text-[#6B7280]">
+                <tr className="bg-muted text-xs text-muted-foreground">
                   <th className="py-2.5 px-5 text-start" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
                   <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>العميل</th>
                   <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
@@ -234,23 +234,23 @@ export function SalesDashboard() {
               </thead>
               <tbody>
                 {filtered.map((i) => (
-                  <tr key={i.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF] cursor-pointer" onClick={() => navigate(`/app/invoices`)}>
-                    <td className="py-3 px-5 font-english text-sm text-[#1276E3]" style={{ fontWeight: 600 }}>{i.number}</td>
-                    <td className="py-3 px-2 text-sm text-[#374151]">{i.contact}</td>
-                    <td className="py-3 px-2 font-english text-xs text-[#6B7280]">{i.date}</td>
-                    <td className="py-3 px-2 font-english text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()}</td>
+                  <tr key={i.id} className="border-t border-border/50 hover:bg-primary/5 cursor-pointer" onClick={() => navigate(`/app/invoices`)}>
+                    <td className="py-3 px-5 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{i.number}</td>
+                    <td className="py-3 px-2 text-sm text-foreground/80">{i.contact}</td>
+                    <td className="py-3 px-2 font-english text-xs text-muted-foreground">{i.date}</td>
+                    <td className="py-3 px-2 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()}</td>
                     <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span></td>
-                    <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-[#9CA3AF]" /></td>
+                    <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-muted-foreground/60" /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
           {filtered.length > 0 && (
-            <div className="px-5 py-3 border-t border-[#F3F4F6] text-center">
+            <div className="px-5 py-3 border-t border-border/50 text-center">
               <button
                 onClick={() => navigate("/app/invoices")}
-                className="text-sm text-[#1276E3] hover:underline inline-flex items-center gap-1"
+                className="text-sm text-primary hover:underline inline-flex items-center gap-1"
               >
                 عرض جميع الفواتير <ArrowLeft className="h-3.5 w-3.5" />
               </button>
@@ -261,15 +261,15 @@ export function SalesDashboard() {
 
       {/* Charts · status distribution + monthly */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>المبيعات الشهرية</h2>
-              <span className="text-xs text-[#6B7280]">آخر 6 أشهر</span>
+              <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>المبيعات الشهرية</h2>
+              <span className="text-xs text-muted-foreground">آخر 6 أشهر</span>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               {monthlyData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-[#6B7280]">لا توجد بيانات بعد</div>
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">لا توجد بيانات بعد</div>
               ) : (
                 <ResponsiveContainer>
                   <BarChart data={monthlyData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -284,15 +284,15 @@ export function SalesDashboard() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="text-[#0B1B49]" style={{ fontSize: "1rem", fontWeight: 600 }}>توزيع حالات الفواتير</h2>
-              <span className="text-xs text-[#6B7280]">حسب الحالة الحالية</span>
+              <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>توزيع حالات الفواتير</h2>
+              <span className="text-xs text-muted-foreground">حسب الحالة الحالية</span>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               {statusData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-[#6B7280]">لا توجد بيانات بعد</div>
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">لا توجد بيانات بعد</div>
               ) : (
                 <ResponsiveContainer>
                   <PieChart>

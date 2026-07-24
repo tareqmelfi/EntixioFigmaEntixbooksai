@@ -43,7 +43,7 @@ export function InteractiveDashboard3D() {
   // Initialize particles
   useEffect(() => {
     const newParticles: AIParticle[] = [];
-    const colors = ["#1276E3", "#349FC4", "#0B1A47", "#60A5FA"];
+    const colors = ["#1276E3", "#349FC4", "#0B1B49", "#60A5FA"];
     
     for (let i = 0; i < 30; i++) {
       newParticles.push({
@@ -226,7 +226,7 @@ export function InteractiveDashboard3D() {
         />
         
         {/* Main image with depth layers */}
-        <div className="relative bg-gradient-to-br from-[#0B1A47] via-[#122354] to-[#1276E3] rounded-2xl p-1.5 shadow-2xl shadow-[#0B1A47]/30">
+        <div className="relative bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] rounded-2xl p-1.5 shadow-2xl shadow-[#0B1B49]/30">
           {/* Light reflection overlay */}
           <motion.div
             className="absolute inset-0 rounded-xl opacity-30 pointer-events-none z-20"
@@ -268,7 +268,7 @@ export function InteractiveDashboard3D() {
         
         {/* Depth layers for 3D effect */}
         <div 
-          className="absolute inset-0 bg-gradient-to-br from-[#0B1A47]/20 to-[#1276E3]/20 rounded-2xl blur-xl -z-10"
+          className="absolute inset-0 bg-gradient-to-br from-[#0B1B49]/20 to-[#1276E3]/20 rounded-2xl blur-xl -z-10"
           style={{ transform: "translateZ(-20px)" }}
         />
         <div 

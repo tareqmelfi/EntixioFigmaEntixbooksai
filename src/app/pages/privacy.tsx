@@ -128,19 +128,19 @@ export function Privacy() {
             <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-[#0B1B49] flex items-center justify-center shadow-lg">
               <Shield className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-[#0B1B49] mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
+            <h1 className="text-foreground mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
               {isAr ? "سياسة الخصوصية" : "ENTIX.IO Privacy Policy"}
             </h1>
-            <p className="text-[#6B7280]" style={{ fontSize: "0.95rem" }}>
+            <p className="text-muted-foreground" style={{ fontSize: "0.95rem" }}>
               {isAr ? "آخر تحديث: 4 يونيو 2026" : "Last updated: June 4, 2026"}
             </p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-200">
-            <h2 className="text-[#0B1B49] mb-3" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+            <h2 className="text-foreground mb-3" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
               {isAr ? "من نحن" : "Who we are"}
             </h2>
-            <p className="text-[#374151] m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+            <p className="text-foreground/80 m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr
                 ? "ENTIX.IO هو منتج محاسبة وفوترة وذكاء اصطناعي مملوك لشركة سبيك بروز للاستثمار، سجل تجاري 3400010090، وتتم إدارته وتشغيله بواسطة ENSIDEX LLC. هذه السياسة تشرح كيف نتعامل مع بيانات مستخدمي المنصة."
                 : "ENTIX.IO is an accounting, invoicing, and AI workflow product owned by شركة سبيك بروز للاستثمار, CR 3400010090, and operated and powered by ENSIDEX LLC. This policy explains how we handle information for users and workspaces."}
@@ -153,15 +153,15 @@ export function Privacy() {
               return (
                 <section key={section.title}>
                   <div className="flex items-center gap-3 mb-4">
-                    <Icon className="w-5 h-5 text-[#1276E3]" />
-                    <h2 className="text-[#0B1B49] m-0" style={{ fontSize: "1.15rem", fontWeight: 700 }}>
+                    <Icon className="w-5 h-5 text-primary" />
+                    <h2 className="text-foreground m-0" style={{ fontSize: "1.15rem", fontWeight: 700 }}>
                       {section.title}
                     </h2>
                   </div>
-                  <p className="text-[#374151]" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+                  <p className="text-foreground/80" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
                     {section.body}
                   </p>
-                  <ul className="text-[#374151] space-y-2" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+                  <ul className="text-foreground/80 space-y-2" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
                     {section.items.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
@@ -172,13 +172,13 @@ export function Privacy() {
           </div>
 
           <div className="bg-[#EFF6FF] rounded-lg p-6 mt-12 border border-[#1276E3]/20">
-            <h3 className="text-[#0B1B49] mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
+            <h3 className="text-foreground mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
               {isAr ? "التواصل" : "Contact"}
             </h3>
-            <p className="text-[#374151] mb-2" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
+            <p className="text-foreground/80 mb-2" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr ? "لأسئلة الخصوصية أو طلبات البيانات:" : "For privacy questions or data requests:"}
             </p>
-            <p className="text-[#1276E3] font-english" style={{ fontSize: "0.95rem" }}>
+            <p className="text-primary font-english" style={{ fontSize: "0.95rem" }}>
               privacy@entix.io
             </p>
           </div>
