@@ -7,7 +7,9 @@
     "build": "vite build",
     "dev": "vite",
     "qa:routes": "node scripts/qa-route-audit.mjs",
-    "qa:build-report": "npm run build && npm run qa:routes"
+    "qa:build-report": "npm run build && npm run qa:routes",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
