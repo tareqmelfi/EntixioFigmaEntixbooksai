@@ -109,6 +109,32 @@ export function PurchaseBills() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Global drag-and-drop: drop anywhere on the page to upload as attachment
+  useEffect(() => {
+    if (!createOpen) return;
+    const handler = (e: DragEvent) => {
+      e.preventDefault();
+      const file = e.dataTransfer?.files?.[0];
+      if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
+        // Trigger the DocumentDropZone extraction flow
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (input) {
+          input.files = dt.files;
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    };
+    const prevent = (e: DragEvent) => e.preventDefault();
+    window.addEventListener('dragover', prevent);
+    window.addEventListener('drop', handler);
+    return () => {
+      window.removeEventListener('dragover', prevent);
+      window.removeEventListener('drop', handler);
+    };
+  }, [createOpen]);
+
   useEffect(() => {
     if (searchParams.get("new") === "1") {
       setForm(EMPTY_FORM);
@@ -219,9 +245,10 @@ export function PurchaseBills() {
           productId: l.productId || null,
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
-          unitPrice: l.taxInclusive
-            ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
-            : Number(normalizeDigits(l.unitPrice)),
+          unitPrice: (() => { const v = Number(normalizeDigits(l.unitPrice)); return isNaN(v) ? 0 : v; })(),
+          taxRate: l.taxRate ?? 0,
+          taxRateId: (l as any).taxRateId || null,
+          accountId: (l as any).accountId || null,
         })),
         paymentSplits: hasSplits
           ? paymentSplits.map((sp) => ({
@@ -316,7 +343,7 @@ export function PurchaseBills() {
             </div>
           }
         >
-          <div className="max-w-7xl mx-auto space-y-4">
+          <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{createError}</div>}
 
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
