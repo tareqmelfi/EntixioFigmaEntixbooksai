@@ -11,21 +11,13 @@
  *   4. Click create → calls onCreate(query) which returns the new item · auto-selects
  *   5. Click any match → onChange + close
  *
- * Usage:
- *   <SearchableCombobox
- *     value={form.contactId}
- *     onChange={(id) => setForm({ ...form, contactId: id })}
- *     onCreate={async (name) => {
- *       const c = await api.contacts.create({ displayName: name, type: "CUSTOMER" });
- *       setCustomers((prev) => [c, ...prev]);
- *       return c.id;
- *     }}
- *     items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email }))}
- *     placeholder="ابحث عن عميل أو اكتب اسماً جديداً..."
- *     createLabel={(q) => `+ إنشاء "${q}"`}
- *   />
+ * Notes (UX-221):
+ *   - The popup is rendered in a portal (document.body)
+ *   - This avoids clipping when used inside tables/containers with overflow rules
+ *   - Position auto-adjusts on scroll/resize and keeps within viewport
  */
 import { useState, useRef, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Search, Check, ChevronDown } from "lucide-react";
 import { normalizeDigits } from "../lib/digits";
 
@@ -44,7 +36,16 @@ interface Props {
   createLabel?: (query: string) => string;
   disabled?: boolean;
   className?: string;
+  /** Minimum popup width (px) · keeps account names readable in narrow cells */
+  menuMinWidth?: number;
 }
+
+type PanelStyle = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+};
 
 export function SearchableCombobox({
   value,
@@ -55,11 +56,15 @@ export function SearchableCombobox({
   createLabel = (q) => `+ إنشاء "${q}"`,
   disabled = false,
   className = "",
+  menuMinWidth = 300,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<PanelStyle | null>(null);
+
   const wrapRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // The currently-selected item label for display when closed
@@ -83,23 +88,77 @@ export function SearchableCombobox({
     return !items.some((i) => i.label.toLowerCase() === q);
   }, [items, query, onCreate]);
 
+  const updatePanelPosition = () => {
+    const trigger = wrapRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const viewportPadding = 8;
+    const gap = 4;
+
+    // Width: keep readable popup width, but never overflow viewport
+    const targetWidth = Math.max(rect.width, menuMinWidth);
+    const maxWidth = Math.max(220, window.innerWidth - viewportPadding * 2);
+    const width = Math.min(targetWidth, maxWidth);
+
+    let left = rect.left;
+    if (left + width > window.innerWidth - viewportPadding) {
+      left = window.innerWidth - viewportPadding - width;
+    }
+    if (left < viewportPadding) left = viewportPadding;
+
+    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const spaceAbove = rect.top - viewportPadding;
+    const placeAbove = spaceBelow < 220 && spaceAbove > spaceBelow;
+
+    const available = placeAbove ? spaceAbove - gap : spaceBelow - gap;
+    const maxHeight = Math.max(140, Math.min(320, available));
+    const top = placeAbove
+      ? Math.max(viewportPadding, rect.top - gap - maxHeight)
+      : rect.bottom + gap;
+
+    setPanelStyle({ top, left, width, maxHeight });
+  };
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
+
     const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideTrigger = !!wrapRef.current?.contains(target);
+      const insidePanel = !!panelRef.current?.contains(target);
+      if (!insideTrigger && !insidePanel) {
         setOpen(false);
         setQuery("");
       }
     };
+
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  // Focus input when opened
+  // Focus input + position popup when opened
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
+    if (!open) return;
+
+    updatePanelPosition();
+    const raf = requestAnimationFrame(() => {
+      updatePanelPosition();
+      inputRef.current?.focus();
+    });
+
+    const onViewportChange = () => updatePanelPosition();
+    window.addEventListener("resize", onViewportChange);
+    // capture=true catches scroll from nested containers too
+    window.addEventListener("scroll", onViewportChange, true);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [open, items.length, menuMinWidth]);
 
   const handleSelect = (id: string) => {
     onChange(id);
@@ -126,8 +185,6 @@ export function SearchableCombobox({
       e.preventDefault();
       if (showCreate) {
         handleCreate();
-      } else if (filtered.length === 1) {
-        handleSelect(filtered[0].id);
       } else if (filtered.length > 0) {
         handleSelect(filtered[0].id);
       }
@@ -139,23 +196,28 @@ export function SearchableCombobox({
 
   return (
     <div ref={wrapRef} className={`relative ${className}`}>
-      {/* Trigger (closed state shows current selection · opens on click) */}
-      {!open ? (
-        <button
-          type="button"
-          onClick={() => !disabled && setOpen(true)}
-          disabled={disabled}
-          className="w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50"
-          title={selected?.label || placeholder}
-        >
-          <span className={selected ? "text-foreground truncate" : "text-muted-foreground/60 truncate"}>
-            {selected?.label || placeholder}
-          </span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground/60 shrink-0 ms-2" />
-        </button>
-      ) : (
-        <div className="absolute z-50 w-full min-w-[260px] max-w-[420px] rounded-md border border-[#1276E3] bg-white shadow-lg"
-          style={{ top: "calc(100% + 2px)", insetInlineStart: 0 }}
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        className="w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50"
+        title={selected?.label || placeholder}
+      >
+        <span className={selected ? "text-foreground truncate" : "text-muted-foreground/60 truncate"}>
+          {selected?.label || placeholder}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground/60 shrink-0 ms-2 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && panelStyle && typeof document !== "undefined" && createPortal(
+        <div
+          ref={panelRef}
+          className="fixed z-[120] rounded-md border border-[#1276E3] bg-white shadow-lg"
+          style={{
+            top: `${panelStyle.top}px`,
+            left: `${panelStyle.left}px`,
+            width: `${panelStyle.width}px`,
+          }}
         >
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
             <Search className="h-4 w-4 text-muted-foreground/60 shrink-0" />
@@ -170,7 +232,7 @@ export function SearchableCombobox({
             />
           </div>
 
-          <div className="max-h-64 overflow-y-auto py-1">
+          <div className="overflow-y-auto py-1" style={{ maxHeight: `${panelStyle.maxHeight}px` }}>
             {/* Create option (only when query non-empty and no exact match) */}
             {showCreate && (
               <button
@@ -196,20 +258,21 @@ export function SearchableCombobox({
                 key={item.id}
                 type="button"
                 onClick={() => handleSelect(item.id)}
-                className="w-full text-start flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted"
+                className="w-full text-start flex items-start justify-between gap-2 px-3 py-2 text-sm hover:bg-muted"
                 title={`${item.label}${item.sublabel ? ` · ${item.sublabel}` : ""}`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-foreground truncate">{item.label}</div>
+                  <div className="text-foreground break-words leading-5 line-clamp-2">{item.label}</div>
                   {item.sublabel && (
-                    <div className="text-xs text-muted-foreground truncate font-english">{item.sublabel}</div>
+                    <div className="text-xs text-muted-foreground break-all font-english">{item.sublabel}</div>
                   )}
                 </div>
-                {item.id === value && <Check className="h-4 w-4 text-primary shrink-0" />}
+                {item.id === value && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

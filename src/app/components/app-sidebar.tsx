@@ -279,7 +279,7 @@ export function AppSidebar({
   // Static sidebar (pinned mode, desktop only)
   if (isStatic) {
     return (
-      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-card transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}>
+      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-card transition-all duration-300 ${collapsed ? "w-16" : "w-72"}`}>
         <SidebarContent
           cycleMode={cycleMode}
           modeLabel={modeLabel}
@@ -307,7 +307,7 @@ export function AppSidebar({
   return (
     <aside
       className={`
-        flex h-full w-64 shrink-0 flex-col border-e border-border bg-card
+        flex h-full w-72 shrink-0 flex-col border-e border-border bg-card
         fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-xl
         ${isOpen ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}
         ${className}
@@ -471,26 +471,26 @@ function SidebarContent({
             <Link to="/app/reports" onClick={onClose}>
               <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/reports") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
                 <BarChart3 className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-start">{tr("التقارير")}</span>
+                <span className="flex-1 min-w-0 truncate text-start">{tr("التقارير")}</span>
               </button>
             </Link>
             <Link to="/app/roadmap" onClick={onClose}>
               <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
                 <Map className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-start">{tr("خارطة المزايا")}</span>
+                <span className="flex-1 min-w-0 truncate text-start">{tr("خارطة المزايا")}</span>
               </button>
             </Link>
             <Link to="/app/settings" onClick={onClose}>
               <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/settings") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
                 <Settings className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-start">{tr("الإعدادات")}</span>
+                <span className="flex-1 min-w-0 truncate text-start">{tr("الإعدادات")}</span>
               </button>
             </Link>
 
             <div className="flex items-center gap-1 pt-1">
               <button className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors">
                 <HelpCircle className="h-4 w-4 shrink-0" />
-                <span>{tr("مركز المساعدة")}</span>
+                <span className="min-w-0 truncate">{tr("مركز المساعدة")}</span>
               </button>
               <button
                 onClick={toggleLanguage}
@@ -532,7 +532,7 @@ function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; act
         title={tr(item.title)}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        {!collapsed && <span className="flex-1 text-start">{tr(item.title)}</span>}
+        {!collapsed && <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>}
         {!collapsed && item.badge && (
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] text-white ${item.badge === "محدّث" ? "bg-chart-4" : "bg-secondary"}`}>
             {tr(item.badge)}
@@ -597,7 +597,7 @@ function CollapsibleMenu({
           }`}
         >
           <Icon className="h-5 w-5 shrink-0" />
-          <span className="flex-1 text-start">{tr(item.title)}</span>
+          <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -619,7 +619,7 @@ function CollapsibleMenu({
       <div
         className="overflow-hidden transition-all duration-200 ease-in-out"
         style={{
-          maxHeight: isOpen ? `${(item.children?.length || 0) * 44}px` : "0px",
+          maxHeight: isOpen ? `${(item.children?.length || 0) * 60}px` : "0px",
           opacity: isOpen ? 1 : 0,
         }}
       >
@@ -635,7 +635,7 @@ function CollapsibleMenu({
                   }`}
                 >
                   <ChildIcon className="h-4 w-4 shrink-0" />
-                  <span className="text-start">{tr(child.title)}</span>
+                  <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(child.title)}</span>
                 </button>
               </Link>
             );

@@ -538,6 +538,7 @@ export function ItemsTable({
                           placeholder="ابحث عن صنف..."
                           createLabel={(q) => `+ إنشاء صنف "${q}"`}
                           className="border-0"
+                          menuMinWidth={360}
                         />
                       </td>
                     )}
@@ -584,8 +585,9 @@ export function ItemsTable({
                           value={line.accountId || ""}
                           onChange={(id) => updateLine(i, { accountId: id })}
                           items={accountItems}
-                          placeholder="حساب"
+                          placeholder="ابحث عن حساب..."
                           className="border-0"
+                          menuMinWidth={420}
                           onCreate={onCreateAccount ? async (name) => {
                             const a = await onCreateAccount(name);
                             updateLine(i, { accountId: a.id });

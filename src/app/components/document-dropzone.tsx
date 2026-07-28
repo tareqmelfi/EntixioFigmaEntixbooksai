@@ -99,6 +99,7 @@ export function DocumentDropZone({
   const [error, setError] = useState<string | null>(null);
   const [globalDrag, setGlobalDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const handleFileRef = useRef<(file: File) => Promise<void>>(async () => {});
 
   const handleFile = async (file: File) => {
     setBusy(true);
@@ -143,6 +144,8 @@ export function DocumentDropZone({
     if (file) await handleFile(file);
   };
 
+  handleFileRef.current = handleFile;
+
   const handleGlobalDragOver = (e: globalThis.DragEvent) => {
     if (e.dataTransfer?.types?.includes("Files")) {
       e.preventDefault();
@@ -160,7 +163,7 @@ export function DocumentDropZone({
       e.preventDefault();
       e.stopPropagation();
       setGlobalDrag(false);
-      await handleFile(file);
+      await handleFileRef.current(file);
     }
   };
 

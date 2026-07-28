@@ -753,7 +753,7 @@ export function Invoices() {
         {quickAccountReq && (
           <QuickCreateAccount
             initialName={quickAccountReq.name}
-            defaultType="EXPENSE"
+            defaultType="INCOME"
             onCreate={async (input) => {
               const a = await (api as any).accounts.create({ ...input, type: input.type === 'INCOME' ? 'REVENUE' : input.type });
               setAccounts((prev) => [a, ...prev]);
@@ -865,16 +865,16 @@ export function Invoices() {
            filtered.length === 0 ? (
             <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير</p></div>
           ) : (
-            <table className="w-full table-fixed">
+            <table className="w-full table-auto">
               <colgroup>
-                <col style={{ width: "12%" }} />{/* الرقم */}
-                <col />{/* العميل */}
+                <col style={{ width: splitMode ? "18%" : "12%" }} />{/* الرقم */}
+                <col style={{ width: splitMode ? "26%" : "auto" }} />{/* العميل */}
                 {!splitMode && <col style={{ width: "11%" }} />}{/* التاريخ */}
                 {!splitMode && <col style={{ width: "11%" }} />}{/* الاستحقاق */}
-                <col style={{ width: "13%" }} />{/* الحالة */}
-                <col style={{ width: "13%" }} />{/* الإجمالي */}
+                <col style={{ width: splitMode ? "16%" : "13%" }} />{/* الحالة */}
+                <col style={{ width: splitMode ? "18%" : "13%" }} />{/* الإجمالي */}
                 {!splitMode && <col style={{ width: "11%" }} />}{/* المتبقي */}
-                <col style={{ width: "12%" }} />{/* إجراءات */}
+                <col style={{ width: splitMode ? "22%" : "12%" }} />{/* إجراءات */}
               </colgroup>
               <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
@@ -894,7 +894,7 @@ export function Invoices() {
                     className={`border-b border-border/50 cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-primary/5"}`}
                   >
                     <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
-                    <td className="py-3 px-4 text-sm text-foreground/80 w-full max-w-0" title={i.contact?.displayName || ""}><span className="block truncate">{i.contact?.displayName || "—"}</span></td>
+                    <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}><span className="block whitespace-normal break-words">{i.contact?.displayName || "—"}</span></td>
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
                     <td className="py-3 px-4">
@@ -910,7 +910,7 @@ export function Invoices() {
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
                     {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>}
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap whitespace-nowrap">
                         {/* SENT/APPROVED → Sign button */}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
                           <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">

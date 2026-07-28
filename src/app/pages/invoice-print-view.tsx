@@ -39,10 +39,15 @@ export function InvoicePrintView() {
           const c = await api.contacts.get(inv.contactId).catch(() => null);
           setContact(c);
         }
-        const orgs = await api.orgs.list();
-        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-        const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
-        if (active) setOrg(await api.orgs.get(active.id));
+        const invoiceOrgId = (inv as any).orgId as string | undefined;
+        if (invoiceOrgId) {
+          setOrg(await api.orgs.get(invoiceOrgId));
+        } else {
+          const orgs = await api.orgs.list();
+          const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
+          const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
+          if (active) setOrg(await api.orgs.get(active.id));
+        }
       } catch (e: any) {
         setError(e instanceof ApiError ? e.message : "فشل التحميل");
       } finally {
@@ -241,7 +246,11 @@ export function InvoicePrintView() {
                   </div>
                 </div>
                 {printLogo ? (
-                  <img src={printLogo} alt={org.name} style={{ maxHeight: 110, maxWidth: 220, objectFit: "contain", display: "block" }} />
+                  <img
+                    src={printLogo}
+                    alt={org.name}
+                    style={{ maxHeight: 110, maxWidth: 220, objectFit: "contain", display: "block", borderRadius: 12 }}
+                  />
                 ) : (
                   <div style={{ fontWeight: 800, fontSize: 24, color: primary }}>{org.name}</div>
                 )}

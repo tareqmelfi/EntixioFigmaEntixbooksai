@@ -282,7 +282,7 @@ export function QuickCreateProduct({
     }
   };
 
-  const incomeAccounts = accounts.filter((a) => a.type === "INCOME");
+  const incomeAccounts = accounts.filter((a) => a.type === "INCOME" || a.type === "REVENUE");
 
   return (
     <PopoverShell

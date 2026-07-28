@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { ChevronDown, Plus, Check, Building2, X } from "lucide-react";
 import { api, Org, setOrgId } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
+import { useLanguage } from "./LanguageContext";
 
 function orgInitials(name?: string | null) {
   const cleaned = (name || "").trim();
@@ -25,6 +26,11 @@ interface Props {
 }
 
 export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
+  const { language } = useLanguage();
+  const isRtl = language === "ar";
+  const rowDirClass = isRtl ? "flex-row-reverse" : "flex-row";
+  const alignItemsClass = isRtl ? "items-end text-end" : "items-start text-start";
+
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [activeOrg, setActiveOrg] = useState<Org | null>(null);
   const [open, setOpen] = useState(false);
@@ -124,9 +130,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 <button
                   key={o.id}
                   onClick={() => handleSelect(o)}
-                  className="flex w-full flex-row-reverse items-center justify-between gap-2 rounded px-3 py-2 text-sm text-foreground hover:bg-primary/5"
+                  className={`flex w-full ${rowDirClass} items-center justify-between gap-2 rounded px-3 py-2 text-sm text-foreground hover:bg-primary/5`}
                 >
-                  <div className="flex min-w-0 flex-row-reverse items-center gap-2">
+                  <div className={`flex min-w-0 ${rowDirClass} items-center gap-2`}>
                     {o.logoUrl ? (
                       <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-cover bg-white border border-border/50 shrink-0" />
                     ) : (
@@ -134,8 +140,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                         {orgInitials(o.name)}
                       </div>
                     )}
-                    <div className="flex min-w-0 flex-col items-end gap-0.5 text-end">
-                      <span className="max-w-[15rem] truncate font-medium">{o.name}</span>
+                    <div className={`flex min-w-0 flex-col gap-0.5 ${alignItemsClass}`}>
+                      <span className="max-w-[16.5rem] truncate font-medium">{o.name}</span>
                       <span className="text-xs text-muted-foreground font-english">{o.country} · {o.baseCurrency}</span>
                     </div>
                   </div>
@@ -146,7 +152,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             <div className="border-t border-border p-1">
               <button
                 onClick={() => { setOpen(false); setShowCreate(true); }}
-                className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-primary hover:bg-primary/5"
+                className={`flex w-full ${rowDirClass} items-center gap-2 rounded px-3 py-2 text-sm text-primary hover:bg-primary/5`}
               >
                 <Plus className="h-4 w-4" />
                 إنشاء شركة جديدة
@@ -189,7 +195,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             </div>
           )}
           <div className="flex flex-col items-start gap-0 min-w-0">
-            <span className="line-clamp-2 break-words text-sm text-foreground leading-tight max-w-[180px]" style={{ fontWeight: 600 }}>
+            <span className="line-clamp-2 break-words text-sm text-foreground leading-tight max-w-[220px]" style={{ fontWeight: 600 }}>
               {activeOrg ? activeOrg.name : "اختر شركة"}
             </span>
             {activeOrg && (
@@ -219,7 +225,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           {/* Create new · top action */}
           <button
             onClick={() => { setOpen(false); setShowCreate(true); }}
-            className="flex w-full flex-row-reverse items-center justify-between gap-2 px-3 py-2 text-xs leading-5 text-primary hover:bg-primary/5 border-b border-border/50"
+            className={`flex w-full ${rowDirClass} items-center justify-between gap-2 px-3 py-2 text-xs leading-5 text-primary hover:bg-primary/5 border-b border-border/50`}
             style={{ fontWeight: 600 }}
           >
             <Plus className="h-4 w-4" />
@@ -240,7 +246,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                   setSeedMessage({ kind: "error", text: `فشل: ${e?.message || "خطأ غير معروف"}` });
                 }
               }}
-              className="flex w-full flex-row-reverse items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50 border-b border-border/50"
+              className={`flex w-full ${rowDirClass} items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50 border-b border-border/50`}
               style={{ fontWeight: 600 }}
             >
               <Plus className="h-4 w-4" />
@@ -263,7 +269,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               <button
                 key={o.id}
                 onClick={() => handleSelect(o)}
-                className="flex w-full flex-row-reverse items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-primary/5 border-b border-border/50 last:border-b-0"
+                className={`flex w-full ${rowDirClass} items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-primary/5 border-b border-border/50 last:border-b-0`}
               >
                 {o.logoUrl ? (
                   <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-cover bg-white border border-border/50 shrink-0" />
@@ -272,9 +278,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                     {orgInitials(o.name)}
                   </div>
                 )}
-                <div className="flex min-w-0 flex-1 flex-col items-end gap-0 text-end">
-                  <div className="flex w-full flex-row-reverse items-start gap-1.5">
-                    <span className="line-clamp-2 text-end text-[12px] font-medium leading-5">{o.name}</span>
+                <div className={`flex min-w-0 flex-1 flex-col gap-0 ${alignItemsClass}`}>
+                  <div className={`flex w-full ${rowDirClass} items-start gap-1.5`}>
+                    <span className={`line-clamp-2 text-[12px] font-medium leading-5 ${isRtl ? "text-end" : "text-start"}`}>{o.name}</span>
                     {activeOrg?.id === o.id && (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
                         مختارة حالياً

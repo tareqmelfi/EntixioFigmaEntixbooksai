@@ -291,7 +291,7 @@ export function PurchaseBills() {
   const confirmMerge = async (targetBillId: string) => {
     setBusy(true);
     try {
-      await api.bills.merge(targetBillId, { sourceDocumentId: editingId ? undefined : undefined });
+      await api.bills.merge(targetBillId, { sourceDocumentId: editingId || undefined });
       push("success", "تم دمج المستند مع الفاتورة المحددة");
       setDuplicate({ open: false, matches: [], pendingSubmit: null });
       closeCreate();
@@ -670,7 +670,7 @@ export function PurchaseBills() {
                   <p className="text-sm text-muted-foreground">وجدنا فواتير سابقة بنفس المورد والتاريخ/المبلغ تقريباً.</p>
                 </div>
               </div>
-              <div className="divide-y divide-[#E5E7EB] border border-border rounded-xl overflow-hidden">
+              <div className="divide-y divide-border border border-border rounded-xl overflow-hidden">
                 {duplicate.matches.map((m: any) => (
                   <div key={m.id} className="flex items-center justify-between p-3 hover:bg-muted">
                     <div>
