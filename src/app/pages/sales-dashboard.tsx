@@ -221,30 +221,48 @@ export function SalesDashboard() {
               لا توجد فواتير بعد · أنشئ فاتورة من زر "فاتورة جديدة" أعلاه
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted text-xs text-muted-foreground">
-                  <th className="py-2.5 px-5 text-start" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>العميل</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>المبلغ ({cur})</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>الحالة</th>
-                  <th className="py-2.5 px-2 w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((i) => (
-                  <tr key={i.id} className="border-t border-border/50 hover:bg-primary/5 cursor-pointer" onClick={() => navigate(`/app/invoices`)}>
-                    <td className="py-3 px-5 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{i.number}</td>
-                    <td className="py-3 px-2 text-sm text-foreground/80">{i.contact}</td>
-                    <td className="py-3 px-2 font-english text-xs text-muted-foreground">{i.date}</td>
-                    <td className="py-3 px-2 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(i.total).toLocaleString()}</td>
-                    <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span></td>
-                    <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-muted-foreground/60" /></td>
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto">
+                <colgroup>
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "auto" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "10%" }} />
+                </colgroup>
+                <thead>
+                  <tr className="bg-muted text-xs text-muted-foreground">
+                    <th className="py-2.5 px-5 text-start" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
+                    <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>العميل</th>
+                    <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
+                    <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>المبلغ ({cur})</th>
+                    <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>الحالة</th>
+                    <th className="py-2.5 px-2 w-10"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((i) => (
+                    <tr key={i.id} className="border-t border-border/50 hover:bg-primary/5 cursor-pointer" onClick={() => navigate(`/app/invoices`)}>
+                      <td className="py-3 px-5 text-sm text-primary" style={{ fontWeight: 600 }}>
+                        <span dir="ltr" className="font-english inline-block" style={{ fontVariantNumeric: "tabular-nums" }}>{i.number}</span>
+                      </td>
+                      <td className="py-3 px-2 text-sm text-foreground/80">
+                        <span className="block whitespace-normal break-words">{i.contact}</span>
+                      </td>
+                      <td className="py-3 px-2 text-xs text-muted-foreground">
+                        <span dir="ltr" className="font-english inline-block" style={{ fontVariantNumeric: "tabular-nums" }}>{i.date}</span>
+                      </td>
+                      <td className="py-3 px-2 text-sm text-foreground" style={{ fontWeight: 600 }}>
+                        <span dir="ltr" className="font-english inline-block" style={{ fontVariantNumeric: "tabular-nums" }}>{Number(i.total).toLocaleString()}</span>
+                      </td>
+                      <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span></td>
+                      <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-muted-foreground/60" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           {filtered.length > 0 && (
             <div className="px-5 py-3 border-t border-border/50 text-center">

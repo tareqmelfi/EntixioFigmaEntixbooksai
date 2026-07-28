@@ -865,7 +865,8 @@ export function Invoices() {
            filtered.length === 0 ? (
             <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير</p></div>
           ) : (
-            <table className="w-full table-auto">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] table-auto">
               <colgroup>
                 <col style={{ width: splitMode ? "18%" : "12%" }} />{/* الرقم */}
                 <col style={{ width: splitMode ? "26%" : "auto" }} />{/* العميل */}
@@ -928,6 +929,7 @@ export function Invoices() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
       </Card>
