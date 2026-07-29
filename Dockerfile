@@ -37,6 +37,14 @@ server {
     add_header Cache-Control "public, immutable";
   }
 
+  # Service worker must always revalidate · a stale SW would pin old bundles
+  # (exact match beats the regex block above)
+  location = /sw.js {
+    expires -1;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Pragma "no-cache";
+  }
+
   # index.html must never cache
   location = /index.html {
     add_header Cache-Control "no-cache, no-store, must-revalidate";

@@ -16,7 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { ToastStack, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
-import { api, Voucher, Contact, ApiError } from "../lib/api";
+import { api, Voucher, Contact } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
   CASH: "نقداً", BANK_TRANSFER: "تحويل بنكي", CARD: "بطاقة ائتمان",
@@ -48,6 +50,7 @@ function toNum(v: any): number {
 export function Receipts() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   const [items, setItems] = useState<Voucher[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -94,7 +97,7 @@ export function Receipts() {
       setContacts((c as any).items || []);
       setBankAccounts((b as any).items || []);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -232,7 +235,7 @@ export function Receipts() {
       closeCreate();
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحفظ");
+      push("error", humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
     } finally { setBusy(false); }
   };
 
@@ -261,7 +264,7 @@ export function Receipts() {
       setAttachments(prev => [newAtt, ...prev]);
       push("success", "تم الرفع");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الرفع");
+      push("error", humanizeError(e, language, { ar: "فشل الرفع", en: "Upload failed" }));
     }
   };
 
@@ -283,7 +286,7 @@ export function Receipts() {
       setEmailDialog(false);
       setEmailForm({ to: "", subject: "", message: "" });
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الإرسال");
+      push("error", humanizeError(e, language, { ar: "فشل الإرسال", en: "Send failed" }));
     }
   };
 
@@ -294,7 +297,7 @@ export function Receipts() {
       if (selected?.id === id) setSelected(null);
       push("success", "تم الحذف");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" }));
     } finally { setPendingDelete(null); }
   };
 
@@ -356,7 +359,7 @@ export function Receipts() {
         push("error", "تعذر إنشاء سندات قبض فزعة. تحقق من الفواتير والحالة.");
       }
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل إنشاء سندات قبض فزعة");
+      push("error", humanizeError(e, language, { ar: "فشل إنشاء سندات قبض فزعة", en: "Fazaa receipts failed" }));
     } finally {
       setFazaaBusy(false);
     }
@@ -589,7 +592,7 @@ export function Receipts() {
                     setContacts((prev) => [created, ...prev]);
                     return created.id;
                   } catch (e: any) {
-                    push("error", e?.message || "فشل الإنشاء");
+                    push("error", humanizeError(e, language, { ar: "فشل الإنشاء", en: "Create failed" }));
                     return "";
                   }
                 }}

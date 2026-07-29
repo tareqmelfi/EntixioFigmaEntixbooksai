@@ -81,6 +81,8 @@ interface Props {
   direction?: "sales" | "purchases";
   /** Optional external key to reset history when form changes */
   formKey?: string;
+  /** Line ids that failed validation · rendered red so the user can spot & fix fast */
+  invalidIds?: Set<string>;
 }
 
 export function newLine(taxRate = 0.15, taxInclusive = false): InvoiceLine {
@@ -203,6 +205,7 @@ export function ItemsTable({
   minRows = 10,
   direction = "sales",
   formKey,
+  invalidIds,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN_COLS);
@@ -515,9 +518,17 @@ export function ItemsTable({
                 const lineTax = line.taxInclusive ? gross - gross / (1 + line.taxRate) : gross * line.taxRate;
                 const lineTotal = line.taxInclusive ? gross : gross + lineTax;
                 const isReal = i < realLineCount;
+                const isInvalid = isReal && !!invalidIds?.has(line.id);
 
                 return (
-                  <tr key={line.id} className={`border-t ${ROW_BORDER_CLASS} hover:bg-muted/20`}>
+                  <tr
+                    key={line.id}
+                    className={`border-t ${ROW_BORDER_CLASS} ${
+                      isInvalid
+                        ? "bg-red-50/80 hover:bg-red-100/60 ring-1 ring-inset ring-red-400"
+                        : "hover:bg-muted/20"
+                    }`}
+                  >
                     <td className="px-1 py-1 text-center">
                       <button
                         type="button"
