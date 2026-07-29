@@ -1009,6 +1009,8 @@ export interface Contact {
   crNumber?: string | null
   nationalId?: string | null
   leiCode?: string | null
+  // Customer logo (data-URL or https URL) · shown on contact page & documents
+  avatarUrl?: string | null
   // Foreign / withholding
   isForeign?: boolean
   withholdingTaxRate?: number | null
@@ -1156,6 +1158,7 @@ export interface ContactInput {
   postalCode?: string | null
   tags?: string | null
   notes?: string | null
+  avatarUrl?: string | null
 }
 
 export type NumberingKind = 'contact' | 'invoice' | 'quote' | 'bill' | 'receipt' | 'payment'
