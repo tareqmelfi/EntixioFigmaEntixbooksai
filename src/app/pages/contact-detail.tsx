@@ -10,7 +10,7 @@
  *
  * Powered by GET /api/contacts/:id/summary
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import {
   ArrowRight, Building2, Mail, Phone, Globe, MapPin, FileText, ShoppingBag,
@@ -86,6 +86,45 @@ export function ContactDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
+  // Customer logo upload · click the avatar → pick image → downscale → PATCH
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  const handleLogoPick = async (file: File | undefined) => {
+    if (!file || !id) return;
+    setLogoError(null);
+    if (!file.type.startsWith("image/")) { setLogoError("اختر ملف صورة (PNG / JPG / SVG)"); return; }
+    if (file.size > 5 * 1024 * 1024) { setLogoError("الحد الأقصى 5 ميجابايت"); return; }
+    setLogoBusy(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          // Downscale to ≤256px · keeps the inline payload tiny
+          const max = 256;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("canvas")); return; }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/png"));
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error("bad image")); };
+        img.src = URL.createObjectURL(file);
+      });
+      await api.contacts.update(id, { avatarUrl: dataUrl } as any);
+      await refresh();
+    } catch (e: any) {
+      setLogoError(e?.message || "فشل رفع الشعار");
+    } finally {
+      setLogoBusy(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
 
   const refresh = useCallback(async () => {
     if (!id) return;
@@ -161,17 +200,35 @@ export function ContactDetail() {
         {/* Left contact card */}
         <Card className="border-border">
           <CardContent className="p-5">
-            {/* Entity-aware avatar (UX-201) */}
+            {/* Entity-aware avatar (UX-201) · click to upload customer logo */}
             <div className="flex flex-col items-center mb-4">
-              <div className="relative w-24 h-24 rounded-full bg-primary/5 border border-dashed border-[#1276E3] flex items-center justify-center mb-3 group cursor-pointer hover:bg-[#E0F2FE] transition" title="رفع شعار (قريباً)">
-                {contact.entityKind === "COMPANY" ? (
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleLogoPick(e.target.files?.[0])}
+              />
+              <div
+                className="relative w-24 h-24 rounded-full bg-primary/5 border border-dashed border-[#1276E3] flex items-center justify-center mb-1 group cursor-pointer hover:bg-[#E0F2FE] transition overflow-hidden"
+                title="رفع شعار العميل"
+                onClick={() => !logoBusy && logoInputRef.current?.click()}
+              >
+                {(contact as any).avatarUrl ? (
+                  <img src={(contact as any).avatarUrl} alt={contact.displayName} className="w-full h-full object-cover" />
+                ) : contact.entityKind === "COMPANY" ? (
                   <Building2 className="h-10 w-10 text-primary" />
                 ) : (contact as any).entityKind === "GOVERNMENT" ? (
                   <Landmark className="h-10 w-10 text-primary" />
                 ) : (
                   <User className="h-10 w-10 text-primary" />
                 )}
+                <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  {logoBusy ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <span className="text-white text-[10px] font-semibold">رفع شعار</span>}
+                </div>
               </div>
+              {logoError && <div className="text-[10px] text-red-600 mb-1">{logoError}</div>}
+              <div className="mb-2" />
               <div className="flex flex-wrap gap-1 justify-center">
                 {contact.isForeign && (
                   <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-700">جهة خارجية</span>

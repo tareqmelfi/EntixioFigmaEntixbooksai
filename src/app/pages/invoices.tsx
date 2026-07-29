@@ -117,8 +117,6 @@ export function Invoices() {
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [splittingId, setSplittingId] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  void editingInvoice;
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
 
@@ -180,13 +178,35 @@ export function Invoices() {
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
+      setNumberEdited(false);
+      numberRetryRef.current = false;
+      setEditingInvoice(null);
       setCreateOpen(true);
       // Clean the query URL after opening, but keep canonical /new routes stable.
       if (searchParams.get("new") === "1") setSearchParams({}, { replace: true });
     }
   }, [location.pathname, searchParams, setSearchParams]);
 
+  // Deep link · /app/invoices/:id (from contact-detail, receipts, search) → open THAT
+  // invoice in edit view instead of dumping the user back on the bare list.
+  useEffect(() => {
+    const m = location.pathname.match(/\/app\/(?:sales\/)?invoices\/([0-9a-fA-F-]{36})/);
+    const id = m?.[1];
+    if (!id || editingInvoice?.id === id || createOpen) return;
+    const row = items.find((x) => x.id === id);
+    if (row) { openEdit(row); return; }
+    api.invoices.get(id)
+      .then((full) => openEdit(full as Invoice))
+      .catch(() => { /* unknown/stale id → stay on the list */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, items]);
+
+  // Per-contact filter · /app/invoices?contactId=<id> shows only that contact's invoices
+  const contactFilterId = searchParams.get("contactId") || "";
+  const contactFilterName = contactFilterId ? (customers.find((c) => c.id === contactFilterId)?.displayName || "") : "";
+
   const filtered = items.filter(i => {
+    if (contactFilterId && i.contactId !== contactFilterId) return false;
     if (filterStatus !== "ALL" && i.status !== filterStatus) return false;
     if (searchQuery) return i.invoiceNumber.includes(searchQuery) || (i.contact?.displayName || "").includes(searchQuery);
     return true;
@@ -208,13 +228,22 @@ export function Invoices() {
     setNumberEdited(false);
     numberRetryRef.current = false;
     setInvalidLineIds(new Set());
+    setEditingInvoice(null);
     setCreateOpen(true);
     // Auto-fetch next invoice number so user sees it immediately (editable)
     api.invoices.nextNumber().then(({ number }) => {
       setForm((f: any) => ({ ...f, invoiceNumber: number }));
     }).catch(() => { /* silent · falls back to placeholder */ });
   };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+  const closeCreate = () => {
+    setCreateOpen(false);
+    setCreateError(null);
+    setEditingInvoice(null);
+    // If we were on a deep link (/app/invoices/:id), return to the canonical list
+    if (/\/invoices\/[0-9a-fA-F-]{36}/.test(location.pathname)) {
+      navigate("/app/invoices", { replace: true });
+    }
+  };
 
   // Keyboard shortcuts (UX-7) · skip when create form is open · those have own Esc handler
   useKeyboardShortcuts({
@@ -298,7 +327,7 @@ export function Invoices() {
       const status = action === "draft" ? "DRAFT" : action === "approve" ? "APPROVED" : "SENT";
       const buildPayload = (num?: string) => ({
         contactId: form.contactId,
-        invoiceNumber: num,
+        ...(num !== undefined ? { invoiceNumber: num } : {}),
         issueDate: form.issueDate,
         dueDate: form.dueDate,
         currency: form.currency,
@@ -316,28 +345,38 @@ export function Invoices() {
             : Number(normalizeDigits(l.unitPrice)),
         })),
       });
-      // PR5-B · the prefilled suggestion is NOT sent unless the user edited it.
-      // Server-side allocation is collision-proof → kills duplicate_invoice_number.
+      const isEdit = !!editingInvoice;
       let inv: any;
-      try {
-        inv = await api.invoices.create(buildPayload(numberEdited ? form.invoiceNumber || undefined : undefined) as any);
-      } catch (e: any) {
-        if (e?.code === "duplicate_invoice_number" && !numberRetryRef.current) {
-          // Number was taken meanwhile → retry once with server allocation + tell the user
-          numberRetryRef.current = true;
-          inv = await api.invoices.create(buildPayload(undefined) as any);
-          push("info", `الرقم السابق كان محجوزاً · تم الحفظ برقم جديد ${inv.invoiceNumber}`);
-        } else {
-          throw e;
+      if (isEdit) {
+        // UPDATE the existing invoice · number only when it actually changed
+        const changedNumber = form.invoiceNumber && form.invoiceNumber !== editingInvoice!.invoiceNumber
+          ? form.invoiceNumber
+          : undefined;
+        inv = await api.invoices.update(editingInvoice!.id, buildPayload(changedNumber) as any);
+      } else {
+        // PR5-B · the prefilled suggestion is NOT sent unless the user edited it.
+        // Server-side allocation is collision-proof → kills duplicate_invoice_number.
+        try {
+          inv = await api.invoices.create(buildPayload(numberEdited ? form.invoiceNumber || undefined : undefined) as any);
+        } catch (e: any) {
+          if (e?.code === "duplicate_invoice_number" && !numberRetryRef.current) {
+            // Number was taken meanwhile → retry once with server allocation + tell the user
+            numberRetryRef.current = true;
+            inv = await api.invoices.create(buildPayload(undefined) as any);
+            push("info", `الرقم السابق كان محجوزاً · تم الحفظ برقم جديد ${inv.invoiceNumber}`);
+          } else {
+            throw e;
+          }
         }
       }
-      setItems(prev => [inv as Invoice, ...prev]);
+      setItems(prev => isEdit ? prev.map((x) => (x.id === inv.id ? (inv as Invoice) : x)) : [inv as Invoice, ...prev]);
       if (skippedCount > 0) {
         push("info", `تم حفظ الفاتورة بدون ${skippedCount} بند ناقص (موضّح بالأحمر) · أكملها من شاشة التعديل`);
       }
       setNumberEdited(false);
       setInvalidLineIds(new Set());
-      const msg = action === "draft" ? `تم حفظ ${inv.invoiceNumber} كمسودة`
+      const msg = isEdit ? `تم تحديث ${inv.invoiceNumber}`
+                : action === "draft" ? `تم حفظ ${inv.invoiceNumber} كمسودة`
                 : action === "approve" ? `تم اعتماد ${inv.invoiceNumber}`
                 : `تم إرسال ${inv.invoiceNumber} للعميل`;
       push("success", msg);
@@ -862,6 +901,18 @@ export function Invoices() {
         <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
       </div>
 
+      {contactFilterId && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span>عرض فواتير عميل واحد{contactFilterName ? `: ${contactFilterName}` : ""}</span>
+          <button
+            onClick={() => setSearchParams({}, { replace: true })}
+            className="ms-auto rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10 border border-primary/30"
+          >
+            إظهار الكل ×
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">إجمالي الفواتير</div>
@@ -933,7 +984,15 @@ export function Invoices() {
                     key={i.id}
                     className="border-b border-border/40 transition-colors hover:bg-primary/5"
                   >
-                    <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
+                    <td className="py-3 px-4 text-start whitespace-nowrap">
+                      <button
+                        onClick={() => navigate(`/app/invoices/${i.id}`)}
+                        title="فتح الفاتورة"
+                        className="hover:underline underline-offset-4 decoration-primary/50 cursor-pointer"
+                      >
+                        <span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span>
+                      </button>
+                    </td>
                     <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}><span className="block whitespace-normal break-words">{i.contact?.displayName || "—"}</span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>
