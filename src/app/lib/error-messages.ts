@@ -38,6 +38,22 @@ const MAP: Record<string, { ar: string; en: string }> = {
     ar: 'رقم الفاتورة مستخدم مسبقاً داخل هذه الشركة',
     en: 'Invoice number already exists in this company',
   },
+  line_account_required: {
+    ar: 'اختر حساب الإيراد لكل بند قبل الاعتماد',
+    en: 'Select a revenue account for every line before approving',
+  },
+  line_incomplete: {
+    ar: 'كل بند يحتاج وصفاً واضحاً + كمية وسعراً أكبر من صفر',
+    en: 'Every line needs a clear description + quantity and price above zero',
+  },
+  invoice_number_locked: {
+    ar: 'رقم الفاتورة يتثبت بعد إصدارها ولا يمكن تغييره',
+    en: 'The invoice number is locked after issuance',
+  },
+  already_pending: {
+    ar: 'يوجد طلب توقيع نشط لهذه الفاتورة',
+    en: 'An active signature request exists for this invoice',
+  },
   short_code_already_exists: {
     ar: 'رمز العميل/المورد مستخدم مسبقاً',
     en: 'This contact code is already in use',
