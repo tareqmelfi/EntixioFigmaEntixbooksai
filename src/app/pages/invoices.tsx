@@ -4,8 +4,8 @@
  * UX pattern: FullPageForm (replaces content area on create/sign · مطابق Wafeq) + InlineConfirm + Toasts.
  */
 import { useEffect, useState, useCallback } from "react";
-import { useLocation, useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, FileSignature } from "lucide-react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -15,7 +15,6 @@ import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
-import { InvoicePreviewPane } from "../components/invoice-preview-pane";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-create-modals";
 import { QuickContactDialog } from "../components/quick-contact-dialog";
@@ -75,6 +74,7 @@ const BRAND_TEMPLATES = [
 
 export function Invoices() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
@@ -106,9 +106,7 @@ export function Invoices() {
   } | null>(null);
 
   const [signFor, setSignFor] = useState<Invoice | null>(null);
-  const [payFor, setPayFor] = useState<Invoice | null>(null);
-  const [payForm, setPayForm] = useState({ amount: "", method: "BANK_TRANSFER" as any, date: new Date().toISOString().slice(0,10), notes: "" });
-  const [payBusy, setPayBusy] = useState(false);
+  const [splittingId, setSplittingId] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   void editingInvoice;
@@ -120,8 +118,6 @@ export function Invoices() {
   // Quick-create contact dialog (full form, not just name)
   const [pendingContact, setPendingContact] = useState<{ name: string; resolve: (id: string) => void; reject: () => void } | null>(null);
 
-  // Split-view preview · UX-7 · click row → preview pane on side (Wafeq pattern)
-  const [previewId, setPreviewId] = useState<string | null>(null);
 
   // Quick-create customer · UX-5 · nested SidePanel
   const [quickCustOpen, setQuickCustOpen] = useState(false);
@@ -196,8 +192,7 @@ export function Invoices() {
       const search = document.querySelector<HTMLInputElement>('input[placeholder="بحث..."]');
       search?.focus();
     },
-    escape: () => { if (previewId && !createOpen && !signFor) setPreviewId(null); },
-  }, [createOpen, signFor, previewId]);
+  }, [createOpen, signFor]);
 
   const openQuickCust = () => { setQuickCust({ displayName: "", email: "", phone: "" }); setQuickCustError(null); setQuickCustOpen(true); };
   const closeQuickCust = () => { setQuickCustOpen(false); setQuickCustError(null); };
@@ -228,14 +223,42 @@ export function Invoices() {
   const handleSubmit = async (action: "draft" | "approve" | "send" = "draft") => {
     setCreateError(null);
     if (!form.contactId) { setCreateError("اختر العميل"); return; }
-    // Validate lines · at least one row with description AND unitPrice
-    const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
-    if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
-    // Accounting integrity: approval requires a revenue account on every line (draft is allowed without)
-    if (action !== "draft" && validLines.some((l) => !l.accountId)) {
-      setCreateError("لا يمكن الاعتماد: اختر حساب الإيراد لكل بند أولاً — احفظها كمسودة إذا لم تكتمل");
+
+    const activeLines = lines.filter((l) => {
+      const qty = Number(normalizeDigits(l.quantity)) || 0;
+      const price = Number(normalizeDigits(l.unitPrice)) || 0;
+      return !!l.description.trim() || qty > 0 || price > 0 || !!l.productId || !!l.accountId;
+    });
+    if (activeLines.length === 0) {
+      setCreateError("أضف بنداً واحداً على الأقل قبل الحفظ");
       return;
     }
+
+    const completeLines = activeLines.filter((l) => {
+      const qty = Number(normalizeDigits(l.quantity)) || 0;
+      const price = Number(normalizeDigits(l.unitPrice)) || 0;
+      return l.description.trim().length >= 3 && qty > 0 && price > 0;
+    });
+
+    // For approval/send: all active lines must be fully complete and mapped to revenue accounts.
+    if (action !== "draft") {
+      if (completeLines.length !== activeLines.length) {
+        setCreateError("لا يمكن الاعتماد: كل بند يجب أن يحتوي وصف واضح + كمية أكبر من صفر + سعر أكبر من صفر");
+        return;
+      }
+      if (completeLines.some((l) => !l.accountId)) {
+        setCreateError("لا يمكن الاعتماد: اختر حساب الإيراد لكل بند أولاً");
+        return;
+      }
+    }
+
+    // For draft we only persist completed lines to avoid إنشاء سطور ناقصة بالخطأ.
+    const linesToPersist = action === "draft" ? completeLines : activeLines;
+    if (linesToPersist.length === 0) {
+      setCreateError("لا يوجد بند مكتمل للحفظ");
+      return;
+    }
+
     setBusy(true);
     try {
       // draft → DRAFT · approve → APPROVED (locked, not yet sent) · send → SENT
@@ -249,7 +272,7 @@ export function Invoices() {
         status,
         notes: form.notes || null,
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
-        lines: validLines.map((l) => ({
+        lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
           accountId: l.accountId || null, // revenue account · required by server for non-DRAFT
           taxRate: typeof l.taxRate === "number" ? l.taxRate : 0.15, // send numeric rate · server recomputes (B1 fix)
@@ -306,6 +329,25 @@ export function Invoices() {
   // Approve a DRAFT invoice · transitions DRAFT → SENT (backend: status=APPROVED state coming · for now uses SENT)
   const handleApprove = async (inv: Invoice) => {
     try {
+      // Safety: fetch full invoice to validate lines before accidental approval.
+      const full = await api.invoices.get(inv.id);
+      const lineItems = (full.lines as any[]) || [];
+      const hasIncomplete = lineItems.some((l: any) => {
+        const descOk = String(l?.description || "").trim().length >= 3;
+        const qtyOk = Number(l?.quantity || 0) > 0;
+        const priceOk = Number(l?.unitPrice || 0) > 0;
+        return !(descOk && qtyOk && priceOk);
+      });
+      if (hasIncomplete) {
+        push("error", "لا يمكن الاعتماد: يوجد بند ناقص (الوصف/الكمية/السعر)");
+        return;
+      }
+      const missingAccount = lineItems.some((l: any) => !l?.accountId);
+      if (missingAccount) {
+        push("error", "لا يمكن الاعتماد: اختر حساب الإيراد لكل بند أولاً");
+        return;
+      }
+
       const updated = await api.invoices.update(inv.id, { status: "APPROVED" });
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "APPROVED" } as Invoice : x));
       push("success", `تم اعتماد ${inv.invoiceNumber}`);
@@ -314,45 +356,42 @@ export function Invoices() {
     }
   };
 
-  const openRecordPayment = (inv: Invoice) => {
-    const remaining = Number(inv.total) - Number(inv.amountPaid || 0);
-    setPayFor(inv);
-    setPayForm({
-      amount: remaining > 0 ? String(remaining.toFixed(2)) : String(Number(inv.total).toFixed(2)),
-      method: "BANK_TRANSFER",
-      date: new Date().toISOString().slice(0, 10),
-      notes: `دفعة على الفاتورة ${inv.invoiceNumber}`,
-    });
-  };
-  const closeRecordPayment = () => { setPayFor(null); };
-  const handleRecordPayment = async () => {
-    if (!payFor) return;
-    const amt = Number(payForm.amount);
-    if (!amt || amt <= 0) { push("error", "أدخل مبلغ صحيح"); return; }
-    setPayBusy(true);
+  const handleUnapprove = async (inv: Invoice) => {
     try {
-      // Create RECEIPT voucher linked to this invoice + customer
-      await (api as any).vouchers.create({
-        kind: "RECEIPT",
-        date: payForm.date,
-        contactId: payFor.contactId,
-        invoiceId: payFor.id,
-        amount: amt,
-        currency: payFor.currency,
-        paymentMethod: payForm.method,
-        description: payForm.notes,
-      });
-      // Update invoice amountPaid
-      const newPaid = Number(payFor.amountPaid || 0) + amt;
-      const total = Number(payFor.total);
-      const newStatus = newPaid >= total ? "PAID" : newPaid > 0 ? "PARTIAL" : payFor.status;
-      await api.invoices.update(payFor.id, { status: newStatus as any, amountPaid: String(newPaid) } as any);
-      setItems(prev => prev.map(x => x.id === payFor.id ? { ...x, amountPaid: String(newPaid), status: newStatus as any } : x));
-      push("success", `تم تسجيل دفعة ${amt} ${payFor.currency}`);
-      closeRecordPayment();
+      await api.invoices.update(inv.id, { status: "DRAFT" });
+      setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "DRAFT" } as Invoice : x));
+      push("success", `تم إلغاء اعتماد ${inv.invoiceNumber}`);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التسجيل");
-    } finally { setPayBusy(false); }
+      push("error", e instanceof ApiError ? e.message : "فشل إلغاء الاعتماد");
+    }
+  };
+
+  const handleSplitByCategory = async (inv: Invoice) => {
+    setSplittingId(inv.id);
+    try {
+      const result = await (api as any).invoiceOps.splitByCategory(inv.id);
+      const groups = (result?.groups || []) as Array<{ labelAr: string; lines: number }>;
+      const groupText = groups.map((g) => `${g.labelAr} (${g.lines})`).join(" · ");
+      push("success", `تم تفكيك ${inv.invoiceNumber} إلى ${result?.createdCount || 0} فواتير: ${groupText}`);
+      await refresh();
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل تفكيك الفاتورة");
+    } finally {
+      setSplittingId(null);
+    }
+  };
+
+  const openRecordPayment = (inv: Invoice) => {
+    const remaining = Math.max(Number(inv.total) - Number(inv.amountPaid || 0), 0);
+    const params = new URLSearchParams({
+      new: "1",
+      contactId: inv.contactId,
+      invoiceId: inv.id,
+      amount: (remaining > 0 ? remaining : Number(inv.total || 0)).toFixed(2),
+      date: new Date().toISOString().slice(0, 10),
+      reference: inv.invoiceNumber || "",
+    });
+    navigate(`/app/receipts?${params.toString()}`);
   };
 
     const openEdit = async (inv: Invoice) => {
@@ -449,7 +488,7 @@ export function Invoices() {
             </div>
           }
         >
-          <div className="max-w-7xl mx-auto space-y-3">
+          <div className="w-full max-w-none mx-auto space-y-3">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
 
             {/* Top row · 6 fields per Wafeq screenshot · 2026-05-05 */}
@@ -665,55 +704,6 @@ export function Invoices() {
             </div>
           </div>
         </FullPageForm>
-              {/* Record Payment dialog (UX-187) */}
-      {payFor && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeRecordPayment}>
-          <div className="bg-white rounded-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-foreground" style={{ fontWeight: 700, fontSize: "1.05rem" }}>💰 تسجيل دفعة على {payFor.invoiceNumber}</h3>
-              <button onClick={closeRecordPayment} className="text-muted-foreground/60">✕</button>
-            </div>
-            <div className="space-y-3">
-              <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-900">
-                إجمالي الفاتورة: <span className="font-english">{Number(payFor.total).toFixed(2)} {payFor.currency}</span>
-                {Number(payFor.amountPaid || 0) > 0 && <> · المدفوع: <span className="font-english">{Number(payFor.amountPaid).toFixed(2)}</span></>}
-                {" · "}المتبقي: <span className="font-english font-semibold">{(Number(payFor.total) - Number(payFor.amountPaid || 0)).toFixed(2)}</span>
-              </div>
-              <div>
-                <label className="text-xs text-foreground/80">المبلغ *</label>
-                <input value={payForm.amount} onChange={(e) => setPayForm({...payForm, amount: normalizeDigits(e.target.value)})} dir="ltr" className="w-full rounded-md border border-border px-3 py-2 text-sm font-english" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-foreground/80">طريقة الدفع</label>
-                  <select value={payForm.method} onChange={(e) => setPayForm({...payForm, method: e.target.value})} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
-                    <option value="BANK_TRANSFER">تحويل بنكي</option>
-                    <option value="CASH">نقدي</option>
-                    <option value="CARD">بطاقة</option>
-                    <option value="MADA">مدى</option>
-                    <option value="STC_PAY">STC Pay</option>
-                    <option value="CHECK">شيك</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-foreground/80">التاريخ</label>
-                  <input type="date" value={payForm.date} onChange={(e) => setPayForm({...payForm, date: e.target.value})} dir="ltr" className="w-full rounded-md border border-border px-3 py-2 text-sm font-english" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-foreground/80">ملاحظات</label>
-                <input value={payForm.notes} onChange={(e) => setPayForm({...payForm, notes: e.target.value})} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-5">
-              <button onClick={closeRecordPayment} className="px-4 py-2 rounded-md border border-border text-sm">إلغاء</button>
-              <button onClick={handleRecordPayment} disabled={payBusy} className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm" style={{fontWeight:600}}>
-                {payBusy ? "..." : "حفظ الدفعة + إنشاء سند قبض"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
         {/* Quick-create Product modal · opens when user types unknown item name */}
@@ -807,11 +797,7 @@ export function Invoices() {
     );
   }
 
-  // Default · list view (with optional split-view preview pane)
-  const previewInvoice = previewId ? items.find((x) => x.id === previewId) || null : null;
-  const previewCustomer = previewInvoice ? customers.find((c) => c.id === previewInvoice.contactId) || null : null;
-  const splitMode = !!previewInvoice;
-
+  // Default · list view
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -822,7 +808,7 @@ export function Invoices() {
         <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
       </div>
 
-      <div className={`grid grid-cols-1 ${splitMode ? "md:grid-cols-2" : "md:grid-cols-4"} gap-4`}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">إجمالي الفواتير</div>
           <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
@@ -841,7 +827,7 @@ export function Invoices() {
         </CardContent></Card>
       </div>
 
-      <div className={`grid grid-cols-1 ${splitMode ? "lg:grid-cols-[1fr_1.2fr]" : ""} gap-4`}>
+      <div className="grid grid-cols-1 gap-4">
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -868,51 +854,87 @@ export function Invoices() {
             <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] table-auto">
               <colgroup>
-                <col style={{ width: splitMode ? "18%" : "12%" }} />{/* الرقم */}
-                <col style={{ width: splitMode ? "26%" : "auto" }} />{/* العميل */}
-                {!splitMode && <col style={{ width: "11%" }} />}{/* التاريخ */}
-                {!splitMode && <col style={{ width: "11%" }} />}{/* الاستحقاق */}
-                <col style={{ width: splitMode ? "16%" : "13%" }} />{/* الحالة */}
-                <col style={{ width: splitMode ? "18%" : "13%" }} />{/* الإجمالي */}
-                {!splitMode && <col style={{ width: "11%" }} />}{/* المتبقي */}
-                <col style={{ width: splitMode ? "22%" : "12%" }} />{/* إجراءات */}
+                <col style={{ width: "12%" }} />{/* الرقم */}
+                <col style={{ width: "auto" }} />{/* العميل */}
+                <col style={{ width: "11%" }} />{/* التاريخ */}
+                <col style={{ width: "11%" }} />{/* الاستحقاق */}
+                <col style={{ width: "13%" }} />{/* الحالة */}
+                <col style={{ width: "13%" }} />{/* الإجمالي */}
+                <col style={{ width: "11%" }} />{/* المتبقي */}
+                <col style={{ width: "12%" }} />{/* إجراءات */}
               </colgroup>
               <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
-                {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>}
-                {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاستحقاق</th>}
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاستحقاق</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الإجمالي</th>
-                {!splitMode && <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المتبقي</th>}
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المتبقي</th>
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
               </tr></thead>
               <tbody>
                 {filtered.map(i => (
                   <tr
                     key={i.id}
-                    onClick={() => setPreviewId(previewId === i.id ? null : i.id)}
-                    className={`border-b border-border/50 cursor-pointer transition-colors ${previewId === i.id ? "bg-[#E0F2FE] hover:bg-[#E0F2FE]" : "hover:bg-primary/5"}`}
+                    className="border-b border-border/40 transition-colors hover:bg-primary/5"
                   >
                     <td className="py-3 px-4 text-start whitespace-nowrap"><span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span></td>
                     <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}><span className="block whitespace-normal break-words">{i.contact?.displayName || "—"}</span></td>
-                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>}
-                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>}
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
                         <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span>
                         {i.status === "DRAFT" && (
-                          <button onClick={(e) => { e.stopPropagation(); handleApprove(i); }} className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200" title="اعتماد الفاتورة">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const ok = window.confirm(`تأكيد اعتماد الفاتورة ${i.invoiceNumber}؟`);
+                              if (ok) handleApprove(i);
+                            }}
+                            className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200"
+                            title="اعتماد الفاتورة"
+                          >
                             ✓
                           </button>
                         )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
-                    {!splitMode && <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>}
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1 flex-wrap whitespace-nowrap">
+                      <div className="flex items-center gap-1 whitespace-nowrap">
                         {/* SENT/APPROVED → Sign button */}
+                        {i.status === "DRAFT" && (
+                          <button
+                            onClick={() => handleSplitByCategory(i)}
+                            disabled={splittingId === i.id}
+                            className="rounded-md px-2 py-1 text-xs text-[#0B1B49] hover:bg-[#ECEEF5] border border-[#D9DCE7] flex items-center gap-1"
+                            title="تفكيك الفاتورة إلى فواتير حسب القسم"
+                          >
+                            {splittingId === i.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Split className="h-3.5 w-3.5" />}
+                            تفكيك
+                          </button>
+                        )}
+                        {i.status === "APPROVED" && (
+                          <button
+                            onClick={() => handleUnapprove(i)}
+                            className="rounded-md px-1.5 py-0.5 text-[10px] text-amber-700 hover:bg-amber-50 border border-amber-200"
+                            title="إلغاء الاعتماد وإرجاعها لمسودة"
+                          >
+                            ↩ إلغاء اعتماد
+                          </button>
+                        )}
+                        {i.status !== "PAID" && i.status !== "CANCELLED" && (
+                          <button
+                            onClick={() => openRecordPayment(i)}
+                            className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200"
+                            title="تسجيل دفعة عبر صفحة سندات القبض"
+                          >
+                            💰 دفعة
+                          </button>
+                        )}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
                           <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
@@ -934,33 +956,6 @@ export function Invoices() {
         </CardContent>
       </Card>
 
-      {/* Split-view preview pane · shows when a row is clicked */}
-      {splitMode && previewInvoice && (
-        <InvoicePreviewPane
-          doc={{
-            id: previewInvoice.id,
-            number: previewInvoice.invoiceNumber,
-            status: previewInvoice.status,
-            issueDate: previewInvoice.issueDate,
-            dueDate: previewInvoice.dueDate,
-            total: previewInvoice.total,
-            amountPaid: previewInvoice.amountPaid,
-            currency: previewInvoice.currency,
-            notes: (previewInvoice as any).notes,
-            lines: (previewInvoice as any).lines,
-          }}
-          customer={previewCustomer}
-          statusLabels={STATUS_LABELS}
-          statusColors={STATUS_COLORS}
-          docTypeLabel="فاتورة"
-          onClose={() => setPreviewId(null)}
-          onApprove={previewInvoice.status === "DRAFT" ? () => handleApprove(previewInvoice) : undefined}
-          onRecordPayment={() => openRecordPayment(previewInvoice)}
-          onSign={() => openSign(previewInvoice)}
-          onEdit={() => openEdit(previewInvoice)}
-          onDelete={() => setPendingDelete(previewInvoice.id)}
-        />
-      )}
       </div>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />

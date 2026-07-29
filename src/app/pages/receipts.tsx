@@ -3,6 +3,7 @@
  * Wafeq-style: customer + invoice link + attachments + branded PDF + email send
  */
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router";
 import {
   Plus, Search, Eye, X, Trash2, Loader2, Printer, Mail, Paperclip, Upload, Download,
   FileText, Receipt as ReceiptIcon,
@@ -13,6 +14,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
 
@@ -21,7 +23,32 @@ const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
   STC_PAY: "STC Pay", MADA: "مدى", CHECK: "شيك", OTHER: "أخرى",
 };
 
+const FAZAA_KEYWORDS = /فزعة|fazaa|faza3a|faz3a|faza/i;
+
+function isFazaaContact(c: Contact): boolean {
+  const hay = [
+    c.displayName,
+    c.legalName,
+    c.customCode,
+    c.shortCode,
+    c.tags,
+    c.notes,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return FAZAA_KEYWORDS.test(hay) || /\bfaz\b|\bfza\b|\bfz\b/i.test(hay);
+}
+
+function toNum(v: any): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function Receipts() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [items, setItems] = useState<Voucher[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -39,6 +66,9 @@ export function Receipts() {
   const [emailForm, setEmailForm] = useState({ to: "", subject: "", message: "" });
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
+  const [fazaaBusy, setFazaaBusy] = useState(false);
+  const [fazaaPreview, setFazaaPreview] = useState<{ invoices: any[]; total: number }>({ invoices: [], total: 0 });
+
   const [form, setForm] = useState<any>({
     contactId: "",
     invoiceId: "",
@@ -48,6 +78,7 @@ export function Receipts() {
     reference: "",
     bankAccountId: "",
     notes: "",
+    allocations: [] as Array<{ invoiceId: string; amount: string }>,
   });
 
   const refresh = useCallback(async () => {
@@ -55,7 +86,7 @@ export function Receipts() {
     try {
       const [v, c, b] = await Promise.all([
         api.vouchers.list({ type: "RECEIPT" }),
-        api.contacts.list({ type: "CUSTOMER" }).catch(() => ({ items: [] })),
+        api.contacts.list({ role: "customer" }).catch(() => ({ items: [] })),
         api.bankAccounts.list().catch(() => ({ items: [] })),
       ]);
       setItems(v.items);
@@ -68,13 +99,46 @@ export function Receipts() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Load invoices for selected contact
+  // Load all customer invoices for selected contact (for direct linking from receipt)
   useEffect(() => {
     if (!form.contactId) { setInvoices([]); return; }
-    api.invoices.list({ contactId: form.contactId, status: "SENT,PARTIAL,OVERDUE" as any })
-      .then((r) => setInvoices(r.items || []))
+    api.invoices.list({ contactId: form.contactId, status: "DRAFT,APPROVED,SENT,VIEWED,PARTIAL,OVERDUE,PAID" as any, limit: 200 })
+      .then((r) => {
+        const items = r.items || [];
+        setInvoices(items);
+        setForm((prev: any) => ({
+          ...prev,
+          allocations: items
+            .filter((inv: any) => Math.max(toNum(inv.total) - toNum(inv.amountPaid), 0) > 0)
+            .map((inv: any) => ({ invoiceId: inv.id, amount: "" })),
+        }));
+      })
       .catch(() => setInvoices([]));
   }, [form.contactId]);
+
+  // URL-driven create flow (from invoice "دفعة" action)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const wantsCreate = location.pathname.endsWith("/new") || params.get("new") === "1";
+    if (!wantsCreate) return;
+
+    setOpen(true);
+
+    const contactId = params.get("contactId");
+    const invoiceId = params.get("invoiceId");
+    const amount = params.get("amount");
+    const date = params.get("date");
+    const reference = params.get("reference");
+
+    setForm((prev: any) => ({
+      ...prev,
+      contactId: contactId || prev.contactId,
+      invoiceId: invoiceId || prev.invoiceId,
+      amount: amount || prev.amount,
+      date: date || prev.date,
+      reference: reference || prev.reference,
+    }));
+  }, [location.pathname, location.search]);
 
   const filtered = items.filter(p =>
     !searchQuery || p.number.includes(searchQuery) ||
@@ -89,28 +153,83 @@ export function Receipts() {
     invoiceId: "",
     date: new Date().toISOString().slice(0, 10),
     amount: "", paymentMethod: "BANK_TRANSFER", reference: "", bankAccountId: "", notes: "",
+    allocations: [],
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.amount || Number(form.amount) <= 0) { push("error", "أدخل مبلغاً صحيحاً"); return; }
+  const openCreate = () => {
+    resetForm();
+    setOpen(true);
+    navigate("/app/receipts?new=1", { replace: true });
+  };
+
+  const closeCreate = () => {
+    setOpen(false);
+    resetForm();
+    navigate("/app/receipts", { replace: true });
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!form.contactId) { push("error", "اختر العميل"); return; }
+
+    const allocs = (Array.isArray(form.allocations) ? form.allocations : [])
+      .map((a: any) => ({ invoiceId: a.invoiceId, amount: toNum(a.amount) }))
+      .filter((a: any) => a.invoiceId && a.amount > 0);
+
+    const directAmount = toNum(form.amount);
+
+    if (allocs.length === 0 && directAmount <= 0) {
+      push("error", "أدخل مبلغاً صحيحاً أو وزّعه على الفواتير");
+      return;
+    }
+
     setBusy(true);
     try {
-      const v = await api.vouchers.create({
-        type: "RECEIPT",
-        contactId: form.contactId,
-        invoiceId: form.invoiceId || null,
-        date: form.date,
-        amount: Number(form.amount),
-        paymentMethod: form.paymentMethod,
-        bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
-        reference: form.reference || null,
-        notes: form.notes || null,
-      });
-      setItems(prev => [v, ...prev]);
-      push("success", `تم إنشاء ${v.number}`);
-      setOpen(false); resetForm();
+      const created: Voucher[] = [];
+
+      if (allocs.length > 0) {
+        for (const a of allocs) {
+          const inv = invoices.find((x: any) => x.id === a.invoiceId);
+          const maxRemaining = inv ? Math.max(toNum(inv.total) - toNum(inv.amountPaid), 0) : a.amount;
+          const amount = Math.min(a.amount, maxRemaining);
+          if (amount <= 0) continue;
+
+          const v = await api.vouchers.create({
+            type: "RECEIPT",
+            contactId: form.contactId,
+            invoiceId: a.invoiceId,
+            date: form.date,
+            amount: Number(amount.toFixed(2)),
+            paymentMethod: form.paymentMethod,
+            bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+            reference: inv?.invoiceNumber || form.reference || null,
+            notes: form.notes || null,
+          });
+          created.push(v);
+        }
+      } else {
+        const v = await api.vouchers.create({
+          type: "RECEIPT",
+          contactId: form.contactId,
+          invoiceId: form.invoiceId || null,
+          date: form.date,
+          amount: Number(directAmount.toFixed(2)),
+          paymentMethod: form.paymentMethod,
+          bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+          reference: form.reference || null,
+          notes: form.notes || null,
+        });
+        created.push(v);
+      }
+
+      if (created.length === 0) {
+        push("warning", "لم يتم إنشاء أي سند · تحقق من مبالغ التوزيع");
+        return;
+      }
+
+      setItems(prev => [...created, ...prev]);
+      push("success", created.length === 1 ? `تم إنشاء ${created[0].number}` : `تم إنشاء ${created.length} سند قبض`);
+      closeCreate();
       refresh();
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الحفظ");
@@ -147,7 +266,7 @@ export function Receipts() {
   };
 
   const handlePrint = (v: Voucher) => {
-    window.open(api.vouchers.printUrl(v.id), "_blank");
+    window.open(api.vouchers.printUrl(v.id), "_blank", "noopener,noreferrer");
   };
 
   const handleEmail = async () => {
@@ -179,20 +298,104 @@ export function Receipts() {
     } finally { setPendingDelete(null); }
   };
 
+  const handleGenerateFazaaReceipts = async () => {
+    setFazaaBusy(true);
+    try {
+      const fazaaContact = contacts.find(isFazaaContact);
+      if (!fazaaContact) {
+        push("error", "لم يتم العثور على عميل فزعة في قائمة العملاء داخل الشركة الحالية.");
+        return;
+      }
+
+      const invRes = await api.invoices.list({
+        contactId: fazaaContact.id,
+        status: "APPROVED,SENT,VIEWED,PARTIAL,OVERDUE",
+        limit: 200,
+      });
+
+      const targetInvoices = (invRes.items || []).filter((inv: any) => {
+        const remaining = Math.max(Number(inv.total || 0) - Number(inv.amountPaid || 0), 0);
+        return remaining > 0.0001;
+      });
+
+      if (targetInvoices.length === 0) {
+        setFazaaPreview({ invoices: [], total: 0 });
+        push("warning", "لا توجد فواتير فزعة مستحقة لإنشاء سندات قبض حالياً.");
+        return;
+      }
+
+      const created: Voucher[] = [];
+      let failed = 0;
+
+      for (const inv of targetInvoices) {
+        const remaining = Math.max(Number(inv.total || 0) - Number(inv.amountPaid || 0), 0);
+        try {
+          const v = await api.vouchers.create({
+            type: "RECEIPT",
+            contactId: fazaaContact.id,
+            invoiceId: inv.id,
+            date: new Date().toISOString().slice(0, 10),
+            amount: Number(remaining.toFixed(2)),
+            paymentMethod: "BANK_TRANSFER",
+            reference: inv.invoiceNumber,
+            notes: `سند قبض تلقائي لفزعة · مرتبط بالفاتورة ${inv.invoiceNumber}`,
+          });
+          created.push(v);
+        } catch {
+          failed += 1;
+        }
+      }
+
+      if (created.length > 0) {
+        setItems((prev) => [...created, ...prev]);
+        const total = created.reduce((sum, v) => sum + Number(v.amount || 0), 0);
+        setFazaaPreview({ invoices: targetInvoices, total });
+        push("success", `تم إنشاء ${created.length} سند قبض لفزعة${failed ? ` · فشل ${failed}` : ""}`);
+        refresh();
+      } else {
+        push("error", "تعذر إنشاء سندات قبض فزعة. تحقق من الفواتير والحالة.");
+      }
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "فشل إنشاء سندات قبض فزعة");
+    } finally {
+      setFazaaBusy(false);
+    }
+  };
+
   return (
     <div className="flex gap-4">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
       <div className={`space-y-6 transition-all ${selected ? "flex-1 min-w-0" : "w-full"}`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
             <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>سندات القبض</h1>
             <p className="text-muted-foreground mt-1">المبالغ المُستلمة من العملاء · ربط مباشر بالفاتورة وبالعميل</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => { resetForm(); setOpen(true); }}>
-            <Plus className="me-2 h-4 w-4" /> سند قبض جديد
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" className="border-border" onClick={handleGenerateFazaaReceipts} disabled={fazaaBusy}>
+              {fazaaBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <ReceiptIcon className="me-2 h-4 w-4" />}سندات فزعة
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}>
+              <Plus className="me-2 h-4 w-4" /> سند قبض جديد
+            </Button>
+          </div>
         </div>
+
+        {fazaaPreview.invoices.length > 0 && (
+          <Card className="border-border bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <div className="text-xs text-muted-foreground">فزعة · آخر إنشاء تلقائي</div>
+                  <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>
+                    {`تم تجهيز ${fazaaPreview.invoices.length} سند قبض · بإجمالي ${fazaaPreview.total.toLocaleString()} SAR`}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Card className="border-border"><CardContent className="p-4">
@@ -357,116 +560,176 @@ export function Receipts() {
         </Card>
       )}
 
-      {/* CREATE FORM MODAL */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between p-5 border-b border-border/50">
-                <h2 className="text-lg text-foreground font-bold flex items-center gap-2">
-                  <ReceiptIcon className="h-5 w-5" /> سند قبض جديد
-                </h2>
-                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-muted/50 rounded">
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <Label className="text-xs">العميل *</Label>
-                  <SearchableCombobox
-                    value={form.contactId}
-                    onChange={(id) => setForm({ ...form, contactId: id, invoiceId: "" })}
-                    items={contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: [(c as any).legalName, c.email].filter(Boolean).join(" · ") || undefined }))}
-                    placeholder="ابحث عن عميل (عربي/English)..."
-                    onCreate={async (name) => {
-                      try {
-                        const created = await api.contacts.create({ displayName: name, type: "CUSTOMER" as any, isCustomer: true, isSupplier: false, entityKind: "COMPANY" as any, country: "SA" } as any);
-                        setContacts((prev) => [created, ...prev]);
-                        return created.id;
-                      } catch (e: any) {
-                        push("error", e?.message || "فشل الإنشاء");
-                        return "";
-                      }
-                    }}
-                    createLabel={(q) => `+ إنشاء جديد "${q}"`}
-                  />
-                </div>
+        <FullPageForm
+          title="سند قبض جديد"
+          subtitle="إنشاء سند قبض مرتبط بالفواتير أو توزيع مبلغ على أكثر من فاتورة"
+          onClose={closeCreate}
+          disableEscape={busy}
+          footer={
+            <div className="flex items-center justify-between gap-2 flex-wrap w-full">
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <Button type="button" onClick={() => handleSubmit()} disabled={busy} className="bg-primary hover:bg-primary/90">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+              </Button>
+            </div>
+          }
+        >
+          <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto space-y-4">
+            <div>
+              <Label className="text-xs">العميل *</Label>
+              <SearchableCombobox
+                value={form.contactId}
+                onChange={(id) => setForm({ ...form, contactId: id, invoiceId: "", amount: "", allocations: [] })}
+                items={contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: [(c as any).legalName, c.email].filter(Boolean).join(" · ") || undefined }))}
+                placeholder="ابحث عن عميل (عربي/English)..."
+                onCreate={async (name) => {
+                  try {
+                    const created = await api.contacts.create({ displayName: name, type: "CUSTOMER" as any, isCustomer: true, isSupplier: false, entityKind: "COMPANY" as any, country: "SA" } as any);
+                    setContacts((prev) => [created, ...prev]);
+                    return created.id;
+                  } catch (e: any) {
+                    push("error", e?.message || "فشل الإنشاء");
+                    return "";
+                  }
+                }}
+                createLabel={(q) => `+ إنشاء جديد "${q}"`}
+              />
+            </div>
 
-                {form.contactId && invoices.length > 0 && (
-                  <div>
-                    <Label className="text-xs">الفاتورة المرتبطة (اختياري)</Label>
-                    <select value={form.invoiceId} onChange={(e) => {
-                      const inv = invoices.find((i) => i.id === e.target.value);
-                      setForm({
-                        ...form,
-                        invoiceId: e.target.value,
-                        amount: inv ? String(Number(inv.total) - Number(inv.amountPaid || 0)) : form.amount,
-                      });
-                    }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-                      <option value="">— غير مرتبط —</option>
-                      {invoices.map((inv) => (
-                        <option key={inv.id} value={inv.id}>
-                          {inv.invoiceNumber} · المتبقي {Number(inv.total) - Number(inv.amountPaid || 0)} {inv.currency}
+            {form.contactId && (
+              <>
+                <div>
+                  <Label className="text-xs">الفاتورة المرتبطة (اختياري)</Label>
+                  <select value={form.invoiceId} onChange={(e) => {
+                    const inv = invoices.find((i) => i.id === e.target.value);
+                    const remaining = inv ? Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0) : 0;
+                    setForm({
+                      ...form,
+                      invoiceId: e.target.value,
+                      amount: inv ? String(remaining.toFixed(2)) : form.amount,
+                      date: inv?.issueDate ? String(inv.issueDate).slice(0, 10) : form.date,
+                      reference: inv?.invoiceNumber || form.reference,
+                    });
+                  }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+                    <option value="">— غير مرتبط —</option>
+                    {invoices.map((inv) => {
+                      const remaining = Math.max(0, toNum(inv.total) - toNum(inv.amountPaid || 0));
+                      const isPaid = remaining <= 0;
+                      return (
+                        <option key={inv.id} value={inv.id} disabled={isPaid}>
+                          {inv.invoiceNumber} · المتبقي {remaining.toFixed(2)} {inv.currency}{isPaid ? " · مسددة" : ""}
                         </option>
-                      ))}
-                    </select>
+                      );
+                    })}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    تظهر هنا فواتير هذا العميل فقط، والربط سيكون مباشرًا على نفس الحساب.
+                  </p>
+                </div>
+
+                {invoices.some((inv) => Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0) > 0) && (
+                  <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                    <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>توزيع المبلغ على الفواتير (اختياري)</div>
+                    {invoices
+                      .filter((inv) => Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0) > 0)
+                      .map((inv) => {
+                        const remaining = Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0);
+                        const allocation = (form.allocations || []).find((a: any) => a.invoiceId === inv.id);
+                        return (
+                          <div key={inv.id} className="grid grid-cols-[1fr_140px_auto] gap-2 items-center">
+                            <div className="text-xs text-foreground/90">
+                              <span className="font-english text-primary">{inv.invoiceNumber}</span>
+                              <span className="text-muted-foreground"> · متبقي </span>
+                              <span className="font-english">{remaining.toFixed(2)} {inv.currency}</span>
+                            </div>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={allocation?.amount || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm((prev: any) => {
+                                  const cur = Array.isArray(prev.allocations) ? [...prev.allocations] : [];
+                                  const idx = cur.findIndex((x: any) => x.invoiceId === inv.id);
+                                  if (idx >= 0) cur[idx] = { ...cur[idx], amount: val };
+                                  else cur.push({ invoiceId: inv.id, amount: val });
+                                  return { ...prev, allocations: cur };
+                                });
+                              }}
+                              dir="ltr"
+                              className="font-english"
+                              placeholder="0.00"
+                            />
+                            <button
+                              type="button"
+                              className="text-[11px] text-primary hover:underline"
+                              onClick={() => {
+                                setForm((prev: any) => {
+                                  const cur = Array.isArray(prev.allocations) ? [...prev.allocations] : [];
+                                  const idx = cur.findIndex((x: any) => x.invoiceId === inv.id);
+                                  const full = remaining.toFixed(2);
+                                  if (idx >= 0) cur[idx] = { ...cur[idx], amount: full };
+                                  else cur.push({ invoiceId: inv.id, amount: full });
+                                  return { ...prev, allocations: cur };
+                                });
+                              }}
+                            >
+                              كامل المتبقي
+                            </button>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
+              </>
+            )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">التاريخ *</Label>
-                    <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required dir="ltr" className="font-english" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">المبلغ *</Label>
-                    <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required dir="ltr" className="font-english" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">طريقة الدفع *</Label>
-                  <Select value={form.paymentMethod} onValueChange={(v) => setForm({ ...form, paymentMethod: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(METHOD_LABELS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {form.paymentMethod !== "CASH" && bankAccounts.length > 0 && (
-                  <div>
-                    <Label className="text-xs">الحساب البنكي المُستلم فيه</Label>
-                    <select value={form.bankAccountId} onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
-                      className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-                      <option value="">— اختر —</option>
-                      {bankAccounts.map((b) => (
-                        <option key={b.id} value={b.id}>{b.bankName || b.name} · {b.accountNumber || b.iban}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div>
-                  <Label className="text-xs">المرجع (رقم تحويل / شيك)</Label>
-                  <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم تحويل / رقم شيك" dir="ltr" className="font-english" />
-                </div>
-
-                <div>
-                  <Label className="text-xs">ملاحظات</Label>
-                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="ملاحظات اختيارية" />
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">التاريخ *</Label>
+                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required dir="ltr" className="font-english" />
               </div>
-
-              <div className="flex justify-end gap-2 p-5 border-t border-border/50">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">إلغاء</Button>
-                <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
-                </Button>
+              <div>
+                <Label className="text-xs">المبلغ *</Label>
+                <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required dir="ltr" className="font-english" />
               </div>
-            </form>
-          </div>
-        </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">طريقة الدفع *</Label>
+              <Select value={form.paymentMethod} onValueChange={(v) => setForm({ ...form, paymentMethod: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(METHOD_LABELS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {form.paymentMethod !== "CASH" && bankAccounts.length > 0 && (
+              <div>
+                <Label className="text-xs">الحساب البنكي المُستلم فيه</Label>
+                <select value={form.bankAccountId} onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
+                  className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+                  <option value="">— اختر —</option>
+                  {bankAccounts.map((b) => (
+                    <option key={b.id} value={b.id}>{b.bankName || b.name} · {b.accountNumber || b.iban}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-xs">المرجع (رقم تحويل / شيك)</Label>
+              <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم تحويل / رقم شيك" dir="ltr" className="font-english" />
+            </div>
+
+            <div>
+              <Label className="text-xs">ملاحظات</Label>
+              <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="ملاحظات اختيارية" />
+            </div>
+          </form>
+        </FullPageForm>
       )}
 
       {/* EMAIL DIALOG */}

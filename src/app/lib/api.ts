@@ -61,6 +61,7 @@ type FetchOpts = {
   query?: Record<string, string | number | undefined | null>
   skipOrg?: boolean
   signal?: AbortSignal
+  headers?: Record<string, string>
 }
 
 async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
@@ -71,7 +72,10 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     }
   }
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(opts.headers || {}),
+  }
   if (!opts.skipOrg && orgId) headers['X-Org-Id'] = orgId
 
   let body: string | undefined
@@ -150,7 +154,13 @@ export const api = {
 
   // Contacts
   contacts: {
-    list: (params?: { type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'; q?: string; page?: number; limit?: number }) =>
+    list: (params?: {
+      type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
+      role?: 'customer' | 'supplier' | 'employee' | 'shareholder' | 'freelancer'
+      q?: string
+      page?: number
+      limit?: number
+    }) =>
       request<PaginatedResponse<Contact>>('/api/contacts', { query: params }),
     get: (id: string) => request<Contact>(`/api/contacts/${id}`),
     summary: (id: string) => request<ContactSummary>(`/api/contacts/${id}/summary`),
@@ -264,6 +274,16 @@ export const api = {
     purchases: () => request<PurchasesDashboard>('/api/dashboard/purchases'),
   },
 
+  // Saudi VAT Return + Withholding
+  taxReturn: {
+    saVat: (params?: { from?: string; to?: string }) =>
+      request<TaxReturnPayload>('/api/tax-return/sa-vat', { query: params }),
+    updateWithholding: (
+      voucherId: string,
+      data: { rate: number; transferType: 'SERVICE' | 'ROYALTY' | 'INTEREST' | 'OTHER'; note?: string | null },
+    ) => request<{ ok: true; row: TaxReturnWithholdingRow }>(`/api/tax-return/withholding/${voucherId}`, { method: 'PATCH', body: data }),
+  },
+
   // Reports · live report viewer + print designer payload
   reports: {
     get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; demo?: number }) =>
@@ -337,6 +357,15 @@ export const api = {
     seedIndustry: (industryId: string) =>
       request<{ ok: true; created: number; skipped: number; message: string; catalog: { id: string; nameAr: string; icon: string } }>(
         `/api/products/seed-industry/${industryId}`, { method: 'POST', body: {} },
+      ),
+  },
+
+  // Invoice operations helpers
+  invoiceOps: {
+    splitByCategory: (invoiceId: string) =>
+      request<{ ok: true; originalInvoiceId: string; createdCount: number; groups: Array<{ key: string; labelAr: string; labelEn: string; lines: number; total: number }>; createdInvoices: Invoice[] }>(
+        `/api/invoices/${invoiceId}/split-by-category`,
+        { method: 'POST', body: {} },
       ),
   },
 
@@ -510,10 +539,10 @@ export const api = {
       request<any>(`/api/loyalty/accounts/${contactId}/redeem`, { method: 'POST', body: { points, source, description } }),
   },
 
-  // Bank statement import (CSV / MT940 / OFX / PDF) + auto-match
+  // Bank statement import (CSV / MT940 / OFX / QIF / XLSX / XLS / PDF) + auto-match
   bankImport: {
-    profiles: () => request<{ profiles: { id: string; label: string }[]; formats: Array<'csv' | 'mt940' | 'ofx' | 'pdf'> }>('/api/bank-import/profiles'),
-    parse: (data: { bankAccountId: string; format: 'csv' | 'mt940' | 'ofx' | 'pdf'; profile?: string; text?: string; fileBase64?: string; fileName?: string; mimeType?: string }) =>
+    profiles: () => request<{ profiles: { id: string; label: string }[]; formats: Array<'csv' | 'mt940' | 'ofx' | 'qif' | 'xlsx' | 'xls' | 'pdf'> }>('/api/bank-import/profiles'),
+    parse: (data: { bankAccountId: string; format: 'csv' | 'mt940' | 'ofx' | 'qif' | 'xlsx' | 'xls' | 'pdf'; profile?: string; text?: string; fileBase64?: string; fileName?: string; mimeType?: string }) =>
       request<{ rows: any[]; matched: number; unmatched: number; ai?: { model?: string; source?: string } }>(
         '/api/bank-import/parse',
         { method: 'POST', body: data },
@@ -525,7 +554,7 @@ export const api = {
       ),
   },
 
-  // Portal · enable/disable per-contact + retrieve URL
+  // Portal · enable/disable per-contact + retrieve URL + public portal feed
   portal: {
     enable: (contactId: string) =>
       request<{ ok: true; url: string; token: string }>(`/api/portal-admin/contacts/${contactId}/enable`, { method: 'POST' }),
@@ -533,6 +562,32 @@ export const api = {
       request<{ ok: true }>(`/api/portal-admin/contacts/${contactId}/disable`, { method: 'POST' }),
     getUrl: (contactId: string) =>
       request<{ enabled: boolean; url?: string; token?: string }>(`/api/portal-admin/contacts/${contactId}/url`),
+    me: (token: string) =>
+      request<{ contact: any; org: { id: string; name: string; baseCurrency: string; country: string; logoUrl?: string | null }; summary: { outstanding: number; overdueAmount: number; overdueCount: number; totalInvoices: number; lastPayment: { date: string; amount: number } | null } }>(
+        '/api/portal/me',
+        { skipOrg: true, headers: { 'x-portal-token': token } },
+      ),
+    invoices: (token: string, params?: { status?: string }) =>
+      request<{ items: Array<{ id: string; number: string; date: string; dueDate: string | null; currency: string; total: number; paid: number; remaining: number; status: string; paymentLinkUrl?: string | null }> }>(
+        '/api/portal/invoices',
+        { query: params, skipOrg: true, headers: { 'x-portal-token': token } },
+      ),
+    statement: (token: string) =>
+      request<{ items: Array<{ date: string; description: string; ref: string; debit: number; credit: number; balance: number }>; finalBalance: number }>(
+        '/api/portal/statement',
+        { skipOrg: true, headers: { 'x-portal-token': token } },
+      ),
+    documents: (token: string) =>
+      request<{ items: Array<{ id: string; name: string; type: string; date: string }> }>(
+        '/api/portal/documents',
+        { skipOrg: true, headers: { 'x-portal-token': token } },
+      ),
+    payInvoice: (token: string, invoiceId: string) =>
+      request<{ url: string }>(`/api/portal/pay/${invoiceId}`, {
+        method: 'POST',
+        skipOrg: true,
+        headers: { 'x-portal-token': token },
+      }),
   },
 
   // Payment Links · Stripe + PayPal + Moyasar
@@ -658,7 +713,7 @@ export const api = {
       request<Voucher>(`/api/vouchers/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/vouchers/${id}`, { method: 'DELETE' }),
-    printUrl: (id: string) => `${API_BASE}/api/vouchers/${id}/print`,
+    printUrl: (id: string) => `/print/voucher/${id}`,
     email: (id: string, body?: { to?: string; subject?: string; message?: string }) =>
       request<{ ok: true; to: string }>(`/api/vouchers/${id}/email`, { method: 'POST', body: body || {} }),
     attachments: {
@@ -1338,6 +1393,69 @@ export interface DashboardSummary {
   }
 }
 
+export interface TaxReturnWithholdingRow {
+  voucherId: string
+  number: string
+  date: string
+  reference: string
+  beneficiary: string
+  contactId: string | null
+  transferType: 'SERVICE' | 'ROYALTY' | 'INTEREST' | 'OTHER'
+  rate: number
+  baseAmount: number
+  withholdingAmount: number
+  currency: string
+  paymentMethod: string
+  hasOverride: boolean
+}
+
+export interface TaxReturnPayload {
+  org: {
+    id: string
+    name: string
+    legalName?: string | null
+    country: string
+    baseCurrency: string
+    vatNumber?: string | null
+    vatPeriod?: 'monthly' | 'quarterly' | null
+  }
+  period: { from: string; to: string }
+  vatDeclaration: {
+    sales: {
+      standardRated: { base: number; vat: number }
+      zeroRated: { base: number; vat: number }
+      exempt: { base: number; vat: number }
+      nonTaxable: { base: number; vat: number }
+      totalBase: number
+      totalVat: number
+    }
+    purchases: {
+      deductible: { base: number; vat: number }
+      zeroRated: { base: number; vat: number }
+      exempt: { base: number; vat: number }
+      imports: { base: number; vat: number }
+      totalBase: number
+      totalVat: number
+    }
+    netVat: number
+    payable: number
+    refundable: number
+  }
+  breakdown: {
+    grossRevenue: number
+    taxAmount: number
+    totalRevenueIncludingTax: number
+    nonTaxRevenue: number
+    expensesTotal: number
+    expensesTax: number
+  }
+  withholding: {
+    totalBase: number
+    totalWithholding: number
+    rows: TaxReturnWithholdingRow[]
+  }
+}
+
 export interface OcrResult {
   docType?: 'RECEIPT' | 'INVOICE' | 'BILL' | 'QUOTE' | 'CONTRACT' | 'STATEMENT' | 'OTHER'
   status?: 'needs_bank_statement_review' | string
@@ -1440,6 +1558,7 @@ export interface VoucherInput {
   amount: number
   currency?: string
   paymentMethod: Voucher['paymentMethod']
+  bankAccountId?: string | null
   reference?: string | null
   notes?: string | null
   invoiceId?: string | null

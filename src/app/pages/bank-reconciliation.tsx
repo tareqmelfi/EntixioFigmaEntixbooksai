@@ -32,7 +32,7 @@ type ParsedRow = {
   sourceFile?: string;
 };
 
-type StatementFormat = "csv" | "mt940" | "ofx" | "pdf";
+type StatementFormat = "csv" | "mt940" | "ofx" | "qif" | "pdf" | "xlsx" | "xls";
 
 type UploadedStatementFile = {
   name: string;
@@ -68,16 +68,26 @@ function inferStatementFormat(file: File): StatementFormat {
   if (ext === "pdf" || file.type === "application/pdf") return "pdf";
   if (ext === "ofx" || ext === "qfx") return "ofx";
   if (ext === "mt940" || ext === "sta" || ext === "swift") return "mt940";
+  if (ext === "qif") return "qif";
+  if (ext === "xlsx") return "xlsx";
+  if (ext === "xls") return "xls";
   return "csv";
 }
 
 async function readStatementFile(file: File): Promise<UploadedStatementFile> {
   const detected = inferStatementFormat(file);
-  if (detected === "pdf") {
+  if (detected === "pdf" || detected === "xlsx" || detected === "xls") {
+    const inferredMime = detected === "pdf"
+      ? "application/pdf"
+      : detected === "xlsx"
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "application/vnd.ms-excel";
+    const rawMime = (file.type || "").trim().toLowerCase();
+    const normalizedMime = !rawMime || rawMime === "application/octet-stream" ? inferredMime : file.type;
     return {
       name: file.name,
-      format: "pdf",
-      mimeType: file.type || "application/pdf",
+      format: detected,
+      mimeType: normalizedMime,
       base64: await fileToBase64(file),
     };
   }
@@ -125,10 +135,13 @@ export function BankReconciliation() {
   const handleFiles = async (files: FileList | File[]) => {
     const allowed = Array.from(files).filter((file) => {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      return ["pdf", "csv", "mt940", "sta", "ofx", "qif", "qfx", "txt"].includes(ext || "") || file.type === "application/pdf";
+      return ["pdf", "csv", "mt940", "sta", "ofx", "qif", "qfx", "txt", "xlsx", "xls"].includes(ext || "")
+        || file.type === "application/pdf"
+        || file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        || file.type === "application/vnd.ms-excel";
     });
     if (allowed.length === 0) {
-      push("error", "اختر ملف PDF أو CSV/MT940/OFX، وليس مجلد فارغ أو صيغة غير مدعومة");
+      push("error", "اختر ملف PDF أو CSV/MT940/OFX/QIF/XLSX/XLS، وليس مجلد فارغ أو صيغة غير مدعومة");
       return;
     }
     try {
@@ -151,12 +164,13 @@ export function BankReconciliation() {
       let unmatched = 0;
       const models = new Set<string>();
       for (const file of selectedFiles) {
+        const isBinary = file.format === "pdf" || file.format === "xlsx" || file.format === "xls";
         const res = await api.bankImport.parse({
           bankAccountId,
           format: file.format,
           profile,
-          text: file.format === "pdf" ? undefined : file.text,
-          fileBase64: file.format === "pdf" ? file.base64 : undefined,
+          text: isBinary ? undefined : file.text,
+          fileBase64: isBinary ? file.base64 : undefined,
           fileName: file.name,
           mimeType: file.mimeType || (file.format === "pdf" ? "application/pdf" : undefined),
         });
@@ -248,7 +262,7 @@ export function BankReconciliation() {
         <Card className="border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground"><Upload className="h-5 w-5" /> رفع كشف حساب</CardTitle>
-            <CardDescription>صيغ مدعومة: PDF ذكي · CSV · MT940 · OFX · QIF</CardDescription>
+            <CardDescription>صيغ مدعومة: PDF ذكي · CSV · MT940 · OFX · QIF · XLSX · XLS</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedBank && (
@@ -286,6 +300,9 @@ export function BankReconciliation() {
                     <SelectItem value="csv">CSV</SelectItem>
                     <SelectItem value="mt940">MT940 (SWIFT)</SelectItem>
                     <SelectItem value="ofx">OFX</SelectItem>
+                    <SelectItem value="qif">QIF</SelectItem>
+                    <SelectItem value="xlsx">XLSX</SelectItem>
+                    <SelectItem value="xls">XLS</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -304,7 +321,7 @@ export function BankReconciliation() {
 
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-[#1276E3] transition">
               <FileText className="h-10 w-10 text-muted-foreground/60 mx-auto mb-2" />
-              <input type="file" id="bank-stmt" accept=".pdf,application/pdf,.csv,.mt940,.sta,.ofx,.qif,.qfx,.txt" multiple hidden
+              <input type="file" id="bank-stmt" accept=".pdf,application/pdf,.csv,.mt940,.sta,.ofx,.qif,.qfx,.txt,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple hidden
                 onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }} />
               <input type="file" id="bank-stmt-folder" accept=".pdf,application/pdf" multiple hidden {...directoryInputProps}
                 onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }} />
@@ -321,7 +338,7 @@ export function BankReconciliation() {
                 ) : (
                   <>
                     <div className="text-sm text-primary font-medium">اختر ملفاً للرفع</div>
-                    <div className="text-xs text-muted-foreground/60 mt-1">PDF كشف البنك أو CSV/MT940/OFX · يدعم أكثر من ملف PDF</div>
+                    <div className="text-xs text-muted-foreground/60 mt-1">PDF كشف البنك أو CSV/MT940/OFX/QIF/XLSX/XLS · يدعم أكثر من ملف PDF</div>
                   </>
                 )}
                 <div className="mt-4 flex items-center justify-center gap-2">

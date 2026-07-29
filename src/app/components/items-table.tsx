@@ -116,7 +116,9 @@ export function computeTotals(lines: InvoiceLine[]) {
   return { subtotal, tax, total: subtotal + tax };
 }
 
-const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: false };
+const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: true };
+
+const ROW_BORDER_CLASS = "border-border/30";
 
 function normalizeNumberCell(value: string) {
   return normalizeDigits(value)
@@ -137,6 +139,19 @@ function splitStructuredRow(row: string, hasTabs: boolean) {
 function isLikelyHeaderRow(cols: string[]) {
   const label = cols.join(" ").toLowerCase();
   return /description|item|qty|quantity|price|amount|الوصف|الصنف|الكمية|السعر|المبلغ/.test(label);
+}
+
+function mergeProductDescription(productName: string, existingDescription?: string) {
+  const template = (productName || "").trim();
+  const userText = (existingDescription || "").trim();
+  if (!template) return userText;
+  if (!userText) return template;
+
+  const userLines = userText.split("\n");
+  const firstLine = (userLines[0] || "").trim();
+  if (firstLine === template) return userText;
+
+  return `${template}\n${userText}`;
 }
 
 function AutoGrowTextarea({
@@ -306,11 +321,7 @@ export function ItemsTable({
 
   const onProductPick = (idx: number, product: ProductOption) => {
     const existing = displayLines[idx];
-    const templateDescription = product.name;
-    const userDescription = existing?.description?.trim() || "";
-    const combined = userDescription
-      ? `${templateDescription}\n${userDescription}`
-      : templateDescription;
+    const combined = mergeProductDescription(product.name, existing?.description);
     updateLine(idx, {
       productId: product.id,
       description: combined,
@@ -455,14 +466,14 @@ export function ItemsTable({
           <table className="w-full text-sm" style={{ minWidth: "100%" }}>
             <colgroup>
               <col className="w-8" />
-              <col className="min-w-[140px] w-[15%]" />
-              <col className="min-w-[220px] w-[30%]" />
-              <col className="min-w-[72px] w-[8%]" />
-              <col className="min-w-[96px] w-[10%]" />
-              {showAccount && <col className="min-w-[180px] w-[18%]" />}
-              {showTax && <col className="min-w-[100px] w-[10%]" />}
-              {showTaxAmount && <col className="min-w-[96px] w-[9%]" />}
-              <col className="min-w-[96px] w-[9%]" />
+              <col className="min-w-[140px] w-[14%]" />
+              <col className="min-w-[260px] w-[32%]" />
+              <col className="min-w-[72px] w-[7%]" />
+              <col className="min-w-[104px] w-[9%]" />
+              {showAccount && <col className="min-w-[220px] w-[18%]" />}
+              {showTax && <col className="min-w-[124px] w-[10%]" />}
+              {showTaxAmount && <col className="min-w-[118px] w-[10%]" />}
+              <col className="min-w-[130px] w-[10%]" />
               <col className="w-10" />
             </colgroup>
             <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -506,7 +517,7 @@ export function ItemsTable({
                 const isReal = i < realLineCount;
 
                 return (
-                  <tr key={line.id} className="border-t border-border/50 hover:bg-muted/30">
+                  <tr key={line.id} className={`border-t ${ROW_BORDER_CLASS} hover:bg-muted/20`}>
                     <td className="px-1 py-1 text-center">
                       <button
                         type="button"
@@ -538,6 +549,7 @@ export function ItemsTable({
                           placeholder="ابحث عن صنف..."
                           createLabel={(q) => `+ إنشاء صنف "${q}"`}
                           className="border-0"
+                          buttonClassName="h-7 px-2 text-xs border border-border/60 rounded-md"
                           menuMinWidth={360}
                         />
                       </td>
@@ -587,7 +599,8 @@ export function ItemsTable({
                           items={accountItems}
                           placeholder="ابحث عن حساب..."
                           className="border-0"
-                          menuMinWidth={420}
+                          buttonClassName="h-7 px-2 text-xs border border-border/60 rounded-md"
+                          menuMinWidth={520}
                           onCreate={onCreateAccount ? async (name) => {
                             const a = await onCreateAccount(name);
                             updateLine(i, { accountId: a.id });
@@ -615,11 +628,11 @@ export function ItemsTable({
                       </td>
                     )}
                     {showTaxAmount && (
-                      <td className="px-3 py-1 font-english text-sm text-muted-foreground">
+                      <td className="px-2 py-1 font-english text-xs text-muted-foreground whitespace-nowrap">
                         {gross > 0 ? lineTax.toFixed(2) : ""}
                       </td>
                     )}
-                    <td className="px-3 py-1 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>
+                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap" style={{ fontWeight: 700 }}>
                       {gross > 0 ? lineTotal.toFixed(2) : ""}
                     </td>
                     <td className="px-1 py-1">
@@ -691,7 +704,7 @@ export function ItemsTable({
                         const newLineWithProduct: InvoiceLine = {
                           ...newLine(defaultTaxRate, inclusive),
                           productId: match.id,
-                          description: match.name,
+                          description: mergeProductDescription(match.name),
                           unitPrice: String(match.unitPrice),
                           accountId: match.accountId,
                           taxRate: match.taxRate ?? defaultTaxRate,
@@ -724,7 +737,7 @@ export function ItemsTable({
                       const newLineWithProduct: InvoiceLine = {
                         ...newLine(defaultTaxRate, inclusive),
                         productId: match.id,
-                        description: match.name,
+                        description: mergeProductDescription(match.name),
                         unitPrice: String(match.unitPrice),
                         accountId: match.accountId,
                         taxRate: match.taxRate ?? defaultTaxRate,

@@ -893,56 +893,128 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
   const [config, setConfig] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  type NumberingKindUi = "contact" | "invoice" | "quote" | "bill" | "receipt" | "payment";
+  const kinds: Array<[NumberingKindUi, string]> = [
+    ["contact", "العملاء/الموردين"],
+    ["invoice", "فواتير المبيعات"],
+    ["quote", "عروض الأسعار"],
+    ["bill", "فواتير المشتريات"],
+    ["receipt", "سندات القبض"],
+    ["payment", "سندات الصرف"],
+  ];
+  const tokenHintByKind: Record<NumberingKindUi, string> = {
+    contact: "{CLIENT}",
+    invoice: "{CLIENT}",
+    quote: "{CLIENT}",
+    bill: "{VENDOR}",
+    receipt: "{CLIENT}",
+    payment: "{VENDOR}",
+  };
+
+  const normalizeLegacyPrefix = (prefix: string, kind: NumberingKindUi) => {
+    return String(prefix || "").replace(/X{2,}/gi, tokenHintByKind[kind]);
+  };
+
+  const normalizeLoadedConfig = (raw: any) => {
+    const source = raw || {};
+    const voucher = source.voucher || {};
+    return {
+      ...source,
+      receipt: source.receipt || (Object.keys(voucher).length ? { ...voucher } : undefined),
+      payment: source.payment || (Object.keys(voucher).length ? { ...voucher } : undefined),
+    };
+  };
+
   useEffect(() => {
     api.orgs.getNumbering(orgId)
-      .then(setConfig)
-      .catch(() => setConfig({ contact: { prefix: "CUST-", padding: 4 }, invoice: { prefix: "INV-{YYYY}-", padding: 4 }, quote: { prefix: "QT-{YYYY}-", padding: 4 }, bill: { prefix: "BILL-{YYYY}-", padding: 4 }, voucher: { prefix: "VCR-", padding: 4 } }))
+      .then((raw) => setConfig(normalizeLoadedConfig(raw)))
+      .catch(() => setConfig({
+        contact: { prefix: "EN-CON-{CLIENT}-", padding: 4 },
+        invoice: { prefix: "EN-INV-{YYYY}{MM}-", padding: 4 },
+        quote: { prefix: "EN-QTE-{YYYY}{MM}-", padding: 4 },
+        bill: { prefix: "EN-BIL-{VENDOR}-{YYYY}{MM}-", padding: 4 },
+        receipt: { prefix: "EN-RCP-{CLIENT}-{YYYY}{MM}-", padding: 4 },
+        payment: { prefix: "EN-PAY-{VENDOR}-{YYYY}{MM}-", padding: 4 },
+      }))
       .finally(() => setLoading(false));
   }, [orgId]);
 
   const expand = (s: string) => {
     const now = new Date();
-    return s.replace(/\{YYYY\}/g, String(now.getFullYear()))
+    return s
+      .replace(/\{ENTITY\}/g, String(config?.entityCode || "EN"))
+      .replace(/\{CLIENT\}/g, "CLNT")
+      .replace(/\{VENDOR\}/g, "VNDR")
+      .replace(/\{PROJECT\}/g, "PRJ1")
+      .replace(/\{DOC\}/g, "DOC")
+      .replace(/\{YYYY\}/g, String(now.getFullYear()))
       .replace(/\{YY\}/g, String(now.getFullYear()).slice(-2))
       .replace(/\{MM\}/g, String(now.getMonth() + 1).padStart(2, "0"))
       .replace(/\{DD\}/g, String(now.getDate()).padStart(2, "0"));
   };
 
-  const preview = (kind: string) => {
+  const preview = (kind: NumberingKindUi) => {
     const k = config?.[kind];
     if (!k) return "—";
-    return `${expand(k.prefix || "")}${"1".padStart(k.padding || 4, "0")}`;
+    const prefix = String(k.prefix || "");
+    const padded = "1".padStart(Math.max(Number(k.padding) || 4, 1), "0");
+    const base = expand(prefix);
+    return prefix.includes("{SEQ}") ? base.replace(/\{SEQ\}/g, padded) : `${base}${padded}`;
+  };
+
+  const normalizeConfigForSave = (current: any) => {
+    const next = { ...(current || {}) };
+    for (const [k] of kinds) {
+      const item = next[k];
+      if (!item?.prefix) continue;
+      next[k] = {
+        ...item,
+        prefix: normalizeLegacyPrefix(String(item.prefix), k),
+      };
+    }
+    return next;
   };
 
   const handleSave = async () => {
     setBusy(true);
     try {
-      await api.orgs.saveNumbering(orgId, config);
-      push("success", "تم حفظ إعدادات الترقيم");
+      const normalized = normalizeConfigForSave(config);
+      const wasNormalized = JSON.stringify(normalized) !== JSON.stringify(config);
+      setConfig(normalized);
+      await api.orgs.saveNumbering(orgId, normalized);
+      if (wasNormalized) {
+        push("success", "تم تحويل XXXX تلقائياً إلى المتغير المناسب وحفظ الإعدادات");
+      } else {
+        push("success", "تم حفظ إعدادات الترقيم");
+      }
     } catch (e: any) {
-      push("error", e?.message || "فشل الحفظ");
+      const msg = String(e?.message || "");
+      if (msg.includes("Do not use XXXX") || msg.includes("Unsupported token")) {
+        push("error", "صيغة البادئة غير صحيحة. استخدم المتغيرات: {ENTITY} {CLIENT} {VENDOR} {PROJECT} {DOC} {YYYY} {YY} {MM} {DD} {SEQ}");
+      } else {
+        push("error", e?.message || "فشل الحفظ");
+      }
     } finally { setBusy(false); }
   };
 
   if (loading) return <Card className="border-border"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></CardContent></Card>;
 
-  const kinds: Array<[string, string]> = [
-    ["contact", "العملاء/الموردين"],
-    ["invoice", "فواتير المبيعات"],
-    ["quote", "عروض الأسعار"],
-    ["bill", "فواتير المشتريات"],
-    ["voucher", "السندات"],
-  ];
-
   return (
     <Card className="border-border">
       <CardHeader>
         <CardTitle className="text-foreground">الترقيم التلقائي للمستندات</CardTitle>
-        <CardDescription>
-          البادئة تدعم متغيرات: <code className="font-english bg-gray-100 px-1 rounded">{"{YYYY}"}</code>{" "}
+        <CardDescription className="leading-7">
+          المتغيرات المدعومة: <code className="font-english bg-gray-100 px-1 rounded">{"{ENTITY}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{CLIENT}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{VENDOR}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{PROJECT}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{DOC}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{YYYY}"}</code>{" "}
           <code className="font-english bg-gray-100 px-1 rounded">{"{YY}"}</code>{" "}
           <code className="font-english bg-gray-100 px-1 rounded">{"{MM}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{DD}"}</code>
+          <code className="font-english bg-gray-100 px-1 rounded">{"{DD}"}</code>{" "}
+          <code className="font-english bg-gray-100 px-1 rounded">{"{SEQ}"}</code>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -955,11 +1027,32 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
         {kinds.map(([k, label]) => (
           <div key={k} className="grid grid-cols-12 gap-2 items-center">
             <div className="col-span-3 text-sm text-foreground">{label}</div>
-            <Input className="col-span-5 font-english" dir="ltr" value={config?.[k]?.prefix || ""}
-              onChange={(e) => setConfig({ ...config, [k]: { ...config[k], prefix: e.target.value } })} />
-            <Input className="col-span-2 font-english text-center" type="number" min="1" max="10" dir="ltr"
+            <div className="col-span-5 space-y-1">
+              <Input
+                className="font-english"
+                dir="ltr"
+                value={config?.[k]?.prefix || ""}
+                onChange={(e) => setConfig({ ...config, [k]: { ...config[k], prefix: e.target.value } })}
+                onBlur={(e) => {
+                  const normalized = normalizeLegacyPrefix(e.target.value, k);
+                  if (normalized === e.target.value) return;
+                  setConfig((prev: any) => ({ ...prev, [k]: { ...prev[k], prefix: normalized } }));
+                  push("success", `تم تحويل XXXX تلقائياً إلى ${tokenHintByKind[k]}`);
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground font-english" dir="ltr">
+                Tip: use {tokenHintByKind[k]} instead of XXXX
+              </p>
+            </div>
+            <Input
+              className="col-span-2 font-english text-center"
+              type="number"
+              min="1"
+              max="10"
+              dir="ltr"
               value={config?.[k]?.padding || 4}
-              onChange={(e) => setConfig({ ...config, [k]: { ...config[k], padding: Number(e.target.value) } })} />
+              onChange={(e) => setConfig({ ...config, [k]: { ...config[k], padding: Number(e.target.value) } })}
+            />
             <div className="col-span-2 font-english text-xs text-primary" dir="ltr">{preview(k)}</div>
           </div>
         ))}
