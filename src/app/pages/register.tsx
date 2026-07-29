@@ -17,8 +17,11 @@ export function Register() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (authStore.getState().isAuthenticated) navigate("/app");
-    const unsub = authStore.subscribe(s => { if (s.isAuthenticated) navigate("/app"); });
+    const current = authStore.getState();
+    if (!current.loading && current.isAuthenticated) navigate("/app");
+    const unsub = authStore.subscribe(s => {
+      if (!s.loading && s.isAuthenticated) navigate("/app");
+    });
     return unsub;
   }, [navigate]);
 

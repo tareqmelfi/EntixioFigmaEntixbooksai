@@ -279,7 +279,7 @@ export function AppSidebar({
   // Static sidebar (pinned mode, desktop only)
   if (isStatic) {
     return (
-      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-card transition-all duration-300 ${collapsed ? "w-16" : "w-72"}`}>
+      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-card transition-all duration-300 ${collapsed ? "w-16" : "w-64 xl:w-72"}`}>
         <SidebarContent
           cycleMode={cycleMode}
           modeLabel={modeLabel}
@@ -307,7 +307,7 @@ export function AppSidebar({
   return (
     <aside
       className={`
-        flex h-full w-72 shrink-0 flex-col border-e border-border bg-card
+        flex h-full w-64 xl:w-72 shrink-0 flex-col border-e border-border bg-card
         fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-xl
         ${isOpen ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}
         ${className}

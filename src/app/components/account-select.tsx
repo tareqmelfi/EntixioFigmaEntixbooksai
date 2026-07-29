@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, ExternalLink, Settings } from "lucide-react";
+import { Plus, ExternalLink } from "lucide-react";
 
 // ── Chart of Accounts data (flat with categories) ──
 export interface AccountOption {

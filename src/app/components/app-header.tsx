@@ -284,7 +284,10 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
                   <div className="border-t border-border py-1">
                     <button 
-                      onClick={() => { authStore.logout(); navigate("/"); }}
+                      onClick={async () => {
+                        await authStore.logout();
+                        navigate("/login", { replace: true });
+                      }}
                       className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-destructive hover:bg-destructive/10 text-start transition-colors cursor-pointer"
                     >
                       <LogOut className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج", "Sign out")}</span>

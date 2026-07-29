@@ -144,7 +144,7 @@ export function Payments() {
     }
   };
 
-  const handlePrint = (v: Voucher) => window.open(api.vouchers.printUrl(v.id), "_blank");
+  const handlePrint = (v: Voucher) => window.open(api.vouchers.printUrl(v.id), "_blank", "noopener,noreferrer");
   const handleEmail = async () => {
     if (!selected) return;
     try {

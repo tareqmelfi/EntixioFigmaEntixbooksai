@@ -36,6 +36,8 @@ interface Props {
   createLabel?: (query: string) => string;
   disabled?: boolean;
   className?: string;
+  /** Optional class override for the trigger button itself */
+  buttonClassName?: string;
   /** Minimum popup width (px) · keeps account names readable in narrow cells */
   menuMinWidth?: number;
 }
@@ -56,6 +58,7 @@ export function SearchableCombobox({
   createLabel = (q) => `+ إنشاء "${q}"`,
   disabled = false,
   className = "",
+  buttonClassName = "",
   menuMinWidth = 300,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -200,7 +203,7 @@ export function SearchableCombobox({
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className="w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50"
+        className={`w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50 ${buttonClassName}`}
         title={selected?.label || placeholder}
       >
         <span className={selected ? "text-foreground truncate" : "text-muted-foreground/60 truncate"}>

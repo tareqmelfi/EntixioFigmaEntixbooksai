@@ -1,6 +1,6 @@
 /**
  * Forgot Password · request a reset link via email.
- * Uses authStore.requestPasswordReset → better-auth /api/auth/forget-password.
+ * Uses authStore.requestPasswordReset → better-auth /api/auth/request-password-reset.
  */
 import { useState } from "react";
 import { Link } from "react-router";
@@ -38,14 +38,25 @@ export function ForgotPassword() {
     }
 
     const resultError = result.error || "";
+    const status = result.status || 0;
     const looksLikeConnectionIssue =
       resultError.includes("الاتصال") ||
       resultError.toLowerCase().includes("network") ||
       resultError.toLowerCase().includes("connect");
 
-    // Privacy: don't reveal whether email exists · show success either way.
-    if (looksLikeConnectionIssue) setError(resultError);
-    else setSent(true);
+    // Keep privacy-safe success for non-existent accounts, but surface real service/config errors.
+    if (status === 400 || status === 422 || resultError.includes("RESET_PASSWORD_DISABLED") || resultError.includes("email_provider_not_configured")) {
+      setError(t("خدمة استعادة كلمة المرور غير مهيأة حالياً. تواصل مع الدعم.", "Password reset service is not configured. Please contact support."));
+      return;
+    }
+
+    if (looksLikeConnectionIssue || status >= 500) {
+      setError(resultError || t("تعذر إرسال الرابط الآن. حاول لاحقاً.", "Could not send the reset link right now. Try again later."));
+      return;
+    }
+
+    // Privacy: don't reveal whether email exists.
+    setSent(true);
   };
 
   return (

@@ -118,7 +118,11 @@ export function DocumentPreviewPane({
   const fileRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<FileItem[]>(files);
 
-  const active = files.find((f) => f.id === activeId);
+  const active = useMemo(() => {
+    if (files.length === 0) return undefined;
+    if (showLatestOnly) return files[files.length - 1];
+    return files.find((f) => f.id === activeId) || files[0];
+  }, [files, activeId, showLatestOnly]);
   const initialFilesSignature = useMemo(
     () => initialFiles.map((f) => `${f.name}\u001f${f.type}\u001f${f.url}`).join("\u001e"),
     [initialFiles],
@@ -378,7 +382,7 @@ export function DocumentPreviewPane({
           )}
 
           {/* Thumbnails strip */}
-          {files.length > 1 && (
+          {!showLatestOnly && files.length > 1 && (
             <div className="flex gap-2 p-2 border-t border-border/50 overflow-x-auto bg-white">
               {files.map((f) => (
                 <button key={f.id}

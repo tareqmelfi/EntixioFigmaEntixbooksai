@@ -19,8 +19,7 @@
  *   />
  */
 import { ReactNode } from "react";
-import { X, FileSignature, Mail, Download, Printer, Edit3 } from "lucide-react";
-import { Button } from "./ui/button";
+import { X, FileSignature, Mail, Printer, Edit3, Trash2 } from "lucide-react";
 
 interface DocumentLike {
   id: string;
@@ -137,13 +136,13 @@ export function InvoicePreviewPane({
             </button>
           )}
           <div className="inline-flex rounded-md border border-border overflow-hidden">
-            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=ar&noprint=1`, '_blank')}
+            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=ar&noprint=1`, '_blank', 'noopener,noreferrer')}
               className="px-2 py-1.5 text-muted-foreground hover:bg-muted/50 flex items-center gap-1 text-xs"
               title="طباعة بالعربي">
               <Printer className="h-3.5 w-3.5" /> عربي
             </button>
             <span className="w-px bg-[#E5E7EB]" />
-            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=en&noprint=1`, '_blank')}
+            <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=en&noprint=1`, '_blank', 'noopener,noreferrer')}
               className="px-2 py-1.5 text-muted-foreground hover:bg-muted/50 flex items-center gap-1 text-xs font-english"
               title="Print in English">
               <Printer className="h-3.5 w-3.5" /> EN
@@ -152,6 +151,11 @@ export function InvoicePreviewPane({
           {onEdit && (
             <button onClick={onEdit} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50" title="تعديل">
               <Edit3 className="h-4 w-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={onDelete} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف">
+              <Trash2 className="h-4 w-4" />
             </button>
           )}
         </div>
