@@ -3,7 +3,7 @@
  * UX-1: NO modal · NO slide-over.
  * UX pattern: FullPageForm (replaces content area on create/sign · مطابق Wafeq) + InlineConfirm + Toasts.
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -95,6 +95,12 @@ export function Invoices() {
   // Multi-line items · UX-5 · Excel paste + bulk tax mode
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  // PR5-B · prefilled invoice number is only sent when the USER edited it;
+  // otherwise the server allocates a collision-proof number (kills duplicate_invoice_number)
+  const [numberEdited, setNumberEdited] = useState(false);
+  const numberRetryRef = useRef(false);
+  // PR5-C · line ids that failed validation → rendered red in ItemsTable
+  const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
 
   // Quick-create modals (UX-77) · open promise-based · resolve when user saves
   const [quickProductReq, setQuickProductReq] = useState<{
@@ -148,6 +154,25 @@ export function Invoices() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // PR5-D · a payment recorded on the receipts page must be visible as soon as
+  // the user returns to this window/tab — no more "click edit to see it".
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refresh]);
+
+  // PR5-C · clear the red line highlight as soon as the user edits any line
+  useEffect(() => {
+    setInvalidLineIds((prev) => (prev.size ? new Set() : prev));
+  }, [lines]);
+
   // Auto-open create form when /new or ?new=1 (from Sales Dashboard quick-create)
   useEffect(() => {
     if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
@@ -180,6 +205,9 @@ export function Invoices() {
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
+    setNumberEdited(false);
+    numberRetryRef.current = false;
+    setInvalidLineIds(new Set());
     setCreateOpen(true);
     // Auto-fetch next invoice number so user sees it immediately (editable)
     api.invoices.nextNumber().then(({ number }) => {
@@ -237,38 +265,40 @@ export function Invoices() {
       return;
     }
 
-    const completeLines = activeLines.filter((l) => {
+    const isLineComplete = (l: InvoiceLine) => {
       const qty = Number(normalizeDigits(l.quantity)) || 0;
       const price = Number(normalizeDigits(l.unitPrice)) || 0;
       return l.description.trim().length >= 3 && qty > 0 && price > 0;
-    });
+    };
+    const completeLines = activeLines.filter(isLineComplete);
+    const incompleteActive = activeLines.filter((l) => !isLineComplete(l));
 
-    // For approval/send: all active lines must be fully complete and mapped to revenue accounts.
-    if (action !== "draft") {
-      if (completeLines.length !== activeLines.length) {
-        setCreateError("لا يمكن الاعتماد: كل بند يجب أن يحتوي وصف واضح + كمية أكبر من صفر + سعر أكبر من صفر");
-        return;
-      }
-      if (completeLines.some((l) => !l.accountId)) {
-        setCreateError("لا يمكن الاعتماد: اختر حساب الإيراد لكل بند أولاً");
-        return;
-      }
+    // For approval/send: all active lines must be fully complete.
+    // Revenue account is resolved server-side (fallback ladder · PR4) — no FE hard block.
+    if (action !== "draft" && incompleteActive.length > 0) {
+      setInvalidLineIds(new Set(incompleteActive.map((l) => l.id)));
+      setCreateError(`لا يمكن الاعتماد: ${incompleteActive.length} بند ناقص (موضّح بالأحمر) · كل بند يحتاج وصفاً واضحاً + كمية أكبر من صفر + سعراً أكبر من صفر`);
+      return;
     }
 
     // For draft we only persist completed lines to avoid إنشاء سطور ناقصة بالخطأ.
     const linesToPersist = action === "draft" ? completeLines : activeLines;
     if (linesToPersist.length === 0) {
-      setCreateError("لا يوجد بند مكتمل للحفظ");
+      setInvalidLineIds(new Set(incompleteActive.map((l) => l.id)));
+      setCreateError("لا يوجد بند مكتمل للحفظ · البند المكتمل = وصف + كمية + سعر (النواقص موضّحة بالأحمر)");
       return;
     }
+    // PR5-C · surface skipped draft lines instead of dropping them silently
+    const skippedCount = action === "draft" ? incompleteActive.length : 0;
+    if (skippedCount > 0) setInvalidLineIds(new Set(incompleteActive.map((l) => l.id)));
 
     setBusy(true);
     try {
       // draft → DRAFT · approve → APPROVED (locked, not yet sent) · send → SENT
       const status = action === "draft" ? "DRAFT" : action === "approve" ? "APPROVED" : "SENT";
-      const inv = await api.invoices.create({
+      const buildPayload = (num?: string) => ({
         contactId: form.contactId,
-        invoiceNumber: form.invoiceNumber || undefined,
+        invoiceNumber: num,
         issueDate: form.issueDate,
         dueDate: form.dueDate,
         currency: form.currency,
@@ -277,7 +307,7 @@ export function Invoices() {
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
-          accountId: l.accountId || null, // revenue account · required by server for non-DRAFT
+          accountId: l.accountId || null, // revenue account · server resolves fallback when null
           taxRate: typeof l.taxRate === "number" ? l.taxRate : 0.15, // send numeric rate · server recomputes (B1 fix)
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
@@ -285,8 +315,28 @@ export function Invoices() {
             ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
             : Number(normalizeDigits(l.unitPrice)),
         })),
-      } as any);
+      });
+      // PR5-B · the prefilled suggestion is NOT sent unless the user edited it.
+      // Server-side allocation is collision-proof → kills duplicate_invoice_number.
+      let inv: any;
+      try {
+        inv = await api.invoices.create(buildPayload(numberEdited ? form.invoiceNumber || undefined : undefined) as any);
+      } catch (e: any) {
+        if (e?.code === "duplicate_invoice_number" && !numberRetryRef.current) {
+          // Number was taken meanwhile → retry once with server allocation + tell the user
+          numberRetryRef.current = true;
+          inv = await api.invoices.create(buildPayload(undefined) as any);
+          push("info", `الرقم السابق كان محجوزاً · تم الحفظ برقم جديد ${inv.invoiceNumber}`);
+        } else {
+          throw e;
+        }
+      }
       setItems(prev => [inv as Invoice, ...prev]);
+      if (skippedCount > 0) {
+        push("info", `تم حفظ الفاتورة بدون ${skippedCount} بند ناقص (موضّح بالأحمر) · أكملها من شاشة التعديل`);
+      }
+      setNumberEdited(false);
+      setInvalidLineIds(new Set());
       const msg = action === "draft" ? `تم حفظ ${inv.invoiceNumber} كمسودة`
                 : action === "approve" ? `تم اعتماد ${inv.invoiceNumber}`
                 : `تم إرسال ${inv.invoiceNumber} للعميل`;
@@ -527,7 +577,7 @@ export function Invoices() {
               </div>
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">رقم الفاتورة</Label>
-                <Input value={form.invoiceNumber} onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })}
+                <Input value={form.invoiceNumber} onChange={(e) => { setForm({ ...form, invoiceNumber: e.target.value }); setNumberEdited(true); }}
                   placeholder="# تلقائي" dir="ltr" className="border-border font-english h-8 text-xs" />
               </div>
               <div className="space-y-1">
@@ -610,6 +660,7 @@ export function Invoices() {
               defaultTaxRate={0.15}
               currency={form.currency}
               direction="sales"
+              invalidIds={invalidLineIds}
               products={products.map((p: any) => ({
                 id: p.id,
                 name: p.nameAr || p.name,
