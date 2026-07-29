@@ -20,7 +20,9 @@ import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-crea
 import { QuickContactDialog } from "../components/quick-contact-dialog";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
-import { api, ApiError, Invoice, Contact } from "../lib/api";
+import { api, Invoice, Contact } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "مسودة", APPROVED: "معتمدة", SENT: "مرسلة", VIEWED: "مُشاهَدة", PAID: "مدفوعة",
@@ -82,6 +84,7 @@ export function Invoices() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
 
@@ -140,7 +143,7 @@ export function Invoices() {
       setProducts((productsRes as any).items || []);
       setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -212,7 +215,7 @@ export function Invoices() {
       push("success", `تم إنشاء ${c.displayName}`);
       closeQuickCust();
     } catch (e: any) {
-      setQuickCustError(e instanceof ApiError ? e.message : "فشل الإنشاء");
+      setQuickCustError(humanizeError(e, language, { ar: "فشل الإنشاء", en: "Create failed" }));
     } finally { setBusy(false); }
   };
 
@@ -311,7 +314,7 @@ export function Invoices() {
       // Keep createOpen true · just refresh state
       // closeCreate();   // ❌ removed · was bouncing user back to list and losing context
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
+      setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
     } finally { setBusy(false); }
   };
 
@@ -322,7 +325,7 @@ export function Invoices() {
       setItems(prev => prev.filter(x => x.id !== id));
       push("success", "تم حذف الفاتورة");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" }));
     }
   };
 
@@ -352,7 +355,7 @@ export function Invoices() {
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "APPROVED" } as Invoice : x));
       push("success", `تم اعتماد ${inv.invoiceNumber}`);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الاعتماد");
+      push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
     }
   };
 
@@ -362,7 +365,7 @@ export function Invoices() {
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "DRAFT" } as Invoice : x));
       push("success", `تم إلغاء اعتماد ${inv.invoiceNumber}`);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل إلغاء الاعتماد");
+      push("error", humanizeError(e, language, { ar: "فشل إلغاء الاعتماد", en: "Unapprove failed" }));
     }
   };
 
@@ -375,7 +378,7 @@ export function Invoices() {
       push("success", `تم تفكيك ${inv.invoiceNumber} إلى ${result?.createdCount || 0} فواتير: ${groupText}`);
       await refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل تفكيك الفاتورة");
+      push("error", humanizeError(e, language, { ar: "فشل تفكيك الفاتورة", en: "Split failed" }));
     } finally {
       setSplittingId(null);
     }
@@ -458,7 +461,7 @@ export function Invoices() {
       }
       closeSign();
     } catch (e: any) {
-      setSignError(e instanceof ApiError ? (e.message === "already_pending" ? "يوجد طلب توقيع نشط لهذه الفاتورة" : e.message) : "فشل الإرسال");
+      setSignError(humanizeError(e, language, { ar: "فشل الإرسال", en: "Send failed" }));
     } finally { setBusy(false); }
   };
 
