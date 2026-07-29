@@ -68,6 +68,7 @@ import { InboxPage } from "./pages/inbox";
 import { ScanReceipts } from "./pages/scan-receipts";
 import { AdminDashboard } from "./pages/admin";
 import { InvoicePrintView } from "./pages/invoice-print-view";
+import { VoucherPrintView } from "./pages/voucher-print-view";
 import { FeatureRoadmap } from "./pages/feature-roadmap";
 import { BankAccounts } from "./pages/bank-accounts";
 import { BankReconciliation } from "./pages/bank-reconciliation";
@@ -198,6 +199,9 @@ export const router = createBrowserRouter([
       { path: "contacts/:id", element: <ContactDetail />, errorElement: <ErrorBoundary /> },
       // Developer
       { path: "integrations", element: <Integrations />, errorElement: <ErrorBoundary /> },
+      // Backward compatibility: old header/deep links point to this path.
+      // Keep it working by redirecting to Settings > ZATCA tab.
+      { path: "integrations/zatca", element: <Navigate to="/app/settings?tab=zatca" replace />, errorElement: <ErrorBoundary /> },
       { path: "templates", element: <Templates />, errorElement: <ErrorBoundary /> },
       // Analytics & Settings
       { path: "reports", element: <Reports />, errorElement: <ErrorBoundary /> },
@@ -215,8 +219,10 @@ export const router = createBrowserRouter([
   },
   // Portal routes (standalone, no sidebar)
   { path: "/portal/login", element: <PortalLogin />, errorElement: <ErrorBoundary /> },
+  { path: "/portal/:token", element: <PortalHome />, errorElement: <ErrorBoundary /> },
   { path: "/portal", element: <PortalHome />, errorElement: <ErrorBoundary /> },
   { path: "/print/invoice/:id", element: <InvoicePrintView />, errorElement: <ErrorBoundary /> },
+  { path: "/print/voucher/:id", element: <VoucherPrintView />, errorElement: <ErrorBoundary /> },
   // Error handling
   { path: "*", element: <NotFound /> },
 ]);

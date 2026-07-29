@@ -74,7 +74,9 @@ class AuthStore {
 
   subscribe(listener: (state: AuthState) => void) {
     this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
   }
 
   getState(): AuthState {
@@ -102,15 +104,43 @@ class AuthStore {
         // Respect user's previously-selected org if still valid · fallback to first
         const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('entix_org_id') : null
         const matched = stored ? memberships.find((m: any) => m.org?.id === stored) : null
-        const activeMembership = matched || memberships[0]
+        let activeMembership = matched || memberships[0]
+
+        // First login via Google can arrive with zero orgs.
+        // Auto-bootstrap a seeded demo org so app routes never crash with missing X-Org-Id.
+        if (!activeMembership) {
+          try {
+            const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
+              method: 'POST',
+              credentials: 'include',
+            })
+            if (bootstrapRes.ok) {
+              const boot = await bootstrapRes.json().catch(() => null)
+              if (boot?.org?.id) {
+                activeMembership = {
+                  org: boot.org,
+                  role: boot.role || 'OWNER',
+                }
+              }
+            }
+          } catch {
+            // Keep graceful fallback below (viewer with empty company).
+          }
+        }
+
         if (activeMembership?.org?.id) setOrgId(activeMembership.org.id)
 
+        const resolvedRole = activeMembership?.role?.toLowerCase?.()
         const newUser: User = {
           id: data.user.id,
           email: data.user.email,
           name: data.user.name || '',
           company: activeMembership?.org?.name || '',
-          role: activeMembership?.role?.toLowerCase?.() === 'owner' ? 'admin' : (activeMembership?.role?.toLowerCase?.() || 'viewer'),
+          role: resolvedRole === 'owner' || resolvedRole === 'admin'
+            ? 'admin'
+            : resolvedRole === 'accountant'
+              ? 'accountant'
+              : 'viewer',
           avatar: data.user.image || undefined,
           createdAt: data.user.createdAt,
         }
@@ -129,10 +159,10 @@ class AuthStore {
   }
 
   /** Email + password sign-in */
-  async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+  async login(email: string, password: string): Promise<{ success: boolean; error?: string; code?: string }> {
     try {
       const { data, error } = await authClient.signIn.email({ email, password })
-      if (error) return { success: false, error: error.message || 'فشل تسجيل الدخول' }
+      if (error) return { success: false, error: error.message || 'فشل تسجيل الدخول', code: (error as any)?.code }
       if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
       await this.refresh()
       return { success: true }
@@ -192,7 +222,7 @@ class AuthStore {
   }
 
   /** Google OAuth sign-in (browser redirect) */
-  async loginWithGoogle(): Promise<{ success: boolean; error?: string }> {
+  async loginWithGoogle(callbackURL?: string): Promise<{ success: boolean; error?: string }> {
     const p = await this.getProviders()
     if (!p.google) {
       return {
@@ -202,16 +232,15 @@ class AuthStore {
     }
     await authClient.signIn.social({
       provider: 'google',
-      callbackURL: `${window.location.origin}/app`,
+      callbackURL: callbackURL || `${window.location.origin}/app`,
     })
     return { success: true }
   }
 
   /** Send password-reset email · better-auth flow */
-  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string; status?: number }> {
     try {
-      // better-auth exposes /api/auth/forget-password (note spelling)
-      const res = await fetch(`${API_BASE}/api/auth/forget-password`, {
+      const res = await fetch(`${API_BASE}/api/auth/request-password-reset`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -220,11 +249,35 @@ class AuthStore {
           redirectTo: `${window.location.origin}/reset-password`,
         }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        return { success: false, error: data?.message || 'فشل إرسال رابط الاسترداد' }
+        return { success: false, status: res.status, error: data?.message || 'فشل إرسال رابط الاسترداد' }
       }
-      return { success: true }
+      if (data?.status !== true) {
+        return { success: false, status: res.status, error: data?.message || 'تعذر إتمام الطلب الآن' }
+      }
+      return { success: true, status: res.status }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+    }
+  }
+
+  async resendVerificationEmail(email: string, callbackURL?: string): Promise<{ success: boolean; error?: string; status?: number }> {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/send-verification-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, callbackURL: callbackURL || `${window.location.origin}/login` }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        return { success: false, status: res.status, error: data?.message || 'فشل إرسال رسالة التحقق' }
+      }
+      if (data?.status !== true) {
+        return { success: false, status: res.status, error: data?.message || 'تعذر إرسال رسالة التحقق' }
+      }
+      return { success: true, status: res.status }
     } catch (e: any) {
       return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
     }

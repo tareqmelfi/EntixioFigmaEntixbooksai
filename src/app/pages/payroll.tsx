@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { SearchableCombobox } from "../components/searchable-combobox";
+import { COUNTRIES } from "../lib/countries";
 import { api, ApiError, type Contact } from "../lib/api";
 
 type PayrollRow = {
@@ -17,6 +18,18 @@ type PayrollRow = {
   otherDeductions: string;
   sanedEnabled: boolean;
 };
+
+type PayrollPreview = {
+  grossSalary: number;
+  employeeGosi: number;
+  employerGosi: number;
+  totalDeductions: number;
+  netSalary: number;
+  gosiBase: number;
+};
+
+const GOSI_SALARY_CAP = 45_000;
+const GOSI_SALARY_FLOOR = 1_500;
 
 const blankRow = (): PayrollRow => ({
   employeeId: "",
@@ -31,6 +44,78 @@ const blankRow = (): PayrollRow => ({
 
 const money = (value: string | number | null | undefined) =>
   Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const PRIORITY_COUNTRIES = ["SA", "AE", "US"];
+const NATIONALITY_ITEMS = [...COUNTRIES]
+  .sort((a, b) => {
+    const ai = PRIORITY_COUNTRIES.indexOf(a.code);
+    const bi = PRIORITY_COUNTRIES.indexOf(b.code);
+    if (ai >= 0 && bi >= 0) return ai - bi;
+    if (ai >= 0) return -1;
+    if (bi >= 0) return 1;
+    return a.nameAr.localeCompare(b.nameAr, "ar");
+  })
+  .map((country) => ({
+    id: country.code,
+    label: `${country.flag} ${country.nameAr}`,
+    sublabel: `${country.nameEn} · ${country.code}`,
+  }));
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function numberValue(input: string) {
+  return Number(input || 0);
+}
+
+function calculateRowPreview(row: PayrollRow): PayrollPreview {
+  const basicSalary = numberValue(row.basicSalary);
+  const housingAllowance = numberValue(row.housingAllowance);
+  const transportAllowance = numberValue(row.transportAllowance);
+  const otherAllowances = numberValue(row.otherAllowances);
+  const otherDeductions = numberValue(row.otherDeductions);
+  const isSaudi = row.nationalityCode.toUpperCase() === "SA";
+
+  const grossSalary = basicSalary + housingAllowance + transportAllowance + otherAllowances;
+  const rawBase = basicSalary + housingAllowance;
+  const gosiBase = Math.min(
+    GOSI_SALARY_CAP,
+    Math.max(isSaudi ? GOSI_SALARY_FLOOR : rawBase, rawBase),
+  );
+
+  let annuitiesEmployee = 0;
+  let annuitiesEmployer = 0;
+  let occupationalEmployer = 0;
+  let sanedEmployee = 0;
+  let sanedEmployer = 0;
+
+  if (isSaudi) {
+    annuitiesEmployee = round2(gosiBase * 0.09);
+    annuitiesEmployer = round2(gosiBase * 0.09);
+    occupationalEmployer = round2(gosiBase * 0.02);
+    if (row.sanedEnabled) {
+      sanedEmployee = round2(gosiBase * 0.0075);
+      sanedEmployer = round2(gosiBase * 0.0075);
+    }
+  } else {
+    occupationalEmployer = round2(gosiBase * 0.02);
+  }
+
+  const employeeGosi = round2(annuitiesEmployee + sanedEmployee);
+  const employerGosi = round2(annuitiesEmployer + occupationalEmployer + sanedEmployer);
+  const totalDeductions = round2(employeeGosi + otherDeductions);
+  const netSalary = round2(grossSalary - totalDeductions);
+
+  return {
+    grossSalary: round2(grossSalary),
+    employeeGosi,
+    employerGosi,
+    totalDeductions,
+    netSalary,
+    gosiBase: round2(gosiBase),
+  };
+}
 
 export function Payroll() {
   const [employees, setEmployees] = useState<Contact[]>([]);
@@ -63,6 +148,7 @@ export function Payroll() {
         establishmentId: settingsRes?.establishmentId || "",
         currency: settingsRes?.currency || "SAR",
       });
+
       if ((res.items || []).length > 0 && (contractsRes.items || []).length > 0) {
         setRows((prev) => {
           const hasUserInput = prev.some((row) => row.employeeId || row.basicSalary);
@@ -88,10 +174,72 @@ export function Payroll() {
 
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
 
-  const employeeById = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
+  const employeeById = useMemo(
+    () => new Map(employees.map((employee) => [employee.id, employee])),
+    [employees],
+  );
+
+  const contractByEmployeeId = useMemo(
+    () => new Map(contracts.map((contract: any) => [contract.contactId, contract])),
+    [contracts],
+  );
+
+  const employeeItems = useMemo(
+    () => employees.map((employee) => ({
+      id: employee.id,
+      label: employee.displayName,
+      sublabel: [employee.customCode, employee.nationalId].filter(Boolean).join(" · ") || employee.id,
+    })),
+    [employees],
+  );
+
+  const rowPreviews = useMemo(() => rows.map((row) => calculateRowPreview(row)), [rows]);
+
+  const estimatedTotals = useMemo(
+    () => rowPreviews.reduce((acc, preview) => ({
+      grossSalary: acc.grossSalary + preview.grossSalary,
+      employeeGosi: acc.employeeGosi + preview.employeeGosi,
+      employerGosi: acc.employerGosi + preview.employerGosi,
+      netSalary: acc.netSalary + preview.netSalary,
+      employerCost: acc.employerCost + preview.grossSalary + preview.employerGosi,
+      totalDeductions: acc.totalDeductions + preview.totalDeductions,
+    }), {
+      grossSalary: 0,
+      employeeGosi: 0,
+      employerGosi: 0,
+      netSalary: 0,
+      employerCost: 0,
+      totalDeductions: 0,
+    }),
+    [rowPreviews],
+  );
 
   const updateRow = (index: number, patch: Partial<PayrollRow>) => {
-    setRows((prev) => prev.map((row, i) => i === index ? { ...row, ...patch } : row));
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  };
+
+  const applyEmployeeContract = (index: number, employeeId: string) => {
+    const contract = contractByEmployeeId.get(employeeId);
+    const employee = employeeById.get(employeeId);
+
+    if (!contract) {
+      updateRow(index, {
+        employeeId,
+        nationalityCode: (employee?.country || "SA").toUpperCase(),
+      });
+      return;
+    }
+
+    updateRow(index, {
+      employeeId,
+      nationalityCode: (contract.nationalityCode || employee?.country || "SA").toUpperCase(),
+      basicSalary: String(contract.basicSalary || ""),
+      housingAllowance: String(contract.housingAllowance || ""),
+      transportAllowance: String(contract.transportAllowance || ""),
+      otherAllowances: String(contract.otherAllowances || ""),
+      otherDeductions: String(contract.otherDeductions || ""),
+      sanedEnabled: contract.sanedEnabled !== false,
+    });
   };
 
   const buildPayrollPayload = () =>
@@ -166,6 +314,8 @@ export function Payroll() {
     }
   };
 
+  const displayedTotals = totals || estimatedTotals;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -188,12 +338,13 @@ export function Payroll() {
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Metric label="الموظفون" value={employees.length.toString()} />
         <Metric label="العقود المحفوظة" value={contracts.length.toString()} />
-        <Metric label="إجمالي الراتب" value={`${money(totals?.grossSalary)} SAR`} />
-        <Metric label="صافي الراتب" value={`${money(totals?.netSalary)} SAR`} />
-        <Metric label="تكلفة صاحب العمل" value={`${money(totals?.employerCost)} SAR`} />
+        <Metric label="إجمالي الراتب" value={`${money(displayedTotals?.grossSalary)} SAR`} />
+        <Metric label="الاستقطاعات" value={`${money(displayedTotals?.totalDeductions)} SAR`} />
+        <Metric label="صافي الراتب" value={`${money(displayedTotals?.netSalary)} SAR`} />
+        <Metric label="تكلفة صاحب العمل" value={`${money(displayedTotals?.employerCost)} SAR`} />
       </div>
 
       <Card className="border-border">
@@ -225,7 +376,7 @@ export function Payroll() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1040px]">
+              <table className="w-full min-w-[1280px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-3 py-3 text-start">الموظف</th>
                   <th className="px-3 py-3 text-start">الجنسية</th>
@@ -233,45 +384,68 @@ export function Payroll() {
                   <th className="px-3 py-3 text-start">سكن</th>
                   <th className="px-3 py-3 text-start">نقل</th>
                   <th className="px-3 py-3 text-start">بدلات</th>
-                  <th className="px-3 py-3 text-start">استقطاعات</th>
+                  <th className="px-3 py-3 text-start">استقطاعات أخرى</th>
                   <th className="px-3 py-3 text-start">ساند</th>
+                  <th className="px-3 py-3 text-start">قبل / بعد</th>
                   <th className="px-3 py-3 text-start"></th>
                 </tr></thead>
                 <tbody>
-                  {rows.map((row, index) => (
-                    <tr key={index} className="border-b border-border/50">
-                      <td className="px-3 py-2">
-                        <Select value={row.employeeId} onValueChange={(employeeId) => updateRow(index, { employeeId })}>
-                          <SelectTrigger className="min-w-48"><SelectValue placeholder="اختر الموظف" /></SelectTrigger>
-                          <SelectContent>{employees.map((employee) => <SelectItem key={employee.id} value={employee.id}>{employee.displayName}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Select value={row.nationalityCode} onValueChange={(nationalityCode) => updateRow(index, { nationalityCode })}>
-                          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="SA">SA</SelectItem>
-                            <SelectItem value="AE">AE</SelectItem>
-                            <SelectItem value="US">US</SelectItem>
-                            <SelectItem value="GB">GB</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <MoneyInput value={row.basicSalary} onChange={(basicSalary) => updateRow(index, { basicSalary })} />
-                      <MoneyInput value={row.housingAllowance} onChange={(housingAllowance) => updateRow(index, { housingAllowance })} />
-                      <MoneyInput value={row.transportAllowance} onChange={(transportAllowance) => updateRow(index, { transportAllowance })} />
-                      <MoneyInput value={row.otherAllowances} onChange={(otherAllowances) => updateRow(index, { otherAllowances })} />
-                      <MoneyInput value={row.otherDeductions} onChange={(otherDeductions) => updateRow(index, { otherDeductions })} />
-                      <td className="px-3 py-2 text-center">
-                        <input type="checkbox" checked={row.sanedEnabled} onChange={(e) => updateRow(index, { sanedEnabled: e.target.checked })} />
-                      </td>
-                      <td className="px-3 py-2">
-                        <button onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.map((row, index) => {
+                    const preview = rowPreviews[index];
+                    const employee = employeeById.get(row.employeeId);
+                    const deductionsDelta = Math.max(0, preview.grossSalary - preview.netSalary);
+
+                    return (
+                      <tr key={index} className="border-b border-border/50 align-top">
+                        <td className="px-3 py-2 min-w-[220px]">
+                          <SearchableCombobox
+                            value={row.employeeId}
+                            onChange={(employeeId) => applyEmployeeContract(index, employeeId)}
+                            items={employeeItems}
+                            placeholder="اختر الموظف"
+                            menuMinWidth={340}
+                          />
+                          {employee && (
+                            <p className="mt-1 text-[11px] text-muted-foreground font-english" dir="ltr">
+                              {employee.email || employee.phone || employee.id}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 min-w-[160px]">
+                          <SearchableCombobox
+                            value={row.nationalityCode}
+                            onChange={(nationalityCode) => updateRow(index, { nationalityCode: nationalityCode.toUpperCase() })}
+                            items={NATIONALITY_ITEMS}
+                            placeholder="الجنسية"
+                            menuMinWidth={280}
+                          />
+                        </td>
+                        <MoneyInput value={row.basicSalary} onChange={(basicSalary) => updateRow(index, { basicSalary })} />
+                        <MoneyInput value={row.housingAllowance} onChange={(housingAllowance) => updateRow(index, { housingAllowance })} />
+                        <MoneyInput value={row.transportAllowance} onChange={(transportAllowance) => updateRow(index, { transportAllowance })} />
+                        <MoneyInput value={row.otherAllowances} onChange={(otherAllowances) => updateRow(index, { otherAllowances })} />
+                        <td className="px-3 py-2 min-w-[140px]">
+                          <Input type="number" min="0" step="0.01" value={row.otherDeductions} onChange={(e) => updateRow(index, { otherDeductions: e.target.value })} dir="ltr" className="w-32 font-english" />
+                          <div className="mt-1 text-[10px] text-red-600">GOSI: {money(preview.employeeGosi)} + أخرى: {money(row.otherDeductions || 0)}</div>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <input type="checkbox" checked={row.sanedEnabled} onChange={(e) => updateRow(index, { sanedEnabled: e.target.checked })} />
+                          <div className="mt-1 text-[10px] text-muted-foreground">{row.nationalityCode.toUpperCase() === "SA" ? "للسعوديين" : "غير مطبق"}</div>
+                        </td>
+                        <td className="px-3 py-2 min-w-[190px]">
+                          <div className="text-[11px] text-muted-foreground">الإجمالي قبل الاستقطاع: <span className="font-english text-foreground">{money(preview.grossSalary)}</span></div>
+                          <div className="text-[11px] text-red-600">الاستقطاعات: <span className="font-english">{money(preview.totalDeductions)}</span></div>
+                          <div className="text-sm font-semibold text-emerald-700">الصافي بعد الاستقطاع: <span className="font-english">{money(preview.netSalary)}</span></div>
+                          <div className="text-[10px] text-muted-foreground">الفرق: <span className="font-english">-{money(deductionsDelta)}</span> · أساس GOSI: <span className="font-english">{money(preview.gosiBase)}</span></div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <button onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -284,11 +458,12 @@ export function Payroll() {
           <CardHeader><CardTitle>نتيجة الحساب</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px]">
+              <table className="w-full min-w-[820px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">الموظف</th>
                   <th className="px-4 py-3 text-start">الإجمالي</th>
                   <th className="px-4 py-3 text-start">GOSI الموظف</th>
+                  <th className="px-4 py-3 text-start">إجمالي الاستقطاع</th>
                   <th className="px-4 py-3 text-start">GOSI الشركة</th>
                   <th className="px-4 py-3 text-start">الصافي</th>
                 </tr></thead>
@@ -299,9 +474,10 @@ export function Payroll() {
                       <tr key={result.employeeId} className="border-b border-border/50 hover:bg-primary/5">
                         <td className="px-4 py-3 text-sm text-foreground">{employee?.displayName || result.employeeId}</td>
                         <td className="px-4 py-3 text-sm font-english">{money(result.grossSalary)}</td>
-                        <td className="px-4 py-3 text-sm font-english">{money(result.employeeGosi)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-amber-700">{money(result.employeeGosi)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-red-700">{money(result.totalDeductions)}</td>
                         <td className="px-4 py-3 text-sm font-english">{money(result.employerGosi)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-foreground font-english">{money(result.netSalary)}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-emerald-700 font-english">{money(result.netSalary)}</td>
                       </tr>
                     );
                   })}
@@ -338,7 +514,7 @@ export function Payroll() {
                       <td className="px-4 py-3 text-sm font-english">{run.lines?.length || 0}</td>
                       <td className="px-4 py-3">
                         <button
-                          onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank")}
+                          onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank", "noopener,noreferrer")}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50"
                         >
                           <Download className="h-3.5 w-3.5" /> SIF

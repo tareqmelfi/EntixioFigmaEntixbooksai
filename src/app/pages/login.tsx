@@ -23,26 +23,58 @@ export function Login() {
 
   // Redirect if already logged in · respect fromPath
   useEffect(() => {
-    if (authStore.getState().isAuthenticated) navigate(fromPath, { replace: true });
-    const unsub = authStore.subscribe(s => { if (s.isAuthenticated) navigate(fromPath, { replace: true }); });
+    const current = authStore.getState();
+    if (!current.loading && current.isAuthenticated) navigate(fromPath, { replace: true });
+    const unsub = authStore.subscribe(s => {
+      if (!s.loading && s.isAuthenticated) navigate(fromPath, { replace: true });
+    });
     return unsub;
   }, [navigate, fromPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setVerifyNotice(null);
+    setUnverifiedEmail(null);
     setLoading(true);
     const result = await authStore.login(email, password);
     setLoading(false);
-    if (result.success) navigate(fromPath, { replace: true });
-    else setError(result.error || t("حدث خطأ", "Something went wrong"));
+    if (result.success) {
+      navigate(fromPath, { replace: true });
+      return;
+    }
+
+    if (result.code === "EMAIL_NOT_VERIFIED") {
+      setUnverifiedEmail(email.trim());
+      setError(t("هذا البريد غير مُفعّل بعد. أعد إرسال رسالة التحقق.", "This email is not verified yet. Resend verification email."));
+      return;
+    }
+
+    setError(result.error || t("حدث خطأ", "Something went wrong"));
+  };
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return;
+    setVerifyNotice(null);
+    setError(null);
+    setVerifyLoading(true);
+    const result = await authStore.resendVerificationEmail(unverifiedEmail, `${window.location.origin}/login`);
+    setVerifyLoading(false);
+
+    if (result.success) {
+      setVerifyNotice(t("تم إرسال رابط التفعيل إلى بريدك.", "Verification email has been sent."));
+      return;
+    }
+
+    setError(result.error || t("تعذر إرسال رسالة التحقق", "Could not send verification email"));
   };
 
   const handleGoogle = async () => {
     setError(null);
     setGoogleLoading(true);
     try {
-      const r = await authStore.loginWithGoogle();
+      const target = `${window.location.origin}${fromPath}`;
+      const r = await authStore.loginWithGoogle(target);
       if (!r.success) {
         setError(r.error || t("تعذّر الاتصال بـGoogle", "Could not connect to Google"));
         setGoogleLoading(false);
@@ -54,6 +86,10 @@ export function Login() {
   };
 
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
+
   useEffect(() => {
     authStore.getProviders().then(p => setGoogleEnabled(p.google));
   }, []);
@@ -92,10 +128,35 @@ export function Login() {
           {error && (
             <motion.div 
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6" style={{ fontSize: "14px" }}
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-3" style={{ fontSize: "14px" }}
             >
               {error}
             </motion.div>
+          )}
+
+          {verifyNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-3"
+              style={{ fontSize: "14px" }}
+            >
+              {verifyNotice}
+            </motion.div>
+          )}
+
+          {unverifiedEmail && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl mb-6" style={{ fontSize: "13px" }}>
+              <div className="mb-2">{t("البريد غير مفعل بعد.", "Email is not verified yet.")}</div>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={verifyLoading}
+                className="text-primary hover:underline disabled:opacity-60"
+                style={{ fontWeight: 600 }}
+              >
+                {verifyLoading ? t("جارٍ إرسال رابط التفعيل...", "Sending verification link...") : t("إعادة إرسال رابط التفعيل", "Resend verification link")}
+              </button>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">

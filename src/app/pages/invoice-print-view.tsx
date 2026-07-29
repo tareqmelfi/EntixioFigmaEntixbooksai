@@ -196,14 +196,25 @@ export function InvoicePrintView() {
         /* Reset · standalone route · no app chrome */
         body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Tajawal','Noto Sans Arabic',system-ui,sans-serif; }
         .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
+        .print-wrap-any { overflow-wrap: anywhere; word-break: break-word; }
+        .print-table th, .print-table td { white-space: normal !important; vertical-align: top; }
+        .totals-section { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+        .totals-media { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+        .totals-card { border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; min-width: 280px; width: min(100%, 360px); flex: 1 1 320px; }
+        @media (max-width: 900px) {
+          .totals-card { min-width: 0; width: 100%; }
+        }
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          html, body { width: 210mm; }
-          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 8mm 12mm 12mm !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; page-break-after: always; }
+          /* PR6 · root cause of the clipped total column: a hard 210mm body
+             overflows any printable area once margins apply, and RTL overflow
+             clips on the LEFT. Fluid width = always fits, descriptions wrap. */
+          html, body { width: auto !important; max-width: 100% !important; }
+          .invoice-page { box-shadow: none !important; margin: 0 !important; padding: 0 0 8mm !important; width: auto !important; max-width: 100% !important; box-sizing: border-box !important; page-break-after: always; }
           .invoice-page:last-child { page-break-after: auto; }
         }
-        @page { size: A4; margin: 0; }
+        @page { size: A4; margin: 10mm 12mm 12mm; }
         ${embed ? ".invoice-page{ margin: 8px auto !important; zoom: 0.78; box-shadow: none !important; } body{ background: white; }" : ""}
       `}</style>
 
@@ -262,32 +273,41 @@ export function InvoicePrintView() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 8, paddingBottom: 10, borderBottom: "1px solid #F3F4F6" }}>
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
-              <strong style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
+              <strong className="print-wrap-any" style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
 
-              {contact?.legalName && contact?.legalName !== contact?.displayName && (<div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.legalName}</div>)}
-              {contactAddress && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contactAddress}</div>}
-              {contact?.email && <div style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.email}</div>}
-              {contact?.phone && <div style={{ color: "#6B7280", fontSize: 9.5 }}><span className="num">{contact.phone}</span></div>}
-              {((contact as any)?.vatNumber || (contact as any)?.taxId) && <div style={{ color: "#374151", fontSize: 10, fontWeight: 600 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{(contact as any).vatNumber || (contact as any).taxId}</span></div>}
+              {contact?.legalName && contact?.legalName !== contact?.displayName && (<div className="print-wrap-any" style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.legalName}</div>)}
+              {contactAddress && <div className="print-wrap-any" style={{ color: "#6B7280", fontSize: 9.5 }}>{contactAddress}</div>}
+              {contact?.email && <div className="print-wrap-any" style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.email}</div>}
+              {contact?.phone && <div className="print-wrap-any" style={{ color: "#6B7280", fontSize: 9.5 }}><span className="num">{contact.phone}</span></div>}
+              {((contact as any)?.vatNumber || (contact as any)?.taxId) && <div className="print-wrap-any" style={{ color: "#374151", fontSize: 10, fontWeight: 600 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{(contact as any).vatNumber || (contact as any).taxId}</span></div>}
             </div>
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "تفاصيل الفاتورة" : "Invoice Details"}</h2>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 12px", fontSize: 11 }}>
-                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num" style={{ textAlign: "end", color: accent, fontWeight: 600 }}>{invoice.invoiceNumber}</span>
-                <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
-                {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
-                {(() => { const ref = (invoice as any).reference || (String((invoice as any).termsConditions || "").match(/^Ref:\s*(.+)/)?.[1] ?? null); return ref ? <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num" style={{ textAlign: "end" }}>{ref}</span></> : null; })()}
-                {(contact as any)?.customCode && <><span style={{ color: "#6B7280" }}>{isKsa ? "رمز العميل" : "Customer Code"}</span><span className="num" style={{ textAlign: "end", color: primary, fontWeight: 600 }}>{(contact as any).customCode}</span></>}
+                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num print-wrap-any" style={{ textAlign: "end", color: accent, fontWeight: 600 }}>{invoice.invoiceNumber}</span>
+                <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num print-wrap-any" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
+                {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num print-wrap-any" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
+                {(() => { const ref = (invoice as any).reference || (String((invoice as any).termsConditions || "").match(/^Ref:\s*(.+)/)?.[1] ?? null); return ref ? <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num print-wrap-any" style={{ textAlign: "end" }}>{ref}</span></> : null; })()}
+                {(contact as any)?.customCode && <><span style={{ color: "#6B7280" }}>{isKsa ? "رمز العميل" : "Customer Code"}</span><span className="num print-wrap-any" style={{ textAlign: "end", color: primary, fontWeight: 600 }}>{(contact as any).customCode}</span></>}
               </div>
             </div>
           </div>
 
           {/* Lines table */}
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 24 }}>
+          <table className="print-table" style={{ width: "100%", borderCollapse: "collapse", marginTop: 24, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "40%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
             <thead>
               <tr>
                 {["#", isKsa ? "الوصف · Description" : "Description", isKsa ? "الكمية" : "Qty", isKsa ? "السعر" : "Price", isKsa ? "الخاضع للضريبة" : "Taxable", isKsa ? "الضريبة 15%" : "VAT", isKsa ? "الإجمالي" : "Amount"].map((h, i) => (
-                  <th key={i} style={{ background: accent, color: "white", padding: "6px 8px", fontSize: 10, fontWeight: 600, textAlign: i >= 2 ? "end" : "start", whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={i} style={{ background: accent, color: "white", padding: "6px 8px", fontSize: 10, fontWeight: 600, textAlign: i >= 2 ? "end" : "start" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -309,8 +329,8 @@ export function InvoicePrintView() {
                   <tr key={i}>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace" }}>{i + 1}</td>
                     <td style={cell}>
-                      <div style={{ fontWeight: 700 }}>{descHead}</div>
-                      {descRest && <div style={{ whiteSpace: "pre-wrap", color: "#6B7280", fontSize: 10, lineHeight: 1.45 }}>{descRest}</div>}
+                      <div className="print-wrap-any" style={{ fontWeight: 700 }}>{descHead}</div>
+                      {descRest && <div className="print-wrap-any" style={{ whiteSpace: "pre-wrap", color: "#6B7280", fontSize: 10, lineHeight: 1.45 }}>{descRest}</div>}
                     </td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString()}</td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{p.toFixed(2)}</td>
@@ -324,9 +344,9 @@ export function InvoicePrintView() {
           </table>
 
           {/* Totals + QR + Stamp · all in one row */}
-          <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div className="totals-section" style={{ marginTop: 16 }}>
             {/* QR + Stamp · side-by-side on the END side (left in RTL) */}
-            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+            <div className="totals-media">
               {qrSvg && (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                   {qrSvg}
@@ -351,7 +371,7 @@ export function InvoicePrintView() {
                 </div>
               )}
             </div>
-            <div style={{ minWidth: 320, border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden" }}>
+            <div className="totals-card">
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
                 <span>{isKsa ? "المجموع الفرعي · Subtotal" : "Subtotal"}</span><span className="num">{subtotal.toFixed(2)} {currency}</span>
               </div>
@@ -386,7 +406,7 @@ export function InvoicePrintView() {
           )}
 
           {invoice.notes && (
-            <div style={{ marginTop: 24, padding: "12px 14px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 12, color: "#374151" }}>
+            <div className="print-wrap-any" style={{ marginTop: 24, padding: "12px 14px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 12, color: "#374151" }}>
               <strong>{isKsa ? "ملاحظات:" : "Notes:"}</strong> {invoice.notes}
             </div>
           )}
@@ -414,8 +434,8 @@ export function InvoicePrintView() {
             {((org as any).phone || (org as any).email || (org as any).website) && (
               <div style={{ marginBottom: 3, display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
                 {(org as any).phone && <span className="num">{(org as any).phone}</span>}
-                {(org as any).email && <span style={{ direction: "ltr", display: "inline-block" }}>{(org as any).email}</span>}
-                {(org as any).website && <span style={{ direction: "ltr", display: "inline-block" }}>{(org as any).website}</span>}
+                  {(org as any).email && <span className="print-wrap-any" style={{ direction: "ltr", display: "inline-block" }}>{(org as any).email}</span>}
+                  {(org as any).website && <span className="print-wrap-any" style={{ direction: "ltr", display: "inline-block" }}>{(org as any).website}</span>}
               </div>
             )}
             <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>

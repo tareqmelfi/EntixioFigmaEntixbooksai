@@ -76,7 +76,7 @@ export function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Click-away to close
