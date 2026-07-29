@@ -30,7 +30,9 @@ import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
-import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ApiError } from "../lib/api";
+import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
   CASH: "نقداً",
@@ -595,6 +597,7 @@ export function Expenses() {
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftAvailable, setDraftAvailable] = useState(() => hasStoredExpenseDraft());
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  const { language } = useLanguage();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -603,11 +606,11 @@ export function Expenses() {
       setItems(data.items);
       setSummary(data.summary);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل تحميل المصروفات");
+      push("error", humanizeError(e, language, { ar: "فشل تحميل المصروفات", en: "Failed to load expenses" }));
     } finally {
       setLoading(false);
     }
-  }, [push]);
+  }, [push, language]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -683,7 +686,7 @@ export function Expenses() {
       const full = await api.expenses.get(item.id);
       setSelected(full);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل تحميل تفاصيل المصروف");
+      push("error", humanizeError(e, language, { ar: "فشل تحميل تفاصيل المصروف", en: "Failed to load expense details" }));
     }
   }
 
@@ -783,6 +786,14 @@ export function Expenses() {
         attachmentSizeBytes: primaryAttachment?.size || null,
         attachmentBase64: primaryAttachment?.base64 || null,
         attachmentCount: formData.attachments.length,
+        // ingestion-integrity: full file set + file hash for dedupe & attachment guarantee
+        attachments: formData.attachments.map((a) => ({
+          name: a.name,
+          contentType: a.type,
+          base64: a.base64,
+          sizeBytes: a.size,
+        })),
+        sourceFileHash: (formData.extractedJson as any)?.sourceFileHash || null,
         extractedJson: {
           ...(formData.extractedJson || {}),
           sourceCurrency: settlement.sourceCurrency,
@@ -800,9 +811,18 @@ export function Expenses() {
       setSelected(full);
       push("success", editingId ? `تم تحديث المصروف ${saved.number}` : `تم حفظ المصروف ${saved.number}`);
       if ((saved as any).duplicateExpense) push("info", `تنبيه: يوجد مصروف مشابه ${(saved as any).duplicateExpense.number}`, 7000);
+      const ing = (saved as any).ingestion;
+      if (!editingId && ing?.dedupeDecision === "UPDATED") {
+        push("info", "مصروف مطابق موجود — تم تحديثه بدل إنشاء نسخة مكررة", 6000);
+      } else if (!editingId && ing?.dedupeDecision === "SKIPPED_DUPLICATE") {
+        push("info", "المصروف موجود مسبقاً — لم يتم إنشاء نسخة مكررة", 6000);
+      }
+      if (!editingId && ing?.attachmentStatus?.attached > 0) {
+        push("info", `أُرفق ${ing.attachmentStatus.attached} ملف بالمصروف`, 5000);
+      }
       closeCreate(false);
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل حفظ المصروف");
+      setCreateError(humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" }));
     } finally {
       setBusy(false);
     }
@@ -816,7 +836,7 @@ export function Expenses() {
       if (selected?.id === id) setSelected(null);
       push("success", "تم حذف المصروف");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" }));
     }
   }
 
@@ -908,7 +928,7 @@ export function Expenses() {
       });
       push("success", `تم استخراج البيانات بثقة ${Math.round((data?.confidence || 0) * 100)}%`);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? `${e.message}: ${e.detail || ""}` : "فشل الاستخراج");
+      push("error", humanizeError(e, language, { ar: "فشل الاستخراج", en: "Extraction failed" }));
     }
   }
 

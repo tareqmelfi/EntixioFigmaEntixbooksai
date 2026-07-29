@@ -9,7 +9,9 @@ import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
-import { api, ApiError, Contact } from "../lib/api";
+import { api, Contact } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "مسودة", ISSUED: "صادر", APPLIED: "مطبَّق", CANCELLED: "ملغى",
@@ -53,6 +55,7 @@ export function SupplierCredits() {
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { toasts, push, dismiss } = useToasts();
+  const { language } = useLanguage();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -68,11 +71,11 @@ export function SupplierCredits() {
       setProducts((productsRes as any).items || []);
       setItems((creditsRes as any).items || []);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally {
       setLoading(false);
     }
-  }, [push]);
+  }, [push, language]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -111,7 +114,7 @@ export function SupplierCredits() {
       setLines(mapped.length > 0 ? mapped : [newLine()]);
       push("success", `تم تحميل ${mapped.length} بند من فاتورة المورد ${bill.billNumber}`);
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "تعذر تحميل بنود فاتورة المورد");
+      setCreateError(humanizeError(e, language, { ar: "تعذر تحميل بنود فاتورة المورد", en: "Could not load bill lines" }));
     } finally {
       setSourceLoading(false);
     }
@@ -145,7 +148,7 @@ export function SupplierCredits() {
       push("success", `تم إنشاء إشعار مورد ${created.creditNumber}`);
       setCreateOpen(false);
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
+      setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
     } finally {
       setBusy(false);
     }
@@ -158,7 +161,7 @@ export function SupplierCredits() {
       setItems((prev) => prev.filter((item) => item.id !== id));
       push("success", "تم حذف إشعار المورد");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" }));
     }
   };
 

@@ -47,10 +47,24 @@ if (typeof localStorage !== 'undefined') {
 export class ApiError extends Error {
   status: number
   detail?: string
-  constructor(status: number, message: string, detail?: string) {
+  /** machine-readable code from the typed backend payload (e.g. "database_unavailable") */
+  code?: string
+  /** Arabic server message when provided */
+  messageAr?: string
+  /** correlation id logged server-side · quote it to support */
+  requestId?: string
+  constructor(
+    status: number,
+    message: string,
+    detail?: string,
+    extras?: { code?: string; messageAr?: string; requestId?: string },
+  ) {
     super(message)
     this.status = status
     this.detail = detail
+    this.code = extras?.code
+    this.messageAr = extras?.messageAr
+    this.requestId = extras?.requestId
   }
 }
 
@@ -99,21 +113,28 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     // Normalize error shape — backend may send { error: "string" } | { error: { message } } | { message } | Zod validation errors
     let message: string = res.statusText || `HTTP ${res.status}`
     let detail: string | undefined
+    let code: string | undefined
+    let messageAr: string | undefined
+    let requestId: string | undefined
     if (data && typeof data === 'object') {
       const d = data as any
-      if (typeof d.error === 'string') message = d.error
+      if (typeof d.error === 'string') { message = d.error; code = d.error }
       else if (d.error && typeof d.error === 'object') {
         message = d.error.message || d.error.code || JSON.stringify(d.error)
+        if (typeof d.error.code === 'string') code = d.error.code
       } else if (typeof d.message === 'string') message = d.message
       // Zod validation: { success: false, error: { issues: [{path, message}, ...] } }
       if (Array.isArray(d?.error?.issues)) {
         message = d.error.issues.map((i: any) => `${(i.path || []).join('.')} ${i.message}`).join(' · ')
+        code = 'validation_failed'
       }
+      if (typeof d.messageAr === 'string') messageAr = d.messageAr
+      if (typeof d.requestId === 'string') requestId = d.requestId
       detail = typeof d.detail === 'string' ? d.detail : (d.detail ? JSON.stringify(d.detail) : undefined)
     } else if (typeof data === 'string' && data.trim()) {
       message = data.slice(0, 500)
     }
-    throw new ApiError(res.status, message, detail)
+    throw new ApiError(res.status, message, detail, { code, messageAr, requestId })
   }
 
   return data as T
@@ -1294,6 +1315,23 @@ export interface ExpenseInput {
   ocrConfidence?: number | null
   autoCreateSupplier?: boolean
   notes?: string | null
+  /** ingestion-integrity: full multi-file set (preferred over the single inline attachment fields) */
+  attachments?: Array<{ name: string; contentType?: string | null; base64: string; sizeBytes?: number | null }>
+  /** sha256 of the source file from the extraction response · drives idempotency/dedupe */
+  sourceFileHash?: string | null
+  /** explicit escape hatch for the "create anyway" manual flow */
+  allowDuplicate?: boolean
+}
+
+/** Ingestion contract block returned on bill/expense create paths (PR1 backend) */
+export interface IngestionMeta {
+  dedupeDecision: 'CREATED' | 'UPDATED' | 'SKIPPED_DUPLICATE'
+  supplierResolvedTo: { id: string; displayName: string } | null
+  attachmentStatus: { attached: number; names: string[] }
+  linkedRecordId: string
+  confidence: number
+  reason: string
+  fingerprint?: string
 }
 
 export interface SalesDashboard {
