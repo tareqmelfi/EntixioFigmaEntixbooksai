@@ -21,7 +21,9 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import { api, ApiError, PurchasesDashboard as Data } from "../lib/api";
+import { api, PurchasesDashboard as Data } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "مسودة", RECEIVED: "مستلمة", PAID: "مدفوعة", PARTIAL: "مدفوعة جزئياً",
@@ -50,6 +52,7 @@ const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#7DD3E4", "#10B981", "#F59E0B", 
 
 export function PurchasesDashboard() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +61,9 @@ export function PurchasesDashboard() {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try { setData(await api.dashboard.purchases()); }
-    catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل التحميل"); }
+    catch (e: any) { setError(humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" })); }
     finally { setLoading(false); }
-  }, []);
+  }, [language]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const monthlyData = useMemo(() => {
@@ -81,7 +84,14 @@ export function PurchasesDashboard() {
   }, [data]);
 
   if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  if (error || !data) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || "تعذّر التحميل"}</div>;
+  if (error || !data) return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-3">
+      <span>{error || "تعذّر التحميل"}</span>
+      <Button type="button" variant="outline" size="sm" onClick={refresh} className="border-red-300 text-red-700 hover:bg-red-100">
+        {language === "en" ? "Retry" : "إعادة المحاولة"}
+      </Button>
+    </div>
+  );
 
   const cur = data.org.baseCurrency;
   const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;

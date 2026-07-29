@@ -19,8 +19,9 @@ import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../com
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
-import { api, ApiError, Contact } from "../lib/api";
-import type { ContactInput } from "../lib/api";
+import { api, Contact } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 const CURRENCIES = [
   { value: "SAR", label: "ريال سعودي · SAR" },
@@ -88,6 +89,11 @@ export function PurchaseBills() {
   const [duplicate, setDuplicate] = useState<{ open: boolean; matches: any[]; pendingSubmit: ("draft" | "approve") | null }>({ open: false, matches: [], pendingSubmit: null });
 
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const { language } = useLanguage();
+  // Source file captured by the dropzone · forwarded to the create so the bill carries its attachment
+  const [sourceFile, setSourceFile] = useState<{ name: string; contentType: string; base64: string } | null>(null);
+  const [sourceFileHash, setSourceFileHash] = useState<string | null>(null);
+  const [extractedDocNumber, setExtractedDocNumber] = useState<string | null>(null);
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,9 +110,9 @@ export function PurchaseBills() {
       setAccounts((accountsRes as any).items || []);
       setBankAccounts((bankRes as any).items || []);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
-  }, [push]);
+  }, [push, language]);
   useEffect(() => { refresh(); }, [refresh]);
 
   // Global drag-and-drop: drop anywhere on the page to upload as attachment
@@ -241,6 +247,10 @@ export function PurchaseBills() {
         status,
         notes: form.notes || null,
         termsConditions: form.reference ? `Supplier Ref: ${form.reference}` : undefined,
+        // ingestion-integrity: supplier doc number + source file for dedupe & attachment guarantee
+        supplierDocNumber: form.reference || extractedDocNumber || undefined,
+        sourceFileHash: sourceFileHash || undefined,
+        attachments: sourceFile ? [{ name: sourceFile.name, contentType: sourceFile.contentType, base64: sourceFile.base64 }] : undefined,
         lines: validLines.map((l) => ({
           productId: l.productId || null,
           description: l.description,
@@ -279,12 +289,22 @@ export function PurchaseBills() {
       const b = editingId
         ? await api.bills.update(editingId, payload)
         : await api.bills.create(payload);
-      setItems(prev => editingId ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
+      // upsert · a dedupe UPDATED/SKIPPED response points at an existing row
+      setItems(prev => prev.some(x => x.id === b.id) ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
       const msg = editingId ? "تم تحديث الفاتورة" : (action === "draft" ? `تم حفظ ${b.billNumber || "الفاتورة"} كمسودة` : `تم اعتماد ${b.billNumber || "الفاتورة"}`);
       push("success", msg);
+      const ing = (b as any).ingestion;
+      if (!editingId && ing && ing.dedupeDecision === "UPDATED") {
+        push("info", "فاتورة مطابقة موجودة — تم تحديثها بدل إنشاء نسخة مكررة", 6000);
+      } else if (!editingId && ing && ing.dedupeDecision === "SKIPPED_DUPLICATE") {
+        push("info", "الفاتورة موجودة مسبقاً — لم يتم إنشاء نسخة مكررة", 6000);
+      }
+      if (ing?.attachmentStatus?.attached > 0) {
+        push("info", `أُرفق ${ing.attachmentStatus.attached} ملف بالفاتورة`, 5000);
+      }
       closeCreate();
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
+      setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
     } finally { setBusy(false); }
   };
 
@@ -297,7 +317,7 @@ export function PurchaseBills() {
       closeCreate();
       refresh();
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "فشل الدمج");
+      setCreateError(humanizeError(e, language, { ar: "فشل الدمج", en: "Merge failed" }));
     } finally { setBusy(false); }
   };
 
@@ -307,7 +327,7 @@ export function PurchaseBills() {
       await api.bills.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       push("success", "تم حذف الفاتورة");
-    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    } catch (e: any) { push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" })); }
   };
 
   const handleApprove = async (b: any) => {
@@ -316,7 +336,7 @@ export function PurchaseBills() {
       setItems(prev => prev.map(x => x.id === b.id ? { ...x, status: "RECEIVED" } : x));
       push("success", `تم اعتماد ${b.billNumber || b.id}`);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الاعتماد");
+      push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
     }
   };
 
@@ -610,6 +630,9 @@ export function PurchaseBills() {
                 setLines(newLines);
                 if (data.documentNumber) setForm((f) => ({ ...f, reference: data.documentNumber || f.reference }));
                 if (data.dueDate) setForm((f) => ({ ...f, dueDate: data.dueDate || f.dueDate }));
+                setSourceFile(data.sourceFile || null);
+                setSourceFileHash(data.sourceFileHash || null);
+                setExtractedDocNumber(data.documentNumber || null);
                 push("success", `تم استخراج ${newLines.length} بنداً من فاتورة المورد`);
               }}
               onError={(msg) => push("error", msg)}

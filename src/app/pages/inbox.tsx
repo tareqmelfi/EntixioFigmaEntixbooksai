@@ -22,8 +22,10 @@ import {
   Mail,
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
-import { api, ApiError, InboxMessageRow, InboxMessageDetail } from "../lib/api";
+import { api, InboxMessageRow, InboxMessageDetail } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { useLanguage } from "../components/LanguageContext";
+import { humanizeError } from "../lib/error-messages";
 
 type StatusFilter = "ALL" | "RECEIVED" | "EXTRACTED" | "APPROVED" | "REJECTED";
 
@@ -37,6 +39,7 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> 
 
 export function InboxPage() {
   const { toasts, push, dismiss } = useToasts();
+  const { language } = useLanguage();
   const [items, setItems] = useState<InboxMessageRow[]>([]);
   const [detail, setDetail] = useState<InboxMessageDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +60,7 @@ export function InboxPage() {
         loadDetail(firstReady.id);
       }
     } catch (e: any) {
-      push("error",e instanceof ApiError ? e.message : "فشل تحميل البريد الوارد");
+      push("error", humanizeError(e, language, { ar: "فشل تحميل البريد الوارد", en: "Failed to load inbox" }));
     } finally {
       setLoading(false);
     }
@@ -81,7 +84,7 @@ export function InboxPage() {
       const d = await api.inbox.get(id);
       setDetail(d);
     } catch (e: any) {
-      push("error","فشل تحميل تفاصيل الرسالة");
+      push("error", humanizeError(e, language, { ar: "فشل تحميل تفاصيل الرسالة", en: "Failed to load message details" }));
     }
   };
 
@@ -89,12 +92,22 @@ export function InboxPage() {
     if (!detail) return;
     setBusy(true);
     try {
-      const r = await api.inbox.approve(detail.id);
-      push("success",`✓ أُنشئت فاتورة شراء ${r.billNumber}`);
+      const r = await api.inbox.approve(detail.id) as any;
+      const att = r.attachmentStatus?.attached > 0 ? ` · ${r.attachmentStatus.attached} مرفق` : "";
+      if (r.dedupeDecision === "UPDATED") {
+        push("success", `تم تحديث فاتورة الشراء الموجودة ${r.billNumber}${att}`);
+      } else if (r.dedupeDecision === "SKIPPED_DUPLICATE") {
+        push("info", `الفاتورة موجودة مسبقاً (${r.billNumber}) — لم تُنشأ نسخة مكررة${att}`, 6000);
+      } else {
+        push("success", `✓ أُنشئت فاتورة شراء ${r.billNumber}${att}`);
+      }
+      if (r.supplierResolvedTo?.displayName) {
+        push("info", `المورّد: ${r.supplierResolvedTo.displayName}`, 4000);
+      }
       await refresh();
       loadDetail(detail.id);
     } catch (e: any) {
-      push("error",e instanceof ApiError ? e.message : "فشل الاعتماد");
+      push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
     } finally {
       setBusy(false);
     }
@@ -109,7 +122,7 @@ export function InboxPage() {
       await refresh();
       loadDetail(detail.id);
     } catch (e: any) {
-      push("error","فشل الرفض");
+      push("error", humanizeError(e, language, { ar: "فشل الرفض", en: "Reject failed" }));
     } finally {
       setBusy(false);
     }
@@ -124,7 +137,7 @@ export function InboxPage() {
       await refresh();
       loadDetail(detail.id);
     } catch (e: any) {
-      push("error","فشل الاستخراج");
+      push("error", humanizeError(e, language, { ar: "فشل الاستخراج", en: "Extraction failed" }));
     } finally {
       setBusy(false);
     }

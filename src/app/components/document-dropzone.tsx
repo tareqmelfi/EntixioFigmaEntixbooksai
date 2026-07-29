@@ -52,6 +52,10 @@ export interface ExtractedDocument {
   notes?: string;
   warnings?: string[];
   _meta?: { model: string; cost: string };
+  /** sha256 of the source file bytes (backend) · forward to bill/expense create for dedupe */
+  sourceFileHash?: string;
+  /** the original uploaded file · attached to the created record (attachment guarantee) */
+  sourceFile?: { name: string; contentType: string; base64: string };
 }
 
 interface Props {
@@ -125,7 +129,13 @@ export function DocumentDropZone({
       if (!data || data.confidence === 0) {
         throw new Error("تعذّر استخراج بيانات من المستند · جرّب صورة أوضح");
       }
-      onExtracted(data);
+      // Thread the source file through so the created record can carry it as an
+      // attachment (mandate: files provided by the user MUST end up attached).
+      onExtracted({
+        ...data,
+        sourceFileHash: (data as any).sourceFileHash,
+        sourceFile: { name: file.name, contentType: file.type || "application/octet-stream", base64 },
+      });
       setSuccess(`تم استخراج ${data.lines?.length || 0} بنداً من ${file.name}`);
     } catch (e: any) {
       const msg = e?.message || "فشل الرفع";
