@@ -8,8 +8,12 @@ Entix Books is a cloud accounting application for Saudi and US-oriented small an
 - Project code: EN-PRJ-ENTX-IO
 - Domain: entix.io
 - Frontend stack: Vite 6, React 18, TypeScript, Tailwind CSS 4, React Router 7
+- Archetype (ARC-01): **B/C hybrid** — marketing pages at `/`, `/features`, `/pricing`, `/solutions/*` (archetype A · prerender migration queued per Bible §2) + authenticated app under `/app` (archetype B/C · SPA + VPS API + Postgres)
+- Hosting (PLT): frontend = **Cloudflare Workers Static Assets** (`wrangler.jsonc` · worker `entix-books-web`) · backend = VPS + Coolify
+- Font stack (TYPO-01): display/body Latin = **Plus Jakarta Sans** · Arabic = **Noto Sans Arabic** + **Tajawal** (self-hosted woff2 in `public/fonts` · `font-display: swap`)
 - Backend stack: Hono, Prisma, better-auth, PostgreSQL 16
 - Public entity footer: ENSIDEX LLC, Wyoming, USA
+- Architecture archetype: B (Marketing + App split by route namespace, app under `/app`)
 
 ## Design System
 
