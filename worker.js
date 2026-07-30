@@ -45,9 +45,12 @@ const SECURITY_HEADERS = {
   ].join('; '),
 }
 
-function withSecurityHeaders(response) {
+function withSecurityHeaders(response, isHtml = false) {
   const res = new Response(response.body, response)
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v)
+  // HTML must revalidate every load so deploys take effect immediately;
+  // content-hashed assets stay immutable (PUB-03 cache-busting by design)
+  if (isHtml) res.headers.set('cache-control', 'no-cache, must-revalidate')
   return res
 }
 
@@ -89,14 +92,17 @@ export default {
 
     // Extensionless path:
     // 1) prerendered marketing/auth HTML is a REAL file (dist/<route>/index.html)
-    //    → serve it directly (REND-01: content without executing JS)
+    //    → serve it directly (REND-01: content without executing JS).
+    //    html_handling:"none" means directories don't auto-resolve, so we
+    //    address the file explicitly.
     // 2) app shells (/app /portal /print) → SPA index.html fallback (ARC-04)
     // 3) anything else → honest 404 (REND-07)
     if (isShellOrMarketing(pathname)) {
-      const real = await env.ASSETS.fetch(request)
-      if (real.status !== 404) return withSecurityHeaders(real)
+      const target = pathname === '/' ? '/index.html' : `${pathname}/index.html`
+      const real = await env.ASSETS.fetch(new Request(new URL(target, url), request))
+      if (real.status !== 404) return withSecurityHeaders(real, true)
       const shell = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
-      return withSecurityHeaders(shell)
+      return withSecurityHeaders(shell, true)
     }
     return withSecurityHeaders(notFound())
   },
