@@ -87,10 +87,17 @@ export default {
       return withSecurityHeaders(res)
     }
 
-    // Extensionless path: SPA/marketing shell, else honest 404 (REND-07)
-    if (!isShellOrMarketing(pathname)) return withSecurityHeaders(notFound())
-
-    const res = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
-    return withSecurityHeaders(res)
+    // Extensionless path:
+    // 1) prerendered marketing/auth HTML is a REAL file (dist/<route>/index.html)
+    //    → serve it directly (REND-01: content without executing JS)
+    // 2) app shells (/app /portal /print) → SPA index.html fallback (ARC-04)
+    // 3) anything else → honest 404 (REND-07)
+    if (isShellOrMarketing(pathname)) {
+      const real = await env.ASSETS.fetch(request)
+      if (real.status !== 404) return withSecurityHeaders(real)
+      const shell = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
+      return withSecurityHeaders(shell)
+    }
+    return withSecurityHeaders(notFound())
   },
 }
