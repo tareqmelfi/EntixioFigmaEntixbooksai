@@ -981,7 +981,7 @@ export function Expenses() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={() => closeCreate()} className="border-border">إلغاء</Button>
               <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : editingId ? "تحديث" : "حفظ"}
               </Button>

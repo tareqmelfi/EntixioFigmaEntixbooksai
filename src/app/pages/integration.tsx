@@ -1,9 +1,9 @@
 import { motion } from "motion/react";
 import {
-  Cloud, Wifi, WifiOff, Server, Database, Shield, Lock, Key,
+  Wifi, WifiOff, Server, Database, Shield, Lock, Key,
   CheckCircle2, FileCheck, Award, Globe, Zap, ArrowLeft,
-  Clock, RefreshCw, HardDrive, Smartphone, Laptop, Fingerprint,
-  Eye, AlertTriangle, FileText, Sparkles, GitBranch, Circle
+  RefreshCw, HardDrive, Fingerprint,
+  Eye, AlertTriangle, Sparkles, GitBranch, Circle
 } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";

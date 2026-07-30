@@ -17,7 +17,7 @@ import { X } from "lucide-react";
 interface SidePanelProps {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   description?: string;
   width?: "sm" | "md" | "lg" | "xl";
   children: ReactNode;
@@ -77,7 +77,7 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
         )}
         <div className="flex items-start justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
           <div className="min-w-0">
-            <h2 className="text-foreground truncate" style={{ fontSize: "1.125rem", fontWeight: 600 }}>{title}</h2>
+            {title && <h2 className="text-foreground truncate" style={{ fontSize: "1.125rem", fontWeight: 600 }}>{title}</h2>}
             {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
           </div>
           <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0" aria-label="إغلاق">

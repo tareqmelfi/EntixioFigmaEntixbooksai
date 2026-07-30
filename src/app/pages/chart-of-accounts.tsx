@@ -302,11 +302,6 @@ export function ChartOfAccounts() {
     });
   }, [tree, expanded, filterType, searchQuery]);
 
-  const counts = useMemo(() => items.reduce((acc: Record<string, number>, a) => {
-    acc[a.type] = (acc[a.type] || 0) + 1;
-    return acc;
-  }, {}), [items]);
-
   const parentOptions = useMemo(() => {
     return items.filter(a => a.type === form.type && a.id !== editingId).sort((a, b) => a.code.localeCompare(b.code));
   }, [items, form.type, editingId]);

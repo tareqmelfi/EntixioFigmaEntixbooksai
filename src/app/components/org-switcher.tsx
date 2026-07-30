@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
-import { ChevronDown, Plus, Check, Building2, X } from "lucide-react";
+import { ChevronDown, Plus, Check, X } from "lucide-react";
 import { api, Org, setOrgId } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { useLanguage } from "./LanguageContext";

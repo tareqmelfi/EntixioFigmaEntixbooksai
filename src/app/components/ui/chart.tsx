@@ -104,6 +104,15 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+// Tooltip payload entries always carry a string/number dataKey at render time;
+// recharts types it wider (DataKey also allows accessor functions).
+type ChartTooltipPayloadEntry = Omit<
+  RechartsPrimitive.TooltipPayloadEntry,
+  "dataKey"
+> & {
+  dataKey?: string | number;
+};
+
 function ChartTooltipContent({
   active,
   payload,
@@ -120,6 +129,8 @@ function ChartTooltipContent({
   labelKey,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<"div"> & {
+    payload?: ReadonlyArray<ChartTooltipPayloadEntry>;
+    label?: React.ReactNode;
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: "line" | "dot" | "dashed";
@@ -257,7 +268,10 @@ function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+  Pick<
+    RechartsPrimitive.DefaultLegendContentProps,
+    "payload" | "verticalAlign"
+  > & {
     hideIcon?: boolean;
     nameKey?: string;
   }) {

@@ -334,7 +334,7 @@ export function Quotes() {
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
-                  push("warning", "لم يتم استخراج بنود من المستند");
+                  push("info", "لم يتم استخراج بنود من المستند");
                   return;
                 }
                 const newLines: InvoiceLine[] = data.lines.map((l: any) => ({

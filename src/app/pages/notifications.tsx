@@ -6,7 +6,7 @@ import { useNavigate } from "react-router";
 import { Bell, CheckCheck, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, NotificationItem } from "../lib/api";
 
 const TYPE_LABELS: Record<string, string> = {

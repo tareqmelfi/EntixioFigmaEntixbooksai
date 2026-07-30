@@ -1,16 +1,13 @@
 import { useNavigate } from "react-router";
-import { 
-  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, 
-  FileText, Users, ArrowLeft, CheckCircle2, ChevronDown,
-  Database, Wifi, WifiOff, Server, Menu, X,
-  Receipt, Calculator, TrendingUp, Clock, Play, Sparkles
+import {
+  Shield, BarChart3, Globe, Zap, Cloud, Smartphone,
+  FileText, ArrowLeft, CheckCircle2, ChevronDown,
+  Database, Wifi, WifiOff, Server,
+  Receipt, Calculator, TrendingUp, Clock, Play
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import Balancer from "react-wrap-balancer";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { authStore } from "../components/auth-store";
-import { Hero3DBackground } from "../components/hero-3d-background";
 import { InteractiveDashboard3D } from "../components/interactive-dashboard-3d";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
@@ -110,8 +107,7 @@ export function Landing() {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [mobileNav, setMobileNav] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [, setScrolled] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -133,11 +129,6 @@ export function Landing() {
     { q: t("كيف يتم تأمين البيانات؟", "How is data secured?"), a: t("نستخدم تشفير AES-256 للبيانات المخزنة وTLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي وإمكانية تصدير البيانات في أي وقت بصيغة JSON.", "Data is protected with encrypted storage, secure transport, automated backups, and export options.") },
     { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً.", "Yes. ENTIX.IO supports SAR, USD, and additional currencies with exchange-rate workflows.") },
   ];
-
-  const handleNavigate = (path: string) => {
-    setMobileNav(false);
-    navigate(path);
-  };
 
   return (
     <div className="min-h-screen bg-white" dir={language === "ar" ? "rtl" : "ltr"}>

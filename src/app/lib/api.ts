@@ -1611,7 +1611,7 @@ export interface Invoice {
   orgId: string
   contactId: string
   invoiceNumber: string
-  status: 'DRAFT' | 'SENT' | 'VIEWED' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED'
+  status: 'DRAFT' | 'APPROVED' | 'SENT' | 'VIEWED' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED'
   issueDate: string
   dueDate: string
   currency: string

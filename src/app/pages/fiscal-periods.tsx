@@ -2,7 +2,7 @@
  * Fiscal Periods · year-end close + period locking · UX-117
  */
 import { useEffect, useState, useCallback } from "react";
-import { Loader2, Lock, Unlock, CheckCircle2, AlertCircle, CalendarDays, Plus } from "lucide-react";
+import { Loader2, Lock, Unlock, CheckCircle2, CalendarDays, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

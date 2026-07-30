@@ -16,8 +16,8 @@ import { useSearchParams } from "react-router";
 import { Link } from "react-router";
 import {
   Users, Plus, Search, Trash2, Loader2, Edit2, X, ChevronRight, ChevronLeft,
-  Building2, User, Mail, Phone, ExternalLink, AlertCircle, Globe, MapPin,
-  Briefcase, Landmark, UserCheck, TrendingUp, Filter, Upload, Sparkles,
+  Building2, User, Mail, Phone, ExternalLink, AlertCircle,
+  Briefcase, Landmark, UserCheck, Filter, Upload, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -489,7 +489,7 @@ export function Contacts() {
                 push("success", `✨ ${data.notes || "تم استخراج البيانات"} (ثقة ${(data.confidence * 100).toFixed(0)}%)`);
                 setWizard(w => ({ ...w, step: 2 }));
               } else {
-                push("warning", "لم أجد بيانات كافية في المستند. بقيت في خطوة النوع حتى تراجع الاختيار أو تدخل البيانات يدوياً.");
+                push("info", "لم أجد بيانات كافية في المستند. بقيت في خطوة النوع حتى تراجع الاختيار أو تدخل البيانات يدوياً.");
               }
             } catch (e: any) {
               push("error", e instanceof ApiError ? e.message : "فشل قراءة المستند");

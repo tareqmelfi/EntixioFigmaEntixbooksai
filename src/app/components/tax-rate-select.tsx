@@ -28,7 +28,7 @@ interface TaxRateSelectProps {
   className?: string;
 }
 
-export function TaxRateSelect({ value, onChange, type = "both", placeholder = "الضريبة", className }: TaxRateSelectProps) {
+export function TaxRateSelect({ value, onChange, type = "both", className }: TaxRateSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);

@@ -5,7 +5,7 @@
  * Client-side: just calls the API · if 403, shows access-denied message.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Loader2, ShieldCheck, AlertTriangle, DollarSign, TrendingUp, Power } from "lucide-react";
+import { Loader2, ShieldCheck, DollarSign, TrendingUp, Power } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

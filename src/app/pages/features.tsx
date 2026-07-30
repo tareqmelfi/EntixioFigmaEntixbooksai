@@ -1,9 +1,9 @@
 import { motion } from "motion/react";
-import { 
-  FileText, BarChart3, Shield, Globe, Cloud, Smartphone, Receipt, 
-  Calculator, TrendingUp, Zap, CheckCircle2, Clock, Users, 
-  Database, Sparkles, ArrowLeft, Eye, Download, Share2,
-  CreditCard, Package, DollarSign, PieChart, Calendar, Bell
+import {
+  FileText, BarChart3, Shield, Globe, Cloud, Receipt,
+  Calculator, TrendingUp, CheckCircle2, Users,
+  Sparkles, ArrowLeft, Eye, Download, Share2,
+  DollarSign, Calendar
 } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
@@ -273,7 +273,7 @@ export function Features() {
               </span>
             </div>
             <p className="text-white/60 text-xs mb-1">{stat.label}</p>
-            <p className="text-white text-xl font-bold" dir="ltr">{stat.value.toLocaleString("en-US")} SR</p>
+            <p className="text-white text-xl font-bold" dir="ltr">{stat.value} SR</p>
           </div>
         ))}
       </div>
