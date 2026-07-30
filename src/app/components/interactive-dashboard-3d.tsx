@@ -242,11 +242,16 @@ export function InteractiveDashboard3D() {
             transition={{ duration: 0.3 }}
           >
             {/* Self-hosted hero (was a cross-origin Unsplash fetch — the LCP
-                element). fetchpriority=high + preload in index.html. */}
+                element). WebP + srcset + fixed dims (PERF-04) · fetchpriority=high
+                + preload in index.html. */}
             <ImageWithFallback
-              src="/hero-dashboard.jpg"
+              src="/hero-dashboard.webp"
+              srcSet="/hero-dashboard-640.webp 640w, /hero-dashboard-960.webp 960w, /hero-dashboard.webp 1200w"
+              sizes="(max-width: 768px) 88vw, (max-width: 1280px) 44vw, 560px"
+              width={1200}
+              height={1800}
               alt="ENTIX.IO Dashboard"
-              className="rounded-xl w-full relative z-10"
+              className="rounded-xl w-full h-auto relative z-10"
               {...{ fetchpriority: "high" } as any}
             />
             
