@@ -120,6 +120,7 @@ export function Invoices() {
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [splittingId, setSplittingId] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
 
@@ -540,7 +541,31 @@ export function Invoices() {
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+                {editingInvoice && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPreviewOpen((v) => !v)}
+                      className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
+                      title="معاينة الفاتورة كمستند (يسار)"
+                    >
+                      معاينة
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}
+                      className="border-border"
+                      title="فتح نسخة الطباعة في تبويب جديد"
+                    >
+                      طباعة
+                    </Button>
+                  </>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
                   {busy ? "..." : "حفظ كمسودة"}
@@ -555,6 +580,7 @@ export function Invoices() {
             </div>
           }
         >
+          <div className={editingInvoice && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <div className="w-full max-w-none mx-auto space-y-3">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
 
@@ -770,6 +796,29 @@ export function Invoices() {
                 </div>
               </div>
             </div>
+          </div>
+          {editingInvoice && previewOpen && (
+            <aside className="hidden xl:block sticky top-4">
+              <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
+                  <span className="text-xs text-muted-foreground">معاينة المستند · آخر نسخة محفوظة</span>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    فتح في تبويب ←
+                  </button>
+                </div>
+                <iframe
+                  title={`معاينة ${editingInvoice.invoiceNumber}`}
+                  src={`/print/invoice/${editingInvoice.id}?embed=1&noprint=1`}
+                  className="w-full bg-white"
+                  style={{ height: "calc(100vh - 150px)", border: 0 }}
+                />
+              </div>
+            </aside>
+          )}
           </div>
         </FullPageForm>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
