@@ -1,12 +1,14 @@
 import { useRouteError, isRouteErrorResponse, Link } from "react-router";
 import { AlertTriangle, Home, ArrowRight } from "lucide-react";
 import { Button } from "./ui/button";
+import { clientErrorRef } from "../lib/api";
 
 export function ErrorBoundary() {
   const error = useRouteError();
   
   let errorMessage: string;
   let errorStatus: number | undefined;
+  let errorRef: string | undefined;
 
   if (isRouteErrorResponse(error)) {
     errorStatus = error.status;
@@ -20,6 +22,10 @@ export function ErrorBoundary() {
     }
   } else if (error instanceof Error) {
     errorMessage = error.message;
+    // Render crash — attach a support reference and log the stack so it can be traced
+    const ref = clientErrorRef();
+    console.error(`[ui] ${ref} RENDER CRASH`, error);
+    errorRef = ref;
   } else {
     errorMessage = "حدث خطأ غير متوقع";
   }
@@ -48,9 +54,15 @@ export function ErrorBoundary() {
           </h1>
 
           {/* Message */}
-          <p className="text-muted-foreground mb-8 leading-relaxed">
+          <p className="text-muted-foreground mb-4 leading-relaxed">
             {errorMessage}
           </p>
+
+          {errorRef && (
+            <p className="text-muted-foreground/70 mb-4 text-xs font-english" dir="ltr">
+              Ref: {errorRef}
+            </p>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col gap-3">

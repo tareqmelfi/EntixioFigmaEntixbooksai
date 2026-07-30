@@ -13,8 +13,12 @@ type Lang = 'ar' | 'en'
 const MAP: Record<string, { ar: string; en: string }> = {
   // infra
   internal_error: {
-    ar: 'خطأ غير متوقع في الخادم · زوّد الدعم بالرقم المرجعي',
-    en: 'Unexpected server error · share the reference id with support',
+    ar: 'خطأ غير متوقع في الخادم',
+    en: 'Unexpected server error',
+  },
+  network_error: {
+    ar: 'تعذّر الاتصال بالخادم · تحقق من اتصالك بالشبكة',
+    en: 'Could not reach the server · check your connection',
   },
   database_unavailable: {
     ar: 'قاعدة البيانات غير متاحة مؤقتاً · حاول مجدداً بعد قليل',
@@ -124,12 +128,12 @@ export function humanizeError(
   if (err instanceof ApiError) {
     if (err.code && MAP[err.code]) {
       const base = MAP[err.code][lang]
-      return err.requestId ? `${base} · ${err.requestId}` : base
+      return err.requestId ? `${base} · ${lang === 'ar' ? 'الرقم المرجعي' : 'Ref'}: ${err.requestId}` : base
     }
     const serverMsg = lang === 'ar' ? (err.messageAr || err.message) : err.message
     if (serverMsg && !looksLikeCode(serverMsg)) return serverMsg
     if (err.detail && !looksLikeCode(err.detail)) return `${fb[lang]} · ${err.detail}`
-    return err.requestId ? `${fb[lang]} · ${err.requestId}` : fb[lang]
+    return err.requestId ? `${fb[lang]} · ${lang === 'ar' ? 'الرقم المرجعي' : 'Ref'}: ${err.requestId}` : fb[lang]
   }
   return fb[lang]
 }

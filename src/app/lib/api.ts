@@ -68,6 +68,14 @@ export class ApiError extends Error {
   }
 }
 
+
+/** Client-side error reference — generated whenever the server didn't provide
+ * one (old API versions, network failures). Displayed to the user and logged
+ * with full context so support can correlate: "R-<time36>-<rand>". */
+export function clientErrorRef(): string {
+  return 'R-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase()
+}
+
 // ── Core fetch ────────────────────────────────────────────────────────────────
 type FetchOpts = {
   method?: string
@@ -95,13 +103,20 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   let body: string | undefined
   if (opts.body !== undefined) body = JSON.stringify(opts.body)
 
-  const res = await fetch(url.toString(), {
-    method: opts.method || 'GET',
-    headers,
-    body,
-    signal: opts.signal,
-    credentials: 'include',
-  })
+  let res: Response
+  try {
+    res = await fetch(url.toString(), {
+      method: opts.method || 'GET',
+      headers,
+      body,
+      signal: opts.signal,
+      credentials: 'include',
+    })
+  } catch (e: any) {
+    const ref = clientErrorRef()
+    console.error(`[api] ${ref} NETWORK ${opts.method || 'GET'} ${path}`, e?.message || e)
+    throw new ApiError(0, 'network_error', undefined, { code: 'network_error', requestId: ref })
+  }
 
   // 204 No Content
   if (res.status === 204) return undefined as T
@@ -133,6 +148,10 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
       detail = typeof d.detail === 'string' ? d.detail : (d.detail ? JSON.stringify(d.detail) : undefined)
     } else if (typeof data === 'string' && data.trim()) {
       message = data.slice(0, 500)
+    }
+    if (!requestId) {
+      requestId = clientErrorRef()
+      console.error(`[api] ${requestId} ${opts.method || 'GET'} ${path} → ${res.status}`, { code, message })
     }
     throw new ApiError(res.status, message, detail, { code, messageAr, requestId })
   }
@@ -758,7 +777,7 @@ export const api = {
       request<Invoice>(`/api/invoices/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/invoices/${id}`, { method: 'DELETE' }),
-    printUrl: (id: string) => `${API_BASE}/api/invoices/${id}/print`,
+    printUrl: (id: string) => `/print/invoice/${id}`,
     email: (id: string, body?: { to?: string; subject?: string; message?: string }) =>
       request<{ ok: true; to: string }>(`/api/invoices/${id}/email`, { method: 'POST', body: body || {} }),
   },

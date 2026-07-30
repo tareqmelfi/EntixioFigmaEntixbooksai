@@ -48,13 +48,73 @@ export function PurchasesDashboard() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [degraded, setDegraded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const refresh = useCallback(async () => {
-    setLoading(true); setError(null);
-    try { setData(await api.dashboard.purchases()); }
-    catch (e: any) { setError(humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" })); }
-    finally { setLoading(false); }
+    setLoading(true); setError(null); setDegraded(false);
+    try {
+      setData(await api.dashboard.purchases());
+      return;
+    } catch (e: any) {
+      // Resilience: compose a best-effort dashboard from list endpoints when the
+      // aggregate 500s (pre-PR5 production API crashes on null-contact bills).
+      // Each sub-fetch degrades independently; only if NOTHING loads do we show
+      // the error card (which always carries a support reference now).
+      try {
+        const [billsRes, expensesRes, me]: any[] = await Promise.all([
+          api.bills.list({}).catch(() => null),
+          api.expenses.list({ limit: 200 }).catch(() => null),
+          api.me().catch(() => null),
+        ]);
+        if (!billsRes && !expensesRes) {
+          setError(humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
+          return;
+        }
+        const billItems: any[] = billsRes?.items || [];
+        const expItems: any[] = expensesRes?.items || [];
+        const num = (v: any) => Number(v) || 0;
+        const now = new Date();
+        const mKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const yKey = String(now.getFullYear());
+        const inMonth = (d?: string) => (d || "").startsWith(mKey);
+        const inYear = (d?: string) => (d || "").startsWith(yKey);
+        const supplierAgg: Record<string, { contactId: string; name: string; total: number }> = {};
+        for (const b of billItems) {
+          const id = b.contactId || b.contact?.id || b.vendorName || "—";
+          supplierAgg[id] = supplierAgg[id] || { contactId: id, name: b.contact?.displayName || b.vendorName || "—", total: 0 };
+          supplierAgg[id].total += num(b.total);
+        }
+        const catAgg: Record<string, number> = {};
+        for (const x of expItems) {
+          const c = x.category || "أخرى";
+          catAgg[c] = (catAgg[c] || 0) + num(x.total);
+        }
+        const monthBills = billItems.filter((b) => inMonth(b.issueDate || b.date));
+        const yearBills = billItems.filter((b) => inYear(b.issueDate || b.date));
+        const yearExp = expItems.filter((x) => inYear(x.date));
+        const ytdBills = yearBills.reduce((s, b) => s + num(b.total), 0);
+        const ytdExp = yearExp.reduce((s, x) => s + num(x.total), 0);
+        setData({
+          org: { name: me?.org?.name || "", baseCurrency: me?.org?.baseCurrency || "SAR" },
+          thisMonth: { bills: monthBills.reduce((s, b) => s + num(b.total), 0), billCount: monthBills.length },
+          ytd: { bills: ytdBills, billCount: yearBills.length, expenses: ytdExp, expenseCount: yearExp.length, total: ytdBills + ytdExp },
+          expensesByCategory: Object.entries(catAgg).map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total),
+          topSuppliers: Object.values(supplierAgg).sort((a, b) => b.total - a.total),
+          recentBills: billItems.map((b) => ({
+            id: b.id,
+            number: b.billNumber || b.number || "—",
+            contact: b.contact?.displayName || b.vendorName || "—",
+            status: b.status || "DRAFT",
+            total: num(b.total),
+            date: b.issueDate || b.date || "",
+          })),
+        } as Data);
+        setDegraded(true);
+      } catch {
+        setError(humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
+      }
+    } finally { setLoading(false); }
   }, [language]);
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -100,6 +160,13 @@ export function PurchasesDashboard() {
 
   return (
     <div className="space-y-5">
+      {degraded && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {language === "en"
+            ? "Simplified view — showing data composed from bills & expenses while the dashboard service recovers."
+            : "عرض مبسّط — البيانات مركّبة من فواتير الشراء والمصروفات مؤقتًا حتى يتعافى ملخص لوحة المشتريات."}
+        </div>
+      )}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المشتريات</h1>
