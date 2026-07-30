@@ -64,8 +64,9 @@ export function SalesDashboard() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const monthlyData = useMemo(() => {
-    if (!data?.monthly) return [];
-    return data.monthly.map((m: any) => ({
+    const monthly = (data as (Data & { monthly?: Array<{ month: string; total: number }> }) | null)?.monthly;
+    if (!monthly) return [];
+    return monthly.map((m) => ({
       month: typeof m.month === "string" && m.month.includes("-") ? AR_MONTHS[Number(m.month.split("-")[1]) - 1] : String(m.month),
       total: Number(m.total) || 0,
     }));

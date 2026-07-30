@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Plus, X, Package, GripVertical } from "lucide-react";
+import { Plus, Package } from "lucide-react";
 
 // ── Product/Item catalog ──
 export interface CatalogItem {

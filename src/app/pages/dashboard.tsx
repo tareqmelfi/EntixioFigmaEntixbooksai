@@ -11,7 +11,6 @@
  */
 import {
   DollarSign,
-  FileText,
   ShoppingBag,
   Gauge,
   Loader2,
@@ -27,7 +26,7 @@ import {
 import { Link } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import {
-  BarChart, Bar, LineChart, Line, ComposedChart, Area,
+  BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
@@ -166,9 +165,6 @@ export function Dashboard() {
   const revCompare = pct(data.periodCompare.thisMonth.revenue, data.periodCompare.lastMonth.revenue);
   const expCompare = pct(data.periodCompare.thisMonth.expenses, data.periodCompare.lastMonth.expenses);
   const yearAgo = (data.periodCompare as any).yearAgo || { revenue: 0, expenses: 0, net: 0 };
-  const revYa = pct(data.periodCompare.thisMonth.revenue, yearAgo.revenue);
-  const expYa = pct(data.periodCompare.thisMonth.expenses, yearAgo.expenses);
-  const netYa = pct(data.periodCompare.thisMonth.net, yearAgo.net);
 
   return (
     <div className="space-y-3">

@@ -317,9 +317,7 @@ export function InvoicePrintView() {
                 const p = safeNum(l.unitPrice);
                 // line.subtotal is stored tax-inclusive · l.taxRate may be a relation object {rate} or numeric
                 const lineTotal = safeNum(l.subtotal) || safeNum(l.total) || (q * p);
-                const relRate = l.taxRate && typeof l.taxRate === "object" ? safeNum((l.taxRate as any).rate) : safeNum(l.taxRate);
                 const base = q * p - safeNum(l.discount);
-                const vatRate = relRate > 0 ? Math.round(relRate * 100) : (base > 0 && lineTotal > base + 0.005 ? Math.round((lineTotal / base - 1) * 100) : 0);
                 // First description line = product name (bold) · remaining lines = details
                 const descLines = String(l.description || "").split("\n");
                 const descHead = descLines[0];

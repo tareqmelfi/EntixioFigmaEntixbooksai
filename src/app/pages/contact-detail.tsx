@@ -13,9 +13,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import {
-  ArrowRight, Building2, Mail, Phone, Globe, MapPin, FileText, ShoppingBag,
-  Receipt, Banknote, Loader2, Edit2, ExternalLink, AlertCircle, Plus, Send,
-  CheckCircle2, Clock, XCircle, Hash, Briefcase, User, History, Files,
+  ArrowRight, Building2, Mail, Phone, MapPin, FileText, ShoppingBag,
+  Receipt, Banknote, Loader2, ExternalLink, AlertCircle, Plus, Send,
+  Clock, Hash, Briefcase, User, Files,
   KeyRound, Activity, Tag, Landmark } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { api, ApiError, ContactSummary } from "../lib/api";

@@ -9,14 +9,10 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLogItem } from "../lib/api";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
-
-const ROLE_LABELS: Record<string, string> = {
-  OWNER: "مالك", ADMIN: "مدير", ACCOUNTANT: "محاسب", VIEWER: "مشاهد فقط",
-};
 
 const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: string }> = {
   BYOK:            { label: "مفتاحي الخاص (BYOK)",   price: "$0",      alloc: "غير محدود" },
@@ -628,9 +624,9 @@ export function Settings() {
       {tab === "numbering" && org && <NumberingTab orgId={org.id} push={push} />}
       {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
       {tab === "catalog" && org && <CatalogTab push={push} />}
-      {tab === "zatca" && org && <ZatcaTab org={org} setOrg={setOrg} push={push} />}
+      {tab === "zatca" && org && <ZatcaTab org={org} push={push} />}
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
-      {tab === "plans" && org && <PlansTab org={org} setOrg={setOrg} push={push} />}
+      {tab === "plans" && org && <PlansTab org={org} />}
 
       {tab === "account" && (
         <Card className="border-border">
@@ -868,7 +864,7 @@ function ResetOption({
 }: {
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   disabled: boolean;
   busy: boolean;
   onClick: () => void;
@@ -1551,7 +1547,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
 }
 
 // ── ZATCA TAB ───────────────────────────────────────────────────────────────
-function ZatcaTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
+function ZatcaTab({ org, push }: { org: Org; push: any }) {
   const [csid, setCsid] = useState((org as any).zatcaCsid || "");
   const [csidSecret, setCsidSecret] = useState((org as any).zatcaCsidSecret || "");
   const [mode, setMode] = useState<"sandbox" | "simulation" | "production">((org as any).zatcaMode || "sandbox");
@@ -1798,7 +1794,7 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 }
 
 // ── PLANS TAB ───────────────────────────────────────────────────────────────
-function PlansTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
+function PlansTab({ org }: { org: Org }) {
   const isAdmin = (org as any).platformRole === "ADMIN";
   const plans = [
     { id: "free", name: "مجاني", price: "$0", users: "2", invoices: "20/شهر", ai: "$5/شهر", features: ["حساب واحد", "فواتير أساسية", "تصدير PDF"] },

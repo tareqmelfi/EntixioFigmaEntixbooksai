@@ -1,10 +1,11 @@
 import { useState } from "react";
 import {
-  Plug, Search, CheckCircle2, Clock, AlertCircle, ExternalLink,
-  Zap, Globe, CreditCard, FileText, ShoppingCart, MessageSquare,
-  Smartphone, Building2, Shield, Webhook
+  Plug, Search, CheckCircle2, Clock,
+  Zap, Globe, CreditCard, ShoppingCart, MessageSquare,
+  Building2, Shield, Webhook,
+  type LucideIcon
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
@@ -16,7 +17,7 @@ interface Integration {
   nameAr: string;
   description: string;
   category: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   iconColor: string;
   iconBg: string;
   status: IntegrationStatus;

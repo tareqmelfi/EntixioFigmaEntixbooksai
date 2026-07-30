@@ -1,13 +1,13 @@
 import { useState } from "react";
 import {
-  CheckCircle, Clock, AlertCircle, Zap, Lock, Globe,
+  CheckCircle, Clock, AlertCircle, Globe,
   FileText, Calculator, Users, BarChart3, CreditCard,
   Shield, Brain, Package, Building2, Wallet, Layers,
   Target, ChevronDown, ChevronRight, Star, Sparkles,
-  ArrowRight, ExternalLink, GitBranch, Plug, Landmark,
-  FolderKanban, Handshake, FileCode
+  Plug, Landmark,
+  type LucideIcon
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { api } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 
@@ -26,13 +26,13 @@ interface Feature {
 interface FeatureModule {
   title: string;
   titleEn?: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   color: string;
   bgColor: string;
   features: Feature[];
 }
 
-const statusConfig: Record<FeatureStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+const statusConfig: Record<FeatureStatus, { label: string; color: string; bg: string; icon: LucideIcon }> = {
   live: { label: "مفعّل", color: "text-[#166534]", bg: "bg-[#DCFCE7]", icon: CheckCircle },
   partial: { label: "جزئي", color: "text-[#92400E]", bg: "bg-[#FEF3C7]", icon: AlertCircle },
   planned: { label: "مخطط", color: "text-[#1E40AF]", bg: "bg-[#DBEAFE]", icon: Clock },
@@ -442,7 +442,7 @@ export function FeatureRoadmap() {
           </div>
         </CardContent>
       </Card>
-      <ToastStack toasts={toasts} dismiss={dismiss} />
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

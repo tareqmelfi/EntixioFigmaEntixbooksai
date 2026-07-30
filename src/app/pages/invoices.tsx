@@ -126,11 +126,6 @@ export function Invoices() {
   const [pendingContact, setPendingContact] = useState<{ name: string; resolve: (id: string) => void; reject: () => void } | null>(null);
 
 
-  // Quick-create customer · UX-5 · nested SidePanel
-  const [quickCustOpen, setQuickCustOpen] = useState(false);
-  const [quickCust, setQuickCust] = useState({ displayName: "", email: "", phone: "" });
-  const [quickCustError, setQuickCustError] = useState<string | null>(null);
-
   const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
@@ -253,28 +248,6 @@ export function Invoices() {
       search?.focus();
     },
   }, [createOpen, signFor]);
-
-  const openQuickCust = () => { setQuickCust({ displayName: "", email: "", phone: "" }); setQuickCustError(null); setQuickCustOpen(true); };
-  const closeQuickCust = () => { setQuickCustOpen(false); setQuickCustError(null); };
-  const handleQuickCust = async () => {
-    setQuickCustError(null);
-    if (!quickCust.displayName.trim()) { setQuickCustError("اسم العميل مطلوب"); return; }
-    setBusy(true);
-    try {
-      const c = await api.contacts.create({
-        displayName: quickCust.displayName.trim(),
-        type: "CUSTOMER",
-        email: quickCust.email.trim() || undefined,
-        phone: quickCust.phone.trim() || undefined,
-      });
-      setCustomers((prev) => [c, ...prev]);
-      setForm((f) => ({ ...f, contactId: c.id })); // auto-select
-      push("success", `تم إنشاء ${c.displayName}`);
-      closeQuickCust();
-    } catch (e: any) {
-      setQuickCustError(humanizeError(e, language, { ar: "فشل الإنشاء", en: "Create failed" }));
-    } finally { setBusy(false); }
-  };
 
   // 3-stage workflow: Draft → Approve → Send
   // 'draft' = حفظ كمسودة (always available · default)
@@ -434,13 +407,8 @@ export function Invoices() {
         push("error", "لا يمكن الاعتماد: يوجد بند ناقص (الوصف/الكمية/السعر)");
         return;
       }
-      const missingAccount = lineItems.some((l: any) => !l?.accountId);
-      if (missingAccount) {
-        push("error", "لا يمكن الاعتماد: اختر حساب الإيراد لكل بند أولاً");
-        return;
-      }
-
-      const updated = await api.invoices.update(inv.id, { status: "APPROVED" });
+      // Revenue account is resolved server-side (fallback ladder · PR4) — no FE hard block.
+      await api.invoices.update(inv.id, { status: "APPROVED" });
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "APPROVED" } as Invoice : x));
       push("success", `تم اعتماد ${inv.invoiceNumber}`);
     } catch (e: any) {
@@ -731,7 +699,7 @@ export function Invoices() {
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
-                  push("warning", "لم يتم استخراج بنود من المستند");
+                  push("info", "لم يتم استخراج بنود من المستند");
                   return;
                 }
                 const newLines: InvoiceLine[] = data.lines.map((l: any) => ({

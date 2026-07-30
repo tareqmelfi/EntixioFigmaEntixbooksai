@@ -91,7 +91,7 @@ export function JournalEntries() {
 
   const openEdit = (e: JournalEntryRow) => {
     if (e.status === "POSTED") {
-      push("warning", "اضغط (إلغاء ترحيل وتعديل) لتحرير قيد مرحَّل");
+      push("info", "اضغط (إلغاء ترحيل وتعديل) لتحرير قيد مرحَّل");
       return;
     }
     setForm({
@@ -177,6 +177,19 @@ export function JournalEntries() {
       refresh();
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل إلغاء الترحيل");
+    }
+  };
+
+  const unpostAndEdit = async (e: JournalEntryRow) => {
+    try {
+      await api.journals.unpost(e.id);
+      push("success", "تم إلغاء الترحيل · يمكنك التعديل الآن");
+      const fresh = await api.journals.get(e.id);
+      setSelected(fresh);
+      refresh();
+      openEdit(fresh);
+    } catch (err: any) {
+      push("error", err instanceof ApiError ? err.message : "فشل إلغاء الترحيل");
     }
   };
 
@@ -480,7 +493,7 @@ export function JournalEntries() {
               )}
               {selected.source !== "manual" && (
                 <div className="w-full rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                  هذا القيد أُنشئ تلقائياً من <span style={{fontWeight: 600}}>{selected.source === "invoice" ? "فاتورة مبيعات" : selected.source === "bill" ? "فاتورة شراء" : selected.source === "expense" ? "مصروف" : selected.source === "voucher" ? "سند" : "مستند آخر"}</span>{selected.sourceId ? <> رقم <span className="font-english">{selected.sourceId}</span></> : null}.
+                  هذا القيد أُنشئ تلقائياً من <span style={{fontWeight: 600}}>{selected.source === "invoice" ? "فاتورة مبيعات" : selected.source === "bill" ? "فاتورة شراء" : selected.source === "expense" ? "مصروف" : selected.source === "voucher" ? "سند" : "مستند آخر"}</span>.
                   <br/>
                   للتعديل · افتح المستند الأصلي وعدّل من هناك.
                 </div>

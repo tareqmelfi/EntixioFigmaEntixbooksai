@@ -6,12 +6,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
-  Upload, Loader2, CheckCircle2, XCircle, FileText, Banknote, AlertCircle,
-  Link2, Plus, ChevronRight, Landmark,
+  Upload, Loader2, CheckCircle2, FileText,
+  Link2, ChevronRight, Landmark,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";

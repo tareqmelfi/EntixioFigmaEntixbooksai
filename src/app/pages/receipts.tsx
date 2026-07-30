@@ -5,8 +5,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Plus, Search, Eye, X, Trash2, Loader2, Printer, Mail, Paperclip, Upload, Download,
-  FileText, Receipt as ReceiptIcon,
+  Plus, Search, X, Trash2, Loader2, Printer, Mail, Paperclip, Upload, Download,
+  Receipt as ReceiptIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -226,7 +226,7 @@ export function Receipts() {
       }
 
       if (created.length === 0) {
-        push("warning", "لم يتم إنشاء أي سند · تحقق من مبالغ التوزيع");
+        push("info", "لم يتم إنشاء أي سند · تحقق من مبالغ التوزيع");
         return;
       }
 
@@ -323,7 +323,7 @@ export function Receipts() {
 
       if (targetInvoices.length === 0) {
         setFazaaPreview({ invoices: [], total: 0 });
-        push("warning", "لا توجد فواتير فزعة مستحقة لإنشاء سندات قبض حالياً.");
+        push("info", "لا توجد فواتير فزعة مستحقة لإنشاء سندات قبض حالياً.");
         return;
       }
 

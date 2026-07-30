@@ -37,14 +37,6 @@ const STATUS_COLORS: Record<string, string> = {
   OVERDUE: "bg-red-100 text-red-700",
   CANCELLED: "bg-gray-100 text-gray-500",
 };
-const STATUS_FILL: Record<string, string> = {
-  DRAFT: "#9CA3AF",
-  RECEIVED: "#1276E3",
-  PAID: "#10B981",
-  PARTIAL: "#F59E0B",
-  OVERDUE: "#EF4444",
-  CANCELLED: "#6B7280",
-};
 
 const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
@@ -67,8 +59,9 @@ export function PurchasesDashboard() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const monthlyData = useMemo(() => {
-    if (!data?.monthly) return [];
-    return data.monthly.map((m: any) => ({
+    const monthly = (data as (Data & { monthly?: Array<{ month: string; total: number }> }) | null)?.monthly;
+    if (!monthly) return [];
+    return monthly.map((m) => ({
       month: typeof m.month === "string" && m.month.includes("-") ? AR_MONTHS[Number(m.month.split("-")[1]) - 1] : String(m.month),
       total: Number(m.total) || 0,
     }));

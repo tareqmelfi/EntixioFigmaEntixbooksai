@@ -1,12 +1,11 @@
 import { useState } from "react";
 import {
-  FileText, Plus, Search, Download, Eye, Copy, Edit2, MoreVertical,
-  Receipt, FileSpreadsheet, CreditCard, ScrollText, Printer
+  FileText, Plus, Search, Eye, Copy, Edit2,
+  Receipt, FileSpreadsheet, CreditCard, ScrollText
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
 
 interface Template {
   id: string;
@@ -55,7 +54,7 @@ export function Templates() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((template) => {
-          const Icon = template.icon;
+          const Icon = template.icon as React.ComponentType<{ className?: string }>;
           return (
             <Card key={template.id} className="border-border hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
               <CardContent className="p-5">

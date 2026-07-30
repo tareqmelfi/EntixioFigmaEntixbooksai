@@ -8,7 +8,8 @@ test.describe('Public Pages', () => {
   test('landing page loads', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveTitle(/entix/i)
-    await expect(page.locator('a[href="/login"]').first()).toBeVisible()
+    // Landing nav uses buttons with navigate() (not <a href>) · accept either
+    await expect(page.locator('a[href="/login"], button:has-text("تسجيل الدخول"), button:has-text("Sign in")').first()).toBeVisible()
   })
 
   test('login page renders', async ({ page }) => {

@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Camera, Upload, Send, Copy, CheckCircle2, X, Inbox } from "lucide-react";
+import { Camera, Upload, Send, Copy, X, Inbox } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
