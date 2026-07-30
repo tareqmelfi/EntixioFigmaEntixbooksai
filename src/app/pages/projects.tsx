@@ -3,6 +3,7 @@ import { FolderKanban, Plus, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -106,8 +107,8 @@ export function Projects() {
             </div>
             <div className="space-y-2"><Label>اسم المشروع *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="مشروع تطوير التطبيق" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>تاريخ البداية</Label><Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} dir="ltr" className="font-english" /></div>
-              <div className="space-y-2"><Label>تاريخ النهاية</Label><Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>تاريخ البداية</Label><DateInput value={form.startDate} onChange={(iso) => setForm({ ...form, startDate: iso })} inputClassName="" /></div>
+              <div className="space-y-2"><Label>تاريخ النهاية</Label><DateInput value={form.endDate} onChange={(iso) => setForm({ ...form, endDate: iso })} inputClassName="" /></div>
             </div>
             <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : "حفظ"}</Button></div>
           </form>

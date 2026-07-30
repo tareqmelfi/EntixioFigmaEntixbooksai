@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -691,7 +692,7 @@ export function Receipts() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">التاريخ *</Label>
-                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required dir="ltr" className="font-english" />
+                <DateInput value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
               </div>
               <div>
                 <Label className="text-xs">المبلغ *</Label>

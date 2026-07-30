@@ -24,6 +24,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -1089,7 +1090,7 @@ export function Expenses() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-foreground/80">التاريخ *</Label>
-                  <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} required dir="ltr" className="border-border font-english" />
+                  <DateInput value={formData.date} onChange={(iso) => setFormData({ ...formData, date: iso })} required inputClassName="" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">طريقة الدفع *</Label>

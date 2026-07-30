@@ -13,6 +13,7 @@ import { Plus, Search, Trash2, Loader2, ScrollText, ArrowDownLeft, FileText, Sca
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
@@ -310,7 +311,7 @@ export function CreditNotes() {
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground/80">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english" />
+                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="" />
               </div>
             </div>
             <div className="space-y-2">

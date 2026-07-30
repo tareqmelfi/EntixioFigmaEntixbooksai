@@ -40,6 +40,8 @@ interface Props {
   buttonClassName?: string;
   /** Minimum popup width (px) · keeps account names readable in narrow cells */
   menuMinWidth?: number;
+  /** Selected label wraps to multiple lines + box grows (item cells) instead of truncating */
+  wrap?: boolean;
 }
 
 type PanelStyle = {
@@ -60,6 +62,7 @@ export function SearchableCombobox({
   className = "",
   buttonClassName = "",
   menuMinWidth = 300,
+  wrap = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -97,7 +100,7 @@ export function SearchableCombobox({
 
     const rect = trigger.getBoundingClientRect();
     const viewportPadding = 8;
-    const gap = 4;
+    const gap = 0;
 
     // Width: keep readable popup width, but never overflow viewport
     const targetWidth = Math.max(rect.width, menuMinWidth);
@@ -206,8 +209,18 @@ export function SearchableCombobox({
         className={`w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50 ${buttonClassName}`}
         title={selected?.label || placeholder}
       >
-        <span className={selected ? "text-foreground truncate" : "text-muted-foreground/60 truncate"}>
-          {selected?.label || placeholder}
+        <span className={wrap
+          ? `min-w-0 flex-1 ${selected ? "text-foreground" : "text-muted-foreground/60"} break-words leading-5`
+          : selected ? "text-foreground truncate" : "text-muted-foreground/60 truncate"
+        }>
+          {selected ? (
+            <>
+              {selected.label}
+              {wrap && selected.sublabel && (
+                <span className="text-muted-foreground/60 text-[11px] font-english"> · {selected.sublabel.split("·")[0].trim()}</span>
+              )}
+            </>
+          ) : placeholder}
         </span>
         <ChevronDown className={`h-4 w-4 text-muted-foreground/60 shrink-0 ms-2 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>

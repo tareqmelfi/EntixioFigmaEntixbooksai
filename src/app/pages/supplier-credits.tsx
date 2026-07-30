@@ -3,6 +3,7 @@ import { ArrowDownLeft, FileText, Loader2, Plus, Search, ScrollText, Trash2 } fr
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
@@ -206,7 +207,7 @@ export function SupplierCredits() {
               </div>
               <div className="space-y-2">
                 <Label>تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} dir="ltr" className="font-english" />
+                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} inputClassName="" />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

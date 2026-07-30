@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, Save } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow } from "../lib/api";
 
@@ -120,11 +121,11 @@ export function Taxes() {
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">من تاريخ</span>
-            <input value={from} onChange={(event) => setFrom(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-[#1276E3]" />
+            <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
           </label>
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">إلى تاريخ</span>
-            <input value={to} onChange={(event) => setTo(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-[#1276E3]" />
+            <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
           </label>
           <div className="flex gap-2">
             <Button variant="outline" onClick={load}><RefreshCw className="me-2 h-4 w-4" />تحديث</Button>

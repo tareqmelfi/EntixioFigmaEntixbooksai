@@ -9,6 +9,7 @@ import { Plus, Search, Trash2, Loader2, ShoppingBag, Edit2, AlertTriangle } from
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
@@ -405,11 +406,11 @@ export function PurchaseBills() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">تاريخ الفاتورة *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english h-9 text-sm" />
+                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">تاريخ الاستحقاق *</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-border font-english h-9 text-sm" />
+                <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required inputClassName="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">رقم الفاتورة</Label>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Download, ExternalLink, Loader2, Printer, RefreshCw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
+import { DateInput } from "../components/date-input";
 import { Card, CardContent } from "../components/ui/card";
 import { ReportDocument, normalizeReportSettings } from "../components/report-document";
 import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
@@ -108,11 +109,11 @@ export function ReportView() {
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">من تاريخ</span>
-            <input value={from} onChange={(event) => setFrom(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-[#1276E3]" />
+            <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
           </label>
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">إلى تاريخ</span>
-            <input value={to} onChange={(event) => setTo(event.target.value)} type="date" className="h-10 w-full rounded-lg border border-border px-3 outline-none focus:border-[#1276E3]" />
+            <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
           </label>
           <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
             الحالة: <span className="font-semibold text-foreground">{report?.status === "demo" ? "ديمو" : report?.status === "live" ? "لايف" : "فارغ"}</span>

@@ -9,6 +9,7 @@ import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, 
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -576,11 +577,11 @@ export function Invoices() {
               </div>
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">تاريخ الإصدار *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english h-8 text-xs" />
+                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="h-8 text-xs" />
               </div>
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">تاريخ الاستحقاق *</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required dir="ltr" className="border-border font-english h-8 text-xs" />
+                <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required inputClassName="h-8 text-xs" />
               </div>
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">رقم الفاتورة</Label>

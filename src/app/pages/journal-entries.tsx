@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
@@ -533,7 +534,7 @@ export function JournalEntries() {
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">التاريخ *</Label>
-                    <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required className="border-border font-english" />
+                    <DateInput value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
                   </div>
                   <div className="col-span-2">
                     <Label className="text-xs text-muted-foreground">الوصف *</Label>

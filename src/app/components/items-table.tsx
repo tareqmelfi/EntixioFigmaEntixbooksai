@@ -118,7 +118,7 @@ export function computeTotals(lines: InvoiceLine[]) {
   return { subtotal, tax, total: subtotal + tax };
 }
 
-const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: true };
+const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: false };
 
 const ROW_BORDER_CLASS = "border-border/30";
 
@@ -475,8 +475,9 @@ export function ItemsTable({
               <col className="min-w-[104px] w-[9%]" />
               {showAccount && <col className="min-w-[220px] w-[18%]" />}
               {showTax && <col className="min-w-[124px] w-[10%]" />}
-              {showTaxAmount && <col className="min-w-[118px] w-[10%]" />}
-              <col className="min-w-[130px] w-[10%]" />
+              <col className="min-w-[110px] w-[9%]" />
+              {showTaxAmount && <col className="min-w-[104px] w-[9%]" />}
+              <col className="min-w-[124px] w-[10%]" />
               <col className="w-10" />
             </colgroup>
             <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -503,10 +504,11 @@ export function ItemsTable({
                 {showTax && (
                   <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الضريبة</th>
                 )}
-                {showTaxAmount && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>مبلغ الضريبة</th>
-                )}
                 <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>المبلغ ({currency})</th>
+                {showTaxAmount && (
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>ض.ق.م</th>
+                )}
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الإجمالي ({currency})</th>
                 <th className="py-2.5 px-2 w-10"></th>
               </tr>
             </thead>
@@ -516,6 +518,7 @@ export function ItemsTable({
                 const price = Number(normalizeDigits(line.unitPrice)) || 0;
                 const gross = qty * price;
                 const lineTax = line.taxInclusive ? gross - gross / (1 + line.taxRate) : gross * line.taxRate;
+                const lineNet = line.taxInclusive ? gross / (1 + line.taxRate) : gross;
                 const lineTotal = line.taxInclusive ? gross : gross + lineTax;
                 const isReal = i < realLineCount;
                 const isInvalid = isReal && !!invalidIds?.has(line.id);
@@ -560,8 +563,9 @@ export function ItemsTable({
                           placeholder="ابحث عن صنف..."
                           createLabel={(q) => `+ إنشاء صنف "${q}"`}
                           className="border-0"
-                          buttonClassName="h-7 px-2 text-xs border border-border/60 rounded-md"
+                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs border border-border/60 rounded-md"
                           menuMinWidth={360}
+                          wrap
                         />
                       </td>
                     )}
@@ -610,8 +614,9 @@ export function ItemsTable({
                           items={accountItems}
                           placeholder="ابحث عن حساب..."
                           className="border-0"
-                          buttonClassName="h-7 px-2 text-xs border border-border/60 rounded-md"
+                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs border border-border/60 rounded-md"
                           menuMinWidth={520}
+                          wrap
                           onCreate={onCreateAccount ? async (name) => {
                             const a = await onCreateAccount(name);
                             updateLine(i, { accountId: a.id });
@@ -638,6 +643,9 @@ export function ItemsTable({
                         </select>
                       </td>
                     )}
+                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap">
+                      {gross > 0 ? lineNet.toFixed(2) : ""}
+                    </td>
                     {showTaxAmount && (
                       <td className="px-2 py-1 font-english text-xs text-muted-foreground whitespace-nowrap">
                         {gross > 0 ? lineTax.toFixed(2) : ""}

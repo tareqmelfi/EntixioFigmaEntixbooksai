@@ -3,6 +3,7 @@ import { Building2, Plus, Trash2, Loader2, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
@@ -158,7 +159,7 @@ export function FixedAssets() {
             </div>
             <div className="space-y-2"><Label>اسم الأصل *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="جهاز كمبيوتر مكتبي" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>تاريخ الاقتناء *</Label><Input type="date" required value={form.acquisitionDate} onChange={(e) => setForm({ ...form, acquisitionDate: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>تاريخ الاقتناء *</Label><DateInput value={form.acquisitionDate} onChange={(iso) => setForm({ ...form, acquisitionDate: iso })} required inputClassName="" /></div>
               <div className="space-y-2"><Label>العمر الإنتاجي (سنوات) *</Label><Input type="number" min="1" required value={form.usefulLifeYears} onChange={(e) => setForm({ ...form, usefulLifeYears: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">

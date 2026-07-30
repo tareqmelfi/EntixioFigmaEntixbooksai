@@ -9,6 +9,7 @@ import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature 
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
@@ -241,7 +242,7 @@ export function Quotes() {
             </div>
           }
         >
-          <div className="max-w-7xl mx-auto space-y-4">
+          <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
 
             {/* Top fields row */}
@@ -264,11 +265,11 @@ export function Quotes() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">تاريخ العرض *</Label>
-                <Input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })} required dir="ltr" className="border-border font-english h-9 text-sm" />
+                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">صالح حتى *</Label>
-                <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} required dir="ltr" className="border-border font-english h-9 text-sm" />
+                <DateInput value={form.validUntil} onChange={(iso) => setForm({ ...form, validUntil: iso })} required inputClassName="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">رقم العرض</Label>
