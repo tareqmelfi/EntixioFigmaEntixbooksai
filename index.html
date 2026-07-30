@@ -6,10 +6,13 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Entix Books · ENSIDEX</title>
       <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-      <!-- PERF · LCP hero is self-hosted · preload it + preconnect API & fonts -->
+      <!-- PERF · LCP hero is self-hosted · preload it + primary fonts (text-LCP) -->
       <link rel="preload" as="image" href="/hero-dashboard.jpg" fetchpriority="high" />
       <link rel="preconnect" href="https://api.entix.io" crossorigin />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+      <link rel="preload" as="font" type="font/woff2" href="/fonts/PlusJakartaSans-400-latin.woff2" crossorigin />
+      <link rel="preload" as="font" type="font/woff2" href="/fonts/PlusJakartaSans-700-latin.woff2" crossorigin />
+      <link rel="preload" as="font" type="font/woff2" href="/fonts/NotoSansArabic-400-arabic.woff2" crossorigin />
+      <link rel="preload" as="font" type="font/woff2" href="/fonts/NotoSansArabic-700-arabic.woff2" crossorigin />
       <meta name="description" content="ENTIX.IO accounting, invoicing, payments, OCR, inventory, and AI workflows for modern businesses." />
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content="ENTIX.IO" />
