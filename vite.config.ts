@@ -49,4 +49,21 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+
+  build: {
+    rollupOptions: {
+      output: {
+        // Vendor split (PERF-01/PERF-06): framework + motion load in parallel
+        // with app code and stay long-cacheable across deploys, cutting the
+        // parse cost of the critical entry on mobile.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react'
+          if (/[\\/]node_modules[\\/](react-router|@remix-run)[\\/]/.test(id)) return 'vendor-router'
+          if (/[\\/]node_modules[\\/](motion|framer-motion)[\\/]/.test(id)) return 'vendor-motion'
+          return undefined
+        },
+      },
+    },
+  },
 })
