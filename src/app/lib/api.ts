@@ -874,6 +874,7 @@ export interface MeResponse extends User {
 export interface Org {
   id: string
   slug: string
+  inboundEmailLocal?: string | null // custom inbound alias · default bills+<slug>@in.entix.io
   name: string
   legalName?: string | null
   country: string

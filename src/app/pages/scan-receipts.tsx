@@ -5,15 +5,23 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Camera, Upload, Send, Copy, X, Inbox } from "lucide-react";
+import { Camera, Upload, Send, Copy, X, Inbox, Pencil, Check, RotateCcw, Loader2 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api } from "../lib/api";
 
+const INBOUND_DOMAIN = "in.entix.io"; // dedicated inbound subdomain · apex mail stays on Google
+
 export function ScanReceipts() {
   const { toasts, push, dismiss } = useToasts();
+  const [orgId, setOrgId] = useState("");
   const [orgSlug, setOrgSlug] = useState("");
+  const [customLocal, setCustomLocal] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [showFaq, setShowFaq] = useState(false);
 
   useEffect(() => {
@@ -22,17 +30,46 @@ export function ScanReceipts() {
         const orgs = await api.orgs.list();
         const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
         const active = (stored ? orgs.find((org) => org.id === stored) : null) || orgs[0];
+        setOrgId(active?.id || "");
         setOrgSlug(active?.slug || "");
+        setCustomLocal((active as any)?.inboundEmailLocal || null);
       } catch (_) {}
     })();
   }, []);
 
-  const alias = orgSlug ? `bills+${orgSlug}@entix.io` : "—";
+  const defaultLocal = orgSlug ? `bills+${orgSlug}` : "";
+  const activeLocal = customLocal || defaultLocal;
+  const alias = activeLocal ? `${activeLocal}@${INBOUND_DOMAIN}` : "—";
 
   const copyAlias = async () => {
-    if (!orgSlug) return;
+    if (!activeLocal) return;
     try { await navigator.clipboard.writeText(alias); push("success", "تم النسخ"); }
     catch { push("error", "فشل النسخ"); }
+  };
+
+  const openEdit = () => {
+    setEditValue(customLocal || "");
+    setEditError(null);
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    const v = editValue.trim().toLowerCase();
+    if (v && !/^[a-z0-9][a-z0-9.+-]{0,62}[a-z0-9]$/.test(v)) {
+      setEditError("أحرف إنجليزية صغيرة وأرقام و . + - فقط · يبدأ وينتهي بحرف أو رقم");
+      return;
+    }
+    setEditBusy(true);
+    setEditError(null);
+    try {
+      await api.orgs.update(orgId, { inboundEmailLocal: v || null } as any);
+      setCustomLocal(v || null);
+      setEditOpen(false);
+      push("success", v ? `صار عنوانك ${v}@${INBOUND_DOMAIN}` : "رجعنا للعنوان الافتراضي");
+    } catch (e: any) {
+      const code = e?.code || "";
+      setEditError(code === "inbound_local_taken" ? "هذا العنوان مستخدم من شركة أخرى · اختر غيره" : (e?.message || "فشل الحفظ"));
+    } finally { setEditBusy(false); }
   };
 
   return (
@@ -104,22 +141,73 @@ export function ScanReceipts() {
             <Inbox className="h-3.5 w-3.5" /> إيميل إعادة التوجيه الخاص بشركتك
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <code className="flex-1 min-w-0 font-english text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 truncate">
+            <code className="flex-1 min-w-0 font-english text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 truncate" dir="ltr">
               {alias}
             </code>
             <button
               onClick={copyAlias}
-              disabled={!orgSlug}
+              disabled={!activeLocal}
               className="px-3 py-2 rounded-md border border-border text-sm hover:bg-primary/5 hover:border-[#1276E3] hover:text-primary transition flex items-center gap-1.5 disabled:opacity-50"
             >
               <Copy className="h-3.5 w-3.5" /> نسخ
             </button>
+            <button
+              onClick={openEdit}
+              className="px-3 py-2 rounded-md border border-border text-sm hover:bg-primary/5 hover:border-[#1276E3] hover:text-primary transition flex items-center gap-1.5"
+              title="غيّر عنوان الاستقبال"
+            >
+              <Pencil className="h-3.5 w-3.5" /> تخصيص
+            </button>
           </div>
+          {customLocal && (
+            <p className="mt-1.5 text-[11px] text-emerald-700">عنوان مخصص · الافتراضي: <span className="font-english" dir="ltr">{defaultLocal}@{INBOUND_DOMAIN}</span></p>
+          )}
+
+          {/* alias editor */}
+          {editOpen && (
+            <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="text-xs text-foreground" style={{ fontWeight: 600 }}>عنوان الاستقبال الخاص بك</div>
+              <div className="flex items-center gap-1.5 flex-wrap" dir="ltr">
+                <input
+                  value={editValue}
+                  onChange={(e) => { setEditValue(e.target.value); setEditError(null); }}
+                  placeholder={defaultLocal || "bills.tareq"}
+                  className="flex-1 min-w-[180px] font-english text-sm rounded-md border border-border bg-white px-3 py-2"
+                  dir="ltr"
+                  autoFocus
+                />
+                <span className="font-english text-sm text-muted-foreground">@{INBOUND_DOMAIN}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-5">
+                مثال: <span className="font-english" dir="ltr">bills.tareq</span> · اتركه فاضيًا للرجوع للعنوان الافتراضي <span className="font-english" dir="ltr">{defaultLocal}</span>
+              </p>
+              {editError && <div className="text-xs text-red-600">{editError}</div>}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={saveEdit}
+                  disabled={editBusy}
+                  className="px-3 py-1.5 rounded-md bg-primary text-white text-xs hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
+                >
+                  {editBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} حفظ العنوان
+                </button>
+                {customLocal && (
+                  <button
+                    onClick={() => { setEditValue(""); }}
+                    className="px-3 py-1.5 rounded-md border border-border text-xs hover:bg-white flex items-center gap-1"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> رجوع للافتراضي
+                  </button>
+                )}
+                <button onClick={() => setEditOpen(false)} className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-white">إلغاء</button>
+              </div>
+            </div>
+          )}
+
           <button onClick={() => setShowFaq(true)} className="mt-3 text-xs text-primary hover:underline">
             تعرف على كيفية فحص الإيصالات الرقمية ←
           </button>
           <p className="mt-2 text-[11px] text-muted-foreground/60 leading-5">
-            العنوان المختصر مثل <span className="font-english">spec@entix.io</span> يحتاج ربط Mail Routing، والعنوان الحالي أعلاه جاهز لكل شركة.
+            أي إيميل يوصل لهذا العنوان يدخل <Link to="/app/inbox" className="text-primary hover:underline">صندوق الوارد</Link> تلقائيًا مع مرفقاته ويقرأه الذكاء الاصطناعي.
           </p>
         </CardContent>
       </Card>
