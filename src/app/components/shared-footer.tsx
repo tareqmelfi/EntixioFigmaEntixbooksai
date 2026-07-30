@@ -220,7 +220,7 @@ export function SharedFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-[#64748B] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+            <p className="text-[#94A3B8] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
               &copy; 2026 ENTIX.IO. Owned by شركة سبيك بروز للاستثمار · CR 3400010090. Operated and powered by ENSIDEX LLC.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
@@ -228,7 +228,7 @@ export function SharedFooter() {
                 <Link 
                   key={link.label}
                   to={link.href} 
-                  className="text-[#64748B] hover:text-[#94A3B8] transition-colors cursor-pointer" 
+                  className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer" 
                   style={{ fontSize: "13px" }}
                 >
                     {t(link.label, link.labelEn)}

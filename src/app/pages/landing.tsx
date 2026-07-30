@@ -205,7 +205,7 @@ export function Landing() {
                   <TrendingUp className="w-5 h-5 text-[#22C55E]" />
                 </div>
                 <div>
-                  <div className="text-[#22C55E]" style={{ fontSize: "13px", fontWeight: 600 }}>+23.5%</div>
+                  <div className="text-[#15803D]" style={{ fontSize: "13px", fontWeight: 600 }}>+23.5%</div>
                   <div className="text-muted-foreground" style={{ fontSize: "11px" }}>{t("نمو الإيرادات", "Revenue growth")}</div>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export function Landing() {
       <section id="sync" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block bg-[#F0FDF4] text-[#22C55E] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("بدون إنترنت", "Offline")}</span>
+            <span className="inline-block bg-[#F0FDF4] text-[#15803D] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("بدون إنترنت", "Offline")}</span>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("يعمل بدون إنترنت", "Works without internet")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.8 }}>
               {t(
@@ -347,7 +347,7 @@ export function Landing() {
       <section id="pricing" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block bg-[#FFF7ED] text-[#F59E0B] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأسعار", "Pricing")}</span>
+            <span className="inline-block bg-[#FFF7ED] text-[#B45309] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأسعار", "Pricing")}</span>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("خطط أسعار مرنة", "Flexible pricing plans")}</h2>
             <p className="text-muted-foreground" style={{ fontSize: "16px" }}>{t("اختر الخطة المناسبة لحجم أعمالك — يمكنك الترقية في أي وقت", "Choose the plan that fits your business size. You can upgrade at any time.")}</p>
           </div>
