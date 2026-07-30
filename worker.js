@@ -1,32 +1,96 @@
 /**
- * entix-books-web · Cloudflare Worker front door (PLT-01/03)
- * - /api/*, /me, /orgs*  → proxied to api.entix.io (same-origin convenience
- *   that Netlify's _redirects used to provide; CF blocks external rewrites,
- *   so the Worker does it properly with cookies + headers intact)
- * - everything else      → static assets (SPA fallback via not_found_handling)
+ * entix-books-web · Cloudflare Worker front door (PLT-01/03 · SEC-01/04 · REND-07)
+ *
+ * - /api/*, /me, /orgs*  → proxied to api.entix.io (same-origin convenience)
+ * - static assets        → ASSETS binding (immutable, content-hashed)
+ * - known SPA/marketing routes → index.html fallback
+ * - anything else        → honest 404 (REND-07 · no fake-200)
+ * - every response       → security headers (SEC-01)
+ * - *.map                → blocked (SEC-04 · no public sourcemaps)
  */
 const API_ORIGIN = 'https://api.entix.io'
 
-function isApiPath(pathname) {
-  return (
-    pathname.startsWith('/api/') ||
-    pathname === '/me' ||
-    pathname === '/orgs' ||
-    pathname.startsWith('/orgs/')
-  )
+const API_PATHS = (p) =>
+  p.startsWith('/api/') || p === '/me' || p === '/orgs' || p.startsWith('/orgs/')
+
+// SPA shell prefixes (app + auth + portal + print) and public marketing routes.
+// Must stay in sync with src/app/routes.tsx public paths.
+const SHELL_PREFIXES = ['/app', '/portal', '/print']
+const MARKETING_ROUTES = new Set([
+  '/', '/login', '/register', '/forgot-password', '/reset-password',
+  '/features', '/integration', '/pricing', '/privacy', '/terms', '/blog',
+  '/help', '/docs', '/videos', '/about', '/team', '/careers', '/contact',
+  '/partners', '/changelog', '/roadmap', '/case-studies', '/glossary',
+  '/refund', '/sla',
+])
+const MARKETING_PREFIXES = ['/solutions/', '/marketplace/']
+
+const SECURITY_HEADERS = {
+  'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
+  'x-frame-options': 'SAMEORIGIN',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  'content-security-policy': [
+    "default-src 'self'",
+    // GA4 inline bootstrap + gtag.js · react inline styles
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://api.entix.io https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://fonts.googleapis.com https://fonts.gstatic.com",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '),
+}
+
+function withSecurityHeaders(response) {
+  const res = new Response(response.body, response)
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v)
+  return res
+}
+
+function isShellOrMarketing(pathname) {
+  if (MARKETING_ROUTES.has(pathname)) return true
+  if (SHELL_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return true
+  if (MARKETING_PREFIXES.some((p) => pathname.startsWith(p))) return true
+  return false
+}
+
+function notFound() {
+  return new Response('Not found', {
+    status: 404,
+    headers: { 'content-type': 'text/plain; charset=utf-8' },
+  })
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    if (isApiPath(url.pathname)) {
-      const target = new URL(url.pathname + url.search, API_ORIGIN)
-      // Pass the request through untouched (method, body, cookies, content-type)
-      return fetch(new Request(target.toString(), request), {
-        // api.entix.io is itself behind Cloudflare — keep the edge hot
-        cf: { cacheEverything: false },
-      })
+    const pathname = url.pathname
+
+    // API proxy (cookies/headers/body pass through untouched)
+    if (API_PATHS(pathname)) {
+      const target = new URL(pathname + url.search, API_ORIGIN)
+      return fetch(new Request(target.toString(), request))
     }
-    return env.ASSETS.fetch(request)
+
+    // SEC-04 · never serve sourcemaps publicly
+    if (pathname.endsWith('.map')) return withSecurityHeaders(notFound())
+
+    // Real static asset? (has a file extension) → ASSETS or honest 404
+    const hasExtension = /\.[a-zA-Z0-9]{1,10}$/.test(pathname)
+    if (hasExtension) {
+      const res = await env.ASSETS.fetch(request)
+      if (res.status === 404) return withSecurityHeaders(notFound())
+      return withSecurityHeaders(res)
+    }
+
+    // Extensionless path: SPA/marketing shell, else honest 404 (REND-07)
+    if (!isShellOrMarketing(pathname)) return withSecurityHeaders(notFound())
+
+    const res = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
+    return withSecurityHeaders(res)
   },
 }
