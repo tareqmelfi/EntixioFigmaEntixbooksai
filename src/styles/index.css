@@ -32,3 +32,10 @@ html[dir="ltr"] body {
   direction: ltr;
   unicode-bidi: isolate;
 }
+
+/* Block-level variant: theme.css forces .font-english → inline-block (needed for
+   numbers inside Arabic text) — stacked number rows (contact DocList, lists)
+   need real block flow instead. */
+.font-english-block {
+  display: block;
+}

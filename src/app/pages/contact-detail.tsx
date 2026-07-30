@@ -546,8 +546,8 @@ function DocList({ rows }: { rows: Array<{ id: string; number: string; date: str
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Hash className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
             <div className="min-w-0 flex-1">
-              <div dir="ltr" className="text-sm font-english font-semibold text-foreground group-hover:text-primary truncate">{r.number}</div>
-              <div dir="ltr" className="text-xs text-muted-foreground/60 font-english">{r.date.slice(0, 10)}</div>
+              <div dir="ltr" className="text-sm font-english font-english-block font-semibold text-foreground group-hover:text-primary truncate">{r.number}</div>
+              <div dir="ltr" className="text-xs text-muted-foreground/60 font-english font-english-block">{r.date.slice(0, 10)}</div>
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end min-w-[140px] md:min-w-[180px]">
