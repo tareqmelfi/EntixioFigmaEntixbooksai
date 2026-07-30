@@ -407,10 +407,31 @@ function money(value: any, currency = "SAR") {
 }
 
 function extractionTotals(data: any) {
-  const totalFromLines = Array.isArray(data?.lines)
-    ? data.lines.reduce((sum: number, line: any) => sum + (num(line?.lineTotal) || 0), 0)
-    : 0;
-  let total = num(data?.totals?.total ?? data?.total) ?? (totalFromLines > 0 ? totalFromLines : null);
+  // When lines exist, header derives from them deterministically — never trust the
+  // extractor's header (it once treated an inclusive line as net and added VAT twice).
+  if (Array.isArray(data?.lines) && data.lines.length > 0) {
+    let net = 0, vat = 0, gross = 0, used = 0;
+    for (const line of data.lines) {
+      const qty = num(line?.quantity) || 1;
+      const price = num(line?.unitPrice);
+      if (price == null) continue;
+      const rate = num(line?.taxRate) || 0;
+      const base = Math.max(0, qty * price - (num(line?.discountAmount ?? line?.discount) || 0));
+      if (line?.taxInclusive) {
+        const g = num(line?.lineTotal) ?? base;
+        const n = rate > 0 ? g / (1 + rate) : g;
+        net += n; vat += g - n; gross += g;
+      } else {
+        net += base; vat += base * rate; gross += base * (1 + rate);
+      }
+      used++;
+    }
+    if (used > 0) {
+      const r2 = (n: number) => Math.round(n * 100) / 100;
+      return { subtotal: r2(net), tax: r2(vat), total: r2(gross) };
+    }
+  }
+  let total = num(data?.totals?.total ?? data?.total);
   let tax = num(data?.totals?.tax);
   let subtotal = num(data?.totals?.subtotal);
   if (subtotal == null && total != null && tax != null) subtotal = Math.max(0, total - tax);
