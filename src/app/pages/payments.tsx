@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
+import { voucherEmail } from "../lib/email-templates";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
@@ -38,6 +39,38 @@ export function Payments() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [emailDialog, setEmailDialog] = useState(false);
   const [emailForm, setEmailForm] = useState({ to: "", subject: "", message: "" });
+
+  // ── إرسال السند — prefill from template (client email + first-name greeting) ──
+  const orgNameRef = useRef<string>("");
+  const openEmailDialog = async (v: any) => {
+    const contact = (v.contact as any) || null;
+    let email = contact?.email || "";
+    let contactName: string | null = contact?.displayName || null;
+    if (!email && v.contactId) {
+      const c = await api.contacts.get(v.contactId).catch(() => null);
+      email = (c as any)?.email || "";
+      contactName = contactName || (c as any)?.displayName || null;
+    }
+    if (!orgNameRef.current) {
+      try {
+        const orgs = await api.orgs.list();
+        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
+        orgNameRef.current = ((stored ? orgs.find((o) => o.id === stored) : null) || orgs[0])?.name || "";
+      } catch { orgNameRef.current = ""; }
+    }
+    const tpl = voucherEmail({
+      type: v.type || "RECEIPT",
+      number: v.number,
+      date: String(v.date).slice(0, 10),
+      amount: Number(v.amount) || 0,
+      currency: v.currency || "SAR",
+      contactName,
+      orgName: orgNameRef.current,
+    });
+    setEmailForm({ to: email, subject: tpl.subject, message: tpl.message });
+    setEmailDialog(true);
+  };
+
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const [form, setForm] = useState<any>({
@@ -303,7 +336,7 @@ export function Payments() {
               <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-white">
                 <Printer className="h-4 w-4 me-1" /> طباعة / PDF
               </Button>
-              <Button onClick={() => { setEmailForm({ to: (selected.contact as any)?.email || "", subject: "", message: "" }); setEmailDialog(true); }} variant="outline" className="border-border">
+              <Button onClick={() => { openEmailDialog(selected); }} variant="outline" className="border-border">
                 <Mail className="h-4 w-4 me-1" /> إرسال للمورد
               </Button>
               {pendingDelete === selected.id ? (

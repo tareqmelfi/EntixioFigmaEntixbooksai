@@ -359,7 +359,7 @@ export function InvoicePrintView() {
                     background: "transparent",
                   }}>
                     <img src={stampUrl} alt={isKsa ? "ختم" : "Seal"} style={{
-                      maxHeight: 155, maxWidth: 155,
+                      maxHeight: 180, maxWidth: 180,
                       objectFit: "contain",
                       opacity: 0.85,
                       mixBlendMode: "multiply",

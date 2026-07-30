@@ -44,7 +44,7 @@ export function Settings() {
   const [form, setForm] = useState({
     name: "", legalName: "", country: "SA", baseCurrency: "SAR",
     vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
-    logoUrl: "", stampUrl: "",
+    logoUrl: "", stampUrl: "", signatureUrl: "",
     email: "", phone: "", website: "",
     industry: "",
     defaultInvoiceLanguage: "ar" as "ar" | "en",
@@ -91,6 +91,7 @@ export function Settings() {
         zatcaEnabled: active.zatcaEnabled,
         logoUrl: (active as any).logoUrl || "",
         stampUrl: (active as any).stampUrl || "",
+        signatureUrl: (active as any).signatureUrl || ((active as any).brandingSettings || {}).signatureUrl || "",
         email: (active as any).email || "",
         phone: (active as any).phone || "",
         website: (active as any).website || "",
@@ -125,6 +126,7 @@ export function Settings() {
         zatcaEnabled: form.zatcaEnabled,
         logoUrl: form.logoUrl || null,
         stampUrl: form.stampUrl || null,
+        signatureUrl: form.signatureUrl || null,
         email: form.email || null,
         phone: form.phone || null,
         website: form.website || null,
@@ -319,6 +321,31 @@ export function Settings() {
                     ) : (
                       <label htmlFor="company-stamp" className="cursor-pointer block text-center py-4">
                         <div className="text-sm text-primary font-medium">رفع الختم</div>
+                        <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs mb-2 block">توقيع صاحب الصلاحية (يظهر كتوقيع إلكتروني على السندات)</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-3">
+                    <input type="file" id="company-signature" accept="image/*" hidden
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0]; if (!f) return;
+                        if (f.size > 2 * 1024 * 1024) { setError("الحد الأقصى 2 ميجا"); return; }
+                        const r = new FileReader(); r.onload = () => setForm(p => ({ ...p, signatureUrl: String(r.result || "") })); r.readAsDataURL(f);
+                      }} />
+                    {form.signatureUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img src={form.signatureUrl} alt="signature" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="company-signature" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, signatureUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label htmlFor="company-signature" className="cursor-pointer block text-center py-4">
+                        <div className="text-sm text-primary font-medium">رفع التوقيع</div>
                         <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
                       </label>
                     )}

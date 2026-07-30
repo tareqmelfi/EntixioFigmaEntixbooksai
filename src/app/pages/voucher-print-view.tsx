@@ -10,6 +10,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Voucher, Org, Contact } from "../lib/api";
+import qrcode from "qrcode-generator";
+import { authStore } from "../components/auth-store";
 import { Loader2, Printer, X } from "lucide-react";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
@@ -35,6 +37,8 @@ export function VoucherPrintView() {
   const [voucher, setVoucher] = useState<Voucher | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
   const [org, setOrg] = useState<Org | null>(null);
+  const [linkedInvoiceNumber, setLinkedInvoiceNumber] = useState<string | null>(null);
+  const [linkedBillNumber, setLinkedBillNumber] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -46,6 +50,15 @@ export function VoucherPrintView() {
         if (row.contactId) {
           const c = await api.contacts.get(row.contactId).catch(() => null);
           setContact(c);
+        }
+        if (row.invoiceId) {
+          const inv = await api.invoices.get(row.invoiceId).catch(() => null);
+          if (inv?.invoiceNumber) setLinkedInvoiceNumber(inv.invoiceNumber);
+        }
+        if (row.billId) {
+          const b = await api.bills.get(row.billId).catch(() => null);
+          const num = (b as any)?.billNumber || (b as any)?.number;
+          if (num) setLinkedBillNumber(num);
         }
 
         const voucherOrgId = (row as any).orgId as string | undefined;
@@ -121,6 +134,36 @@ export function VoucherPrintView() {
   const stampUrl = (org as any).stampUrl;
 
   const amountInWords = `${amount.toFixed(2)} ${currency === "SAR" ? "ريال سعودي" : currency} فقط لا غير`;
+
+  // ── Electronic voucher: QR verification + issuer e-signature ──
+  const tlvBase64 = (fields: Array<[number, string]>): string => {
+    const enc = new TextEncoder();
+    const bytes: number[] = [];
+    for (const [tag, value] of fields) {
+      const v = enc.encode(value);
+      bytes.push(tag, v.length, ...Array.from(v));
+    }
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  };
+  const sellerVat = (org as any).vatNumber || "";
+  const qrPayload = tlvBase64([
+    [1, org.name || ""],
+    [2, sellerVat || "-"],
+    [3, (() => { try { return new Date(voucher.date as any).toISOString(); } catch { return new Date().toISOString(); } })()],
+    [4, amount.toFixed(2)],
+    [5, voucher.number],
+  ]);
+  const qrSvg = (() => {
+    const qr = qrcode(0, "M");
+    qr.addData(qrPayload);
+    qr.make();
+    return qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
+  })();
+
+  const signatureUrl = (org as any).signatureUrl || ((org as any).brandingSettings || {}).signatureUrl || null;
+  const issuerName = (voucher as any).createdByName || authStore.getState().user?.name || org.name;
 
   return (
     <>
@@ -202,8 +245,8 @@ export function VoucherPrintView() {
               <div><span style={{ color: "#6B7280" }}>{partyLabelAr}:</span> <strong>{contact?.displayName || voucher.contact?.displayName || "—"}</strong></div>
               <div><span style={{ color: "#6B7280" }}>طريقة الدفع:</span> <strong>{METHOD_LABELS[voucher.paymentMethod]}</strong></div>
               {voucher.reference && <div><span style={{ color: "#6B7280" }}>المرجع:</span> <strong className="num">{voucher.reference}</strong></div>}
-              {voucher.invoiceId && <div><span style={{ color: "#6B7280" }}>الفاتورة المرتبطة:</span> <strong className="num">{voucher.invoiceId}</strong></div>}
-              {voucher.billId && <div><span style={{ color: "#6B7280" }}>سند المشتريات المرتبط:</span> <strong className="num">{voucher.billId}</strong></div>}
+              {voucher.invoiceId && <div><span style={{ color: "#6B7280" }}>الفاتورة المرتبطة:</span> <strong className="num">{linkedInvoiceNumber || voucher.invoiceId}</strong></div>}
+              {voucher.billId && <div><span style={{ color: "#6B7280" }}>سند المشتريات المرتبط:</span> <strong className="num">{linkedBillNumber || voucher.billId}</strong></div>}
             </div>
           </div>
 
@@ -219,13 +262,24 @@ export function VoucherPrintView() {
             </div>
           )}
 
-          <div style={{ marginTop: 48, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "end", gap: 20 }}>
-            <div style={{ borderTop: "1px solid #9CA3AF", paddingTop: 8, textAlign: "center", color: "#6B7280", fontSize: 12 }}>
-              توقيع المحاسب
+          {/* الإصدار الإلكتروني — توقيع صاحب الصلاحية (مرفوع من الإعدادات مثل الختم) أو الاسم */}
+          <div style={{ marginTop: 28, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            {signatureUrl ? (
+              <img src={signatureUrl} alt="توقيع" style={{ maxHeight: 56, maxWidth: 180, objectFit: "contain" }} />
+            ) : (
+              <span style={{ fontFamily: "'Segoe Script','Traditional Arabic',cursive", fontSize: 20, color: "#0B1B49" }}>{issuerName}</span>
+            )}
+            <span style={{ color: "#6B7280", fontSize: 11 }}>· أُصدر إلكترونيًا</span>
+          </div>
+
+          <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "end", gap: 20 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
+              <div style={{ color: "#9CA3AF", fontSize: 10, marginTop: 4 }}>رمز التحقق الإلكتروني</div>
             </div>
             <div style={{ textAlign: "center" }}>
               {stampUrl ? (
-                <img src={stampUrl} alt="stamp" style={{ maxHeight: 140, maxWidth: 140, objectFit: "contain", opacity: 0.88, mixBlendMode: "multiply" }} />
+                <img src={stampUrl} alt="stamp" style={{ maxHeight: 180, maxWidth: 180, objectFit: "contain", opacity: 0.88, mixBlendMode: "multiply" }} />
               ) : (
                 <div style={{ color: "#9CA3AF", fontSize: 11 }}>ختم الشركة</div>
               )}
