@@ -149,6 +149,9 @@ export const router = createBrowserRouter([
     errorElement: <ErrorBoundary />,
     children: [
       { index: true, element: lazyElement(() => import("./pages/dashboard"), "Dashboard"), errorElement: <ErrorBoundary /> },
+      // Bookmarkable canonical path · same page as the index (also fixes the
+      // unauthenticated-redirect smoke: /app/dashboard now hits AuthGuard)
+      { path: "dashboard", element: lazyElement(() => import("./pages/dashboard"), "Dashboard"), errorElement: <ErrorBoundary /> },
       { path: "ai", element: lazyElement(() => import("./pages/ai"), "AI"), errorElement: <ErrorBoundary /> },
       // Sales
       { path: "sales", element: lazyElement(() => import("./pages/sales-dashboard"), "SalesDashboard"), errorElement: <ErrorBoundary /> },
