@@ -8,3 +8,7 @@ build
 qa-reports/
 **/99-Archive/
 .DS_Store
+
+# local env files must never be committed or leak into builds
+.env.local
+.env.*.local
