@@ -315,10 +315,10 @@ export function ContactDetail() {
             <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5" /> الفواتير
             </div>
-            <div className="font-english font-bold text-foreground" style={{ fontSize: "1.15rem" }}>
-              {totals.invoices.count}
+            <div className="font-english-block font-bold text-foreground" style={{ fontSize: "1.15rem" }}>
+              {totals.invoices.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-muted-foreground/70 font-normal" style={{ fontSize: "0.7rem" }}>{cur}</span>
             </div>
-            <div className="text-xs text-muted-foreground/60 font-english mt-0.5">{totals.invoices.total.toLocaleString()} {cur}</div>
+            <div className="text-xs text-muted-foreground/60 mt-0.5"><span className="font-english font-semibold">{totals.invoices.count}</span> فاتورة</div>
           </CardContent>
         </Card>
         <Card className="border-border">
@@ -326,10 +326,10 @@ export function ContactDetail() {
             <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
               <ShoppingBag className="h-3.5 w-3.5" /> فواتير الشراء
             </div>
-            <div className="font-english font-bold text-foreground" style={{ fontSize: "1.15rem" }}>
-              {totals.bills.count}
+            <div className="font-english-block font-bold text-foreground" style={{ fontSize: "1.15rem" }}>
+              {totals.bills.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-muted-foreground/70 font-normal" style={{ fontSize: "0.7rem" }}>{cur}</span>
             </div>
-            <div className="text-xs text-muted-foreground/60 font-english mt-0.5">{totals.bills.total.toLocaleString()} {cur}</div>
+            <div className="text-xs text-muted-foreground/60 mt-0.5"><span className="font-english font-semibold">{totals.bills.count}</span> فاتورة شراء</div>
           </CardContent>
         </Card>
         <Card className="border-border">
@@ -337,10 +337,10 @@ export function ContactDetail() {
             <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
               <Receipt className="h-3.5 w-3.5" /> سندات القبض
             </div>
-            <div className="font-english font-bold text-green-700" style={{ fontSize: "1.15rem" }}>
-              {totals.receipts.count}
+            <div className="font-english-block font-bold text-green-700" style={{ fontSize: "1.15rem" }}>
+              {totals.receipts.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-green-700/60 font-normal" style={{ fontSize: "0.7rem" }}>{cur}</span>
             </div>
-            <div className="text-xs text-muted-foreground/60 font-english mt-0.5">{totals.receipts.total.toLocaleString()} {cur}</div>
+            <div className="text-xs text-muted-foreground/60 mt-0.5"><span className="font-english font-semibold">{totals.receipts.count}</span> سند قبض</div>
           </CardContent>
         </Card>
         <Card className={`border ${totals.balance >= 0 ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30"}`}>
@@ -348,11 +348,14 @@ export function ContactDetail() {
             <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
               <Banknote className="h-3.5 w-3.5" /> الرصيد الصافي
             </div>
-            <div className={`font-english font-bold ${totals.balance >= 0 ? "text-green-700" : "text-amber-700"}`} style={{ fontSize: "1.15rem" }}>
+            <div className={`font-english-block font-bold ${totals.balance >= 0 ? "text-green-700" : "text-amber-700"}`} style={{ fontSize: "1.15rem" }}>
               {fmt(Math.abs(totals.balance))}
             </div>
             <div className="text-xs mt-0.5">
               {totals.balance > 0 ? <span className="text-green-700">يستحق لي</span> : totals.balance < 0 ? <span className="text-amber-700">أستحق له</span> : <span className="text-muted-foreground/60">متعادل</span>}
+            </div>
+            <div className="text-[11px] text-muted-foreground/70 mt-1.5 pt-1.5 border-t border-border/40">
+              إجمالي العمليات <span className="font-english font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(undefined, { maximumFractionDigits: 2 })} {cur}</span>
             </div>
           </CardContent>
         </Card>
