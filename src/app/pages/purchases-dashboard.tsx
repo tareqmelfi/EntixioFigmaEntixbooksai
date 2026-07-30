@@ -40,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
-const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#7DD3E4", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
 
 export function PurchasesDashboard() {
   const navigate = useNavigate();

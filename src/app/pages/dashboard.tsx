@@ -23,7 +23,7 @@ import {
   Clock,
   Banknote,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import {
   BarChart, Bar, LineChart, Line,
@@ -34,15 +34,16 @@ import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 
-const DONUT_COLORS = ["#1276E3", "#179FC5", "#7DD3E4", "#0B1B49", "#D4A76A", "#10B981", "#F59E0B", "#EF4444"];
+// Unified palette (user directive): navy/blue family only — no rainbow scatter
+const DONUT_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
 
 // UX-205 · Locked chart-styles per Figma spec ("Data is the Hero")
 const chartColors = {
   navy: "#0B1B49",                       // Entix logo deep navy · primary positive (UX-213 · full saturation)
   navySoft: "#0B1B49",                   // same · NO dusty version (matches Figma · solid bars)
   blue: "#1276E3",                       // brand interaction
-  teal: "#05B6FA",                       // Entix logo light cyan (UX-213 · brand match)
-  tealSoft: "#7DD3FC",                   // softer cyan · for paired bars
+  teal: "#1276E3",                       // unified: brand blue (color-unification pass)
+  tealSoft: "#93C5FD",                   // light blue · paired secondary series
   green: "#10B981",                      // success
   red: "#E84B4B",                        // Figma red · slightly muted (UX-213 · brighter than dusty)
   redSoft: "#FCA5A5",                    // lightest rose
@@ -64,7 +65,7 @@ function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; pa
   const paidPct = (paid / total) * 100;
   const isOwed = net > 0;
   return (
-    <Card className="border-border hover:border-[#D1D5DB] transition">
+    <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => (window.location.href = "/app/taxes")} title="فتح الضرائب">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <span className="text-xs text-muted-foreground">ضريبة القيمة المضافة</span>
@@ -82,7 +83,7 @@ function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; pa
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <span className="text-[11px] text-muted-foreground">صافي المستحق</span>
           <div className="flex items-center gap-2">
-            <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#F59E0B" : "#22C55E" }}>{Math.abs(net).toLocaleString()} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
+            <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#E84B4B" : "#10B981" }}>{Math.abs(net).toLocaleString()} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
             <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#166534]"}`}>{isOwed ? "علينا" : "لصالحنا ✓"}</span>
           </div>
         </div>
@@ -120,6 +121,7 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [seedArmed, setSeedArmed] = useState(false);
   const { toasts, push, dismiss } = useToasts();
+  const navigate = useNavigate();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -246,7 +248,7 @@ export function Dashboard() {
       {/* KPI Cards · Row 1 (UX-212 · revenue · net income · expenses · VAT · smaller numbers + distinct colors) */}
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
         {/* Revenue · rightmost · navy */}
-        <Card className="border-border hover:border-[#D1D5DB] transition">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title="فتح فواتير المبيعات">
           <CardContent className="p-3.5">
             <div className="flex items-start justify-between mb-2">
               <span className="text-xs text-muted-foreground">إجمالي الإيرادات</span>
@@ -265,7 +267,7 @@ export function Dashboard() {
           const net = k.revenue - (k.expenses + k.purchases);
           const positive = net >= 0;
           return (
-            <Card className="border-border hover:border-[#D1D5DB] transition">
+            <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
               <CardContent className="p-3.5">
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-xs text-muted-foreground">صافي الدخل</span>
@@ -285,8 +287,8 @@ export function Dashboard() {
           );
         })()}
 
-        {/* Total Expenses · teal · clearly different */}
-        <Card className="border-border hover:border-[#D1D5DB] transition">
+        {/* Total Expenses · blue (unified) */}
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/expenses")} title="فتح المصروفات">
           <CardContent className="p-3.5">
             <div className="flex items-start justify-between mb-2">
               <span className="text-xs text-muted-foreground">إجمالي المصروفات</span>
@@ -307,7 +309,7 @@ export function Dashboard() {
       {/* Charts grid 2x2 · Figma spec UX-205 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* P&L · vertical bars · navy + red */}
-        <Card className="border-border">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح تقرير الأرباح والخسائر">
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>الأرباح والخسائر</CardTitle>
             <CardDescription className="text-muted-foreground text-xs">ملخص الأرباح والخسائر لآخر 6 أشهر</CardDescription>
@@ -332,8 +334,8 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Breakdown · horizontal bars · navySoft */}
-        <Card className="border-border">
+        {/* Revenue Breakdown · horizontal bars */}
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>تفصيل الإيرادات</CardTitle>
             <CardDescription className="text-muted-foreground text-xs">توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة</CardDescription>
@@ -357,8 +359,8 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue vs Expenses · grouped bars · navySoft + tealSoft */}
-        <Card className="border-border">
+        {/* Revenue vs Expenses · grouped bars */}
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>الإيرادات مقابل المصروفات</CardTitle>
             <CardDescription className="text-muted-foreground text-xs">مقارنة الإيرادات بالمصروفات لآخر 6 أشهر</CardDescription>
@@ -383,8 +385,8 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Cash Flow · line chart · navy + teal */}
-        <Card className="border-border">
+        {/* Cash Flow · line chart */}
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/bank-accounts")} title="فتح الحسابات البنكية">
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>التدفق النقدي</CardTitle>
             <CardDescription className="text-muted-foreground text-xs">تحليل التدفقات النقدية الداخلة والخارجة</CardDescription>
@@ -420,19 +422,19 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-100">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title="عرض فواتير المبيعات">
               <div>
-                <div className="text-xs text-green-700">يستحقون لي (AR)</div>
-                <div className="font-english font-bold text-green-700 mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsReceivable)}</div>
+                <div className="text-xs text-primary/80">يستحقون لي (AR)</div>
+                <div className="font-english font-bold text-primary mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsReceivable)}</div>
               </div>
-              <ArrowUpRight className="h-5 w-5 text-green-600" />
+              <ArrowUpRight className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-red-50/70 border border-red-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/purchases/bills")} title="عرض فواتير المشتريات">
               <div>
-                <div className="text-xs text-amber-700">أستحق عليهم (AP)</div>
-                <div className="font-english font-bold text-amber-700 mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsPayable)}</div>
+                <div className="text-xs text-red-700/80">أستحق عليهم (AP)</div>
+                <div className="font-english font-bold text-red-700 mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsPayable)}</div>
               </div>
-              <ArrowDownRight className="h-5 w-5 text-amber-600" />
+              <ArrowDownRight className="h-5 w-5 text-red-600" />
             </div>
             <div className="pt-2 border-t border-border flex justify-between items-center">
               <span className="text-xs text-muted-foreground">صافي الذمم</span>
@@ -444,7 +446,7 @@ export function Dashboard() {
         </Card>
 
         {/* Period Compare · paired bars (UX-214) */}
-        <Card className="border-border">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
               <TrendingUp className="h-4 w-4" /> هذا الشهر vs الشهر الماضي
