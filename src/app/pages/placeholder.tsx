@@ -14,6 +14,7 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
   return (
     <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
       <SharedNavbar />
+      <main>
       
       <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center">
@@ -36,6 +37,8 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
           </button>
         </div>
       </div>
+      </main>
+
 
       <SharedFooter />
     </div>

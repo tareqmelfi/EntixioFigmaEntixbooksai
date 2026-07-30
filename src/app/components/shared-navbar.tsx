@@ -182,7 +182,7 @@ export function SharedNavbar() {
           </button>
           <button
             onClick={() => navigate("/register")}
-            className="bg-[#05B6FA] hover:bg-[#0498D4] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#05B6FA]/25 cursor-pointer"
+            className="bg-[#0372B4] hover:bg-[#02609E] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#0372B4]/25 cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
             {t("ابدأ مجاناً", "Start free")}
@@ -190,8 +190,10 @@ export function SharedNavbar() {
         </div>
 
         {/* Mobile hamburger */}
-        <button 
-          onClick={() => setMobileNav(!mobileNav)} 
+        <button
+          onClick={() => setMobileNav(!mobileNav)}
+          aria-label={mobileNav ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
+          aria-expanded={mobileNav}
           className="lg:hidden p-2 text-foreground hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
         >
           {mobileNav ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -260,7 +262,7 @@ export function SharedNavbar() {
               </button>
               <button
                 onClick={() => handleNavigate("/register")}
-                className="w-full bg-[#05B6FA] text-white py-3 rounded-xl cursor-pointer hover:bg-[#0498D4] transition-colors"
+                className="w-full bg-[#0372B4] text-white py-3 rounded-xl cursor-pointer hover:bg-[#02609E] transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {t("ابدأ مجاناً", "Start free")}
@@ -276,7 +278,7 @@ export function SharedNavbar() {
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
         <button
           onClick={() => navigate("/register")}
-          className="w-full bg-[#05B6FA] text-white py-3 rounded-xl shadow-lg shadow-[#05B6FA]/20 hover:bg-[#0498D4] transition-colors cursor-pointer"
+          className="w-full bg-[#0372B4] text-white py-3 rounded-xl shadow-lg shadow-[#0372B4]/20 hover:bg-[#02609E] transition-colors cursor-pointer"
           style={{ fontSize: "15px", fontWeight: 600 }}
         >
           {t("ابدأ مجاناً", "Start free")}

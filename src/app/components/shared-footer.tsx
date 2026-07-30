@@ -108,7 +108,7 @@ export function SharedFooter() {
 
           {/* Product */}
           <div>
-            <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("المنتج", "Product")}</h4>
+            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("المنتج", "Product")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
@@ -126,7 +126,7 @@ export function SharedFooter() {
 
           {/* Solutions */}
           <div>
-            <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الحلول", "Solutions")}</h4>
+            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الحلول", "Solutions")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.solutions.map((link) => (
                 <li key={link.label}>
@@ -144,7 +144,7 @@ export function SharedFooter() {
 
           {/* Resources */}
           <div>
-            <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الموارد", "Resources")}</h4>
+            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الموارد", "Resources")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
@@ -162,7 +162,7 @@ export function SharedFooter() {
 
           {/* Company */}
           <div>
-            <h4 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الشركة", "Company")}</h4>
+            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الشركة", "Company")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
@@ -181,7 +181,7 @@ export function SharedFooter() {
 
         {/* Download apps section */}
         <div className="bg-white/5 rounded-2xl p-6 mb-12 border border-white/10">
-          <h4 className="text-white mb-4" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h4>
+          <h2 className="text-white mb-4" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h2>
           <div className="flex flex-wrap gap-3">
             {appStores.map((app) => (
               <button

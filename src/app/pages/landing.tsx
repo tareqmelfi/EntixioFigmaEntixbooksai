@@ -134,11 +134,12 @@ export function Landing() {
     <div className="min-h-screen bg-white" dir={language === "ar" ? "rtl" : "ltr"}>
       <SharedNavbar />
 
+      <main>
       {/* ─── Hero Section ─── */}
       <section className="pt-28 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
-            <div className="inline-flex items-center gap-2 bg-gradient-to-l from-[#EFF6FF] to-[#E0F2FE] text-primary px-4 py-2 rounded-full mb-6" style={{ fontSize: "13px", fontWeight: 600 }}>
+            <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-primary px-4 py-2 rounded-full mb-6" style={{ fontSize: "13px", fontWeight: 600 }}>
               <Zap className="w-4 h-4" />
               <span>{t("نظام محاسبة سحابي متكامل للسوق السعودي", "Cloud accounting for Saudi businesses")}</span>
             </div>
@@ -492,6 +493,7 @@ export function Landing() {
         </div>
       </section>
 
+      </main>
       {/* ─── Footer ─── */}
       <SharedFooter />
     </div>

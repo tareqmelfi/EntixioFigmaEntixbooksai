@@ -135,6 +135,7 @@ export function Terms() {
   return (
     <div className="min-h-screen bg-white" dir={isAr ? "rtl" : "ltr"} style={{ fontFamily: isAr ? "var(--entix-font-ar)" : "var(--entix-font-en)" }}>
       <SharedNavbar />
+      <main>
 
       <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -194,6 +195,8 @@ export function Terms() {
           </div>
         </div>
       </div>
+      </main>
+
 
       <SharedFooter />
     </div>

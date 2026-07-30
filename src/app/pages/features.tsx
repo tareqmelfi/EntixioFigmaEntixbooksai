@@ -297,6 +297,7 @@ export function Features() {
   return (
     <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
       <SharedNavbar />
+      <main>
 
       {/* Hero Section */}
       <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
@@ -464,6 +465,8 @@ export function Features() {
           </motion.div>
         </div>
       </section>
+      </main>
+
 
       <SharedFooter />
     </div>
