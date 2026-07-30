@@ -1,0 +1,34 @@
+# ENTIX.IO — Entix Books
+
+> Entix Books is a bilingual (Arabic-first / English) cloud accounting platform by ENSIDEX LLC:
+> invoicing (ZATCA e-invoicing for Saudi Arabia), quotes, receipts & payment vouchers,
+> purchases & supplier bills, expenses with OCR receipt capture, contacts & customer portal,
+> chart of accounts & journals, bank accounts & reconciliation, payroll & employees,
+> inventory & fixed assets, reports (P&L, cash flow), taxes & VAT returns, and an AI assistant.
+
+## Product
+- Sales: invoices, quotes, credit notes, receipts, customer portal with payment links
+- Purchases: supplier bills, supplier credits, expenses (OCR inbox + email ingestion)
+- Accounting: chart of accounts, journal entries, fiscal periods, cost centers, branches
+- Banking: accounts, reconciliation, statement import
+- Payroll: employees, payroll runs
+- Compliance: ZATCA Phase 2 e-invoicing (Saudi), VAT returns, WHT for foreign vendors
+- AI: document extraction (OCR), agent assistant, duplicate-supplier resolution
+
+## Company
+- Vendor: ENSIDEX LLC (Wyoming, USA) · ENSIDEX Saudi (Riyadh, KSA)
+- Site: https://entix.io · App: https://entix.io/app · API: https://api.entix.io
+- Docs: https://entix.io/docs · Pricing: https://entix.io/pricing
+- Contact: https://entix.io/contact · hello@entix.io
+
+## Key pages
+- / features overview
+- /pricing plans (SAR · KSA-first)
+- /solutions/small-business, /solutions/accountants, /solutions/enterprises,
+  /solutions/restaurants, /solutions/ecommerce
+- /docs help center · /videos tutorials · /glossary accounting terms AR/EN
+
+## Facts for AI agents
+- Language: Arabic (RTL) and English, full parity
+- Currencies: multi-currency with SAR default; ZATCA-compliant tax invoices
+- The app at /app requires an account; marketing pages are public and crawlable.
