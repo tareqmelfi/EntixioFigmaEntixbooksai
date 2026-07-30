@@ -13,6 +13,7 @@ import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Invoice, Org, Contact } from "../lib/api";
 import { Loader2, Printer, X } from "lucide-react";
 import qrcode from "qrcode-generator";
+import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 
 function safeNum(v: any, d = 0): number {
   const n = Number(v);
@@ -67,12 +68,32 @@ export function InvoicePrintView() {
   const noPrint = searchParams.get("noprint") === "1";
   // embed=1 → clean inline mirror (used by the app's preview pane)
   const embed = searchParams.get("embed") === "1";
+
+  // Downscale branding images for print — full-source data URLs stalled Chrome's
+  // print preview ("Saving…" until tab switch).
+  const [printImages, setPrintImages] = useState<{ logo: string; stamp: string } | null>(null);
   useEffect(() => {
-    if (!loading && invoice && org && !noPrint) {
-      const t = setTimeout(() => window.print(), 700);
-      return () => clearTimeout(t);
+    if (!org) return;
+    let cancelled = false;
+    (async () => {
+      const logoSrc = (org as any).printLogoUrl || (org as any).logoUrl || "";
+      const stampSrc = (org as any).stampUrl || "";
+      const [logo, stamp] = await Promise.all([
+        logoSrc ? downscaleDataUrl(logoSrc) : Promise.resolve(""),
+        stampSrc ? downscaleDataUrl(stampSrc) : Promise.resolve(""),
+      ]);
+      if (!cancelled) setPrintImages({ logo, stamp });
+    })();
+    return () => { cancelled = true; };
+  }, [org]);
+
+  useEffect(() => {
+    if (!loading && invoice && org && printImages && !noPrint) {
+      let cancelled = false;
+      waitForPrintReady().then(() => { if (!cancelled) window.print(); });
+      return () => { cancelled = true; };
     }
-  }, [loading, invoice, org]);
+  }, [loading, invoice, org, printImages]);
 
   if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (error || !invoice || !org) {
@@ -154,8 +175,8 @@ export function InvoicePrintView() {
   ].filter(Boolean).join(" · ") : "";
 
   // Print logo > avatar logo · so business has a clean PDF logo
-  const printLogo = (org as any).printLogoUrl || (org as any).logoUrl;
-  const stampUrl = (org as any).stampUrl;
+  const printLogo = printImages?.logo || "";
+  const stampUrl = printImages?.stamp || "";
   // Show QR for all countries (not just KSA · UX-186)
   const showQr = true;
 

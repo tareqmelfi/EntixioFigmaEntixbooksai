@@ -12,6 +12,7 @@ import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Voucher, Org, Contact } from "../lib/api";
 import qrcode from "qrcode-generator";
 import { authStore } from "../components/auth-store";
+import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
@@ -87,12 +88,33 @@ export function VoucherPrintView() {
   const noPrint = searchParams.get("noprint") === "1";
   const embed = searchParams.get("embed") === "1";
 
+  // Downscale branding images for print — Chrome's preview rasterizes full-source
+  // data URLs and stalled on "Saving…" until the user switched tabs.
+  const [printImages, setPrintImages] = useState<{ logo: string; stamp: string; signature: string } | null>(null);
   useEffect(() => {
-    if (!loading && voucher && org && !noPrint) {
-      const t = setTimeout(() => window.print(), 700);
-      return () => clearTimeout(t);
+    if (!org) return;
+    let cancelled = false;
+    (async () => {
+      const logoSrc = (org as any).printLogoUrl || (org as any).logoUrl || "";
+      const stampSrc = (org as any).stampUrl || "";
+      const sigSrc = (org as any).signatureUrl || ((org as any).brandingSettings || {}).signatureUrl || "";
+      const [logo, stamp, signature] = await Promise.all([
+        logoSrc ? downscaleDataUrl(logoSrc) : Promise.resolve(""),
+        stampSrc ? downscaleDataUrl(stampSrc) : Promise.resolve(""),
+        sigSrc ? downscaleDataUrl(sigSrc) : Promise.resolve(""),
+      ]);
+      if (!cancelled) setPrintImages({ logo, stamp, signature });
+    })();
+    return () => { cancelled = true; };
+  }, [org]);
+
+  useEffect(() => {
+    if (!loading && voucher && org && printImages && !noPrint) {
+      let cancelled = false;
+      waitForPrintReady().then(() => { if (!cancelled) window.print(); });
+      return () => { cancelled = true; };
     }
-  }, [loading, voucher, org, noPrint]);
+  }, [loading, voucher, org, printImages, noPrint]);
 
   if (loading) {
     return (
@@ -130,8 +152,8 @@ export function VoucherPrintView() {
     (org as any).postalCode,
   ].filter(Boolean).join(" · ");
 
-  const printLogo = (org as any).printLogoUrl || (org as any).logoUrl;
-  const stampUrl = (org as any).stampUrl;
+  const printLogo = printImages?.logo || "";
+  const stampUrl = printImages?.stamp || "";
 
   const amountInWords = `${amount.toFixed(2)} ${currency === "SAR" ? "ريال سعودي" : currency} فقط لا غير`;
 
@@ -162,7 +184,7 @@ export function VoucherPrintView() {
     return qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
   })();
 
-  const signatureUrl = (org as any).signatureUrl || ((org as any).brandingSettings || {}).signatureUrl || null;
+  const signatureUrl = printImages?.signature || null;
   const issuerName = (voucher as any).createdByName || authStore.getState().user?.name || org.name;
 
   return (
