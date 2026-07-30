@@ -11,7 +11,7 @@
  * Powered by GET /api/contacts/:id/summary
  */
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Link, useParams, useNavigate } from "react-router";
+import { Link, useParams } from "react-router";
 import {
   ArrowRight, Building2, Mail, Phone, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, ExternalLink, AlertCircle, Plus, Send,
@@ -19,6 +19,7 @@ import {
   KeyRound, Activity, Tag, Landmark } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { api, ApiError, ContactSummary } from "../lib/api";
+import { ContactWizard } from "../components/contact-wizard";
 
 type Tab = "overview" | "operations" | "documents" | "portal" | "activity";
 
@@ -81,7 +82,6 @@ function RoleBadges({ contact }: { contact: any }) {
 
 export function ContactDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [data, setData] = useState<ContactSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +89,7 @@ export function ContactDetail() {
   // Customer logo upload · click the avatar → pick image → downscale → PATCH
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
 
   const handleLogoPick = async (file: File | undefined) => {
@@ -181,7 +182,7 @@ export function ContactDetail() {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => navigate(`/app/contacts?edit=${contact.id}`)}
+            onClick={() => setEditOpen(true)}
             className="px-4 py-1.5 rounded-full border border-[#1276E3] text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
           >
             تعديل العميل
@@ -355,6 +356,18 @@ export function ContactDetail() {
       {tab === "documents" && <DocumentsTab contactId={contact.id} />}
       {tab === "portal" && <PortalTab contact={contact} />}
       {tab === "activity" && <ActivityTab contactId={contact.id} />}
+      {/* تعديل العميل — in place (was: navigate away to /app/contacts?edit= and
+          dump the user on the list; now the same wizard opens here and the page
+          refreshes with the saved data) */}
+      <ContactWizard
+        open={editOpen}
+        editing={contact}
+        onClose={(saved) => {
+          setEditOpen(false);
+          if (saved) refresh();
+        }}
+      />
+
     </div>
   );
 }
