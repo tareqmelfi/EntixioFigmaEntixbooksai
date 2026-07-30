@@ -19,6 +19,7 @@ import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { voucherEmail } from "../lib/email-templates";
 import { api, Voucher, Contact } from "../lib/api";
+import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
@@ -66,6 +67,7 @@ export function Receipts() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const { goBack: goBackToSource } = useReturnTo();
   const fileRef = useRef<HTMLInputElement>(null);
   const [emailDialog, setEmailDialog] = useState(false);
   const [emailForm, setEmailForm] = useState({ to: "", subject: "", message: "" });
@@ -202,6 +204,7 @@ export function Receipts() {
   const closeCreate = () => {
     setOpen(false);
     resetForm();
+    if (goBackToSource()) return;
     navigate("/app/receipts", { replace: true });
   };
 
@@ -727,8 +730,8 @@ export function Receipts() {
                 <DateInput value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
               </div>
               <div>
-                <Label className="text-xs">المبلغ *</Label>
-                <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required dir="ltr" className="font-english" />
+                <Label className="text-xs">المبلغ (أو وزّعه على الفواتير)</Label>
+                <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} dir="ltr" className="font-english" />
               </div>
             </div>
 

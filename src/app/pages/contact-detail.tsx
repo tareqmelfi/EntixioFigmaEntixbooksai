@@ -90,6 +90,7 @@ export function ContactDetail() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoBusy, setLogoBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
 
   const handleLogoPick = async (file: File | undefined) => {
@@ -187,12 +188,41 @@ export function ContactDetail() {
           >
             تعديل العميل
           </button>
-          <Link
-            to={`/app/invoices?new=1&contactId=${contact.id}`}
-            className="px-4 py-1.5 rounded-full border border-[#1276E3] text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
-          >
-            المزيد <span className="text-[10px]">▾</span>
-          </Link>
+          <div className="relative">
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className="px-4 py-1.5 rounded-full border border-[#1276E3] text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
+              aria-expanded={moreOpen}
+              aria-haspopup="menu"
+            >
+              المزيد <span className="text-[10px]">▾</span>
+            </button>
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+                <div className="absolute end-0 top-full mt-1.5 z-50 w-60 rounded-xl border border-border bg-white shadow-xl py-1.5" role="menu">
+                  {[
+                    { label: "فاتورة مبيعات جديدة", to: `/app/invoices?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                    { label: "عرض سعر جديد", to: `/app/quotes?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                    { label: "سند قبض جديد", to: `/app/receipts/new?contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                    { label: "سند صرف جديد", to: `/app/payments/new?contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                    { label: "مصروف جديد", to: `/app/expenses?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                    { label: "فاتورة شراء جديدة", to: `/app/purchases/bills?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                  ].map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      role="menuitem"
+                      onClick={() => setMoreOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-foreground hover:bg-primary/5 hover:text-primary transition"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

@@ -22,6 +22,7 @@ import { QuickContactDialog } from "../components/quick-contact-dialog";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { api, Invoice, Contact } from "../lib/api";
+import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
@@ -91,6 +92,7 @@ export function Invoices() {
 
   // Side-panel state for create + sign capture (NO Dialog)
   const [createOpen, setCreateOpen] = useState(false);
+  const { goBack: goBackToSource } = useReturnTo();
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   // Multi-line items · UX-5 · Excel paste + bulk tax mode
@@ -170,7 +172,8 @@ export function Invoices() {
   // Auto-open create form when /new or ?new=1 (from Sales Dashboard quick-create)
   useEffect(() => {
     if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
-      setForm(EMPTY_FORM);
+      const prefillContact = searchParams.get("contactId") || "";
+      setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
@@ -217,7 +220,8 @@ export function Invoices() {
   }, {});
 
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    const prefillContact = searchParams.get("contactId") || "";
+    setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
@@ -235,6 +239,8 @@ export function Invoices() {
     setCreateOpen(false);
     setCreateError(null);
     setEditingInvoice(null);
+    // Opened from another page (contact file etc.) → go back there
+    if (goBackToSource()) return;
     // If we were on a deep link (/app/invoices/:id), return to the canonical list
     if (/\/invoices\/[^/]+/.test(location.pathname)) {
       navigate("/app/invoices", { replace: true });

@@ -184,6 +184,7 @@ export const router = createBrowserRouter([
       { path: "payments/new", element: lazyElement(() => import("./pages/payments"), "Payments"), errorElement: <ErrorBoundary /> },
       { path: "expenses", element: lazyElement(() => import("./pages/expenses"), "Expenses"), errorElement: <ErrorBoundary /> },
       { path: "expenses/new", element: lazyElement(() => import("./pages/expenses"), "Expenses"), errorElement: <ErrorBoundary /> },
+      { path: "expenses/:id", element: lazyElement(() => import("./pages/expenses"), "Expenses"), errorElement: <ErrorBoundary /> },
       { path: "scan-receipts", element: lazyElement(() => import("./pages/scan-receipts"), "ScanReceipts"), errorElement: <ErrorBoundary /> },
       { path: "inbox", element: lazyElement(() => import("./pages/inbox"), "InboxPage"), errorElement: <ErrorBoundary /> },
       { path: "vouchers", element: lazyElement(() => import("./pages/receipts"), "Receipts"), errorElement: <ErrorBoundary /> },

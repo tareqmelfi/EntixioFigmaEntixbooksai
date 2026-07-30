@@ -2,8 +2,8 @@
  * Expenses (المصروفات النقدية) · wired to /api/expenses
  * UX pattern: FullPageForm with document preview and receipt OCR.
  */
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   AlertTriangle,
   ArrowRight,
@@ -12,9 +12,13 @@ import {
   CopyPlus,
   Edit3,
   Eye,
+  ChevronLeft,
+  ChevronRight,
   FileImage,
   Link2,
+  Paperclip,
   Plus,
+  Upload,
   Receipt,
   Search,
   Send,
@@ -31,7 +35,9 @@ import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
-import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit } from "../lib/api";
+import { useReturnTo } from "../lib/use-return-to";
+import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
+import { AttachmentViewer, ViewerAttachment } from "../components/attachment-viewer";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
@@ -549,35 +555,6 @@ function selectedAttachment(expense: ApiExpense) {
   return null;
 }
 
-function renderStoredAttachment(expense: ApiExpense) {
-  const attachment = selectedAttachment(expense);
-  if (!attachment) {
-    return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted text-center">
-        <FileImage className="mb-3 h-10 w-10 text-muted-foreground/60" />
-        <p className="text-sm text-muted-foreground">لا يوجد مرفق محفوظ لهذا المصروف</p>
-      </div>
-    );
-  }
-  const type = attachment.type.toLowerCase();
-  const isHeic = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(attachment.name);
-  if ("base64" in attachment && type.startsWith("image/") && !isHeic) {
-    return <img src={`data:${attachment.type};base64,${attachment.base64}`} alt={attachment.name} className="max-h-[620px] w-full rounded-lg bg-white object-contain shadow-sm" />;
-  }
-  if ("base64" in attachment && type.includes("pdf")) {
-    return <iframe title={attachment.name} src={`data:${attachment.type};base64,${attachment.base64}`} className="h-[620px] w-full rounded-lg bg-white" />;
-  }
-  if ("url" in attachment) {
-    return <iframe title={attachment.name} src={attachment.url} className="h-[620px] w-full rounded-lg bg-white" />;
-  }
-  return (
-    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-border bg-muted text-center">
-      <FileImage className="mb-3 h-10 w-10 text-primary" />
-      <p className="font-english text-sm text-foreground">{attachment.name}</p>
-      <p className="mt-1 text-xs text-muted-foreground">المرفق محفوظ، لكن هذه الصيغة لا تظهر مباشرة داخل المتصفح.</p>
-    </div>
-  );
-}
 
 export function Expenses() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -588,8 +565,15 @@ export function Expenses() {
   const [busy, setBusy] = useState(false);
 
   const [selected, setSelected] = useState<ApiExpense | null>(null);
+  const [detailAttachments, setDetailAttachments] = useState<Array<ViewerAttachment & { _id?: string }>>([]);
+  const [activeAttIdx, setActiveAttIdx] = useState(0);
+  const [attBusy, setAttBusy] = useState(false);
+  const attFileRef = useRef<HTMLInputElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const { goBack: goBackToSource } = useReturnTo();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormState>(() => emptyForm());
@@ -638,6 +622,12 @@ export function Expenses() {
   function openCreate() {
     setEditingId(null);
     setFormData(emptyForm());
+    const prefillContact = searchParams.get("contactId") || "";
+    if (prefillContact) {
+      api.contacts.get(prefillContact)
+        .then((c: any) => c && setFormData((f: any) => ({ ...f, vendorName: f.vendorName || c.displayName })))
+        .catch(() => {});
+    }
     setExtractionSummary(null);
     setDraftSavedAt(null);
     setDraftNotice(null);
@@ -664,6 +654,7 @@ export function Expenses() {
   }
 
   function closeCreate(preserveDraft = true) {
+    goBackToSource();
     if (preserveDraft && !editingId && hasDraftContent(formData)) {
       writeExpenseDraft(formData, extractionSummary);
       const now = new Date().toISOString();
@@ -683,6 +674,9 @@ export function Expenses() {
 
   async function openExpense(item: ApiExpense) {
     setSelected(item);
+    if (!location.pathname.endsWith(`/app/expenses/${item.id}`)) {
+      navigate(`/app/expenses/${item.id}`);
+    }
     try {
       const full = await api.expenses.get(item.id);
       setSelected(full);
@@ -802,6 +796,8 @@ export function Expenses() {
           currencySettlement: settlement,
           paymentSplits: finalSplits,
           attachments: formData.attachments.map(({ name, type, size }) => ({ name, type, size })),
+          // backward-compat: full file set survives on APIs without the attachments endpoint
+          attachmentsFull: formData.attachments.map(({ name, type, size, base64 }) => ({ name, type, size, base64 })),
         },
         ocrConfidence: formData.ocrConfidence,
         autoCreateSupplier: true,
@@ -827,6 +823,107 @@ export function Expenses() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Deep link · /app/expenses/:id → open that expense directly (agent links, contact file, search)
+  useEffect(() => {
+    const m = location.pathname.match(/\/app\/expenses\/([^/]+)/);
+    const id = m?.[1];
+    if (!id || id === "new" || selected?.id === id) return;
+    api.expenses.get(id).then((full) => setSelected(full)).catch(() => { /* unknown id → stay on list */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Attachments for the detail viewer · endpoint rows → extractedJson fallback → legacy single
+  useEffect(() => {
+    if (!selected?.id) { setDetailAttachments([]); setActiveAttIdx(0); return; }
+    let cancelled = false;
+    setActiveAttIdx(0);
+    (async () => {
+      // Merge ALL sources so nothing disappears: endpoint rows (new API) +
+      // extractedJson.attachmentsFull + legacy single field — deduped by filename.
+      let endpointRows: Array<ViewerAttachment & { _id?: string }> = [];
+      try {
+        const r = await api.expenses.attachments.list(selected.id);
+        endpointRows = (r.items || []).map((a: ExpenseAttachment) => ({ name: a.filename, type: a.contentType, url: a.url, _id: a.id }));
+      } catch { /* old API without the endpoint → empty */ }
+      if (cancelled) return;
+
+      const seen = new Set(endpointRows.map((a) => a.name));
+      const merged = [...endpointRows];
+
+      const full = (selected.extractedJson as any)?.attachmentsFull;
+      if (Array.isArray(full)) {
+        for (const a of full) {
+          if (!a?.name || seen.has(a.name)) continue;
+          merged.push({ name: a.name, type: a.type, base64: a.base64 });
+          seen.add(a.name);
+        }
+      }
+      const legacy = selectedAttachment(selected);
+      if (legacy && !seen.has(legacy.name)) merged.push(legacy as ViewerAttachment);
+
+      setDetailAttachments(merged);
+    })();
+    return () => { cancelled = true; };
+  }, [selected]);
+
+  async function handleDetailUpload(files: FileList | File[]) {
+    if (!selected?.id || !files.length) return;
+    setAttBusy(true);
+    let uploaded = 0;
+    for (const file of Array.from(files)) {
+      if (file.size > 25 * 1024 * 1024) { push("error", `${file.name}: الحد الأقصى 25 ميجا`); continue; }
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result || ""));
+        r.onerror = () => reject(new Error("read failed"));
+        r.readAsDataURL(file);
+      }).catch(() => "");
+      if (!dataUrl) { push("error", `${file.name}: تعذّر قراءة الملف`); continue; }
+      try {
+        await api.expenses.attachments.upload(selected.id, {
+          filename: file.name,
+          contentType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+          data: dataUrl,
+        });
+        uploaded++;
+      } catch {
+        // old API → append into extractedJson.attachmentsFull instead
+        try {
+          const cur = (selected.extractedJson as any) || {};
+          const arr = Array.isArray(cur.attachmentsFull) ? [...cur.attachmentsFull] : [];
+          arr.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, base64: dataUrl.split(",")[1] || "" });
+          await api.expenses.update(selected.id, { extractedJson: { ...cur, attachmentsFull: arr } } as any);
+          uploaded++;
+        } catch { push("error", `${file.name}: فشل الرفع`); }
+      }
+    }
+    if (uploaded > 0) {
+      push("success", uploaded === 1 ? "تم رفع المرفق" : `تم رفع ${uploaded} مرفقات`);
+      try { setSelected(await api.expenses.get(selected.id)); } catch { /* keep current */ }
+    }
+    setAttBusy(false);
+  }
+
+  async function handleAttachmentRemove(att: ViewerAttachment & { _id?: string }) {
+    if (!selected?.id) return;
+    try {
+      if (att._id) {
+        await api.expenses.attachments.remove(selected.id, att._id);
+      } else {
+        const cur = (selected.extractedJson as any) || {};
+        const arr = (Array.isArray(cur.attachmentsFull) ? cur.attachmentsFull : []).filter((a: any) => a.name !== att.name);
+        await api.expenses.update(selected.id, { extractedJson: { ...cur, attachmentsFull: arr } } as any);
+      }
+      setDetailAttachments((prev) => {
+        const next = prev.filter((x) => x !== att);
+        setActiveAttIdx((i) => Math.min(i, Math.max(0, next.length - 1)));
+        return next;
+      });
+      push("success", "تم حذف المرفق");
+    } catch { push("error", "فشل حذف المرفق"); }
   }
 
   async function handleDelete(id: string) {
@@ -1411,7 +1508,7 @@ export function Expenses() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => setSelected(null)} className="border-border">
+            <Button variant="outline" onClick={() => { setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="border-border">
               <ArrowRight className="me-2 h-4 w-4" /> المصروفات
             </Button>
             <div>
@@ -1420,7 +1517,7 @@ export function Expenses() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => { setSearchQuery(vendorName); setSelected(null); }} className="border-border">
+            <Button variant="outline" onClick={() => { setSearchQuery(vendorName); setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="border-border">
               <Building2 className="me-2 h-4 w-4" /> مصاريف الجهة
             </Button>
             <Button variant="outline" onClick={openCreate} className="border-border">
@@ -1584,12 +1681,88 @@ export function Expenses() {
 
           <Card className="border-border">
             <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-foreground">المرفق الأصلي</CardTitle>
-                <span className="font-english text-xs text-muted-foreground">{selected.attachmentName || selected.receiptUrl || "—"}</span>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" /> المرفقات
+                  {detailAttachments.length > 0 && (
+                    <span className="text-xs text-muted-foreground font-normal font-english">{activeAttIdx + 1} / {detailAttachments.length}</span>
+                  )}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={attFileRef}
+                    type="file"
+                    hidden
+                    multiple
+                    accept=".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv"
+                    onChange={(e) => { if (e.target.files?.length) handleDetailUpload(e.target.files); e.target.value = ""; }}
+                  />
+                  <Button type="button" variant="outline" size="sm" disabled={attBusy} onClick={() => attFileRef.current?.click()} className="border-border h-8 text-xs">
+                    <Upload className="me-1.5 h-3.5 w-3.5" /> {attBusy ? "جارٍ الرفع…" : "رفع مرفقات"}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent>{renderStoredAttachment(selected)}</CardContent>
+            <CardContent className="space-y-3">
+              {detailAttachments.length === 0 ? (
+                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted text-center">
+                  <FileImage className="mb-3 h-10 w-10 text-muted-foreground/60" />
+                  <p className="text-sm text-muted-foreground">لا توجد مرفقات لهذا المصروف</p>
+                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs text-primary hover:underline">ارفع أول مرفق</button>
+                </div>
+              ) : (
+                <>
+                  {/* carousel controls · navigate right/left between files */}
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      disabled={activeAttIdx <= 0}
+                      onClick={() => setActiveAttIdx((i) => Math.max(0, i - 1))}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/60 disabled:opacity-40"
+                    >
+                      <ChevronRight className="h-4 w-4" /> السابق
+                    </button>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-english text-xs text-muted-foreground truncate max-w-[260px]" dir="ltr">{detailAttachments[activeAttIdx]?.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAttachmentRemove(detailAttachments[activeAttIdx])}
+                        className="text-red-500/70 hover:text-red-600 p-1"
+                        title="حذف المرفق"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={activeAttIdx >= detailAttachments.length - 1}
+                      onClick={() => setActiveAttIdx((i) => Math.min(detailAttachments.length - 1, i + 1))}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/60 disabled:opacity-40"
+                    >
+                      التالي <ChevronLeft className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {/* viewer · PDF native scroll / image free scroll */}
+                  <AttachmentViewer attachment={detailAttachments[activeAttIdx]} height={620} />
+                  {/* thumbnails strip */}
+                  {detailAttachments.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {detailAttachments.map((att, i) => (
+                        <button
+                          key={`${att.name}-${i}`}
+                          type="button"
+                          onClick={() => setActiveAttIdx(i)}
+                          className={`shrink-0 rounded-md border px-2.5 py-1.5 text-[11px] font-english max-w-[160px] truncate ${i === activeAttIdx ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                          dir="ltr"
+                        >
+                          {att.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
           </Card>
         </div>
         <ToastStack toasts={toasts} onDismiss={dismiss} />

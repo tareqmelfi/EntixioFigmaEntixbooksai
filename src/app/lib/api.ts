@@ -290,6 +290,13 @@ export const api = {
       request<Expense>(`/api/expenses/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/expenses/${id}`, { method: 'DELETE' }),
+    attachments: {
+      list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/expenses/${id}/attachments`),
+      upload: (id: string, data: { filename: string; contentType: string; sizeBytes: number; data: string }) =>
+        request<ExpenseAttachment>(`/api/expenses/${id}/attachments`, { method: 'POST', body: data }),
+      remove: (id: string, aid: string) =>
+        request<void>(`/api/expenses/${id}/attachments/${aid}`, { method: 'DELETE' }),
+    },
   },
 
   // Quotes
@@ -1058,6 +1065,16 @@ export interface JournalEntryLine {
   debit: number
   credit: number
   description?: string | null
+}
+
+export interface ExpenseAttachment {
+  id: string
+  expenseId: string
+  filename: string
+  contentType: string
+  sizeBytes: number
+  url: string // data: URL (base64) · consistent with voucher attachments
+  createdAt: string
 }
 
 export interface JournalAttachment {

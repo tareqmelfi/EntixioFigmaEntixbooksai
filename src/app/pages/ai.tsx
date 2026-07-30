@@ -267,7 +267,7 @@ async function findOrCreateSupplier(e: OcrResult): Promise<Contact> {
 function toolResultHref(tool: string, result: any): string | null {
   if (!result || result.error) return null;
   const name = String(tool || "").toLowerCase();
-  if (name.includes("expense")) return "/app/expenses";
+  if (name.includes("expense")) return result.id ? `/app/expenses/${result.id}` : "/app/expenses";
   if (name.includes("bill")) return result.id ? `/app/purchases/bills/${result.id}` : "/app/purchases/bills";
   if (name.includes("invoice")) return result.id ? `/app/invoices/${result.id}` : "/app/invoices";
   if (name.includes("contact")) return result.id ? `/app/contacts/${result.id}` : "/app/contacts";
@@ -622,7 +622,7 @@ export function AI() {
               recordId: saved?.id,
               recordNumber: saved?.number,
               destinationLabel: "مصروف نقدي",
-              destinationHref: "/app/expenses",
+              destinationHref: saved?.id ? `/app/expenses/${saved.id}` : "/app/expenses",
               actionLabel: "أُنشئ كمصروف",
               createdNumber: saved?.number,
               duplicateNumber: saved?.duplicateExpense?.number,

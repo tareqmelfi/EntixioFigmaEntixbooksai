@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { voucherEmail } from "../lib/email-templates";
+import { useNavigate, useSearchParams } from "react-router";
+import { useReturnTo } from "../lib/use-return-to";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
@@ -39,6 +41,30 @@ export function Payments() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [emailDialog, setEmailDialog] = useState(false);
   const [emailForm, setEmailForm] = useState({ to: "", subject: "", message: "" });
+  const { goBack: goBackToSource } = useReturnTo();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const closeCreate = () => {
+    setOpen(false);
+    resetForm();
+    if (goBackToSource()) return;
+    // No returnTo → leave the /new route / ?new=1 URL so the panel doesn't re-open
+    if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
+      navigate("/app/payments", { replace: true });
+    }
+  };
+
+  // Auto-open create panel on /app/payments/new (route) or ?new=1 · contactId prefill
+  useEffect(() => {
+    const wantsCreate = location.pathname.endsWith("/new") || searchParams.get("new") === "1";
+    if (!wantsCreate || open) return;
+    const contactId = searchParams.get("contactId");
+    resetForm();
+    if (contactId) setForm((f: any) => ({ ...f, contactId }));
+    setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, searchParams]);
 
   // ── إرسال السند — prefill from template (client email + first-name greeting) ──
   const orgNameRef = useRef<string>("");
@@ -82,6 +108,7 @@ export function Payments() {
     reference: "",
     bankAccountId: "",
     notes: "",
+    allocations: [] as Array<{ billId: string; amount: string }>,
   });
 
   const refresh = useCallback(async () => {
@@ -89,7 +116,7 @@ export function Payments() {
     try {
       const [v, s, b] = await Promise.all([
         api.vouchers.list({ type: "PAYMENT" }),
-        api.contacts.list({ type: "SUPPLIER" }).catch(() => ({ items: [] })),
+        api.contacts.list({ role: "supplier" }).catch(() => ({ items: [] })),
         api.bankAccounts.list().catch(() => ({ items: [] })),
       ]);
       setItems(v.items);
@@ -102,10 +129,20 @@ export function Payments() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Load supplier bills for direct linking + allocation (mirrors receipts)
   useEffect(() => {
     if (!form.contactId) { setBills([]); return; }
-    (api as any).bills?.list?.({ contactId: form.contactId, status: "RECEIVED,PARTIAL,OVERDUE" })
-      ?.then((r: any) => setBills(r.items || []))
+    (api as any).bills?.list?.({ contactId: form.contactId, limit: 200 })
+      ?.then((r: any) => {
+        const items = r.items || [];
+        setBills(items);
+        setForm((prev: any) => ({
+          ...prev,
+          allocations: items
+            .filter((b: any) => Math.max(Number(b.total) - Number(b.amountPaid || 0), 0) > 0)
+            .map((b: any) => ({ billId: b.id, amount: "" })),
+        }));
+      })
       ?.catch(() => setBills([]));
   }, [form.contactId]);
 
@@ -121,28 +158,70 @@ export function Payments() {
     contactId: "", billId: "",
     date: new Date().toISOString().slice(0, 10),
     amount: "", paymentMethod: "BANK_TRANSFER", reference: "", bankAccountId: "", notes: "",
+    allocations: [],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.amount || Number(form.amount) <= 0) { push("error", "أدخل مبلغاً صحيحاً"); return; }
     if (!form.contactId) { push("error", "اختر المورد"); return; }
+
+    const allocs = (Array.isArray(form.allocations) ? form.allocations : [])
+      .map((a: any) => ({ billId: a.billId, amount: Number(a.amount) || 0 }))
+      .filter((a: any) => a.billId && a.amount > 0);
+    const directAmount = Number(form.amount) || 0;
+
+    if (allocs.length === 0 && directAmount <= 0) {
+      push("error", "أدخل مبلغاً صحيحاً أو وزّعه على الفواتير");
+      return;
+    }
+
     setBusy(true);
     try {
-      const v = await api.vouchers.create({
-        type: "PAYMENT",
-        contactId: form.contactId,
-        billId: form.billId || null,
-        date: form.date,
-        amount: Number(form.amount),
-        paymentMethod: form.paymentMethod,
-        bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
-        reference: form.reference || null,
-        notes: form.notes || null,
-      });
-      setItems(prev => [v, ...prev]);
-      push("success", `تم إنشاء ${v.number}`);
-      setOpen(false); resetForm();
+      const created: Voucher[] = [];
+
+      if (allocs.length > 0) {
+        for (const a of allocs) {
+          const bill = bills.find((x: any) => x.id === a.billId);
+          const maxRemaining = bill ? Math.max(Number(bill.total) - Number(bill.amountPaid || 0), 0) : a.amount;
+          const amount = Math.min(a.amount, maxRemaining);
+          if (amount <= 0) continue;
+
+          const v = await api.vouchers.create({
+            type: "PAYMENT",
+            contactId: form.contactId,
+            billId: a.billId,
+            date: form.date,
+            amount: Number(amount.toFixed(2)),
+            paymentMethod: form.paymentMethod,
+            bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+            reference: bill?.billNumber || form.reference || null,
+            notes: form.notes || null,
+          });
+          created.push(v);
+        }
+      } else {
+        const v = await api.vouchers.create({
+          type: "PAYMENT",
+          contactId: form.contactId,
+          billId: form.billId || null,
+          date: form.date,
+          amount: Number(directAmount.toFixed(2)),
+          paymentMethod: form.paymentMethod,
+          bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+          reference: form.reference || null,
+          notes: form.notes || null,
+        });
+        created.push(v);
+      }
+
+      if (created.length === 0) {
+        push("info", "لم يتم إنشاء أي سند · تحقق من مبالغ التوزيع");
+        return;
+      }
+
+      setItems(prev => [...created, ...prev]);
+      push("success", created.length === 1 ? `تم إنشاء ${created[0].number}` : `تم إنشاء ${created.length} سند صرف`);
+      closeCreate();
       refresh();
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : "فشل الحفظ");
@@ -355,19 +434,19 @@ export function Payments() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={closeCreate}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-5 border-b border-border/50">
                 <h2 className="text-lg text-foreground font-bold flex items-center gap-2"><Wallet className="h-5 w-5" /> سند صرف جديد</h2>
-                <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-muted/50 rounded"><X className="h-5 w-5 text-muted-foreground" /></button>
+                <button type="button" onClick={closeCreate} className="p-1 hover:bg-muted/50 rounded"><X className="h-5 w-5 text-muted-foreground" /></button>
               </div>
               <div className="p-5 space-y-4">
                 <div>
                   <Label className="text-xs">المورد *</Label>
                   <SearchableCombobox
                     value={form.contactId}
-                    onChange={(id) => setForm({ ...form, contactId: id, billId: "" })}
+                    onChange={(id) => setForm({ ...form, contactId: id, billId: "", amount: "", allocations: [] })}
                     items={suppliers.map((c: any) => ({
                       id: c.id,
                       label: c.displayName,
@@ -391,20 +470,84 @@ export function Payments() {
                 </div>
 
                 {form.contactId && bills.length > 0 && (
-                  <div>
-                    <Label className="text-xs">فاتورة المشتريات (اختياري)</Label>
-                    <select value={form.billId} onChange={(e) => {
-                      const bill = bills.find((b) => b.id === e.target.value);
-                      setForm({ ...form, billId: e.target.value, amount: bill ? String(Number(bill.total) - Number(bill.amountPaid || 0)) : form.amount });
-                    }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-                      <option value="">— غير مرتبط —</option>
-                      {bills.map((bill) => (
-                        <option key={bill.id} value={bill.id}>
-                          {bill.billNumber} · المتبقي {Number(bill.total) - Number(bill.amountPaid || 0)} {bill.currency}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div>
+                      <Label className="text-xs">فاتورة المشتريات (اختياري)</Label>
+                      <select value={form.billId} onChange={(e) => {
+                        const bill = bills.find((b) => b.id === e.target.value);
+                        setForm({ ...form, billId: e.target.value, amount: bill ? String(Number(bill.total) - Number(bill.amountPaid || 0)) : form.amount });
+                      }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+                        <option value="">— غير مرتبط —</option>
+                        {bills.map((bill) => {
+                          const remaining = Math.max(0, Number(bill.total) - Number(bill.amountPaid || 0));
+                          const isPaid = remaining <= 0;
+                          return (
+                            <option key={bill.id} value={bill.id} disabled={isPaid}>
+                              {bill.billNumber} · المتبقي {remaining.toFixed(2)} {bill.currency}{isPaid ? " · مسددة" : ""}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        تظهر هنا فواتير هذا المورد فقط، والربط سيكون مباشرًا على نفس الحساب.
+                      </p>
+                    </div>
+
+                    {bills.some((b: any) => Math.max(Number(b.total) - Number(b.amountPaid || 0), 0) > 0) && (
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                        <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>توزيع المبلغ على الفواتير (اختياري)</div>
+                        {bills
+                          .filter((b: any) => Math.max(Number(b.total) - Number(b.amountPaid || 0), 0) > 0)
+                          .map((bill: any) => {
+                            const remaining = Math.max(Number(bill.total) - Number(bill.amountPaid || 0), 0);
+                            const allocation = (form.allocations || []).find((a: any) => a.billId === bill.id);
+                            return (
+                              <div key={bill.id} className="grid grid-cols-[1fr_140px_auto] gap-2 items-center">
+                                <div className="text-xs text-foreground/90">
+                                  <span className="font-english text-primary">{bill.billNumber}</span>
+                                  <span className="text-muted-foreground"> · متبقي </span>
+                                  <span className="font-english">{remaining.toFixed(2)} {bill.currency}</span>
+                                </div>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={allocation?.amount || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setForm((prev: any) => {
+                                      const cur = Array.isArray(prev.allocations) ? [...prev.allocations] : [];
+                                      const idx = cur.findIndex((x: any) => x.billId === bill.id);
+                                      if (idx >= 0) cur[idx] = { ...cur[idx], amount: val };
+                                      else cur.push({ billId: bill.id, amount: val });
+                                      return { ...prev, allocations: cur };
+                                    });
+                                  }}
+                                  dir="ltr"
+                                  className="font-english"
+                                  placeholder="0.00"
+                                />
+                                <button
+                                  type="button"
+                                  className="text-[11px] text-primary hover:underline"
+                                  onClick={() => {
+                                    setForm((prev: any) => {
+                                      const cur = Array.isArray(prev.allocations) ? [...prev.allocations] : [];
+                                      const idx = cur.findIndex((x: any) => x.billId === bill.id);
+                                      const full = remaining.toFixed(2);
+                                      if (idx >= 0) cur[idx] = { ...cur[idx], amount: full };
+                                      else cur.push({ billId: bill.id, amount: full });
+                                      return { ...prev, allocations: cur };
+                                    });
+                                  }}
+                                >
+                                  كامل المتبقي
+                                </button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
@@ -413,8 +556,8 @@ export function Payments() {
                     <DateInput value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
                   </div>
                   <div>
-                    <Label className="text-xs">المبلغ *</Label>
-                    <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required dir="ltr" className="font-english" />
+                    <Label className="text-xs">المبلغ (أو وزّعه على الفواتير)</Label>
+                    <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} dir="ltr" className="font-english" />
                   </div>
                 </div>
 
@@ -453,7 +596,7 @@ export function Payments() {
               </div>
 
               <div className="flex justify-end gap-2 p-5 border-t border-border/50">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">إلغاء</Button>
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
                 <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
                 </Button>

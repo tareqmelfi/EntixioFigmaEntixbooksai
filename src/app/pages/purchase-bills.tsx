@@ -21,6 +21,7 @@ import { DocumentDropZone, type ExtractedDocument } from "../components/document
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
 import { api, Contact } from "../lib/api";
+import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
@@ -76,6 +77,7 @@ export function PurchaseBills() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const { goBack: goBackToSource } = useReturnTo();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -144,7 +146,8 @@ export function PurchaseBills() {
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      setForm(EMPTY_FORM);
+      const prefillContact = searchParams.get("contactId") || "";
+      setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
@@ -161,7 +164,8 @@ export function PurchaseBills() {
   const total = items.reduce((s, b) => s + Number(b.total), 0);
 
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    const prefillContact = searchParams.get("contactId") || "";
+    setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setPaymentSplits([]);
@@ -197,7 +201,12 @@ export function PurchaseBills() {
     setEditingId(b.id);
     setCreateOpen(true);
   };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); setEditingId(null); };
+  const closeCreate = () => {
+    setCreateOpen(false);
+    setCreateError(null);
+    setEditingId(null);
+    goBackToSource();
+  };
 
   const clearingAccounts = accounts.filter((a: any) => a.subtype === "payment-clearing" || CLEARING_ACCOUNT_KEYWORDS.some(k => (a.name + " " + (a.nameAr || "")).toLowerCase().includes(k.toLowerCase())));
   const regularAccounts = accounts.filter((a: any) => !clearingAccounts.includes(a));

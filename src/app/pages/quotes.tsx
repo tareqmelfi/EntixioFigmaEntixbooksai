@@ -19,6 +19,7 @@ import { DocumentDropZone, type ExtractedDocument } from "../components/document
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Quote, Contact } from "../lib/api";
+import { useReturnTo } from "../lib/use-return-to";
 
 const CURRENCIES = [
   { value: "SAR", label: "ريال سعودي · SAR" },
@@ -60,6 +61,7 @@ export function Quotes() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const { goBack: goBackToSource } = useReturnTo();
   const [products, setProducts] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -96,7 +98,8 @@ export function Quotes() {
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      setForm(EMPTY_FORM);
+      const prefillContact = searchParams.get("contactId") || "";
+      setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
@@ -115,13 +118,18 @@ export function Quotes() {
   const pending = items.filter(q => q.status === "SENT" || q.status === "VIEWED").length;
 
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    const prefillContact = searchParams.get("contactId") || "";
+    setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
     setCreateOpen(true);
   };
-  const closeCreate = () => { setCreateOpen(false); setCreateError(null); };
+  const closeCreate = () => {
+    setCreateOpen(false);
+    setCreateError(null);
+    goBackToSource();
+  };
 
   const handleSubmit = async (action: "draft" | "send" = "draft") => {
     setCreateError(null);
