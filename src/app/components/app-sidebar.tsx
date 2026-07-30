@@ -32,7 +32,7 @@ const EN_TEXT: Record<string, string> = {
   "إشعارات الموردين": "Supplier credits",
   "سندات الصرف": "Payment vouchers",
   "المصروفات النقدية": "Expenses",
-  "مسح الإيصالات": "Scan receipts",
+  "التقاط الإيصالات": "Capture receipts",
   "البريد الوارد": "Inbox",
   "قائمة الاتصال": "Contacts",
   "الرواتب والموظفين": "Payroll & employees",
@@ -98,6 +98,7 @@ const sections: MenuSection[] = [
     items: [
       { title: "لوحة التحكم", icon: LayoutDashboard, path: "/app" },
       { title: "الذكاء الاصطناعي", icon: Sparkles, path: "/app/ai", badge: "جديد" },
+      { title: "التقاط الإيصالات", icon: Camera, path: "/app/scan-receipts" },
     ],
   },
   {
@@ -134,7 +135,6 @@ const sections: MenuSection[] = [
           { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
           { title: "سندات الصرف", icon: CreditCard, path: "/app/payments" },
           { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
-          { title: "مسح الإيصالات", icon: Camera, path: "/app/scan-receipts" },
           { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
         ],
       },
@@ -192,7 +192,7 @@ const searchPages = [
   { label: "إشعارات الموردين", path: "/app/purchases/supplier-credits" },
   { label: "سندات الصرف", path: "/app/payments" },
   { label: "المصروفات النقدية", path: "/app/expenses" },
-  { label: "مسح الإيصالات", path: "/app/scan-receipts" },
+  { label: "التقاط الإيصالات", path: "/app/scan-receipts" },
   { label: "قائمة الاتصال", path: "/app/contacts" },
   { label: "الرواتب والموظفين", path: "/app/payroll" },
   { label: "المنتجات والخدمات", path: "/app/products" },
