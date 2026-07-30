@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -185,7 +185,7 @@ export function Invoices() {
   // Deep link · /app/invoices/:id (from contact-detail, receipts, search) → open THAT
   // invoice in edit view instead of dumping the user back on the bare list.
   useEffect(() => {
-    const m = location.pathname.match(/\/app\/(?:sales\/)?invoices\/([0-9a-fA-F-]{36})/);
+    const m = location.pathname.match(/\/app\/(?:sales\/)?invoices\/([^/]+)/);
     const id = m?.[1];
     if (!id || editingInvoice?.id === id || createOpen) return;
     const row = items.find((x) => x.id === id);
@@ -235,7 +235,7 @@ export function Invoices() {
     setCreateError(null);
     setEditingInvoice(null);
     // If we were on a deep link (/app/invoices/:id), return to the canonical list
-    if (/\/invoices\/[0-9a-fA-F-]{36}/.test(location.pathname)) {
+    if (/\/invoices\/[^/]+/.test(location.pathname)) {
       navigate("/app/invoices", { replace: true });
     }
   };
@@ -527,8 +527,8 @@ export function Invoices() {
     return (
       <>
         <FullPageForm
-          title="فاتورة جديدة"
-          subtitle="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+          title={editingInvoice ? `تعديل الفاتورة ${editingInvoice.invoiceNumber}` : "فاتورة جديدة"}
+          subtitle={editingInvoice ? `الحالة: ${STATUS_LABELS[editingInvoice.status] || editingInvoice.status}` : "املأ البيانات الأساسية · يمكنك التعديل لاحقاً"}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
@@ -950,7 +950,9 @@ export function Invoices() {
                 {filtered.map(i => (
                   <tr
                     key={i.id}
-                    className="border-b border-border/40 transition-colors hover:bg-primary/5"
+                    onClick={() => navigate(`/app/invoices/${i.id}`)}
+                    className="border-b border-border/40 transition-colors hover:bg-primary/5 cursor-pointer"
+                    title="فتح الفاتورة"
                   >
                     <td className="py-3 px-4 text-start whitespace-nowrap">
                       <button
@@ -1021,10 +1023,22 @@ export function Invoices() {
                             <FileSignature className="h-3.5 w-3.5" /> توقيع
                           </button>
                         )}
+                        {/* فتح/تعديل — always available; backend locks number + guards integrity */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
+                          className="rounded-md p-1.5 text-primary hover:bg-blue-50"
+                          title={i.status === "DRAFT" ? "تعديل الفاتورة" : "عرض/تعديل الفاتورة"}
+                        ><Pencil className="h-4 w-4" /></button>
+                        {/* طباعة — always available */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); window.open(`/print/invoice/${i.id}`, "_blank"); }}
+                          className="rounded-md p-1.5 text-foreground/70 hover:bg-gray-100"
+                          title="طباعة الفاتورة"
+                        ><Printer className="h-4 w-4" /></button>
                         {pendingDelete === i.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(i.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={() => setPendingDelete(i.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setPendingDelete(i.id); }} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>
