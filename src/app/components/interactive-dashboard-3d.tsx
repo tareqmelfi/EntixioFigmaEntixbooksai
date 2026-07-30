@@ -298,19 +298,8 @@ export function InteractiveDashboard3D() {
           ease: "easeInOut"
         }}
       />
-      <motion.div
-        className="absolute -top-2 -left-2 w-16 h-16 bg-gradient-to-br from-[#349FC4] to-[#1276E3] rounded-full blur-2xl opacity-40 -z-10"
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.4, 0.6, 0.4]
-        }}
-        transition={{
-          duration: 2.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 0.5
-        }}
-      />
+      {/* MOTN-01: ambient motions capped at 3 (glow pulse · gradient sweep ·
+          corner accent) — the second corner blob was removed to stay in budget. */}
     </div>
   );
 }
