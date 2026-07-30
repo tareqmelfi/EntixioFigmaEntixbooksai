@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud, Globe } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
+import { Turnstile } from "../components/turnstile";
 import { useLanguage } from "../components/LanguageContext";
 import { EntixWordmark } from "../components/entix-brand";
 
@@ -20,6 +21,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Redirect if already logged in · respect fromPath
   useEffect(() => {
@@ -37,7 +39,7 @@ export function Login() {
     setVerifyNotice(null);
     setUnverifiedEmail(null);
     setLoading(true);
-    const result = await authStore.login(email, password);
+    const result = await authStore.login(email, password, captchaToken);
     setLoading(false);
     if (result.success) {
       navigate(fromPath, { replace: true });
@@ -197,6 +199,7 @@ export function Login() {
               </div>
             </div>
 
+            <Turnstile onVerify={setCaptchaToken} />
             <button
               type="submit"
               disabled={loading}

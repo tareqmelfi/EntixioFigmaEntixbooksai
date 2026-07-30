@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, CheckCircle2, Users, Globe, BarChart3 } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
+import { Turnstile } from "../components/turnstile";
 import { EntixWordmark } from "../components/entix-brand";
 
 export function Register() {
@@ -14,6 +15,7 @@ export function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export function Register() {
       return;
     }
     setLoading(true);
-    const result = await authStore.register(email, password, name, company);
+    const result = await authStore.register(email, password, name, company, captchaToken);
     setLoading(false);
     if (result.success) navigate("/app");
     else if (result.error?.includes('registration_disabled') || result.error?.includes('sign_up_disabled')) {
@@ -161,6 +163,8 @@ export function Register() {
                 <Link to="/privacy" className="text-primary hover:underline">سياسة الخصوصية</Link>
               </label>
             </div>
+
+            <Turnstile onVerify={setCaptchaToken} />
 
             <button
               type="submit"

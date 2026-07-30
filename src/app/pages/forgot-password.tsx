@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { ArrowLeft, ArrowRight, CheckCircle2, Mail } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
+import { Turnstile } from "../components/turnstile";
 import { EntixWordmark } from "../components/entix-brand";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -18,6 +19,7 @@ export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +31,7 @@ export function ForgotPassword() {
     }
 
     setLoading(true);
-    const result = await authStore.requestPasswordReset(email.trim());
+    const result = await authStore.requestPasswordReset(email.trim(), captchaToken);
     setLoading(false);
 
     if (result.success) {
@@ -154,6 +156,8 @@ export function ForgotPassword() {
                   />
                 </div>
               </div>
+
+              <Turnstile onVerify={setCaptchaToken} />
 
               <button
                 type="submit"

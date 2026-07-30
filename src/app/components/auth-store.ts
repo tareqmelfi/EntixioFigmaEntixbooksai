@@ -159,9 +159,10 @@ class AuthStore {
   }
 
   /** Email + password sign-in */
-  async login(email: string, password: string): Promise<{ success: boolean; error?: string; code?: string }> {
+  async login(email: string, password: string, captchaToken?: string | null): Promise<{ success: boolean; error?: string; code?: string }> {
     try {
-      const { data, error } = await authClient.signIn.email({ email, password })
+      const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
+      const { data, error } = await authClient.signIn.email({ email, password }, opts)
       if (error) return { success: false, error: error.message || 'فشل تسجيل الدخول', code: (error as any)?.code }
       if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
       await this.refresh()
@@ -177,9 +178,11 @@ class AuthStore {
     password: string,
     name: string,
     company: string,
+    captchaToken?: string | null,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await authClient.signUp.email({ email, password, name })
+      const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
+      const { data, error } = await authClient.signUp.email({ email, password, name }, opts)
       if (error) {
         if (error.code === 'USER_ALREADY_EXISTS' || (error.message || '').toLowerCase().includes('already')) {
           return { success: false, error: 'البريد الإلكتروني مسجل مسبقاً' }
@@ -238,12 +241,15 @@ class AuthStore {
   }
 
   /** Send password-reset email · better-auth flow */
-  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string; status?: number }> {
+  async requestPasswordReset(email: string, captchaToken?: string | null): Promise<{ success: boolean; error?: string; status?: number }> {
     try {
       const res = await fetch(`${API_BASE}/api/auth/request-password-reset`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(captchaToken ? { 'x-captcha-response': captchaToken } : {}),
+        },
         body: JSON.stringify({
           email,
           redirectTo: `${window.location.origin}/reset-password`,

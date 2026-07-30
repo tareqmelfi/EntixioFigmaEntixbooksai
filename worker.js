@@ -33,12 +33,13 @@ const SECURITY_HEADERS = {
   'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
   'content-security-policy': [
     "default-src 'self'",
-    // GA4 inline bootstrap + gtag.js · react inline styles
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+    // GA4 inline bootstrap + gtag.js · react inline styles · Turnstile widget (SEC-03)
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://api.entix.io https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://fonts.googleapis.com https://fonts.gstatic.com",
+    "connect-src 'self' https://api.entix.io https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://fonts.googleapis.com https://fonts.gstatic.com https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
