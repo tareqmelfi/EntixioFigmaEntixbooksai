@@ -11,12 +11,12 @@
  * Powered by GET /api/contacts/:id/summary
  */
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import {
   ArrowRight, Building2, Mail, Phone, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, ExternalLink, AlertCircle, Plus, Send,
   Clock, Hash, Briefcase, User, Files,
-  KeyRound, Activity, Tag, Landmark } from "lucide-react";
+  KeyRound, Activity, Tag, Landmark , Eye, Printer } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { api, ApiError, ContactSummary } from "../lib/api";
 import { ContactWizard } from "../components/contact-wizard";
@@ -731,17 +731,20 @@ function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: st
 }
 
 function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
+  const navigate = useNavigate();
   if (rows.length === 0) return <div className="py-12 text-center text-sm text-muted-foreground/60">لا توجد سندات</div>;
+  const voucherPath = (v: ContactSummary["vouchers"][number]) => (v.type === "RECEIPT" ? `/app/receipts/${v.id}` : `/app/payments/${v.id}`);
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[860px] table-auto text-sm">
+      <table className="w-full min-w-[900px] table-auto text-sm">
         <colgroup>
-          <col style={{ width: "18%" }} />
-          <col style={{ width: "12%" }} />
-          <col style={{ width: "14%" }} />
+          <col style={{ width: "17%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "13%" }} />
           <col style={{ width: "16%" }} />
-          <col style={{ width: "20%" }} />
-          <col style={{ width: "20%" }} />
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "10%" }} />
         </colgroup>
         <thead className="bg-muted text-muted-foreground">
           <tr>
@@ -751,12 +754,18 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
             <th className="text-end px-4 py-2.5 font-medium">المبلغ</th>
             <th className="text-start px-4 py-2.5 font-medium">طريقة الدفع</th>
             <th className="text-start px-4 py-2.5 font-medium">المرجع</th>
+            <th className="text-end px-4 py-2.5 font-medium">إجراءات</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((v) => (
-            <tr key={v.id} className="border-t border-border/50 hover:bg-primary/5 transition">
-              <td className="px-4 py-2.5"><span dir="ltr" className="font-english inline-block font-semibold text-foreground">{v.number}</span></td>
+            <tr
+              key={v.id}
+              onClick={() => navigate(voucherPath(v))}
+              className="border-t border-border/50 hover:bg-primary/5 transition cursor-pointer"
+              title="استعراض السند"
+            >
+              <td className="px-4 py-2.5"><span dir="ltr" className="font-english inline-block font-semibold text-primary">{v.number}</span></td>
               <td className="px-4 py-2.5">
                 <span className={`text-xs px-2 py-0.5 rounded ${v.type === "RECEIPT" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
                   {v.type === "RECEIPT" ? "قبض" : "صرف"}
@@ -768,6 +777,26 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
               </td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{v.paymentMethod || "—"}</td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs"><span dir="ltr" className="font-english inline-block">{v.reference || "—"}</span></td>
+              <td className="px-4 py-2.5 text-end" onClick={(e) => e.stopPropagation()}>
+                <div className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => navigate(voucherPath(v))}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                    title="استعراض السند"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/print/voucher/${v.id}`, "_blank", "noopener")}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                    title="طباعة السند"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

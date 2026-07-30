@@ -129,6 +129,17 @@ export function Payments() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Deep link · /app/payments/:id → open that voucher's detail panel
+  useEffect(() => {
+    const m = location.pathname.match(/\/app\/payments\/([^/]+)/);
+    const id = m?.[1];
+    if (!id || id === "new" || selected?.id === id) return;
+    (api as any).vouchers.get?.(id)
+      ?.then((v: Voucher) => v && openSelected(v))
+      .catch(() => { /* unknown id → stay on list */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   // Load supplier bills for direct linking + allocation (mirrors receipts)
   useEffect(() => {
     if (!form.contactId) { setBills([]); return; }

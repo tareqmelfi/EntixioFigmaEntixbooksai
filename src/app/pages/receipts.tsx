@@ -138,6 +138,17 @@ export function Receipts() {
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Deep link · /app/receipts/:id → open that voucher's detail panel
+  useEffect(() => {
+    const m = location.pathname.match(/\/app\/receipts\/([^/]+)/);
+    const id = m?.[1];
+    if (!id || id === "new" || selected?.id === id) return;
+    (api as any).vouchers.get?.(id)
+      ?.then((v: Voucher) => v && openSelected(v))
+      .catch(() => { /* unknown id → stay on list */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   // Load all customer invoices for selected contact (for direct linking from receipt)
   useEffect(() => {
     if (!form.contactId) { setInvoices([]); return; }
