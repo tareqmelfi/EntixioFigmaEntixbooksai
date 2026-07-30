@@ -74,6 +74,13 @@ export default {
     const url = new URL(request.url)
     const pathname = url.pathname
 
+    // SEC-01/PLT-05: force HTTPS at the edge (zone "Always Use HTTPS" is off and
+    // the deploy token can't flip zone settings — enforce it here instead).
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:'
+      return Response.redirect(url.toString(), 301)
+    }
+
     // API proxy (cookies/headers/body pass through untouched)
     if (API_PATHS(pathname)) {
       const target = new URL(pathname + url.search, API_ORIGIN)
