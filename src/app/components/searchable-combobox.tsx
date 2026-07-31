@@ -42,6 +42,13 @@ interface Props {
   menuMinWidth?: number;
   /** Selected label wraps to multiple lines + box grows (item cells) instead of truncating */
   wrap?: boolean;
+  /**
+   * Borderless trigger for dense data tables (e.g. ItemsTable).
+   * Strips the bordered input look → only the chevron + hover/focus ring remain,
+   * matching minimalist data-table selectors. Defaults to false so existing
+   * bordered callers (forms, modals) are unchanged.
+   */
+  borderless?: boolean;
 }
 
 type PanelStyle = {
@@ -63,6 +70,7 @@ export function SearchableCombobox({
   buttonClassName = "",
   menuMinWidth = 300,
   wrap = false,
+  borderless = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -206,7 +214,11 @@ export function SearchableCombobox({
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className={`w-full flex items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-start hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 disabled:opacity-50 ${buttonClassName}`}
+        className={`w-full flex items-center justify-between rounded-md ${
+          borderless
+            ? "border-0 bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
+            : "border border-border bg-white hover:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
+        } px-3 py-2 text-sm text-start disabled:opacity-50 ${buttonClassName}`}
         title={selected?.label || placeholder}
       >
         <span className={wrap

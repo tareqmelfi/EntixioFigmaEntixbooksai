@@ -38,6 +38,10 @@ export interface InvoiceLine {
   taxInclusive: boolean;
   taxRate: number;
   notes?: string;
+  /** Revenue recognition / deferred revenue · optional per-line schedule */
+  recognitionStartDate?: string;        // ISO date (yyyy-mm-dd)
+  recognitionMonths?: number;           // 1..120
+  deferredRevenueAccountId?: string;    // LIABILITY account; server resolves when null
 }
 
 export type TaxMode = "all-inclusive" | "all-exclusive" | "custom";
@@ -118,7 +122,7 @@ export function computeTotals(lines: InvoiceLine[]) {
   return { subtotal, tax, total: subtotal + tax };
 }
 
-const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: false };
+const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: false, recognition: true };
 
 const ROW_BORDER_CLASS = "border-border/30";
 
@@ -448,7 +452,8 @@ export function ItemsTable({
   const showAccount = !hidden.account && (accounts.length > 0 || !!onCreateAccount);
   const showTax = !hidden.tax;
   const showTaxAmount = !hidden.taxAmount;
-  const hiddenCount = Number(hidden.account) + Number(hidden.tax) + Number(hidden.taxAmount);
+  const showRecognition = !hidden.recognition;
+  const hiddenCount = Number(hidden.account) + Number(hidden.tax) + Number(hidden.taxAmount) + Number(hidden.recognition);
 
   // Backend uses REVENUE not INCOME · accept both for compatibility
   const accountItems = accounts
@@ -475,9 +480,10 @@ export function ItemsTable({
               <col className="min-w-[104px] w-[9%]" />
               {showAccount && <col className="min-w-[220px] w-[18%]" />}
               {showTax && <col className="min-w-[124px] w-[10%]" />}
-              <col className="min-w-[110px] w-[9%]" />
-              {showTaxAmount && <col className="min-w-[104px] w-[9%]" />}
-              <col className="min-w-[124px] w-[10%]" />
+              <col className="min-w-[120px] w-[9%]" />
+              {showTaxAmount && <col className="min-w-[120px] w-[9%]" />}
+              <col className="min-w-[132px] w-[10%]" />
+              {showRecognition && <col className="min-w-[150px] w-[12%]" />}
               <col className="w-10" />
             </colgroup>
             <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -504,11 +510,19 @@ export function ItemsTable({
                 {showTax && (
                   <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الضريبة</th>
                 )}
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>المبلغ ({currency})</th>
+                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>المبلغ ({currency})</th>
                 {showTaxAmount && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>ض.ق.م</th>
+                  <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>ض.ق.م</th>
                 )}
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الإجمالي ({currency})</th>
+                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>الإجمالي ({currency})</th>
+                {showRecognition && (
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>
+                    <span className="inline-flex items-center gap-1.5">
+                      الاعتراف
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-white">جديد</span>
+                    </span>
+                  </th>
+                )}
                 <th className="py-2.5 px-2 w-10"></th>
               </tr>
             </thead>
@@ -562,8 +576,8 @@ export function ItemsTable({
                           }))}
                           placeholder="ابحث عن صنف..."
                           createLabel={(q) => `+ إنشاء صنف "${q}"`}
-                          className="border-0"
-                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs border border-border/60 rounded-md"
+                          borderless
+                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs rounded-md"
                           menuMinWidth={360}
                           wrap
                         />
@@ -613,8 +627,8 @@ export function ItemsTable({
                           onChange={(id) => updateLine(i, { accountId: id })}
                           items={accountItems}
                           placeholder="ابحث عن حساب..."
-                          className="border-0"
-                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs border border-border/60 rounded-md"
+                          borderless
+                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs rounded-md"
                           menuMinWidth={520}
                           wrap
                           onCreate={onCreateAccount ? async (name) => {
@@ -643,17 +657,50 @@ export function ItemsTable({
                         </select>
                       </td>
                     )}
-                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap">
+                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap text-end table-cell">
                       {gross > 0 ? lineNet.toFixed(2) : ""}
                     </td>
                     {showTaxAmount && (
-                      <td className="px-2 py-1 font-english text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="px-2 py-1 font-english text-xs text-muted-foreground whitespace-nowrap text-end table-cell">
                         {gross > 0 ? lineTax.toFixed(2) : ""}
                       </td>
                     )}
-                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap" style={{ fontWeight: 700 }}>
+                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap text-end table-cell" style={{ fontWeight: 700 }}>
                       {gross > 0 ? lineTotal.toFixed(2) : ""}
                     </td>
+                    {showRecognition && (
+                      <td className="px-2 py-1">
+                        {isReal && gross > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            <Input
+                              type="date"
+                              value={line.recognitionStartDate || ""}
+                              onChange={(e) => updateLine(i, { recognitionStartDate: e.target.value || undefined })}
+                              className="h-7 border-0 bg-transparent px-1 text-[11px] focus:ring-1 focus:ring-primary/30"
+                              dir="ltr"
+                            />
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={120}
+                              value={line.recognitionMonths ? String(line.recognitionMonths) : ""}
+                              onChange={(e) => updateLine(i, { recognitionMonths: e.target.value ? Number(e.target.value) : undefined })}
+                              placeholder="أشهر"
+                              className="h-7 border-0 bg-transparent px-1 text-[11px] font-english focus:ring-1 focus:ring-primary/30"
+                              dir="ltr"
+                            />
+                            {line.recognitionStartDate && line.recognitionMonths ? (
+                              <span className="text-[10px] text-primary leading-tight">
+                                {line.recognitionMonths} شهر · يبدأ {line.recognitionStartDate}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-1 py-1">
                       {isReal && (
                         <button
@@ -786,6 +833,7 @@ export function ItemsTable({
                   { key: "account" as const, label: "الحساب" },
                   { key: "tax" as const, label: "الضريبة" },
                   { key: "taxAmount" as const, label: "مبلغ الضريبة" },
+                  { key: "recognition" as const, label: "الاعتراف بالإيرادات" },
                 ].map((c) => (
                   <label key={c.key} className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted/50 rounded cursor-pointer">
                     <input

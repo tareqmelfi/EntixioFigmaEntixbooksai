@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Save } from "lucide-react";
+import { Loader2, RefreshCw, Save, Download, Printer } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { DateInput } from "../components/date-input";
@@ -112,6 +112,38 @@ export function Taxes() {
     }
   };
 
+  // Export a CSV with the ZATCA line-by-line fields for manual portal entry.
+  const exportZatcaCsv = () => {
+    if (!payload) return;
+    const v = payload.vatDeclaration;
+    const rows: string[] = ["البند,الأساس الضريبي,الضريبة"];
+    const add = (label: string, base: number, vat: number) =>
+      rows.push(`"${label}",${base.toFixed(2)},${vat.toFixed(2)}`);
+    add("المبيعات الخاضعة للنسبة الأساسية (15%)", v.sales.standardRated.base, v.sales.standardRated.vat);
+    add("المبيعات للمواطنين (الصحة والتعليم)", v.sales.citizens?.base || 0, v.sales.citizens?.vat || 0);
+    add("المبيعات الخاضعة للنسبة الصفرية (محلية)", v.sales.zeroDomestic?.base || 0, 0);
+    add("الصادرات", v.sales.exports?.base || 0, 0);
+    add("المبيعات المعفاة", v.sales.exempt.base, 0);
+    add("إجمالي ضريبة المبيعات", v.sales.totalBase, v.sales.totalVat);
+    add("المشتريات الخاضعة للنسبة الأساسية (15%)", v.purchases.deductible.base, v.purchases.deductible.vat);
+    add("الاستيرادات (الجمارك)", v.purchases.importCustoms?.base || 0, v.purchases.importCustoms?.vat || 0);
+    add("الاستيرادات (احتساب عكسي RCM)", v.purchases.importRcm?.base || 0, v.purchases.importRcm?.vat || 0);
+    add("المشتريات الصفرية والمعفاة", v.purchases.zeroExempt?.base || 0, 0);
+    add("إجمالي ضريبة المشتريات", v.purchases.totalBase, v.purchases.totalVat);
+    add("صافي الضريبة المستحقة/المستردة", 0, v.netVat);
+    const csv = rows.join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `zatca-vat-return-${payload.period.from}_to_${payload.period.to}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Print-friendly view (browser print-to-PDF, consistent with the rest of the app).
+  const printZatca = () => window.print();
+
   return (
     <div className="space-y-6">
       <div>
@@ -131,6 +163,8 @@ export function Taxes() {
           </label>
           <div className="flex gap-2">
             <Button variant="outline" onClick={load}><RefreshCw className="me-2 h-4 w-4" />تحديث</Button>
+            <Button variant="outline" onClick={exportZatcaCsv} disabled={!payload}><Download className="me-2 h-4 w-4" />تصدير ملخص الإقرار</Button>
+            <Button variant="outline" onClick={printZatca} disabled={!payload}><Printer className="me-2 h-4 w-4" />طباعة / PDF</Button>
           </div>
         </CardContent>
       </Card>
@@ -148,61 +182,87 @@ export function Taxes() {
             <Metric label={payload.vatDeclaration.netVat >= 0 ? "المستحق الدفع" : "الرصيد المسترد"} value={money(payload.vatDeclaration.netVat >= 0 ? payload.vatDeclaration.payable : payload.vatDeclaration.refundable, currency)} tone={payload.vatDeclaration.netVat >= 0 ? "warn" : "good"} />
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="border-border">
-              <CardHeader><CardTitle>بنود إقرار VAT</CardTitle></CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[860px] text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-muted text-muted-foreground">
-                        <th className="text-start px-4 py-2.5 font-medium">البند</th>
-                        <th className="text-end px-4 py-2.5 font-medium">الأساس الضريبي</th>
-                        <th className="text-end px-4 py-2.5 font-medium">الضريبة</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <VatRow label="المبيعات الخاضعة للضريبة (15%)" base={payload.vatDeclaration.sales.standardRated.base} tax={payload.vatDeclaration.sales.standardRated.vat} currency={currency} />
-                      <VatRow label="المبيعات بنسبة صفرية" base={payload.vatDeclaration.sales.zeroRated.base} tax={payload.vatDeclaration.sales.zeroRated.vat} currency={currency} />
-                      <VatRow label="المبيعات المعفاة" base={payload.vatDeclaration.sales.exempt.base} tax={payload.vatDeclaration.sales.exempt.vat} currency={currency} />
-                      <VatRow label="إيرادات غير ضريبية" base={payload.vatDeclaration.sales.nonTaxable.base} tax={payload.vatDeclaration.sales.nonTaxable.vat} currency={currency} />
-                      <VatRow strong label="إجمالي المبيعات" base={payload.vatDeclaration.sales.totalBase} tax={payload.vatDeclaration.sales.totalVat} currency={currency} />
+          {/* Section 1 · ضريبة المبيعات / المخرجات (Output Tax) */}
+          <Card className="border-border">
+            <CardHeader><CardTitle>ضريبة المبيعات / المخرجات</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted text-muted-foreground">
+                      <th className="text-start px-4 py-2.5 font-medium">البند</th>
+                      <th className="text-end px-4 py-2.5 font-medium">الأساس الضريبي</th>
+                      <th className="text-end px-4 py-2.5 font-medium">الضريبة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <VatRow label="المبيعات الخاضعة للنسبة الأساسية (15%)" base={payload.vatDeclaration.sales.standardRated.base} tax={payload.vatDeclaration.sales.standardRated.vat} currency={currency} />
+                    <VatRow label="المبيعات للمواطنين (الخدمات الصحية والتعليمية)" base={payload.vatDeclaration.sales.citizens?.base || 0} tax={payload.vatDeclaration.sales.citizens?.vat || 0} currency={currency} />
+                    <VatRow label="المبيعات الخاضعة للنسبة الصفرية (محلية)" base={payload.vatDeclaration.sales.zeroDomestic?.base || 0} tax={0} currency={currency} />
+                    <VatRow label="الصادرات" base={payload.vatDeclaration.sales.exports?.base || 0} tax={0} currency={currency} />
+                    <VatRow label="المبيعات المعفاة من الضريبة" base={payload.vatDeclaration.sales.exempt.base} tax={0} currency={currency} />
+                    <VatRow label="إيرادات غير ضريبية" base={payload.vatDeclaration.sales.nonTaxable.base} tax={0} currency={currency} />
+                    <VatRow strong label="إجمالي ضريبة المبيعات" base={payload.vatDeclaration.sales.totalBase} tax={payload.vatDeclaration.sales.totalVat} currency={currency} />
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
 
-                      <VatRow label="المشتريات القابلة للخصم" base={payload.vatDeclaration.purchases.deductible.base} tax={payload.vatDeclaration.purchases.deductible.vat} currency={currency} />
-                      <VatRow label="المشتريات الصفرية" base={payload.vatDeclaration.purchases.zeroRated.base} tax={payload.vatDeclaration.purchases.zeroRated.vat} currency={currency} />
-                      <VatRow label="المشتريات المعفاة" base={payload.vatDeclaration.purchases.exempt.base} tax={payload.vatDeclaration.purchases.exempt.vat} currency={currency} />
-                      <VatRow label="الواردات" base={payload.vatDeclaration.purchases.imports.base} tax={payload.vatDeclaration.purchases.imports.vat} currency={currency} />
-                      <VatRow strong label="إجمالي المشتريات" base={payload.vatDeclaration.purchases.totalBase} tax={payload.vatDeclaration.purchases.totalVat} currency={currency} />
+          {/* Section 2 · ضريبة المشتريات / المدخلات (Input Tax) */}
+          <Card className="border-border">
+            <CardHeader><CardTitle>ضريبة المشتريات / المدخلات</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted text-muted-foreground">
+                      <th className="text-start px-4 py-2.5 font-medium">البند</th>
+                      <th className="text-end px-4 py-2.5 font-medium">الأساس الضريبي</th>
+                      <th className="text-end px-4 py-2.5 font-medium">الضريبة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <VatRow label="المشتريات الخاضعة للنسبة الأساسية (15%)" base={payload.vatDeclaration.purchases.deductible.base} tax={payload.vatDeclaration.purchases.deductible.vat} currency={currency} />
+                    <VatRow label="الاستيرادات الخاضعة للضريبة والمدفوعة في الجمارك" base={payload.vatDeclaration.purchases.importCustoms?.base || 0} tax={payload.vatDeclaration.purchases.importCustoms?.vat || 0} currency={currency} />
+                    <VatRow label="الاستيرادات الخاضعة لآلية الاحتساب العكسي (RCM)" base={payload.vatDeclaration.purchases.importRcm?.base || 0} tax={payload.vatDeclaration.purchases.importRcm?.vat || 0} currency={currency} />
+                    <VatRow label="المشتريات الخاضعة للنسبة الصفرية والمعفاة" base={payload.vatDeclaration.purchases.zeroExempt?.base || 0} tax={0} currency={currency} />
+                    <VatRow strong label="إجمالي ضريبة المشتريات" base={payload.vatDeclaration.purchases.totalBase} tax={payload.vatDeclaration.purchases.totalVat} currency={currency} />
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
 
-                      <tr className="border-t-2 border-border bg-muted/50">
-                        <td className="px-4 py-2.5 font-semibold">صافي الضريبة</td>
-                        <td className="px-4 py-2.5 text-end">—</td>
-                        <td className="px-4 py-2.5 text-end font-english font-bold" dir="ltr">{money(payload.vatDeclaration.netVat, currency)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader><CardTitle>التوضيح المالي</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <TaxLine label="الإيراد العام" value={payload.breakdown.grossRevenue} currency={currency} />
-                <TaxLine label="الضريبة" value={payload.breakdown.taxAmount} currency={currency} />
-                <TaxLine label="الإجمالي" value={payload.breakdown.totalRevenueIncludingTax} currency={currency} strong />
-                <TaxLine label="الإيرادات غير الضريبية" value={payload.breakdown.nonTaxRevenue} currency={currency} />
-                <TaxLine label="المصاريف" value={payload.breakdown.expensesTotal} currency={currency} />
-                <TaxLine label="ضريبة المدخلات" value={payload.breakdown.expensesTax} currency={currency} />
-
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  {isSA
-                    ? "هذه قراءة تشغيلية لفترة محددة. الإرسال الرسمي إلى ZATCA يتطلب المراجعة المحاسبية النهائية قبل التقديم."
-                    : "Operational read for the selected period · final filing requires your accountant's review before submission."}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Section 3 · صافي الضريبة المستحقة / المستردة (Net VAT) */}
+          <Card className="border-border">
+            <CardHeader><CardTitle>صافي الضريبة المستحقة / المستردة</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
+                  <tbody>
+                    <tr className="border-b border-border/50">
+                      <td className="px-4 py-2.5">إجمالي ضريبة المبيعات (المخرجات)</td>
+                      <td className="px-4 py-2.5 text-end font-english font-semibold" dir="ltr">{money(payload.vatDeclaration.sales.totalVat, currency)}</td>
+                    </tr>
+                    <tr className="border-b border-border/50">
+                      <td className="px-4 py-2.5">إجمالي ضريبة المشتريات (المدخلات)</td>
+                      <td className="px-4 py-2.5 text-end font-english font-semibold" dir="ltr">{money(payload.vatDeclaration.purchases.totalVat, currency)}</td>
+                    </tr>
+                    <tr className="border-t-2 border-border bg-muted/50">
+                      <td className="px-4 py-2.5 font-bold">{payload.vatDeclaration.netVat >= 0 ? "صافي الضريبة المستحقة" : "صافي الضريبة المستردة"}</td>
+                      <td className="px-4 py-2.5 text-end font-english font-bold" dir="ltr">{money(payload.vatDeclaration.netVat >= 0 ? payload.vatDeclaration.payable : payload.vatDeclaration.refundable, currency)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                {isSA
+                  ? "هذه قراءة تشغيلية لفترة محددة. الإرسال الرسمي إلى ZATCA يتطلب المراجعة المحاسبية النهائية قبل التقديم."
+                  : "Operational read for the selected period · final filing requires your accountant's review before submission."}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="border-border">
             <CardHeader><CardTitle>ضريبة الاستقطاع (حسب الحوالات)</CardTitle></CardHeader>
@@ -255,6 +315,7 @@ export function Taxes() {
                                 className="h-9 rounded border border-border px-2 bg-white"
                               >
                                 <option value="5">5%</option>
+                                <option value="15">15%</option>
                                 <option value="20">20%</option>
                                 <option value="0">0%</option>
                               </select>
@@ -295,15 +356,6 @@ function Metric({ label, value, tone = "default", mono = false }: { label: strin
     <div className={`rounded-lg border px-4 py-3 ${colors}`}>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`mt-1 text-lg font-semibold text-foreground ${mono ? "font-english" : ""}`}>{value}</div>
-    </div>
-  );
-}
-
-function TaxLine({ label, value, currency, strong = false }: { label: string; value: number; currency: string; strong?: boolean }) {
-  return (
-    <div className={`flex items-center justify-between gap-3 ${strong ? "text-base" : "text-sm"}`}>
-      <span className="text-foreground/80">{label}</span>
-      <span className={`font-english ${strong ? "font-bold text-foreground" : "font-semibold text-foreground/80"}`} dir="ltr">{money(value, currency)}</span>
     </div>
   );
 }

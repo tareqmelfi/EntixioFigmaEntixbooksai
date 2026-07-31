@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -67,10 +68,22 @@ const movementLabels: Record<string, string> = {
 
 export function Inventory() {
   const { toasts, push, dismiss } = useToasts();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"stock" | "warehouses" | "movements">("stock");
+  // Derive the active tab from the URL path so /app/warehouses → "warehouses",
+  // /app/stock-movements → "movements", and /app/inventory → "stock".
+  // Without this, React Router reuses the same <Inventory /> instance across
+  // all three routes and the tab stays stuck on "stock" (the reported bug).
+  const deriveTab = (): "stock" | "warehouses" | "movements" => {
+    const p = location.pathname;
+    if (p.endsWith("/stock-movements")) return "movements";
+    if (p.endsWith("/warehouses")) return "warehouses";
+    return "stock";
+  };
+  const [activeTab, setActiveTab] = useState<"stock" | "warehouses" | "movements">(deriveTab);
+  useEffect(() => { setActiveTab(deriveTab()); }, [location.pathname]);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);

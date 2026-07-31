@@ -4,7 +4,7 @@
  * UX pattern: FullPageForm (replaces content area on create · مطابق Wafeq) + ItemsTable + SearchableCombobox.
  */
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams, useLocation } from "react-router";
 import { Plus, Search, Trash2, Loader2, ShoppingBag, Edit2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -144,6 +144,8 @@ export function PurchaseBills() {
     };
   }, [createOpen]);
 
+  const location = useLocation();
+
   useEffect(() => {
     if (searchParams.get("new") === "1") {
       const prefillContact = searchParams.get("contactId") || "";
@@ -155,6 +157,17 @@ export function PurchaseBills() {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Deep link · /app/purchases/bills/:id → open that bill's edit view directly.
+  // Without this, a statement deep-link shows the unfiltered list and the target
+  // bill appears "missing" (the reported symptom).
+  useEffect(() => {
+    const m = location.pathname.match(/\/app\/purchases\/bills\/([^/]+)/);
+    const id = m?.[1];
+    if (!id || id === "new" || editingId === id || createOpen) return;
+    api.bills.get(id).then((full: any) => openEdit(full)).catch(() => { /* unknown id → stay on list */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const filtered = items.filter(b =>
     !searchQuery || b.billNumber.includes(searchQuery) ||
@@ -666,17 +679,17 @@ export function PurchaseBills() {
                     const totals = computeTotals(lines);
                     return (
                       <>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">المجموع الفرعي</span>
-                          <span className="font-english">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="text-muted-foreground min-w-0 break-words">المجموع الفرعي</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">الضريبة (15%)</span>
-                          <span className="font-english">{form.currency} {totals.tax.toFixed(2)}</span>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="text-muted-foreground min-w-0 break-words">الضريبة (15%)</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-border">
-                          <span className="text-foreground" style={{ fontWeight: 600 }}>الإجمالي:</span>
-                          <span className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                             {form.currency} {totals.total.toFixed(2)}
                           </span>
                         </div>

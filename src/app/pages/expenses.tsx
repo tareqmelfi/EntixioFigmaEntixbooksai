@@ -625,6 +625,32 @@ export function Expenses() {
       openCreate();
       setSearchParams({}, { replace: true });
     }
+    // Receipt Capture → "إنشاء مصروف من النتيجة" · prefill from the stashed OCR JSON.
+    if (searchParams.get("fromOcr") === "1") {
+      try {
+        const raw = sessionStorage.getItem("entix_ocr_prefill");
+        if (raw) {
+          const ocr = JSON.parse(raw);
+          setEditingId(null);
+          setFormData((f: any) => ({
+            ...emptyForm(),
+            ...f,
+            vendorName: ocr.vendor || f.vendorName || "",
+            date: ocr.date ? String(ocr.date).slice(0, 10) : f.date,
+            totalAmount: ocr.total != null ? String(ocr.total) : f.totalAmount,
+            amount: ocr.subtotal != null ? String(ocr.subtotal) : (ocr.total != null ? String(ocr.total) : f.amount),
+            documentNumber: ocr.invoiceNumber || ocr.documentNumber || f.documentNumber || "",
+            supplierTaxId: ocr.vendorTaxId || ocr.taxId || f.supplierTaxId || "",
+            description: ocr.description || (Array.isArray(ocr.lines) ? `${ocr.lines.length} بنود مُستخرجة` : "") || f.description,
+            sourceCurrency: ocr.currency || f.sourceCurrency || "SAR",
+          }));
+          setExtractionSummary(ocr.__error ? null : ocr);
+          setCreateOpen(true);
+        }
+      } catch { /* malformed stash · fall through to a blank form */ }
+      sessionStorage.removeItem("entix_ocr_prefill");
+      setSearchParams({}, { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
 

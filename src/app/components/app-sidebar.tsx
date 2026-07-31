@@ -143,8 +143,8 @@ const sections: MenuSection[] = [
         icon: Wallet,
         path: "/app/payroll",
         children: [
-          { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
           { title: "الموظفين", icon: Users2, path: "/app/employees" },
+          { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
         ],
       },
     ],

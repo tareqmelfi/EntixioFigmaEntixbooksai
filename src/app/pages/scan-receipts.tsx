@@ -3,9 +3,9 @@
  * 3 options: phone scan / file upload / email forward
  * Email alias shows the org-specific bills+slug@entix.io
  */
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
-import { Camera, Upload, Send, Copy, X, Inbox, Pencil, Check, RotateCcw, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { Camera, Upload, Send, Copy, X, Inbox, Pencil, Check, RotateCcw, Loader2, FileText, Sparkles, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -23,6 +23,64 @@ export function ScanReceipts() {
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [showFaq, setShowFaq] = useState(false);
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState<string | null>(null);
+  const [ocrResult, setOcrResult] = useState<any | null>(null);
+
+  // Convert a File to a base64 data URL (no prefix) for the OCR/agent endpoints.
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const s = String(reader.result || "");
+        const comma = s.indexOf(",");
+        resolve(comma >= 0 ? s.slice(comma + 1) : s);
+      };
+      reader.onerror = () => reject(new Error("read_failed"));
+      reader.readAsDataURL(file);
+    });
+
+  // Upload + OCR · runs inline on the Receipt Capture page (no redirect).
+  // Falls back to the expense form with the file attached if extraction is slow/fails.
+  const handleFilePick = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    setUploadFileName(file.name);
+    setUploadBusy(true);
+    setOcrResult(null);
+    let base64 = "";
+    let mime = file.type || "application/octet-stream";
+    try {
+      base64 = await fileToBase64(file);
+      // Try the universal document→rows extractor (bill-lines / expense target).
+      const result = await api.agent.extractDocument({
+        fileBase64: base64,
+        fileName: file.name,
+        mimeType: mime,
+        target: "expense",
+        hint: "receipt",
+      });
+      setOcrResult(result);
+      push("success", "تم تحليل الإيصال · راجع النتيجة وأنشئ المصروف");
+    } catch (e: any) {
+      // Extraction failed · offer to continue manually with the file attached.
+      push("error", "تعذّر التحليل بالذكاء · يمكنك المتابعة يدوياً");
+      setOcrResult({ __error: true, file: { name: file.name, base64: base64, mime: mime } });
+    } finally {
+      setUploadBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Stash the OCR result for the expense form to pick up, then navigate.
+  const createExpenseFromOcr = () => {
+    if (ocrResult) {
+      try { sessionStorage.setItem("entix_ocr_prefill", JSON.stringify(ocrResult)); } catch {}
+    }
+    navigate("/app/expenses/new?fromOcr=1");
+  };
 
   useEffect(() => {
     (async () => {
@@ -33,7 +91,12 @@ export function ScanReceipts() {
         setOrgId(active?.id || "");
         setOrgSlug(active?.slug || "");
         setCustomLocal((active as any)?.inboundEmailLocal || null);
-      } catch (_) {}
+      } catch (e: any) {
+        // Surface the error instead of silently falling back to the default alias.
+        // The most common cause is an un-applied inboundEmailLocal migration on the
+        // API DB — check /api/health/schema. Without this, a refresh reverts the alias.
+        push("error", "تعذّر تحميل إعدادات الإيميل — تأكد أن قاعدة البيانات محدّثة (inboundEmailLocal).");
+      }
     })();
   }, []);
 
@@ -104,8 +167,16 @@ export function ScanReceipts() {
           </CardContent>
         </Card>
 
-        {/* File upload */}
-        <Link to="/app/expenses/new" className="block">
+        {/* File upload · opens the OS file picker (no redirect) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFilePick(e.target.files)}
+        />
+        <div className="block" onClick={() => !uploadBusy && fileInputRef.current?.click()}>
           <Card className="border-border hover:border-[#1276E3] transition cursor-pointer h-full">
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-xl bg-primary/5 flex items-center justify-center">
@@ -113,12 +184,12 @@ export function ScanReceipts() {
               </div>
               <h3 className="text-foreground" style={{ fontWeight: 700 }}>رفع من الكمبيوتر</h3>
               <p className="text-xs text-muted-foreground mt-2 leading-5">
-                اختر الملفات أو اسحبها هنا · صور جوال HEIC/JPG · PDF · عدة مرفقات
+                اختر الملفات أو اسحبها هنا · صور PNG/JPG/WEBP · PDF · عدة مرفقات
               </p>
               <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">موصى به</span>
             </CardContent>
           </Card>
-        </Link>
+        </div>
 
         {/* Email forward */}
         <Card className="border-border hover:border-[#1276E3] transition">
@@ -133,6 +204,44 @@ export function ScanReceipts() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Inline upload progress + OCR result · stays on this page (no redirect) */}
+      {(uploadBusy || uploadFileName || ocrResult) && (
+        <Card className="border-border max-w-3xl mx-auto">
+          <CardContent className="p-5 space-y-3">
+            {uploadBusy && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                جارٍ تحليل <span className="font-english text-foreground">{uploadFileName}</span> بالذكاء الاصطناعي…
+              </div>
+            )}
+            {!uploadBusy && ocrResult && !ocrResult.__error && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}>
+                  <Sparkles className="h-4 w-4 text-primary" /> تم تحليل الإيصال
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {ocrResult.vendor && <div><span className="text-muted-foreground">المورّد:</span> <span className="text-foreground">{ocrResult.vendor}</span></div>}
+                  {ocrResult.date && <div><span className="text-muted-foreground">التاريخ:</span> <span className="text-foreground font-english" dir="ltr">{ocrResult.date}</span></div>}
+                  {ocrResult.total != null && <div><span className="text-muted-foreground">الإجمالي:</span> <span className="text-foreground font-english" dir="ltr">{ocrResult.total} {ocrResult.currency || "SAR"}</span></div>}
+                  {Array.isArray(ocrResult.lines) && <div><span className="text-muted-foreground">عدد البنود:</span> <span className="text-foreground font-english" dir="ltr">{ocrResult.lines.length}</span></div>}
+                </div>
+                <Button onClick={createExpenseFromOcr} className="bg-primary hover:bg-primary/90 text-white">
+                  <FileText className="h-4 w-4 me-1" /> إنشاء مصروف من النتيجة
+                </Button>
+              </div>
+            )}
+            {!uploadBusy && ocrResult?.__error && (
+              <div className="space-y-2">
+                <div className="text-sm text-amber-700">تعذّر التحليل بالذكاء · يمكنك المتابعة يدوياً مع المرفق.</div>
+                <Button onClick={createExpenseFromOcr} variant="outline" className="border-border">
+                  <ArrowLeft className="h-4 w-4 me-1" /> المتابعة يدوياً في صفحة المصروف
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Email alias display */}
       <Card className="border-border max-w-3xl mx-auto">

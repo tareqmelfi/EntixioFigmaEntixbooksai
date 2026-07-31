@@ -379,17 +379,17 @@ export function Quotes() {
                     const totals = computeTotals(lines);
                     return (
                       <>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">المجموع الفرعي</span>
-                          <span className="font-english">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="text-muted-foreground min-w-0 break-words">المجموع الفرعي</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">الضريبة (15%)</span>
-                          <span className="font-english">{form.currency} {totals.tax.toFixed(2)}</span>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="text-muted-foreground min-w-0 break-words">الضريبة (15%)</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-border">
-                          <span className="text-foreground" style={{ fontWeight: 600 }}>الإجمالي:</span>
-                          <span className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                             {form.currency} {totals.total.toFixed(2)}
                           </span>
                         </div>

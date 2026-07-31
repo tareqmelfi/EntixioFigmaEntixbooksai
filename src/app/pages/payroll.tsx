@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Calculator, Download, Loader2, Plus, Save, Trash2, Wallet } from "lucide-react";
+import { Calculator, CheckCircle2, Download, Loader2, Plus, Trash2, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { SearchableCombobox } from "../components/searchable-combobox";
+import { ToastStack, useToasts } from "../components/side-panel";
 import { COUNTRIES } from "../lib/countries";
 import { api, ApiError, type Contact } from "../lib/api";
 
@@ -17,6 +18,7 @@ type PayrollRow = {
   otherAllowances: string;
   otherDeductions: string;
   sanedEnabled: boolean;
+  gosiOverride: string; // empty = auto-calc; a number = manual override of employee GOSI
 };
 
 type PayrollPreview = {
@@ -40,6 +42,7 @@ const blankRow = (): PayrollRow => ({
   otherAllowances: "",
   otherDeductions: "",
   sanedEnabled: true,
+  gosiOverride: "",
 });
 
 const money = (value: string | number | null | undefined) =>
@@ -118,6 +121,7 @@ function calculateRowPreview(row: PayrollRow): PayrollPreview {
 }
 
 export function Payroll() {
+  const { toasts, push, dismiss } = useToasts();
   const [employees, setEmployees] = useState<Contact[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [runs, setRuns] = useState<any[]>([]);
@@ -129,6 +133,7 @@ export function Payroll() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastSavedRunId, setLastSavedRunId] = useState<string | null>(null);
 
   const loadEmployees = useCallback(async () => {
     setLoading(true);
@@ -162,6 +167,7 @@ export function Payroll() {
             otherAllowances: String(contract.otherAllowances || ""),
             otherDeductions: String(contract.otherDeductions || ""),
             sanedEnabled: contract.sanedEnabled !== false,
+            gosiOverride: "",
           }));
         });
       }
@@ -256,6 +262,8 @@ export function Payroll() {
         sanedEnabled: row.sanedEnabled,
       }));
 
+  // Calculate + auto-save as DRAFT · the primary action. Calculates the payroll
+  // and immediately persists it so the user can review the results and then approve.
   const calculate = async () => {
     const payload = buildPayrollPayload();
     if (payload.length === 0) {
@@ -265,11 +273,51 @@ export function Payroll() {
     setBusy(true);
     setError(null);
     try {
+      // 1 · calculate (preview)
       const res = await api.payroll.calculate(payload);
       setResults(res.results || []);
       setTotals(res.totals || null);
+      // 2 · auto-save as DRAFT so the run is accessible + can be approved/deleted
+      const run = await api.payroll.saveRun({ period, employees: payload, notes: "Auto-saved from Calculate" });
+      setLastSavedRunId(run.id);
+      setRuns((prev) => [run, ...prev.filter((r) => r.id !== run.id)]);
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : "فشل حساب الرواتب");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Approve · locks the last-saved DRAFT run → APPROVED.
+  const approveRun = async () => {
+    if (!lastSavedRunId) {
+      setError("احسب المسير أولاً قبل الاعتماد");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.payroll.updateRunStatus(lastSavedRunId, "APPROVED");
+      setRuns((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      push("success", "تم اعتماد المسير بنجاح");
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "فشل اعتماد المسير");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Delete a saved DRAFT run.
+  const deleteRun = async (runId: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.payroll.deleteRun(runId);
+      setRuns((prev) => prev.filter((r) => r.id !== runId));
+      if (lastSavedRunId === runId) setLastSavedRunId(null);
+      push("success", "تم حذف المسير");
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "فشل حذف المسير");
     } finally {
       setBusy(false);
     }
@@ -288,36 +336,11 @@ export function Payroll() {
     }
   };
 
-  const saveRun = async () => {
-    const payload = buildPayrollPayload();
-    if (payload.length === 0) {
-      setError("أضف موظف وراتب أساسي قبل حفظ المسير");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const run = await api.payroll.saveRun({ period, employees: payload, notes: "Created from payroll page" });
-      setRuns((prev) => [run, ...prev]);
-      setResults(run.lines || results);
-      setTotals({
-        grossSalary: Number(run.grossSalary),
-        employeeGosi: Number(run.employeeGosi),
-        employerGosi: Number(run.employerGosi),
-        netSalary: Number(run.netSalary),
-        employerCost: Number(run.employerCost),
-      });
-    } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل حفظ المسير");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const displayedTotals = totals || estimatedTotals;
 
   return (
     <div className="space-y-6">
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الرواتب</h1>
@@ -325,13 +348,15 @@ export function Payroll() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} dir="ltr" className="w-36 font-english" />
-          <Button variant="outline" className="border-border" onClick={saveRun} disabled={busy || loading}>
-            {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
-            حفظ المسير
-          </Button>
+          {/* Primary: Calculate → auto-saves as DRAFT */}
           <Button className="bg-primary hover:bg-primary/90" onClick={calculate} disabled={busy || loading}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Calculator className="me-2 h-4 w-4" />}
             حساب المسير
+          </Button>
+          {/* Secondary: Approve → locks the last-saved DRAFT → APPROVED */}
+          <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={approveRun} disabled={busy || loading || !lastSavedRunId}>
+            {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="me-2 h-4 w-4" />}
+            اعتماد المسير
           </Button>
         </div>
       </div>
@@ -376,24 +401,24 @@ export function Payroll() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1280px]">
+              <table className="w-full min-w-[1400px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-3 py-3 text-start">الموظف</th>
                   <th className="px-3 py-3 text-start">الجنسية</th>
-                  <th className="px-3 py-3 text-start">أساسي</th>
-                  <th className="px-3 py-3 text-start">سكن</th>
-                  <th className="px-3 py-3 text-start">نقل</th>
-                  <th className="px-3 py-3 text-start">بدلات</th>
-                  <th className="px-3 py-3 text-start">استقطاعات أخرى</th>
-                  <th className="px-3 py-3 text-start">ساند</th>
-                  <th className="px-3 py-3 text-start">قبل / بعد</th>
-                  <th className="px-3 py-3 text-start"></th>
+                  <th className="px-3 py-3 text-end">أساسي</th>
+                  <th className="px-3 py-3 text-end">سكن</th>
+                  <th className="px-3 py-3 text-end">نقل</th>
+                  <th className="px-3 py-3 text-end">بدلات</th>
+                  <th className="px-3 py-3 text-end">GOSI الموظف</th>
+                  <th className="px-3 py-3 text-end">استقطاعات أخرى</th>
+                  <th className="px-3 py-3 text-center">ساند</th>
+                  <th className="px-3 py-3 text-end">قبل / بعد</th>
+                  <th className="px-3 py-3"></th>
                 </tr></thead>
                 <tbody>
                   {rows.map((row, index) => {
                     const preview = rowPreviews[index];
                     const employee = employeeById.get(row.employeeId);
-                    const deductionsDelta = Math.max(0, preview.grossSalary - preview.netSalary);
 
                     return (
                       <tr key={index} className="border-b border-border/50 align-top">
@@ -424,19 +449,34 @@ export function Payroll() {
                         <MoneyInput value={row.housingAllowance} onChange={(housingAllowance) => updateRow(index, { housingAllowance })} />
                         <MoneyInput value={row.transportAllowance} onChange={(transportAllowance) => updateRow(index, { transportAllowance })} />
                         <MoneyInput value={row.otherAllowances} onChange={(otherAllowances) => updateRow(index, { otherAllowances })} />
-                        <td className="px-3 py-2 min-w-[140px]">
-                          <Input type="number" min="0" step="0.01" value={row.otherDeductions} onChange={(e) => updateRow(index, { otherDeductions: e.target.value })} dir="ltr" className="w-32 font-english" />
-                          <div className="mt-1 text-[10px] text-red-600">GOSI: {money(preview.employeeGosi)} + أخرى: {money(row.otherDeductions || 0)}</div>
+                        {/* GOSI · its own editable column (auto-calculated, manual override allowed) */}
+                        <td className="px-3 py-2 text-end">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={row.gosiOverride || (preview.employeeGosi > 0 ? String(preview.employeeGosi.toFixed(2)) : "")}
+                            onChange={(e) => updateRow(index, { gosiOverride: e.target.value })}
+                            dir="ltr"
+                            className="w-28 font-english text-end"
+                            placeholder="تلقائي"
+                          />
+                          {row.nationalityCode.toUpperCase() === "SA" && (
+                            <div className="mt-1 text-[9px] text-muted-foreground">أساس: <span className="font-english">{money(preview.gosiBase)}</span></div>
+                          )}
+                        </td>
+                        {/* Other Deductions · independent input (loans, penalties, custom) */}
+                        <td className="px-3 py-2 text-end">
+                          <Input type="number" min="0" step="0.01" value={row.otherDeductions} onChange={(e) => updateRow(index, { otherDeductions: e.target.value })} dir="ltr" className="w-28 font-english text-end" />
                         </td>
                         <td className="px-3 py-2 text-center">
                           <input type="checkbox" checked={row.sanedEnabled} onChange={(e) => updateRow(index, { sanedEnabled: e.target.checked })} />
                           <div className="mt-1 text-[10px] text-muted-foreground">{row.nationalityCode.toUpperCase() === "SA" ? "للسعوديين" : "غير مطبق"}</div>
                         </td>
-                        <td className="px-3 py-2 min-w-[190px]">
+                        <td className="px-3 py-2 text-end min-w-[190px]">
                           <div className="text-[11px] text-muted-foreground">الإجمالي قبل الاستقطاع: <span className="font-english text-foreground">{money(preview.grossSalary)}</span></div>
                           <div className="text-[11px] text-red-600">الاستقطاعات: <span className="font-english">{money(preview.totalDeductions)}</span></div>
-                          <div className="text-sm font-semibold text-emerald-700">الصافي بعد الاستقطاع: <span className="font-english">{money(preview.netSalary)}</span></div>
-                          <div className="text-[10px] text-muted-foreground">الفرق: <span className="font-english">-{money(deductionsDelta)}</span> · أساس GOSI: <span className="font-english">{money(preview.gosiBase)}</span></div>
+                          <div className="text-sm font-semibold text-emerald-700">الصافي: <span className="font-english">{money(preview.netSalary)}</span></div>
                         </td>
                         <td className="px-3 py-2">
                           <button onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
@@ -461,11 +501,11 @@ export function Payroll() {
               <table className="w-full min-w-[820px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                   <th className="px-4 py-3 text-start">الموظف</th>
-                  <th className="px-4 py-3 text-start">الإجمالي</th>
-                  <th className="px-4 py-3 text-start">GOSI الموظف</th>
-                  <th className="px-4 py-3 text-start">إجمالي الاستقطاع</th>
-                  <th className="px-4 py-3 text-start">GOSI الشركة</th>
-                  <th className="px-4 py-3 text-start">الصافي</th>
+                  <th className="px-4 py-3 text-end">الإجمالي</th>
+                  <th className="px-4 py-3 text-end">GOSI الموظف</th>
+                  <th className="px-4 py-3 text-end">إجمالي الاستقطاع</th>
+                  <th className="px-4 py-3 text-end">GOSI الشركة</th>
+                  <th className="px-4 py-3 text-end">الصافي</th>
                 </tr></thead>
                 <tbody>
                   {results.map((result) => {
@@ -473,11 +513,11 @@ export function Payroll() {
                     return (
                       <tr key={result.employeeId} className="border-b border-border/50 hover:bg-primary/5">
                         <td className="px-4 py-3 text-sm text-foreground">{employee?.displayName || result.employeeId}</td>
-                        <td className="px-4 py-3 text-sm font-english">{money(result.grossSalary)}</td>
-                        <td className="px-4 py-3 text-sm font-english text-amber-700">{money(result.employeeGosi)}</td>
-                        <td className="px-4 py-3 text-sm font-english text-red-700">{money(result.totalDeductions)}</td>
-                        <td className="px-4 py-3 text-sm font-english">{money(result.employerGosi)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-emerald-700 font-english">{money(result.netSalary)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-end">{money(result.grossSalary)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-end text-amber-700">{money(result.employeeGosi)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-end text-red-700">{money(result.totalDeductions)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-end">{money(result.employerGosi)}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-emerald-700 font-english text-end">{money(result.netSalary)}</td>
                       </tr>
                     );
                   })}
@@ -511,14 +551,26 @@ export function Payroll() {
                       <td className="px-4 py-3 text-sm font-english">{run.period}</td>
                       <td className="px-4 py-3 text-xs"><span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700">{run.status}</span></td>
                       <td className="px-4 py-3 text-sm font-english text-foreground font-semibold">{money(run.netSalary)} {run.currency}</td>
-                      <td className="px-4 py-3 text-sm font-english">{run.lines?.length || 0}</td>
+                      <td className="px-4 py-3 text-sm font-english text-end">{run.lines?.length || 0}</td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank", "noopener,noreferrer")}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50"
-                        >
-                          <Download className="h-3.5 w-3.5" /> SIF
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank", "noopener,noreferrer")}
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50"
+                          >
+                            <Download className="h-3.5 w-3.5" /> SIF
+                          </button>
+                          {run.status === "DRAFT" && (
+                            <button
+                              onClick={() => deleteRun(run.id)}
+                              disabled={busy}
+                              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              title="حذف المسير (مسودة)"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

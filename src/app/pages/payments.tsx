@@ -14,6 +14,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { voucherEmail } from "../lib/email-templates";
 import { useNavigate, useSearchParams } from "react-router";
@@ -38,6 +39,8 @@ export function Payments() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Voucher | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const [emailDialog, setEmailDialog] = useState(false);
   const [emailForm, setEmailForm] = useState({ to: "", subject: "", message: "" });
@@ -47,11 +50,38 @@ export function Payments() {
 
   const closeCreate = () => {
     setOpen(false);
+    setEditingPayment(null);
     resetForm();
     if (goBackToSource()) return;
     // No returnTo → leave the /new route / ?new=1 URL so the panel doesn't re-open
-    if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
+    if (location.pathname.endsWith("/new") || searchParams.get("new") === "1" || location.pathname.match(/\/app\/payments\/([^/]+)/)) {
       navigate("/app/payments", { replace: true });
+    }
+  };
+
+  // Edit an existing saved payment voucher · loads it into the full-page editor
+  // so the user can revise it + see the live side preview (parity with invoices/receipts).
+  const openEdit = async (v: Voucher) => {
+    try {
+      const full = await api.vouchers.get(v.id);
+      setForm({
+        contactId: full.contactId || "",
+        billId: full.billId || "",
+        date: full.date ? new Date(full.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        amount: String(full.amount ?? ""),
+        paymentMethod: full.paymentMethod || "BANK_TRANSFER",
+        reference: full.reference || "",
+        bankAccountId: (full as any).bankAccountId || "",
+        notes: full.notes || "",
+        allocations: [],
+      });
+      setEditingPayment(full);
+      setSelected(null);
+      setOpen(true);
+      setPreviewOpen(true);
+      navigate(`/app/payments/${full.id}`, { replace: true });
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : "تعذر تحميل السند للتعديل");
     }
   };
 
@@ -61,6 +91,7 @@ export function Payments() {
     if (!wantsCreate || open) return;
     const contactId = searchParams.get("contactId");
     resetForm();
+    setEditingPayment(null);
     if (contactId) setForm((f: any) => ({ ...f, contactId }));
     setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,6 +219,25 @@ export function Payments() {
 
     setBusy(true);
     try {
+      // Edit mode · update the single existing payment voucher.
+      if (editingPayment) {
+        const updated = await api.vouchers.update(editingPayment.id, {
+          contactId: form.contactId,
+          billId: form.billId || null,
+          date: form.date,
+          amount: Number(directAmount.toFixed(2)),
+          paymentMethod: form.paymentMethod,
+          bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+          reference: form.reference || null,
+          notes: form.notes || null,
+        });
+        setItems(prev => prev.map(x => x.id === updated.id ? updated : x));
+        setEditingPayment(updated);
+        push("success", `تم تحديث ${updated.number}`);
+        refresh();
+        return;
+      }
+
       const created: Voucher[] = [];
 
       if (allocs.length > 0) {
@@ -303,7 +353,7 @@ export function Payments() {
             <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>سندات الصرف</h1>
             <p className="text-muted-foreground mt-1">المبالغ المدفوعة للموردين · ربط مباشر بفاتورة المشتريات</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => { resetForm(); setOpen(true); }}>
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => { resetForm(); setEditingPayment(null); setOpen(true); }}>
             <Plus className="me-2 h-4 w-4" /> سند صرف جديد
           </Button>
         </div>
@@ -426,6 +476,9 @@ export function Payments() {
               <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-white">
                 <Printer className="h-4 w-4 me-1" /> طباعة / PDF
               </Button>
+              <Button onClick={() => openEdit(selected)} variant="outline" className="border-border">
+                <Wallet className="h-4 w-4 me-1" /> تعديل
+              </Button>
               <Button onClick={() => { openEmailDialog(selected); }} variant="outline" className="border-border">
                 <Mail className="h-4 w-4 me-1" /> إرسال للمورد
               </Button>
@@ -445,16 +498,37 @@ export function Payments() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={closeCreate}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between p-5 border-b border-border/50">
-                <h2 className="text-lg text-foreground font-bold flex items-center gap-2"><Wallet className="h-5 w-5" /> سند صرف جديد</h2>
-                <button type="button" onClick={closeCreate} className="p-1 hover:bg-muted/50 rounded"><X className="h-5 w-5 text-muted-foreground" /></button>
+        <FullPageForm
+          title={editingPayment ? "تعديل سند صرف" : "سند صرف جديد"}
+          subtitle={editingPayment ? `مراجعة السند ${editingPayment.number} · المعاينة يسار` : "إنشاء سند صرف مرتبط بفاتورة المشتريات أو توزيع مبلغ على أكثر من فاتورة"}
+          onClose={closeCreate}
+          disableEscape={busy}
+          footer={
+            <div className="flex items-center justify-between gap-2 flex-wrap w-full">
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+                {editingPayment && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPreviewOpen((v) => !v)}
+                    className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
+                    title="معاينة السند كمستند (يسار)"
+                  >
+                    معاينة
+                  </Button>
+                )}
               </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <Label className="text-xs">المورد *</Label>
+              <Button type="button" onClick={() => handleSubmit({ preventDefault: () => {} } as any)} disabled={busy} className="bg-primary hover:bg-primary/90">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+              </Button>
+            </div>
+          }
+        >
+          <div className={editingPayment && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
+          <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto space-y-4">
+            <div>
+              <Label className="text-xs">المورد *</Label>
                   <SearchableCombobox
                     value={form.contactId}
                     onChange={(id) => setForm({ ...form, contactId: id, billId: "", amount: "", allocations: [] })}
@@ -604,17 +678,32 @@ export function Payments() {
                   <Label className="text-xs">ملاحظات</Label>
                   <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="ملاحظات اختيارية" />
                 </div>
-              </div>
+          </form>
 
-              <div className="flex justify-end gap-2 p-5 border-t border-border/50">
-                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
-                <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
-                </Button>
+          {editingPayment && previewOpen && (
+            <aside className="hidden xl:block sticky top-4">
+              <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
+                  <span className="text-xs text-muted-foreground">معاينة السند · آخر نسخة محفوظة</span>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/print/voucher/${editingPayment.id}`, "_blank", "noopener")}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    فتح في تبويب ←
+                  </button>
+                </div>
+                <iframe
+                  title={`معاينة ${editingPayment.number}`}
+                  src={`/print/voucher/${editingPayment.id}?embed=1&noprint=1`}
+                  className="w-full bg-white"
+                  style={{ height: "calc(100vh - 150px)", border: 0 }}
+                />
               </div>
-            </form>
+            </aside>
+          )}
           </div>
-        </div>
+        </FullPageForm>
       )}
 
       {emailDialog && selected && (

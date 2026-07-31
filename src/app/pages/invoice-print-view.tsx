@@ -196,9 +196,13 @@ export function InvoicePrintView() {
   const sellerVat = (org as any).vatNumber || "";
   const issuedAt = (() => { try { return new Date(invoice.issueDate as any).toISOString(); } catch { return new Date().toISOString(); } })();
   const vatAmount = safeNum((invoice as any).taxTotal);
-  const qrPayload = sellerVat
-    ? tlvBase64([[1, sellerName], [2, sellerVat], [3, issuedAt], [4, total.toFixed(2)], [5, vatAmount.toFixed(2)]])
-    : null;
+  // Prefer the backend's stored, signed Phase-2 QR (invoice.zatcaQr) when present;
+  // fall back to client-side TLV (tags 1-5) only when not yet ZATCA-processed.
+  // A ZATCA QR requires a real VAT number — omit it entirely when sellerVat is empty.
+  const qrPayload = (invoice as any).zatcaQr
+    || (sellerVat
+      ? tlvBase64([[1, sellerName], [2, sellerVat], [3, issuedAt], [4, total.toFixed(2)], [5, vatAmount.toFixed(2)]])
+      : null);
   const qrSvg = showQr && qrPayload ? (() => {
     const qr = qrcode(0, "M");
     qr.addData(qrPayload);
@@ -369,7 +373,11 @@ export function InvoicePrintView() {
               {qrSvg && (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                   {qrSvg}
-                  <div style={{ fontSize: 9, color: "#9CA3AF" }}>{isKsa ? "QR للتحقق" : "Verify QR"}</div>
+                  <div style={{ fontSize: 8, color: "#9CA3AF", maxWidth: 140, textAlign: "center", lineHeight: 1.4 }}>
+                    {isKsa
+                      ? "تم توليد هذا الرمز الرقمي وفق المعايير الفنية المعتمدة للفوترة الإلكترونية من هيئة الزكاة والضريبة والجمارك."
+                      : "This QR code is generated in compliance with ZATCA technical standards for e-invoicing."}
+                  </div>
                 </div>
               )}
               {stampUrl && (

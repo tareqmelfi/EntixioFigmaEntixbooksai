@@ -25,13 +25,15 @@ const MARKETING_ROUTES = new Set([
 ])
 const MARKETING_PREFIXES = ['/solutions/', '/marketplace/']
 
-const SECURITY_HEADERS = {
-  'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
-  'x-frame-options': 'SAMEORIGIN',
-  'x-content-type-options': 'nosniff',
-  'referrer-policy': 'strict-origin-when-cross-origin',
-  'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
-  'content-security-policy': [
+// /print/* is embedded as the editor's side preview iframe. The primary blocker
+// was frame-src omitting 'self' (fixed above). This frame-ancestors relaxation
+// is defense-in-depth: entix.io and www.entix.io are distinct origins, so if the
+// preview is ever loaded cross-origin (www↔apex), 'self' alone would block it.
+// Allow both app origins to frame /print/* only · the rest of the app stays 'self'.
+const PRINT_FRAME_ANCESTORS = "'self' https://entix.io https://www.entix.io"
+
+function buildCsp(frameAncestors = "'self'") {
+  return [
     "default-src 'self'",
     // GA4 inline bootstrap + gtag.js · react inline styles · Turnstile widget (SEC-03)
     "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com",
@@ -39,16 +41,35 @@ const SECURITY_HEADERS = {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://api.entix.io https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://fonts.googleapis.com https://fonts.gstatic.com https://challenges.cloudflare.com",
-    "frame-src https://challenges.cloudflare.com",
-    "frame-ancestors 'self'",
+    // frame-src MUST include 'self' so the editor (/app/invoices) can embed the
+    // same-origin /print/* preview iframe. When frame-src is present it overrides
+    // default-src (no fallback), so omitting 'self' blocked the side preview.
+    "frame-src 'self' https://challenges.cloudflare.com",
+    `frame-ancestors ${frameAncestors}`,
     "base-uri 'self'",
     "form-action 'self'",
-  ].join('; '),
+  ].join('; ')
 }
 
-function withSecurityHeaders(response, isHtml = false) {
+const SECURITY_HEADERS = {
+  'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
+  'x-frame-options': 'SAMEORIGIN',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  'content-security-policy': buildCsp(),
+}
+
+// allowFraming=true expands frame-ancestors to PRINT_FRAME_ANCESTORS and drops
+// X-Frame-Options (CSP governs; ALLOW-FROM is deprecated) · used for /print/*
+// only so the editor's preview iframe can load after the www↔apex redirect.
+function withSecurityHeaders(response, { isHtml = false, allowFraming = false } = {}) {
   const res = new Response(response.body, response)
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v)
+  if (allowFraming) {
+    res.headers.set('content-security-policy', buildCsp(PRINT_FRAME_ANCESTORS))
+    res.headers.delete('x-frame-options')
+  }
   // HTML must revalidate every load so deploys take effect immediately;
   // content-hashed assets stay immutable (PUB-03 cache-busting by design)
   if (isHtml) res.headers.set('cache-control', 'no-cache, must-revalidate')
@@ -106,11 +127,12 @@ export default {
     // 2) app shells (/app /portal /print) → SPA index.html fallback (ARC-04)
     // 3) anything else → honest 404 (REND-07)
     if (isShellOrMarketing(pathname)) {
+      const isPrint = pathname.startsWith('/print')
       const target = pathname === '/' ? '/index.html' : `${pathname}/index.html`
       const real = await env.ASSETS.fetch(new Request(new URL(target, url), request))
-      if (real.status !== 404) return withSecurityHeaders(real, true)
+      if (real.status !== 404) return withSecurityHeaders(real, { isHtml: true, allowFraming: isPrint })
       const shell = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
-      return withSecurityHeaders(shell, true)
+      return withSecurityHeaders(shell, { isHtml: true, allowFraming: isPrint })
     }
     return withSecurityHeaders(notFound())
   },

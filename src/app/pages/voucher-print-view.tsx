@@ -170,19 +170,26 @@ export function VoucherPrintView() {
     return btoa(bin);
   };
   const sellerVat = (org as any).vatNumber || "";
-  const qrPayload = tlvBase64([
-    [1, org.name || ""],
-    [2, sellerVat || "-"],
-    [3, (() => { try { return new Date(voucher.date as any).toISOString(); } catch { return new Date().toISOString(); } })()],
-    [4, amount.toFixed(2)],
-    [5, voucher.number],
-  ]);
-  const qrSvg = (() => {
+  const isKsa = ((org as any).country || "SA") === "SA";
+  // ZATCA TLV QR requires a real VAT number (tag 2). Omit the QR entirely when
+  // there is no VAT number — emitting "-" was malformed and made the QR unscannable.
+  // Tag 5 must be the VAT total, not the voucher number. A payment/receipt voucher
+  // carries no VAT line, so the VAT total is 0.00.
+  const qrPayload = sellerVat
+    ? tlvBase64([
+        [1, org.name || ""],
+        [2, sellerVat],
+        [3, (() => { try { return new Date(voucher.date as any).toISOString(); } catch { return new Date().toISOString(); } })()],
+        [4, amount.toFixed(2)],
+        [5, "0.00"],
+      ])
+    : null;
+  const qrSvg = qrPayload ? (() => {
     const qr = qrcode(0, "M");
     qr.addData(qrPayload);
     qr.make();
     return qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
-  })();
+  })() : null;
 
   const signatureUrl = printImages?.signature || null;
   const issuerName = (voucher as any).createdByName || authStore.getState().user?.name || org.name;
@@ -296,8 +303,18 @@ export function VoucherPrintView() {
 
           <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "end", gap: 20 }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
-              <div style={{ color: "#9CA3AF", fontSize: 10, marginTop: 4 }}>رمز التحقق الإلكتروني</div>
+              {qrSvg ? (
+                <>
+                  <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                  <div style={{ fontSize: 8, color: "#9CA3AF", marginTop: 4, maxWidth: 150, marginInline: "auto", lineHeight: 1.4 }}>
+                    {isKsa
+                      ? "تم توليد هذا الرمز الرقمي وفق المعايير الفنية المعتمدة للفوترة الإلكترونية من هيئة الزكاة والضريبة والجمارك."
+                      : "This QR code is generated in compliance with ZATCA technical standards for e-invoicing."}
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: "#9CA3AF", fontSize: 10 }}>—</div>
+              )}
             </div>
             <div style={{ textAlign: "center" }}>
               {stampUrl ? (

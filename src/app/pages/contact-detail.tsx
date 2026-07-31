@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { api, ApiError, ContactSummary } from "../lib/api";
 import { ContactWizard } from "../components/contact-wizard";
+import { ImageCropperModal } from "../components/image-cropper-modal";
 
 type Tab = "overview" | "operations" | "documents" | "portal" | "activity";
 
@@ -86,38 +87,29 @@ export function ContactDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
-  // Customer logo upload · click the avatar → pick image → downscale → PATCH
+  // Customer logo upload · click the avatar → pick image → CROP → PATCH
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoBusy, setLogoBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
-  const handleLogoPick = async (file: File | undefined) => {
+  // Pick a file → open the cropper modal (instead of the old silent downscale).
+  const handleLogoPick = (file: File | undefined) => {
     if (!file || !id) return;
     setLogoError(null);
-    if (!file.type.startsWith("image/")) { setLogoError("اختر ملف صورة (PNG / JPG / SVG)"); return; }
+    if (!file.type.startsWith("image/")) { setLogoError("اختر ملف صورة (PNG / JPG / WEBP / SVG) · HEIC غير مدعوم"); return; }
     if (file.size > 5 * 1024 * 1024) { setLogoError("الحد الأقصى 5 ميجابايت"); return; }
+    setCropFile(file);
+  };
+
+  // Cropper returns a 256×256 PNG data URL → PATCH the contact → refresh.
+  const handleCropSave = async (dataUrl: string) => {
+    if (!id) return;
+    setCropFile(null);
     setLogoBusy(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          // Downscale to ≤256px · keeps the inline payload tiny
-          const max = 256;
-          const scale = Math.min(1, max / Math.max(img.width, img.height));
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          const ctx = canvas.getContext("2d");
-          if (!ctx) { reject(new Error("canvas")); return; }
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/png"));
-          URL.revokeObjectURL(img.src);
-        };
-        img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error("bad image")); };
-        img.src = URL.createObjectURL(file);
-      });
       await api.contacts.update(id, { avatarUrl: dataUrl } as any);
       await refresh();
     } catch (e: any) {
@@ -236,7 +228,7 @@ export function ContactDetail() {
               <input
                 ref={logoInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 className="hidden"
                 onChange={(e) => handleLogoPick(e.target.files?.[0])}
               />
@@ -258,7 +250,11 @@ export function ContactDetail() {
                   {logoBusy ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <span className="text-white text-[10px] font-semibold">رفع شعار</span>}
                 </div>
               </div>
-              {logoError && <div className="text-[10px] text-red-600 mb-1">{logoError}</div>}
+              {logoError && (
+                <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-1.5 mb-1 max-w-[220px] text-center">
+                  {logoError}
+                </div>
+              )}
               <div className="mb-2" />
               <div className="flex flex-wrap gap-1 justify-center">
                 {contact.isForeign && (
@@ -267,6 +263,15 @@ export function ContactDetail() {
                 <RoleBadges contact={contact} />
               </div>
             </div>
+
+            {/* Logo cropper modal · opens when a file is picked */}
+            {cropFile && (
+              <ImageCropperModal
+                file={cropFile}
+                onCrop={handleCropSave}
+                onClose={() => { setCropFile(null); if (logoInputRef.current) logoInputRef.current.value = ""; }}
+              />
+            )}
             {contact.legalName && contact.legalName !== contact.displayName && (
               <div className="text-xs text-muted-foreground/60 text-center mb-3 pb-3 border-b border-border/50">{contact.legalName}</div>
             )}
@@ -806,6 +811,7 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
 }
 
 function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
+  const navigate = useNavigate();
   if (rows.length === 0) return <div className="py-12 text-center text-sm text-muted-foreground/60">لا توجد مصروفات</div>;
   return (
     <div className="overflow-x-auto">
@@ -826,7 +832,7 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
         </thead>
         <tbody>
           {rows.map((e) => (
-            <tr key={e.id} className="border-t border-border/50 hover:bg-primary/5 transition">
+            <tr key={e.id} onClick={() => navigate(`/app/expenses/${e.id}`)} className="border-t border-border/50 hover:bg-primary/5 transition cursor-pointer">
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{e.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{e.category || "غير مصنّف"}</td>
               <td className="px-4 py-2.5 text-foreground/80 whitespace-normal break-words">{e.description || "—"}</td>

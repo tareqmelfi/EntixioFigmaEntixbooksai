@@ -28,23 +28,6 @@ const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
   STC_PAY: "STC Pay", MADA: "مدى", CHECK: "شيك", OTHER: "أخرى",
 };
 
-const FAZAA_KEYWORDS = /فزعة|fazaa|faza3a|faz3a|faza/i;
-
-function isFazaaContact(c: Contact): boolean {
-  const hay = [
-    c.displayName,
-    c.legalName,
-    c.customCode,
-    c.shortCode,
-    c.tags,
-    c.notes,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return FAZAA_KEYWORDS.test(hay) || /\bfaz\b|\bfza\b|\bfz\b/i.test(hay);
-}
-
 function toNum(v: any): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -67,6 +50,8 @@ export function Receipts() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingReceipt, setEditingReceipt] = useState<Voucher | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const { goBack: goBackToSource } = useReturnTo();
   const fileRef = useRef<HTMLInputElement>(null);
   const [emailDialog, setEmailDialog] = useState(false);
@@ -104,9 +89,6 @@ export function Receipts() {
   };
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-
-  const [fazaaBusy, setFazaaBusy] = useState(false);
-  const [fazaaPreview, setFazaaPreview] = useState<{ invoices: any[]; total: number }>({ invoices: [], total: 0 });
 
   const [form, setForm] = useState<any>({
     contactId: "",
@@ -208,12 +190,40 @@ export function Receipts() {
 
   const openCreate = () => {
     resetForm();
+    setEditingReceipt(null);
     setOpen(true);
     navigate("/app/receipts?new=1", { replace: true });
   };
 
+  // Edit an existing saved receipt voucher · loads it into the form so the user
+  // can revise + see the live side preview (mirrors the invoice editor pattern).
+  const openEdit = async (v: Voucher) => {
+    try {
+      const full = await api.vouchers.get(v.id);
+      setForm({
+        contactId: full.contactId || "",
+        invoiceId: full.invoiceId || "",
+        date: full.date ? new Date(full.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        amount: String(full.amount ?? ""),
+        paymentMethod: full.paymentMethod || "BANK_TRANSFER",
+        reference: full.reference || "",
+        bankAccountId: (full as any).bankAccountId || "",
+        notes: full.notes || "",
+        allocations: [],
+      });
+      setEditingReceipt(full);
+      setSelected(null);
+      setOpen(true);
+      setPreviewOpen(true);
+      navigate(`/app/receipts/${full.id}`, { replace: true });
+    } catch (e: any) {
+      push("error", humanizeError(e, language, { ar: "تعذر تحميل السند للتعديل", en: "Failed to load voucher" }));
+    }
+  };
+
   const closeCreate = () => {
     setOpen(false);
+    setEditingReceipt(null);
     resetForm();
     if (goBackToSource()) return;
     navigate("/app/receipts", { replace: true });
@@ -236,6 +246,25 @@ export function Receipts() {
 
     setBusy(true);
     try {
+      // Edit mode · update the single existing receipt voucher.
+      if (editingReceipt) {
+        const updated = await api.vouchers.update(editingReceipt.id, {
+          contactId: form.contactId,
+          invoiceId: form.invoiceId || null,
+          date: form.date,
+          amount: Number(directAmount.toFixed(2)),
+          paymentMethod: form.paymentMethod,
+          bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+          reference: form.reference || null,
+          notes: form.notes || null,
+        });
+        setItems(prev => prev.map(x => x.id === updated.id ? updated : x));
+        setEditingReceipt(updated);
+        push("success", `تم تحديث ${updated.number}`);
+        refresh();
+        return;
+      }
+
       const created: Voucher[] = [];
 
       if (allocs.length > 0) {
@@ -349,70 +378,6 @@ export function Receipts() {
     } finally { setPendingDelete(null); }
   };
 
-  const handleGenerateFazaaReceipts = async () => {
-    setFazaaBusy(true);
-    try {
-      const fazaaContact = contacts.find(isFazaaContact);
-      if (!fazaaContact) {
-        push("error", "لم يتم العثور على عميل فزعة في قائمة العملاء داخل الشركة الحالية.");
-        return;
-      }
-
-      const invRes = await api.invoices.list({
-        contactId: fazaaContact.id,
-        status: "APPROVED,SENT,VIEWED,PARTIAL,OVERDUE",
-        limit: 200,
-      });
-
-      const targetInvoices = (invRes.items || []).filter((inv: any) => {
-        const remaining = Math.max(Number(inv.total || 0) - Number(inv.amountPaid || 0), 0);
-        return remaining > 0.0001;
-      });
-
-      if (targetInvoices.length === 0) {
-        setFazaaPreview({ invoices: [], total: 0 });
-        push("info", "لا توجد فواتير فزعة مستحقة لإنشاء سندات قبض حالياً.");
-        return;
-      }
-
-      const created: Voucher[] = [];
-      let failed = 0;
-
-      for (const inv of targetInvoices) {
-        const remaining = Math.max(Number(inv.total || 0) - Number(inv.amountPaid || 0), 0);
-        try {
-          const v = await api.vouchers.create({
-            type: "RECEIPT",
-            contactId: fazaaContact.id,
-            invoiceId: inv.id,
-            date: new Date().toISOString().slice(0, 10),
-            amount: Number(remaining.toFixed(2)),
-            paymentMethod: "BANK_TRANSFER",
-            reference: inv.invoiceNumber,
-            notes: `سند قبض تلقائي لفزعة · مرتبط بالفاتورة ${inv.invoiceNumber}`,
-          });
-          created.push(v);
-        } catch {
-          failed += 1;
-        }
-      }
-
-      if (created.length > 0) {
-        setItems((prev) => [...created, ...prev]);
-        const total = created.reduce((sum, v) => sum + Number(v.amount || 0), 0);
-        setFazaaPreview({ invoices: targetInvoices, total });
-        push("success", `تم إنشاء ${created.length} سند قبض لفزعة${failed ? ` · فشل ${failed}` : ""}`);
-        refresh();
-      } else {
-        push("error", "تعذر إنشاء سندات قبض فزعة. تحقق من الفواتير والحالة.");
-      }
-    } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل إنشاء سندات قبض فزعة", en: "Fazaa receipts failed" }));
-    } finally {
-      setFazaaBusy(false);
-    }
-  };
-
   return (
     <div className="flex gap-4">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -424,29 +389,11 @@ export function Receipts() {
             <p className="text-muted-foreground mt-1">المبالغ المُستلمة من العملاء · ربط مباشر بالفاتورة وبالعميل</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" className="border-border" onClick={handleGenerateFazaaReceipts} disabled={fazaaBusy}>
-              {fazaaBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <ReceiptIcon className="me-2 h-4 w-4" />}سندات فزعة
-            </Button>
             <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}>
               <Plus className="me-2 h-4 w-4" /> سند قبض جديد
             </Button>
           </div>
         </div>
-
-        {fazaaPreview.invoices.length > 0 && (
-          <Card className="border-border bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div>
-                  <div className="text-xs text-muted-foreground">فزعة · آخر إنشاء تلقائي</div>
-                  <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>
-                    {`تم تجهيز ${fazaaPreview.invoices.length} سند قبض · بإجمالي ${fazaaPreview.total.toLocaleString()} SAR`}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Card className="border-border"><CardContent className="p-4">
@@ -590,6 +537,9 @@ export function Receipts() {
               <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-white">
                 <Printer className="h-4 w-4 me-1" /> طباعة / PDF
               </Button>
+              <Button onClick={() => openEdit(selected)} variant="outline" className="border-border">
+                <ReceiptIcon className="h-4 w-4 me-1" /> تعديل
+              </Button>
               <Button onClick={() => {
                 openEmailDialog(selected);
               }} variant="outline" className="border-border">
@@ -612,19 +562,33 @@ export function Receipts() {
 
       {open && (
         <FullPageForm
-          title="سند قبض جديد"
-          subtitle="إنشاء سند قبض مرتبط بالفواتير أو توزيع مبلغ على أكثر من فاتورة"
+          title={editingReceipt ? "تعديل سند قبض" : "سند قبض جديد"}
+          subtitle={editingReceipt ? `مراجعة السند ${editingReceipt.number} · المعاينة يسار` : "إنشاء سند قبض مرتبط بالفواتير أو توزيع مبلغ على أكثر من فاتورة"}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap w-full">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+                {editingReceipt && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPreviewOpen((v) => !v)}
+                    className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
+                    title="معاينة السند كمستند (يسار)"
+                  >
+                    معاينة
+                  </Button>
+                )}
+              </div>
               <Button type="button" onClick={() => handleSubmit()} disabled={busy} className="bg-primary hover:bg-primary/90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
               </Button>
             </div>
           }
         >
+          <div className={editingReceipt && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto space-y-4">
             <div>
               <Label className="text-xs">العميل *</Label>
@@ -779,6 +743,30 @@ export function Receipts() {
               <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="ملاحظات اختيارية" />
             </div>
           </form>
+
+          {editingReceipt && previewOpen && (
+            <aside className="hidden xl:block sticky top-4">
+              <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
+                  <span className="text-xs text-muted-foreground">معاينة السند · آخر نسخة محفوظة</span>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/print/voucher/${editingReceipt.id}`, "_blank", "noopener")}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    فتح في تبويب ←
+                  </button>
+                </div>
+                <iframe
+                  title={`معاينة ${editingReceipt.number}`}
+                  src={`/print/voucher/${editingReceipt.id}?embed=1&noprint=1`}
+                  className="w-full bg-white"
+                  style={{ height: "calc(100vh - 150px)", border: 0 }}
+                />
+              </div>
+            </aside>
+          )}
+          </div>
         </FullPageForm>
       )}
 

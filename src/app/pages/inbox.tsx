@@ -8,6 +8,7 @@
  * Shows the org's forwarding address at the top so user can configure suppliers.
  */
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router";
 import {
   Inbox as InboxIcon,
   Loader2,
@@ -141,6 +142,24 @@ export function InboxPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Manual entry · stash the email/extracted info for the expense form + navigate.
+  const navigate = useNavigate();
+  const handleManualEntry = () => {
+    if (!detail) return;
+    try {
+      sessionStorage.setItem("entix_ocr_prefill", JSON.stringify({
+        vendor: (detail.extractedJson as any)?.issuer?.name || detail.fromAddress,
+        date: (detail.extractedJson as any)?.issueDate || null,
+        total: (detail.extractedJson as any)?.totals?.total ?? null,
+        currency: (detail.extractedJson as any)?.currency || null,
+        invoiceNumber: (detail.extractedJson as any)?.documentNumber || null,
+        lines: (detail.extractedJson as any)?.lines || [],
+        __fromInbox: detail.id,
+      }));
+    } catch {}
+    navigate("/app/expenses/new?fromOcr=1");
   };
 
   const forwardAddress = mailboxStatus?.address || `bills+${orgSlug}@entix.io`;
@@ -279,6 +298,7 @@ export function InboxPage() {
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onReprocess={handleReprocess}
+                onManualEntry={handleManualEntry}
               />
             )}
           </CardContent>
@@ -289,18 +309,28 @@ export function InboxPage() {
 }
 
 function DetailPane({
-  detail, busy, onApprove, onReject, onReprocess,
+  detail, busy, onApprove, onReject, onReprocess, onManualEntry,
 }: {
   detail: InboxMessageDetail;
   busy: boolean;
   onApprove: () => void;
   onReject: () => void;
   onReprocess: () => void;
+  onManualEntry: () => void;
 }) {
   const ex = detail.extractedJson || null;
   const lines: any[] = ex?.lines || [];
   const sl = STATUS_LABEL[detail.status] || { label: detail.status, bg: "bg-gray-100", text: "text-gray-600" };
   const isFinal = detail.status === "APPROVED" || detail.status === "REJECTED";
+
+  // Proactive duplicate check · when a message is EXTRACTED, look for an existing
+  // bill matching vendor + date + total so we can warn BEFORE the user approves.
+  const [dupInfo, setDupInfo] = useState<{ possibleDuplicate: boolean; match?: any } | null>(null);
+  useEffect(() => {
+    setDupInfo(null);
+    if (detail.status !== "EXTRACTED") return;
+    api.inbox.duplicateCheck(detail.id).then((r) => setDupInfo(r)).catch(() => {});
+  }, [detail.id, detail.status]);
 
   return (
     <div className="divide-y divide-[#F3F4F6]">
@@ -394,6 +424,27 @@ function DetailPane({
         </div>
       )}
 
+      {/* Possible Duplicate warning · proactive check before approve */}
+      {dupInfo?.possibleDuplicate && !isFinal && (
+        <div className="p-4 bg-amber-50 border-t border-amber-200">
+          <div className="flex items-start gap-2 text-sm text-amber-800">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div style={{ fontWeight: 700 }}>⚠️ قد يكون مكرراً</div>
+              {dupInfo.match && (
+                <div className="text-xs text-amber-700">
+                  يوجد فاتورة شراء مطابقة: <span className="font-english">{dupInfo.match.billNumber}</span>
+                  {" · "}الإجمالي <span className="font-english">{Number(dupInfo.match.total).toLocaleString()}</span>
+                  {" · "}المورّد {dupInfo.match.supplierName || "—"}
+                  {" · "}بتاريخ <span className="font-english">{String(dupInfo.match.issueDate).slice(0, 10)}</span>
+                </div>
+              )}
+              <div className="text-xs text-amber-700">راجع البيانات بعناية قبل الاعتماد · يمكنك الاعتماد (تجاوز التحذير) أو الرفض.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       {!isFinal && (
         <div className="p-5 flex flex-wrap items-center gap-2">
@@ -421,6 +472,14 @@ function DetailPane({
               >
                 <XCircle className="h-3.5 w-3.5" /> رفض
               </button>
+              <button
+                onClick={onManualEntry}
+                disabled={busy}
+                className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5 disabled:opacity-50"
+                title="إدخال يدوي للبنود في سجل مصروف/مشتريات"
+              >
+                <FileText className="h-3.5 w-3.5" /> إدخال يدوي
+              </button>
             </>
           ) : (
             <button
@@ -430,6 +489,17 @@ function DetailPane({
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               استخراج بالذكاء
+            </button>
+          )}
+          {/* Manual entry is always available (even before extraction) */}
+          {!ex && (
+            <button
+              onClick={onManualEntry}
+              disabled={busy}
+              className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5 disabled:opacity-50"
+              title="إدخال يدوي للبنود في سجل مصروف/مشتريات"
+            >
+              <FileText className="h-3.5 w-3.5" /> إدخال يدوي
             </button>
           )}
         </div>

@@ -144,6 +144,11 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
         message = d.error.message || d.error.code || JSON.stringify(d.error)
         if (typeof d.error.code === 'string') code = d.error.code
       } else if (typeof d.message === 'string') message = d.message
+      // Human fallback for 404 / route-not-found so the UI never shows the raw
+      // "not_found" machine code (e.g. a stale backend deploy missing a route).
+      if (code === 'not_found' || res.status === 404) {
+        message = 'تعذّر الوصول إلى الخدمة المطلوبة — تحقق أن النظام محدّث.'
+      }
       // Zod validation: { success: false, error: { issues: [{path, message}, ...] } }
       if (Array.isArray(d?.error?.issues)) {
         message = d.error.issues.map((i: any) => `${(i.path || []).join('.')} ${i.message}`).join(' · ')
@@ -257,6 +262,7 @@ export const api = {
     approve: (id: string) => request<{ ok: true; billId: string; billNumber: string }>(`/api/inbox/${id}/approve`, { method: 'POST' }),
     reject: (id: string) => request<{ ok: true }>(`/api/inbox/${id}/reject`, { method: 'POST' }),
     reprocess: (id: string) => request<{ ok: true; kind: string; lines: number }>(`/api/inbox/${id}/reprocess`, { method: 'POST' }),
+    duplicateCheck: (id: string) => request<{ possibleDuplicate: boolean; match?: { id: string; billNumber: string; total: number; issueDate: string; supplierName: string | null } | null }>(`/api/inbox/${id}/duplicate-check`),
   },
 
   // Accounts (chart of accounts)
@@ -698,6 +704,14 @@ export const api = {
     getQr: (invoiceId: string) => request<{ qr: string }>(`/api/zatca/invoices/${invoiceId}/qr`),
   },
 
+  // Revenue Recognition · الاعتراف بالإيرادات / Deferred Revenue
+  // catchUp is fire-and-forget on dashboard load (lazy, survives reboots).
+  revenueRecognition: {
+    catchUp: () => request<{ posted: number }>('/api/revenue-recognition/catch-up'),
+    run: () => request<{ posted: number }>('/api/revenue-recognition/run', { method: 'POST' }),
+    listSchedules: () => request<{ items: any[]; total: number }>('/api/revenue-recognition/schedules'),
+  },
+
   // Inventory · multi-warehouse · WAC/FIFO/LIFO
   inventory: {
     listWarehouses: () => request<{ items: any[] }>('/api/inventory/warehouses'),
@@ -731,6 +745,7 @@ export const api = {
       request<any>('/api/payroll/run', { method: 'POST', body: data }),
     updateRunStatus: (id: string, status: 'DRAFT' | 'APPROVED' | 'POSTED' | 'PAID' | 'CANCELLED') =>
       request<any>(`/api/payroll/runs/${id}/status`, { method: 'POST', body: { status } }),
+    deleteRun: (id: string) => request<{ ok: true }>(`/api/payroll/runs/${id}`, { method: 'DELETE' }),
     runSifUrl: (id: string) => `${API_BASE}/api/payroll/runs/${id}/sif`,
   },
 
@@ -1507,6 +1522,9 @@ export interface TaxReturnPayload {
   vatDeclaration: {
     sales: {
       standardRated: { base: number; vat: number }
+      citizens: { base: number; vat: number }
+      zeroDomestic: { base: number; vat: number }
+      exports: { base: number; vat: number }
       zeroRated: { base: number; vat: number }
       exempt: { base: number; vat: number }
       nonTaxable: { base: number; vat: number }
@@ -1515,6 +1533,9 @@ export interface TaxReturnPayload {
     }
     purchases: {
       deductible: { base: number; vat: number }
+      importCustoms: { base: number; vat: number }
+      importRcm: { base: number; vat: number }
+      zeroExempt: { base: number; vat: number }
       zeroRated: { base: number; vat: number }
       exempt: { base: number; vat: number }
       imports: { base: number; vat: number }
