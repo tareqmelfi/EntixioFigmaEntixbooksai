@@ -217,6 +217,7 @@ export const router = createBrowserRouter([
       { path: "stock-movements", element: lazyElement(() => import("./pages/inventory"), "Inventory"), errorElement: <ErrorBoundary /> },
       // Payroll & Employees
       { path: "payroll", element: lazyElement(() => import("./pages/payroll"), "Payroll"), errorElement: <ErrorBoundary /> },
+      { path: "payroll/:id", element: lazyElement(() => import("./pages/payroll-detail"), "PayrollDetail"), errorElement: <ErrorBoundary /> },
       { path: "employees", element: lazyElement(() => import("./pages/employees"), "Employees"), errorElement: <ErrorBoundary /> },
       // Contacts (formerly العملاء والموردين)
       { path: "contacts", element: lazyElement(() => import("./pages/contacts"), "Contacts"), errorElement: <ErrorBoundary /> },

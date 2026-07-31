@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Calculator, CheckCircle2, Download, Loader2, Plus, Trash2, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -122,6 +123,7 @@ function calculateRowPreview(row: PayrollRow): PayrollPreview {
 
 export function Payroll() {
   const { toasts, push, dismiss } = useToasts();
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Contact[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [runs, setRuns] = useState<any[]>([]);
@@ -547,7 +549,9 @@ export function Payroll() {
                 <tbody>
                   {runs.map((run) => (
                     <tr key={run.id} className="border-b border-border/50 hover:bg-primary/5">
-                      <td className="px-4 py-3 text-sm font-english text-primary font-semibold">{run.runNumber}</td>
+                      <td className="px-4 py-3 text-sm font-english text-primary font-semibold">
+                        <button onClick={() => navigate(`/app/payroll/${run.id}`)} className="hover:underline">{run.runNumber}</button>
+                      </td>
                       <td className="px-4 py-3 text-sm font-english">{run.period}</td>
                       <td className="px-4 py-3 text-xs"><span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700">{run.status}</span></td>
                       <td className="px-4 py-3 text-sm font-english text-foreground font-semibold">{money(run.netSalary)} {run.currency}</td>

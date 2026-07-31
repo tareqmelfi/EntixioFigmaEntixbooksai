@@ -741,6 +741,7 @@ export const api = {
     saveContract: (data: any) => request<any>('/api/payroll/contracts', { method: 'POST', body: data }),
     updateContract: (id: string, data: any) => request<any>(`/api/payroll/contracts/${id}`, { method: 'PATCH', body: data }),
     runs: () => request<{ items: any[]; total: number }>('/api/payroll/runs'),
+    getRun: (id: string) => request<any>(`/api/payroll/runs/${id}`),
     saveRun: (data: { period: string; runNumber?: string; notes?: string | null; employees?: any[] }) =>
       request<any>('/api/payroll/run', { method: 'POST', body: data }),
     updateRunStatus: (id: string, status: 'DRAFT' | 'APPROVED' | 'POSTED' | 'PAID' | 'CANCELLED') =>
