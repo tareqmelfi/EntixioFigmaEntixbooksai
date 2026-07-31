@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
+import { useOrgRegion } from "../lib/use-org-region";
 import { api, NotificationItem } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 
@@ -29,6 +30,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const authState = authStore.getState();
+  const { isSA } = useOrgRegion();
   const currentCompanyName = authState.user?.company || t("الشركة الحالية", "Current company");
   const currentCompanyInitials = currentCompanyName
     .trim()
@@ -91,7 +93,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      {/* ZATCA integration banner · non-intrusive · RTL-aware */}
+      {/* ZATCA integration banner · Saudi orgs only (US orgs get Plaid/Stripe instead) */}
+      {isSA && (
       <div className="bg-foreground text-primary-foreground px-4 sm:px-6 py-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -106,6 +109,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           </Link>
         </div>
       </div>
+      )}
 
       <header className="border-b border-border bg-card px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between gap-3">

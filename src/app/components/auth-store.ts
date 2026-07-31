@@ -14,6 +14,11 @@ const API_BASE =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
   'https://api.entix.io'
 
+function localeHeaders(): Record<string, string> {
+  const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'ar'
+  return { 'Accept-Language': lang === 'en' ? 'en-US,en;q=0.9,ar;q=0.8' : 'ar-SA,ar;q=0.9,en;q=0.8' }
+}
+
 export interface User {
   id: string
   email: string
@@ -88,6 +93,7 @@ class AuthStore {
     try {
       const res = await fetch(`${API_BASE}/api/auth/get-session`, {
         credentials: 'include',
+        headers: localeHeaders(),
       })
       if (!res.ok) {
         writeCachedUser(null)
@@ -98,7 +104,7 @@ class AuthStore {
       const data = await res.json()
       if (data?.user?.id) {
         // Pull org info via /me
-        const meRes = await fetch(`${API_BASE}/me`, { credentials: 'include' })
+        const meRes = await fetch(`${API_BASE}/me`, { credentials: 'include', headers: localeHeaders() })
         const me = meRes.ok ? await meRes.json() : null
         const memberships = me?.memberships || []
         // Respect user's previously-selected org if still valid · fallback to first
@@ -113,6 +119,7 @@ class AuthStore {
             const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
               method: 'POST',
               credentials: 'include',
+              headers: localeHeaders(),
             })
             if (bootstrapRes.ok) {
               const boot = await bootstrapRes.json().catch(() => null)

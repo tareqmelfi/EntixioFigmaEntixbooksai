@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow } from "../lib/api";
+import { useOrgRegion } from "../lib/use-org-region";
 
 const money = (value: number, currency = "SAR") =>
   `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -26,6 +27,7 @@ const transferTypeLabel: Record<TaxReturnWithholdingRow["transferType"], string>
 };
 
 export function Taxes() {
+  const { isSA } = useOrgRegion();
   const [searchParams, setSearchParams] = useSearchParams();
   const [from, setFrom] = useState(searchParams.get("from") || monthStartIso());
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
@@ -194,7 +196,9 @@ export function Taxes() {
                 <TaxLine label="ضريبة المدخلات" value={payload.breakdown.expensesTax} currency={currency} />
 
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  هذه قراءة تشغيلية لفترة محددة. الإرسال الرسمي إلى ZATCA يتطلب المراجعة المحاسبية النهائية قبل التقديم.
+                  {isSA
+                    ? "هذه قراءة تشغيلية لفترة محددة. الإرسال الرسمي إلى ZATCA يتطلب المراجعة المحاسبية النهائية قبل التقديم."
+                    : "Operational read for the selected period · final filing requires your accountant's review before submission."}
                 </div>
               </CardContent>
             </Card>

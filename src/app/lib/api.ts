@@ -98,6 +98,12 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...(opts.headers || {}),
   }
+  // Locale travels with every call — server-rendered content (emails, errors,
+  // PDF) follows the user's chosen language instead of a backend default.
+  if (!headers['Accept-Language']) {
+    const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'ar'
+    headers['Accept-Language'] = lang === 'en' ? 'en-US,en;q=0.9,ar;q=0.8' : 'ar-SA,ar;q=0.9,en;q=0.8'
+  }
   if (!opts.skipOrg && orgId) headers['X-Org-Id'] = orgId
 
   let body: string | undefined

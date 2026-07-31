@@ -8,6 +8,7 @@ import {
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { useOrgRegion } from "../lib/use-org-region";
 
 type IntegrationStatus = "connected" | "available" | "coming";
 
@@ -47,6 +48,7 @@ const statusConfig: Record<IntegrationStatus, { label: string; color: string; bg
 export function Integrations() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const { isSA } = useOrgRegion();
 
   const categories = [...new Set(integrations.map(i => i.category))];
   const filtered = integrations.filter(i => {
@@ -103,10 +105,13 @@ export function Integrations() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((integration) => {
-          const cfg = statusConfig[integration.status];
+          const regionLocked = integration.id === "zatca" && !isSA;
+          const cfg = regionLocked
+            ? { label: "للسعودية فقط", color: "text-muted-foreground/70", bg: "bg-muted" }
+            : statusConfig[integration.status];
           const Icon = integration.icon;
           return (
-            <Card key={integration.id} className="border-border hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer">
+            <Card key={integration.id} className={`border-border transition-all ${regionLocked ? "opacity-60" : "hover:shadow-md hover:border-[#1276E3]/30 cursor-pointer"}`}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -124,8 +129,13 @@ export function Integrations() {
                 {integration.status === "connected" && (
                   <Button variant="outline" className="w-full border-[#0B1B49] text-foreground" size="sm">إعدادات</Button>
                 )}
-                {integration.status === "available" && (
+                {integration.status === "available" && !regionLocked && (
                   <Button className="w-full bg-primary hover:bg-primary/90" size="sm">ربط الآن</Button>
+                )}
+                {regionLocked && (
+                  <Button variant="outline" className="w-full border-border text-muted-foreground/60" size="sm" disabled>
+                    متاح للمنشآت السعودية فقط
+                  </Button>
                 )}
                 {integration.status === "coming" && (
                   <Button variant="outline" className="w-full border-border text-muted-foreground/60" size="sm" disabled>قريباً</Button>
