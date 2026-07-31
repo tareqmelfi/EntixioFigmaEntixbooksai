@@ -242,7 +242,10 @@ class AuthStore {
     }
     await authClient.signIn.social({
       provider: 'google',
-      callbackURL: callbackURL || `${window.location.origin}/app`,
+      // Use an explicit production URL instead of window.location.origin, which
+      // resolves to a capacitor/webview origin on mobile (e.g. capacitor://localhost)
+      // and breaks the OAuth redirect + cross-subdomain session cookie.
+      callbackURL: callbackURL || 'https://entix.io/app',
     })
     return { success: true }
   }
