@@ -5,6 +5,8 @@
 FROM node:22-alpine AS build
 # Force rebuild - security + nginx fix 2026-08-03
 WORKDIR /app
+ARG CACHE_BUST=1
+RUN echo "Cache bust: $CACHE_BUST" 
 
 # Install deps · cache layer for npm
 COPY package*.json ./
