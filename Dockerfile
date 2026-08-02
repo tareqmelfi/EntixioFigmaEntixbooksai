@@ -5,20 +5,13 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-# Install Chromium for puppeteer prerendering
-RUN apk add --no-cache chromium nmap
-
-# Tell puppeteer to use the system chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
 # Install deps · cache layer for npm
 COPY package*.json ./
 RUN npm ci --no-audit --no-fund
 
-# Build (vite + prerender)
+# Build (vite only — skip puppeteer prerender to avoid Docker chromium issues)
 COPY . .
-RUN npm run build
+RUN npm run build:vite-only
 
 # ── Serve stage ──────────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS serve
