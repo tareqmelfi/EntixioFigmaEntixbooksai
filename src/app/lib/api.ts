@@ -37,10 +37,14 @@ export function setOrgId(id: string | null) {
   }
 }
 
-// Bootstrap from localStorage on load
+// SECURITY: Do NOT bootstrap orgId from localStorage at module load.
+// The previous user's org id would be sent as X-Org-Id on the first
+// API calls before the session is revalidated, leaking another user's
+// data. orgId must be set only after authStore.refresh() confirms the
+// current user's membership.
 if (typeof localStorage !== 'undefined') {
   localStorage.removeItem('entix_token')
-  orgId = localStorage.getItem('entix_org_id')
+  // Intentionally NOT reading entix_org_id here
 }
 
 // ── Error type ────────────────────────────────────────────────────────────────

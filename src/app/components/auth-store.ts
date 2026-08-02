@@ -63,13 +63,12 @@ class AuthStore {
   private listeners = new Set<(state: AuthState) => void>()
 
   constructor() {
-    // Optimistic hydrate from cache · the server check still runs in background
-    // and will revoke immediately if the cookie has actually expired.
-    const cachedUser = readCachedUser()
-    this.state = cachedUser
-      ? { user: cachedUser, isAuthenticated: true, loading: true }
-      : { user: null, isAuthenticated: false, loading: true }
-    // Hydrate session from server on app boot
+    // SECURITY: Do NOT optimistically hydrate from cache. The cached user
+    // may belong to a previous session (different Google account, or a
+    // user who closed the tab without logging out). Rendering their data
+    // before the server confirms the session leaks another user's info.
+    // Always start in a loading state and let refresh() determine the truth.
+    this.state = { user: null, isAuthenticated: false, loading: true }
     this.refresh()
   }
 
@@ -165,8 +164,28 @@ class AuthStore {
     }
   }
 
+  /** Clear any stale state from a previous user's session.
+   *  Must be called BEFORE starting a new login flow to prevent
+   *  data leakage between users (e.g. Google account switch). */
+  private clearStaleState() {
+    setOrgId(null)
+    writeCachedUser(null)
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('entix_auth_hint')
+        // Clear org-scoped data caches
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('entix_') && key !== 'entix_token') {
+            localStorage.removeItem(key)
+          }
+        }
+      }
+    } catch {}
+  }
+
   /** Email + password sign-in */
   async login(email: string, password: string, captchaToken?: string | null): Promise<{ success: boolean; error?: string; code?: string }> {
+    this.clearStaleState()
     try {
       const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
       const { data, error } = await authClient.signIn.email({ email, password }, opts)
@@ -233,6 +252,10 @@ class AuthStore {
 
   /** Google OAuth sign-in (browser redirect) */
   async loginWithGoogle(callbackURL?: string): Promise<{ success: boolean; error?: string }> {
+    // SECURITY: Clear stale state BEFORE redirecting to Google.
+    // If another user was logged in before, their org_id and cached user
+    // would persist through the redirect and leak into the new session.
+    this.clearStaleState()
     const p = await this.getProviders()
     if (!p.google) {
       return {

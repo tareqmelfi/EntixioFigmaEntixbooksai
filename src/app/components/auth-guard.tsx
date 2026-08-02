@@ -68,12 +68,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (localQaAuthBypass) return <>{children}</>;
 
-  // 1. Session check still running → don't redirect, don't flash login
+  // 1. Session check still running → show loading spinner.
+  // SECURITY: Do NOT render children optimistically. The previous user's
+  // localStorage could cause pages to fetch and render another user's data
+  // before the server confirms the current session.
   if (state.loading) {
-    // If we've previously confirmed the user was logged in, show children optimistically.
-    // The auth-store will revoke in the background if the session has actually expired.
-    if (optimistic) return <>{children}</>;
-    // Otherwise show a tiny inline loader (no full-screen modal)
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#1276E3] border-t-transparent" />
