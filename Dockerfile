@@ -31,6 +31,14 @@ server {
     try_files $uri $uri/ /index.html;
   }
 
+  # Serve .well-known as static files with correct content type
+  # (Microsoft identity verification requires application/json)
+  location /.well-known/ {
+    try_files $uri =404;
+    default_type application/json;
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+  }
+
   # Cache hashed assets aggressively
   location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$ {
     expires 1y;
