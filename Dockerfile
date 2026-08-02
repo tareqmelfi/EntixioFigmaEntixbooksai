@@ -3,6 +3,7 @@
 
 # ── Build stage ──────────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
+# Force rebuild - security + nginx fix 2026-08-03
 WORKDIR /app
 
 # Install deps · cache layer for npm
