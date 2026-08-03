@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 type ProductRow = {
   id: string;
@@ -55,18 +56,19 @@ const money = (value: string | number | null | undefined) =>
 const qty = (value: string | number | null | undefined) =>
   Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 3 });
 
-const movementLabels: Record<string, string> = {
-  RECEIPT: "استلام",
-  OPENING: "رصيد افتتاحي",
-  ISSUE: "صرف",
-  TRANSFER_IN: "تحويل وارد",
-  TRANSFER_OUT: "تحويل صادر",
-  ADJUSTMENT: "تسوية",
-  RETURN_IN: "مرتجع وارد",
-  RETURN_OUT: "مرتجع صادر",
+const movementLabels: Record<string, { ar: string; en: string }> = {
+  RECEIPT: { ar: "استلام", en: "Receipt" },
+  OPENING: { ar: "رصيد افتتاحي", en: "Opening balance" },
+  ISSUE: { ar: "صرف", en: "Issue" },
+  TRANSFER_IN: { ar: "تحويل وارد", en: "Transfer in" },
+  TRANSFER_OUT: { ar: "تحويل صادر", en: "Transfer out" },
+  ADJUSTMENT: { ar: "تسوية", en: "Adjustment" },
+  RETURN_IN: { ar: "مرتجع وارد", en: "Return in" },
+  RETURN_OUT: { ar: "مرتجع صادر", en: "Return out" },
 };
 
 export function Inventory() {
+  const { t } = useLanguage();
   const { toasts, push, dismiss } = useToasts();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -129,11 +131,11 @@ export function Inventory() {
       setStock(stockRes.items || []);
       setMovements(movementsRes.items || []);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "تعذر تحميل بيانات المخزون");
+      setError(e instanceof ApiError ? e.message : t("تعذر تحميل بيانات المخزون", "Could not load inventory data"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -144,7 +146,7 @@ export function Inventory() {
   const createWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!warehouseForm.code.trim() || !warehouseForm.name.trim()) {
-      setError("رمز واسم المستودع مطلوبة");
+      setError(t("رمز واسم المستودع مطلوبة", "Warehouse code and name are required"));
       return;
     }
     setBusy(true);
@@ -159,9 +161,9 @@ export function Inventory() {
       setWarehouseOpen(false);
       setWarehouseForm({ code: "", name: "", address: "", isPrimary: false });
       await load();
-      push("success", "تم إنشاء المستودع");
+      push("success", t("تم إنشاء المستودع", "Warehouse created"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل إنشاء المستودع");
+      setError(e instanceof ApiError ? e.message : t("فشل إنشاء المستودع", "Failed to create warehouse"));
     } finally {
       setBusy(false);
     }
@@ -177,7 +179,7 @@ export function Inventory() {
       costPrice: 0,
     });
     setProducts((prev) => [created, ...prev]);
-    push("success", `تم إنشاء الصنف ${created.nameAr || created.name}`);
+    push("success", t(`تم إنشاء الصنف ${created.nameAr || created.name}`, `Item ${created.name} created`));
     return created.id;
   };
 
@@ -195,7 +197,7 @@ export function Inventory() {
       isPrimary: warehouses.length === 0,
     });
     setWarehouses((prev) => [created, ...prev]);
-    push("success", `تم إنشاء المستودع ${created.name}`);
+    push("success", t(`تم إنشاء المستودع ${created.name}`, `Warehouse ${created.name} created`));
     return created.id;
   };
 
@@ -204,7 +206,7 @@ export function Inventory() {
     const quantityValue = Number(movementForm.quantity);
     const unitCostValue = Number(movementForm.unitCost || 0);
     if (!movementForm.productId || !movementForm.warehouseId || !quantityValue) {
-      setError("اختر المنتج والمستودع والكمية");
+      setError(t("اختر المنتج والمستودع والكمية", "Select the product, warehouse and quantity"));
       return;
     }
     setBusy(true);
@@ -228,7 +230,7 @@ export function Inventory() {
         });
       } else {
         if (!movementForm.toWarehouseId || movementForm.toWarehouseId === movementForm.warehouseId) {
-          setError("اختر مستودع تحويل مختلف");
+          setError(t("اختر مستودع تحويل مختلف", "Choose a different destination warehouse"));
           setBusy(false);
           return;
         }
@@ -243,9 +245,9 @@ export function Inventory() {
       setMovementOpen(false);
       setMovementForm({ mode: "receipt", productId: "", warehouseId: "", toWarehouseId: "", quantity: "", unitCost: "", method: "WAC" });
       await load();
-      push("success", "تم تسجيل حركة المخزون");
+      push("success", t("تم تسجيل حركة المخزون", "Stock movement recorded"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل تسجيل الحركة");
+      setError(e instanceof ApiError ? e.message : t("فشل تسجيل الحركة", "Failed to record movement"));
     } finally {
       setBusy(false);
     }
@@ -255,34 +257,34 @@ export function Inventory() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المخزون والمستودعات</h1>
-          <p className="text-muted-foreground mt-1">تتبع الكميات، المستودعات، الاستلام، الصرف، والتحويلات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المخزون والمستودعات", "Inventory & Warehouses")}</h1>
+          <p className="text-muted-foreground mt-1">{t("تتبع الكميات، المستودعات، الاستلام، الصرف، والتحويلات", "Track quantities, warehouses, receipts, issues, and transfers")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />تحديث</Button>
-          <Button variant="outline" onClick={() => setWarehouseOpen(true)}><Warehouse className="me-2 h-4 w-4" />مستودع جديد</Button>
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => setMovementOpen(true)}><Plus className="me-2 h-4 w-4" />حركة مخزون</Button>
+          <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
+          <Button variant="outline" onClick={() => setWarehouseOpen(true)}><Warehouse className="me-2 h-4 w-4" />{t("مستودع جديد", "New warehouse")}</Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => setMovementOpen(true)}><Plus className="me-2 h-4 w-4" />{t("حركة مخزون", "Stock movement")}</Button>
         </div>
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="المستودعات" value={warehouses.length.toString()} />
-        <Metric label="الأصناف المخزنية" value={products.filter((p) => p.type === "INVENTORY").length.toString()} />
-        <Metric label="إجمالي الكمية" value={qty(totalQty)} />
-        <Metric label="قيمة المخزون" value={`${money(stockValue)} SAR`} tone={lowStock > 0 ? "warn" : "default"} />
+        <Metric label={t("المستودعات", "Warehouses")} value={warehouses.length.toString()} />
+        <Metric label={t("الأصناف المخزنية", "Inventory items")} value={products.filter((p) => p.type === "INVENTORY").length.toString()} />
+        <Metric label={t("إجمالي الكمية", "Total quantity")} value={qty(totalQty)} />
+        <Metric label={t("قيمة المخزون", "Stock value")} value={`${money(stockValue)} SAR`} tone={lowStock > 0 ? "warn" : "default"} />
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <TabButton active={activeTab === "stock"} onClick={() => setActiveTab("stock")}>الأرصدة</TabButton>
-        <TabButton active={activeTab === "warehouses"} onClick={() => setActiveTab("warehouses")}>المستودعات</TabButton>
-        <TabButton active={activeTab === "movements"} onClick={() => setActiveTab("movements")}>الحركات</TabButton>
+        <TabButton active={activeTab === "stock"} onClick={() => setActiveTab("stock")}>{t("الأرصدة", "Balances")}</TabButton>
+        <TabButton active={activeTab === "warehouses"} onClick={() => setActiveTab("warehouses")}>{t("المستودعات", "Warehouses")}</TabButton>
+        <TabButton active={activeTab === "movements"} onClick={() => setActiveTab("movements")}>{t("الحركات", "Movements")}</TabButton>
       </div>
 
       <Card className="border-border">
         <CardHeader>
-          <CardTitle>{activeTab === "stock" ? "أرصدة المخزون" : activeTab === "warehouses" ? "المستودعات" : "سجل الحركات"}</CardTitle>
+          <CardTitle>{activeTab === "stock" ? t("أرصدة المخزون", "Stock Balances") : activeTab === "warehouses" ? t("المستودعات", "Warehouses") : t("سجل الحركات", "Movement Log")}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -300,21 +302,21 @@ export function Inventory() {
       <SidePanel open={warehouseOpen} onClose={() => setWarehouseOpen(false)}>
         <form onSubmit={createWarehouse} className="space-y-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">مستودع جديد</h2>
-            <p className="text-sm text-muted-foreground">أضف مستودع أو فرع تخزين فعلي.</p>
+            <h2 className="text-lg font-semibold text-foreground">{t("مستودع جديد", "New warehouse")}</h2>
+            <p className="text-sm text-muted-foreground">{t("أضف مستودع أو فرع تخزين فعلي.", "Add a physical warehouse or storage branch.")}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>الرمز *</Label><Input required value={warehouseForm.code} onChange={(e) => setWarehouseForm({ ...warehouseForm, code: e.target.value.toUpperCase() })} dir="ltr" className="font-english" placeholder="MAIN" /></div>
-            <div className="space-y-2"><Label>الاسم *</Label><Input required value={warehouseForm.name} onChange={(e) => setWarehouseForm({ ...warehouseForm, name: e.target.value })} placeholder="المستودع الرئيسي" /></div>
+            <div className="space-y-2"><Label>{t("الرمز *", "Code *")}</Label><Input required value={warehouseForm.code} onChange={(e) => setWarehouseForm({ ...warehouseForm, code: e.target.value.toUpperCase() })} dir="ltr" className="font-english" placeholder="MAIN" /></div>
+            <div className="space-y-2"><Label>{t("الاسم *", "Name *")}</Label><Input required value={warehouseForm.name} onChange={(e) => setWarehouseForm({ ...warehouseForm, name: e.target.value })} placeholder={t("المستودع الرئيسي", "Main warehouse")} /></div>
           </div>
-          <div className="space-y-2"><Label>العنوان</Label><Input value={warehouseForm.address} onChange={(e) => setWarehouseForm({ ...warehouseForm, address: e.target.value })} placeholder="الرياض · حي..." /></div>
+          <div className="space-y-2"><Label>{t("العنوان", "Address")}</Label><Input value={warehouseForm.address} onChange={(e) => setWarehouseForm({ ...warehouseForm, address: e.target.value })} placeholder={t("الرياض · حي...", "Riyadh · district...")} /></div>
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={warehouseForm.isPrimary} onChange={(e) => setWarehouseForm({ ...warehouseForm, isPrimary: e.target.checked })} />
-            مستودع رئيسي
+            {t("مستودع رئيسي", "Primary warehouse")}
           </label>
           <div className="flex justify-end gap-2 border-t border-border pt-3">
-            <Button type="button" variant="outline" onClick={() => setWarehouseOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
+            <Button type="button" variant="outline" onClick={() => setWarehouseOpen(false)}>{t("إلغاء", "Cancel")}</Button>
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? t("جارٍ الحفظ...", "Saving...") : t("حفظ", "Save")}</Button>
           </div>
         </form>
       </SidePanel>
@@ -322,64 +324,64 @@ export function Inventory() {
       <SidePanel open={movementOpen} onClose={() => setMovementOpen(false)}>
         <form onSubmit={createMovement} className="space-y-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">حركة مخزون</h2>
-            <p className="text-sm text-muted-foreground">سجل استلام، صرف، أو تحويل بين المستودعات.</p>
+            <h2 className="text-lg font-semibold text-foreground">{t("حركة مخزون", "Stock movement")}</h2>
+            <p className="text-sm text-muted-foreground">{t("سجل استلام، صرف، أو تحويل بين المستودعات.", "Record a receipt, issue, or transfer between warehouses.")}</p>
           </div>
           <div className="space-y-2">
-            <Label>نوع الحركة</Label>
+            <Label>{t("نوع الحركة", "Movement type")}</Label>
             <Select value={movementForm.mode} onValueChange={(mode) => setMovementForm({ ...movementForm, mode })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="receipt">استلام</SelectItem>
-                <SelectItem value="issue">صرف</SelectItem>
-                <SelectItem value="transfer">تحويل</SelectItem>
+                <SelectItem value="receipt">{t("استلام", "Receipt")}</SelectItem>
+                <SelectItem value="issue">{t("صرف", "Issue")}</SelectItem>
+                <SelectItem value="transfer">{t("تحويل", "Transfer")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>الصنف *</Label>
+            <Label>{t("الصنف *", "Item *")}</Label>
             <SearchableCombobox
               value={movementForm.productId}
               onChange={(productId) => setMovementForm({ ...movementForm, productId })}
               onCreate={createProductInline}
               items={productOptions}
-              placeholder="ابحث عن صنف أو اكتب صنف جديد..."
-              createLabel={(q) => `+ إنشاء صنف مخزني "${q}"`}
+              placeholder={t("ابحث عن صنف أو اكتب صنف جديد...", "Search for an item or type a new one...")}
+              createLabel={(q) => t(`+ إنشاء صنف مخزني "${q}"`, `+ Create inventory item "${q}"`)}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>{movementForm.mode === "transfer" ? "من مستودع *" : "المستودع *"}</Label>
+              <Label>{movementForm.mode === "transfer" ? t("من مستودع *", "From warehouse *") : t("المستودع *", "Warehouse *")}</Label>
               <SearchableCombobox
                 value={movementForm.warehouseId}
                 onChange={(warehouseId) => setMovementForm({ ...movementForm, warehouseId })}
                 onCreate={createWarehouseInline}
                 items={warehouseOptions}
-                placeholder="ابحث عن مستودع أو اكتب مستودع جديد..."
-                createLabel={(q) => `+ إنشاء مستودع "${q}"`}
+                placeholder={t("ابحث عن مستودع أو اكتب مستودع جديد...", "Search for a warehouse or type a new one...")}
+                createLabel={(q) => t(`+ إنشاء مستودع "${q}"`, `+ Create warehouse "${q}"`)}
               />
             </div>
             {movementForm.mode === "transfer" && (
               <div className="space-y-2">
-                <Label>إلى مستودع *</Label>
+                <Label>{t("إلى مستودع *", "To warehouse *")}</Label>
                 <SearchableCombobox
                   value={movementForm.toWarehouseId}
                   onChange={(toWarehouseId) => setMovementForm({ ...movementForm, toWarehouseId })}
                   onCreate={createWarehouseInline}
                   items={warehouseOptions.filter((w) => w.id !== movementForm.warehouseId)}
-                  placeholder="ابحث عن وجهة أو اكتب مستودع جديد..."
-                  createLabel={(q) => `+ إنشاء مستودع "${q}"`}
+                  placeholder={t("ابحث عن وجهة أو اكتب مستودع جديد...", "Search a destination or type a new warehouse...")}
+                  createLabel={(q) => t(`+ إنشاء مستودع "${q}"`, `+ Create warehouse "${q}"`)}
                 />
               </div>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>الكمية *</Label><Input required type="number" min="0.001" step="0.001" value={movementForm.quantity} onChange={(e) => setMovementForm({ ...movementForm, quantity: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>{t("الكمية *", "Quantity *")}</Label><Input required type="number" min="0.001" step="0.001" value={movementForm.quantity} onChange={(e) => setMovementForm({ ...movementForm, quantity: e.target.value })} dir="ltr" className="font-english" /></div>
             {movementForm.mode === "receipt" ? (
-              <div className="space-y-2"><Label>تكلفة الوحدة</Label><Input type="number" min="0" step="0.01" value={movementForm.unitCost} onChange={(e) => setMovementForm({ ...movementForm, unitCost: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>{t("تكلفة الوحدة", "Unit cost")}</Label><Input type="number" min="0" step="0.01" value={movementForm.unitCost} onChange={(e) => setMovementForm({ ...movementForm, unitCost: e.target.value })} dir="ltr" className="font-english" /></div>
             ) : (
               <div className="space-y-2">
-                <Label>طريقة التكلفة</Label>
+                <Label>{t("طريقة التكلفة", "Cost method")}</Label>
                 <Select value={movementForm.method} onValueChange={(method) => setMovementForm({ ...movementForm, method })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -392,8 +394,8 @@ export function Inventory() {
             )}
           </div>
           <div className="flex justify-end gap-2 border-t border-border pt-3">
-            <Button type="button" variant="outline" onClick={() => setMovementOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "جارٍ التسجيل..." : "تسجيل الحركة"}</Button>
+            <Button type="button" variant="outline" onClick={() => setMovementOpen(false)}>{t("إلغاء", "Cancel")}</Button>
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? t("جارٍ التسجيل...", "Recording...") : t("تسجيل الحركة", "Record movement")}</Button>
           </div>
         </form>
       </SidePanel>
@@ -420,16 +422,17 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<string, ProductRow> }) {
-  if (rows.length === 0) return <Empty icon={<Package className="h-10 w-10" />} text="لا توجد أرصدة مخزون بعد" />;
+  const { t } = useLanguage();
+  if (rows.length === 0) return <Empty icon={<Package className="h-10 w-10" />} text={t("لا توجد أرصدة مخزون بعد", "No stock balances yet")} />;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px]">
         <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-          <th className="px-4 py-3 text-start">الصنف</th>
-          <th className="px-4 py-3 text-start">المستودع</th>
-          <th className="px-4 py-3 text-start">الكمية</th>
-          <th className="px-4 py-3 text-start">متوسط التكلفة</th>
-          <th className="px-4 py-3 text-start">القيمة</th>
+          <th className="px-4 py-3 text-start">{t("الصنف", "Item")}</th>
+          <th className="px-4 py-3 text-start">{t("المستودع", "Warehouse")}</th>
+          <th className="px-4 py-3 text-start">{t("الكمية", "Quantity")}</th>
+          <th className="px-4 py-3 text-start">{t("متوسط التكلفة", "Avg cost")}</th>
+          <th className="px-4 py-3 text-start">{t("القيمة", "Value")}</th>
         </tr></thead>
         <tbody>
           {rows.map((row) => {
@@ -439,7 +442,7 @@ function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<
             return (
               <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-foreground">{product?.nameAr || product?.name || "صنف غير معروف"}</div>
+                  <div className="font-medium text-foreground">{product?.nameAr || product?.name || t("صنف غير معروف", "Unknown item")}</div>
                   <div className="text-xs text-muted-foreground/60 font-english">{product?.sku || row.productId}</div>
                 </td>
                 <td className="px-4 py-3 text-sm text-foreground/80">{row.warehouse?.name || row.warehouseId}</td>
@@ -456,7 +459,8 @@ function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<
 }
 
 function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
-  if (rows.length === 0) return <Empty icon={<Warehouse className="h-10 w-10" />} text="لا توجد مستودعات بعد" />;
+  const { t } = useLanguage();
+  if (rows.length === 0) return <Empty icon={<Warehouse className="h-10 w-10" />} text={t("لا توجد مستودعات بعد", "No warehouses yet")} />;
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {rows.map((row) => (
@@ -466,7 +470,7 @@ function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
               <div className="font-semibold text-foreground">{row.name}</div>
               <div className="text-xs text-muted-foreground font-english">{row.code}</div>
             </div>
-            {row.isPrimary && <span className="rounded bg-blue-50 px-2 py-1 text-xs text-primary">رئيسي</span>}
+            {row.isPrimary && <span className="rounded bg-blue-50 px-2 py-1 text-xs text-primary">{t("رئيسي", "Primary")}</span>}
           </div>
           {row.address && <div className="mt-3 text-sm text-muted-foreground">{row.address}</div>}
         </div>
@@ -476,17 +480,18 @@ function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
 }
 
 function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow[]; productById: Map<string, ProductRow>; warehouseById: Map<string, WarehouseRow> }) {
-  if (rows.length === 0) return <Empty icon={<Repeat2 className="h-10 w-10" />} text="لا توجد حركات مخزون بعد" />;
+  const { t } = useLanguage();
+  if (rows.length === 0) return <Empty icon={<Repeat2 className="h-10 w-10" />} text={t("لا توجد حركات مخزون بعد", "No stock movements yet")} />;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px]">
         <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-          <th className="px-4 py-3 text-start">التاريخ</th>
-          <th className="px-4 py-3 text-start">الحركة</th>
-          <th className="px-4 py-3 text-start">الصنف</th>
-          <th className="px-4 py-3 text-start">المستودع</th>
-          <th className="px-4 py-3 text-start">الكمية</th>
-          <th className="px-4 py-3 text-start">التكلفة</th>
+          <th className="px-4 py-3 text-start">{t("التاريخ", "Date")}</th>
+          <th className="px-4 py-3 text-start">{t("الحركة", "Movement")}</th>
+          <th className="px-4 py-3 text-start">{t("الصنف", "Item")}</th>
+          <th className="px-4 py-3 text-start">{t("المستودع", "Warehouse")}</th>
+          <th className="px-4 py-3 text-start">{t("الكمية", "Quantity")}</th>
+          <th className="px-4 py-3 text-start">{t("التكلفة", "Cost")}</th>
         </tr></thead>
         <tbody>
           {rows.map((row) => {
@@ -494,13 +499,14 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
             const warehouse = warehouseById.get(row.warehouseId);
             const quantityValue = Number(row.quantity || 0);
             const inbound = quantityValue >= 0;
+            const label = movementLabels[row.type];
             return (
               <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
                 <td className="px-4 py-3 text-sm text-muted-foreground font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString("en-GB") : "—"}</td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                     {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
-                    {movementLabels[row.type] || row.type}
+                    {label ? t(label.ar, label.en) : row.type}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-foreground">{product?.nameAr || product?.name || row.productId}</td>

@@ -41,6 +41,7 @@ const EN_TEXT: Record<string, string> = {
   "منتجات، خدمات، مخزون": "Products, services, inventory",
   "المنتجات والخدمات": "Products & services",
   "المخزون والمستودعات": "Inventory & warehouses",
+  "حركات المخزون": "Stock movements",
   "للمحاسب": "Accounting",
   "المحاسبة": "Accounting",
   "القيود اليدوية": "Journal entries",
