@@ -3,25 +3,33 @@ import {
   Search, Plus, X, Building2, User, Globe, MapPin,
   ExternalLink, AlertTriangle
 } from "lucide-react";
-import { useContacts, type Party, type RoleType, type EntityLocation } from "./contacts-store";
+import { useContacts, type Party, type RoleType, type EntityLocation, ROLE_LABELS } from "./contacts-store";
+import { useLanguage } from "./LanguageContext";
 
 // ── Countries ──
 const countries = [
-  { code: "SA", name: "المملكة العربية السعودية", currency: "SAR", flag: "🇸🇦" },
-  { code: "US", name: "الولايات المتحدة", currency: "USD", flag: "🇺🇸" },
-  { code: "GB", name: "المملكة المتحدة", currency: "GBP", flag: "🇬🇧" },
-  { code: "AE", name: "الإمارات العربية المتحدة", currency: "AED", flag: "🇦🇪" },
-  { code: "EG", name: "مصر", currency: "EGP", flag: "🇪🇬" },
-  { code: "DE", name: "ألمانيا", currency: "EUR", flag: "🇩🇪" },
-  { code: "FR", name: "فرنسا", currency: "EUR", flag: "🇫🇷" },
-  { code: "JP", name: "اليابان", currency: "JPY", flag: "🇯🇵" },
-  { code: "CN", name: "الصين", currency: "CNY", flag: "🇨🇳" },
-  { code: "IN", name: "الهند", currency: "INR", flag: "🇮🇳" },
+  { code: "SA", name: { ar: "المملكة العربية السعودية", en: "Saudi Arabia" }, currency: "SAR", flag: "🇸🇦" },
+  { code: "US", name: { ar: "الولايات المتحدة", en: "United States" }, currency: "USD", flag: "🇺🇸" },
+  { code: "GB", name: { ar: "المملكة المتحدة", en: "United Kingdom" }, currency: "GBP", flag: "🇬🇧" },
+  { code: "AE", name: { ar: "الإمارات العربية المتحدة", en: "United Arab Emirates" }, currency: "AED", flag: "🇦🇪" },
+  { code: "EG", name: { ar: "مصر", en: "Egypt" }, currency: "EGP", flag: "🇪🇬" },
+  { code: "DE", name: { ar: "ألمانيا", en: "Germany" }, currency: "EUR", flag: "🇩🇪" },
+  { code: "FR", name: { ar: "فرنسا", en: "France" }, currency: "EUR", flag: "🇫🇷" },
+  { code: "JP", name: { ar: "اليابان", en: "Japan" }, currency: "JPY", flag: "🇯🇵" },
+  { code: "CN", name: { ar: "الصين", en: "China" }, currency: "CNY", flag: "🇨🇳" },
+  { code: "IN", name: { ar: "الهند", en: "India" }, currency: "INR", flag: "🇮🇳" },
 ];
 
 const withholdingClassifications = [
-  "خدمات تقنية", "تراخيص برمجية", "خدمات سحابية", "استشارات",
-  "خدمات إدارية", "خدمات مالية", "خدمات تسويقية", "إيجارات", "أخرى",
+  { ar: "خدمات تقنية", en: "IT services" },
+  { ar: "تراخيص برمجية", en: "Software licenses" },
+  { ar: "خدمات سحابية", en: "Cloud services" },
+  { ar: "استشارات", en: "Consulting" },
+  { ar: "خدمات إدارية", en: "Administrative services" },
+  { ar: "خدمات مالية", en: "Financial services" },
+  { ar: "خدمات تسويقية", en: "Marketing services" },
+  { ar: "إيجارات", en: "Rentals" },
+  { ar: "أخرى", en: "Other" },
 ];
 
 interface ContactSearchInputProps {
@@ -53,10 +61,12 @@ export function ContactSearchInput({
   onChange,
   onCreate,
   roleFilter,
-  placeholder = "اكتب اسم العميل أو المورد...",
+  placeholder,
   label,
 }: ContactSearchInputProps) {
+  const { t } = useLanguage();
   const { searchParties, addParty, getPartyByName } = useContacts();
+  const resolvedPlaceholder = placeholder ?? t("اكتب اسم العميل أو المورد...", "Type a customer or supplier name...");
   const [query, setQuery] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
@@ -234,7 +244,7 @@ export function ContactSearchInput({
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className="w-full rounded-lg border border-border bg-white py-2.5 ps-10 pe-10 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20 transition-colors"
         />
         {query && (
@@ -252,14 +262,14 @@ export function ContactSearchInput({
         <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           {selectedParty.entityLocation === "foreign" ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[#92400E]" style={{ fontWeight: 500 }}>
-              <Globe className="h-3 w-3" />{countries.find((c) => c.code === selectedParty.country)?.flag} كيان أجنبي — {selectedParty.currency}
+              <Globe className="h-3 w-3" />{countries.find((c) => c.code === selectedParty.country)?.flag} {t("كيان أجنبي", "Foreign entity")} — {selectedParty.currency}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[#166534]" style={{ fontWeight: 500 }}>
-              🇸🇦 محلي
+              🇸🇦 {t("محلي", "Local")}
             </span>
           )}
-          {selectedParty.taxNumber && <span className="font-english">ض: {selectedParty.taxNumber.slice(0, 6)}...</span>}
+          {selectedParty.taxNumber && <span className="font-english">{t("ض:", "VAT:")} {selectedParty.taxNumber.slice(0, 6)}...</span>}
           {selectedParty.leiCode && (
             <a
               href={`https://search.gleif.org/#/record/${selectedParty.leiCode}`}
@@ -272,7 +282,7 @@ export function ContactSearchInput({
           )}
           {selectedParty.entityLocation === "foreign" && selectedParty.withholdingTaxRate && (
             <span className="inline-flex items-center gap-1 text-[#F59E0B]">
-              <AlertTriangle className="h-3 w-3" /> استقطاع {selectedParty.withholdingTaxRate}%
+              <AlertTriangle className="h-3 w-3" /> {t("استقطاع", "WHT")} {selectedParty.withholdingTaxRate}%
             </span>
           )}
         </div>
@@ -312,22 +322,22 @@ export function ContactSearchInput({
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {party.entityLocation === "foreign" ? (
-                        <span className="text-xs text-[#F59E0B]">{countries.find((c) => c.code === party.country)?.flag} أجنبي</span>
+                        <span className="text-xs text-[#F59E0B]">{countries.find((c) => c.code === party.country)?.flag} {t("أجنبي", "Foreign")}</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">🇸🇦 محلي</span>
+                        <span className="text-xs text-muted-foreground">🇸🇦 {t("محلي", "Local")}</span>
                       )}
                       {party.roles.map((r) => (
-                        <span key={r} className="text-xs text-muted-foreground/60">{r}</span>
+                        <span key={r} className="text-xs text-muted-foreground/60">{ROLE_LABELS[r] ? t(ROLE_LABELS[r].ar, ROLE_LABELS[r].en) : r}</span>
                       ))}
                     </div>
                   </div>
                   {party.taxNumber && (
-                    <span className="text-xs font-english text-muted-foreground/60 shrink-0">ض: {party.taxNumber.slice(0, 6)}...</span>
+                    <span className="text-xs font-english text-muted-foreground/60 shrink-0">{t("ض:", "VAT:")} {party.taxNumber.slice(0, 6)}...</span>
                   )}
                 </button>
               ))
             ) : query.trim() ? (
-              <div className="px-4 py-3 text-sm text-muted-foreground text-center">لا توجد نتائج لـ "{query}"</div>
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center">{t("لا توجد نتائج لـ", "No results for")} "{query}"</div>
             ) : null}
           </div>
 
@@ -344,8 +354,8 @@ export function ContactSearchInput({
                 <Plus className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إضافة "{query}" كجهة اتصال جديدة...</span>
-                <p className="text-xs text-muted-foreground/60">اضغط Enter للإضافة السريعة</p>
+                <span className="text-sm text-primary" style={{ fontWeight: 600 }}>{t("إضافة", "Add")} "{query}" {t("كجهة اتصال جديدة...", "as a new contact...")}</span>
+                <p className="text-xs text-muted-foreground/60">{t("اضغط Enter للإضافة السريعة", "Press Enter for quick add")}</p>
               </div>
             </button>
           )}
@@ -359,8 +369,8 @@ export function ContactSearchInput({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <h3 className="text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700 }}>إضافة جهة اتصال جديدة</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">بيانات أساسية — يمكنك تعديلها لاحقاً من ملف الجهة</p>
+                <h3 className="text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700 }}>{t("إضافة جهة اتصال جديدة", "Add new contact")}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("بيانات أساسية — يمكنك تعديلها لاحقاً من ملف الجهة", "Basic details — you can edit them later from the contact profile")}</p>
               </div>
               <button onClick={() => setShowQuickCreate(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50"><X className="h-5 w-5" /></button>
             </div>
@@ -368,7 +378,7 @@ export function ContactSearchInput({
             <div className="p-5 space-y-4 overflow-y-auto" style={{ maxHeight: "70vh" }}>
               {/* Entity Location Toggle */}
               <div>
-                <label className="text-xs text-muted-foreground mb-2 block" style={{ fontWeight: 600 }}>نوع الكيان</label>
+                <label className="text-xs text-muted-foreground mb-2 block" style={{ fontWeight: 600 }}>{t("نوع الكيان", "Entity type")}</label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleLocationChange("local")}
@@ -377,8 +387,8 @@ export function ContactSearchInput({
                     }`}
                   >
                     <MapPin className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "local" ? "text-primary" : "text-muted-foreground/60"}`} />
-                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "local" ? "#1276E3" : "#374151" }}>🇸🇦 داخل المملكة</p>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">سجل تجاري، رقم ضريبي</p>
+                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "local" ? "#1276E3" : "#374151" }}>🇸🇦 {t("داخل المملكة", "Inside Saudi Arabia")}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{t("سجل تجاري، رقم ضريبي", "Commercial registration, tax ID")}</p>
                   </button>
                   <button
                     onClick={() => handleLocationChange("foreign")}
@@ -387,8 +397,8 @@ export function ContactSearchInput({
                     }`}
                   >
                     <Globe className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "foreign" ? "text-[#F59E0B]" : "text-muted-foreground/60"}`} />
-                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "foreign" ? "#F59E0B" : "#374151" }}>🌍 خارج المملكة</p>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">ITN، LEI، ضريبة استقطاع</p>
+                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "foreign" ? "#F59E0B" : "#374151" }}>🌍 {t("خارج المملكة", "Outside Saudi Arabia")}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{t("ITN، LEI، ضريبة استقطاع", "ITN, LEI, withholding tax")}</p>
                   </button>
                 </div>
               </div>
@@ -396,7 +406,7 @@ export function ContactSearchInput({
               {/* Name & Type */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الاسم (عربي)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("الاسم (عربي)", "Name (Arabic)")}</label>
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -404,7 +414,7 @@ export function ContactSearchInput({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الاسم (إنجليزي)</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("الاسم (إنجليزي)", "Name (English)")}</label>
                   <input
                     value={qcNameEn}
                     onChange={(e) => setQcNameEn(e.target.value)}
@@ -414,13 +424,13 @@ export function ContactSearchInput({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>التصنيف</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("التصنيف", "Classification")}</label>
                   <div className="flex gap-2">
                     <button onClick={() => setQcType("organization")} className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-colors ${qcType === "organization" ? "border-[#1276E3] bg-[#EFF6FF] text-primary" : "border-border text-muted-foreground"}`} style={{ fontWeight: 600 }}>
-                      <Building2 className="h-3.5 w-3.5 mx-auto mb-0.5" />منشأة
+                      <Building2 className="h-3.5 w-3.5 mx-auto mb-0.5" />{t("منشأة", "Organization")}
                     </button>
                     <button onClick={() => setQcType("person")} className={`flex-1 rounded-lg border px-3 py-2 text-xs transition-colors ${qcType === "person" ? "border-[#1276E3] bg-[#EFF6FF] text-primary" : "border-border text-muted-foreground"}`} style={{ fontWeight: 600 }}>
-                      <User className="h-3.5 w-3.5 mx-auto mb-0.5" />فرد
+                      <User className="h-3.5 w-3.5 mx-auto mb-0.5" />{t("فرد", "Individual")}
                     </button>
                   </div>
                 </div>
@@ -430,7 +440,7 @@ export function ContactSearchInput({
               {qcEntityLocation === "foreign" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الدولة</label>
+                    <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("الدولة", "Country")}</label>
                     <select
                       value={qcCountry}
                       onChange={(e) => {
@@ -441,12 +451,12 @@ export function ContactSearchInput({
                       className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none"
                     >
                       {countries.filter((c) => c.code !== "SA").map((c) => (
-                        <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                        <option key={c.code} value={c.code}>{c.flag} {t(c.name.ar, c.name.en)}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>العملة</label>
+                    <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("العملة", "Currency")}</label>
                     <input
                       value={qcCurrency}
                       onChange={(e) => setQcCurrency(e.target.value)}
@@ -460,12 +470,12 @@ export function ContactSearchInput({
               {/* Tax / Legal IDs */}
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block" style={{ fontWeight: 600 }}>
-                  {qcEntityLocation === "local" ? "البيانات الضريبية والتجارية" : "البيانات الضريبية والقانونية"}
+                  {qcEntityLocation === "local" ? t("البيانات الضريبية والتجارية", "Tax and commercial details") : t("البيانات الضريبية والقانونية", "Tax and legal details")}
                 </label>
                 {qcEntityLocation === "local" ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-muted-foreground/60 mb-1 block">الرقم الضريبي (VAT)</label>
+                      <label className="text-xs text-muted-foreground/60 mb-1 block">{t("الرقم الضريبي (VAT)", "Tax ID (VAT)")}</label>
                       <input
                         value={qcTaxNumber}
                         onChange={(e) => setQcTaxNumber(e.target.value)}
@@ -475,7 +485,7 @@ export function ContactSearchInput({
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground/60 mb-1 block">السجل التجاري</label>
+                      <label className="text-xs text-muted-foreground/60 mb-1 block">{t("السجل التجاري", "Commercial registration")}</label>
                       <input
                         value={qcCommercialReg}
                         onChange={(e) => setQcCommercialReg(e.target.value)}
@@ -489,7 +499,7 @@ export function ContactSearchInput({
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-muted-foreground/60 mb-1 block">ITN (رقم ضريبي دولي)</label>
+                        <label className="text-xs text-muted-foreground/60 mb-1 block">{t("ITN (رقم ضريبي دولي)", "ITN (international tax number)")}</label>
                         <input
                           value={qcItn}
                           onChange={(e) => setQcItn(e.target.value)}
@@ -513,11 +523,11 @@ export function ContactSearchInput({
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground/60 mb-1 block">رقم الترخيص / التسجيل</label>
+                      <label className="text-xs text-muted-foreground/60 mb-1 block">{t("رقم الترخيص / التسجيل", "License / registration number")}</label>
                       <input
                         value={qcLicense}
                         onChange={(e) => setQcLicense(e.target.value)}
-                        placeholder="اختياري"
+                        placeholder={t("اختياري", "Optional")}
                         className="w-full rounded-lg border border-border px-3 py-2 text-sm font-english"
                         dir="ltr"
                       />
@@ -527,11 +537,11 @@ export function ContactSearchInput({
                     <div className="rounded-lg border-2 border-[#FEF3C7] bg-[#FEF3C7]/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle className="h-4 w-4 text-[#F59E0B]" />
-                        <span className="text-xs text-[#92400E]" style={{ fontWeight: 700 }}>ضريبة الاستقطاع (Withholding Tax)</span>
+                        <span className="text-xs text-[#92400E]" style={{ fontWeight: 700 }}>{t("ضريبة الاستقطاع (Withholding Tax)", "Withholding Tax")}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs text-muted-foreground/60 mb-1 block">نسبة الاستقطاع %</label>
+                          <label className="text-xs text-muted-foreground/60 mb-1 block">{t("نسبة الاستقطاع %", "Withholding rate %")}</label>
                           <input
                             type="number"
                             value={qcWithholdingRate}
@@ -541,18 +551,18 @@ export function ContactSearchInput({
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground/60 mb-1 block">تصنيف المعاملة</label>
+                          <label className="text-xs text-muted-foreground/60 mb-1 block">{t("تصنيف المعاملة", "Transaction classification")}</label>
                           <select
                             value={qcTransClass}
                             onChange={(e) => setQcTransClass(e.target.value)}
                             className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none"
                           >
-                            <option value="">اختر...</option>
-                            {withholdingClassifications.map((c) => <option key={c} value={c}>{c}</option>)}
+                            <option value="">{t("اختر...", "Select...")}</option>
+                            {withholdingClassifications.map((c) => <option key={c.ar} value={c.ar}>{t(c.ar, c.en)}</option>)}
                           </select>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground/60 mt-2">سيتم تطبيق ضريبة الاستقطاع تلقائياً على كل معاملة مع هذا الكيان الأجنبي وإدراجها في الإقرار الضريبي الشهري.</p>
+                      <p className="text-xs text-muted-foreground/60 mt-2">{t("سيتم تطبيق ضريبة الاستقطاع تلقائياً على كل معاملة مع هذا الكيان الأجنبي وإدراجها في الإقرار الضريبي الشهري.", "Withholding tax will be applied automatically to every transaction with this foreign entity and included in the monthly tax return.")}</p>
                     </div>
                   </div>
                 )}
@@ -561,7 +571,7 @@ export function ContactSearchInput({
               {/* Contact info (optional) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>البريد الإلكتروني</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("البريد الإلكتروني", "Email")}</label>
                   <input
                     value={qcEmail}
                     onChange={(e) => setQcEmail(e.target.value)}
@@ -571,7 +581,7 @@ export function ContactSearchInput({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>الهاتف</label>
+                  <label className="text-xs text-muted-foreground mb-1 block" style={{ fontWeight: 600 }}>{t("الهاتف", "Phone")}</label>
                   <input
                     value={qcPhone}
                     onChange={(e) => setQcPhone(e.target.value)}
@@ -585,9 +595,9 @@ export function ContactSearchInput({
 
             {/* Footer */}
             <div className="flex items-center justify-between border-t border-border px-5 py-3 bg-muted">
-              <p className="text-xs text-muted-foreground/60">يمكنك إكمال البيانات لاحقاً من ملف الجهة</p>
+              <p className="text-xs text-muted-foreground/60">{t("يمكنك إكمال البيانات لاحقاً من ملف الجهة", "You can complete the details later from the contact profile")}</p>
               <div className="flex gap-2">
-                <button onClick={() => setShowQuickCreate(false)} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50 transition-colors" style={{ fontWeight: 500 }}>إلغاء</button>
+                <button onClick={() => setShowQuickCreate(false)} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50 transition-colors" style={{ fontWeight: 500 }}>{t("إلغاء", "Cancel")}</button>
                 <button
                   onClick={handleQuickCreate}
                   disabled={!query.trim()}
@@ -595,7 +605,7 @@ export function ContactSearchInput({
                   style={{ fontWeight: 600 }}
                 >
                   <Plus className="h-4 w-4 inline-block me-1" />
-                  إضافة وتحديد
+                  {t("إضافة وتحديد", "Add & select")}
                 </button>
               </div>
             </div>

@@ -5,6 +5,16 @@ export type EntityLocation = "local" | "foreign";
 export type PartyType = "organization" | "person";
 export type RoleType = "عميل" | "مورد" | "موظف" | "فري لانسر" | "مساهم" | "مستثمر";
 
+// ── Dual-language role labels · render via t(ROLE_LABELS[role].ar, ROLE_LABELS[role].en) ──
+export const ROLE_LABELS: Record<RoleType, { ar: string; en: string }> = {
+  "عميل": { ar: "عميل", en: "Customer" },
+  "مورد": { ar: "مورد", en: "Supplier" },
+  "موظف": { ar: "موظف", en: "Employee" },
+  "فري لانسر": { ar: "فري لانسر", en: "Freelancer" },
+  "مساهم": { ar: "مساهم", en: "Shareholder" },
+  "مستثمر": { ar: "مستثمر", en: "Investor" },
+};
+
 export interface Party {
   id: string;
   name: string;

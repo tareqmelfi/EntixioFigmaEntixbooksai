@@ -13,6 +13,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { normalizeDigits } from "../lib/digits";
+import { useLanguage } from "./LanguageContext";
 
 // ─── Shared popover shell ────────────────────────────────────────────────────
 
@@ -27,7 +28,10 @@ interface PopoverProps {
   submitLabel?: string;
 }
 
-function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, children, submitLabel = "حفظ" }: PopoverProps) {
+function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, children, submitLabel }: PopoverProps) {
+  const { t, language } = useLanguage();
+  const isRtl = language === "ar";
+  const finalSubmitLabel = submitLabel ?? t("حفظ", "Save");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !busy) onClose();
@@ -38,7 +42,7 @@ function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, childre
   }, [onClose, onSubmit, busy]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" dir={isRtl ? "rtl" : "ltr"}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-[#0B1B49]/40 backdrop-blur-sm"
@@ -64,9 +68,9 @@ function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, childre
           {children}
         </div>
         <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50 bg-muted rounded-b-2xl">
-          <Button type="button" variant="outline" onClick={onClose} disabled={busy} className="border-border">إلغاء</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy} className="border-border">{t("إلغاء", "Cancel")}</Button>
           <Button type="button" onClick={onSubmit} disabled={busy} className="bg-primary hover:bg-primary/80 min-w-[100px]">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : submitLabel}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : finalSubmitLabel}
           </Button>
         </div>
       </div>
@@ -77,11 +81,11 @@ function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, childre
 // ─── QuickCreateAccount ──────────────────────────────────────────────────────
 
 const ACCOUNT_TYPES = [
-  { value: "ASSET", label: "أصول · Asset" },
-  { value: "LIABILITY", label: "خصوم · Liability" },
-  { value: "EQUITY", label: "حقوق ملكية · Equity" },
-  { value: "INCOME", label: "إيرادات · Income" },
-  { value: "EXPENSE", label: "مصروفات · Expense" },
+  { value: "ASSET", labelAr: "أصول", labelEn: "Asset" },
+  { value: "LIABILITY", labelAr: "خصوم", labelEn: "Liability" },
+  { value: "EQUITY", labelAr: "حقوق ملكية", labelEn: "Equity" },
+  { value: "INCOME", labelAr: "إيرادات", labelEn: "Income" },
+  { value: "EXPENSE", labelAr: "مصروفات", labelEn: "Expense" },
 ];
 
 interface AccountInput {
@@ -109,6 +113,7 @@ interface QuickCreateAccountProps {
 }
 
 export function QuickCreateAccount({ initialName, defaultType = "EXPENSE", onCreate, onClose, onCreated }: QuickCreateAccountProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState(initialName);
   const [code, setCode] = useState("");
   const [type, setType] = useState(defaultType);
@@ -130,8 +135,8 @@ export function QuickCreateAccount({ initialName, defaultType = "EXPENSE", onCre
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name.trim()) { setError("اسم الحساب مطلوب"); return; }
-    if (!type) { setError("اختر فئة الحساب"); return; }
+    if (!name.trim()) { setError(t("اسم الحساب مطلوب", "Account name is required")); return; }
+    if (!type) { setError(t("اختر فئة الحساب", "Select an account type")); return; }
     setBusy(true);
     try {
       const result = await onCreate({
@@ -142,7 +147,7 @@ export function QuickCreateAccount({ initialName, defaultType = "EXPENSE", onCre
       });
       onCreated(result);
     } catch (e: any) {
-      setError(e?.message || "فشل الإنشاء");
+      setError(e?.message || t("فشل الإنشاء", "Creation failed"));
     } finally {
       setBusy(false);
     }
@@ -150,41 +155,41 @@ export function QuickCreateAccount({ initialName, defaultType = "EXPENSE", onCre
 
   return (
     <PopoverShell
-      title="حساب جديد"
-      subtitle="أنشئه الآن واستخدمه فوراً · يمكنك تعديل التفاصيل لاحقاً من شجرة الحسابات"
+      title={t("حساب جديد", "New account")}
+      subtitle={t("أنشئه الآن واستخدمه فوراً · يمكنك تعديل التفاصيل لاحقاً من شجرة الحسابات", "Create it now and use it immediately · edit details later in the chart of accounts")}
       onClose={onClose}
       onSubmit={handleSubmit}
       busy={busy}
       error={error}
     >
       <div className="space-y-2">
-        <Label className="text-foreground/80 text-xs">اسم الحساب *</Label>
+        <Label className="text-foreground/80 text-xs">{t("اسم الحساب *", "Account name *")}</Label>
         <Input
           ref={nameInputRef}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="مثال: مصروفات مستشفى · إيرادات استشارات"
+          placeholder={t("مثال: مصروفات مستشفى · إيرادات استشارات", "e.g. Hospital expenses · consulting revenue")}
           className="border-border"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-foreground/80 text-xs">الفئة *</Label>
+          <Label className="text-foreground/80 text-xs">{t("الفئة *", "Type *")}</Label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
-            {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {ACCOUNT_TYPES.map((at) => <option key={at.value} value={at.value}>{t(at.labelAr, at.labelEn)}</option>)}
           </select>
         </div>
         <div className="space-y-2">
-          <Label className="text-foreground/80 text-xs">الكود (اختياري)</Label>
+          <Label className="text-foreground/80 text-xs">{t("الكود (اختياري)", "Code (optional)")}</Label>
           <Input
             id="qa-code"
             value={code}
             onChange={(e) => setCode(normalizeDigits(e.target.value))}
-            placeholder="تلقائي"
+            placeholder={t("تلقائي", "Auto")}
             dir="ltr"
             className="border-border font-english h-9"
           />
@@ -197,9 +202,9 @@ export function QuickCreateAccount({ initialName, defaultType = "EXPENSE", onCre
 // ─── QuickCreateProduct ──────────────────────────────────────────────────────
 
 const PRODUCT_TYPES = [
-  { value: "SERVICE", label: "خدمة" },
-  { value: "GOODS", label: "بضاعة" },
-  { value: "DIGITAL", label: "منتج رقمي" },
+  { value: "SERVICE", labelAr: "خدمة", labelEn: "Service" },
+  { value: "GOODS", labelAr: "بضاعة", labelEn: "Goods" },
+  { value: "DIGITAL", labelAr: "منتج رقمي", labelEn: "Digital product" },
 ];
 
 interface ProductInput {
@@ -242,6 +247,7 @@ export function QuickCreateProduct({
   onClose,
   onCreated,
 }: QuickCreateProductProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState(initialName);
   const [sku, setSku] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
@@ -260,9 +266,9 @@ export function QuickCreateProduct({
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name.trim()) { setError("اسم المنتج مطلوب"); return; }
+    if (!name.trim()) { setError(t("اسم المنتج مطلوب", "Product name is required")); return; }
     const price = Number(normalizeDigits(unitPrice));
-    if (isNaN(price) || price < 0) { setError("السعر غير صحيح"); return; }
+    if (isNaN(price) || price < 0) { setError(t("السعر غير صحيح", "Invalid price")); return; }
     setBusy(true);
     try {
       const result = await onCreate({
@@ -276,7 +282,7 @@ export function QuickCreateProduct({
       });
       onCreated(result);
     } catch (e: any) {
-      setError(e?.message || "فشل الإنشاء");
+      setError(e?.message || t("فشل الإنشاء", "Creation failed"));
     } finally {
       setBusy(false);
     }
@@ -286,39 +292,39 @@ export function QuickCreateProduct({
 
   return (
     <PopoverShell
-      title="منتج / خدمة جديدة"
-      subtitle="عبئ المعلومات الأساسية · ستُحفظ في الكتالوج لاستخدامها في أي فاتورة"
+      title={t("منتج / خدمة جديدة", "New product / service")}
+      subtitle={t("عبئ المعلومات الأساسية · ستُحفظ في الكتالوج لاستخدامها في أي فاتورة", "Fill in the basics · saved to the catalog for use on any invoice")}
       onClose={onClose}
       onSubmit={handleSubmit}
       busy={busy}
       error={error}
     >
       <div className="space-y-2">
-        <Label className="text-foreground/80 text-xs">اسم المنتج *</Label>
+        <Label className="text-foreground/80 text-xs">{t("اسم المنتج *", "Product name *")}</Label>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="مثال: استشارة تقنية · تطوير تطبيق"
+          placeholder={t("مثال: استشارة تقنية · تطوير تطبيق", "e.g. Technical consulting · app development")}
           className="border-border"
         />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-2">
-          <Label className="text-foreground/80 text-xs">النوع</Label>
+          <Label className="text-foreground/80 text-xs">{t("النوع", "Type")}</Label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
-            {PRODUCT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {PRODUCT_TYPES.map((pt) => <option key={pt.value} value={pt.value}>{t(pt.labelAr, pt.labelEn)}</option>)}
           </select>
         </div>
         <div className="space-y-2 col-span-2">
-          <Label className="text-foreground/80 text-xs">SKU / باركود (اختياري)</Label>
+          <Label className="text-foreground/80 text-xs">{t("SKU / باركود (اختياري)", "SKU / barcode (optional)")}</Label>
           <Input
             value={sku}
             onChange={(e) => setSku(e.target.value)}
-            placeholder="تلقائي"
+            placeholder={t("تلقائي", "Auto")}
             dir="ltr"
             className="border-border font-english h-9"
           />
@@ -326,7 +332,7 @@ export function QuickCreateProduct({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-foreground/80 text-xs">السعر *</Label>
+          <Label className="text-foreground/80 text-xs">{t("السعر *", "Price *")}</Label>
           <Input
             id="qp-price"
             type="text"
@@ -339,27 +345,27 @@ export function QuickCreateProduct({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-foreground/80 text-xs">نسبة الضريبة</Label>
+          <Label className="text-foreground/80 text-xs">{t("نسبة الضريبة", "Tax rate")}</Label>
           <select
             value={taxRate}
             onChange={(e) => setTaxRate(e.target.value)}
             className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
-            <option value="0.15">15% (قياسية)</option>
-            <option value="0">0% (صفر)</option>
-            <option value="-1">معفى</option>
+            <option value="0.15">{t("15% (قياسية)", "15% (standard)")}</option>
+            <option value="0">{t("0% (صفر)", "0% (zero-rated)")}</option>
+            <option value="-1">{t("معفى", "Exempt")}</option>
           </select>
         </div>
       </div>
       {incomeAccounts.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-foreground/80 text-xs">حساب الإيراد (اختياري)</Label>
+          <Label className="text-foreground/80 text-xs">{t("حساب الإيراد (اختياري)", "Income account (optional)")}</Label>
           <select
             value={incomeAccountId}
             onChange={(e) => setIncomeAccountId(e.target.value)}
             className="w-full h-9 rounded-md border border-border bg-white px-2 text-sm"
           >
-            <option value="">— اختر حساب —</option>
+            <option value="">{t("— اختر حساب —", "— Select account —")}</option>
             {incomeAccounts.map((a) => (
               <option key={a.id} value={a.id}>{a.code} · {a.name}</option>
             ))}

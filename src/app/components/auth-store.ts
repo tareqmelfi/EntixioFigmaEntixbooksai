@@ -129,10 +129,15 @@ class AuthStore {
         const storedMatch = storedOrgId
           ? sorted.find((m: any) => m?.org?.id === storedOrgId)
           : null
-        // If the stored org is a demo org, prefer the oldest non-demo org instead.
-        // This fixes the case where the user switched to a demo org in a previous
-        // session and now can't find their real company data.
-        const storedIsDemo = storedMatch && isDemo(storedMatch)
+        // An explicit pick via the OrgSwitcher sets entix_org_explicit — that
+        // choice is ALWAYS honored, even for demo orgs (the user clicked it).
+        // The flag is wiped on login/logout by clearStaleState().
+        const explicitPick = typeof localStorage !== 'undefined'
+          ? localStorage.getItem('entix_org_explicit') : null
+        // If the stored org is a demo org WITHOUT an explicit pick, prefer the
+        // oldest non-demo org instead. This fixes the case where a stale demo
+        // id from a previous session hid the user's real company data.
+        const storedIsDemo = storedMatch && isDemo(storedMatch) && !explicitPick
         const oldestReal = sorted.find((m: any) => !isDemo(m))
         const ownerMatch = !storedMatch || storedIsDemo
           ? (oldestReal || sorted.find((m: any) => m?.role === 'OWNER'))

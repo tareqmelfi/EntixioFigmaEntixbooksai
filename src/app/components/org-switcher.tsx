@@ -94,6 +94,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const handleSelect = (o: Org) => {
     setActiveOrg(o);
     setOrgId(o.id);
+    // Mark this as an explicit user pick so authStore.refresh() honors it on
+    // reload — even for demo orgs (clearStaleState wipes it on next login).
+    try { localStorage.setItem('entix_org_explicit', String(Date.now())); } catch {}
     setOpen(false);
     // Hard refresh so all pages re-fetch with the new org id
     window.location.reload();

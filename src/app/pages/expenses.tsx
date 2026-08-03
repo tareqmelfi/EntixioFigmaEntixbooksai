@@ -551,7 +551,7 @@ function inferCategory(data: any): string {
   return "مشتريات وفواتير";
 }
 
-function buildExtractionWarnings(data: any, items: ApiExpense[], total: number | null): string[] {
+function buildExtractionWarnings(t: Translate, data: any, items: ApiExpense[], total: number | null): string[] {
   const warnings = Array.isArray(data?.warnings) ? [...data.warnings] : [];
   const date = data?.issueDate || null;
   const vendor = data?.issuer?.name || "";
@@ -577,7 +577,7 @@ function buildExtractionWarnings(data: any, items: ApiExpense[], total: number |
   return Array.from(new Set(warnings.filter(Boolean)));
 }
 
-function selectedAttachment(expense: ApiExpense) {
+function selectedAttachment(t: Translate, expense: ApiExpense) {
   const type = expense.attachmentType || "";
   const base64 = expense.attachmentBase64 || "";
   const name = expense.attachmentName || expense.receiptUrl || t("المرفق", "Attachment");
@@ -788,7 +788,7 @@ export function Expenses() {
     const subtotal = Number(normalizeDigits(formData.amount || "0"));
     const taxAmount = Number(normalizeDigits(formData.taxAmount || "0"));
     const totalAmount = Number(normalizeDigits(formData.totalAmount || String(subtotal + taxAmount)));
-    const settlement = calculateCurrencySettlement(formData, totalAmount);
+    const settlement = calculateCurrencySettlement(formData, totalAmount, t);
     const splits = formData.paymentSplits
       .map((payment) => ({
         ...payment,
@@ -917,7 +917,7 @@ export function Expenses() {
           seen.add(a.name);
         }
       }
-      const legacy = selectedAttachment(selected);
+      const legacy = selectedAttachment(t, selected);
       if (legacy && !seen.has(legacy.name)) merged.push(legacy as ViewerAttachment);
 
       setDetailAttachments(merged);
@@ -1041,7 +1041,7 @@ export function Expenses() {
         ? formData.exchangeRate
         : String(defaultExchangeRate(sourceCurrency, baseCurrency));
       const payments = normalizePayments(data, totals.total, formData.paymentMethod, sourceCurrency);
-      const warnings = buildExtractionWarnings(data, items, totals.total || null);
+      const warnings = buildExtractionWarnings(t, data, items, totals.total || null);
       const supplierTaxId = data?.issuer?.taxId || "";
       const vendorName = cleanVendorName(data?.issuer?.name);
       const bookBaseAmount = roundMoney(totals.total * (Number(exchangeRate) || defaultExchangeRate(sourceCurrency, baseCurrency)));
@@ -1088,7 +1088,7 @@ export function Expenses() {
   }
 
   const formTotal = Number(normalizeDigits(formData.totalAmount || "0")) || (Number(normalizeDigits(formData.amount || "0")) + Number(normalizeDigits(formData.taxAmount || "0")));
-  const currencySettlement = calculateCurrencySettlement(formData, formTotal);
+  const currencySettlement = calculateCurrencySettlement(formData, formTotal, t);
   const paymentRows = formData.paymentSplits.length
     ? formData.paymentSplits
     : [{ method: formData.paymentMethod, amount: currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currency: currencySettlement.actualPaidCurrency, reference: null } as ExpensePaymentSplit];
@@ -1312,7 +1312,7 @@ export function Expenses() {
                       });
                     }}>
                       <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
@@ -1329,7 +1329,7 @@ export function Expenses() {
                       });
                     }}>
                       <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
@@ -1344,7 +1344,7 @@ export function Expenses() {
                     <Label className="text-xs text-foreground/80">{t("عملة السحب", "Payment currency")}</Label>
                     <Select value={formData.actualPaidCurrency} onValueChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}>
                       <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
@@ -1366,7 +1366,7 @@ export function Expenses() {
                     <Select value={formData.fxTreatment} onValueChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}>
                       <SelectTrigger className="h-9 border-border bg-white text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(FX_TREATMENT_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                        {Object.entries(fxTreatmentLabels(t)).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1410,7 +1410,7 @@ export function Expenses() {
                     </thead>
                     <tbody>
                       {formData.lineItems.length === 0 && (
-                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">لم يتم استخراج أصناف بعد. يمكنك {t("إضافة بند", "Add line")} يدوي أو إعادة رفع الفاتورة.</td></tr>
+                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">{t("لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.", "No items extracted yet. You can add a line manually or re-upload the invoice.")}</td></tr>
                       )}
                       {formData.lineItems.map((line, idx) => (
                         <tr key={idx} className="border-t border-border/50">
@@ -1502,7 +1502,7 @@ export function Expenses() {
                       })}>
                         <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                          {Object.entries(paymentMethodLabels(t)).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <Select value={normalizeCurrency(payment.currency, formData.actualPaidCurrency)} onValueChange={(currency) => setFormData((f) => {
@@ -1510,7 +1510,7 @@ export function Expenses() {
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, currency } : item) };
                       })}>
                         <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
-                        <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.value}</SelectItem>)}</SelectContent>
+                        <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.value}</SelectItem>)}</SelectContent>
                       </Select>
                       <Input placeholder={t("مرجع / آخر 4 أرقام البطاقة", "Reference / last 4 digits")} value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
                         const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
@@ -1544,7 +1544,7 @@ export function Expenses() {
                 {currencySettlement.isCrossCurrency && (
                   <> · {t("السحب الفعلي", "Actual withdrawal")} <span className="font-english font-semibold">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</span></>
                 )}
-                {" "} مع {formData.attachments.length ? `${formData.attachments.length} مرفق` : "بدون مرفق"}.
+                {" "} {t("مع", "with")} {formData.attachments.length ? t(`${formData.attachments.length} مرفق`, `${formData.attachments.length} attachment(s)`) : t("بدون مرفق", "no attachment")}.
               </div>
             </div>
           </div>
@@ -1618,7 +1618,7 @@ export function Expenses() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t("طريقة الدفع", "Payment method")}</p>
-                    <p className="text-sm text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} {t("دفعات", "payments")}` : PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
+                    <p className="text-sm text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1669,7 +1669,7 @@ export function Expenses() {
                     <tbody>
                       {paymentSplits.map((payment, idx) => (
                         <tr key={idx} className="border-t border-border/50">
-                          <td className="px-3 py-2">{PAYMENT_METHOD_LABELS[payment.method]}</td>
+                          <td className="px-3 py-2">{paymentMethodLabels(t)[payment.method]}</td>
                           <td className="px-3 py-2 font-english">{payment.reference || payment.cardLast4 || "—"}</td>
                           <td className="px-3 py-2">{payment.accountName || "—"}</td>
                           <td className="px-3 py-2 font-english">{money(payment.amount, payment.currency || selected.currency)}</td>
@@ -1740,7 +1740,7 @@ export function Expenses() {
             <CardHeader>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <CardTitle className="text-foreground flex items-center gap-2">
-                  <Paperclip className="h-4 w-4" /> المرفقات
+                  <Paperclip className="h-4 w-4" /> {t("المرفقات", "Attachments")}
                   {detailAttachments.length > 0 && (
                     <span className="text-xs text-muted-foreground font-normal font-english">{activeAttIdx + 1} / {detailAttachments.length}</span>
                   )}
@@ -1755,7 +1755,7 @@ export function Expenses() {
                     onChange={(e) => { if (e.target.files?.length) handleDetailUpload(e.target.files); e.target.value = ""; }}
                   />
                   <Button type="button" variant="outline" size="sm" disabled={attBusy} onClick={() => attFileRef.current?.click()} className="border-border h-8 text-xs">
-                    <Upload className="me-1.5 h-3.5 w-3.5" /> {attBusy ? "جارٍ الرفع…" : "رفع مرفقات"}
+                    <Upload className="me-1.5 h-3.5 w-3.5" /> {attBusy ? t("جارٍ الرفع…", "Uploading…") : t("رفع مرفقات", "Upload attachments")}
                   </Button>
                 </div>
               </div>
@@ -1777,7 +1777,7 @@ export function Expenses() {
                       onClick={() => setActiveAttIdx((i) => Math.max(0, i - 1))}
                       className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/60 disabled:opacity-40"
                     >
-                      <ChevronRight className="h-4 w-4" /> السابق
+                      <ChevronRight className="h-4 w-4" /> {t("السابق", "Previous")}
                     </button>
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-english text-xs text-muted-foreground truncate max-w-[260px]" dir="ltr">{detailAttachments[activeAttIdx]?.name}</span>
@@ -1796,7 +1796,7 @@ export function Expenses() {
                       onClick={() => setActiveAttIdx((i) => Math.min(detailAttachments.length - 1, i + 1))}
                       className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/60 disabled:opacity-40"
                     >
-                      التالي <ChevronLeft className="h-4 w-4" />
+                      {t("التالي", "Next")} <ChevronLeft className="h-4 w-4" />
                     </button>
                   </div>
                   {/* viewer · PDF native scroll / image free scroll */}
@@ -1860,7 +1860,7 @@ export function Expenses() {
                   setDraftNotice(null);
                 }}
               >
-                حذف
+                {t("حذف", "Delete")}
               </Button>
             </div>
           </div>

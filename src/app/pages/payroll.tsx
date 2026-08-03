@@ -396,8 +396,8 @@ export function Payroll() {
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle>مسير الشهر</CardTitle>
-            <Button variant="outline" onClick={() => setRows((prev) => [...prev, blankRow()])}><Plus className="me-2 h-4 w-4" />سطر</Button>
+            <CardTitle>{t("مسير الشهر", "Monthly payroll run")}</CardTitle>
+            <Button variant="outline" onClick={() => setRows((prev) => [...prev, blankRow()])}><Plus className="me-2 h-4 w-4" />{t("سطر", "Row")}</Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -406,22 +406,22 @@ export function Payroll() {
           ) : employees.length === 0 ? (
             <div className="py-12 text-center">
               <Wallet className="mx-auto h-10 w-10 text-muted-foreground/60" />
-              <p className="mt-3 text-sm text-muted-foreground">أضف موظفين من صفحة الموظفين قبل حساب الرواتب.</p>
+              <p className="mt-3 text-sm text-muted-foreground">{t("أضف موظفين من صفحة الموظفين قبل حساب الرواتب.", "Add employees from the Employees page before calculating payroll.")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1400px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-3 py-3 text-start">الموظف</th>
-                  <th className="px-3 py-3 text-start">الجنسية</th>
-                  <th className="px-3 py-3 text-end">أساسي</th>
-                  <th className="px-3 py-3 text-end">سكن</th>
-                  <th className="px-3 py-3 text-end">نقل</th>
-                  <th className="px-3 py-3 text-end">بدلات</th>
-                  <th className="px-3 py-3 text-end">GOSI الموظف</th>
-                  <th className="px-3 py-3 text-end">استقطاعات أخرى</th>
-                  <th className="px-3 py-3 text-center">ساند</th>
-                  <th className="px-3 py-3 text-end">قبل / بعد</th>
+                  <th className="px-3 py-3 text-start">{t("الموظف", "Employee")}</th>
+                  <th className="px-3 py-3 text-start">{t("الجنسية", "Nationality")}</th>
+                  <th className="px-3 py-3 text-end">{t("أساسي", "Basic")}</th>
+                  <th className="px-3 py-3 text-end">{t("سكن", "Housing")}</th>
+                  <th className="px-3 py-3 text-end">{t("نقل", "Transport")}</th>
+                  <th className="px-3 py-3 text-end">{t("بدلات", "Allowances")}</th>
+                  <th className="px-3 py-3 text-end">{t("GOSI الموظف", "Employee GOSI")}</th>
+                  <th className="px-3 py-3 text-end">{t("استقطاعات أخرى", "Other deductions")}</th>
+                  <th className="px-3 py-3 text-center">{t("ساند", "SANED")}</th>
+                  <th className="px-3 py-3 text-end">{t("قبل / بعد", "Before / After")}</th>
                   <th className="px-3 py-3"></th>
                 </tr></thead>
                 <tbody>
@@ -436,7 +436,7 @@ export function Payroll() {
                             value={row.employeeId}
                             onChange={(employeeId) => applyEmployeeContract(index, employeeId)}
                             items={employeeItems}
-                            placeholder="اختر الموظف"
+                            placeholder={t("اختر الموظف", "Select employee")}
                             menuMinWidth={340}
                           />
                           {employee && (
@@ -450,7 +450,7 @@ export function Payroll() {
                             value={row.nationalityCode}
                             onChange={(nationalityCode) => updateRow(index, { nationalityCode: nationalityCode.toUpperCase() })}
                             items={NATIONALITY_ITEMS}
-                            placeholder="الجنسية"
+                            placeholder={t("الجنسية", "Nationality")}
                             menuMinWidth={280}
                           />
                         </td>
@@ -468,10 +468,10 @@ export function Payroll() {
                             onChange={(e) => updateRow(index, { gosiOverride: e.target.value })}
                             dir="ltr"
                             className="w-28 font-english text-end"
-                            placeholder="تلقائي"
+                            placeholder={t("تلقائي", "Auto")}
                           />
                           {row.nationalityCode.toUpperCase() === "SA" && (
-                            <div className="mt-1 text-[9px] text-muted-foreground">أساس: <span className="font-english">{money(preview.gosiBase)}</span></div>
+                            <div className="mt-1 text-[9px] text-muted-foreground">{t("أساس:", "Base:")} <span className="font-english">{money(preview.gosiBase)}</span></div>
                           )}
                         </td>
                         {/* Other Deductions · independent input (loans, penalties, custom) */}
@@ -480,12 +480,12 @@ export function Payroll() {
                         </td>
                         <td className="px-3 py-2 text-center">
                           <input type="checkbox" checked={row.sanedEnabled} onChange={(e) => updateRow(index, { sanedEnabled: e.target.checked })} />
-                          <div className="mt-1 text-[10px] text-muted-foreground">{row.nationalityCode.toUpperCase() === "SA" ? "للسعوديين" : "غير مطبق"}</div>
+                          <div className="mt-1 text-[10px] text-muted-foreground">{row.nationalityCode.toUpperCase() === "SA" ? t("للسعوديين", "For Saudis") : t("غير مطبق", "Not applicable")}</div>
                         </td>
                         <td className="px-3 py-2 text-end min-w-[190px]">
-                          <div className="text-[11px] text-muted-foreground">الإجمالي قبل الاستقطاع: <span className="font-english text-foreground">{money(preview.grossSalary)}</span></div>
-                          <div className="text-[11px] text-red-600">الاستقطاعات: <span className="font-english">{money(preview.totalDeductions)}</span></div>
-                          <div className="text-sm font-semibold text-emerald-700">الصافي: <span className="font-english">{money(preview.netSalary)}</span></div>
+                          <div className="text-[11px] text-muted-foreground">{t("الإجمالي قبل الاستقطاع:", "Gross before deductions:")} <span className="font-english text-foreground">{money(preview.grossSalary)}</span></div>
+                          <div className="text-[11px] text-red-600">{t("الاستقطاعات:", "Deductions:")} <span className="font-english">{money(preview.totalDeductions)}</span></div>
+                          <div className="text-sm font-semibold text-emerald-700">{t("الصافي:", "Net:")} <span className="font-english">{money(preview.netSalary)}</span></div>
                         </td>
                         <td className="px-3 py-2">
                           <button onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
@@ -504,17 +504,17 @@ export function Payroll() {
 
       {results.length > 0 && (
         <Card className="border-border">
-          <CardHeader><CardTitle>نتيجة الحساب</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("نتيجة الحساب", "Calculation result")}</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">الموظف</th>
-                  <th className="px-4 py-3 text-end">الإجمالي</th>
-                  <th className="px-4 py-3 text-end">GOSI الموظف</th>
-                  <th className="px-4 py-3 text-end">إجمالي الاستقطاع</th>
-                  <th className="px-4 py-3 text-end">GOSI الشركة</th>
-                  <th className="px-4 py-3 text-end">الصافي</th>
+                  <th className="px-4 py-3 text-start">{t("الموظف", "Employee")}</th>
+                  <th className="px-4 py-3 text-end">{t("الإجمالي", "Gross")}</th>
+                  <th className="px-4 py-3 text-end">{t("GOSI الموظف", "Employee GOSI")}</th>
+                  <th className="px-4 py-3 text-end">{t("إجمالي الاستقطاع", "Total deductions")}</th>
+                  <th className="px-4 py-3 text-end">{t("GOSI الشركة", "Employer GOSI")}</th>
+                  <th className="px-4 py-3 text-end">{t("الصافي", "Net")}</th>
                 </tr></thead>
                 <tbody>
                   {results.map((result) => {
@@ -538,19 +538,19 @@ export function Payroll() {
       )}
 
       <Card className="border-border">
-        <CardHeader><CardTitle>مسيرات محفوظة</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("مسيرات محفوظة", "Saved payroll runs")}</CardTitle></CardHeader>
         <CardContent>
           {runs.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">لا توجد مسيرات محفوظة بعد</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">{t("لا توجد مسيرات محفوظة بعد", "No saved payroll runs yet")}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">الرقم</th>
-                  <th className="px-4 py-3 text-start">الفترة</th>
-                  <th className="px-4 py-3 text-start">الحالة</th>
-                  <th className="px-4 py-3 text-start">الصافي</th>
-                  <th className="px-4 py-3 text-start">عدد الموظفين</th>
+                  <th className="px-4 py-3 text-start">{t("الرقم", "Number")}</th>
+                  <th className="px-4 py-3 text-start">{t("الفترة", "Period")}</th>
+                  <th className="px-4 py-3 text-start">{t("الحالة", "Status")}</th>
+                  <th className="px-4 py-3 text-start">{t("الصافي", "Net")}</th>
+                  <th className="px-4 py-3 text-start">{t("عدد الموظفين", "Employees")}</th>
                   <th className="px-4 py-3 text-start"></th>
                 </tr></thead>
                 <tbody>
@@ -576,7 +576,7 @@ export function Payroll() {
                               onClick={() => deleteRun(run.id)}
                               disabled={busy}
                               className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
-                              title="حذف المسير (مسودة)"
+                              title={t("حذف المسير (مسودة)", "Delete payroll run (draft)")}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

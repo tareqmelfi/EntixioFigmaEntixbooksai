@@ -66,25 +66,25 @@ export function AdminDashboard() {
       if (e instanceof ApiError && e.status === 403) {
         setForbidden(true);
       } else {
-        push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+        push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
       }
     } finally { setLoading(false); }
-  }, [push]);
+  }, [push, t]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleTopup = async () => {
     if (!topupFor) return;
     const amt = Number(topupAmount);
-    if (!amt || amt <= 0) { push("error", "أدخل مبلغاً صحيحاً"); return; }
+    if (!amt || amt <= 0) { push("error", t("أدخل مبلغاً صحيحاً", "Enter a valid amount")); return; }
     setBusy(true);
     try {
       await api.aiBilling.admin.topup({ orgId: topupFor.orgId, amountUsd: amt, note: topupNote || undefined });
-      push("success", `تم شحن ${topupFor.org.name} بـ$${amt.toFixed(2)}`);
+      push("success", t(`تم شحن ${topupFor.org.name} بـ$${amt.toFixed(2)}`, `Topped up ${topupFor.org.name} with $${amt.toFixed(2)}`));
       setTopupFor(null); setTopupAmount("10"); setTopupNote("");
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الشحن");
+      push("error", e instanceof ApiError ? e.message : t("فشل الشحن", "Top-up failed"));
     } finally { setBusy(false); }
   };
 
@@ -96,10 +96,10 @@ export function AdminDashboard() {
         disabled: !org.disabled,
         reason: !org.disabled ? "Disabled from admin dashboard" : undefined,
       });
-      push("success", org.disabled ? "تم تفعيل الـAI" : "تم تعطيل الـAI");
+      push("success", org.disabled ? t("تم تفعيل الـAI", "AI enabled") : t("تم تعطيل الـAI", "AI disabled"));
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحديث");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحديث", "Update failed"));
     } finally { setBusy(false); }
   };
 
@@ -109,8 +109,8 @@ export function AdminDashboard() {
     return (
       <div className="max-w-md mx-auto mt-20 text-center">
         <ShieldCheck className="h-16 w-16 text-muted-foreground/60 mx-auto mb-4" />
-        <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>الصفحة مقيّدة للإدارة فقط</h1>
-        <p className="text-muted-foreground mt-2">حسابك غير مدرج كـadmin · إذا تحتاج وصول، اتصل بالدعم.</p>
+        <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{t("الصفحة مقيّدة للإدارة فقط", "This page is restricted to admins")}</h1>
+        <p className="text-muted-foreground mt-2">{t("حسابك غير مدرج كـadmin · إذا تحتاج وصول، اتصل بالدعم.", "Your account is not listed as an admin · contact support if you need access.")}</p>
       </div>
     );
   }
@@ -120,54 +120,54 @@ export function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
-            <ShieldCheck className="h-6 w-6 text-primary" /> لوحة الإدارة
+            <ShieldCheck className="h-6 w-6 text-primary" /> {t("لوحة الإدارة", "Admin dashboard")}
           </h1>
-          <p className="text-muted-foreground mt-1">إدارة الشركات · الفوترة · الاستهلاك العام</p>
+          <p className="text-muted-foreground mt-1">{t("إدارة الشركات · الفوترة · الاستهلاك العام", "Manage companies · billing · overall usage")}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground text-sm">إجمالي الإنفاق هذا الشهر</span>
+            <span className="text-muted-foreground text-sm">{t("إجمالي الإنفاق هذا الشهر", "Total spend this month")}</span>
             <DollarSign className="h-4 w-4 text-primary" />
           </div>
           <div className="font-english text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>${totalSpend.toFixed(2)}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground text-sm">الشركات النشطة</span>
+            <span className="text-muted-foreground text-sm">{t("الشركات النشطة", "Active companies")}</span>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </div>
           <div className="font-english text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground text-sm">آخر 30 يوم · طلبات</span>
+            <span className="text-muted-foreground text-sm">{t("آخر 30 يوم · طلبات", "Last 30 days · requests")}</span>
             <Sparkle />
           </div>
           <div className="font-english text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{usageSummary?.totalRequests ?? "—"}</div>
-          <div className="text-xs text-muted-foreground mt-1 font-english">إجمالي ${usageSummary?.totalCost.toFixed(2) ?? "0.00"}</div>
+          <div className="text-xs text-muted-foreground mt-1 font-english">{t("إجمالي", "Total")} ${usageSummary?.totalCost.toFixed(2) ?? "0.00"}</div>
         </CardContent></Card>
       </div>
 
       <Card className="border-border">
-        <CardHeader><CardTitle className="text-foreground">الشركات · {items.length}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-foreground">{t("الشركات", "Companies")} · {items.length}</CardTitle></CardHeader>
         <CardContent className="p-0">
           {items.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">لا توجد شركات بعد</div>
+            <div className="py-12 text-center text-muted-foreground text-sm">{t("لا توجد شركات بعد", "No companies yet")}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الشركة</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الباقة</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المخصص</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرصيد</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المستهلك</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الشركة", "Company")}</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الباقة", "Plan")}</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المخصص", "Allocation")}</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرصيد", "Balance")}</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المستهلك", "Spent")}</th>
                   <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>BYOK</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
+                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
                 </tr></thead>
                 <tbody>
                   {items.map((row) => {
@@ -193,9 +193,9 @@ export function AdminDashboard() {
                         <td className="py-3 px-4 font-english text-xs text-muted-foreground">{row.byokKeyHint || "—"}</td>
                         <td className="py-3 px-4">
                           {row.disabled ? (
-                            <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700">معطّل</span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700">{t("معطّل", "Disabled")}</span>
                           ) : (
-                            <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">نشط</span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">{t("نشط", "Active")}</span>
                           )}
                         </td>
                         <td className="py-3 px-4">
@@ -203,16 +203,16 @@ export function AdminDashboard() {
                             <button
                               onClick={() => { setTopupFor(row); setTopupAmount("10"); setTopupNote(""); }}
                               className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1"
-                              title="شحن رصيد"
+                              title={t("شحن رصيد", "Top up balance")}
                               disabled={busy}
                             >
-                              <DollarSign className="h-3.5 w-3.5" /> شحن
+                              <DollarSign className="h-3.5 w-3.5" /> {t("شحن", "Top up")}
                             </button>
                             <button
                               onClick={() => handleToggleDisable(row)}
                               className={`rounded-md p-1.5 ${row.disabled ? "text-green-600 hover:bg-green-50" : "text-red-600 hover:bg-red-50"}`}
                               disabled={busy}
-                              title={row.disabled ? "تفعيل" : "تعطيل"}
+                              title={row.disabled ? t("تفعيل", "Enable") : t("تعطيل", "Disable")}
                             >
                               <Power className="h-4 w-4" />
                             </button>
@@ -230,7 +230,7 @@ export function AdminDashboard() {
 
       {usageSummary && Object.keys(usageSummary.byModel).length > 0 && (
         <Card className="border-border">
-          <CardHeader><CardTitle className="text-foreground">توزيع الاستخدام · 30 يوم</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-foreground">{t("توزيع الاستخدام · 30 يوم", "Usage distribution · 30 days")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {Object.entries(usageSummary.byModel)
@@ -239,7 +239,7 @@ export function AdminDashboard() {
                   <div key={model} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
                     <span className="text-sm text-foreground/80 font-english">{model}</span>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground font-english">
-                      <span>{stats.count} طلب</span>
+                      <span>{stats.count} {t("طلب", "requests")}</span>
                       <span style={{ fontWeight: 600 }}>${stats.cost.toFixed(2)}</span>
                     </div>
                   </div>
