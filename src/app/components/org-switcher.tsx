@@ -350,51 +350,57 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
 // Country-specific tax/registration fields
 type CountrySpec = {
   defaultCurrency: string;
-  fields: { key: string; label: string; placeholder: string; ltr?: boolean; help?: string }[];
+  fields: { key: string; label: { ar: string; en: string }; placeholder: string; placeholderEn?: string; ltr?: boolean; help?: { ar: string; en: string } }[];
 };
 const COUNTRY_SPECS: Record<string, CountrySpec> = {
   SA: {
     defaultCurrency: "SAR",
     fields: [
-      { key: "vatNumber", label: "الرقم الضريبي (ZATCA)", placeholder: "300xxxxxxxxxxxx", ltr: true, help: "15 رقم · يبدأ بـ 3" },
-      { key: "crNumber", label: "السجل التجاري", placeholder: "10xxxxxxxx", ltr: true, help: "10 أرقام · من وزارة التجارة" },
+      { key: "vatNumber", label: { ar: "الرقم الضريبي (ZATCA)", en: "VAT number (ZATCA)" }, placeholder: "300xxxxxxxxxxxx", ltr: true, help: { ar: "15 رقم · يبدأ بـ 3", en: "15 digits · starts with 3" } },
+      { key: "crNumber", label: { ar: "السجل التجاري", en: "Commercial registration" }, placeholder: "10xxxxxxxx", ltr: true, help: { ar: "10 أرقام · من وزارة التجارة", en: "10 digits · from Ministry of Commerce" } },
     ],
   },
   AE: {
     defaultCurrency: "AED",
     fields: [
-      { key: "vatNumber", label: "رقم التسجيل الضريبي (TRN)", placeholder: "100xxxxxxxxxxxx", ltr: true, help: "15 رقم من FTA" },
-      { key: "crNumber", label: "رقم الرخصة التجارية", placeholder: "DED-xxxxxx", ltr: true },
+      { key: "vatNumber", label: { ar: "رقم التسجيل الضريبي (TRN)", en: "Tax registration number (TRN)" }, placeholder: "100xxxxxxxxxxxx", ltr: true, help: { ar: "15 رقم من FTA", en: "15 digits from FTA" } },
+      { key: "crNumber", label: { ar: "رقم الرخصة التجارية", en: "Trade license number" }, placeholder: "DED-xxxxxx", ltr: true },
     ],
   },
   KW: {
     defaultCurrency: "KWD",
     fields: [
-      { key: "crNumber", label: "السجل التجاري", placeholder: "xxxxxxx", ltr: true },
-      { key: "vatNumber", label: "الرقم الضريبي (إن وجد)", placeholder: "اختياري", ltr: true },
+      { key: "crNumber", label: { ar: "السجل التجاري", en: "Commercial registration" }, placeholder: "xxxxxxx", ltr: true },
+      { key: "vatNumber", label: { ar: "الرقم الضريبي (إن وجد)", en: "VAT number (if any)" }, placeholder: "اختياري", placeholderEn: "Optional", ltr: true },
     ],
   },
   QA: {
     defaultCurrency: "QAR",
     fields: [
-      { key: "crNumber", label: "السجل التجاري (CR)", placeholder: "xxxxxx", ltr: true },
-      { key: "vatNumber", label: "الرقم الضريبي (إن وجد)", placeholder: "اختياري", ltr: true },
+      { key: "crNumber", label: { ar: "السجل التجاري (CR)", en: "Commercial registration (CR)" }, placeholder: "xxxxxx", ltr: true },
+      { key: "vatNumber", label: { ar: "الرقم الضريبي (إن وجد)", en: "VAT number (if any)" }, placeholder: "اختياري", placeholderEn: "Optional", ltr: true },
     ],
   },
-  BH: { defaultCurrency: "BHD", fields: [{ key: "crNumber", label: "السجل التجاري (CR)", placeholder: "xxxxx-1", ltr: true }, { key: "vatNumber", label: "الرقم الضريبي", placeholder: "200xxxxxxxxxxxx", ltr: true }] },
-  OM: { defaultCurrency: "OMR", fields: [{ key: "crNumber", label: "السجل التجاري", placeholder: "xxxxxxx", ltr: true }, { key: "vatNumber", label: "الرقم الضريبي", placeholder: "OMxxxxxxxxxx", ltr: true }] },
-  EG: { defaultCurrency: "EGP", fields: [{ key: "crNumber", label: "السجل التجاري", placeholder: "xxxxx", ltr: true }, { key: "vatNumber", label: "البطاقة الضريبية", placeholder: "xxx-xxx-xxx", ltr: true }] },
+  BH: { defaultCurrency: "BHD", fields: [{ key: "crNumber", label: { ar: "السجل التجاري (CR)", en: "Commercial registration (CR)" }, placeholder: "xxxxx-1", ltr: true }, { key: "vatNumber", label: { ar: "الرقم الضريبي", en: "VAT number" }, placeholder: "200xxxxxxxxxxxx", ltr: true }] },
+  OM: { defaultCurrency: "OMR", fields: [{ key: "crNumber", label: { ar: "السجل التجاري", en: "Commercial registration" }, placeholder: "xxxxxxx", ltr: true }, { key: "vatNumber", label: { ar: "الرقم الضريبي", en: "VAT number" }, placeholder: "OMxxxxxxxxxx", ltr: true }] },
+  EG: { defaultCurrency: "EGP", fields: [{ key: "crNumber", label: { ar: "السجل التجاري", en: "Commercial registration" }, placeholder: "xxxxx", ltr: true }, { key: "vatNumber", label: { ar: "البطاقة الضريبية", en: "Tax card" }, placeholder: "xxx-xxx-xxx", ltr: true }] },
   US: {
     defaultCurrency: "USD",
     fields: [
-      { key: "vatNumber", label: "EIN (Federal Tax ID)", placeholder: "XX-XXXXXXX", ltr: true, help: "9 digits from IRS · format XX-XXXXXXX" },
-      { key: "crNumber", label: "State / Filing Number", placeholder: "WY · 2026-001234567", ltr: true, help: "ولاية + رقم الـfiling من Secretary of State" },
+      { key: "vatNumber", label: { ar: "EIN (Federal Tax ID)", en: "EIN (Federal Tax ID)" }, placeholder: "XX-XXXXXXX", ltr: true, help: { ar: "9 digits from IRS · format XX-XXXXXXX", en: "9 digits from IRS · format XX-XXXXXXX" } },
+      { key: "crNumber", label: { ar: "State / Filing Number", en: "State / Filing Number" }, placeholder: "WY · 2026-001234567", ltr: true, help: { ar: "ولاية + رقم الـfiling من Secretary of State", en: "State + filing number from Secretary of State" } },
     ],
   },
-  GB: { defaultCurrency: "GBP", fields: [{ key: "crNumber", label: "Companies House Number", placeholder: "12345678", ltr: true }, { key: "vatNumber", label: "VAT Number", placeholder: "GB123456789", ltr: true }] },
+  GB: { defaultCurrency: "GBP", fields: [{ key: "crNumber", label: { ar: "Companies House Number", en: "Companies House Number" }, placeholder: "12345678", ltr: true }, { key: "vatNumber", label: { ar: "VAT Number", en: "VAT Number" }, placeholder: "GB123456789", ltr: true }] },
 };
 
+const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
 function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated: (o: Org) => void }) {
+  const { language, t } = useLanguage();
+  const isRtl = language === "ar";
+  const months = isRtl ? MONTHS_AR : MONTHS_EN;
   const [form, setForm] = useState<any>({
     name: "",
     legalName: "",
@@ -429,7 +435,10 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   const handleImageUpload = async (file: File, kind: "logoUrl" | "stampUrl") => {
     if (file.size > 2 * 1024 * 1024) {
-      setError(`${kind === "logoUrl" ? "الشعار" : "الختم"} يجب أن يكون أصغر من 2 ميجا`);
+      setError(t(
+        `${kind === "logoUrl" ? "الشعار" : "الختم"} يجب أن يكون أصغر من 2 ميجا`,
+        `${kind === "logoUrl" ? "Logo" : "Stamp"} must be smaller than 2 MB`,
+      ));
       return;
     }
     const reader = new FileReader();
@@ -445,7 +454,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError("الاسم مطلوب"); return; }
+    if (!form.name.trim()) { setError(t("الاسم مطلوب", "Name is required")); return; }
     setBusy(true);
     setError(null);
     try {
@@ -478,7 +487,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
         typeof e?.message === "string" ? e.message :
         typeof e === "string" ? e :
         e && typeof e === "object" ? JSON.stringify(e) :
-        "فشل إنشاء الشركة";
+        t("فشل إنشاء الشركة", "Failed to create company");
       setError(msg);
     } finally {
       setBusy(false);
@@ -488,7 +497,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
   const inp = "w-full rounded-md border border-border px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20";
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 z-[100] bg-white overflow-y-auto" dir={isRtl ? "rtl" : "ltr"}>
       <form onSubmit={handleSubmit}>
         {/* Sticky header */}
         <div className="sticky top-0 z-10 border-b border-border bg-white/95 backdrop-blur px-6 py-3 flex items-center justify-between">
@@ -496,13 +505,13 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <button type="button" onClick={onClose} className="rounded p-1.5 text-muted-foreground hover:bg-muted/50"><X className="h-5 w-5" /></button>
             <div>
               <h1 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t("إنشاء شركة جديدة", "Create new company")}</h1>
-              <p className="text-xs text-muted-foreground">بعد الإنشاء: 20 حساب · 3 معدلات ضريبية · ZATCA جاهز</p>
+              <p className="text-xs text-muted-foreground">{t("بعد الإنشاء: 20 حساب · 3 معدلات ضريبية · ZATCA جاهز", "After creating: 20 accounts · 3 tax rates · ZATCA ready")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onClose} className="rounded border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50">إلغاء</button>
+            <button type="button" onClick={onClose} className="rounded border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50">{t("إلغاء", "Cancel")}</button>
             <button type="submit" disabled={busy} className="rounded bg-primary px-5 py-2 text-sm text-white hover:bg-primary/80 disabled:opacity-60">
-              {busy ? "جارٍ الإنشاء…" : "إنشاء الشركة"}
+              {busy ? t("جارٍ الإنشاء…", "Creating…") : t("إنشاء الشركة", "Create company")}
             </button>
           </div>
         </div>
@@ -514,11 +523,11 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
           {/* Section: Branding */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>الهوية البصرية</h2>
-            <p className="text-xs text-muted-foreground mb-4">شعار الشركة + الختم الرسمي · يظهران على الفواتير والعقود</p>
+            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الهوية البصرية", "Brand identity")}</h2>
+            <p className="text-xs text-muted-foreground mb-4">{t("شعار الشركة + الختم الرسمي · يظهران على الفواتير والعقود", "Company logo + official stamp · shown on invoices and contracts")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="text-sm text-foreground/80 block mb-1.5">الشعار · يقبل مربع أو طولي</label>
+                <label className="text-sm text-foreground/80 block mb-1.5">{t("الشعار · يقبل مربع أو طولي", "Logo · square or wide accepted")}</label>
                 <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-[#1276E3] transition">
                   <input type="file" accept="image/*" hidden id="logo-upload"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "logoUrl"); }} />
@@ -526,20 +535,20 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                     <div className="flex items-center gap-3">
                       <img src={form.logoUrl} alt="logo" className="max-w-[240px] max-h-[80px] object-contain bg-muted rounded p-1" />
                       <div className="flex flex-col gap-1">
-                        <label htmlFor="logo-upload" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                        <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline text-start">حذف</button>
+                        <label htmlFor="logo-upload" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                        <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline text-start">{t("حذف", "Remove")}</button>
                       </div>
                     </div>
                   ) : (
                     <label htmlFor="logo-upload" className="cursor-pointer block text-center py-4">
-                      <div className="text-sm text-primary font-medium">اضغط لرفع الشعار</div>
-                      <div className="text-xs text-muted-foreground/60 mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                      <div className="text-sm text-primary font-medium">{t("اضغط لرفع الشعار", "Click to upload logo")}</div>
+                      <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG · SVG · JPG · حتى 2MB", "PNG · SVG · JPG · up to 2MB")}</div>
                     </label>
                   )}
                 </div>
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1.5">الختم الرسمي</label>
+                <label className="text-sm text-foreground/80 block mb-1.5">{t("الختم الرسمي", "Official stamp")}</label>
                 <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-[#1276E3] transition">
                   <input type="file" accept="image/*" hidden id="stamp-upload"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "stampUrl"); }} />
@@ -547,14 +556,14 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                     <div className="flex items-center gap-3">
                       <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-muted rounded p-1" />
                       <div className="flex flex-col gap-1">
-                        <label htmlFor="stamp-upload" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                        <button type="button" onClick={() => setForm({ ...form, stampUrl: "" })} className="text-xs text-red-600 hover:underline text-start">حذف</button>
+                        <label htmlFor="stamp-upload" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                        <button type="button" onClick={() => setForm({ ...form, stampUrl: "" })} className="text-xs text-red-600 hover:underline text-start">{t("حذف", "Remove")}</button>
                       </div>
                     </div>
                   ) : (
                     <label htmlFor="stamp-upload" className="cursor-pointer block text-center py-4">
-                      <div className="text-sm text-primary font-medium">اضغط لرفع الختم</div>
-                      <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                      <div className="text-sm text-primary font-medium">{t("اضغط لرفع الختم", "Click to upload stamp")}</div>
+                      <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG شفاف يفضّل · حتى 2MB", "Transparent PNG preferred · up to 2MB")}</div>
                     </label>
                   )}
                 </div>
@@ -564,56 +573,56 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
           {/* Section: Basic info */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>البيانات الأساسية</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("البيانات الأساسية", "Basic info")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="text-sm text-foreground/80 block mb-1">اسم الشركة (العرض) *</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة (العرض) *", "Company name (display) *")}</label>
                 <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="مثال: شركة سبيك بروز للاستثمار" className={inp} />
+                  placeholder={t("مثال: شركة سبيك بروز للاستثمار", "e.g. Spec Pros Investment Co.")} className={inp} />
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm text-foreground/80 block mb-1">الاسم القانوني الكامل</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("الاسم القانوني الكامل", "Full legal name")}</label>
                 <input type="text" value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })}
                   placeholder="Spec Pros Fund LP" className={inp} />
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">الدولة</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("الدولة", "Country")}</label>
                 <select value={form.country} onChange={(e) => setCountry(e.target.value)} className={inp + " bg-white"}>
-                  <option value="SA">السعودية (KSA)</option>
-                  <option value="AE">الإمارات (UAE)</option>
-                  <option value="KW">الكويت</option>
-                  <option value="QA">قطر</option>
-                  <option value="BH">البحرين</option>
-                  <option value="OM">عُمان</option>
-                  <option value="EG">مصر</option>
-                  <option value="US">الولايات المتحدة (USA)</option>
-                  <option value="GB">المملكة المتحدة (UK)</option>
+                  <option value="SA">{t("السعودية (KSA)", "Saudi Arabia (KSA)")}</option>
+                  <option value="AE">{t("الإمارات (UAE)", "United Arab Emirates (UAE)")}</option>
+                  <option value="KW">{t("الكويت", "Kuwait")}</option>
+                  <option value="QA">{t("قطر", "Qatar")}</option>
+                  <option value="BH">{t("البحرين", "Bahrain")}</option>
+                  <option value="OM">{t("عُمان", "Oman")}</option>
+                  <option value="EG">{t("مصر", "Egypt")}</option>
+                  <option value="US">{t("الولايات المتحدة (USA)", "United States (USA)")}</option>
+                  <option value="GB">{t("المملكة المتحدة (UK)", "United Kingdom (UK)")}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">العملة الأساسية</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("العملة الأساسية", "Base currency")}</label>
                 <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className={inp + " bg-white"}>
-                  <option value="SAR">SAR · ريال سعودي</option>
-                  <option value="USD">USD · دولار</option>
-                  <option value="AED">AED · درهم</option>
-                  <option value="EUR">EUR · يورو</option>
-                  <option value="GBP">GBP · جنيه</option>
+                  <option value="SAR">{t("SAR · ريال سعودي", "SAR · Saudi Riyal")}</option>
+                  <option value="USD">{t("USD · دولار", "USD · Dollar")}</option>
+                  <option value="AED">{t("AED · درهم", "AED · Dirham")}</option>
+                  <option value="EUR">{t("EUR · يورو", "EUR · Euro")}</option>
+                  <option value="GBP">{t("GBP · جنيه", "GBP · Pound")}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">مجال الشركة</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("مجال الشركة", "Industry")}</label>
                 <input type="text" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                  placeholder="استشارات · إنتاج فني · عقاري · …" className={inp} />
+                  placeholder={t("استشارات · إنتاج فني · عقاري · …", "Consulting · media production · real estate · …")} className={inp} />
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">نهاية السنة المالية (شهر)</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("نهاية السنة المالية (شهر)", "Fiscal year end (month)")}</label>
                 <select value={form.fiscalYearEnd} onChange={(e) => setForm({ ...form, fiscalYearEnd: Number(e.target.value) })} className={inp + " bg-white"}>
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
-                    <option key={m} value={m}>{["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"][m-1]}</option>
+                    <option key={m} value={m}>{months[m-1]}</option>
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  السنة تبدأ في: {["فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر","يناير"][(Number(form.fiscalYearEnd) || 12) % 12]}
+                  {t("السنة تبدأ في:", "Year starts in:")} {months[(Number(form.fiscalYearEnd) || 12) % 12]}
                 </p>
               </div>
             </div>
@@ -621,32 +630,32 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
           {/* Section: Tax & registration */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>التسجيل الضريبي والقانوني</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("التسجيل الضريبي والقانوني", "Tax & legal registration")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {spec.fields.map((f) => (
                 <div key={f.key}>
-                  <label className="text-sm text-foreground/80 block mb-1">{f.label}</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t(f.label.ar, f.label.en)}</label>
                   <input type="text" value={form[f.key] || ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                    placeholder={f.placeholder} dir={f.ltr ? "ltr" : "rtl"}
+                    placeholder={isRtl ? f.placeholder : (f.placeholderEn || f.placeholder)} dir={f.ltr ? "ltr" : "rtl"}
                     className={`${inp} ${f.ltr ? "font-english" : ""}`} />
-                  {f.help && <p className="text-xs text-muted-foreground/60 mt-1">{f.help}</p>}
+                  {f.help && <p className="text-xs text-muted-foreground/60 mt-1">{t(f.help.ar, f.help.en)}</p>}
                 </div>
               ))}
               {form.country === "SA" && (
                 <>
                   <div>
-                    <label className="text-sm text-foreground/80 block mb-1">تاريخ التسجيل الضريبي الفعلي</label>
+                    <label className="text-sm text-foreground/80 block mb-1">{t("تاريخ التسجيل الضريبي الفعلي", "Actual tax registration date")}</label>
                     <input type="date" value={form.taxRegistrationDate} onChange={(e) => setForm({ ...form, taxRegistrationDate: e.target.value })} className={inp + " font-english"} dir="ltr" />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground/80 block mb-1">تاريخ استحقاق أول إقرار ضريبي</label>
+                    <label className="text-sm text-foreground/80 block mb-1">{t("تاريخ استحقاق أول إقرار ضريبي", "First VAT return due date")}</label>
                     <input type="date" value={form.firstVatPeriodStart} onChange={(e) => setForm({ ...form, firstVatPeriodStart: e.target.value })} className={inp + " font-english"} dir="ltr" />
                   </div>
                   <div>
-                    <label className="text-sm text-foreground/80 block mb-1">الفترة الضريبية</label>
+                    <label className="text-sm text-foreground/80 block mb-1">{t("الفترة الضريبية", "VAT period")}</label>
                     <select value={form.vatPeriod} onChange={(e) => setForm({ ...form, vatPeriod: e.target.value })} className={inp + " bg-white"}>
-                      <option value="monthly">شهرية</option>
-                      <option value="quarterly">ربع سنوية</option>
+                      <option value="monthly">{t("شهرية", "Monthly")}</option>
+                      <option value="quarterly">{t("ربع سنوية", "Quarterly")}</option>
                     </select>
                   </div>
                 </>
@@ -656,20 +665,20 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
           {/* Section: Contact info */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>بيانات الاتصال</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("بيانات الاتصال", "Contact info")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">البريد الإلكتروني</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("البريد الإلكتروني", "Email")}</label>
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="info@ensidex.com" className={inp + " font-english"} dir="ltr" />
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">رقم الهاتف</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("رقم الهاتف", "Phone number")}</label>
                 <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="+966 50 123 4567" className={inp + " font-english"} dir="ltr" />
               </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1">الموقع الإلكتروني</label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("الموقع الإلكتروني", "Website")}</label>
                 <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })}
                   placeholder="https://ensidex.com" className={inp + " font-english"} dir="ltr" />
               </div>
@@ -679,7 +688,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
           {/* Section: Address · country-aware */}
           <div className="rounded-lg border border-border p-5">
             <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>
-              {form.country === "US" ? "Mailing Address" : form.country === "SA" ? "العنوان الوطني" : "العنوان"}
+              {form.country === "US" ? t("Mailing Address", "Mailing Address") : form.country === "SA" ? t("العنوان الوطني", "National Address") : t("العنوان", "Address")}
             </h2>
             {form.country === "US" || form.country === "GB" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -724,7 +733,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="text-sm text-foreground/80 block mb-1">الشارع</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("الشارع", "Street")}</label>
                   <AddressAutocomplete
                     value={form.streetName}
                     onChange={(v) => setForm({ ...form, streetName: v })}
@@ -736,38 +745,38 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                       postalCode: p.postalCode || form.postalCode,
                     })}
                     country={form.country}
-                    placeholder="ابدأ بكتابة العنوان (مثل: طريق الدائري الشرقي)"
+                    placeholder={t("ابدأ بكتابة العنوان (مثل: طريق الدائري الشرقي)", "Start typing the address (e.g. Eastern Ring Rd)")}
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground/80 block mb-1">الحي</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("الحي", "District")}</label>
                   <input type="text" value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })}
-                    placeholder="حي الروضة" className={inp} />
+                    placeholder={t("حي الروضة", "Al Rawdah district")} className={inp} />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground/80 block mb-1">رقم المبنى</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("رقم المبنى", "Building number")}</label>
                   <input type="text" value={form.buildingNumber} onChange={(e) => setForm({ ...form, buildingNumber: e.target.value })}
                     placeholder="7421" className={inp + " font-english"} dir="ltr" />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground/80 block mb-1">الرمز البريدي</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("الرمز البريدي", "Postal code")}</label>
                   <input type="text" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
                     placeholder="13213" className={inp + " font-english"} dir="ltr" />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground/80 block mb-1">المدينة</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("المدينة", "City")}</label>
                   <input type="text" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    placeholder="الرياض" className={inp} />
+                    placeholder={t("الرياض", "Riyadh")} className={inp} />
                 </div>
                 <div>
-                  <label className="text-sm text-foreground/80 block mb-1">المنطقة</label>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("المنطقة", "Region")}</label>
                   <input type="text" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}
-                    placeholder="منطقة الرياض" className={inp} />
+                    placeholder={t("منطقة الرياض", "Riyadh region")} className={inp} />
                 </div>
               </div>
             )}
             <p className="text-xs text-muted-foreground/60 mt-3">
-              💡 ابدأ بكتابة العنوان (مثل "30 N Gould") · سيظهر مساعد التعبئة التلقائية قريباً
+              {t("💡 ابدأ بكتابة العنوان (مثل \"30 N Gould\") · سيظهر مساعد التعبئة التلقائية قريباً", "💡 Start typing the address (e.g. \"30 N Gould\") · autocomplete assistant coming soon")}
             </p>
           </div>
         </div>
