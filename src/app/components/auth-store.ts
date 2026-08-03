@@ -115,15 +115,29 @@ class AuthStore {
         // 2. Prefer an org where the user is OWNER (their personal org) over
         //    shared/demo orgs where they might be VIEWER/ACCOUNTANT.
         // 3. Fall back to the first membership from the server.
+        // Sort memberships by createdAt ascending so the user's FIRST (oldest)
+        // org is preferred — this is their real company, not a demo org.
+        const sorted = [...memberships].sort((a: any, b: any) =>
+          new Date(a?.createdAt || 0).getTime() - new Date(b?.createdAt || 0).getTime()
+        )
+        // Prefer non-demo orgs (slug doesn't start with "demo-") over demo orgs.
+        // Demo orgs are created by the "seed demo data" feature and have slugs
+        // like "demo-sa-fova" or "demo-us-9sou".
+        const isDemo = (m: any) => (m?.org?.slug || '').startsWith('demo-')
         const storedOrgId = typeof localStorage !== 'undefined'
           ? localStorage.getItem('entix_org_id') : null
         const storedMatch = storedOrgId
-          ? memberships.find((m: any) => m?.org?.id === storedOrgId)
+          ? sorted.find((m: any) => m?.org?.id === storedOrgId)
           : null
-        const ownerMatch = !storedMatch
-          ? memberships.find((m: any) => m?.role === 'OWNER')
+        // If the stored org is a demo org, prefer the oldest non-demo org instead.
+        // This fixes the case where the user switched to a demo org in a previous
+        // session and now can't find their real company data.
+        const storedIsDemo = storedMatch && isDemo(storedMatch)
+        const oldestReal = sorted.find((m: any) => !isDemo(m))
+        const ownerMatch = !storedMatch || storedIsDemo
+          ? (oldestReal || sorted.find((m: any) => m?.role === 'OWNER'))
           : null
-        let activeMembership = storedMatch || ownerMatch || memberships[0]
+        let activeMembership = (storedIsDemo ? null : storedMatch) || ownerMatch || sorted[0]
 
         // First login via Google can arrive with zero orgs.
         // Auto-bootstrap a seeded demo org so app routes never crash with missing X-Org-Id.
