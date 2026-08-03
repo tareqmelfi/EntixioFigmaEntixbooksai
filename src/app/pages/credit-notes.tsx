@@ -21,9 +21,10 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Contact, Invoice } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", ISSUED: "صادر", APPLIED: "مطبَّق", CANCELLED: "ملغى",
+const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
+  DRAFT: { ar: "مسودة", en: "Draft" }, ISSUED: { ar: "صادر", en: "Issued" }, APPLIED: { ar: "مطبَّق", en: "Applied" }, CANCELLED: { ar: "ملغى", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-700",
@@ -33,11 +34,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const REASONS = [
-  { value: "RETURN", label: "إرجاع بضاعة" },
-  { value: "DISCOUNT", label: "خصم تجاري" },
-  { value: "PRICING_ERROR", label: "تصحيح خطأ تسعير" },
-  { value: "QUALITY_ISSUE", label: "مشكلة جودة" },
-  { value: "OTHER", label: "أخرى" },
+  { value: "RETURN", label: { ar: "إرجاع بضاعة", en: "Goods return" } },
+  { value: "DISCOUNT", label: { ar: "خصم تجاري", en: "Trade discount" } },
+  { value: "PRICING_ERROR", label: { ar: "تصحيح خطأ تسعير", en: "Pricing error correction" } },
+  { value: "QUALITY_ISSUE", label: { ar: "مشكلة جودة", en: "Quality issue" } },
+  { value: "OTHER", label: { ar: "أخرى", en: "Other" } },
 ];
 
 const EMPTY_FORM = {
@@ -63,6 +64,7 @@ interface CreditNote {
 }
 
 export function CreditNotes() {
+  const { t } = useLanguage();
   const params = useParams();
   const navigate = useNavigate();
   const editId = params.id;
@@ -104,7 +106,7 @@ export function CreditNotes() {
         setItems(cnRes.items);
       } catch (_) { setItems([]); }
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -139,7 +141,7 @@ export function CreditNotes() {
         setLines(mapped.length > 0 ? mapped : [newLine()]);
       } catch (e: any) {
         if (!cancelled) {
-          push("error", e instanceof ApiError ? e.message : "تعذر تحميل الإشعار");
+          push("error", e instanceof ApiError ? e.message : t("تعذر تحميل الإشعار", "Could not load the credit note"));
           navigate("/app/credit-notes", { replace: true });
         }
       } finally {
@@ -194,9 +196,9 @@ export function CreditNotes() {
         taxRateId: line.taxRateId || null,
       }));
       setLines(mapped.length > 0 ? mapped : [newLine()]);
-      push("success", `تم تحميل ${mapped.length} بند من الفاتورة ${invoice.invoiceNumber}`);
+      push("success", t(`تم تحميل ${mapped.length} بند من الفاتورة ${invoice.invoiceNumber}`, `Loaded ${mapped.length} line(s) from invoice ${invoice.invoiceNumber}`));
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "تعذر تحميل بنود الفاتورة");
+      setCreateError(e instanceof ApiError ? e.message : t("تعذر تحميل بنود الفاتورة", "Could not load invoice lines"));
     } finally {
       setSourceLoading(false);
     }
@@ -204,9 +206,9 @@ export function CreditNotes() {
 
   const handleSubmit = async () => {
     setCreateError(null);
-    if (!form.contactId) { setCreateError("اختر العميل"); return; }
+    if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return; }
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
-    if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل"); return; }
+    if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل", "Add at least one line item")); return; }
     setBusy(true);
     try {
       const payload = {
@@ -228,16 +230,16 @@ export function CreditNotes() {
       };
       if (isEditing && editId) {
         const cn = await api.creditNotes.update(editId, payload);
-        push("success", `تم تحديث الإشعار ${cn.noteNumber}`);
+        push("success", t(`تم تحديث الإشعار ${cn.noteNumber}`, `Updated credit note ${cn.noteNumber}`));
         navigate("/app/credit-notes", { replace: true });
       } else {
         const cn = await api.creditNotes.create(payload);
         setItems((prev) => [cn, ...prev]);
-        push("success", `تم إنشاء إشعار دائن ${cn.noteNumber}`);
+        push("success", t(`تم إنشاء إشعار دائن ${cn.noteNumber}`, `Created credit note ${cn.noteNumber}`));
         closeCreate();
       }
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : "فشل الحفظ");
+      setCreateError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
     } finally { setBusy(false); }
   };
 
@@ -246,8 +248,8 @@ export function CreditNotes() {
     try {
       await api.creditNotes.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-      push("success", "تم حذف الإشعار");
-    } catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
+      push("success", t("تم حذف الإشعار", "Credit note deleted"));
+    } catch (e: any) { push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed")); }
   };
 
   // Customer-filtered invoices for the original-invoice combobox
@@ -259,15 +261,15 @@ export function CreditNotes() {
     return (
       <>
         <FullPageForm
-          title={isEditing ? "تعديل إشعار دائن" : "إشعار دائن جديد"}
-          subtitle="ربط الإشعار بفاتورة الأصلية اختياري · سيخصم القيمة من رصيد العميل"
+          title={isEditing ? t("تعديل إشعار دائن", "Edit credit note") : t("إشعار دائن جديد", "New credit note")}
+          subtitle={t("ربط الإشعار بفاتورة الأصلية اختياري · سيخصم القيمة من رصيد العميل", "Linking the note to the original invoice is optional · the value will be deducted from the customer's balance")}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
               <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
-                {busy ? "..." : "حفظ كمسودة"}
+                {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
               </Button>
             </div>
           }
@@ -275,24 +277,24 @@ export function CreditNotes() {
           <div className="max-w-3xl mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
             <div className="space-y-2">
-              <Label className="text-foreground/80">العميل *</Label>
+              <Label className="text-foreground/80">{t("العميل", "Customer")} *</Label>
               <SearchableCombobox
                 value={form.contactId}
                 onChange={(id) => setForm({ ...form, contactId: id, originalInvoiceId: "" })}
                 onCreate={async (name) => {
                   const c = await api.contacts.create({ displayName: name, type: "CUSTOMER", isCustomer: true } as any);
                   setCustomers((prev) => [c, ...prev]);
-                  push("success", `تم إنشاء ${c.displayName}`);
+                  push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
                   return c.id;
                 }}
                 items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                placeholder="اكتب اسم العميل أو ابحث..."
-                createLabel={(q) => `+ إنشاء عميل جديد: "${q}"`}
+                placeholder={t("اكتب اسم العميل أو ابحث...", "Type the customer name or search...")}
+                createLabel={(q) => t(`+ إنشاء عميل جديد: "${q}"`, `+ Create new customer: "${q}"`)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-foreground/80">الفاتورة الأصلية</Label>
+                <Label className="text-foreground/80">{t("الفاتورة الأصلية", "Original invoice")}</Label>
                 <SearchableCombobox
                   value={form.originalInvoiceId}
                   onChange={loadInvoiceLines}
@@ -305,23 +307,23 @@ export function CreditNotes() {
                       `${Number(i.total).toLocaleString()} ${i.currency}`,
                     ].filter(Boolean).join(" · "),
                   }))}
-                  placeholder="ابحث برقم الفاتورة، اسم العميل، أو التاريخ..."
+                  placeholder={t("ابحث برقم الفاتورة، اسم العميل، أو التاريخ...", "Search by invoice number, customer name, or date...")}
                   disabled={sourceLoading}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground/80">تاريخ الإصدار *</Label>
+                <Label className="text-foreground/80">{t("تاريخ الإصدار", "Issue date")} *</Label>
                 <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/80">سبب الإصدار *</Label>
+              <Label className="text-foreground/80">{t("سبب الإصدار", "Reason for issue")} *</Label>
               <select
                 value={form.reason}
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
                 className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
               >
-                {REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                {REASONS.map(r => <option key={r.value} value={r.value}>{t(r.label.ar, r.label.en)}</option>)}
               </select>
             </div>
             {selectedInvoice && (
@@ -330,8 +332,8 @@ export function CreditNotes() {
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     <span>
-                      تم ربط الإشعار بالفاتورة <span className="font-english font-semibold" dir="ltr">{selectedInvoice.invoiceNumber}</span>
-                      {" "}· يمكنك تعديل الكميات أو حذف البنود قبل الحفظ.
+                      {t("تم ربط الإشعار بالفاتورة", "Credit note linked to invoice")} <span className="font-english font-semibold" dir="ltr">{selectedInvoice.invoiceNumber}</span>
+                      {" · "}{t("يمكنك تعديل الكميات أو حذف البنود قبل الحفظ.", "You can edit quantities or delete lines before saving.")}
                     </span>
                   </div>
                   <Button
@@ -342,17 +344,17 @@ export function CreditNotes() {
                     className="border-[#BBD7F5] bg-white"
                   >
                     {sourceLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <FileText className="h-4 w-4 me-2" />}
-                    إعادة تعبئة البنود
+                    {t("إعادة تعبئة البنود", "Reload line items")}
                   </Button>
                 </div>
               </div>
             )}
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <Label className="text-foreground/80">البنود *</Label>
+                <Label className="text-foreground/80">{t("البنود", "Line items")} *</Label>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <ScanLine className="h-3.5 w-3.5 text-primary" />
-                  الليزر/الباركود يضيف الصنف مباشرة من كود المنتج
+                  {t("الليزر/الباركود يضيف الصنف مباشرة من كود المنتج", "Scanner/barcode adds the item directly from the product code")}
                 </div>
               </div>
               <ItemsTable
@@ -373,7 +375,7 @@ export function CreditNotes() {
                 onCreateProduct={async (name) => {
                   const p = await (api as any).products.create({ name, type: "GOOD", unitPrice: 0, isActive: true });
                   setProducts((prev) => [p, ...prev]);
-                  push("success", `تم إنشاء الصنف ${p.nameAr || p.name}`);
+                  push("success", t(`تم إنشاء الصنف ${p.nameAr || p.name}`, `Created item ${p.nameAr || p.name}`));
                   return { id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, taxRate: 0.15, accountId: p.incomeAccountId };
                 }}
                 minRows={Math.max(5, lines.length)}
@@ -381,16 +383,16 @@ export function CreditNotes() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/80">ملاحظات</Label>
+              <Label className="text-foreground/80">{t("ملاحظات", "Notes")}</Label>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={3}
-                placeholder="تفاصيل إضافية تظهر للعميل..."
+                placeholder={t("تفاصيل إضافية تظهر للعميل...", "Additional details shown to the customer...")}
                 className="w-full rounded-md border border-border px-3 py-2 text-sm"
               />
             </div>
-            <p className="text-xs text-muted-foreground">💡 يمكنك لصق بنود من Excel · سيتم توزيعها تلقائياً.</p>
+            <p className="text-xs text-muted-foreground">{t("💡 يمكنك لصق بنود من Excel · سيتم توزيعها تلقائياً.", "💡 You can paste line items from Excel · they will be distributed automatically.")}</p>
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -402,23 +404,23 @@ export function CreditNotes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الإشعارات الدائنة</h1>
-          <p className="text-muted-foreground mt-1">إدارة إشعارات الخصم والإرجاع للعملاء</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإشعارات الدائنة", "Credit Notes")}</h1>
+          <p className="text-muted-foreground mt-1">{t("إدارة إشعارات الخصم والإرجاع للعملاء", "Manage customer discount and return credit notes")}</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />إشعار دائن جديد</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("إشعار دائن جديد", "New credit note")}</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">إجمالي الإشعارات</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الإشعارات", "Total credit notes")}</div>
           <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">إجمالي القيمة</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div>
           <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">مطبَّقة</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div>
           <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
         </CardContent></Card>
       </div>
@@ -426,8 +428,8 @@ export function CreditNotes() {
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground">قائمة الإشعارات الدائنة</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+            <CardTitle className="text-foreground">{t("قائمة الإشعارات الدائنة", "Credit note list")}</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
@@ -435,19 +437,19 @@ export function CreditNotes() {
            filtered.length === 0 ? (
             <div className="py-12 text-center">
               <ScrollText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" />
-              <p className="text-sm text-muted-foreground mb-2">لا توجد إشعارات دائنة</p>
-              <p className="text-xs text-muted-foreground/60">اضغط "إشعار دائن جديد" لإنشاء أول إشعار</p>
+              <p className="text-sm text-muted-foreground mb-2">{t("لا توجد إشعارات دائنة", "No credit notes")}</p>
+              <p className="text-xs text-muted-foreground/60">{t("اضغط \"إشعار دائن جديد\" لإنشاء أول إشعار", "Click \"New credit note\" to create your first note")}</p>
             </div>
           ) : (
             <table className="w-full">
               <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>السبب</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>القيمة</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("العميل", "Customer")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("السبب", "Reason")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("القيمة", "Value")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
               </tr></thead>
               <tbody>
                 {filtered.map(c => (
@@ -455,17 +457,17 @@ export function CreditNotes() {
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{c.noteNumber}</td>
                     <td className="py-3 px-4 text-sm text-foreground/80">{c.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{c.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{REASONS.find(r => r.value === c.reason)?.label || c.reason}</td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find(r => r.value === c.reason); return r ? t(r.label.ar, r.label.en) : c.reason; })()}</td>
                     <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>
                       <span className="inline-flex items-center gap-1"><ArrowDownLeft className="h-3 w-3" />{Number(c.total).toLocaleString()} {c.currency}</span>
                     </td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] || c.status}</span></td>
+                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] ? t(STATUS_LABELS[c.status].ar, STATUS_LABELS[c.status].en) : c.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`/app/credit-notes/${c.id}`)}
                           className="rounded-md p-1.5 text-primary hover:bg-primary/5"
-                          title="تعديل"
+                          title={t("تعديل", "Edit")}
                         >
                           <FileText className="h-4 w-4" />
                         </button>

@@ -26,9 +26,9 @@ import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", APPROVED: "معتمدة", SENT: "مرسلة", VIEWED: "مُشاهَدة", PAID: "مدفوعة",
-  PARTIAL: "مدفوعة جزئياً", OVERDUE: "متأخرة", CANCELLED: "ملغاة",
+const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
+  DRAFT: { ar: "مسودة", en: "Draft" }, APPROVED: { ar: "معتمدة", en: "Approved" }, SENT: { ar: "مرسلة", en: "Sent" }, VIEWED: { ar: "مُشاهَدة", en: "Viewed" }, PAID: { ar: "مدفوعة", en: "Paid" },
+  PARTIAL: { ar: "مدفوعة جزئياً", en: "Partially paid" }, OVERDUE: { ar: "متأخرة", en: "Overdue" }, CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-700",
@@ -54,26 +54,26 @@ const EMPTY_FORM = {
 };
 
 const PAYMENT_TERMS = [
-  { value: "due-on-receipt", label: "مستحق فور الاستلام", days: 0 },
-  { value: "net15", label: "صافي 15 يوم", days: 15 },
-  { value: "net30", label: "صافي 30 يوم", days: 30 },
-  { value: "net60", label: "صافي 60 يوم", days: 60 },
-  { value: "net90", label: "صافي 90 يوم", days: 90 },
+  { value: "due-on-receipt", label: { ar: "مستحق فور الاستلام", en: "Due on receipt" }, days: 0 },
+  { value: "net15", label: { ar: "صافي 15 يوم", en: "Net 15 days" }, days: 15 },
+  { value: "net30", label: { ar: "صافي 30 يوم", en: "Net 30 days" }, days: 30 },
+  { value: "net60", label: { ar: "صافي 60 يوم", en: "Net 60 days" }, days: 60 },
+  { value: "net90", label: { ar: "صافي 90 يوم", en: "Net 90 days" }, days: 90 },
 ];
 
 const CURRENCIES = [
-  { value: "SAR", label: "ريال سعودي · SAR" },
-  { value: "USD", label: "دولار أمريكي · USD" },
-  { value: "EUR", label: "يورو · EUR" },
-  { value: "GBP", label: "جنيه إسترليني · GBP" },
-  { value: "AED", label: "درهم إماراتي · AED" },
-  { value: "KWD", label: "دينار كويتي · KWD" },
+  { value: "SAR", label: { ar: "ريال سعودي · SAR", en: "Saudi Riyal · SAR" } },
+  { value: "USD", label: { ar: "دولار أمريكي · USD", en: "US Dollar · USD" } },
+  { value: "EUR", label: { ar: "يورو · EUR", en: "Euro · EUR" } },
+  { value: "GBP", label: { ar: "جنيه إسترليني · GBP", en: "British Pound · GBP" } },
+  { value: "AED", label: { ar: "درهم إماراتي · AED", en: "UAE Dirham · AED" } },
+  { value: "KWD", label: { ar: "دينار كويتي · KWD", en: "Kuwaiti Dinar · KWD" } },
 ];
 
 const BRAND_TEMPLATES = [
-  { value: "default", label: "افتراضي" },
-  { value: "minimal", label: "مينيمال" },
-  { value: "classic", label: "كلاسيكي" },
+  { value: "default", label: { ar: "افتراضي", en: "Default" } },
+  { value: "minimal", label: { ar: "مينيمال", en: "Minimal" } },
+  { value: "classic", label: { ar: "كلاسيكي", en: "Classic" } },
 ];
 
 export function Invoices() {
@@ -253,7 +253,7 @@ export function Invoices() {
   useKeyboardShortcuts({
     n: () => { if (!createOpen && !signFor) openCreate(); },
     "/": () => {
-      const search = document.querySelector<HTMLInputElement>('input[placeholder="بحث..."]');
+      const search = document.querySelector<HTMLInputElement>('input[placeholder="بحث..."], input[placeholder="Search..."]');
       search?.focus();
     },
   }, [createOpen, signFor]);
@@ -264,7 +264,7 @@ export function Invoices() {
   // 'send' = إرسال (only after approval · triggers email)
   const handleSubmit = async (action: "draft" | "approve" | "send" = "draft") => {
     setCreateError(null);
-    if (!form.contactId) { setCreateError("اختر العميل"); return; }
+    if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return; }
 
     const activeLines = lines.filter((l) => {
       const qty = Number(normalizeDigits(l.quantity)) || 0;
@@ -272,7 +272,7 @@ export function Invoices() {
       return !!l.description.trim() || qty > 0 || price > 0 || !!l.productId || !!l.accountId;
     });
     if (activeLines.length === 0) {
-      setCreateError("أضف بنداً واحداً على الأقل قبل الحفظ");
+      setCreateError(t("أضف بنداً واحداً على الأقل قبل الحفظ", "Add at least one line item before saving"));
       return;
     }
 
@@ -288,7 +288,7 @@ export function Invoices() {
     // Revenue account is resolved server-side (fallback ladder · PR4) — no FE hard block.
     if (action !== "draft" && incompleteActive.length > 0) {
       setInvalidLineIds(new Set(incompleteActive.map((l) => l.id)));
-      setCreateError(`لا يمكن الاعتماد: ${incompleteActive.length} بند ناقص (موضّح بالأحمر) · كل بند يحتاج وصفاً واضحاً + كمية أكبر من صفر + سعراً أكبر من صفر`);
+      setCreateError(t(`لا يمكن الاعتماد: ${incompleteActive.length} بند ناقص (موضّح بالأحمر) · كل بند يحتاج وصفاً واضحاً + كمية أكبر من صفر + سعراً أكبر من صفر`, `Cannot approve: ${incompleteActive.length} incomplete line(s) (highlighted in red) · each line needs a clear description + quantity greater than zero + price greater than zero`));
       return;
     }
 
@@ -296,7 +296,7 @@ export function Invoices() {
     const linesToPersist = action === "draft" ? completeLines : activeLines;
     if (linesToPersist.length === 0) {
       setInvalidLineIds(new Set(incompleteActive.map((l) => l.id)));
-      setCreateError("لا يوجد بند مكتمل للحفظ · البند المكتمل = وصف + كمية + سعر (النواقص موضّحة بالأحمر)");
+      setCreateError(t("لا يوجد بند مكتمل للحفظ · البند المكتمل = وصف + كمية + سعر (النواقص موضّحة بالأحمر)", "No complete line to save · a complete line = description + quantity + price (incomplete ones highlighted in red)"));
       return;
     }
     // PR5-C · surface skipped draft lines instead of dropping them silently
@@ -349,7 +349,7 @@ export function Invoices() {
             // Number was taken meanwhile → retry once with server allocation + tell the user
             numberRetryRef.current = true;
             inv = await api.invoices.create(buildPayload(undefined) as any);
-            push("info", `الرقم السابق كان محجوزاً · تم الحفظ برقم جديد ${inv.invoiceNumber}`);
+            push("info", t(`الرقم السابق كان محجوزاً · تم الحفظ برقم جديد ${inv.invoiceNumber}`, `The previous number was taken · saved with a new number ${inv.invoiceNumber}`));
           } else {
             throw e;
           }
@@ -357,14 +357,14 @@ export function Invoices() {
       }
       setItems(prev => isEdit ? prev.map((x) => (x.id === inv.id ? (inv as Invoice) : x)) : [inv as Invoice, ...prev]);
       if (skippedCount > 0) {
-        push("info", `تم حفظ الفاتورة بدون ${skippedCount} بند ناقص (موضّح بالأحمر) · أكملها من شاشة التعديل`);
+        push("info", t(`تم حفظ الفاتورة بدون ${skippedCount} بند ناقص (موضّح بالأحمر) · أكملها من شاشة التعديل`, `Invoice saved without ${skippedCount} incomplete line(s) (highlighted in red) · complete them from the edit screen`));
       }
       setNumberEdited(false);
       setInvalidLineIds(new Set());
-      const msg = isEdit ? `تم تحديث ${inv.invoiceNumber}`
-                : action === "draft" ? `تم حفظ ${inv.invoiceNumber} كمسودة`
-                : action === "approve" ? `تم اعتماد ${inv.invoiceNumber}`
-                : `تم إرسال ${inv.invoiceNumber} للعميل`;
+      const msg = isEdit ? t(`تم تحديث ${inv.invoiceNumber}`, `Updated ${inv.invoiceNumber}`)
+                : action === "draft" ? t(`تم حفظ ${inv.invoiceNumber} كمسودة`, `Saved ${inv.invoiceNumber} as draft`)
+                : action === "approve" ? t(`تم اعتماد ${inv.invoiceNumber}`, `Approved ${inv.invoiceNumber}`)
+                : t(`تم إرسال ${inv.invoiceNumber} للعميل`, `Sent ${inv.invoiceNumber} to the customer`);
       push("success", msg);
       // Auto-trigger email send after approve+send
       if (action === "send" && inv.id) {
@@ -373,13 +373,13 @@ export function Invoices() {
           const link = await (api as any).paymentLinks?.create?.(inv.id, "auto");
           payLink = link?.url;
         } catch (e: any) {
-          push("info", e?.message || "لم يتم إنشاء رابط دفع، سيتم إرسال الفاتورة بدون رابط دفع");
+          push("info", e?.message || t("لم يتم إنشاء رابط دفع، سيتم إرسال الفاتورة بدون رابط دفع", "No payment link was created; the invoice will be sent without a payment link"));
         }
         try {
           await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined, payLink });
-          push("success", payLink ? "تم إرسال الفاتورة مع رابط الدفع" : "تم إرسال الفاتورة بدون رابط دفع");
+          push("success", payLink ? t("تم إرسال الفاتورة مع رابط الدفع", "Invoice sent with payment link") : t("تم إرسال الفاتورة بدون رابط دفع", "Invoice sent without payment link"));
         } catch (e: any) {
-          push("error", e?.message || "تعذر إرسال الفاتورة بالبريد");
+          push("error", e?.message || t("تعذر إرسال الفاتورة بالبريد", "Could not send the invoice by email"));
         }
       }
       // UX-177 · stay on the saved invoice instead of returning to list
@@ -398,7 +398,7 @@ export function Invoices() {
     try {
       await api.invoices.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-      push("success", "تم حذف الفاتورة");
+      push("success", t("تم حذف الفاتورة", "Invoice deleted"));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" }));
     }
@@ -417,13 +417,13 @@ export function Invoices() {
         return !(descOk && qtyOk && priceOk);
       });
       if (hasIncomplete) {
-        push("error", "لا يمكن الاعتماد: يوجد بند ناقص (الوصف/الكمية/السعر)");
+        push("error", t("لا يمكن الاعتماد: يوجد بند ناقص (الوصف/الكمية/السعر)", "Cannot approve: there is an incomplete line (description/quantity/price)"));
         return;
       }
       // Revenue account is resolved server-side (fallback ladder · PR4) — no FE hard block.
       await api.invoices.update(inv.id, { status: "APPROVED" });
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "APPROVED" } as Invoice : x));
-      push("success", `تم اعتماد ${inv.invoiceNumber}`);
+      push("success", t(`تم اعتماد ${inv.invoiceNumber}`, `Approved ${inv.invoiceNumber}`));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
     }
@@ -433,7 +433,7 @@ export function Invoices() {
     try {
       await api.invoices.update(inv.id, { status: "DRAFT" });
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "DRAFT" } as Invoice : x));
-      push("success", `تم إلغاء اعتماد ${inv.invoiceNumber}`);
+      push("success", t(`تم إلغاء اعتماد ${inv.invoiceNumber}`, `Unapproved ${inv.invoiceNumber}`));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل إلغاء الاعتماد", en: "Unapprove failed" }));
     }
@@ -445,7 +445,7 @@ export function Invoices() {
       const result = await (api as any).invoiceOps.splitByCategory(inv.id);
       const groups = (result?.groups || []) as Array<{ labelAr: string; lines: number }>;
       const groupText = groups.map((g) => `${g.labelAr} (${g.lines})`).join(" · ");
-      push("success", `تم تفكيك ${inv.invoiceNumber} إلى ${result?.createdCount || 0} فواتير: ${groupText}`);
+      push("success", t(`تم تفكيك ${inv.invoiceNumber} إلى ${result?.createdCount || 0} فواتير: ${groupText}`, `Split ${inv.invoiceNumber} into ${result?.createdCount || 0} invoices: ${groupText}`));
       await refresh();
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل تفكيك الفاتورة", en: "Split failed" }));
@@ -507,7 +507,7 @@ export function Invoices() {
     setSignForm({
       name: customer?.displayName || "",
       email: customer?.email || "",
-      message: `يرجى مراجعة وتوقيع الفاتورة رقم ${inv.invoiceNumber}`,
+      message: t(`يرجى مراجعة وتوقيع الفاتورة رقم ${inv.invoiceNumber}`, `Please review and sign invoice no. ${inv.invoiceNumber}`),
     });
     setSignError(null);
   };
@@ -516,8 +516,8 @@ export function Invoices() {
   const handleSignSubmit = async () => {
     if (!signFor) return;
     setSignError(null);
-    if (!signForm.email.trim()) { setSignError("البريد الإلكتروني مطلوب"); return; }
-    if (!signForm.name.trim()) { setSignError("اسم الموقّع مطلوب"); return; }
+    if (!signForm.email.trim()) { setSignError(t("البريد الإلكتروني مطلوب", "Email is required")); return; }
+    if (!signForm.name.trim()) { setSignError(t("اسم الموقّع مطلوب", "Signer name is required")); return; }
     setBusy(true);
     try {
       const r = await api.sign.sendInvoice(signFor.id, {
@@ -526,9 +526,9 @@ export function Invoices() {
         expiresInDays: 30,
       });
       if (r.error) {
-        push("error", `حُفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`);
+        push("error", t(`حُفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`, `Request saved but DocuSeal did not respond: ${r.error}`));
       } else {
-        push("success", `تم إرسال الفاتورة للتوقيع إلى ${signForm.email}`);
+        push("success", t(`تم إرسال الفاتورة للتوقيع إلى ${signForm.email}`, `Invoice sent for signing to ${signForm.email}`));
         if (signFor.status === "DRAFT") {
           setItems(prev => prev.map(x => x.id === signFor.id ? { ...x, status: "SENT" } : x));
         }
@@ -544,14 +544,14 @@ export function Invoices() {
     return (
       <>
         <FullPageForm
-          title={editingInvoice ? `تعديل الفاتورة ${editingInvoice.invoiceNumber}` : "فاتورة جديدة"}
-          subtitle={editingInvoice ? `الحالة: ${STATUS_LABELS[editingInvoice.status] || editingInvoice.status}` : "املأ البيانات الأساسية · يمكنك التعديل لاحقاً"}
+          title={editingInvoice ? t(`تعديل الفاتورة ${editingInvoice.invoiceNumber}`, `Edit invoice ${editingInvoice.invoiceNumber}`) : t("فاتورة جديدة", "New invoice")}
+          subtitle={editingInvoice ? t(`الحالة: ${STATUS_LABELS[editingInvoice.status]?.ar || editingInvoice.status}`, `Status: ${STATUS_LABELS[editingInvoice.status]?.en || editingInvoice.status}`) : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic details · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
                 {editingInvoice && (
                   <>
                     <Button
@@ -559,31 +559,31 @@ export function Invoices() {
                       variant="outline"
                       onClick={() => setPreviewOpen((v) => !v)}
                       className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
-                      title="معاينة الفاتورة كمستند (يسار)"
+                      title={t("معاينة الفاتورة كمستند (يسار)", "Preview invoice as document (left)")}
                     >
-                      معاينة
+                      {t("معاينة", "Preview")}
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}
                       className="border-border"
-                      title="فتح نسخة الطباعة في تبويب جديد"
+                      title={t("فتح نسخة الطباعة في تبويب جديد", "Open print version in a new tab")}
                     >
-                      طباعة
+                      {t("طباعة", "Print")}
                     </Button>
                   </>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
-                  {busy ? "..." : "حفظ كمسودة"}
+                  {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-[#1276E3] text-primary hover:bg-blue-50" title="اعتماد + قفل التعديل">
-                  {busy ? "..." : "اعتماد"}
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-[#1276E3] text-primary hover:bg-blue-50" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                  {busy ? "..." : t("اعتماد", "Approve")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title="إرسال للعميل بالبريد">
-                  {busy ? "..." : "اعتماد + إرسال"}
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
+                  {busy ? "..." : t("اعتماد + إرسال", "Approve + send")}
                 </Button>
               </div>
             </div>
@@ -596,7 +596,7 @@ export function Invoices() {
             {/* Top row · 6 fields per Wafeq screenshot · 2026-05-05 */}
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">جهة الاتصال *</Label>
+                <Label className="text-foreground/80 text-xs">{t("جهة الاتصال", "Contact")} *</Label>
                 <SearchableCombobox
                   value={form.contactId}
                   onChange={(id) => {
@@ -612,29 +612,29 @@ export function Invoices() {
                     setPendingContact({ name, resolve, reject });
                   })}
                   items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                  placeholder="ابحث عن عميل..."
-                  createLabel={(q) => `+ إنشاء "${q}"`}
+                  placeholder={t("ابحث عن عميل...", "Search for a customer...")}
+                  createLabel={(q) => t(`+ إنشاء "${q}"`, `+ Create "${q}"`)}
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">تاريخ الإصدار *</Label>
+                <Label className="text-foreground/80 text-xs">{t("تاريخ الإصدار", "Issue date")} *</Label>
                 <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">تاريخ الاستحقاق *</Label>
+                <Label className="text-foreground/80 text-xs">{t("تاريخ الاستحقاق", "Due date")} *</Label>
                 <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required inputClassName="h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">رقم الفاتورة</Label>
+                <Label className="text-foreground/80 text-xs">{t("رقم الفاتورة", "Invoice number")}</Label>
                 <Input value={form.invoiceNumber} onChange={(e) => { setForm({ ...form, invoiceNumber: e.target.value }); setNumberEdited(true); }}
-                  placeholder="# تلقائي" dir="ltr" className="border-border font-english h-8 text-xs" />
+                  placeholder={t("# تلقائي", "# Auto")} dir="ltr" className="border-border font-english h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">المرجع</Label>
-                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم مرجع العميل" className="border-border h-8 text-xs" />
+                <Label className="text-foreground/80 text-xs">{t("المرجع", "Reference")}</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم مرجع العميل", "Customer reference number")} className="border-border h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">الدفع الإلكتروني</Label>
+                <Label className="text-foreground/80 text-xs">{t("الدفع الإلكتروني", "Online payment")}</Label>
                 <button
                   type="button"
                   onClick={() => { window.location.href = "/app/settings?tab=payments"; }}
@@ -644,7 +644,7 @@ export function Invoices() {
                     <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded">MC</span>
                     <span className="bg-blue-600 text-white text-[10px] font-bold px-1 rounded">VISA</span>
                   </span>
-                  <span className="text-primary">إعداد الدفع</span>
+                  <span className="text-primary">{t("إعداد الدفع", "Set up payments")}</span>
                 </button>
               </div>
             </div>
@@ -652,41 +652,41 @@ export function Invoices() {
             {/* Second row · currency + tax mode + brand template + documents button */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">العملة</Label>
+                <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
                   <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{t(c.label.ar, c.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">المبالغ</Label>
+                <Label className="text-foreground/80 text-xs">{t("المبالغ", "Amounts")}</Label>
                 <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
                   <SelectTrigger className="h-8 border-border text-xs leading-tight"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all-exclusive" className="text-xs">غير شاملة الضريبة</SelectItem>
-                    <SelectItem value="all-inclusive" className="text-xs">شاملة الضريبة</SelectItem>
-                    <SelectItem value="custom" className="text-xs">مخصصة لكل بند</SelectItem>
+                    <SelectItem value="all-exclusive" className="text-xs">{t("غير شاملة الضريبة", "Exclusive of tax")}</SelectItem>
+                    <SelectItem value="all-inclusive" className="text-xs">{t("شاملة الضريبة", "Inclusive of tax")}</SelectItem>
+                    <SelectItem value="custom" className="text-xs">{t("مخصصة لكل بند", "Custom per line")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">قالب العلامة التجارية</Label>
+                <Label className="text-foreground/80 text-xs">{t("قالب العلامة التجارية", "Brand template")}</Label>
                 <Select value={form.brandTemplate} onValueChange={(v) => setForm({ ...form, brandTemplate: v })}>
                   <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {BRAND_TEMPLATES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {BRAND_TEMPLATES.map((bt) => <SelectItem key={bt.value} value={bt.value}>{t(bt.label.ar, bt.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">شروط الدفع</Label>
+                <Label className="text-foreground/80 text-xs">{t("شروط الدفع", "Payment terms")}</Label>
                 <Select value={form.paymentTerms} onValueChange={(v) => {
-                  const t = PAYMENT_TERMS.find((p) => p.value === v);
-                  if (t) {
+                  const pt = PAYMENT_TERMS.find((p) => p.value === v);
+                  if (pt) {
                     const due = new Date(form.issueDate);
-                    due.setDate(due.getDate() + t.days);
+                    due.setDate(due.getDate() + pt.days);
                     setForm({ ...form, paymentTerms: v, dueDate: due.toISOString().slice(0, 10) });
                   } else {
                     setForm({ ...form, paymentTerms: v });
@@ -694,7 +694,7 @@ export function Invoices() {
                 }}>
                   <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PAYMENT_TERMS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {PAYMENT_TERMS.map((pt) => <SelectItem key={pt.value} value={pt.value}>{t(pt.label.ar, pt.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -736,12 +736,12 @@ export function Invoices() {
             <DocumentDropZone
               compact
               target="invoice-lines"
-              hint="استخرج بنود الفاتورة من هذا المستند"
+              hint={t("استخرج بنود الفاتورة من هذا المستند", "Extract invoice line items from this document")}
               defaultTaxRate={0.15}
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
-                  push("info", "لم يتم استخراج بنود من المستند");
+                  push("info", t("لم يتم استخراج بنود من المستند", "No line items were extracted from the document"));
                   return;
                 }
                 const newLines: InvoiceLine[] = data.lines.map((l: any) => ({
@@ -759,7 +759,7 @@ export function Invoices() {
                 }
                 if (data.dueDate) setForm((f) => ({ ...f, dueDate: data.dueDate || f.dueDate }));
                 if (data.notes) setForm((f) => ({ ...f, notes: data.notes || f.notes }));
-                push("success", `تم استخراج ${newLines.length} بنداً بثقة ${Math.round(data.confidence * 100)}%`);
+                push("success", t(`تم استخراج ${newLines.length} بنداً بثقة ${Math.round(data.confidence * 100)}%`, `Extracted ${newLines.length} line item(s) with ${Math.round(data.confidence * 100)}% confidence`));
               }}
               onError={(msg) => push("error", msg)}
             />
@@ -768,10 +768,10 @@ export function Invoices() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-foreground/80 text-xs">شروط الدفع · ملاحظة للعميل</Label>
+                  <Label className="text-foreground/80 text-xs">{t("شروط الدفع · ملاحظة للعميل", "Payment terms · note to customer")}</Label>
                   <textarea
                     rows={3}
-                    placeholder="مثلاً: الدفع خلال 30 يوم من تاريخ الفاتورة عبر تحويل بنكي..."
+                    placeholder={t("مثلاً: الدفع خلال 30 يوم من تاريخ الفاتورة عبر تحويل بنكي...", "e.g.: Payment within 30 days of invoice date via bank transfer...")}
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     className="w-full rounded-md border border-border px-3 py-2 text-sm"
@@ -779,22 +779,22 @@ export function Invoices() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">الإجمالي</Label>
+                <Label className="text-foreground/80 text-xs">{t("الإجمالي", "Total")}</Label>
                 <div className="rounded-lg border border-border bg-white p-4 space-y-2">
                   {(() => {
                     const totals = computeTotals(lines);
                     return (
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">المجموع الفرعي</span>
+                          <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">ضريبة القيمة المضافة (15%)</span>
+                          <span className="text-muted-foreground min-w-0 break-words">{t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
-                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>{t("الإجمالي:", "Total:")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                             {form.currency} {totals.total.toFixed(2)}
                           </span>
@@ -810,17 +810,17 @@ export function Invoices() {
             <aside className="hidden xl:block sticky top-4">
               <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
-                  <span className="text-xs text-muted-foreground">معاينة المستند · آخر نسخة محفوظة</span>
+                  <span className="text-xs text-muted-foreground">{t("معاينة المستند · آخر نسخة محفوظة", "Document preview · last saved version")}</span>
                   <button
                     type="button"
                     onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}
                     className="text-[11px] text-primary hover:underline"
                   >
-                    فتح في تبويب ←
+                    {t("فتح في تبويب ←", "Open in tab ←")}
                   </button>
                 </div>
                 <iframe
-                  title={`معاينة ${editingInvoice.invoiceNumber}`}
+                  title={t(`معاينة ${editingInvoice.invoiceNumber}`, `Preview ${editingInvoice.invoiceNumber}`)}
                   src={`/print/invoice/${editingInvoice.id}?embed=1&noprint=1`}
                   className="w-full bg-white"
                   style={{ height: "calc(100vh - 150px)", border: 0 }}
@@ -860,7 +860,7 @@ export function Invoices() {
                 accountId: p.incomeAccountId,
               });
               setQuickProductReq(null);
-              push("success", `تم إنشاء المنتج · ${p.name}`);
+              push("success", t(`تم إنشاء المنتج · ${p.name}`, `Product created · ${p.name}`));
             }}
           />
         )}
@@ -879,7 +879,7 @@ export function Invoices() {
             onCreated={(a) => {
               quickAccountReq.resolve(a);
               setQuickAccountReq(null);
-              push("success", `تم إنشاء الحساب · ${a.name}`);
+              push("success", t(`تم إنشاء الحساب · ${a.name}`, `Account created · ${a.name}`));
             }}
           />
         )}
@@ -892,15 +892,15 @@ export function Invoices() {
     return (
       <>
         <FullPageForm
-          title={`إرسال ${signFor.invoiceNumber} للتوقيع`}
-          subtitle="DocuSeal · sign.ensidex.com · صلاحية الرابط 30 يوم"
+          title={t(`إرسال ${signFor.invoiceNumber} للتوقيع`, `Send ${signFor.invoiceNumber} for signing`)}
+          subtitle={t("DocuSeal · sign.ensidex.com · صلاحية الرابط 30 يوم", "DocuSeal · sign.ensidex.com · link valid for 30 days")}
           onClose={closeSign}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeSign} className="border-border">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={closeSign} className="border-border">{t("إلغاء", "Cancel")}</Button>
               <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
-                <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : "إرسال للتوقيع"}
+                <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : t("إرسال للتوقيع", "Send for signing")}
               </Button>
             </div>
           }
@@ -908,14 +908,14 @@ export function Invoices() {
           <div className="max-w-2xl mx-auto space-y-4">
             {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>اسم الموقّع *</Label>
-                <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder="الاسم الكامل" /></div>
-              <div className="space-y-2"><Label>البريد الإلكتروني *</Label>
+              <div className="space-y-2"><Label>{t("اسم الموقّع", "Signer name")} *</Label>
+                <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder={t("الاسم الكامل", "Full name")} /></div>
+              <div className="space-y-2"><Label>{t("البريد الإلكتروني", "Email")} *</Label>
                 <Input type="email" value={signForm.email} onChange={(e) => setSignForm({ ...signForm, email: e.target.value })} dir="ltr" className="font-english" placeholder="signer@example.com" /></div>
             </div>
-            <div className="space-y-2"><Label>الرسالة المرفقة</Label>
+            <div className="space-y-2"><Label>{t("الرسالة المرفقة", "Attached message")}</Label>
               <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-border px-3 py-2 text-sm" /></div>
-            <p className="text-xs text-muted-foreground">سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.</p>
+            <p className="text-xs text-muted-foreground">{t("سيستلم الموقّع رابطاً عبر البريد لمراجعة الفاتورة وتوقيعها · صلاحية الرابط 30 يوم.", "The signer will receive a link by email to review and sign the invoice · link valid for 30 days.")}</p>
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -928,39 +928,39 @@ export function Invoices() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المبيعات</h1>
-          <p className="text-muted-foreground mt-1">إدارة فواتير العملاء</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("فواتير المبيعات", "Sales Invoices")}</h1>
+          <p className="text-muted-foreground mt-1">{t("إدارة فواتير العملاء", "Manage customer invoices")}</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة جديدة</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة جديدة", "New invoice")}</Button>
       </div>
 
       {contactFilterId && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-          <span>عرض فواتير عميل واحد{contactFilterName ? `: ${contactFilterName}` : ""}</span>
+          <span>{t("عرض فواتير عميل واحد", "Showing invoices for one customer")}{contactFilterName ? `: ${contactFilterName}` : ""}</span>
           <button
             onClick={() => setSearchParams({}, { replace: true })}
             className="ms-auto rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10 border border-primary/30"
           >
-            إظهار الكل ×
+            {t("إظهار الكل", "Show all")} ×
           </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">إجمالي الفواتير</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الفواتير", "Total invoiced")}</div>
           <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">المُحصَّل</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("المُحصَّل", "Collected")}</div>
           <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">المستحق</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("المستحق", "Outstanding")}</div>
           <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">عدد الفواتير</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("عدد الفواتير", "Invoice count")}</div>
           <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
       </div>
@@ -969,25 +969,25 @@ export function Invoices() {
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <CardTitle className="text-foreground">قائمة الفواتير</CardTitle>
+            <CardTitle className="text-foreground">{t("قائمة الفواتير", "Invoice list")}</CardTitle>
             <div className="flex items-center gap-3">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-40 border-border text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">الكل · {items.length}</SelectItem>
+                  <SelectItem value="ALL">{t("الكل", "All")} · {items.length}</SelectItem>
                   {Object.entries(STATUS_LABELS).map(([s, label]) => (
-                    <SelectItem key={s} value={s}>{label} · {counts[s] || 0}</SelectItem>
+                    <SelectItem key={s} value={s}>{t(label.ar, label.en)} · {counts[s] || 0}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-56 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-56 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
-            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير</p></div>
+            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد فواتير", "No invoices")}</p></div>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] table-auto">
@@ -1002,14 +1002,14 @@ export function Invoices() {
                 <col style={{ width: "12%" }} />{/* إجراءات */}
               </colgroup>
               <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>العميل</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاستحقاق</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الإجمالي</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المتبقي</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("العميل", "Customer")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الاستحقاق", "Due")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المتبقي", "Remaining")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
               </tr></thead>
               <tbody>
                 {filtered.map(i => (
@@ -1017,12 +1017,12 @@ export function Invoices() {
                     key={i.id}
                     onClick={() => navigate(`/app/invoices/${i.id}`)}
                     className="border-b border-border/40 transition-colors hover:bg-primary/5 cursor-pointer"
-                    title="فتح الفاتورة"
+                    title={t("فتح الفاتورة", "Open invoice")}
                   >
                     <td className="py-3 px-4 text-start whitespace-nowrap">
                       <button
                         onClick={() => navigate(`/app/invoices/${i.id}`)}
-                        title="فتح الفاتورة"
+                        title={t("فتح الفاتورة", "Open invoice")}
                         className="hover:underline underline-offset-4 decoration-primary/50 cursor-pointer"
                       >
                         <span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span>
@@ -1033,16 +1033,16 @@ export function Invoices() {
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] || i.status}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}</span>
                         {i.status === "DRAFT" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const ok = window.confirm(`تأكيد اعتماد الفاتورة ${i.invoiceNumber}؟`);
+                              const ok = window.confirm(t(`تأكيد اعتماد الفاتورة ${i.invoiceNumber}؟`, `Confirm approval of invoice ${i.invoiceNumber}?`));
                               if (ok) handleApprove(i);
                             }}
                             className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200"
-                            title="اعتماد الفاتورة"
+                            title={t("اعتماد الفاتورة", "Approve invoice")}
                           >
                             ✓
                           </button>
@@ -1059,51 +1059,51 @@ export function Invoices() {
                             onClick={() => handleSplitByCategory(i)}
                             disabled={splittingId === i.id}
                             className="rounded-md px-2 py-1 text-xs text-[#0B1B49] hover:bg-[#ECEEF5] border border-[#D9DCE7] flex items-center gap-1"
-                            title="تفكيك الفاتورة إلى فواتير حسب القسم"
+                            title={t("تفكيك الفاتورة إلى فواتير حسب القسم", "Split the invoice into invoices by category")}
                           >
                             {splittingId === i.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Split className="h-3.5 w-3.5" />}
-                            تفكيك
+                            {t("تفكيك", "Split")}
                           </button>
                         )}
                         {i.status === "APPROVED" && (
                           <button
                             onClick={() => handleUnapprove(i)}
                             className="rounded-md px-1.5 py-0.5 text-[10px] text-amber-700 hover:bg-amber-50 border border-amber-200"
-                            title="إلغاء الاعتماد وإرجاعها لمسودة"
+                            title={t("إلغاء الاعتماد وإرجاعها لمسودة", "Unapprove and return to draft")}
                           >
-                            ↩ إلغاء اعتماد
+                            ↩ {t("إلغاء اعتماد", "Unapprove")}
                           </button>
                         )}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && (
                           <button
                             onClick={() => openRecordPayment(i)}
                             className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200"
-                            title="تسجيل دفعة عبر صفحة سندات القبض"
+                            title={t("تسجيل دفعة عبر صفحة سندات القبض", "Record a payment via the receipt vouchers page")}
                           >
-                            💰 دفعة
+                            💰 {t("دفعة", "Payment")}
                           </button>
                         )}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
-                          <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title="إرسال للتوقيع">
-                            <FileSignature className="h-3.5 w-3.5" /> توقيع
+                          <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
+                            <FileSignature className="h-3.5 w-3.5" /> {t("توقيع", "Sign")}
                           </button>
                         )}
                         {/* فتح/تعديل — always available; backend locks number + guards integrity */}
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
                           className="rounded-md p-1.5 text-primary hover:bg-blue-50"
-                          title={i.status === "DRAFT" ? "تعديل الفاتورة" : "عرض/تعديل الفاتورة"}
+                          title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض/تعديل الفاتورة", "View/edit invoice")}
                         ><Pencil className="h-4 w-4" /></button>
                         {/* طباعة — always available */}
                         <button
                           onClick={(e) => { e.stopPropagation(); window.open(`/print/invoice/${i.id}`, "_blank"); }}
                           className="rounded-md p-1.5 text-foreground/70 hover:bg-gray-100"
-                          title="طباعة الفاتورة"
+                          title={t("طباعة الفاتورة", "Print invoice")}
                         ><Printer className="h-4 w-4" /></button>
                         {pendingDelete === i.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(i.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={(e) => { e.stopPropagation(); setPendingDelete(i.id); }} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setPendingDelete(i.id); }} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>
@@ -1126,7 +1126,7 @@ export function Invoices() {
           onCancel={() => { pendingContact.reject(); setPendingContact(null); }}
           onCreated={(c) => {
             setCustomers((prev) => [c, ...prev]);
-            push("success", `تم إنشاء ${c.displayName}`);
+            push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
             pendingContact.resolve(c.id);
             setPendingContact(null);
           }}

@@ -43,7 +43,6 @@ type UploadedStatementFile = {
 };
 
 function fileToBase64(file: File) {
-  const { t } = useLanguage();
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -101,6 +100,7 @@ async function readStatementFile(file: File): Promise<UploadedStatementFile> {
 }
 
 export function BankReconciliation() {
+  const { t } = useLanguage();
   const { toasts, push, dismiss } = useToasts();
   const [searchParams] = useSearchParams();
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -128,7 +128,7 @@ export function BankReconciliation() {
       const matched = requested ? acc.items.find((item: any) => item.id === requested) : null;
       if ((matched || acc.items[0]) && !bankAccountId) setBankAccountId((matched || acc.items[0]).id);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     }
   }, [push, bankAccountId, searchParams]);
   useEffect(() => { loadInit(); }, [loadInit]);
@@ -142,22 +142,22 @@ export function BankReconciliation() {
         || file.type === "application/vnd.ms-excel";
     });
     if (allowed.length === 0) {
-      push("error", "اختر ملف PDF أو CSV/MT940/OFX/QIF/XLSX/XLS، وليس مجلد فارغ أو صيغة غير مدعومة");
+      push("error", t("اختر ملف PDF أو CSV/MT940/OFX/QIF/XLSX/XLS، وليس مجلد فارغ أو صيغة غير مدعومة", "Choose a PDF or CSV/MT940/OFX/QIF/XLSX/XLS file — not an empty folder or unsupported format"));
       return;
     }
     try {
       const readFiles = await Promise.all(allowed.map(readStatementFile));
       setSelectedFiles(readFiles);
       setFormat(readFiles[0]?.format || "pdf");
-      push("success", readFiles.length === 1 ? `تم اختيار ${readFiles[0].name}` : `تم اختيار ${readFiles.length} ملفات كشف`);
+      push("success", readFiles.length === 1 ? t("تم اختيار", "Selected") + ` ${readFiles[0].name}` : t("تم اختيار", "Selected") + ` ${readFiles.length} ` + t("ملفات كشف", "statement files"));
     } catch {
-      push("error", "تعذر قراءة الملف المختار");
+      push("error", t("تعذر قراءة الملف المختار", "Failed to read the selected file"));
     }
   };
 
   const handleParse = async () => {
-    if (!bankAccountId) { push("error", "اختر حساباً بنكياً"); return; }
-    if (selectedFiles.length === 0) { push("error", "ارفع ملف كشف واحد على الأقل"); return; }
+    if (!bankAccountId) { push("error", t("اختر حساباً بنكياً", "Choose a bank account")); return; }
+    if (selectedFiles.length === 0) { push("error", t("ارفع ملف كشف واحد على الأقل", "Upload at least one statement file")); return; }
     setBusy(true);
     try {
       const parsed: ParsedRow[] = [];
@@ -193,16 +193,16 @@ export function BankReconciliation() {
       setParseSource(models.size ? { model: Array.from(models).join(", "), source: "batch" } : null);
       setStep("review");
       const source = models.size ? ` · AI ${Array.from(models).join(", ")}` : "";
-      push("success", `تم استخراج ${parsed.length} حركة من ${selectedFiles.length} ملف · مطابقة ${matched} · غير مطابقة ${unmatched}${source}`);
+      push("success", `${t("تم استخراج", "Extracted")} ${parsed.length} ${t("حركة من", "transactions from")} ${selectedFiles.length} ${t("ملف", "file(s)")} · ${t("مطابقة", "matched")} ${matched} · ${t("غير مطابقة", "unmatched")} ${unmatched}${source}`);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الاستخراج");
+      push("error", e instanceof ApiError ? e.message : t("فشل الاستخراج", "Extraction failed"));
     } finally { setBusy(false); }
   };
 
   const handleCommit = async () => {
     if (!bankAccountId) return;
     const toSend = rows.filter(r => r.decision !== "skip");
-    if (toSend.length === 0) { push("error", "لا توجد حركات لتأكيدها"); return; }
+    if (toSend.length === 0) { push("error", t("لا توجد حركات لتأكيدها", "No transactions to confirm")); return; }
     const payloadRows = toSend.map((r) => {
       let action: "link_voucher" | "create_voucher" | "link_invoice" | "link_bill" | "skip" = "create_voucher";
       if (r.decision === "skip") action = "skip";
@@ -221,10 +221,10 @@ export function BankReconciliation() {
     setCommitting(true);
     try {
       const res = await api.bankImport.commit({ bankAccountId, rows: payloadRows });
-      push("success", `تم · أنشئ ${res.created} سند · ربط ${res.linked} وثيقة · تخطي ${res.skipped}`);
+      push("success", `${t("تم", "Done")} · ${t("أنشئ", "created")} ${res.created} ${t("سند", "vouchers")} · ${t("ربط", "linked")} ${res.linked} ${t("وثيقة", "documents")} · ${t("تخطي", "skipped")} ${res.skipped}`);
       setStep("done");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التأكيد");
+      push("error", e instanceof ApiError ? e.message : t("فشل التأكيد", "Commit failed"));
     } finally { setCommitting(false); }
   };
 
@@ -247,23 +247,23 @@ export function BankReconciliation() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>تسوية البنوك</h1>
-          <p className="text-muted-foreground mt-1">رفع كشف حساب البنك · مطابقة الحركات تلقائياً · ترحيل بنقرة</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("تسوية البنوك", "Bank Reconciliation")}</h1>
+          <p className="text-muted-foreground mt-1">{t("رفع كشف حساب البنك · مطابقة الحركات تلقائياً · ترحيل بنقرة", "Upload a bank statement · auto-match transactions · post with one click")}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className={step === "upload" ? "text-primary font-semibold" : ""}>1. رفع</span>
+          <span className={step === "upload" ? "text-primary font-semibold" : ""}>{t("1. رفع", "1. Upload")}</span>
           <ChevronRight className="h-3 w-3" />
-          <span className={step === "review" ? "text-primary font-semibold" : ""}>2. مراجعة</span>
+          <span className={step === "review" ? "text-primary font-semibold" : ""}>{t("2. مراجعة", "2. Review")}</span>
           <ChevronRight className="h-3 w-3" />
-          <span className={step === "done" ? "text-primary font-semibold" : ""}>3. تأكيد</span>
+          <span className={step === "done" ? "text-primary font-semibold" : ""}>{t("3. تأكيد", "3. Confirm")}</span>
         </div>
       </div>
 
       {step === "upload" && (
         <Card className="border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground"><Upload className="h-5 w-5" /> رفع كشف حساب</CardTitle>
-            <CardDescription>صيغ مدعومة: PDF ذكي · CSV · MT940 · OFX · QIF · XLSX · XLS</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-foreground"><Upload className="h-5 w-5" /> {t("رفع كشف حساب", "Upload Bank Statement")}</CardTitle>
+            <CardDescription>{t("صيغ مدعومة: PDF ذكي · CSV · MT940 · OFX · QIF · XLSX · XLS", "Supported formats: smart PDF · CSV · MT940 · OFX · QIF · XLSX · XLS")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedBank && (
@@ -271,18 +271,18 @@ export function BankReconciliation() {
                 <div className="flex items-center gap-2 min-w-0">
                   <Landmark className="h-4 w-4 text-primary shrink-0" />
                   <div className="min-w-0">
-                    <div className="truncate font-medium">{selectedBank.name} · {selectedBank.bankName || "Bank account"}</div>
+                    <div className="truncate font-medium">{selectedBank.name} · {selectedBank.bankName || t("حساب بنكي", "Bank account")}</div>
                     <div className="font-english text-xs text-muted-foreground" dir="ltr">{selectedBank.currency} · {bankIdentifier(selectedBank) || selectedBank.country}</div>
                   </div>
                 </div>
-                <Link to={`/app/bank-accounts/${selectedBank.id}`} className="shrink-0 text-xs text-primary hover:underline">فتح الحساب</Link>
+                <Link to={`/app/bank-accounts/${selectedBank.id}`} className="shrink-0 text-xs text-primary hover:underline">{t("فتح الحساب", "Open account")}</Link>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <Label>الحساب البنكي *</Label>
+                <Label>{t("الحساب البنكي", "Bank account")} *</Label>
                 <Select value={bankAccountId} onValueChange={setBankAccountId}>
-                  <SelectTrigger><SelectValue placeholder="اختر..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("اختر...", "Select...")} /></SelectTrigger>
                   <SelectContent>
                     {bankAccounts.map(b => (
                       <SelectItem key={b.id} value={b.id}>
@@ -293,7 +293,7 @@ export function BankReconciliation() {
                 </Select>
               </div>
               <div>
-                <Label>الصيغة</Label>
+                <Label>{t("الصيغة", "Format")}</Label>
                 <Select value={format} onValueChange={(v) => setFormat(v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -308,7 +308,7 @@ export function BankReconciliation() {
                 </Select>
               </div>
               <div>
-                <Label>قالب البنك</Label>
+                <Label>{t("قالب البنك", "Bank profile")}</Label>
                 <Select value={profile} onValueChange={setProfile}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -330,24 +330,24 @@ export function BankReconciliation() {
                 {selectedFiles.length > 0 ? (
                   <div>
                     <div className="text-sm text-foreground font-medium">
-                      {selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} ملفات كشف مختارة`}
+                      {selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} ${t("ملفات كشف مختارة", "statement files selected")}`}
                     </div>
                     <div className="text-xs text-muted-foreground/60 mt-1">
-                      {selectedFiles.map((f) => f.format.toUpperCase()).join(" · ")} · يمكنك تغيير الملفات
+                      {selectedFiles.map((f) => f.format.toUpperCase()).join(" · ")} · {t("يمكنك تغيير الملفات", "you can change the files")}
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div className="text-sm text-primary font-medium">اختر ملفاً للرفع</div>
-                    <div className="text-xs text-muted-foreground/60 mt-1">PDF كشف البنك أو CSV/MT940/OFX/QIF/XLSX/XLS · يدعم أكثر من ملف PDF</div>
+                    <div className="text-sm text-primary font-medium">{t("اختر ملفاً للرفع", "Choose a file to upload")}</div>
+                    <div className="text-xs text-muted-foreground/60 mt-1">{t("PDF كشف البنك أو CSV/MT940/OFX/QIF/XLSX/XLS · يدعم أكثر من ملف PDF", "Bank statement PDF or CSV/MT940/OFX/QIF/XLSX/XLS · supports multiple PDF files")}</div>
                   </>
                 )}
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <label htmlFor="bank-stmt" className="rounded-md border border-[#1276E3] bg-white px-3 py-1.5 text-xs text-primary hover:bg-blue-50">
-                    اختيار ملف أو عدة ملفات
+                    {t("اختيار ملف أو عدة ملفات", "Choose file(s)")}
                   </label>
                   <label htmlFor="bank-stmt-folder" className="rounded-md border border-border bg-white px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted">
-                    اختيار مجلد PDF
+                    {t("اختيار مجلد PDF", "Choose PDF folder")}
                   </label>
                 </div>
               </div>
@@ -356,7 +356,7 @@ export function BankReconciliation() {
             <div className="flex justify-end">
               <Button onClick={handleParse} disabled={busy || selectedFiles.length === 0} className="bg-primary hover:bg-primary/90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
-                استخراج الحركات والمطابقة التلقائية
+                {t("استخراج الحركات والمطابقة التلقائية", "Extract transactions & auto-match")}
               </Button>
             </div>
           </CardContent>
@@ -367,29 +367,29 @@ export function BankReconciliation() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Card className="border-border"><CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">إجمالي الحركات</div>
+              <div className="text-xs text-muted-foreground">{t("إجمالي الحركات", "Total transactions")}</div>
               <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }}>{rows.length}</div>
             </CardContent></Card>
             <Card className="border-border"><CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">مطابقة تلقائية</div>
+              <div className="text-xs text-muted-foreground">{t("مطابقة تلقائية", "Auto-matched")}</div>
               <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }}>{stats?.matched || 0}</div>
             </CardContent></Card>
             <Card className="border-border"><CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">تحتاج مراجعة</div>
+              <div className="text-xs text-muted-foreground">{t("تحتاج مراجعة", "Needs review")}</div>
               <div className="font-english font-bold text-amber-700 mt-1" style={{ fontSize: "1.5rem" }}>{stats?.unmatched || 0}</div>
             </CardContent></Card>
           </div>
 
           {parseSource?.model && (
             <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
-              تمت قراءة الكشف عبر AI · <span className="font-english" dir="ltr">{parseSource.model}</span>
+              {t("تمت قراءة الكشف عبر AI", "Statement parsed via AI")} · <span className="font-english" dir="ltr">{parseSource.model}</span>
             </div>
           )}
 
           <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-foreground">مراجعة الحركات</CardTitle>
-              <CardDescription>اختر لكل حركة: قبول المطابقة · إنشاء سند جديد · تخطي</CardDescription>
+              <CardTitle className="text-foreground">{t("مراجعة الحركات", "Review transactions")}</CardTitle>
+              <CardDescription>{t("اختر لكل حركة: قبول المطابقة · إنشاء سند جديد · تخطي", "For each transaction choose: accept match · create new voucher · skip")}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -403,11 +403,11 @@ export function BankReconciliation() {
                   </colgroup>
                   <thead className="bg-muted text-xs text-muted-foreground">
                     <tr>
-                      <th className="text-start px-3 py-2.5 font-medium">التاريخ</th>
-                      <th className="text-start px-3 py-2.5 font-medium">البيان</th>
-                      <th className="text-end px-3 py-2.5 font-medium">المبلغ</th>
-                      <th className="text-start px-3 py-2.5 font-medium">المطابقة</th>
-                      <th className="text-center px-3 py-2.5 font-medium">القرار</th>
+                      <th className="text-start px-3 py-2.5 font-medium">{t("التاريخ", "Date")}</th>
+                      <th className="text-start px-3 py-2.5 font-medium">{t("البيان", "Description")}</th>
+                      <th className="text-end px-3 py-2.5 font-medium">{t("المبلغ", "Amount")}</th>
+                      <th className="text-start px-3 py-2.5 font-medium">{t("المطابقة", "Match")}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{t("القرار", "Decision")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -428,20 +428,20 @@ export function BankReconciliation() {
                               <Link2 className="h-3 w-3 text-green-600" />
                               <div>
                                 <div className="text-foreground">{r.matchLabel}</div>
-                                {r.matchScore && <div className="text-muted-foreground/60">ثقة <span className="font-english">{Math.round(r.matchScore * 100)}%</span></div>}
+                                {r.matchScore && <div className="text-muted-foreground/60">{t("ثقة", "confidence")} <span className="font-english">{Math.round(r.matchScore * 100)}%</span></div>}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground/60">— لا يوجد —</span>
+                            <span className="text-xs text-muted-foreground/60">{t("— لا يوجد —", "— none —")}</span>
                           )}
                         </td>
                         <td className="px-3 py-2">
                           <Select value={r.decision || "skip"} onValueChange={(v) => updateRow(i, { decision: v as any })}>
                             <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {r.matchKind && r.matchKind !== "none" && <SelectItem value="accept">قبول الربط</SelectItem>}
-                              <SelectItem value="create_voucher">سند جديد</SelectItem>
-                              <SelectItem value="skip">تخطي</SelectItem>
+                              {r.matchKind && r.matchKind !== "none" && <SelectItem value="accept">{t("قبول الربط", "Accept match")}</SelectItem>}
+                              <SelectItem value="create_voucher">{t("سند جديد", "New voucher")}</SelectItem>
+                              <SelectItem value="skip">{t("تخطي", "Skip")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </td>
@@ -454,10 +454,10 @@ export function BankReconciliation() {
           </Card>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={reset} className="border-border">رجوع</Button>
+            <Button variant="outline" onClick={reset} className="border-border">{t("رجوع", "Back")}</Button>
             <Button onClick={handleCommit} disabled={committing} className="bg-green-600 hover:bg-green-700 text-white">
               {committing ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
-              تأكيد وترحيل {rows.filter(r => r.decision !== "skip").length} حركة
+              {t("تأكيد وترحيل", "Confirm & post")} {rows.filter(r => r.decision !== "skip").length} {t("حركة", "transactions")}
             </Button>
           </div>
         </>
@@ -467,9 +467,9 @@ export function BankReconciliation() {
         <Card className="border-green-200 bg-green-50">
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-3" />
-            <div className="text-xl text-foreground font-bold">تمت التسوية بنجاح</div>
-            <p className="text-sm text-muted-foreground mt-2">جميع الحركات المعتمدة أصبحت قيوداً مرحَّلة في الدفتر العام</p>
-            <Button onClick={reset} className="bg-primary hover:bg-primary/90 mt-4">رفع كشف آخر</Button>
+            <div className="text-xl text-foreground font-bold">{t("تمت التسوية بنجاح", "Reconciliation completed")}</div>
+            <p className="text-sm text-muted-foreground mt-2">{t("جميع الحركات المعتمدة أصبحت قيوداً مرحَّلة في الدفتر العام", "All approved transactions are now posted journal entries in the general ledger")}</p>
+            <Button onClick={reset} className="bg-primary hover:bg-primary/90 mt-4">{t("رفع كشف آخر", "Upload another statement")}</Button>
           </CardContent>
         </Card>
       )}

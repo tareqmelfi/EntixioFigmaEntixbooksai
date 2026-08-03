@@ -9,40 +9,36 @@ import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { COUNTRIES, findCountry } from "../lib/countries";
 import { api, ApiError, type Contact } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 const PRIORITY_COUNTRIES = ["SA", "AE", "US"];
-const COUNTRY_ITEMS = [...COUNTRIES]
-  .sort((a, b) => {
-    const ai = PRIORITY_COUNTRIES.indexOf(a.code);
-    const bi = PRIORITY_COUNTRIES.indexOf(b.code);
-    if (ai >= 0 && bi >= 0) return ai - bi;
-    if (ai >= 0) return -1;
-    if (bi >= 0) return 1;
-    return a.nameAr.localeCompare(b.nameAr, "ar");
-  })
-  .map((country) => ({
-    id: country.code,
-    label: `${country.flag} ${country.nameAr}`,
-    sublabel: `${country.nameEn} · ${country.code}`,
-  }));
+const countrySort = (a: (typeof COUNTRIES)[number], b: (typeof COUNTRIES)[number]) => {
+  const ai = PRIORITY_COUNTRIES.indexOf(a.code);
+  const bi = PRIORITY_COUNTRIES.indexOf(b.code);
+  if (ai >= 0 && bi >= 0) return ai - bi;
+  if (ai >= 0) return -1;
+  if (bi >= 0) return 1;
+  return a.nameAr.localeCompare(b.nameAr, "ar");
+};
 
 const money = (value: number) =>
   value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function countryLabel(code: string) {
-  return findCountry(code)?.nameAr || code;
+function countryLabel(t: (ar: string, en?: string) => string, code: string) {
+  const country = findCountry(code);
+  return country ? t(country.nameAr, country.nameEn) : code;
 }
 
-function idLabelByCountry(country: string) {
+function idLabelByCountry(t: (ar: string, en?: string) => string, country: string) {
   if (country === "US") return "Tax ID / SSN";
-  if (country === "SA") return "الهوية/الإقامة";
-  return "الهوية / الرقم الضريبي";
+  if (country === "SA") return t("الهوية/الإقامة", "National ID / Iqama");
+  return t("الهوية / الرقم الضريبي", "National ID / Tax ID");
 }
 
-function countryComplianceHint(country: string) {
-  if (country === "SA") return "السعودية: يفضّل إدخال رقم الهوية/الإقامة + IBAN سعودي.";
-  if (country === "US") return "US: استخدم Tax ID/SSN وأدخل بيانات بنك مناسبة للحوالات.";
-  return "يمكن تعديل المتطلبات لاحقاً حسب سياسات الموارد البشرية.";
+function countryComplianceHint(t: (ar: string, en?: string) => string, country: string) {
+  if (country === "SA") return t("السعودية: يفضّل إدخال رقم الهوية/الإقامة + IBAN سعودي.", "Saudi Arabia: enter the National ID / Iqama number plus a Saudi IBAN.");
+  if (country === "US") return t("US: استخدم Tax ID/SSN وأدخل بيانات بنك مناسبة للحوالات.", "US: use Tax ID/SSN and enter bank details suitable for wire transfers.");
+  return t("يمكن تعديل المتطلبات لاحقاً حسب سياسات الموارد البشرية.", "Requirements can be adjusted later per HR policies.");
 }
 
 function createCostCenterCode(name: string, existingCodes: Set<string>) {
@@ -61,6 +57,7 @@ function createCostCenterCode(name: string, existingCodes: Set<string>) {
 }
 
 export function Employees() {
+  const { t } = useLanguage();
   const { toasts, push, dismiss } = useToasts();
   const [items, setItems] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +96,7 @@ export function Employees() {
       const res = await api.contacts.list({ role: "employee", limit: 200 } as any);
       setItems(res.items || []);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "تعذر تحميل الموظفين");
+      setError(e instanceof ApiError ? e.message : t("تعذر تحميل الموظفين", "Could not load employees"));
     } finally {
       setLoading(false);
     }
@@ -133,6 +130,17 @@ export function Employees() {
   const departmentItems = useMemo(
     () => costCenters.map((center) => ({ id: center.id, label: center.name, sublabel: center.code })),
     [costCenters],
+  );
+
+  const COUNTRY_ITEMS = useMemo(
+    () => [...COUNTRIES]
+      .sort(countrySort)
+      .map((country) => ({
+        id: country.code,
+        label: `${country.flag} ${t(country.nameAr, country.nameEn)}`,
+        sublabel: `${country.nameEn} · ${country.code}`,
+      })),
+    [t],
   );
 
   const selectedDepartment = useMemo(
@@ -196,7 +204,7 @@ export function Employees() {
 
   const createDepartment = async (name: string) => {
     const trimmed = name.trim();
-    if (!trimmed) throw new Error("اسم القسم مطلوب");
+    if (!trimmed) throw new Error(t("اسم القسم مطلوب", "Department name is required"));
 
     const existingCodes = new Set(costCenters.map((center) => center.code));
     const code = createCostCenterCode(trimmed, existingCodes);
@@ -207,7 +215,7 @@ export function Employees() {
       return next.sort((a, b) => a.code.localeCompare(b.code));
     });
 
-    push("success", `تم إنشاء القسم ${trimmed}`);
+    push("success", `${t("تم إنشاء القسم", "Department created")} ${trimmed}`);
     return created.id as string;
   };
 
@@ -238,7 +246,7 @@ export function Employees() {
   const createEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.displayName.trim()) {
-      setError("اسم الموظف مطلوب");
+      setError(t("اسم الموظف مطلوب", "Employee name is required"));
       return;
     }
     setBusy(true);
@@ -277,9 +285,9 @@ export function Employees() {
       setOpen(false);
       resetForm();
       await load();
-      push("success", "تمت إضافة الموظف");
+      push("success", t("تمت إضافة الموظف", "Employee added"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل حفظ الموظف");
+      setError(e instanceof ApiError ? e.message : t("فشل حفظ الموظف", "Failed to save employee"));
     } finally {
       setBusy(false);
     }
@@ -290,9 +298,9 @@ export function Employees() {
     try {
       await api.contacts.remove(id);
       setItems((prev) => prev.filter((item) => item.id !== id));
-      push("success", "تم حذف الموظف");
+      push("success", t("تم حذف الموظف", "Employee deleted"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل حذف الموظف");
+      push("error", e instanceof ApiError ? e.message : t("فشل حذف الموظف", "Failed to delete employee"));
     } finally {
       setBusy(false);
     }
@@ -302,8 +310,8 @@ export function Employees() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الموظفون</h1>
-          <p className="text-muted-foreground mt-1">سجل الموظفين مربوط بقائمة الاتصال ويستخدم نفس قاعدة البيانات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الموظفون", "Employees")}</h1>
+          <p className="text-muted-foreground mt-1">{t("سجل الموظفين مربوط بقائمة الاتصال ويستخدم نفس قاعدة البيانات", "The employee register is linked to the contacts list and uses the same database")}</p>
         </div>
         <Button
           className="bg-primary hover:bg-primary/90"
@@ -312,26 +320,26 @@ export function Employees() {
             setOpen(true);
           }}
         >
-          <Plus className="me-2 h-4 w-4" />موظف جديد
+          <Plus className="me-2 h-4 w-4" />{t("موظف جديد", "New employee")}
         </Button>
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="إجمالي الموظفين" value={items.length.toString()} />
-        <Metric label="موظفون لديهم بريد" value={items.filter((item) => item.email).length.toString()} />
-        <Metric label="موظفون لديهم هوية" value={items.filter((item) => item.nationalId).length.toString()} />
-        <Metric label="الأقسام المُدارة" value={costCenters.length.toString()} />
+        <Metric label={t("إجمالي الموظفين", "Total employees")} value={items.length.toString()} />
+        <Metric label={t("موظفون لديهم بريد", "Employees with email")} value={items.filter((item) => item.email).length.toString()} />
+        <Metric label={t("موظفون لديهم هوية", "Employees with ID")} value={items.filter((item) => item.nationalId).length.toString()} />
+        <Metric label={t("الأقسام المُدارة", "Managed departments")} value={costCenters.length.toString()} />
       </div>
 
       <Card className="border-border">
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <CardTitle>سجل الموظفين</CardTitle>
+            <CardTitle>{t("سجل الموظفين", "Employee register")}</CardTitle>
             <div className="relative w-full md:w-72">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الهوية..." className="ps-10 border-border" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("بحث بالاسم أو الهوية...", "Search by name or ID...")} className="ps-10 border-border" />
             </div>
           </div>
         </CardHeader>
@@ -339,15 +347,15 @@ export function Employees() {
           {loading ? (
             <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
           ) : filtered.length === 0 ? (
-            <div className="py-12 text-center"><Users className="mx-auto h-10 w-10 text-muted-foreground/60" /><p className="mt-3 text-sm text-muted-foreground">لا يوجد موظفون مطابقون</p></div>
+            <div className="py-12 text-center"><Users className="mx-auto h-10 w-10 text-muted-foreground/60" /><p className="mt-3 text-sm text-muted-foreground">{t("لا يوجد موظفون مطابقون", "No matching employees")}</p></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">الموظف</th>
-                  <th className="px-4 py-3 text-start">التواصل</th>
-                  <th className="px-4 py-3 text-start">الهوية</th>
-                  <th className="px-4 py-3 text-start">الدولة</th>
+                  <th className="px-4 py-3 text-start">{t("الموظف", "Employee")}</th>
+                  <th className="px-4 py-3 text-start">{t("التواصل", "Contact")}</th>
+                  <th className="px-4 py-3 text-start">{t("الهوية", "ID")}</th>
+                  <th className="px-4 py-3 text-start">{t("الدولة", "Country")}</th>
                   <th className="px-4 py-3 text-start"></th>
                 </tr></thead>
                 <tbody>
@@ -362,7 +370,7 @@ export function Employees() {
                         <div className="font-english text-muted-foreground">{item.phone || "—"}</div>
                       </td>
                       <td className="px-4 py-3 text-sm font-english text-foreground/80">{item.nationalId || "—"}</td>
-                      <td className="px-4 py-3 text-sm text-foreground/80">{countryLabel(item.country || "SA")}</td>
+                      <td className="px-4 py-3 text-sm text-foreground/80">{countryLabel(t, item.country || "SA")}</td>
                       <td className="px-4 py-3">
                         <button disabled={busy} onClick={() => removeEmployee(item.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50">
                           <Trash2 className="h-4 w-4" />
@@ -377,36 +385,36 @@ export function Employees() {
         </CardContent>
       </Card>
 
-      <SidePanel title="موظف جديد" open={open} onClose={() => setOpen(false)}>
+      <SidePanel title={t("موظف جديد", "New employee")} open={open} onClose={() => setOpen(false)}>
         <form onSubmit={createEmployee} className="space-y-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">موظف جديد</h2>
-            <p className="text-sm text-muted-foreground">الموظف يحفظ كجهة اتصال بدور موظف. إنشاء مستخدم للنظام اختياري ويمكن تأجيله.</p>
+            <h2 className="text-lg font-semibold text-foreground">{t("موظف جديد", "New employee")}</h2>
+            <p className="text-sm text-muted-foreground">{t("الموظف يحفظ كجهة اتصال بدور موظف. إنشاء مستخدم للنظام اختياري ويمكن تأجيله.", "The employee is saved as a contact with the employee role. Creating a system user is optional and can be deferred.")}</p>
           </div>
 
           <div className="space-y-2">
-            <Label>الاسم *</Label>
-            <Input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="اسم الموظف" />
+            <Label>{t("الاسم *", "Name *")}</Label>
+            <Input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={t("اسم الموظف", "Employee name")} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>البريد</Label>
+              <Label>{t("البريد", "Email")}</Label>
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" className="font-english" placeholder="employee@company.sa" />
             </div>
             <div className="space-y-2">
-              <Label>الجوال</Label>
+              <Label>{t("الجوال", "Mobile")}</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" className="font-english" placeholder="+9665..." />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>{idLabelByCountry(form.country)}</Label>
+              <Label>{idLabelByCountry(t, form.country)}</Label>
               <Input value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} dir="ltr" className="font-english" maxLength={30} />
             </div>
             <div className="space-y-2">
-              <Label>الدولة</Label>
+              <Label>{t("الدولة", "Country")}</Label>
               <SearchableCombobox
                 value={form.country}
                 onChange={(country) => {
@@ -419,60 +427,60 @@ export function Employees() {
                   }));
                 }}
                 items={COUNTRY_ITEMS}
-                placeholder="ابحث عن الدولة"
+                placeholder={t("ابحث عن الدولة", "Search for a country")}
               />
             </div>
           </div>
 
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-            {countryComplianceHint(form.country)}
+            {countryComplianceHint(t, form.country)}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>رقم الموظف</Label>
+              <Label>{t("رقم الموظف", "Employee number")}</Label>
               <Input value={form.employeeNumber} onChange={(e) => setForm({ ...form, employeeNumber: e.target.value })} dir="ltr" className="font-english" placeholder="EMP-001" />
             </div>
             <div className="space-y-2">
-              <Label>الجنسية</Label>
+              <Label>{t("الجنسية", "Nationality")}</Label>
               <SearchableCombobox
                 value={form.nationalityCode}
                 onChange={(nationalityCode) => setForm({ ...form, nationalityCode })}
                 items={COUNTRY_ITEMS}
-                placeholder="اختر الجنسية"
+                placeholder={t("اختر الجنسية", "Select nationality")}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>المسمى الوظيفي</Label>
-              <Input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="محاسب" />
+              <Label>{t("المسمى الوظيفي", "Job title")}</Label>
+              <Input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder={t("محاسب", "Accountant")} />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>القسم (من مراكز التكلفة)</Label>
+                <Label>{t("القسم (من مراكز التكلفة)", "Department (from cost centers)")}</Label>
                 <Link to="/app/cost-centers" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-                  <Landmark className="h-3 w-3" /> إدارة الأقسام
+                  <Landmark className="h-3 w-3" /> {t("إدارة الأقسام", "Manage departments")}
                 </Link>
               </div>
               <SearchableCombobox
                 value={form.departmentId}
                 onChange={(departmentId) => setForm({ ...form, departmentId, department: "" })}
                 items={departmentItems}
-                placeholder="اختر قسماً"
+                placeholder={t("اختر قسماً", "Select a department")}
                 onCreate={createDepartment}
-                createLabel={(query) => `+ إنشاء قسم "${query}"`}
+                createLabel={(query) => `${t("+ إنشاء قسم", "+ Create department")} "${query}"`}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>قسم مخصص (اختياري)</Label>
+            <Label>{t("قسم مخصص (اختياري)", "Custom department (optional)")}</Label>
             <Input
               value={form.department}
               onChange={(e) => setForm({ ...form, department: e.target.value, departmentId: "" })}
-              placeholder="اكتب القسم يدوياً عند الحاجة"
+              placeholder={t("اكتب القسم يدوياً عند الحاجة", "Type the department manually when needed")}
             />
           </div>
 
@@ -489,44 +497,44 @@ export function Employees() {
 
           <Card className="border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">حساب الراتب التقديري</CardTitle>
+              <CardTitle className="text-base">{t("حساب الراتب التقديري", "Estimated salary calculation")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>الراتب الأساسي</Label><Input type="number" min="0" step="0.01" value={form.basicSalary} onChange={(e) => setForm({ ...form, basicSalary: e.target.value })} dir="ltr" className="font-english" /></div>
-                <div className="space-y-2"><Label>بدل السكن</Label><Input type="number" min="0" step="0.01" value={form.housingAllowance} onChange={(e) => setForm({ ...form, housingAllowance: e.target.value })} dir="ltr" className="font-english" /></div>
-                <div className="space-y-2"><Label>بدل النقل</Label><Input type="number" min="0" step="0.01" value={form.transportAllowance} onChange={(e) => setForm({ ...form, transportAllowance: e.target.value })} dir="ltr" className="font-english" /></div>
-                <div className="space-y-2"><Label>بدلات أخرى</Label><Input type="number" min="0" step="0.01" value={form.otherAllowances} onChange={(e) => setForm({ ...form, otherAllowances: e.target.value })} dir="ltr" className="font-english" /></div>
-                <div className="space-y-2"><Label>استقطاعات أخرى</Label><Input type="number" min="0" step="0.01" value={form.otherDeductions} onChange={(e) => setForm({ ...form, otherDeductions: e.target.value })} dir="ltr" className="font-english" /></div>
+                <div className="space-y-2"><Label>{t("الراتب الأساسي", "Basic salary")}</Label><Input type="number" min="0" step="0.01" value={form.basicSalary} onChange={(e) => setForm({ ...form, basicSalary: e.target.value })} dir="ltr" className="font-english" /></div>
+                <div className="space-y-2"><Label>{t("بدل السكن", "Housing allowance")}</Label><Input type="number" min="0" step="0.01" value={form.housingAllowance} onChange={(e) => setForm({ ...form, housingAllowance: e.target.value })} dir="ltr" className="font-english" /></div>
+                <div className="space-y-2"><Label>{t("بدل النقل", "Transport allowance")}</Label><Input type="number" min="0" step="0.01" value={form.transportAllowance} onChange={(e) => setForm({ ...form, transportAllowance: e.target.value })} dir="ltr" className="font-english" /></div>
+                <div className="space-y-2"><Label>{t("بدلات أخرى", "Other allowances")}</Label><Input type="number" min="0" step="0.01" value={form.otherAllowances} onChange={(e) => setForm({ ...form, otherAllowances: e.target.value })} dir="ltr" className="font-english" /></div>
+                <div className="space-y-2"><Label>{t("استقطاعات أخرى", "Other deductions")}</Label><Input type="number" min="0" step="0.01" value={form.otherDeductions} onChange={(e) => setForm({ ...form, otherDeductions: e.target.value })} dir="ltr" className="font-english" /></div>
               </div>
 
               {previewLoading && (
                 <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground inline-flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> جاري تحديث المعاينة...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("جاري تحديث المعاينة...", "Updating preview...")}
                 </div>
               )}
 
               {salaryPreview && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <PreviewMetric label="الإجمالي" value={money(Number(salaryPreview.grossSalary || 0))} tone="green" />
-                  <PreviewMetric label="استقطاعات" value={money(Number(salaryPreview.totalDeductions || 0))} tone="red" />
-                  <PreviewMetric label="GOSI الموظف" value={money(Number(salaryPreview.employeeGosi || 0))} tone="amber" />
-                  <PreviewMetric label="الصافي" value={money(Number(salaryPreview.netSalary || 0))} tone="blue" />
+                  <PreviewMetric label={t("الإجمالي", "Gross")} value={money(Number(salaryPreview.grossSalary || 0))} tone="green" />
+                  <PreviewMetric label={t("استقطاعات", "Deductions")} value={money(Number(salaryPreview.totalDeductions || 0))} tone="red" />
+                  <PreviewMetric label={t("GOSI الموظف", "Employee GOSI")} value={money(Number(salaryPreview.employeeGosi || 0))} tone="amber" />
+                  <PreviewMetric label={t("الصافي", "Net")} value={money(Number(salaryPreview.netSalary || 0))} tone="blue" />
                 </div>
               )}
 
-              <p className="text-xs text-muted-foreground">المعاينة تعتمد نفس محرك حساب الرواتب الحالي ويمكنك تعديل الأرقام يدوياً قبل الحفظ.</p>
+              <p className="text-xs text-muted-foreground">{t("المعاينة تعتمد نفس محرك حساب الرواتب الحالي ويمكنك تعديل الأرقام يدوياً قبل الحفظ.", "The preview uses the same payroll calculation engine, and you can adjust the numbers manually before saving.")}</p>
             </CardContent>
           </Card>
 
           <div className="space-y-2">
-            <Label>ملاحظات</Label>
-            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="أي ملاحظات إدارية إضافية" />
+            <Label>{t("ملاحظات", "Notes")}</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("أي ملاحظات إدارية إضافية", "Any additional administrative notes")} />
           </div>
 
           <div className="flex justify-end gap-2 border-t border-border pt-3">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("إلغاء", "Cancel")}</Button>
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? t("جارٍ الحفظ...", "Saving...") : t("حفظ", "Save")}</Button>
           </div>
         </form>
       </SidePanel>

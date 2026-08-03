@@ -44,19 +44,14 @@ type PortalStatementRow = {
 
 type PortalDocument = { id: string; name: string; type: string; date: string };
 
-const STATUS_AR_MAP: Record<string, string> = {
-  PAID: "مدفوعة",
-  PARTIAL: "مدفوعة جزئياً",
-  SENT: "مرسلة",
-  OVERDUE: "متأخرة",
-  DRAFT: "مسودة",
-  CANCELLED: "ملغاة",
+const STATUS_MAP: Record<string, { ar: string; en: string }> = {
+  PAID: { ar: "مدفوعة", en: "Paid" },
+  PARTIAL: { ar: "مدفوعة جزئياً", en: "Partially paid" },
+  SENT: { ar: "مرسلة", en: "Sent" },
+  OVERDUE: { ar: "متأخرة", en: "Overdue" },
+  DRAFT: { ar: "مسودة", en: "Draft" },
+  CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
-
-function statusLabel(status: string) {
-  const { t } = useLanguage();
-  return STATUS_AR_MAP[status] || status;
-}
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
@@ -75,8 +70,14 @@ function openExternal(url: string) {
 }
 
 export function PortalHome() {
+  const { t } = useLanguage();
   const { token: routeToken } = useParams<{ token?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusLabel = (status: string) => {
+    const entry = STATUS_MAP[status];
+    return entry ? t(entry.ar, entry.en) : status;
+  };
 
   const [activeTab, setActiveTab] = useState<PortalTab>("home");
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
@@ -97,7 +98,7 @@ export function PortalHome() {
     const token = tokenFromQuery || tokenFromRoute;
 
     if (!token) {
-      setError("رابط البوابة غير صالح أو منتهي");
+      setError(t("رابط البوابة غير صالح أو منتهي", "Portal link is invalid or expired"));
       setLoading(false);
       return;
     }
@@ -124,8 +125,8 @@ export function PortalHome() {
       setPortalStatements(statement.items || []);
       setPortalDocuments(documents.items || []);
     } catch (e: any) {
-      const msg = e instanceof ApiError ? e.message : "تعذر تحميل بيانات البوابة";
-      setError(msg === "invalid_token" ? "رابط البوابة غير صالح أو منتهي" : msg);
+      const msg = e instanceof ApiError ? e.message : t("تعذر تحميل بيانات البوابة", "Failed to load portal data");
+      setError(msg === "invalid_token" ? t("رابط البوابة غير صالح أو منتهي", "Portal link is invalid or expired") : msg);
     } finally {
       setLoading(false);
     }
@@ -173,7 +174,7 @@ export function PortalHome() {
       <div className="min-h-screen bg-muted flex items-center justify-center" dir="rtl">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <div className="mt-3 text-sm text-muted-foreground">جارٍ تحميل البوابة...</div>
+          <div className="mt-3 text-sm text-muted-foreground">{t("جارٍ تحميل البوابة...", "Loading portal...")}</div>
         </div>
       </div>
     );
@@ -185,7 +186,7 @@ export function PortalHome() {
         <Card className="border-border w-full max-w-lg">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-10 w-10 mx-auto text-amber-600" />
-            <h2 className="mt-3 text-lg font-semibold text-foreground">تعذر فتح بوابة العميل</h2>
+            <h2 className="mt-3 text-lg font-semibold text-foreground">{t("تعذر فتح بوابة العميل", "Unable to open the customer portal")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           </CardContent>
         </Card>
@@ -202,16 +203,16 @@ export function PortalHome() {
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-[#0B1B49] text-white text-xs" style={{ fontWeight: 600 }}>
-                  {(profile?.contact?.displayName || "عميل").slice(0, 2)}
+                  {(profile?.contact?.displayName || t("عميل", "Customer")).slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <div className="text-end">
-                <div className="text-xs text-foreground" style={{ fontWeight: 500 }}>{profile?.contact?.displayName || "عميل"}</div>
+                <div className="text-xs text-foreground" style={{ fontWeight: 500 }}>{profile?.contact?.displayName || t("عميل", "Customer")}</div>
                 <div className="text-[10px] text-muted-foreground font-english">{profile?.contact?.email || "—"}</div>
               </div>
             </div>
             <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[#EF4444] hover:bg-[#FEE2E2] transition-colors">
-              <LogOut className="h-3.5 w-3.5" /> خروج
+              <LogOut className="h-3.5 w-3.5" /> {t("خروج", "Sign out")}
             </button>
           </div>
         </div>
@@ -219,12 +220,12 @@ export function PortalHome() {
 
       <div className="bg-white border-b border-border px-6 py-2">
         <div className="max-w-5xl mx-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">بوابة:</span>
+          <span className="text-xs text-muted-foreground">{t("بوابة:", "Portal:")}</span>
           <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-white" style={{ fontWeight: 600 }}>
             <Building2 className="h-3.5 w-3.5" /> {profile?.org?.name || "ENTIX"}
           </button>
           <button className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground hover:bg-[#E5E7EB] transition-colors" style={{ fontWeight: 600 }}>
-            <User className="h-3.5 w-3.5" /> شخصي
+            <User className="h-3.5 w-3.5" /> {t("شخصي", "Personal")}
           </button>
         </div>
       </div>
@@ -232,10 +233,10 @@ export function PortalHome() {
       <div className="bg-white border-b border-border px-6">
         <div className="max-w-5xl mx-auto flex gap-1">
           {([
-            { key: "home" as PortalTab, label: "الرئيسية" },
-            { key: "invoices" as PortalTab, label: "الفواتير" },
-            { key: "statement" as PortalTab, label: "كشف الحساب" },
-            { key: "documents" as PortalTab, label: "المستندات" },
+            { key: "home" as PortalTab, label: t("الرئيسية", "Home") },
+            { key: "invoices" as PortalTab, label: t("الفواتير", "Invoices") },
+            { key: "statement" as PortalTab, label: t("كشف الحساب", "Statement") },
+            { key: "documents" as PortalTab, label: t("المستندات", "Documents") },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -253,15 +254,15 @@ export function PortalHome() {
         {activeTab === "home" && !selectedInvoice && (
           <>
             <div>
-              <h2 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>مرحباً {profile?.contact?.displayName || "عميل"} 👋</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">بوابة: {profile?.org?.name || "ENTIX"}</p>
+              <h2 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t("مرحباً", "Hello")} {profile?.contact?.displayName || t("عميل", "Customer")} 👋</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("بوابة:", "Portal:")} {profile?.org?.name || "ENTIX"}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <Card className="border-border"><CardContent className="pt-4 pb-3 px-4 text-center"><div className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalInvoices}</div><p className="text-xs text-muted-foreground mt-0.5">إجمالي الفواتير</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#22C55E]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#22C55E] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">مدفوع ✅</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#F59E0B]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#F59E0B] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">متبقي ⏳</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#EF4444]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#EF4444] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">متأخر 🔴</p></CardContent></Card>
+              <Card className="border-border"><CardContent className="pt-4 pb-3 px-4 text-center"><div className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalInvoices}</div><p className="text-xs text-muted-foreground mt-0.5">{t("إجمالي الفواتير", "Total invoices")}</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#22C55E]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#22C55E] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#F59E0B]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#F59E0B] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#EF4444]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#EF4444] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
             </div>
           </>
         )}
@@ -269,7 +270,7 @@ export function PortalHome() {
         {selectedInvoice && viewingInvoice && (
           <div className="space-y-5">
             <button onClick={() => setSelectedInvoice(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="h-4 w-4 rotate-180" /> العودة
+              <ArrowLeft className="h-4 w-4 rotate-180" /> {t("العودة", "Back")}
             </button>
 
             <Card className="border-border">
@@ -284,9 +285,9 @@ export function PortalHome() {
 
                 <div className="flex justify-end">
                   <div className="w-64 space-y-1.5">
-                    <div className="flex justify-between text-sm text-muted-foreground"><span>الإجمالي</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.total.toLocaleString()}</span></div>
-                    <div className="flex justify-between text-sm text-muted-foreground"><span>المدفوع</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.paid.toLocaleString()}</span></div>
-                    <div className="flex justify-between pt-2 border-t border-border"><span className="text-sm text-foreground" style={{ fontWeight: 700 }}>المتبقي</span><span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {viewingInvoice.remaining.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-sm text-muted-foreground"><span>{t("الإجمالي", "Total")}</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.total.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-sm text-muted-foreground"><span>{t("المدفوع", "Paid")}</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.paid.toLocaleString()}</span></div>
+                    <div className="flex justify-between pt-2 border-t border-border"><span className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("المتبقي", "Remaining")}</span><span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {viewingInvoice.remaining.toLocaleString()}</span></div>
                   </div>
                 </div>
 
@@ -299,14 +300,14 @@ export function PortalHome() {
                       style={{ fontWeight: 600 }}
                     >
                       <CreditCard className="h-4 w-4 inline-block me-1.5" />
-                      {payBusyFor === viewingInvoice.id ? "جارٍ التحضير..." : "ادفع الآن"}
+                      {payBusyFor === viewingInvoice.id ? t("جارٍ التحضير...", "Preparing...") : t("ادفع الآن", "Pay now")}
                     </button>
                   )}
                   <button className="rounded-lg border border-[#0B1B49] px-4 py-2.5 text-sm text-foreground hover:bg-[#ECEEF5] transition-colors" style={{ fontWeight: 500 }}>
-                    <Download className="h-4 w-4 inline-block me-1.5" />تحميل PDF
+                    <Download className="h-4 w-4 inline-block me-1.5" />{t("تحميل PDF", "Download PDF")}
                   </button>
                   <button className="rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors" style={{ fontWeight: 500 }}>
-                    <Printer className="h-4 w-4 inline-block me-1.5" />طباعة
+                    <Printer className="h-4 w-4 inline-block me-1.5" />{t("طباعة", "Print")}
                   </button>
                 </div>
               </CardContent>
@@ -316,12 +317,12 @@ export function PortalHome() {
 
         {activeTab === "invoices" && !selectedInvoice && (
           <Card className="border-border">
-            <CardHeader><CardTitle className="text-foreground" style={{ fontSize: "1rem" }}>جميع الفواتير</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-foreground" style={{ fontSize: "1rem" }}>{t("جميع الفواتير", "All invoices")}</CardTitle></CardHeader>
             <CardContent>
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {["الرقم", "التاريخ", "الاستحقاق", "المبلغ", "المتبقي", "الحالة", ""].map(h => (
+                    {[t("الرقم", "Number"), t("التاريخ", "Date"), t("الاستحقاق", "Due date"), t("المبلغ", "Amount"), t("المتبقي", "Remaining"), t("الحالة", "Status"), ""].map(h => (
                       <th key={h} className="pb-3 pe-3 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>
@@ -346,12 +347,12 @@ export function PortalHome() {
 
         {activeTab === "statement" && (
           <Card className="border-border">
-            <CardHeader><CardTitle className="text-foreground" style={{ fontSize: "1rem" }}>كشف الحساب</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-foreground" style={{ fontSize: "1rem" }}>{t("كشف الحساب", "Account Statement")}</CardTitle></CardHeader>
             <CardContent>
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {["التاريخ", "الوصف", "المرجع", "مدين", "دائن", "الرصيد"].map(h => (
+                    {[t("التاريخ", "Date"), t("الوصف", "Description"), t("المرجع", "Reference"), t("مدين", "Debit"), t("دائن", "Credit"), t("الرصيد", "Balance")].map(h => (
                       <th key={h} className="pb-3 pe-3 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>
@@ -370,7 +371,7 @@ export function PortalHome() {
                 </tbody>
               </table>
               <div className="mt-4 pt-3 border-t border-border text-end">
-                <span className="text-sm text-muted-foreground">الرصيد الحالي: </span>
+                <span className="text-sm text-muted-foreground">{t("الرصيد الحالي:", "Current balance:")} </span>
                 <span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {currentBalance.toLocaleString()}</span>
               </div>
             </CardContent>
@@ -379,10 +380,10 @@ export function PortalHome() {
 
         {activeTab === "documents" && (
           <Card className="border-border">
-            <CardHeader><CardTitle className="text-foreground" style={{ fontSize: "1rem" }}>المستندات المشتركة</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-foreground" style={{ fontSize: "1rem" }}>{t("المستندات المشتركة", "Shared documents")}</CardTitle></CardHeader>
             <CardContent>
               {portalDocuments.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6 text-center">لا توجد مستندات حالياً</div>
+                <div className="text-sm text-muted-foreground py-6 text-center">{t("لا توجد مستندات حالياً", "No documents at the moment")}</div>
               ) : portalDocuments.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 hover:bg-muted transition-colors px-2 rounded-md">
                   <div className="flex items-center gap-3">
@@ -401,7 +402,7 @@ export function PortalHome() {
       </div>
 
       <div className="text-center py-6 border-t border-border mt-12">
-        <span className="text-xs text-muted-foreground/60">مقدم من </span>
+        <span className="text-xs text-muted-foreground/60">{t("مقدم من", "Powered by")} </span>
         <span className="text-xs text-muted-foreground/60 font-english" style={{ fontWeight: 600 }}>ENTIX.IO</span>
       </div>
     </div>

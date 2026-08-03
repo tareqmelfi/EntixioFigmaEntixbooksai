@@ -9,6 +9,7 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { COUNTRIES } from "../lib/countries";
 import { api, ApiError, type Contact } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 type PayrollRow = {
   employeeId: string;
@@ -50,20 +51,14 @@ const money = (value: string | number | null | undefined) =>
   Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const PRIORITY_COUNTRIES = ["SA", "AE", "US"];
-const NATIONALITY_ITEMS = [...COUNTRIES]
-  .sort((a, b) => {
-    const ai = PRIORITY_COUNTRIES.indexOf(a.code);
-    const bi = PRIORITY_COUNTRIES.indexOf(b.code);
-    if (ai >= 0 && bi >= 0) return ai - bi;
-    if (ai >= 0) return -1;
-    if (bi >= 0) return 1;
-    return a.nameAr.localeCompare(b.nameAr, "ar");
-  })
-  .map((country) => ({
-    id: country.code,
-    label: `${country.flag} ${country.nameAr}`,
-    sublabel: `${country.nameEn} · ${country.code}`,
-  }));
+const countrySort = (a: (typeof COUNTRIES)[number], b: (typeof COUNTRIES)[number]) => {
+  const ai = PRIORITY_COUNTRIES.indexOf(a.code);
+  const bi = PRIORITY_COUNTRIES.indexOf(b.code);
+  if (ai >= 0 && bi >= 0) return ai - bi;
+  if (ai >= 0) return -1;
+  if (bi >= 0) return 1;
+  return a.nameAr.localeCompare(b.nameAr, "ar");
+};
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
@@ -122,6 +117,7 @@ function calculateRowPreview(row: PayrollRow): PayrollPreview {
 }
 
 export function Payroll() {
+  const { t } = useLanguage();
   const { toasts, push, dismiss } = useToasts();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Contact[]>([]);
@@ -174,7 +170,7 @@ export function Payroll() {
         });
       }
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "تعذر تحميل الموظفين");
+      setError(e instanceof ApiError ? e.message : t("تعذر تحميل الموظفين", "Could not load employees"));
     } finally {
       setLoading(false);
     }
@@ -202,6 +198,17 @@ export function Payroll() {
   );
 
   const rowPreviews = useMemo(() => rows.map((row) => calculateRowPreview(row)), [rows]);
+
+  const NATIONALITY_ITEMS = useMemo(
+    () => [...COUNTRIES]
+      .sort(countrySort)
+      .map((country) => ({
+        id: country.code,
+        label: `${country.flag} ${t(country.nameAr, country.nameEn)}`,
+        sublabel: `${country.nameEn} · ${country.code}`,
+      })),
+    [t],
+  );
 
   const estimatedTotals = useMemo(
     () => rowPreviews.reduce((acc, preview) => ({
@@ -269,7 +276,7 @@ export function Payroll() {
   const calculate = async () => {
     const payload = buildPayrollPayload();
     if (payload.length === 0) {
-      setError("أضف موظف وراتب أساسي قبل الحساب");
+      setError(t("أضف موظف وراتب أساسي قبل الحساب", "Add an employee and a basic salary before calculating"));
       return;
     }
     setBusy(true);
@@ -284,7 +291,7 @@ export function Payroll() {
       setLastSavedRunId(run.id);
       setRuns((prev) => [run, ...prev.filter((r) => r.id !== run.id)]);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل حساب الرواتب");
+      setError(e instanceof ApiError ? e.message : t("فشل حساب الرواتب", "Failed to calculate payroll"));
     } finally {
       setBusy(false);
     }
@@ -293,7 +300,7 @@ export function Payroll() {
   // Approve · locks the last-saved DRAFT run → APPROVED.
   const approveRun = async () => {
     if (!lastSavedRunId) {
-      setError("احسب المسير أولاً قبل الاعتماد");
+      setError(t("احسب المسير أولاً قبل الاعتماد", "Calculate the payroll run first before approving"));
       return;
     }
     setBusy(true);
@@ -301,9 +308,9 @@ export function Payroll() {
     try {
       const updated = await api.payroll.updateRunStatus(lastSavedRunId, "APPROVED");
       setRuns((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-      push("success", "تم اعتماد المسير بنجاح");
+      push("success", t("تم اعتماد المسير بنجاح", "Payroll run approved successfully"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل اعتماد المسير");
+      setError(e instanceof ApiError ? e.message : t("فشل اعتماد المسير", "Failed to approve payroll run"));
     } finally {
       setBusy(false);
     }
@@ -317,9 +324,9 @@ export function Payroll() {
       await api.payroll.deleteRun(runId);
       setRuns((prev) => prev.filter((r) => r.id !== runId));
       if (lastSavedRunId === runId) setLastSavedRunId(null);
-      push("success", "تم حذف المسير");
+      push("success", t("تم حذف المسير", "Payroll run deleted"));
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل حذف المسير");
+      setError(e instanceof ApiError ? e.message : t("فشل حذف المسير", "Failed to delete payroll run"));
     } finally {
       setBusy(false);
     }
@@ -332,7 +339,7 @@ export function Payroll() {
       const saved = await api.payroll.updateSettings(settings);
       setSettings({ employerId: saved.employerId || "", establishmentId: saved.establishmentId || "", currency: saved.currency || "SAR" });
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل حفظ إعدادات الرواتب");
+      setError(e instanceof ApiError ? e.message : t("فشل حفظ إعدادات الرواتب", "Failed to save payroll settings"));
     } finally {
       setBusy(false);
     }
@@ -345,20 +352,20 @@ export function Payroll() {
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>الرواتب</h1>
-          <p className="text-muted-foreground mt-1">حساب مسير الرواتب مع GOSI وSANED بناءً على الموظفين المسجلين</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الرواتب", "Payroll")}</h1>
+          <p className="text-muted-foreground mt-1">{t("حساب مسير الرواتب مع GOSI وSANED بناءً على الموظفين المسجلين", "Calculate the payroll run with GOSI and SANED based on registered employees")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} dir="ltr" className="w-36 font-english" />
           {/* Primary: Calculate → auto-saves as DRAFT */}
           <Button className="bg-primary hover:bg-primary/90" onClick={calculate} disabled={busy || loading}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Calculator className="me-2 h-4 w-4" />}
-            حساب المسير
+            {t("حساب المسير", "Calculate payroll")}
           </Button>
           {/* Secondary: Approve → locks the last-saved DRAFT → APPROVED */}
           <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={approveRun} disabled={busy || loading || !lastSavedRunId}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="me-2 h-4 w-4" />}
-            اعتماد المسير
+            {t("اعتماد المسير", "Approve payroll run")}
           </Button>
         </div>
       </div>
@@ -366,22 +373,22 @@ export function Payroll() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Metric label="الموظفون" value={employees.length.toString()} />
-        <Metric label="العقود المحفوظة" value={contracts.length.toString()} />
-        <Metric label="إجمالي الراتب" value={`${money(displayedTotals?.grossSalary)} SAR`} />
-        <Metric label="الاستقطاعات" value={`${money(displayedTotals?.totalDeductions)} SAR`} />
-        <Metric label="صافي الراتب" value={`${money(displayedTotals?.netSalary)} SAR`} />
-        <Metric label="تكلفة صاحب العمل" value={`${money(displayedTotals?.employerCost)} SAR`} />
+        <Metric label={t("الموظفون", "Employees")} value={employees.length.toString()} />
+        <Metric label={t("العقود المحفوظة", "Saved contracts")} value={contracts.length.toString()} />
+        <Metric label={t("إجمالي الراتب", "Gross salary")} value={`${money(displayedTotals?.grossSalary)} SAR`} />
+        <Metric label={t("الاستقطاعات", "Deductions")} value={`${money(displayedTotals?.totalDeductions)} SAR`} />
+        <Metric label={t("صافي الراتب", "Net salary")} value={`${money(displayedTotals?.netSalary)} SAR`} />
+        <Metric label={t("تكلفة صاحب العمل", "Employer cost")} value={`${money(displayedTotals?.employerCost)} SAR`} />
       </div>
 
       <Card className="border-border">
-        <CardHeader><CardTitle>إعدادات WPS / مدد</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("إعدادات WPS / مدد", "WPS / Mudad settings")}</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="space-y-2"><Label>رقم صاحب العمل</Label><Input value={settings.employerId} onChange={(e) => setSettings({ ...settings, employerId: e.target.value })} dir="ltr" className="font-english" /></div>
-            <div className="space-y-2"><Label>رقم المنشأة</Label><Input value={settings.establishmentId} onChange={(e) => setSettings({ ...settings, establishmentId: e.target.value })} dir="ltr" className="font-english" /></div>
-            <div className="space-y-2"><Label>العملة</Label><Input value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value.toUpperCase().slice(0, 3) })} dir="ltr" className="font-english" /></div>
-            <div className="flex items-end"><Button variant="outline" className="w-full border-border" onClick={saveSettings} disabled={busy}>حفظ الإعدادات</Button></div>
+            <div className="space-y-2"><Label>{t("رقم صاحب العمل", "Employer ID")}</Label><Input value={settings.employerId} onChange={(e) => setSettings({ ...settings, employerId: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>{t("رقم المنشأة", "Establishment ID")}</Label><Input value={settings.establishmentId} onChange={(e) => setSettings({ ...settings, establishmentId: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>{t("العملة", "Currency")}</Label><Input value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value.toUpperCase().slice(0, 3) })} dir="ltr" className="font-english" /></div>
+            <div className="flex items-end"><Button variant="outline" className="w-full border-border" onClick={saveSettings} disabled={busy}>{t("حفظ الإعدادات", "Save settings")}</Button></div>
           </div>
         </CardContent>
       </Card>
