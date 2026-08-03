@@ -106,31 +106,53 @@ class AuthStore {
         const meRes = await fetch(`${API_BASE}/me`, { credentials: 'include', headers: localeHeaders() })
         const me = meRes.ok ? await meRes.json() : null
         const memberships = me?.memberships || []
-        // Respect user's previously-selected org if still valid · fallback to first
-        const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('entix_org_id') : null
-        const matched = stored ? memberships.find((m: any) => m.org?.id === stored) : null
-        let activeMembership = matched || memberships[0]
+        // Resolve the active org for this session.
+        // 1. If the user previously selected an org (stored in localStorage),
+        //    honor it — but ONLY if it's in the server-confirmed membership list.
+        //    This is safe because we've already validated the session and fetched
+        //    memberships from the server. clearStaleState() wipes the stored id
+        //    on login/logout, so a different user's org_id can never leak through.
+        // 2. Prefer an org where the user is OWNER (their personal org) over
+        //    shared/demo orgs where they might be VIEWER/ACCOUNTANT.
+        // 3. Fall back to the first membership from the server.
+        const storedOrgId = typeof localStorage !== 'undefined'
+          ? localStorage.getItem('entix_org_id') : null
+        const storedMatch = storedOrgId
+          ? memberships.find((m: any) => m?.org?.id === storedOrgId)
+          : null
+        const ownerMatch = !storedMatch
+          ? memberships.find((m: any) => m?.role === 'OWNER')
+          : null
+        let activeMembership = storedMatch || ownerMatch || memberships[0]
 
         // First login via Google can arrive with zero orgs.
         // Auto-bootstrap a seeded demo org so app routes never crash with missing X-Org-Id.
+        // Retry up to 2 times — the seeding (accounts, demo data) can occasionally
+        // fail on the first attempt due to DB contention. Without a successful
+        // bootstrap, orgId stays null and every org-scoped API call returns 400.
         if (!activeMembership) {
-          try {
-            const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: localeHeaders(),
-            })
-            if (bootstrapRes.ok) {
-              const boot = await bootstrapRes.json().catch(() => null)
-              if (boot?.org?.id) {
-                activeMembership = {
-                  org: boot.org,
-                  role: boot.role || 'OWNER',
+          for (let attempt = 0; attempt < 2 && !activeMembership; attempt++) {
+            try {
+              const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json', ...localeHeaders() },
+              })
+              if (bootstrapRes.ok) {
+                const boot = await bootstrapRes.json().catch(() => null)
+                if (boot?.org?.id) {
+                  activeMembership = {
+                    org: boot.org,
+                    role: boot.role || 'OWNER',
+                  }
                 }
+              } else if (attempt === 1) {
+                // Log the failure on the final attempt so it's visible in console
+                console.error('[auth] bootstrap failed:', bootstrapRes.status, await bootstrapRes.text().catch(() => ''))
               }
+            } catch (e) {
+              if (attempt === 1) console.error('[auth] bootstrap error:', e)
             }
-          } catch {
-            // Keep graceful fallback below (viewer with empty company).
           }
         }
 
@@ -217,16 +239,33 @@ class AuthStore {
       }
       if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
 
-      // Bootstrap first org for the new user
-      const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName: company }),
-      })
-      if (bootstrapRes.ok) {
-        const json = await bootstrapRes.json()
-        if (json?.org?.id) setOrgId(json.org.id)
+      // Bootstrap first org for the new user.
+      // Company is optional — if empty, the backend creates a default
+      // org named after the user. The user can rename it later.
+      const companyName = company.trim()
+      if (companyName) {
+        const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName }),
+        })
+        if (bootstrapRes.ok) {
+          const json = await bootstrapRes.json()
+          if (json?.org?.id) setOrgId(json.org.id)
+        }
+      } else {
+        // No company name — still bootstrap a default org so the user
+        // doesn't get "missing X-Org-Id" errors on the dashboard.
+        const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        if (bootstrapRes.ok) {
+          const json = await bootstrapRes.json()
+          if (json?.org?.id) setOrgId(json.org.id)
+        }
       }
 
       await this.refresh()
@@ -237,7 +276,7 @@ class AuthStore {
   }
 
   /** Cached `/auth-providers` response */
-  private providers: { emailPassword: boolean; google: boolean } | null = null
+  private providers: { emailPassword: boolean; google: boolean; microsoft: boolean } | null = null
 
   async getProviders() {
     if (this.providers) return this.providers
@@ -245,7 +284,7 @@ class AuthStore {
       const res = await fetch(`${API_BASE}/auth-providers`)
       this.providers = await res.json()
     } catch {
-      this.providers = { emailPassword: true, google: false }
+      this.providers = { emailPassword: true, google: false, microsoft: false }
     }
     return this.providers!
   }
@@ -260,7 +299,7 @@ class AuthStore {
     if (!p.google) {
       return {
         success: false,
-        error: 'تسجيل الدخول عبر Google غير مفعّل بعد · يرجى استخدام البريد وكلمة المرور',
+        error: 'Google sign-in is not available yet. Please use email and password.',
       }
     }
     await authClient.signIn.social({
@@ -268,6 +307,23 @@ class AuthStore {
       // Use an explicit production URL instead of window.location.origin, which
       // resolves to a capacitor/webview origin on mobile (e.g. capacitor://localhost)
       // and breaks the OAuth redirect + cross-subdomain session cookie.
+      callbackURL: callbackURL || 'https://entix.io/app',
+    })
+    return { success: true }
+  }
+
+  /** Microsoft OAuth sign-in (browser redirect) */
+  async loginWithMicrosoft(callbackURL?: string): Promise<{ success: boolean; error?: string }> {
+    this.clearStaleState()
+    const p = await this.getProviders()
+    if (!p.microsoft) {
+      return {
+        success: false,
+        error: 'Microsoft sign-in is not available yet. Please use email and password.',
+      }
+    }
+    await authClient.signIn.social({
+      provider: 'microsoft',
       callbackURL: callbackURL || 'https://entix.io/app',
     })
     return { success: true }
@@ -285,7 +341,7 @@ class AuthStore {
         },
         body: JSON.stringify({
           email,
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: 'https://entix.io/reset-password',
         }),
       })
       const data = await res.json().catch(() => ({}))

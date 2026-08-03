@@ -1,5 +1,5 @@
 /**
- * Org Switcher · لتغيير الشركة + إنشاء شركة جديدة
+ * Org Switcher · لتغيير الشركة + {t("إنشاء شركة جديدة", "Create new company")}
  * يظهر في app-sidebar.tsx · يستبدل الـbutton الجامد القديم
  */
 import { useState, useEffect, useRef } from "react";
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isRtl = language === "ar";
   const rowDirClass = isRtl ? "flex-row-reverse" : "flex-row";
   const alignItemsClass = isRtl ? "items-end text-end" : "items-start text-start";
@@ -44,9 +44,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     try {
       const list = await api.orgs.list();
       setOrgs(list);
-      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-      const found = stored ? list.find((o) => o.id === stored) : null;
-      const active = found || list[0] || null;
+      // Honor the user's last org selection from localStorage, but only if it
+      // exists in the server-returned list. This keeps the OrgSwitcher in sync
+      // with authStore.refresh() which now also honors the stored org_id.
+      // If the stored org isn't in the list (e.g. after account switch), fall
+      // back to the first org from the server.
+      const storedId = typeof localStorage !== 'undefined'
+        ? localStorage.getItem('entix_org_id') : null
+      const active = (storedId ? list.find(o => o.id === storedId) : null) || list[0] || null;
       setActiveOrg(active);
       if (active) setOrgId(active.id);
     } catch (e) {
@@ -79,7 +84,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   if (loading) {
     return (
       <button className={`mb-2 flex w-full items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-muted-foreground/60 ${className || ""}`}>
-        <span>...جارٍ التحميل</span>
+        <span>...{t("جارٍ التحميل", "Loading")}</span>
       </button>
     );
   }
@@ -93,7 +98,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           <Link
             to="/app"
             className="flex items-center gap-2.5 ps-2 pe-3 py-2 hover:bg-muted rounded-s-lg transition-colors"
-            title={`${activeOrg?.name || "الرئيسية"} · لوحة التحكم`}
+            title={activeOrg?.name ? activeOrg.name + " · " + t("لوحة التحكم","Dashboard") : t("الرئيسية","Home")}
           >
             {activeOrg?.logoUrl ? (
               <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-cover bg-white border border-border/50 shrink-0" />
@@ -104,7 +109,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             )}
             <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[260px]">
               <span className="line-clamp-2 break-words text-sm text-foreground leading-tight" style={{ fontWeight: 600 }}>
-                {activeOrg ? activeOrg.name : "اختر شركة"}
+                {activeOrg ? activeOrg.name : t("اختر شركة", "Select company")}
               </span>
               {activeOrg && (
                 <span className="text-[10px] text-muted-foreground font-english leading-tight">
@@ -116,8 +121,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           <button
             onClick={() => setOpen(!open)}
             className="border-s border-border p-2 hover:bg-muted rounded-e-lg transition-colors"
-            title="تبديل الشركة"
-            aria-label="تبديل الشركة"
+            title={t("تبديل الشركة","Switch company")}
+            aria-label={t("تبديل الشركة","Switch company")}
           >
             <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
           </button>
@@ -155,7 +160,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 className={`flex w-full ${rowDirClass} items-center gap-2 rounded px-3 py-2 text-sm text-primary hover:bg-primary/5`}
               >
                 <Plus className="h-4 w-4" />
-                إنشاء شركة جديدة
+                {t("إنشاء شركة جديدة", "Create new company")}
               </button>
             </div>
           </div>
@@ -175,7 +180,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     );
   }
 
-  // Wafeq-parity sidebar variant · square logo + name + "مختارة حالياً" tag
+  // Wafeq-parity sidebar variant · square logo + name + "{t("مختارة حالياً", "Active")}" tag
   const filteredOrgs = orgs.filter((o) =>
     !search.trim() || o.name.toLowerCase().includes(search.toLowerCase()) || (o.legalName||"").toLowerCase().includes(search.toLowerCase())
   );
@@ -196,7 +201,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           )}
           <div className="flex flex-col items-start gap-0 min-w-0">
             <span className="line-clamp-2 break-words text-sm text-foreground leading-tight max-w-[220px]" style={{ fontWeight: 600 }}>
-              {activeOrg ? activeOrg.name : "اختر شركة"}
+              {activeOrg ? activeOrg.name : t("اختر شركة", "Select company")}
             </span>
             {activeOrg && (
               <span className="text-[10px] text-muted-foreground font-english leading-tight">
@@ -216,7 +221,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن شركة..."
+              placeholder={t("ابحث عن شركة...", "Search company...")}
               className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm focus:bg-white focus:border-[#1276E3]/30 outline-none"
               autoFocus
             />
@@ -229,7 +234,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             style={{ fontWeight: 600 }}
           >
             <Plus className="h-4 w-4" />
-            إنشاء منشأة جديدة
+            {t("إنشاء منشأة جديدة", "Create new company")}
           </button>
 
           {/* Seed two demos (SA + US) · only show if user has 0 or 1 org · UX-179 */}
@@ -239,18 +244,18 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 try {
                   const r = await (api as any).seedTwoDemos();
                   if (r?.ok) {
-                    setSeedMessage({ kind: "success", text: `تم إنشاء ${r.seeded.length} شركة تجريبية كاملة · جارِ التحميل...` });
+                    setSeedMessage({ kind: "success", text: t("تم إنشاء ", "Created ") + r.seeded.length + t(" شركة تجريبية كاملة · جارٍ التحميل...", " full demo companies · Loading...") });
                     window.setTimeout(() => window.location.reload(), 800);
                   }
                 } catch (e: any) {
-                  setSeedMessage({ kind: "error", text: `فشل: ${e?.message || "خطأ غير معروف"}` });
+                  setSeedMessage({ kind: "error", text: t("فشل: ", "Failed: ") + (e?.message || t("خطأ غير معروف", "Unknown error")) });
                 }
               }}
               className={`flex w-full ${rowDirClass} items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50 border-b border-border/50`}
               style={{ fontWeight: 600 }}
             >
               <Plus className="h-4 w-4" />
-              + إنشاء بيانات تجريبية كاملة (SA + US)
+              {t("+ إنشاء بيانات تجريبية كاملة (SA + US)", "+ Create full demo data (SA + US)")}
             </button>
           )}
 
@@ -283,7 +288,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                     <span className={`line-clamp-2 text-[12px] font-medium leading-5 ${isRtl ? "text-end" : "text-start"}`}>{o.name}</span>
                     {activeOrg?.id === o.id && (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
-                        مختارة حالياً
+                        {t("مختارة حالياً", "Active")}
                       </span>
                     )}
                   </div>
@@ -294,7 +299,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               </button>
             ))}
             {filteredOrgs.length === 0 && (
-              <div className="py-8 text-center text-sm text-muted-foreground/60">لا توجد منشأة بهذا الاسم</div>
+              <div className="py-8 text-center text-sm text-muted-foreground/60">{t("لا توجد منشأة بهذا الاسم", "No company found with this name")}</div>
             )}
           </div>
         </div>
@@ -462,7 +467,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
           <div className="flex items-center gap-3">
             <button type="button" onClick={onClose} className="rounded p-1.5 text-muted-foreground hover:bg-muted/50"><X className="h-5 w-5" /></button>
             <div>
-              <h1 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>إنشاء شركة جديدة</h1>
+              <h1 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t("إنشاء شركة جديدة", "Create new company")}</h1>
               <p className="text-xs text-muted-foreground">بعد الإنشاء: 20 حساب · 3 معدلات ضريبية · ZATCA جاهز</p>
             </div>
           </div>
