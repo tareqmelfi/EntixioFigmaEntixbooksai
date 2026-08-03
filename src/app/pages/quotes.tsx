@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Quote, Contact } from "../lib/api";
 import { useReturnTo } from "../lib/use-return-to";
+import { useLanguage } from "../components/LanguageContext";
 
 const CURRENCIES = [
   { value: "SAR", label: "ريال سعودي · SAR" },
@@ -53,6 +54,7 @@ const EMPTY_FORM = {
 };
 
 export function Quotes() {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);

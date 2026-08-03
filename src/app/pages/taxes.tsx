@@ -6,11 +6,13 @@ import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow } from "../lib/api";
 import { useOrgRegion } from "../lib/use-org-region";
+import { useLanguage } from "../components/LanguageContext";
 
 const money = (value: number, currency = "SAR") =>
   `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 function todayIso() {
+  const { t } = useLanguage();
   return new Date().toISOString().slice(0, 10);
 }
 

@@ -33,6 +33,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { useLanguage } from "../components/LanguageContext";
 
 // Unified palette (user directive): navy/blue family only — no rainbow scatter
 const DONUT_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
@@ -59,16 +60,17 @@ const tooltipStyle = {
 
 // VATGauge · split horizontal bar showing collected vs paid VAT
 function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; paid: number; currency?: string }) {
+  const { t } = useLanguage();
   const net = collected - paid;
   const total = Math.max(collected + paid, 1);
   const collectedPct = (collected / total) * 100;
   const paidPct = (paid / total) * 100;
   const isOwed = net > 0;
   return (
-    <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => (window.location.href = "/app/taxes")} title="فتح الضرائب">
+    <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => (window.location.href = "/app/taxes")} title={t("فتح الضرائب", "Open taxes")}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <span className="text-xs text-muted-foreground">ضريبة القيمة المضافة</span>
+          <span className="text-xs text-muted-foreground">{t("ضريبة القيمة المضافة", "VAT")}</span>
           <Gauge className="h-4 w-4 text-muted-foreground/60" />
         </div>
         {/* split bar */}
@@ -77,14 +79,14 @@ function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; pa
           <div style={{ width: `${paidPct}%`, backgroundColor: chartColors.navy }} />
         </div>
         <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> لصالح الضريبة <span className="font-english font-semibold text-foreground ms-1">{collected.toLocaleString()}</span></span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> لصالحنا <span className="font-english font-semibold text-foreground ms-1">{paid.toLocaleString()}</span></span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> {t("لصالح الضريبة", "Collected")} <span className="font-english font-semibold text-foreground ms-1">{collected.toLocaleString()}</span></span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> {t("لصالحنا", "Owed to us")} <span className="font-english font-semibold text-foreground ms-1">{paid.toLocaleString()}</span></span>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <span className="text-[11px] text-muted-foreground">صافي المستحق</span>
+          <span className="text-[11px] text-muted-foreground">{t("صافي المستحق", "Net Due")}</span>
           <div className="flex items-center gap-2">
             <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#E84B4B" : "#10B981" }}>{Math.abs(net).toLocaleString()} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
-            <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#166534]"}`}>{isOwed ? "علينا" : "لصالحنا ✓"}</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#166534]"}`}>{isOwed ? t("علينا", "We owe") : t("لصالحنا ✓", "Owed to us ✓")}</span>
           </div>
         </div>
       </CardContent>
@@ -116,6 +118,7 @@ function pct(curr: number, prev: number): { value: number; up: boolean } {
 }
 
 export function Dashboard() {
+  const { t } = useLanguage();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +133,7 @@ export function Dashboard() {
       const d = await api.dashboard.summary();
       setData(d);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل تحميل البيانات");
+      setError(e instanceof ApiError ? e.message : t("فشل تحميل البيانات", "Failed to load data"));
     } finally {
       setLoading(false);
     }
@@ -149,7 +152,7 @@ export function Dashboard() {
   if (error || !data) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {error || "تعذّر تحميل بيانات لوحة التحكم"}
+        {error || t("تعذّر تحميل بيانات لوحة التحكم", "Failed to load dashboard data")}
       </div>
     );
   }
@@ -172,20 +175,20 @@ export function Dashboard() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>لوحة التحكم</h1>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("لوحة التحكم", "Dashboard")}</h1>
           <p className="text-muted-foreground mt-1">{data.org.name} · <span className="font-english">{cur}</span></p>
         </div>
         <div className="flex gap-2">
-          <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition">+ فاتورة</Link>
-          <Link to="/app/expenses/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">+ مصروف</Link>
-          <Link to="/app/vouchers/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">+ سند</Link>
+          <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition">{t("+ فاتورة", "+ Invoice")}</Link>
+          <Link to="/app/expenses/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ مصروف", "+ Expense")}</Link>
+          <Link to="/app/vouchers/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ سند", "+ Voucher")}</Link>
         </div>
       </div>
 
       {isEmpty && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="text-sm text-primary">
-            مرحباً بك في <strong>{data.org.name}</strong> · لا توجد بيانات بعد · جرّب البيانات التجريبية لتشوف كل شي شغّال
+            {t("مرحباً بك في ", "Welcome to ")}<strong>{data.org.name}</strong>{t(" · لا توجد بيانات بعد · جرّب البيانات التجريبية لتشوف كل شي شغّال", " · no data yet · try the demo data to see everything working")}
           </div>
           {seedArmed ? (
             <div className="flex items-center gap-2 shrink-0">
@@ -194,26 +197,26 @@ export function Dashboard() {
                   setSeedArmed(false);
                   try {
                     const orgId = (data.org as any).id;
-                    if (!orgId) { push("error", "لم يتم تحديد الشركة"); return; }
+                    if (!orgId) { push("error", t("لم يتم تحديد الشركة", "Company not specified")); return; }
                     const r = await (api as any).seedDemoData(orgId);
                     if (r?.ok) {
                       const s = r.seeded || {};
-                      push("success", `تمت التعبئة · ${s.contacts || 0} عميل/مورّد · ${s.products || 0} منتج · ${s.invoices || 0} فاتورة`);
+                      push("success", `${t("تمت التعبئة", "Seeded")} · ${s.contacts || 0} ${t("عميل/مورّد", "customer/vendor")} · ${s.products || 0} ${t("منتج", "product(s)")} · ${s.invoices || 0} ${t("فاتورة", "invoice(s)")}`);
                       window.setTimeout(() => window.location.reload(), 800);
                     }
                   } catch (e: any) {
-                    push("error", `فشل: ${e?.message || "خطأ غير معروف"}`);
+                    push("error", `${t("فشل", "Failed")}: ${e?.message || t("خطأ غير معروف", "unknown error")}`);
                   }
                 }}
                 className="bg-primary hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg"
               >
-                تأكيد التعبئة
+                {t("تأكيد التعبئة", "Confirm")}
               </button>
               <button
                 onClick={() => setSeedArmed(false)}
                 className="border border-border text-muted-foreground hover:bg-white text-sm px-3 py-2 rounded-lg"
               >
-                إلغاء
+                {t("إلغاء", "Cancel")}
               </button>
             </div>
           ) : (
@@ -221,7 +224,7 @@ export function Dashboard() {
               onClick={() => setSeedArmed(true)}
               className="bg-primary hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg shrink-0"
             >
-              عبّ هذه الشركة ببيانات تجريبية كاملة
+              {t("عبّ هذه الشركة ببيانات تجريبية كاملة", "Seed with demo data")}
             </button>
           )}
         </div>
@@ -233,32 +236,32 @@ export function Dashboard() {
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <div className="text-sm">
-              <span className="font-semibold text-red-700">{data.overdueInvoices.length} فاتورة متأخرة</span>
+              <span className="font-semibold text-red-700">{data.overdueInvoices.length} {t("فاتورة متأخرة", "overdue invoice(s)")}</span>
               <span className="text-red-600 mx-2">·</span>
               <span className="text-red-600 font-english">
                 {data.overdueInvoices.reduce((s, i) => s + i.remaining, 0).toLocaleString()} {cur}
               </span>
-              <span className="text-red-600 mx-1">قيد التحصيل</span>
+              <span className="text-red-600 mx-1">{t("قيد التحصيل", "pending collection")}</span>
             </div>
           </div>
-          <Link to="/app/invoices?status=OVERDUE" className="text-sm text-red-700 hover:underline">عرض الكل ←</Link>
+          <Link to="/app/invoices?status=OVERDUE" className="text-sm text-red-700 hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
         </div>
       )}
 
       {/* KPI Cards · Row 1 (UX-212 · revenue · net income · expenses · VAT · smaller numbers + distinct colors) */}
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
         {/* Revenue · rightmost · navy */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title="فتح فواتير المبيعات">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title={t("فتح فواتير المبيعات", "Open sales invoices")}>
           <CardContent className="p-3.5">
             <div className="flex items-start justify-between mb-2">
-              <span className="text-xs text-muted-foreground">إجمالي الإيرادات</span>
+              <span className="text-xs text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</span>
               <DollarSign className="h-3.5 w-3.5 text-muted-foreground/60" />
             </div>
             <div className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15 }}>
               <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
               {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5"><span className="font-english font-semibold text-foreground">{k.invoiceCount}</span> فاتورة · نقد <span className="font-english">{k.cashOnHand.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
+            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5"><span className="font-english font-semibold text-foreground">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoice · cash ")}<span className="font-english">{k.cashOnHand.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
           </CardContent>
         </Card>
 
@@ -267,10 +270,10 @@ export function Dashboard() {
           const net = k.revenue - (k.expenses + k.purchases);
           const positive = net >= 0;
           return (
-            <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
+            <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
               <CardContent className="p-3.5">
                 <div className="flex items-start justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">صافي الدخل</span>
+                  <span className="text-xs text-muted-foreground">{t("صافي الدخل", "Net Income")}</span>
                   {positive ? <TrendingUp className="h-3.5 w-3.5" style={{ color: "#10B981" }} /> : <TrendingDown className="h-3.5 w-3.5" style={{ color: "#D97474" }} />}
                 </div>
                 <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: positive ? "#0B1B49" : "#D97474" }}>
@@ -278,8 +281,8 @@ export function Dashboard() {
                   {Math.abs(net).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
                 <p className="text-[10.5px] mt-1.5">
-                  <span className={positive ? "text-emerald-700" : "text-rose-700"} style={{ fontWeight: 600 }}>{positive ? "ربح" : "خسارة"}</span>
-                  <span className="text-muted-foreground/60"> · هامش </span>
+                  <span className={positive ? "text-emerald-700" : "text-rose-700"} style={{ fontWeight: 600 }}>{positive ? t("ربح", "Profit") : t("خسارة", "Loss")}</span>
+                  <span className="text-muted-foreground/60">{t(" · هامش ", " · margin ")}</span>
                   <span className="font-english" style={{ color: positive ? "#10B981" : "#D97474" }}>{k.revenue > 0 ? Math.round((net / k.revenue) * 100) : 0}%</span>
                 </p>
               </CardContent>
@@ -288,17 +291,17 @@ export function Dashboard() {
         })()}
 
         {/* Total Expenses · blue (unified) */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/expenses")} title="فتح المصروفات">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/expenses")} title={t("فتح المصروفات", "Open expenses")}>
           <CardContent className="p-3.5">
             <div className="flex items-start justify-between mb-2">
-              <span className="text-xs text-muted-foreground">إجمالي المصروفات</span>
+              <span className="text-xs text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</span>
               <ShoppingBag className="h-3.5 w-3.5" style={{ color: chartColors.teal }} />
             </div>
             <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: chartColors.teal }}>
               <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
               {(k.expenses + k.purchases).toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5">مباشرة <span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span> · عمومية <span className="font-english">{k.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
+            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5">{t("مباشرة ", "Direct ")}<span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>{t(" · عمومية ", " · General ")}<span className="font-english">{k.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
           </CardContent>
         </Card>
 
@@ -309,10 +312,10 @@ export function Dashboard() {
       {/* Charts grid 2x2 · Figma spec UX-205 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* P&L · vertical bars · navy + red */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح تقرير الأرباح والخسائر">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح تقرير الأرباح والخسائر", "Open P&L report")}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>الأرباح والخسائر</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">ملخص الأرباح والخسائر لآخر 6 أشهر</CardDescription>
+            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الأرباح والخسائر", "Profit & Loss")}</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs">{t("ملخص الأرباح والخسائر لآخر 6 أشهر", "P&L summary for the last 6 months")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div dir="ltr">
@@ -328,21 +331,21 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
             <ChartLegend items={[
-              { label: "الأرباح", color: chartColors.navy },
-              { label: "الخسائر", color: chartColors.red },
+              { label: t("الأرباح", "Profit"), color: chartColors.navy },
+              { label: t("الخسائر", "Loss"), color: chartColors.red },
             ]} />
           </CardContent>
         </Card>
 
         {/* Revenue Breakdown · horizontal bars */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>تفصيل الإيرادات</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة</CardDescription>
+            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("تفصيل الإيرادات", "Revenue Breakdown")}</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs">{t("توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة", "Revenue distribution by branches, projects and cost centers")}</CardDescription>
           </CardHeader>
           <CardContent>
             {data.incomeBreakdown.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground/60">لا توجد إيرادات بعد</div>
+              <div className="py-12 text-center text-sm text-muted-foreground/60">{t("لا توجد إيرادات بعد", "No revenue yet")}</div>
             ) : (
               <div dir="ltr">
                 <ResponsiveContainer width="100%" height={250}>
@@ -360,10 +363,10 @@ export function Dashboard() {
         </Card>
 
         {/* Revenue vs Expenses · grouped bars */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>الإيرادات مقابل المصروفات</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">مقارنة الإيرادات بالمصروفات لآخر 6 أشهر</CardDescription>
+            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الإيرادات مقابل المصروفات", "Revenue vs Expenses")}</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs">{t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div dir="ltr">
@@ -379,17 +382,17 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
             <ChartLegend items={[
-              { label: "الإيرادات", color: chartColors.navy },
-              { label: "المصروفات", color: chartColors.teal },
+              { label: t("الإيرادات", "Revenue"), color: chartColors.navy },
+              { label: t("المصروفات", "Expenses"), color: chartColors.teal },
             ]} />
           </CardContent>
         </Card>
 
         {/* Cash Flow · line chart */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/bank-accounts")} title="فتح الحسابات البنكية">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/bank-accounts")} title={t("فتح الحسابات البنكية", "Open bank accounts")}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>التدفق النقدي</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">تحليل التدفقات النقدية الداخلة والخارجة</CardDescription>
+            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("التدفق النقدي", "Cash Flow")}</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs">{t("تحليل التدفقات النقدية الداخلة والخارجة", "Analysis of cash inflows and outflows")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div dir="ltr">
@@ -405,8 +408,8 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
             <ChartLegend items={[
-              { label: "تدفق داخل", color: chartColors.navy, type: "line" },
-              { label: "تدفق خارج", color: chartColors.teal, type: "line" },
+              { label: t("تدفق داخل", "Inflow"), color: chartColors.navy, type: "line" },
+              { label: t("تدفق خارج", "Outflow"), color: chartColors.teal, type: "line" },
             ]} />
           </CardContent>
         </Card>
@@ -418,26 +421,26 @@ export function Dashboard() {
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-              <Banknote className="h-4 w-4" /> الذمم المدينة والدائنة
+              <Banknote className="h-4 w-4" /> {t("الذمم المدينة والدائنة", "Receivables & Payables")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title="عرض فواتير المبيعات">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title={t("عرض فواتير المبيعات", "View sales invoices")}>
               <div>
-                <div className="text-xs text-primary/80">يستحقون لي (AR)</div>
+                <div className="text-xs text-primary/80">{t("يستحقون لي (AR)", "Receivable (AR)")}</div>
                 <div className="font-english font-bold text-primary mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsReceivable)}</div>
               </div>
               <ArrowUpRight className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-red-50/70 border border-red-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/purchases/bills")} title="عرض فواتير المشتريات">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-red-50/70 border border-red-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/purchases/bills")} title={t("عرض فواتير المشتريات", "View purchase invoices")}>
               <div>
-                <div className="text-xs text-red-700/80">أستحق عليهم (AP)</div>
+                <div className="text-xs text-red-700/80">{t("أستحق عليهم (AP)", "Payable (AP)")}</div>
                 <div className="font-english font-bold text-red-700 mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsPayable)}</div>
               </div>
               <ArrowDownRight className="h-5 w-5 text-red-600" />
             </div>
             <div className="pt-2 border-t border-border flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">صافي الذمم</span>
+              <span className="text-xs text-muted-foreground">{t("صافي الذمم", "Net balance")}</span>
               <span className={`font-english font-bold ${k.accountsReceivable - k.accountsPayable >= 0 ? "text-green-700" : "text-red-700"}`}>
                 {fmt(k.accountsReceivable - k.accountsPayable)}
               </span>
@@ -446,18 +449,18 @@ export function Dashboard() {
         </Card>
 
         {/* Period Compare · paired bars (UX-214) */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title="فتح التقارير">
+        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-              <TrendingUp className="h-4 w-4" /> هذا الشهر vs الشهر الماضي
+              <TrendingUp className="h-4 w-4" /> {t("هذا الشهر", "This month")} vs {t("الشهر الماضي", "Last month")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3.5">
             {(() => {
               const rows = [
-                { label: "الإيرادات", curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, ya: yearAgo.revenue, color: chartColors.navy, prevColor: chartColors.navy + "40", upGood: true, cmp: revCompare },
-                { label: "المصروفات", curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, ya: yearAgo.expenses, color: chartColors.teal, prevColor: chartColors.teal + "40", upGood: false, cmp: expCompare },
-                { label: "صافي الدخل", curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, ya: yearAgo.net, color: data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B", prevColor: (data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B") + "40", upGood: true, cmp: netCompare },
+                { label: t("الإيرادات", "Revenue"), curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, ya: yearAgo.revenue, color: chartColors.navy, prevColor: chartColors.navy + "40", upGood: true, cmp: revCompare },
+                { label: t("المصروفات", "Expenses"), curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, ya: yearAgo.expenses, color: chartColors.teal, prevColor: chartColors.teal + "40", upGood: false, cmp: expCompare },
+                { label: t("صافي الدخل", "Net Income"), curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, ya: yearAgo.net, color: data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B", prevColor: (data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B") + "40", upGood: true, cmp: netCompare },
               ];
               const max = Math.max(1, ...rows.flatMap(r => [Math.abs(r.curr), Math.abs(r.prev), Math.abs(r.ya)]));
               return rows.map((r, i) => {
@@ -474,20 +477,20 @@ export function Dashboard() {
                     {/* Three stacked thin bars · current / previous month / year-ago (UX-216) */}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">الحالي</span>
+                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("الحالي", "Current")}</span>
                         <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.curr) / max) * 100}%`, backgroundColor: r.color }} />
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">الشهر الماضي</span>
+                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("الشهر الماضي", "Last month")}</span>
                         <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.prev) / max) * 100}%`, backgroundColor: r.prevColor }} />
                         </div>
                         <span className="font-english text-[10px] text-muted-foreground/60 shrink-0 w-9 text-end">{fmtCompact(r.prev)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">السنة الماضية</span>
+                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("السنة الماضية", "Last year")}</span>
                         <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.ya || 0) / max) * 100}%`, backgroundColor: r.prevColor }} />
                         </div>
@@ -506,20 +509,20 @@ export function Dashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-                <Wallet className="h-4 w-4" /> الحسابات البنكية
+                <Wallet className="h-4 w-4" /> {t("الحسابات البنكية", "Bank accounts")}
               </CardTitle>
-              <Link to="/app/bank-accounts" className="text-xs text-primary hover:underline">إدارة ←</Link>
+              <Link to="/app/bank-accounts" className="text-xs text-primary hover:underline">{t("إدارة ←", "Manage ←")}</Link>
             </div>
           </CardHeader>
           <CardContent>
             {data.bankAccounts.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground mb-2">لا توجد حسابات بنكية مربوطة</p>
-                <Link to="/app/bank-accounts/new" className="text-xs text-primary hover:underline">+ ربط بنك جديد</Link>
+                <p className="text-sm text-muted-foreground mb-2">{t("لا توجد حسابات بنكية مربوطة", "No bank accounts connected")}</p>
+                <Link to="/app/bank-accounts/new" className="text-xs text-primary hover:underline">{t("+ ربط بنك جديد", "+ Connect new bank")}</Link>
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-[10px] text-muted-foreground/60 mb-1">هذا الشهر مقابل الشهر الماضي</p>
+                <p className="text-[10px] text-muted-foreground/60 mb-1">{t("هذا الشهر مقابل الشهر الماضي", "This month vs last month")}</p>
                 {data.bankAccounts.slice(0, 4).map((b: any) => {
                   // Compute trend % vs last month (mocked +4% if not provided · UX-215 Opus design)
                   const trendPct = (b as any).trendPct ?? 4;
@@ -563,14 +566,14 @@ export function Dashboard() {
         {/* Donut */}
         <Card className="border-border">
           <CardHeader>
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>تصنيف المصروفات</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">حسب الفئة · هذا العام</CardDescription>
+            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("تصنيف المصروفات", "Expense Breakdown")}</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs">{t("حسب الفئة · هذا العام", "By category · this year")}</CardDescription>
           </CardHeader>
           <CardContent>
             {data.expenseBreakdown.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-sm text-muted-foreground">لا توجد مصروفات بعد</p>
-                <Link to="/app/expenses/new" className="text-xs text-primary hover:underline">+ إضافة مصروف</Link>
+                <p className="text-sm text-muted-foreground">{t("لا توجد مصروفات بعد", "No expenses yet")}</p>
+                <Link to="/app/expenses/new" className="text-xs text-primary hover:underline">{t("+ إضافة مصروف", "+ Add expense")}</Link>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
@@ -608,9 +611,9 @@ export function Dashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                <Clock className="h-4 w-4" style={{ color: chartColors.red }} /> الفواتير المتأخرة
+                <Clock className="h-4 w-4" style={{ color: chartColors.red }} /> {t("الفواتير المتأخرة", "Overdue Invoices")}
               </CardTitle>
-              <Link to="/app/invoices?status=OVERDUE" className="text-xs text-primary hover:underline">عرض الكل ←</Link>
+              <Link to="/app/invoices?status=OVERDUE" className="text-xs text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
             </div>
           </CardHeader>
           <CardContent>
@@ -618,12 +621,12 @@ export function Dashboard() {
               {/* AR overdue · invoices customers haven't paid */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-muted-foreground">متأخرة عليهم (AR)</span>
+                  <span className="text-[11px] text-muted-foreground">{t("متأخرة عليهم (AR)", "Overdue to us (AR)")}</span>
                   <span className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{data.overdueInvoices.length}</span>
                 </div>
                 {data.overdueInvoices.length === 0 ? (
                   <div className="text-center py-6 rounded-lg bg-emerald-50 border border-emerald-100">
-                    <p className="text-[11px] text-emerald-700">🎉 لا توجد</p>
+                    <p className="text-[11px] text-emerald-700">{t("🎉 لا توجد", "🎉 None")}</p>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -633,7 +636,7 @@ export function Dashboard() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
                               <span className="font-english text-[11px] text-foreground font-semibold truncate">{inv.number}</span>
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-english shrink-0">{inv.daysOverdue}ي</span>
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-english shrink-0">{inv.daysOverdue}{t("ي", "d")}</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate mt-0.5">{inv.contact}</div>
                           </div>
@@ -650,12 +653,12 @@ export function Dashboard() {
               {/* AP overdue · bills we haven't paid */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-muted-foreground">متأخرة علينا (AP)</span>
+                  <span className="text-[11px] text-muted-foreground">{t("متأخرة علينا (AP)", "Overdue by us (AP)")}</span>
                   <span className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(data as any).overdueBills?.length || 0}</span>
                 </div>
                 {(!(data as any).overdueBills || (data as any).overdueBills.length === 0) ? (
                   <div className="text-center py-6 rounded-lg bg-emerald-50 border border-emerald-100">
-                    <p className="text-[11px] text-emerald-700">🎉 لا توجد</p>
+                    <p className="text-[11px] text-emerald-700">{t("🎉 لا توجد", "🎉 None")}</p>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -665,7 +668,7 @@ export function Dashboard() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
                               <span className="font-english text-[11px] text-foreground font-semibold truncate">{bill.number || bill.billNumber}</span>
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-cyan-100 text-cyan-700 font-english shrink-0">{bill.daysOverdue}ي</span>
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-cyan-100 text-cyan-700 font-english shrink-0">{bill.daysOverdue}{t("ي", "d")}</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate mt-0.5">{bill.contact}</div>
                           </div>
@@ -687,25 +690,25 @@ export function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-border">
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">عدد العملاء/الموردين</div>
+            <div className="text-muted-foreground text-xs mb-1">{t("عدد العملاء/الموردين", "Customers/Vendors count")}</div>
             <div className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.contactCount}</div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">فواتير متأخرة</div>
+            <div className="text-muted-foreground text-xs mb-1">{t("فواتير متأخرة", "Overdue invoices")}</div>
             <div className={`font-english ${k.overdueCount > 0 ? "text-red-600" : "text-foreground"}`} style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.overdueCount}</div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">إجمالي القبض</div>
+            <div className="text-muted-foreground text-xs mb-1">{t("إجمالي القبض", "Total receipts")}</div>
             <div className="font-english text-green-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.receipts.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">إجمالي الصرف</div>
+            <div className="text-muted-foreground text-xs mb-1">{t("إجمالي الصرف", "Total payments")}</div>
             <div className="font-english text-amber-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.payments.toLocaleString()}</div>
           </CardContent>
         </Card>

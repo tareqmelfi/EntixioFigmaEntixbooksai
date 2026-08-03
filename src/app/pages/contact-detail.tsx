@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { api, ApiError, ContactSummary } from "../lib/api";
 import { ContactWizard } from "../components/contact-wizard";
 import { ImageCropperModal } from "../components/image-cropper-modal";
+import { useLanguage } from "../components/LanguageContext";
 
 type Tab = "overview" | "operations" | "documents" | "portal" | "activity";
 
@@ -41,6 +42,7 @@ const TAB_ICONS: Record<Tab, any> = {
 };
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useLanguage();
   const map: Record<string, { bg: string; text: string; label: string }> = {
     PAID:     { bg: "bg-green-50",  text: "text-green-700",  label: "مدفوعة" },
     SENT:     { bg: "bg-blue-50",   text: "text-blue-700",   label: "مرسلة" },

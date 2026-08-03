@@ -22,6 +22,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { api, ApiError, SalesDashboard as Data } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "مسودة", SENT: "مرسلة", VIEWED: "مُشاهَدة", PAID: "مدفوعة",
@@ -49,6 +50,7 @@ const STATUS_FILL: Record<string, string> = {
 const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
 export function SalesDashboard() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);

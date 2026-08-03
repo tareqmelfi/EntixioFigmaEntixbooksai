@@ -6,8 +6,10 @@ import { DateInput } from "../components/date-input";
 import { Card, CardContent } from "../components/ui/card";
 import { ReportDocument, normalizeReportSettings } from "../components/report-document";
 import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 function todayIso() {
+  const { t } = useLanguage();
   return new Date().toISOString().slice(0, 10);
 }
 

@@ -77,6 +77,7 @@ const BRAND_TEMPLATES = [
 ];
 
 export function Invoices() {
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

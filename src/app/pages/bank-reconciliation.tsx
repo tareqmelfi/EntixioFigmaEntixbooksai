@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 type ParsedRow = {
   index?: number;
@@ -42,6 +43,7 @@ type UploadedStatementFile = {
 };
 
 function fileToBase64(file: File) {
+  const { t } = useLanguage();
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {

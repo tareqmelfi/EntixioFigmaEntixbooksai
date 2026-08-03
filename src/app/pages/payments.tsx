@@ -20,13 +20,16 @@ import { voucherEmail } from "../lib/email-templates";
 import { useNavigate, useSearchParams } from "react-router";
 import { useReturnTo } from "../lib/use-return-to";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
-
-const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
-  CASH: "نقداً", BANK_TRANSFER: "تحويل بنكي", CARD: "بطاقة ائتمان",
-  STC_PAY: "STC Pay", MADA: "مدى", CHECK: "شيك", OTHER: "أخرى",
-};
+import { useLanguage } from "../components/LanguageContext";
 
 export function Payments() {
+  const { t } = useLanguage();
+
+  const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
+    CASH: t("نقداً", "Cash"), BANK_TRANSFER: t("تحويل بنكي", "Bank Transfer"), CARD: t("بطاقة ائتمان", "Credit Card"),
+    STC_PAY: "STC Pay", MADA: t("مدى", "Mada"), CHECK: t("شيك", "Check"), OTHER: t("أخرى", "Other"),
+  };
+
   const [items, setItems] = useState<Voucher[]>([]);
   const [suppliers, setSuppliers] = useState<Contact[]>([]);
   const [bills, setBills] = useState<any[]>([]);
@@ -81,7 +84,7 @@ export function Payments() {
       setPreviewOpen(true);
       navigate(`/app/payments/${full.id}`, { replace: true });
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "تعذر تحميل السند للتعديل");
+      push("error", e instanceof ApiError ? e.message : t("تعذر تحميل السند للتعديل", "Failed to load voucher for editing"));
     }
   };
 
@@ -155,7 +158,7 @@ export function Payments() {
       setSuppliers((s as any).items || []);
       setBankAccounts((b as any).items || []);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -205,7 +208,7 @@ export function Payments() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.contactId) { push("error", "اختر المورد"); return; }
+    if (!form.contactId) { push("error", t("اختر المورد", "Select supplier")); return; }
 
     const allocs = (Array.isArray(form.allocations) ? form.allocations : [])
       .map((a: any) => ({ billId: a.billId, amount: Number(a.amount) || 0 }))
@@ -213,7 +216,7 @@ export function Payments() {
     const directAmount = Number(form.amount) || 0;
 
     if (allocs.length === 0 && directAmount <= 0) {
-      push("error", "أدخل مبلغاً صحيحاً أو وزّعه على الفواتير");
+      push("error", t("أدخل مبلغاً صحيحاً أو وزّعه على الفواتير", "Enter a valid amount or distribute it across invoices"));
       return;
     }
 
@@ -233,7 +236,7 @@ export function Payments() {
         });
         setItems(prev => prev.map(x => x.id === updated.id ? updated : x));
         setEditingPayment(updated);
-        push("success", `تم تحديث ${updated.number}`);
+        push("success", t(`تم تحديث ${updated.number}`, `Updated ${updated.number}`));
         refresh();
         return;
       }
@@ -276,16 +279,16 @@ export function Payments() {
       }
 
       if (created.length === 0) {
-        push("info", "لم يتم إنشاء أي سند · تحقق من مبالغ التوزيع");
+        push("info", t("لم يتم إنشاء أي سند · تحقق من مبالغ التوزيع", "No voucher created · check distribution amounts"));
         return;
       }
 
       setItems(prev => [...created, ...prev]);
-      push("success", created.length === 1 ? `تم إنشاء ${created[0].number}` : `تم إنشاء ${created.length} سند صرف`);
+      push("success", created.length === 1 ? t(`تم إنشاء ${created[0].number}`, `Created ${created[0].number}`) : t(`تم إنشاء ${created.length} سند صرف`, `Created ${created.length} payment vouchers`));
       closeCreate();
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحفظ");
+      push("error", e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
     } finally { setBusy(false); }
   };
 
@@ -299,7 +302,7 @@ export function Payments() {
 
   const handleUpload = async (file: File) => {
     if (!selected) return;
-    if (file.size > 25 * 1024 * 1024) { push("error", "الحد الأقصى 25 ميجا"); return; }
+    if (file.size > 25 * 1024 * 1024) { push("error", t("الحد الأقصى 25 ميجا", "Max 25 MB")); return; }
     try {
       const reader = new FileReader();
       const data = await new Promise<string>((resolve, reject) => {
@@ -312,9 +315,9 @@ export function Payments() {
         sizeBytes: file.size, data,
       });
       setAttachments(prev => [newAtt, ...prev]);
-      push("success", "تم الرفع");
+      push("success", t("تم الرفع", "Uploaded"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الرفع");
+      push("error", e instanceof ApiError ? e.message : t("فشل الرفع", "Upload failed"));
     }
   };
 
@@ -323,13 +326,13 @@ export function Payments() {
     if (!selected) return;
     try {
       const to = emailForm.to || (selected.contact as any)?.email;
-      if (!to) { push("error", "المورد ليس له بريد"); return; }
+      if (!to) { push("error", t("المورد ليس له بريد", "Supplier has no email")); return; }
       await api.vouchers.email(selected.id, { to, subject: emailForm.subject || undefined, message: emailForm.message || undefined });
-      push("success", `تم الإرسال إلى ${to}`);
+      push("success", t(`تم الإرسال إلى ${to}`, `Sent to ${to}`));
       setEmailDialog(false);
       setEmailForm({ to: "", subject: "", message: "" });
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الإرسال");
+      push("error", e instanceof ApiError ? e.message : t("فشل الإرسال", "Send failed"));
     }
   };
   const handleDelete = async (id: string) => {
@@ -337,9 +340,9 @@ export function Payments() {
       await api.vouchers.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       if (selected?.id === id) setSelected(null);
-      push("success", "تم الحذف");
+      push("success", t("تم الحذف", "Deleted"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed"));
     } finally { setPendingDelete(null); }
   };
 
@@ -350,42 +353,42 @@ export function Payments() {
       <div className={`space-y-6 transition-all ${selected ? "flex-1 min-w-0" : "w-full"}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>سندات الصرف</h1>
-            <p className="text-muted-foreground mt-1">المبالغ المدفوعة للموردين · ربط مباشر بفاتورة المشتريات</p>
+            <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("سندات الصرف", "Payment Vouchers")}</h1>
+            <p className="text-muted-foreground mt-1">{t("المبالغ المدفوعة للموردين · ربط مباشر بفاتورة المشتريات", "Amounts paid to suppliers · direct link to purchase invoice")}</p>
           </div>
           <Button className="bg-primary hover:bg-primary/90" onClick={() => { resetForm(); setEditingPayment(null); setOpen(true); }}>
-            <Plus className="me-2 h-4 w-4" /> سند صرف جديد
+            <Plus className="me-2 h-4 w-4" /> {t("سند صرف جديد", "New payment voucher")}
           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">عدد السندات</div>
+            <div className="text-xs text-muted-foreground">{t("عدد السندات", "Voucher count")}</div>
             <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{items.length}</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">إجمالي المصروف</div>
+            <div className="text-xs text-muted-foreground">{t("إجمالي المصروف", "Total spent")}</div>
             <div className="font-english font-bold text-red-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString()} SR</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">متوسط السند</div>
+            <div className="text-xs text-muted-foreground">{t("متوسط السند", "Average voucher")}</div>
             <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString()} SR</div>
           </CardContent></Card>
         </div>
 
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> سجل السندات</CardTitle>
+            <CardTitle className="text-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> {t("سجل السندات", "Voucher log")}</CardTitle>
             <div className="relative w-64">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="بحث..." className="pe-9 border-border" />
+              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t("بحث...", "Search...")} className="pe-9 border-border" />
             </div>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
               <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : filtered.length === 0 ? (
-              <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" /><p className="text-sm text-muted-foreground">لا سندات</p></div>
+              <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" /><p className="text-sm text-muted-foreground">{t("لا سندات", "No vouchers")}</p></div>
             ) : (
               <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
                 <colgroup>
@@ -394,11 +397,11 @@ export function Payments() {
                 </colgroup>
                 <thead className="bg-muted text-xs text-muted-foreground">
                   <tr>
-                    <th className="text-start px-4 py-2.5 font-medium">رقم</th>
-                    <th className="text-start px-4 py-2.5 font-medium">التاريخ</th>
-                    <th className="text-start px-4 py-2.5 font-medium">المورد</th>
-                    <th className="text-end px-4 py-2.5 font-medium">المبلغ</th>
-                    <th className="text-center px-4 py-2.5 font-medium">طريقة الدفع</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("رقم", "Number")}</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("التاريخ", "Date")}</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("المورد", "Supplier")}</th>
+                    <th className="text-end px-4 py-2.5 font-medium">{t("المبلغ", "Amount")}</th>
+                    <th className="text-center px-4 py-2.5 font-medium">{t("طريقة الدفع", "Payment method")}</th>
                     <th className="px-2 py-2.5"></th>
                   </tr>
                 </thead>
@@ -435,7 +438,7 @@ export function Payments() {
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="text-center bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="text-xs text-red-700">المبلغ المصروف</div>
+              <div className="text-xs text-red-700">{t("المبلغ المصروف", "Amount spent")}</div>
               <div className="font-english font-bold text-red-700 mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
                 {Number(selected.amount).toLocaleString()} {selected.currency}
               </div>
@@ -443,19 +446,19 @@ export function Payments() {
             </div>
 
             <div className="text-sm space-y-1.5">
-              <div className="flex justify-between"><span className="text-muted-foreground">التاريخ</span><span className="font-english" dir="ltr">{selected.date.slice(0, 10)}</span></div>
-              {selected.reference && <div className="flex justify-between"><span className="text-muted-foreground">المرجع</span><span className="font-english text-xs" dir="ltr">{selected.reference}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">{t("التاريخ", "Date")}</span><span className="font-english" dir="ltr">{selected.date.slice(0, 10)}</span></div>
+              {selected.reference && <div className="flex justify-between"><span className="text-muted-foreground">{t("المرجع", "Reference")}</span><span className="font-english text-xs" dir="ltr">{selected.reference}</span></div>}
               {selected.notes && <div className="pt-2 border-t border-border/50 text-xs text-foreground/80">{selected.notes}</div>}
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs text-muted-foreground flex items-center gap-1"><Paperclip className="h-3 w-3" /> المرفقات ({attachments.length})</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1"><Paperclip className="h-3 w-3" /> {t("المرفقات", "Attachments")} ({attachments.length})</div>
                 <input ref={fileRef} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
-                <button onClick={() => fileRef.current?.click()} className="text-xs text-primary hover:underline flex items-center gap-1"><Upload className="h-3 w-3" /> رفع</button>
+                <button onClick={() => fileRef.current?.click()} className="text-xs text-primary hover:underline flex items-center gap-1"><Upload className="h-3 w-3" /> {t("رفع", "Upload")}</button>
               </div>
               {attachments.length === 0 ? (
-                <div className="text-xs text-muted-foreground/60 text-center py-2 border border-dashed rounded">لا مرفقات</div>
+                <div className="text-xs text-muted-foreground/60 text-center py-2 border border-dashed rounded">{t("لا مرفقات", "No attachments")}</div>
               ) : (
                 <div className="space-y-1">
                   {attachments.map((a) => (
@@ -474,22 +477,22 @@ export function Payments() {
 
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
               <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-white">
-                <Printer className="h-4 w-4 me-1" /> طباعة / PDF
+                <Printer className="h-4 w-4 me-1" /> {t("طباعة / PDF", "Print / PDF")}
               </Button>
               <Button onClick={() => openEdit(selected)} variant="outline" className="border-border">
-                <Wallet className="h-4 w-4 me-1" /> تعديل
+                <Wallet className="h-4 w-4 me-1" /> {t("تعديل", "Edit")}
               </Button>
               <Button onClick={() => { openEmailDialog(selected); }} variant="outline" className="border-border">
-                <Mail className="h-4 w-4 me-1" /> إرسال للمورد
+                <Mail className="h-4 w-4 me-1" /> {t("إرسال للمورد", "Send to supplier")}
               </Button>
               {pendingDelete === selected.id ? (
                 <span className="flex items-center gap-1">
-                  <Button onClick={() => handleDelete(selected.id)} className="bg-red-600 hover:bg-red-700">تأكيد</Button>
-                  <Button onClick={() => setPendingDelete(null)} variant="outline">إلغاء</Button>
+                  <Button onClick={() => handleDelete(selected.id)} className="bg-red-600 hover:bg-red-700">{t("تأكيد", "Confirm")}</Button>
+                  <Button onClick={() => setPendingDelete(null)} variant="outline">{t("إلغاء", "Cancel")}</Button>
                 </span>
               ) : (
                 <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-red-300 text-red-700">
-                  <Trash2 className="h-4 w-4 me-1" /> حذف
+                  <Trash2 className="h-4 w-4 me-1" /> {t("حذف", "Delete")}
                 </Button>
               )}
             </div>
@@ -499,28 +502,28 @@ export function Payments() {
 
       {open && (
         <FullPageForm
-          title={editingPayment ? "تعديل سند صرف" : "سند صرف جديد"}
-          subtitle={editingPayment ? `مراجعة السند ${editingPayment.number} · المعاينة يسار` : "إنشاء سند صرف مرتبط بفاتورة المشتريات أو توزيع مبلغ على أكثر من فاتورة"}
+          title={editingPayment ? t("تعديل سند صرف", "Edit payment voucher") : t("سند صرف جديد", "New payment voucher")}
+          subtitle={editingPayment ? t(`مراجعة السند ${editingPayment.number} · المعاينة يسار`, `Review voucher ${editingPayment.number} · preview on left`) : t("إنشاء سند صرف مرتبط بفاتورة المشتريات أو توزيع مبلغ على أكثر من فاتورة", "Create a payment voucher linked to a purchase invoice or distribute an amount across multiple invoices")}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap w-full">
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
                 {editingPayment && (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setPreviewOpen((v) => !v)}
                     className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
-                    title="معاينة السند كمستند (يسار)"
+                    title={t("معاينة السند كمستند (يسار)", "Preview voucher as document (left)")}
                   >
-                    معاينة
+                    {t("معاينة", "Preview")}
                   </Button>
                 )}
               </div>
               <Button type="button" onClick={() => handleSubmit({ preventDefault: () => {} } as any)} disabled={busy} className="bg-primary hover:bg-primary/90">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ", "Save")}
               </Button>
             </div>
           }
@@ -528,7 +531,7 @@ export function Payments() {
           <div className={editingPayment && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto space-y-4">
             <div>
-              <Label className="text-xs">المورد *</Label>
+              <Label className="text-xs">{t("المورد", "Supplier")} *</Label>
                   <SearchableCombobox
                     value={form.contactId}
                     onChange={(id) => setForm({ ...form, contactId: id, billId: "", amount: "", allocations: [] })}
@@ -537,7 +540,7 @@ export function Payments() {
                       label: c.displayName,
                       sublabel: [c.legalName, c.email].filter(Boolean).join(" · ") || undefined,
                     }))}
-                    placeholder="ابحث عن مورّد (عربي/English)..."
+                    placeholder={t("ابحث عن مورّد (عربي/English)...", "Search supplier (Arabic/English)...")}
                     onCreate={async (name: string) => {
                       const created = await api.contacts.create({
                         displayName: name,
@@ -550,37 +553,37 @@ export function Payments() {
                       setForm((f: any) => ({ ...f, contactId: created.id }));
                       return created.id;
                     }}
-                    createLabel={(q: string) => `+ إنشاء مورّد جديد "${q}"`}
+                    createLabel={(q: string) => t(`+ إنشاء مورّد جديد "${q}"`, `+ Create new supplier "${q}"`)}
                   />
                 </div>
 
                 {form.contactId && bills.length > 0 && (
                   <>
                     <div>
-                      <Label className="text-xs">فاتورة المشتريات (اختياري)</Label>
+                      <Label className="text-xs">{t("فاتورة المشتريات (اختياري)", "Purchase invoice (optional)")}</Label>
                       <select value={form.billId} onChange={(e) => {
                         const bill = bills.find((b) => b.id === e.target.value);
                         setForm({ ...form, billId: e.target.value, amount: bill ? String(Number(bill.total) - Number(bill.amountPaid || 0)) : form.amount });
                       }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-                        <option value="">— غير مرتبط —</option>
+                        <option value="">{t("— غير مرتبط —", "— Not linked —")}</option>
                         {bills.map((bill) => {
                           const remaining = Math.max(0, Number(bill.total) - Number(bill.amountPaid || 0));
                           const isPaid = remaining <= 0;
                           return (
                             <option key={bill.id} value={bill.id} disabled={isPaid}>
-                              {bill.billNumber} · المتبقي {remaining.toFixed(2)} {bill.currency}{isPaid ? " · مسددة" : ""}
+                              {bill.billNumber} · {t("المتبقي", "Remaining")} {remaining.toFixed(2)} {bill.currency}{isPaid ? ` · ${t("مسددة", "Paid")}` : ""}
                             </option>
                           );
                         })}
                       </select>
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        تظهر هنا فواتير هذا المورد فقط، والربط سيكون مباشرًا على نفس الحساب.
+                        {t("تظهر هنا فواتير هذا المورد فقط، والربط سيكون مباشرًا على نفس الحساب.", "Only this supplier's invoices appear here; the link is direct on the same account.")}
                       </p>
                     </div>
 
                     {bills.some((b: any) => Math.max(Number(b.total) - Number(b.amountPaid || 0), 0) > 0) && (
                       <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-                        <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>توزيع المبلغ على الفواتير (اختياري)</div>
+                        <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("توزيع المبلغ على الفواتير (اختياري)", "Distribute amount across invoices (optional)")}</div>
                         {bills
                           .filter((b: any) => Math.max(Number(b.total) - Number(b.amountPaid || 0), 0) > 0)
                           .map((bill: any) => {
@@ -590,7 +593,7 @@ export function Payments() {
                               <div key={bill.id} className="grid grid-cols-[1fr_140px_auto] gap-2 items-center">
                                 <div className="text-xs text-foreground/90">
                                   <span className="font-english text-primary">{bill.billNumber}</span>
-                                  <span className="text-muted-foreground"> · متبقي </span>
+                                  <span className="text-muted-foreground"> · {t("متبقي", "remaining")} </span>
                                   <span className="font-english">{remaining.toFixed(2)} {bill.currency}</span>
                                 </div>
                                 <Input
@@ -625,7 +628,7 @@ export function Payments() {
                                     });
                                   }}
                                 >
-                                  كامل المتبقي
+                                  {t("كامل المتبقي", "Full remaining")}
                                 </button>
                               </div>
                             );
@@ -637,17 +640,17 @@ export function Payments() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">التاريخ *</Label>
+                    <Label className="text-xs">{t("التاريخ", "Date")} *</Label>
                     <DateInput value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
                   </div>
                   <div>
-                    <Label className="text-xs">المبلغ (أو وزّعه على الفواتير)</Label>
+                    <Label className="text-xs">{t("المبلغ (أو وزّعه على الفواتير)", "Amount (or distribute across invoices)")}</Label>
                     <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} dir="ltr" className="font-english" />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-xs">طريقة الدفع *</Label>
+                  <Label className="text-xs">{t("طريقة الدفع", "Payment method")} *</Label>
                   <Select value={form.paymentMethod} onValueChange={(v) => setForm({ ...form, paymentMethod: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -658,10 +661,10 @@ export function Payments() {
 
                 {form.paymentMethod !== "CASH" && bankAccounts.length > 0 && (
                   <div>
-                    <Label className="text-xs">الحساب البنكي المسحوب منه</Label>
+                    <Label className="text-xs">{t("الحساب البنكي المسحوب منه", "Bank account debited")}</Label>
                     <select value={form.bankAccountId} onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
                       className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-                      <option value="">— اختر —</option>
+                      <option value="">{t("— اختر —", "— Select —")}</option>
                       {bankAccounts.map((b) => (
                         <option key={b.id} value={b.id}>{b.bankName || b.name} · {b.accountNumber || b.iban}</option>
                       ))}
@@ -670,13 +673,13 @@ export function Payments() {
                 )}
 
                 <div>
-                  <Label className="text-xs">المرجع</Label>
-                  <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم تحويل / رقم شيك" dir="ltr" className="font-english" />
+                  <Label className="text-xs">{t("المرجع", "Reference")}</Label>
+                  <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم تحويل / رقم شيك", "Transfer no. / Check no.")} dir="ltr" className="font-english" />
                 </div>
 
                 <div>
-                  <Label className="text-xs">ملاحظات</Label>
-                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="ملاحظات اختيارية" />
+                  <Label className="text-xs">{t("ملاحظات", "Notes")}</Label>
+                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("ملاحظات اختيارية", "Optional notes")} />
                 </div>
           </form>
 
@@ -684,17 +687,17 @@ export function Payments() {
             <aside className="hidden xl:block sticky top-4">
               <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
-                  <span className="text-xs text-muted-foreground">معاينة السند · آخر نسخة محفوظة</span>
+                  <span className="text-xs text-muted-foreground">{t("معاينة السند · آخر نسخة محفوظة", "Voucher preview · last saved version")}</span>
                   <button
                     type="button"
                     onClick={() => window.open(`/print/voucher/${editingPayment.id}`, "_blank", "noopener")}
                     className="text-[11px] text-primary hover:underline"
                   >
-                    فتح في تبويب ←
+                    {t("فتح في تبويب ←", "Open in tab ←")}
                   </button>
                 </div>
                 <iframe
-                  title={`معاينة ${editingPayment.number}`}
+                  title={t(`معاينة ${editingPayment.number}`, `Preview ${editingPayment.number}`)}
                   src={`/print/voucher/${editingPayment.id}?embed=1&noprint=1`}
                   className="w-full bg-white"
                   style={{ height: "calc(100vh - 150px)", border: 0 }}
@@ -710,18 +713,18 @@ export function Payments() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setEmailDialog(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-border/50">
-              <h2 className="text-lg text-foreground font-bold">إرسال السند للمورد</h2>
+              <h2 className="text-lg text-foreground font-bold">{t("إرسال السند للمورد", "Send voucher to supplier")}</h2>
               <button onClick={() => setEmailDialog(false)} className="p-1 hover:bg-gray-100 rounded"><X className="h-4 w-4" /></button>
             </div>
             <div className="p-5 space-y-3">
-              <div><Label className="text-xs">إلى *</Label><Input type="email" value={emailForm.to} onChange={(e) => setEmailForm({ ...emailForm, to: e.target.value })} dir="ltr" className="font-english" /></div>
-              <div><Label className="text-xs">الموضوع</Label><Input value={emailForm.subject} onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })} /></div>
-              <div><Label className="text-xs">رسالة</Label><textarea value={emailForm.message} onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })} rows={4} className="w-full text-sm rounded border border-border px-3 py-2" /></div>
+              <div><Label className="text-xs">{t("إلى", "To")} *</Label><Input type="email" value={emailForm.to} onChange={(e) => setEmailForm({ ...emailForm, to: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div><Label className="text-xs">{t("الموضوع", "Subject")}</Label><Input value={emailForm.subject} onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })} /></div>
+              <div><Label className="text-xs">{t("رسالة", "Message")}</Label><textarea value={emailForm.message} onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })} rows={4} className="w-full text-sm rounded border border-border px-3 py-2" /></div>
             </div>
             <div className="flex justify-end gap-2 p-5 border-t border-border/50">
-              <Button type="button" variant="outline" onClick={() => setEmailDialog(false)} className="border-border">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={() => setEmailDialog(false)} className="border-border">{t("إلغاء", "Cancel")}</Button>
               <Button type="button" onClick={handleEmail} className="bg-primary hover:bg-primary/90">
-                <Mail className="h-4 w-4 me-1" /> إرسال
+                <Mail className="h-4 w-4 me-1" /> {t("إرسال", "Send")}
               </Button>
             </div>
           </div>

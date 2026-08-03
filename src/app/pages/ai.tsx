@@ -12,6 +12,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError, AgentConversation, AgentMessage, Contact, ExpenseLine, ExpensePaymentSplit, OcrResult } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { useLanguage } from "../components/LanguageContext";
 
 interface Msg {
   id?: string;
@@ -64,12 +65,12 @@ interface BatchSummary {
   index: { byDocType: Record<string, number>; byVendor: Record<string, number>; byMonth: Record<string, number>; byTag: Record<string, number> };
 }
 
-const QUICK_PROMPTS = [
-  "كم إجمالي المصروفات هذا الشهر؟",
-  "أعطني ملخص مالي لهذا الشهر",
-  "اعرض لي آخر 10 فواتير",
-  "أضف عميل جديد: شركة الفجر · رقم ضريبي 300123456789012",
-  "كم عملائي وكم مورديني؟",
+const quickPrompts = (t: (ar: string, en?: string) => string) => [
+  t("كم إجمالي المصروفات هذا الشهر؟", "What are total expenses this month?"),
+  t("أعطني ملخص مالي لهذا الشهر", "Give me a financial summary this month"),
+  t("اعرض لي آخر 10 فواتير", "Show me the last 10 invoices"),
+  t("أضف عميل جديد: شركة الفجر · رقم ضريبي 300123456789012", "Add a new customer: Al-Fajr Company · Tax number 300123456789012"),
+  t("كم عملائي وكم مورديني؟", "How many customers and suppliers do I have?"),
 ];
 
 const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30 MB per file
@@ -173,45 +174,45 @@ function classifyDocumentRoute(e: OcrResult | undefined, fileName?: string): Doc
   return "manual_review";
 }
 
-function routeLabel(route: DocumentRoute): string {
-  if (route === "expense") return "مصروف نقدي";
-  if (route === "bill") return "فاتورة مشتريات";
-  if (route === "bank_statement") return "كشف/تسوية بنكية";
-  if (route === "contract_review") return "مراجعة عقود";
-  return "مراجعة يدوية";
+function routeLabel(route: DocumentRoute, t: (ar: string, en?: string) => string): string {
+  if (route === "expense") return t("مصروف نقدي", "Cash expense");
+  if (route === "bill") return t("فاتورة مشتريات", "Purchase bill");
+  if (route === "bank_statement") return t("كشف/تسوية بنكية", "Bank statement/reconciliation");
+  if (route === "contract_review") return t("مراجعة عقود", "Contract review");
+  return t("مراجعة يدوية", "Manual review");
 }
 
-function defaultRouteMeta(route: DocumentRoute): CreatedRecordMeta {
+function defaultRouteMeta(route: DocumentRoute, t: (ar: string, en?: string) => string): CreatedRecordMeta {
   if (route === "bank_statement") {
     return {
       recordType: "bank_statement",
-      destinationLabel: "تسوية البنوك",
+      destinationLabel: t("تسوية البنوك", "Bank reconciliation"),
       destinationHref: "/app/bank-reconciliation",
-      actionLabel: "لم يسجل كمصروف",
-      blockedMessage: "تم اكتشاف كشف حساب/حركة بنكية. وجّهها للتسوية البنكية بدل المصروفات.",
+      actionLabel: t("لم يسجل كمصروف", "Not recorded as expense"),
+      blockedMessage: t("تم اكتشاف كشف حساب/حركة بنكية. وجّهها للتسوية البنكية بدل المصروفات.", "A bank statement/transaction was detected. Route it to bank reconciliation instead of expenses."),
     };
   }
   if (route === "contract_review") {
     return {
       recordType: "review",
-      destinationLabel: "مراجعة العقود",
-      actionLabel: "لم يسجل تلقائياً",
-      blockedMessage: "هذا يبدو عقداً/اتفاقية. يحتاج مراجعة قبل إنشاء التزام أو فاتورة.",
+      destinationLabel: t("مراجعة العقود", "Contract review"),
+      actionLabel: t("لم يسجل تلقائياً", "Not recorded automatically"),
+      blockedMessage: t("هذا يبدو عقداً/اتفاقية. يحتاج مراجعة قبل إنشاء التزام أو فاتورة.", "This looks like a contract/agreement. It needs review before creating a commitment or invoice."),
     };
   }
   if (route === "manual_review") {
     return {
       recordType: "review",
-      destinationLabel: "مراجعة يدوية",
-      actionLabel: "لم يسجل تلقائياً",
-      blockedMessage: "المستند غير كافٍ للتسجيل الآمن. يحتاج مراجعة.",
+      destinationLabel: t("مراجعة يدوية", "Manual review"),
+      actionLabel: t("لم يسجل تلقائياً", "Not recorded automatically"),
+      blockedMessage: t("المستند غير كافٍ للتسجيل الآمن. يحتاج مراجعة.", "The document is insufficient for safe recording. It needs review."),
     };
   }
   return {
     recordType: route === "bill" ? "bill" : "expense",
-    destinationLabel: route === "bill" ? "فواتير المشتريات" : "المصروفات",
+    destinationLabel: route === "bill" ? t("فواتير المشتريات", "Purchase bills") : t("المصروفات", "Expenses"),
     destinationHref: route === "bill" ? "/app/purchases/bills" : "/app/expenses",
-    actionLabel: route === "bill" ? "جاهز كفاتورة مشتريات" : "جاهز كمصروف",
+    actionLabel: route === "bill" ? t("جاهز كفاتورة مشتريات", "Ready as purchase bill") : t("جاهز كمصروف", "Ready as expense"),
   };
 }
 
@@ -242,8 +243,8 @@ function buildBillLines(e: OcrResult, total: number) {
   }];
 }
 
-async function findOrCreateSupplier(e: OcrResult): Promise<Contact> {
-  const displayName = (e.vendor || "مورد غير معروف").trim();
+async function findOrCreateSupplier(e: OcrResult, t: (ar: string, en?: string) => string): Promise<Contact> {
+  const displayName = (e.vendor || t("مورد غير معروف", "Unknown supplier")).trim();
   const taxId = e.vendorVat?.trim() || null;
   const q = taxId || displayName.slice(0, 60);
   const existing = await api.contacts.list({ type: "SUPPLIER", q, limit: 200 }).catch(() => ({ items: [] as Contact[] }));
@@ -360,6 +361,7 @@ export function AI() {
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toasts, push, dismiss } = useToasts();
+  const { t } = useLanguage();
   const lastMessage = messages[messages.length - 1];
   const waitingForPersistedReply = Boolean(activeConversationId && !busy && !loadingMessages && lastMessage?.role === "user");
 
@@ -389,7 +391,7 @@ export function AI() {
         setActiveConversationId(selected);
         if (!selected) setMessages([]);
       } catch (e: any) {
-        if (alive) push("error", e instanceof ApiError ? e.message : "فشل تحميل محادثات المساعد");
+        if (alive) push("error", e instanceof ApiError ? e.message : t("فشل تحميل محادثات المساعد", "Failed to load assistant conversations"));
       } finally {
         if (alive) setLoadingConversations(false);
       }
@@ -413,7 +415,7 @@ export function AI() {
         if (!alive) return;
         setMessages(r.messages.map(mapAgentMessage));
       } catch (e: any) {
-        if (alive) push("error", e instanceof ApiError ? e.message : "فشل تحميل المحادثة");
+        if (alive) push("error", e instanceof ApiError ? e.message : t("فشل تحميل المحادثة", "Failed to load conversation"));
       } finally {
         if (alive) setLoadingMessages(false);
       }
@@ -459,11 +461,11 @@ export function AI() {
     const accepted: PendingFile[] = [];
     for (const f of arr) {
       if (pending.length + accepted.length >= MAX_FILES) {
-        setError(`حد أقصى ${MAX_FILES} ملف لكل دفعة`);
+        setError(t(`حد أقصى ${MAX_FILES} ملف لكل دفعة`, `Max ${MAX_FILES} files per batch`));
         break;
       }
       if (f.size > MAX_FILE_SIZE) {
-        push("error", `${f.name}: أكبر من ${fmtSize(MAX_FILE_SIZE)}`);
+        push("error", t(`${f.name}: أكبر من ${fmtSize(MAX_FILE_SIZE)}`, `${f.name}: larger than ${fmtSize(MAX_FILE_SIZE)}`));
         continue;
       }
       try {
@@ -476,7 +478,7 @@ export function AI() {
           size: f.size,
         });
       } catch (e) {
-        push("error", `فشل قراءة ${f.name}`);
+        push("error", t(`فشل قراءة ${f.name}`, `Failed to read ${f.name}`));
       }
     }
     if (accepted.length) setPending((prev) => [...prev, ...accepted]);
@@ -493,11 +495,11 @@ export function AI() {
     setInput("");
 
     const fileText = batchFiles.length === 1
-      ? `📎 رفعت ملف: ${batchFiles[0].name} · اقرأه وصنّفه`
-      : `📎 رفعت ${batchFiles.length} ملف · اقرأها وصنّفها`;
+      ? t(`📎 رفعت ملف: ${batchFiles[0].name} · اقرأه وصنّفه`, `📎 Uploaded file: ${batchFiles[0].name} · read and classify it`)
+      : t(`📎 رفعت ${batchFiles.length} ملف · اقرأها وصنّفها`, `📎 Uploaded ${batchFiles.length} files · read and classify them`);
     const userMsg: Msg = {
       role: "user",
-      content: note ? `${fileText}\n\nطلبي: ${note}` : fileText,
+      content: note ? t(`${fileText}\n\nطلبي: ${note}`, `${fileText}\n\nMy request: ${note}`) : fileText,
     };
     setMessages((prev) => [...prev, userMsg]);
 
@@ -528,20 +530,20 @@ export function AI() {
         const route = classifyDocumentRoute(e, item.fileName);
         if (route === "bank_statement") {
           blockedStatementCount += 1;
-          createdByFile.set(item.fileName || "", defaultRouteMeta(route));
+          createdByFile.set(item.fileName || "", defaultRouteMeta(route, t));
           continue;
         }
         const conf = e.confidence || 0;
         const total = normalizeMoney(e.total);
         if ((route === "contract_review" || route === "manual_review") || conf <= 0.6 || total == null || total <= 0) {
           reviewCount += 1;
-          createdByFile.set(item.fileName || "", defaultRouteMeta(route));
+          createdByFile.set(item.fileName || "", defaultRouteMeta(route, t));
           continue;
         }
 
         if (route === "bill") {
           try {
-            const supplier = await findOrCreateSupplier(e);
+            const supplier = await findOrCreateSupplier(e, t);
             const saved: any = await api.bills.create({
               contactId: supplier.id,
               billNumber: e.documentNumber || undefined,
@@ -563,16 +565,16 @@ export function AI() {
               recordType: "bill",
               recordId: saved?.id,
               recordNumber: saved?.billNumber,
-              destinationLabel: "فاتورة مشتريات",
+              destinationLabel: t("فاتورة مشتريات", "Purchase bill"),
               destinationHref: saved?.id ? `/app/purchases/bills/${saved.id}` : "/app/purchases/bills",
-              actionLabel: "أُنشئت كمسودة",
+              actionLabel: t("أُنشئت كمسودة", "Created as draft"),
               createdNumber: saved?.billNumber,
             });
           } catch (err: any) {
             reviewCount += 1;
             createdByFile.set(item.fileName || "", {
-              ...defaultRouteMeta("manual_review"),
-              blockedMessage: err instanceof ApiError ? err.message : "تعذر إنشاء فاتورة المشتريات. يحتاج مراجعة.",
+              ...defaultRouteMeta("manual_review", t),
+              blockedMessage: err instanceof ApiError ? err.message : t("تعذر إنشاء فاتورة المشتريات. يحتاج مراجعة.", "Could not create the purchase bill. It needs review."),
             });
             console.warn("[ai] auto-create purchase bill failed", err);
           }
@@ -588,7 +590,7 @@ export function AI() {
             const lineItems = buildExpenseLines(e);
             const saved: any = await api.expenses.create({
               date: e.issueDate || new Date().toISOString().slice(0, 10),
-              category: e.category || "غير مصنف",
+              category: e.category || t("غير مصنف", "Uncategorized"),
               amount: subtotal,
               subtotal,
               totalAmount: total,
@@ -610,9 +612,9 @@ export function AI() {
               autoCreateSupplier: true,
               description: [
                 e.summary || `OCR: ${e.documentNumber || item.fileName || ""}`,
-                e.documentNumber ? `رقم المستند: ${e.documentNumber}` : null,
-                e.vendorVat ? `الرقم الضريبي للمورد: ${e.vendorVat}` : null,
-                lineItems.length ? `البنود: ${lineItems.length}` : null,
+                e.documentNumber ? t(`رقم المستند: ${e.documentNumber}`, `Document number: ${e.documentNumber}`) : null,
+                e.vendorVat ? t(`الرقم الضريبي للمورد: ${e.vendorVat}`, `Supplier tax number: ${e.vendorVat}`) : null,
+                lineItems.length ? t(`البنود: ${lineItems.length}`, `Lines: ${lineItems.length}`) : null,
               ].filter(Boolean).join(" · "),
               currency: e.currency || "SAR",
             });
@@ -621,9 +623,9 @@ export function AI() {
               recordType: "expense",
               recordId: saved?.id,
               recordNumber: saved?.number,
-              destinationLabel: "مصروف نقدي",
+              destinationLabel: t("مصروف نقدي", "Cash expense"),
               destinationHref: saved?.id ? `/app/expenses/${saved.id}` : "/app/expenses",
-              actionLabel: "أُنشئ كمصروف",
+              actionLabel: t("أُنشئ كمصروف", "Created as expense"),
               createdNumber: saved?.number,
               duplicateNumber: saved?.duplicateExpense?.number,
             });
@@ -631,8 +633,8 @@ export function AI() {
             console.warn("[ai] auto-create expense failed", err);
             reviewCount += 1;
             createdByFile.set(item.fileName || "", {
-              ...defaultRouteMeta("manual_review"),
-              blockedMessage: err instanceof ApiError ? err.message : "تعذر إنشاء المصروف. يحتاج مراجعة.",
+              ...defaultRouteMeta("manual_review", t),
+              blockedMessage: err instanceof ApiError ? err.message : t("تعذر إنشاء المصروف. يحتاج مراجعة.", "Could not create the expense. It needs review."),
             });
           }
         }
@@ -641,7 +643,7 @@ export function AI() {
       // Build per-file rows after persistence, so duplicate and saved numbers show in the same table.
       const rows = r.files.map((f) => {
         const route = classifyDocumentRoute(f.extracted, f.fileName);
-        const fallbackMeta = defaultRouteMeta(route);
+        const fallbackMeta = defaultRouteMeta(route, t);
         const meta = createdByFile.get(f.fileName || "") || fallbackMeta;
         return {
           name: f.fileName,
@@ -663,7 +665,7 @@ export function AI() {
           actionLabel: meta.actionLabel,
           createdNumber: meta.createdNumber,
           duplicateNumber: meta.duplicateNumber,
-          blockedMessage: meta.blockedMessage || (isBankStatementBlockedResult(f.extracted, f.fileName) ? (f.extracted?.message || "تم اكتشاف كشف حساب بنكي ولم يتم تحويله إلى مصروف.") : undefined),
+          blockedMessage: meta.blockedMessage || (isBankStatementBlockedResult(f.extracted, f.fileName) ? (f.extracted?.message || t("تم اكتشاف كشف حساب بنكي ولم يتم تحويله إلى مصروف.", "A bank statement was detected and was not converted to an expense.")) : undefined),
           error: f.error,
         };
       });
@@ -678,14 +680,17 @@ export function AI() {
         index: r.index,
       };
 
-      let assistantContent = `معالجة ${r.summary.totalFiles} ملف · ✅ ${r.summary.successful} نجح · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} فشل · ` : ""}إجمالي القيمة: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`;
-      if (createdExpenseCount > 0) assistantContent += `\n\n✨ تم إنشاء ${createdExpenseCount} مصروف تلقائياً.`;
-      if (createdBillCount > 0) assistantContent += `\n\n🧾 تم إنشاء ${createdBillCount} فاتورة مشتريات كمسودة للمراجعة.`;
-      if (blockedStatementCount > 0) assistantContent += `\n\nتم توجيه ${blockedStatementCount} كشف/حركة بنكية إلى التسوية بدل تحويلها لمصروف.`;
-      if (reviewCount > 0) assistantContent += `\n\n${reviewCount} ملف يحتاج مراجعة قبل التسجيل.`;
-      assistantContent += `\n\nالفرق المختصر: فاتورة المشتريات مطالبة من مورد وقد تكون غير مدفوعة، أما المصروف فهو صرف/إيصال مدفوع فعلياً.`;
+      let assistantContent = t(
+        `معالجة ${r.summary.totalFiles} ملف · ✅ ${r.summary.successful} نجح · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} فشل · ` : ""}إجمالي القيمة: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`,
+        `Processed ${r.summary.totalFiles} files · ✅ ${r.summary.successful} succeeded · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} failed · ` : ""}Total value: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`
+      );
+      if (createdExpenseCount > 0) assistantContent += t(`\n\n✨ تم إنشاء ${createdExpenseCount} مصروف تلقائياً.`, `\n\n✨ Automatically created ${createdExpenseCount} expense(s).`);
+      if (createdBillCount > 0) assistantContent += t(`\n\n🧾 تم إنشاء ${createdBillCount} فاتورة مشتريات كمسودة للمراجعة.`, `\n\n🧾 Created ${createdBillCount} purchase bill(s) as drafts for review.`);
+      if (blockedStatementCount > 0) assistantContent += t(`\n\nتم توجيه ${blockedStatementCount} كشف/حركة بنكية إلى التسوية بدل تحويلها لمصروف.`, `\n\nRouted ${blockedStatementCount} bank statement(s)/transaction(s) to reconciliation instead of converting to expenses.`);
+      if (reviewCount > 0) assistantContent += t(`\n\n${reviewCount} ملف يحتاج مراجعة قبل التسجيل.`, `\n\n${reviewCount} file(s) need review before recording.`);
+      assistantContent += t(`\n\nالفرق المختصر: فاتورة المشتريات مطالبة من مورد وقد تكون غير مدفوعة، أما المصروف فهو صرف/إيصال مدفوع فعلياً.`, `\n\nIn short: a purchase bill is demanded by a supplier and may be unpaid, whereas an expense is an actual paid disbursement/receipt.`);
       const duplicateCount = rows.filter((row) => row.duplicateNumber).length;
-      if (duplicateCount > 0) assistantContent += `\n⚠️ تم تعليم ${duplicateCount} كمكرر محتمل بدل تجاهله.`;
+      if (duplicateCount > 0) assistantContent += t(`\n⚠️ تم تعليم ${duplicateCount} كمكرر محتمل بدل تجاهله.`, `\n⚠️ Flagged ${duplicateCount} as a possible duplicate instead of ignoring it.`);
 
       await api.agent.conversations.appendMessage(conversationIdForBatch, {
         role: "assistant",
@@ -697,9 +702,9 @@ export function AI() {
       await refreshConversations();
       setPending([]);
       if (fileRef.current) fileRef.current.value = "";
-      push("success", `تم معالجة ${r.summary.successful}/${r.summary.totalFiles}`);
+      push("success", t(`تم معالجة ${r.summary.successful}/${r.summary.totalFiles}`, `Processed ${r.summary.successful}/${r.summary.totalFiles}`));
     } catch (e: any) {
-      const msg = e instanceof ApiError ? e.message : "فشل معالجة الملفات";
+      const msg = e instanceof ApiError ? e.message : t("فشل معالجة الملفات", "Failed to process files");
       setError(msg);
       push("error", msg);
       if (conversationIdForBatch) {
@@ -730,11 +735,11 @@ export function AI() {
       conversationIdForSend = await ensureConversation(text);
       setMessages((prev) => [...prev, { role: "user" as const, content: text }]);
       const r = await api.agent.chat({ conversationId: conversationIdForSend, message: text });
-      setMessages((prev) => [...prev, { role: "assistant", content: r.message || "(تم تنفيذ الإجراء)", toolResults: r.toolResults }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: r.message || t("(تم تنفيذ الإجراء)", "(Action executed)"), toolResults: r.toolResults }]);
       setActiveConversationId(r.conversationId || conversationIdForSend);
       await refreshConversations();
     } catch (e: any) {
-      const msg = e instanceof ApiError ? e.message : "فشل الاتصال بالـAgent";
+      const msg = e instanceof ApiError ? e.message : t("فشل الاتصال بالـAgent", "Failed to connect to the agent");
       setError(msg);
       push("error", msg);
       if (conversationIdForSend) setActiveConversationId(conversationIdForSend);
@@ -758,9 +763,9 @@ export function AI() {
       const next = items.find((c) => c.id !== activeConversationId)?.id || null;
       setActiveConversationId(next);
       if (!next) setMessages([]);
-      push("success", "تمت أرشفة المحادثة");
+      push("success", t("تمت أرشفة المحادثة", "Conversation archived"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل أرشفة المحادثة");
+      push("error", e instanceof ApiError ? e.message : t("فشل أرشفة المحادثة", "Failed to archive conversation"));
     }
   };
 
@@ -769,24 +774,24 @@ export function AI() {
       <aside className="hidden xl:flex w-72 shrink-0 flex-col rounded-lg border border-border bg-white overflow-hidden">
         <div className="border-b border-border p-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-foreground text-sm" style={{ fontWeight: 700 }}>المحادثات</p>
-            <p className="text-muted-foreground/60 text-xs mt-0.5">محفوظة حسب الشركة</p>
+            <p className="text-foreground text-sm" style={{ fontWeight: 700 }}>{t("المحادثات", "Conversations")}</p>
+            <p className="text-muted-foreground/60 text-xs mt-0.5">{t("محفوظة حسب الشركة", "Saved per company")}</p>
           </div>
           <button
             onClick={startNewConversation}
             className="h-8 w-8 shrink-0 rounded-md bg-primary text-white flex items-center justify-center hover:bg-primary/80"
-            title="محادثة جديدة"
+            title={t("محادثة جديدة", "New conversation")}
           >
             <Plus className="h-4 w-4" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
           {loadingConversations && (
-            <div className="text-xs text-muted-foreground/60 px-2 py-3">جار تحميل المحادثات...</div>
+            <div className="text-xs text-muted-foreground/60 px-2 py-3">{t("جار تحميل المحادثات...", "Loading conversations...")}</div>
           )}
           {!loadingConversations && conversations.length === 0 && (
             <div className="rounded-md border border-dashed border-[#D1D5DB] p-3 text-xs text-muted-foreground leading-6">
-              لا توجد محادثات محفوظة بعد.
+              {t("لا توجد محادثات محفوظة بعد.", "No saved conversations yet.")}
             </div>
           )}
           {conversations.map((conversation) => {
@@ -822,18 +827,18 @@ export function AI() {
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-3"><Sparkles className="h-7 w-7 text-primary" /></div>
           <div>
-            <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>المساعد الذكي</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">اطلب · ارفع · اسأل · ينفذ مباشرة في الـDB · يدعم ملفات متعددة</p>
+            <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{t("المساعد الذكي", "AI Assistant")}</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">{t("اطلب · ارفع · اسأل · ينفذ مباشرة في الـDB · يدعم ملفات متعددة", "Request · upload · ask · executes directly in the DB · supports multiple files")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {activeConversationId && messages.length > 0 && (
             <Button variant="outline" onClick={archiveActiveConversation} className="border-border">
-              <Archive className="me-2 h-4 w-4" /> أرشفة
+              <Archive className="me-2 h-4 w-4" /> {t("أرشفة", "Archive")}
             </Button>
           )}
           <Button variant="outline" onClick={startNewConversation} className="border-border">
-            <Plus className="me-2 h-4 w-4" /> محادثة جديدة
+            <Plus className="me-2 h-4 w-4" /> {t("محادثة جديدة", "New conversation")}
           </Button>
         </div>
       </div>
@@ -842,19 +847,19 @@ export function AI() {
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef as any}>
           {loadingMessages && (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> جار تحميل المحادثة...
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("جار تحميل المحادثة...", "Loading conversation...")}
             </div>
           )}
 
           {!loadingMessages && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <Bot className="h-16 w-16 text-primary mb-4" />
-              <h2 className="text-foreground mb-2" style={{ fontSize: "1.25rem", fontWeight: 600 }}>كيف أقدر أساعدك؟</h2>
+              <h2 className="text-foreground mb-2" style={{ fontSize: "1.25rem", fontWeight: 600 }}>{t("كيف أقدر أساعدك؟", "How can I help you?")}</h2>
               <p className="text-muted-foreground text-sm mb-6 max-w-md">
-                ارفع فاتورة (أو 50 فاتورة دفعة وحدة) لاستخراجها · اطلب تقرير · أضف عميل/مصروف بكلمة
+                {t("ارفع فاتورة (أو 50 فاتورة دفعة وحدة) لاستخراجها · اطلب تقرير · أضف عميل/مصروف بكلمة", "Upload an invoice (or 50 at once) to extract it · request a report · add a customer/expense in one sentence")}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full max-w-2xl">
-                {QUICK_PROMPTS.map((p, i) => (
+                {quickPrompts(t).map((p, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(p)}
@@ -888,13 +893,13 @@ export function AI() {
                       <div className="overflow-x-auto">
                       <table className="min-w-[920px] w-full text-xs">
                         <thead className="bg-muted"><tr>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">الملف</th>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">النوع</th>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">المورد</th>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">رقم/ضريبة</th>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">التاريخ</th>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">المبلغ</th>
-                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">المكان / الحالة</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("الملف", "File")}</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("النوع", "Type")}</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("المورد", "Supplier")}</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("رقم/ضريبة", "Number/Tax")}</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("التاريخ", "Date")}</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("المبلغ", "Amount")}</th>
+                          <th className="py-2 px-3 text-start font-medium text-muted-foreground">{t("المكان / الحالة", "Destination / Status")}</th>
                         </tr></thead>
                         <tbody>
                           {m.batchSummary.rows.map((r, j) => (
@@ -911,7 +916,7 @@ export function AI() {
                               </td>
                               <td className="py-2 px-3">
                                 <span className="inline-flex rounded-md bg-[#EEF6FF] px-2 py-0.5 text-[11px] text-foreground" style={{ fontWeight: 700 }}>
-                                  {routeLabel((r.route || "manual_review") as DocumentRoute)}
+                                  {routeLabel((r.route || "manual_review") as DocumentRoute, t)}
                                 </span>
                                 {r.docType && <div className="font-english text-[10px] text-muted-foreground/60 mt-1">{r.docType}</div>}
                               </td>
@@ -919,7 +924,7 @@ export function AI() {
                               <td className="py-2 px-3 text-foreground/80">
                                 <div className="font-english">{r.documentNumber || "—"}</div>
                                 {r.vendorVat && <div className="font-english text-[10px] text-muted-foreground">{r.vendorVat}</div>}
-                                {typeof r.lineCount === "number" && r.lineCount > 0 && <div className="text-[10px] text-primary">بنود: {r.lineCount}</div>}
+                                {typeof r.lineCount === "number" && r.lineCount > 0 && <div className="text-[10px] text-primary">{t("بنود", "Lines")}: {r.lineCount}</div>}
                               </td>
                               <td className="py-2 px-3 font-english text-muted-foreground">{r.date || "—"}</td>
                               <td className="py-2 px-3 font-english text-foreground" style={{ fontWeight: 600 }}>
@@ -943,10 +948,10 @@ export function AI() {
                                   ) : r.ok ? (
                                     <div className="flex items-center gap-1 text-green-700">
                                       <CheckCircle2 className="h-3.5 w-3.5" />
-                                      <span className="text-[10px]">تمت القراءة</span>
+                                      <span className="text-[10px]">{t("تمت القراءة", "Read")}</span>
                                     </div>
-                                  ) : <span className="text-red-600 text-xs">{r.error || "فشل"}</span>}
-                                  {r.duplicateNumber && <span className="font-english text-[10px] text-amber-700">مكرر: {r.duplicateNumber}</span>}
+                                  ) : <span className="text-red-600 text-xs">{r.error || t("فشل", "Failed")}</span>}
+                                  {r.duplicateNumber && <span className="font-english text-[10px] text-amber-700">{t("مكرر", "Duplicate")}: {r.duplicateNumber}</span>}
                                 </div>
                               </td>
                             </tr>
@@ -964,7 +969,7 @@ export function AI() {
                     </div>
                     {Object.keys(m.batchSummary.index.byVendor).length > 0 && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">حسب المورد:</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("حسب المورد:", "By supplier:")}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(m.batchSummary.index.byVendor).slice(0, 12).map(([k, v]) => (
                             <span key={`v-${k}`} className="text-xs px-2 py-0.5 rounded bg-primary/5 text-primary">{k} · {v}</span>
@@ -1008,7 +1013,7 @@ export function AI() {
                 <Bot className="h-4 w-4 text-primary" />
               </div>
               <div className="bg-primary/5 border border-border rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> جارٍ المعالجة...
+                <Loader2 className="h-4 w-4 animate-spin" /> {t("جارٍ المعالجة...", "Processing...")}
               </div>
             </div>
           )}
@@ -1018,7 +1023,7 @@ export function AI() {
                 <Bot className="h-4 w-4 text-primary" />
               </div>
               <div className="bg-primary/5 border border-border rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> بانتظار الرد المحفوظ من السيرفر...
+                <Loader2 className="h-4 w-4 animate-spin" /> {t("بانتظار الرد المحفوظ من السيرفر...", "Waiting for the saved reply from the server...")}
               </div>
             </div>
           )}
@@ -1028,11 +1033,11 @@ export function AI() {
         {pending.length > 0 && (
           <div className="border-t border-border bg-muted p-3">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground"><span className="font-english">{pending.length}</span> ملف جاهز · OCR + تصنيف تلقائي + إنشاء مصروفات آمن</p>
+              <p className="text-xs text-muted-foreground"><span className="font-english">{pending.length}</span> {t("ملف جاهز · OCR + تصنيف تلقائي + إنشاء مصروفات آمن", "file(s) ready · OCR + auto-classification + safe expense creation")}</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPending([])} className="border-border">إفراغ</Button>
+                <Button variant="outline" size="sm" onClick={() => setPending([])} className="border-border">{t("إفراغ", "Clear")}</Button>
                 <Button size="sm" onClick={() => handleProcessBatch()} disabled={busy} className="bg-primary hover:bg-primary/80">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `معالجة ${pending.length}`}
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t(`معالجة ${pending.length}`, `Process ${pending.length}`)}
                 </Button>
               </div>
             </div>
@@ -1068,7 +1073,7 @@ export function AI() {
               onClick={() => fileRef.current?.click()}
               disabled={busy}
               className="h-10 w-10 shrink-0 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-primary disabled:opacity-50"
-              title="رفع ملفات (يدعم الدفعات حتى 50 ملف)"
+              title={t("رفع ملفات (يدعم الدفعات حتى 50 ملف)", "Upload files (supports batches up to 50)")}
             >
               <Upload className="h-4 w-4" />
             </button>
@@ -1076,7 +1081,7 @@ export function AI() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder={pending.length > 0 ? `أضف ملاحظة (اختياري) ثم اضغط معالجة...` : "اسأل المساعد · أو اكتب طلب..."}
+              placeholder={pending.length > 0 ? t(`أضف ملاحظة (اختياري) ثم اضغط معالجة...`, `Add a note (optional) then press process...`) : t("اسأل المساعد · أو اكتب طلب...", "Ask the assistant · or type a request...")}
               rows={1}
               className="flex-1 resize-none rounded-md border border-border px-3 py-2.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
               disabled={busy}
@@ -1086,7 +1091,7 @@ export function AI() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground/60 mt-2 text-center">
-            اسحب الملفات هنا · أو اضغط ⬆️ · يدعم PDF · صور · Excel · CSV · أي نوع · حتى 50 ملف دفعة وحدة
+            {t("اسحب الملفات هنا · أو اضغط ⬆️ · يدعم PDF · صور · Excel · CSV · أي نوع · حتى 50 ملف دفعة وحدة", "Drag files here · or click ⬆️ · supports PDF · images · Excel · CSV · any type · up to 50 files at once")}
           </p>
         </div>
       </Card>

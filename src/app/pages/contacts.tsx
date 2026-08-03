@@ -24,12 +24,23 @@ import { Input } from "../components/ui/input";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact } from "../lib/api";
 import { ContactWizard, ROLES, RoleKey } from "../components/contact-wizard";
+import { useLanguage } from "../components/LanguageContext";
 
 // ── Roles filter ───────────────────────────────────────────────────────────
 type RoleFilter = "ALL" | RoleKey;
 
+// English labels for the role badges defined in contact-wizard.tsx
+const ROLE_LABEL_EN: Record<RoleKey, string> = {
+  isCustomer: "Customer",
+  isSupplier: "Supplier",
+  isEmployee: "Employee",
+  isShareholder: "Shareholder",
+  isFreelancer: "Freelancer",
+};
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export function Contacts() {
+  const { t } = useLanguage();
   const [items, setItems] = useState<Contact[]>([]);
   const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
@@ -44,7 +55,7 @@ export function Contacts() {
       const d = await api.contacts.list({ limit: 200 });
       setItems(d.items);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
   }, [push]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -124,9 +135,9 @@ export function Contacts() {
     try {
       await api.contacts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-      push("success", "تم الحذف");
+      push("success", t("تم الحذف", "Deleted"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Failed to delete"));
     } finally { setPendingDelete(null); }
   };
 
@@ -137,33 +148,33 @@ export function Contacts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>جهات الاتصال</h1>
-          <p className="text-muted-foreground mt-1">إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("جهات الاتصال", "Contacts")}</h1>
+          <p className="text-muted-foreground mt-1">{t("إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر", "Manage all related parties · Customer · Supplier · Employee · Shareholder · Freelancer")}</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}>
-          <Plus className="me-2 h-4 w-4" /> إضافة جهة
+          <Plus className="me-2 h-4 w-4" /> {t("إضافة جهة", "Add contact")}
         </Button>
       </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="إجمالي جهات الاتصال" value={String(items.length)} hint={`${items.filter(c => c.entityKind === "COMPANY").length} منظمة · ${items.filter(c => c.entityKind === "INDIVIDUAL").length} فرد`} active={filter === "ALL"} onClick={() => setFilter("ALL")} />
-        <KpiCard label="العملاء" value={String(counts.isCustomer)} hint="" active={filter === "isCustomer"} onClick={() => setFilter("isCustomer")} valueColor="text-blue-700" />
-        <KpiCard label="الموردين" value={String(counts.isSupplier)} hint="" active={filter === "isSupplier"} onClick={() => setFilter("isSupplier")} valueColor="text-green-700" />
-        <KpiCard label="الموظفين + المساهمين + الفري لانسر" value={String(counts.isEmployee + counts.isShareholder + counts.isFreelancer)} hint={`${counts.isEmployee} موظف · ${counts.isShareholder} مساهم · ${counts.isFreelancer} فري لانسر`} active={false} onClick={() => {}} valueColor="text-purple-700" />
+        <KpiCard label={t("إجمالي جهات الاتصال", "Total contacts")} value={String(items.length)} hint={`${items.filter(c => c.entityKind === "COMPANY").length} ${t("منظمة", "organizations")} · ${items.filter(c => c.entityKind === "INDIVIDUAL").length} ${t("فرد", "individuals")}`} active={filter === "ALL"} onClick={() => setFilter("ALL")} />
+        <KpiCard label={t("العملاء", "Customers")} value={String(counts.isCustomer)} hint="" active={filter === "isCustomer"} onClick={() => setFilter("isCustomer")} valueColor="text-blue-700" />
+        <KpiCard label={t("الموردين", "Suppliers")} value={String(counts.isSupplier)} hint="" active={filter === "isSupplier"} onClick={() => setFilter("isSupplier")} valueColor="text-green-700" />
+        <KpiCard label={t("الموظفين + المساهمين + الفري لانسر", "Employees + Shareholders + Freelancers")} value={String(counts.isEmployee + counts.isShareholder + counts.isFreelancer)} hint={`${counts.isEmployee} ${t("موظف", "employees")} · ${counts.isShareholder} ${t("مساهم", "shareholders")} · ${counts.isFreelancer} ${t("فري لانسر", "freelancers")}`} active={false} onClick={() => {}} valueColor="text-purple-700" />
       </div>
 
       {/* Filter pills */}
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => setKindFilter("ALL")} className={pillClass(kindFilter === "ALL")}>الكل</button>
-        <button onClick={() => setKindFilter("COMPANY")} className={pillClass(kindFilter === "COMPANY")}>منظمات</button>
-        <button onClick={() => setKindFilter("INDIVIDUAL")} className={pillClass(kindFilter === "INDIVIDUAL")}>أفراد</button>
+        <button onClick={() => setKindFilter("ALL")} className={pillClass(kindFilter === "ALL")}>{t("الكل", "All")}</button>
+        <button onClick={() => setKindFilter("COMPANY")} className={pillClass(kindFilter === "COMPANY")}>{t("منظمات", "Organizations")}</button>
+        <button onClick={() => setKindFilter("INDIVIDUAL")} className={pillClass(kindFilter === "INDIVIDUAL")}>{t("أفراد", "Individuals")}</button>
         <span className="mx-2 text-[#E5E7EB]">|</span>
         {(["ALL", "isCustomer", "isSupplier", "isEmployee", "isShareholder", "isFreelancer"] as RoleFilter[]).map(r => {
           const def = ROLES.find(x => x.key === r);
           return (
             <button key={r} onClick={() => setFilter(r)} className={pillClass(filter === r)}>
-              {r === "ALL" ? "الكل" : def?.label} <span className="ms-1 text-xs opacity-60">({r === "ALL" ? items.length : counts[r]})</span>
+              {r === "ALL" ? t("الكل", "All") : t(def?.label ?? "", ROLE_LABEL_EN[r as RoleKey])} <span className="ms-1 text-xs opacity-60">({r === "ALL" ? items.length : counts[r]})</span>
             </button>
           );
         })}
@@ -173,10 +184,10 @@ export function Contacts() {
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-foreground flex items-center gap-2"><Filter className="h-4 w-4" /> قائمة جهات الاتصال ({filtered.length})</CardTitle>
+            <CardTitle className="text-foreground flex items-center gap-2"><Filter className="h-4 w-4" /> {t("قائمة جهات الاتصال", "Contacts list")} ({filtered.length})</CardTitle>
             <div className="relative w-72 max-w-full">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input placeholder="بحث بالاسم · الرمز · البريد · الرقم الضريبي..." className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder={t("بحث بالاسم · الرمز · البريد · الرقم الضريبي...", "Search by name · code · email · tax number...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -186,8 +197,8 @@ export function Contacts() {
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
               <Users className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
-              <p className="text-sm text-muted-foreground">لا توجد جهات اتصال مطابقة</p>
-              <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">+ إضافة جهة جديدة</button>
+              <p className="text-sm text-muted-foreground">{t("لا توجد جهات اتصال مطابقة", "No matching contacts")}</p>
+              <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">{t("+ إضافة جهة جديدة", "+ Add new contact")}</button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -202,11 +213,11 @@ export function Contacts() {
                 </colgroup>
                 <thead className="bg-muted text-xs text-muted-foreground">
                   <tr>
-                    <th className="text-start px-4 py-2.5 font-medium">الاسم</th>
-                    <th className="text-start px-4 py-2.5 font-medium">الأدوار</th>
-                    <th className="text-start px-4 py-2.5 font-medium">الاتصال</th>
-                    <th className="text-start px-4 py-2.5 font-medium">الرقم الضريبي</th>
-                    <th className="text-start px-4 py-2.5 font-medium">الدولة</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("الاسم", "Name")}</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("الأدوار", "Roles")}</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("الاتصال", "Contact")}</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("الرقم الضريبي", "Tax number")}</th>
+                    <th className="text-start px-4 py-2.5 font-medium">{t("الدولة", "Country")}</th>
                     <th className="px-2 py-2.5"></th>
                   </tr>
                 </thead>
@@ -236,9 +247,9 @@ export function Contacts() {
                           <div className="flex min-w-0 max-w-full flex-wrap gap-1 overflow-hidden">
                             {ROLES.filter(r => (c as any)[r.key] || (r.key === "isCustomer" && (c.type === "CUSTOMER" || c.type === "BOTH")) || (r.key === "isSupplier" && (c.type === "SUPPLIER" || c.type === "BOTH")))
                               .map(r => (
-                                <span key={r.key} className={`text-xs px-1.5 py-0.5 rounded ${r.bg} ${r.text}`}>{r.label}</span>
+                                <span key={r.key} className={`text-xs px-1.5 py-0.5 rounded ${r.bg} ${r.text}`}>{t(r.label, ROLE_LABEL_EN[r.key])}</span>
                               ))}
-                            {c.isForeign && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">خارجي</span>}
+                            {c.isForeign && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">{t("خارجي", "Foreign")}</span>}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground space-y-0.5 text-start overflow-hidden align-middle" style={{ maxWidth: 0 }}>
@@ -249,15 +260,15 @@ export function Contacts() {
                         <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-foreground/80 uppercase">{c.country}</span></td>
                         <td className="px-2 py-3 text-end">
                           <div className="flex items-center gap-1 justify-end">
-                            <Link to={`/app/contacts/${c.id}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title="فتح"><ExternalLink className="h-4 w-4" /></Link>
-                            <button onClick={() => openEdit(c)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title="تعديل"><Edit2 className="h-4 w-4" /></button>
+                            <Link to={`/app/contacts/${c.id}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("فتح", "Open")}><ExternalLink className="h-4 w-4" /></Link>
+                            <button onClick={() => openEdit(c)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
                             {pendingDelete === c.id ? (
                               <span className="flex items-center gap-1 text-xs">
-                                <button onClick={() => handleDelete(c.id)} className="px-2 py-1 rounded bg-red-600 text-white">تأكيد</button>
-                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-border">إلغاء</button>
+                                <button onClick={() => handleDelete(c.id)} className="px-2 py-1 rounded bg-red-600 text-white">{t("تأكيد", "Confirm")}</button>
+                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-border">{t("إلغاء", "Cancel")}</button>
                               </span>
                             ) : (
-                              <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-4 w-4" /></button>
+                              <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
                             )}
                           </div>
                         </td>

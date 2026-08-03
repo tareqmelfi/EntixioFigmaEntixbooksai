@@ -12,6 +12,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 interface OrgRow {
   id: string;
@@ -36,6 +37,7 @@ const MODE_BADGES: Record<string, string> = {
 };
 
 export function AdminDashboard() {
+  const { t } = useLanguage();
   const [items, setItems] = useState<OrgRow[]>([]);
   const [totalSpend, setTotalSpend] = useState(0);
   const [loading, setLoading] = useState(true);

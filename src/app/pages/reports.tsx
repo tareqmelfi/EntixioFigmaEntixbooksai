@@ -22,6 +22,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type DashboardSummary } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
+
+type TFunc = (ar: string, en?: string) => string;
 
 type ReportCategoryId =
   | "financial"
@@ -78,13 +81,13 @@ const numberValue = (value: string | number | null | undefined) =>
   Number(value || 0).toLocaleString("en-US");
 
 const categories: CategoryDefinition[] = [
-  { id: "financial", title: "تقارير مالية", englishTitle: "Financial", icon: BarChart3, accent: "bg-blue-50 text-blue-700 border-blue-100" },
-  { id: "consolidated", title: "التقارير المالية الموحدة", englishTitle: "Consolidated", icon: Building2, accent: "bg-indigo-50 text-indigo-700 border-indigo-100" },
+  { id: "financial", title: "تقارير مالية", englishTitle: "Financial Reports", icon: BarChart3, accent: "bg-blue-50 text-blue-700 border-blue-100" },
+  { id: "consolidated", title: "التقارير المالية الموحدة", englishTitle: "Consolidated Reports", icon: Building2, accent: "bg-indigo-50 text-indigo-700 border-indigo-100" },
   { id: "sales", title: "مبيعات", englishTitle: "Sales", icon: Users, accent: "bg-emerald-50 text-emerald-700 border-emerald-100" },
   { id: "purchases", title: "مشتريات", englishTitle: "Purchases", icon: Wallet, accent: "bg-amber-50 text-amber-700 border-amber-100" },
   { id: "payroll", title: "الرواتب", englishTitle: "Payroll", icon: ClipboardList, accent: "bg-sky-50 text-sky-700 border-sky-100" },
   { id: "forecast", title: "توقعات", englishTitle: "Forecasts", icon: TrendingUp, accent: "bg-cyan-50 text-cyan-700 border-cyan-100" },
-  { id: "tax", title: "تقارير الضرائب", englishTitle: "Tax", icon: ShieldCheck, accent: "bg-rose-50 text-rose-700 border-rose-100" },
+  { id: "tax", title: "تقارير الضرائب", englishTitle: "Tax Reports", icon: ShieldCheck, accent: "bg-rose-50 text-rose-700 border-rose-100" },
   { id: "accountant", title: "للمحاسب", englishTitle: "Accountant", icon: Calculator, accent: "bg-slate-50 text-slate-700 border-slate-200" },
   { id: "inventory", title: "مخزون", englishTitle: "Inventory", icon: Package, accent: "bg-teal-50 text-teal-700 border-teal-100" },
 ];
@@ -581,25 +584,75 @@ const reportCatalog: ReportDefinition[] = [
   },
 ];
 
-const statusMeta: Record<ReportStatus, { label: string; className: string; help: string }> = {
-  live: {
-    label: "يقرأ من البيانات الآن",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    help: "مرتبط ببيانات الشركة الحالية ويعرض أرقاماً فعلية عند توفرها.",
-  },
-  ready: {
-    label: "جاهز كقالب احترافي",
-    className: "border-blue-200 bg-blue-50 text-blue-700",
-    help: "موجود في النظام كتعريف تقرير مع مصادره ومخرجاته، وتظهر أرقامه عند اكتمال بياناته.",
-  },
-  needs_data: {
-    label: "يتطلب بيانات المجموعة",
-    className: "border-amber-200 bg-amber-50 text-amber-700",
-    help: "مخصص للشركات المتعددة أو البيانات المتقدمة، وليس مخفياً أو محجوباً بالباقة.",
-  },
+const EN_DESCRIPTIONS: Record<string, string> = {
+  "income-statement": "Company revenues, expenses, and net profit for the period.",
+  "income-by-branch": "Same income statement with results split by branch.",
+  "income-by-cost-center": "Revenue and expense analysis by cost center.",
+  "income-by-project": "Profitability of each project from related sales, purchases, and expenses.",
+  "cash-flow": "Summary of cash in and out from documents and bank accounts.",
+  "cash-flow-indirect": "Starts from net profit then adjusts for receivables, inventory, and non-cash entries.",
+  "balance-sheet": "Assets, liabilities, and equity from account balances.",
+  "cash-forecast": "Forecast of cash from due invoices, expenses, and payments.",
+  "management-pdf": "Management PDF pack: executive summary, profit, cash, tax, and operating metrics.",
+  "consolidated-income": "Results of multiple companies or legal branches with intercompany eliminations.",
+  "consolidated-cash-flow": "Consolidated cash flows for the group with subsidiary entities shown.",
+  "consolidated-balance-sheet": "Consolidated financial position for the group or related companies.",
+  "customer-balances": "Open customer balances and expected collection amounts.",
+  "customer-statement": "Brief statement of customer activity: invoices, receipts, and credit notes.",
+  "customer-statement-detail": "Detailed activity by lines, documents, payments, and running balance.",
+  "ar-aging": "Split receivables by days overdue.",
+  "ar-aging-detail": "Detailed aging by customer, invoice, and due date.",
+  "sales-by-customer": "Sales per customer with invoice totals and collected amounts.",
+  "sales-by-branch": "Sales analysis by branch.",
+  "sales-by-project": "Project revenue from invoices and contracts.",
+  "sales-by-product": "Best-selling products and services with quantities and margin.",
+  "supplier-balances": "Open supplier balances and due payments.",
+  "supplier-statement": "Brief statement of supplier activity: bills, payments, and supplier credits.",
+  "supplier-statement-detail": "Detailed supplier activity by document lines, payments, and running balance.",
+  "ap-aging": "Split payables by due date.",
+  "ap-aging-detail": "Detailed aging by supplier, bill, and due date.",
+  "bills-by-supplier": "Supplier bills and totals by party.",
+  "bills-by-branch": "Distribution of purchase bills across branches.",
+  "expenses-by-vendor": "Cash expense analysis by vendor or party.",
+  "expenses-by-branch": "Distribution of expenses across company branches.",
+  "purchases-by-product": "Product and service purchases with quantities and costs.",
+  "employee-statement": "Employee activity: salaries, advances, claims, and amounts due.",
+  "employee-statement-detail": "Detailed statement of salary, allowances, deductions, payments, and entries.",
+  "forecast-cash": "Operational view of projected cash from collections, payments, and payroll.",
+  "vat-summary": "Summary of output and input tax and net payable.",
+  "taxes": "All applicable taxes by company country: VAT or Sales Tax.",
+  "taxes-detail": "Tax details by document, party, rate, and branch.",
+  "trial-balance": "Debit and credit balances per account with balance verification.",
+  "account-statement": "Brief accounting statement with running balance.",
+  "account-statement-detail": "Detailed statement of each entry, line, source, and attachment links.",
+  "general-ledger": "General ledger for all accounts with debit, credit, and balance.",
+  "audit-log": "Log of user changes, approvals, deletions, and accounting reversals.",
+  "bank-reconciliation-report": "Reconciliation status between bank statement and system transactions.",
+  "inventory-movement": "Inventory in, out, adjustment, and return movements.",
+  "inventory-by-warehouse": "Movements per warehouse with balance and cost.",
+  "inventory-monthly-summary": "Opening balance, movement, closing balance, and monthly inventory valuation.",
 };
 
+const statusMeta = (t: TFunc): Record<ReportStatus, { label: string; className: string; help: string }> => ({
+  live: {
+    label: t("يقرأ من البيانات الآن", "Live from data now"),
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    help: t("مرتبط ببيانات الشركة الحالية ويعرض أرقاماً فعلية عند توفرها.", "Linked to the current company data and shows real numbers when available."),
+  },
+  ready: {
+    label: t("جاهز كقالب احترافي", "Ready as a professional template"),
+    className: "border-blue-200 bg-blue-50 text-blue-700",
+    help: t("موجود في النظام كتعريف تقرير مع مصادره ومخرجاته، وتظهر أرقامه عند اكتمال بياناته.", "Exists in the system as a report definition with its sources and outputs; numbers appear once its data is complete."),
+  },
+  needs_data: {
+    label: t("يتطلب بيانات المجموعة", "Requires group data"),
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+    help: t("مخصص للشركات المتعددة أو البيانات المتقدمة، وليس مخفياً أو محجوباً بالباقة.", "Designed for multi-company or advanced data, not hidden or gated by the plan."),
+  },
+});
+
 export function Reports() {
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -621,7 +674,7 @@ export function Reports() {
         const data = await api.dashboard.summary();
         if (alive) setSummary(data);
       } catch (e: any) {
-        if (alive) setError(e instanceof ApiError ? e.message : "تعذر تحميل التقارير");
+        if (alive) setError(e instanceof ApiError ? e.message : t("تعذر تحميل التقارير", "Failed to load reports"));
       } finally {
         if (alive) setLoading(false);
       }
@@ -629,9 +682,11 @@ export function Reports() {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const profile = useMemo(() => getCompanyProfile(summary), [summary]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const profile = useMemo(() => getCompanyProfile(summary, t), [summary, language]);
   const currency = summary?.org.baseCurrency || profile.currency;
   const catalog = useMemo(() => localizeCatalog(reportCatalog, profile), [profile]);
 
@@ -650,7 +705,8 @@ export function Reports() {
   }, [catalog, category, query]);
 
   const selectedReport = catalog.find((report) => report.id === selectedReportId) || filteredReports[0] || catalog[0];
-  const selectedRows = useMemo(() => buildPreviewRows(selectedReport, summary, currency, profile), [selectedReport, summary, currency, profile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const selectedRows = useMemo(() => buildPreviewRows(selectedReport, summary, currency, profile, t), [selectedReport, summary, currency, profile, language]);
   const counts = useMemo(() => summarizeReports(catalog), [catalog]);
 
   const exportSelectedCsv = () => {
@@ -673,7 +729,7 @@ export function Reports() {
       header,
       ...catalog.map((report) => {
         const categoryTitle = categories.find((item) => item.id === report.category)?.title || report.category;
-        return [categoryTitle, report.title, report.englishTitle, statusMeta[report.status].label, report.formats.join(" / "), report.dataSources.join(" / ")]
+        return [categoryTitle, report.title, report.englishTitle, statusMeta(t)[report.status].label, report.formats.join(" / "), report.dataSources.join(" / ")]
           .map((value) => `"${String(value).replace(/"/g, '""')}"`)
           .join(",");
       }),
@@ -695,20 +751,20 @@ export function Reports() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مركز التقارير</h1>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("مركز التقارير", "Reports Center")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            كل التقارير المالية والتشغيلية موجودة بفهرس واحد، مع مصطلحات متوافقة مع {profile.countryLabel}.
+            {t("كل التقارير المالية والتشغيلية موجودة بفهرس واحد، مع مصطلحات متوافقة مع ", "All financial and operational reports are in one index, with terminology aligned with ")}{profile.countryLabel}.
           </p>
         </div>
         <div className="no-print flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportCatalogCsv}>
-            <FileText className="me-2 h-4 w-4" />تصدير فهرس التقارير
+            <FileText className="me-2 h-4 w-4" />{t("تصدير فهرس التقارير", "Export report index")}
           </Button>
           <Button variant="outline" onClick={printSelectedReport} disabled={!selectedReport}>
-            <Printer className="me-2 h-4 w-4" />PDF / طباعة
+            <Printer className="me-2 h-4 w-4" />PDF / {t("طباعة", "Print")}
           </Button>
           <Button variant="outline" onClick={exportSelectedCsv} disabled={!selectedReport}>
-            <Download className="me-2 h-4 w-4" />تصدير التقرير المحدد
+            <Download className="me-2 h-4 w-4" />{t("تصدير التقرير المحدد", "Export selected report")}
           </Button>
         </div>
       </div>
@@ -716,9 +772,9 @@ export function Reports() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Metric label="إجمالي التقارير" value={numberValue(counts.total)} tone="info" />
-        <Metric label="مرتبطة ببيانات فعلية" value={numberValue(counts.live)} tone="good" />
-        <Metric label="تقارير جديدة" value={numberValue(counts.newReports)} tone="warn" />
+        <Metric label={t("إجمالي التقارير", "Total reports")} value={numberValue(counts.total)} tone="info" />
+        <Metric label={t("مرتبطة ببيانات فعلية", "Linked to live data")} value={numberValue(counts.live)} tone="good" />
+        <Metric label={t("تقارير جديدة", "New reports")} value={numberValue(counts.newReports)} tone="warn" />
         <Metric label={profile.taxLabel} value={summary ? money(summary.kpi.vatNet, currency) : money(0, currency)} tone="info" />
       </div>
 
@@ -732,7 +788,7 @@ export function Reports() {
                   category === "all" ? "border-[#1276E3] bg-[#EAF4FF] text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                 }`}
               >
-                <span className="flex items-center gap-2"><Filter className="h-4 w-4" />كل التقارير</span>
+                <span className="flex items-center gap-2"><Filter className="h-4 w-4" />{t("كل التقارير", "All reports")}</span>
                 <span className="font-english text-xs">{catalog.length}</span>
               </button>
               {categories.map((item) => {
@@ -746,7 +802,7 @@ export function Reports() {
                       category === item.id ? "border-[#1276E3] bg-[#EAF4FF] text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                     }`}
                   >
-                    <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{item.title}</span>
+                    <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{language === "en" ? item.englishTitle || item.title : item.title}</span>
                     <span className="font-english text-xs">{itemCount}</span>
                   </button>
                 );
@@ -760,7 +816,7 @@ export function Reports() {
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة..."
+                    placeholder={t("ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة...", "Search by report name, source, branch, project, tax...")}
                     className="h-11 w-full rounded-lg border border-border bg-white px-4 pe-10 text-sm outline-none focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10"
                   />
                 </label>
@@ -801,8 +857,8 @@ export function Reports() {
 
       {summary && (
         <div className="grid gap-4 xl:grid-cols-2">
-          <OperationalChart title="قائمة الدخل - آخر 6 أشهر" rows={summary.profitLoss.map((r) => ({ label: r.month, a: r.revenue, b: r.expenses, c: r.net }))} currency={currency} />
-          <OperationalChart title="التدفق النقدي - آخر 6 أشهر" rows={summary.cashFlowTrend.map((r) => ({ label: r.month, a: r.in, b: r.out, c: r.net }))} currency={currency} cashMode />
+          <OperationalChart title={t("قائمة الدخل - آخر 6 أشهر", "Income Statement - last 6 months")} rows={summary.profitLoss.map((r) => ({ label: r.month, a: r.revenue, b: r.expenses, c: r.net }))} currency={currency} />
+          <OperationalChart title={t("التدفق النقدي - آخر 6 أشهر", "Cash Flow - last 6 months")} rows={summary.cashFlowTrend.map((r) => ({ label: r.month, a: r.in, b: r.out, c: r.net }))} currency={currency} cashMode />
         </div>
       )}
     </div>
@@ -818,7 +874,8 @@ function ReportList({
   selectedReportId: string;
   onSelect: (id: string) => void;
 }) {
-  if (reports.length === 0) return <Empty text="لا يوجد تقرير مطابق للبحث الحالي" />;
+  const { language, t } = useLanguage();
+  if (reports.length === 0) return <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />;
 
   return (
     <div className="max-h-[680px] space-y-2 overflow-y-auto pe-1">
@@ -836,13 +893,13 @@ function ReportList({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-foreground">{report.title}</span>
-                  {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">جديد</span>}
+                  <span className="font-semibold text-foreground">{language === "en" ? report.englishTitle || report.title : report.title}</span>
+                  {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">{t("جديد", "New")}</span>}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#4B5563]">{report.description}</p>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#4B5563]">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
               </div>
-              <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${category.accent}`}>{category.title}</span>
+              <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${category.accent}`}>{language === "en" ? category.englishTitle || category.title : category.title}</span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={report.status} />
@@ -872,9 +929,10 @@ function ReportPreview({
   onExport: () => void;
   onPrint: () => void;
 }) {
+  const { language, t } = useLanguage();
   const category = categories.find((item) => item.id === report.category)!;
   const Icon = category.icon;
-  const status = statusMeta[report.status];
+  const status = statusMeta(t)[report.status];
 
   return (
     <Card className="entix-report-print border-border">
@@ -885,8 +943,8 @@ function ReportPreview({
               <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${category.accent}`}>
                 <Icon className="h-4 w-4" />
               </span>
-              <CardTitle className="text-foreground">{report.title}</CardTitle>
-              {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">جديد</span>}
+              <CardTitle className="text-foreground">{language === "en" ? report.englishTitle || report.title : report.title}</CardTitle>
+              {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">{t("جديد", "New")}</span>}
             </div>
             <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
           </div>
@@ -905,30 +963,30 @@ function ReportPreview({
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={report.status} />
             <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{profile.countryLabel}</span>
-            <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{report.ksaTerm || report.usTerm || profile.standardLabel}</span>
+            <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{language === "en" ? (report.usTerm || report.ksaTerm || profile.standardLabel) : (report.ksaTerm || report.usTerm || profile.standardLabel)}</span>
           </div>
-          <p className="mt-3 text-sm leading-6 text-foreground/80">{report.description}</p>
+          <p className="mt-3 text-sm leading-6 text-foreground/80">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">{status.help}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          <MiniFact label="الشركة" value={summary?.org.name || "الشركة الحالية"} />
-          <MiniFact label="العملة" value={currency} />
-          <MiniFact label="النظام الضريبي" value={profile.taxSystem} />
+          <MiniFact label={t("الشركة", "Company")} value={summary?.org.name || t("الشركة الحالية", "Current company")} />
+          <MiniFact label={t("العملة", "Currency")} value={currency} />
+          <MiniFact label={t("النظام الضريبي", "Tax system")} value={profile.taxSystem} />
         </div>
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">معاينة التقرير</h3>
-            <span className="text-xs text-muted-foreground">الأرقام تعرض من البيانات المتاحة الآن</span>
+            <h3 className="text-sm font-semibold text-foreground">{t("معاينة التقرير", "Report preview")}</h3>
+            <span className="text-xs text-muted-foreground">{t("الأرقام تعرض من البيانات المتاحة الآن", "Numbers shown from available data")}</span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[560px]">
               <thead>
                 <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">البند</th>
-                  <th className="px-4 py-3 text-start">القيمة</th>
-                  <th className="px-4 py-3 text-start">ملاحظة</th>
+                  <th className="px-4 py-3 text-start">{t("البند", "Item")}</th>
+                  <th className="px-4 py-3 text-start">{t("القيمة", "Value")}</th>
+                  <th className="px-4 py-3 text-start">{t("ملاحظة", "Note")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -945,10 +1003,10 @@ function ReportPreview({
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <InfoBlock title="مصادر البيانات" icon={<Landmark className="h-4 w-4" />}>
+          <InfoBlock title={t("مصادر البيانات", "Data sources")} icon={<Landmark className="h-4 w-4" />}>
             {report.dataSources.join(" · ")}
           </InfoBlock>
-          <InfoBlock title="المخرجات" icon={<Printer className="h-4 w-4" />}>
+          <InfoBlock title={t("المخرجات", "Outputs")} icon={<Printer className="h-4 w-4" />}>
             {report.formats.join(" · ")}
           </InfoBlock>
         </div>
@@ -993,7 +1051,8 @@ function InfoBlock({ title, icon, children }: { title: string; icon: ReactNode; 
 }
 
 function StatusBadge({ status }: { status: ReportStatus }) {
-  const meta = statusMeta[status];
+  const { t } = useLanguage();
+  const meta = statusMeta(t)[status];
   return <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${meta.className}`}>{meta.label}</span>;
 }
 
@@ -1008,8 +1067,9 @@ function OperationalChart({
   currency: string;
   cashMode?: boolean;
 }) {
+  const { t } = useLanguage();
   const max = Math.max(1, ...rows.flatMap((row) => [Math.abs(row.a), Math.abs(row.b), Math.abs(row.c)]));
-  if (rows.length === 0) return <Empty text="لا توجد بيانات كافية لهذا التقرير" />;
+  if (rows.length === 0) return <Empty text={t("لا توجد بيانات كافية لهذا التقرير", "Not enough data for this report")} />;
   return (
     <Card className="border-border">
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
@@ -1019,8 +1079,8 @@ function OperationalChart({
             <div key={row.label} className="grid gap-3 md:grid-cols-[130px_1fr_160px] md:items-center">
               <div className="text-sm font-medium text-foreground">{row.label}</div>
               <div className="space-y-1.5">
-                <Bar label={cashMode ? "داخل" : "إيراد"} value={row.a} max={max} color="#1276E3" />
-                <Bar label={cashMode ? "خارج" : "مصروف"} value={row.b} max={max} color="#EF4444" />
+                <Bar label={cashMode ? t("داخل", "In") : t("إيراد", "Revenue")} value={row.a} max={max} color="#1276E3" />
+                <Bar label={cashMode ? t("خارج", "Out") : t("مصروف", "Expenses")} value={row.b} max={max} color="#EF4444" />
               </div>
               <div className={`text-sm font-semibold font-english ${row.c >= 0 ? "text-emerald-700" : "text-red-700"}`}>
                 {row.c >= 0 ? <TrendingUp className="me-1 inline h-4 w-4" /> : <TrendingDown className="me-1 inline h-4 w-4" />}
@@ -1072,14 +1132,14 @@ function summarizeReports(catalog: ReportDefinition[]) {
   );
 }
 
-function getCompanyProfile(summary: DashboardSummary | null) {
+function getCompanyProfile(summary: DashboardSummary | null, t: TFunc) {
   const country = (summary?.org.country || "SA").toUpperCase();
   const isUs = country === "US" || country === "USA";
   return {
     country,
-    countryLabel: isUs ? "شركة أمريكية" : "شركة سعودية",
+    countryLabel: isUs ? t("شركة أمريكية", "US Company") : t("شركة سعودية", "Saudi Company"),
     currency: isUs ? "USD" : "SAR",
-    taxLabel: isUs ? "Sales Tax الصافي" : "VAT الصافي",
+    taxLabel: isUs ? t("Sales Tax الصافي", "Sales Tax Net") : t("VAT الصافي", "VAT Net"),
     taxSystem: isUs ? "Sales Tax / State Tax" : "VAT / ZATCA",
     standardLabel: isUs ? "US GAAP-ready naming" : "IFRS + ZATCA-ready naming",
   };
@@ -1106,11 +1166,12 @@ function buildPreviewRows(
   summary: DashboardSummary | null,
   currency: string,
   profile: ReturnType<typeof getCompanyProfile>,
+  t: TFunc,
 ): PreviewRow[] {
   if (!summary) {
     return [
-      { label: "حالة البيانات", value: "لم يتم التحميل", note: "سيظهر التقرير بعد تحميل بيانات الشركة." },
-      { label: "مصادر التقرير", value: report.dataSources.length.toString(), note: report.dataSources.join(" · ") },
+      { label: t("حالة البيانات", "Data status"), value: t("لم يتم التحميل", "Not loaded"), note: t("سيظهر التقرير بعد تحميل بيانات الشركة.", "The report will appear after company data is loaded.") },
+      { label: t("مصادر التقرير", "Report sources"), value: report.dataSources.length.toString(), note: report.dataSources.join(" · ") },
     ];
   }
 
@@ -1122,78 +1183,78 @@ function buildPreviewRows(
     if (report.id.includes("cash")) {
       const lastCash = summary.cashFlowTrend[summary.cashFlowTrend.length - 1];
       return [
-        { label: "النقد الداخل", value: money(lastCash?.in || summary.kpi.receipts, currency), note: "من سندات القبض والحركات النقدية." },
-        { label: "النقد الخارج", value: money(lastCash?.out || summary.kpi.payments, currency), note: "من سندات الصرف والمصروفات." },
-        { label: "الصافي", value: money(lastCash?.net || summary.kpi.receipts - summary.kpi.payments, currency), note: report.id.includes("indirect") ? "الطريقة غير المباشرة تحتاج أرصدة افتتاحية وإقفال الفترة." : "تدفق مباشر من البيانات الحالية." },
+        { label: t("النقد الداخل", "Cash in"), value: money(lastCash?.in || summary.kpi.receipts, currency), note: t("من سندات القبض والحركات النقدية.", "From receipt vouchers and cash movements.") },
+        { label: t("النقد الخارج", "Cash out"), value: money(lastCash?.out || summary.kpi.payments, currency), note: t("من سندات الصرف والمصروفات.", "From payment vouchers and expenses.") },
+        { label: t("الصافي", "Net"), value: money(lastCash?.net || summary.kpi.receipts - summary.kpi.payments, currency), note: report.id.includes("indirect") ? t("الطريقة غير المباشرة تحتاج أرصدة افتتاحية وإقفال الفترة.", "The indirect method requires opening balances and period closing.") : t("تدفق مباشر من البيانات الحالية.", "Direct flow from current data.") },
       ];
     }
     if (report.id.includes("balance")) {
       return [
-        { label: "النقد والبنوك", value: money(summary.kpi.cashOnHand, currency), note: "من الحسابات البنكية والنقدية." },
-        { label: "الذمم المدينة", value: money(summary.kpi.accountsReceivable, currency), note: "فواتير العملاء غير المحصلة." },
-        { label: "الذمم الدائنة", value: money(summary.kpi.accountsPayable, currency), note: "فواتير الموردين غير المدفوعة." },
-        { label: "حقوق الملكية المقدرة", value: money(equityEstimate, currency), note: "تقدير سريع؛ التقرير الكامل يعتمد على كل أرصدة دليل الحسابات." },
+        { label: t("النقد والبنوك", "Cash & banks"), value: money(summary.kpi.cashOnHand, currency), note: t("من الحسابات البنكية والنقدية.", "From bank and cash accounts.") },
+        { label: t("الذمم المدينة", "Receivables"), value: money(summary.kpi.accountsReceivable, currency), note: t("فواتير العملاء غير المحصلة.", "Uncollected customer invoices.") },
+        { label: t("الذمم الدائنة", "Payables"), value: money(summary.kpi.accountsPayable, currency), note: t("فواتير الموردين غير المدفوعة.", "Unpaid supplier bills.") },
+        { label: t("حقوق الملكية المقدرة", "Estimated equity"), value: money(equityEstimate, currency), note: t("تقدير سريع؛ التقرير الكامل يعتمد على كل أرصدة دليل الحسابات.", "A quick estimate; the full report depends on all chart-of-accounts balances.") },
       ];
     }
     return [
-      { label: "الإيرادات", value: money(summary.kpi.revenue, currency), note: "من الفواتير وقيود الإيراد." },
-      { label: "المشتريات والمصروفات", value: money(totalExpense, currency), note: "من فواتير الموردين والمصروفات والقيود." },
-      { label: "صافي الربح", value: money(netIncome, currency), note: report.segmentation ? `يمكن تقسيمه حسب ${report.segmentation.join(" / ")}.` : "قابل للتصدير PDF وCSV وExcel." },
+      { label: t("الإيرادات", "Revenue"), value: money(summary.kpi.revenue, currency), note: t("من الفواتير وقيود الإيراد.", "From invoices and revenue entries.") },
+      { label: t("المشتريات والمصروفات", "Purchases & expenses"), value: money(totalExpense, currency), note: t("من فواتير الموردين والمصروفات والقيود.", "From supplier bills, expenses, and entries.") },
+      { label: t("صافي الربح", "Net profit"), value: money(netIncome, currency), note: report.segmentation ? t(`يمكن تقسيمه حسب ${report.segmentation.join(" / ")}.`, `Can be segmented by ${report.segmentation.join(" / ")}.`) : t("قابل للتصدير PDF وCSV وExcel.", "Exportable to PDF, CSV, and Excel.") },
     ];
   }
 
   if (report.category === "sales") {
     return [
-      { label: "إجمالي المبيعات", value: money(summary.kpi.revenue, currency), note: "من الفواتير المعتمدة وقيود الإيراد." },
-      { label: "الذمم المدينة", value: money(summary.kpi.accountsReceivable, currency), note: "الرصيد المفتوح على العملاء." },
-      { label: "عدد الفواتير", value: numberValue(summary.kpi.invoiceCount), note: "عدد فواتير المبيعات في الشركة." },
-      { label: "فواتير متأخرة", value: numberValue(summary.kpi.overdueCount), note: report.id.includes("aging") ? "تستخدم لتقادم الحسابات المدينة." : "تنبيه تحصيل." },
+      { label: t("إجمالي المبيعات", "Total sales"), value: money(summary.kpi.revenue, currency), note: t("من الفواتير المعتمدة وقيود الإيراد.", "From approved invoices and revenue entries.") },
+      { label: t("الذمم المدينة", "Receivables"), value: money(summary.kpi.accountsReceivable, currency), note: t("الرصيد المفتوح على العملاء.", "Open balance on customers.") },
+      { label: t("عدد الفواتير", "Invoice count"), value: numberValue(summary.kpi.invoiceCount), note: t("عدد فواتير المبيعات في الشركة.", "Number of sales invoices in the company.") },
+      { label: t("فواتير متأخرة", "Overdue invoices"), value: numberValue(summary.kpi.overdueCount), note: report.id.includes("aging") ? t("تستخدم لتقادم الحسابات المدينة.", "Used for receivables aging.") : t("تنبيه تحصيل.", "Collection alert.") },
     ];
   }
 
   if (report.category === "purchases") {
     return [
-      { label: "إجمالي المشتريات", value: money(summary.kpi.purchases, currency), note: "من فواتير الموردين." },
-      { label: "إجمالي المصروفات", value: money(summary.kpi.expenses, currency), note: "من المصروفات النقدية والمرفقات المقروءة OCR." },
-      { label: "الذمم الدائنة", value: money(summary.kpi.accountsPayable, currency), note: "رصيد الموردين المفتوح." },
-      { label: "مصروفات نقدية", value: money(summary.kpi.payments, currency), note: "سندات الصرف والحركات النقدية." },
+      { label: t("إجمالي المشتريات", "Total purchases"), value: money(summary.kpi.purchases, currency), note: t("من فواتير الموردين.", "From supplier bills.") },
+      { label: t("إجمالي المصروفات", "Total expenses"), value: money(summary.kpi.expenses, currency), note: t("من المصروفات النقدية والمرفقات المقروءة OCR.", "From cash expenses and OCR-read receipts.") },
+      { label: t("الذمم الدائنة", "Payables"), value: money(summary.kpi.accountsPayable, currency), note: t("رصيد الموردين المفتوح.", "Open supplier balance.") },
+      { label: t("مصروفات نقدية", "Cash expenses"), value: money(summary.kpi.payments, currency), note: t("سندات الصرف والحركات النقدية.", "Payment vouchers and cash movements.") },
     ];
   }
 
   if (report.category === "tax") {
     return [
-      { label: profile.country === "US" ? "Sales Tax Output" : "VAT مخرجات", value: money(summary.kpi.vatOutput, currency), note: "ضريبة المبيعات أو الفواتير الصادرة." },
-      { label: profile.country === "US" ? "Tax Input / Credits" : "VAT مدخلات", value: money(summary.kpi.vatInput, currency), note: "ضريبة مشتريات ومصروفات قابلة للمراجعة." },
-      { label: "الصافي", value: money(summary.kpi.vatNet, currency), note: profile.taxSystem },
+      { label: profile.country === "US" ? "Sales Tax Output" : t("VAT مخرجات", "VAT Output"), value: money(summary.kpi.vatOutput, currency), note: t("ضريبة المبيعات أو الفواتير الصادرة.", "Sales tax or issued invoices.") },
+      { label: profile.country === "US" ? "Tax Input / Credits" : t("VAT مدخلات", "VAT Input"), value: money(summary.kpi.vatInput, currency), note: t("ضريبة مشتريات ومصروفات قابلة للمراجعة.", "Purchases and expenses tax available for review.") },
+      { label: t("الصافي", "Net"), value: money(summary.kpi.vatNet, currency), note: profile.taxSystem },
     ];
   }
 
   if (report.category === "accountant") {
     return [
-      { label: "الحسابات", value: "دليل الحسابات", note: "التقرير يعتمد على القيود المرحلة وأرصدة الحسابات." },
-      { label: "النقد", value: money(summary.kpi.cashOnHand, currency), note: "نقطة تحقق سريعة من أرصدة البنوك." },
-      { label: "سجل التدقيق", value: report.id === "audit-log" ? "متاح" : "مرتبط", note: "يسجل الاعتماد والحذف والعكس وتعديل البيانات الحساسة." },
+      { label: t("الحسابات", "Accounts"), value: t("دليل الحسابات", "Chart of accounts"), note: t("التقرير يعتمد على القيود المرحلة وأرصدة الحسابات.", "The report relies on posted entries and account balances.") },
+      { label: t("النقد", "Cash"), value: money(summary.kpi.cashOnHand, currency), note: t("نقطة تحقق سريعة من أرصدة البنوك.", "A quick verification point against bank balances.") },
+      { label: t("سجل التدقيق", "Audit log"), value: report.id === "audit-log" ? t("متاح", "Available") : t("مرتبط", "Linked"), note: t("يسجل الاعتماد والحذف والعكس وتعديل البيانات الحساسة.", "Records approvals, deletions, reversals, and sensitive data changes.") },
     ];
   }
 
   if (report.category === "payroll") {
     return [
-      { label: "مصدر التقرير", value: "Payroll Runs", note: "يظهر تفصيلاً عند حفظ مسيرات الرواتب." },
-      { label: "الربط المحاسبي", value: "Journal Entries", note: "يجب ترحيل قيد الرواتب ليظهر في التقارير المالية." },
-      { label: "الامتثال", value: profile.country === "US" ? "Payroll / Tax" : "GOSI / WPS", note: "المسمى يتغير حسب بلد الشركة." },
+      { label: t("مصدر التقرير", "Report source"), value: "Payroll Runs", note: t("يظهر تفصيلاً عند حفظ مسيرات الرواتب.", "Shows detail when payroll runs are saved.") },
+      { label: t("الربط المحاسبي", "Accounting link"), value: "Journal Entries", note: t("يجب ترحيل قيد الرواتب ليظهر في التقارير المالية.", "The payroll entry must be posted to appear in financial reports.") },
+      { label: t("الامتثال", "Compliance"), value: profile.country === "US" ? "Payroll / Tax" : "GOSI / WPS", note: t("المسمى يتغير حسب بلد الشركة.", "The label changes by company country.") },
     ];
   }
 
   if (report.category === "inventory") {
     return [
-      { label: "مصدر التقرير", value: "Inventory Movements", note: "دخول، خروج، تعديل، وإرجاع للمخزون." },
-      { label: "التقسيم", value: report.segmentation?.join(" / ") || "Product", note: "يدعم المستودعات والمنتجات والخدمات." },
-      { label: "التكلفة", value: "Inventory Costing", note: "جاهز للربط مع تقييم المخزون عند اكتمال الحركات." },
+      { label: t("مصدر التقرير", "Report source"), value: "Inventory Movements", note: t("دخول، خروج، تعديل، وإرجاع للمخزون.", "Inventory in, out, adjustment, and returns.") },
+      { label: t("التقسيم", "Segmentation"), value: report.segmentation?.join(" / ") || "Product", note: t("يدعم المستودعات والمنتجات والخدمات.", "Supports warehouses, products, and services.") },
+      { label: t("التكلفة", "Cost"), value: "Inventory Costing", note: t("جاهز للربط مع تقييم المخزون عند اكتمال الحركات.", "Ready to link with inventory valuation once movements are complete.") },
     ];
   }
 
   return [
-    { label: "مصدر التقرير", value: report.dataSources[0] || "Data", note: report.description },
-    { label: "المخرجات", value: report.formats.join(" / "), note: "التقرير موجود ضمن الفهرس ولا توجد رسالة حجب باقة." },
+    { label: t("مصدر التقرير", "Report source"), value: report.dataSources[0] || "Data", note: t(report.description, EN_DESCRIPTIONS[report.id] || report.description) },
+    { label: t("المخرجات", "Outputs"), value: report.formats.join(" / "), note: t("التقرير موجود ضمن الفهرس ولا توجد رسالة حجب باقة.", "The report is listed in the catalog; there is no plan-gating message.") },
   ];
 }

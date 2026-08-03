@@ -25,17 +25,17 @@ import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
-const CURRENCIES = [
-  { value: "SAR", label: "ريال سعودي · SAR" },
-  { value: "USD", label: "دولار أمريكي · USD" },
-  { value: "EUR", label: "يورو · EUR" },
-  { value: "AED", label: "درهم إماراتي · AED" },
+const currencies = (t: (ar: string, en?: string) => string) => [
+  { value: "SAR", label: `${t("ريال سعودي", "Saudi Riyal")} · SAR` },
+  { value: "USD", label: `${t("دولار أمريكي", "US Dollar")} · USD` },
+  { value: "EUR", label: `${t("يورو", "Euro")} · EUR` },
+  { value: "AED", label: `${t("درهم إماراتي", "UAE Dirham")} · AED` },
 ];
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", RECEIVED: "مستلمة", DUE: "مستحقة", PAID: "مدفوعة", PARTIAL: "مدفوعة جزئياً",
-  OVERDUE: "متأخرة", CANCELLED: "ملغاة",
-};
+const statusLabels = (t: (ar: string, en?: string) => string): Record<string, string> => ({
+  DRAFT: t("مسودة", "Draft"), RECEIVED: t("مستلمة", "Received"), DUE: t("مستحقة", "Due"), PAID: t("مدفوعة", "Paid"), PARTIAL: t("مدفوعة جزئياً", "Partially paid"),
+  OVERDUE: t("متأخرة", "Overdue"), CANCELLED: t("ملغاة", "Cancelled"),
+});
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-muted text-muted-foreground",
   RECEIVED: "bg-primary/10 text-primary",
@@ -92,7 +92,7 @@ export function PurchaseBills() {
   const [duplicate, setDuplicate] = useState<{ open: boolean; matches: any[]; pendingSubmit: ("draft" | "approve") | null }>({ open: false, matches: [], pendingSubmit: null });
 
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   // Source file captured by the dropzone · forwarded to the create so the bill carries its attachment
   const [sourceFile, setSourceFile] = useState<{ name: string; contentType: string; base64: string } | null>(null);
   const [sourceFileHash, setSourceFileHash] = useState<string | null>(null);
@@ -243,9 +243,9 @@ export function PurchaseBills() {
 
   const handleSubmit = async (action: "draft" | "approve" = "draft") => {
     setCreateError(null);
-    if (!form.contactId) { setCreateError("اختر المورد"); return; }
+    if (!form.contactId) { setCreateError(t("اختر المورد", "Select supplier")); return; }
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
-    if (validLines.length === 0) { setCreateError("أضف بنداً واحداً على الأقل (وصف + سعر)"); return; }
+    if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل (وصف + سعر)", "Add at least one line (description + price)")); return; }
     setBusy(true);
     try {
       const totals = computeTotals(lines);
@@ -314,16 +314,16 @@ export function PurchaseBills() {
         : await api.bills.create(payload);
       // upsert · a dedupe UPDATED/SKIPPED response points at an existing row
       setItems(prev => prev.some(x => x.id === b.id) ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
-      const msg = editingId ? "تم تحديث الفاتورة" : (action === "draft" ? `تم حفظ ${b.billNumber || "الفاتورة"} كمسودة` : `تم اعتماد ${b.billNumber || "الفاتورة"}`);
+      const msg = editingId ? t("تم تحديث الفاتورة", "Invoice updated") : (action === "draft" ? t(`تم حفظ ${b.billNumber || "الفاتورة"} كمسودة`, `Saved ${b.billNumber || "the invoice"} as draft`) : t(`تم اعتماد ${b.billNumber || "الفاتورة"}`, `Approved ${b.billNumber || "the invoice"}`));
       push("success", msg);
       const ing = (b as any).ingestion;
       if (!editingId && ing && ing.dedupeDecision === "UPDATED") {
-        push("info", "فاتورة مطابقة موجودة — تم تحديثها بدل إنشاء نسخة مكررة", 6000);
+        push("info", t("فاتورة مطابقة موجودة — تم تحديثها بدل إنشاء نسخة مكررة", "A matching invoice exists — updated instead of creating a duplicate"), 6000);
       } else if (!editingId && ing && ing.dedupeDecision === "SKIPPED_DUPLICATE") {
-        push("info", "الفاتورة موجودة مسبقاً — لم يتم إنشاء نسخة مكررة", 6000);
+        push("info", t("الفاتورة موجودة مسبقاً — لم يتم إنشاء نسخة مكررة", "The invoice already exists — no duplicate was created"), 6000);
       }
       if (ing?.attachmentStatus?.attached > 0) {
-        push("info", `أُرفق ${ing.attachmentStatus.attached} ملف بالفاتورة`, 5000);
+        push("info", t(`أُرفق ${ing.attachmentStatus.attached} ملف بالفاتورة`, `${ing.attachmentStatus.attached} file(s) attached to the invoice`), 5000);
       }
       closeCreate();
     } catch (e: any) {
@@ -335,7 +335,7 @@ export function PurchaseBills() {
     setBusy(true);
     try {
       await api.bills.merge(targetBillId, { sourceDocumentId: editingId || undefined });
-      push("success", "تم دمج المستند مع الفاتورة المحددة");
+      push("success", t("تم دمج المستند مع الفاتورة المحددة", "Document merged with the selected invoice"));
       setDuplicate({ open: false, matches: [], pendingSubmit: null });
       closeCreate();
       refresh();
@@ -349,7 +349,7 @@ export function PurchaseBills() {
     try {
       await api.bills.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-      push("success", "تم حذف الفاتورة");
+      push("success", t("تم حذف الفاتورة", "Invoice deleted"));
     } catch (e: any) { push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" })); }
   };
 
@@ -357,7 +357,7 @@ export function PurchaseBills() {
     try {
       await api.bills.update(b.id, { status: "RECEIVED" });
       setItems(prev => prev.map(x => x.id === b.id ? { ...x, status: "RECEIVED" } : x));
-      push("success", `تم اعتماد ${b.billNumber || b.id}`);
+      push("success", t(`تم اعتماد ${b.billNumber || b.id}`, `Approved ${b.billNumber || b.id}`));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
     }
@@ -368,19 +368,19 @@ export function PurchaseBills() {
     return (
       <>
         <FullPageForm
-          title="فاتورة مشتريات جديدة"
-          subtitle="املأ البيانات الأساسية · يمكنك التعديل لاحقاً"
+          title={t("فاتورة مشتريات جديدة", "New purchase invoice")}
+          subtitle={t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic data · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
               <div className="flex items-center gap-2">
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/90">
-                  {busy ? "..." : "حفظ كمسودة"}
+                  {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-primary/5" title="اعتماد + قفل التعديل">
-                  {busy ? "..." : "اعتماد"}
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-primary/5" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                  {busy ? "..." : t("اعتماد", "Approve")}
                 </Button>
               </div>
             </div>
@@ -391,7 +391,7 @@ export function PurchaseBills() {
 
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">المورد *</Label>
+                <Label className="text-foreground/80 text-xs">{t("المورد *", "Supplier *")}</Label>
                 <ContactSearchInput
                   value={suppliers.find((c) => c.id === form.contactId)?.displayName || ""}
                   onChange={async (name, id) => {
@@ -402,7 +402,7 @@ export function PurchaseBills() {
                     const c = await api.contacts.create({ displayName: name, type: "SUPPLIER" });
                     setSuppliers((prev) => [c, ...prev]);
                     setForm({ ...form, contactId: c.id });
-                    push("success", `تم إنشاء ${c.displayName}`);
+                    push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
                   }}
                   onCreate={async (name, data) => {
                     const payload: ContactInput = {
@@ -419,49 +419,49 @@ export function PurchaseBills() {
                     const c = await api.contacts.create(payload);
                     setSuppliers((prev) => [c, ...prev]);
                     setForm({ ...form, contactId: c.id });
-                    push("success", `تم إنشاء ${c.displayName}`);
+                    push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
                     return { id: c.id, displayName: c.displayName };
                   }}
                   roleFilter="مورد"
-                  placeholder="ابحث أو أنشئ مورد..."
+                  placeholder={t("ابحث أو أنشئ مورد...", "Search or create supplier...")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">تاريخ الفاتورة *</Label>
+                <Label className="text-foreground/80 text-xs">{t("تاريخ الفاتورة *", "Invoice date *")}</Label>
                 <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">تاريخ الاستحقاق *</Label>
+                <Label className="text-foreground/80 text-xs">{t("تاريخ الاستحقاق *", "Due date *")}</Label>
                 <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required inputClassName="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">رقم الفاتورة</Label>
-                <Input value={form.billNumber} onChange={(e) => setForm({ ...form, billNumber: e.target.value })} placeholder="# تلقائي" dir="ltr" className="border-border font-english h-9 text-sm" />
+                <Label className="text-foreground/80 text-xs">{t("رقم الفاتورة", "Invoice number")}</Label>
+                <Input value={form.billNumber} onChange={(e) => setForm({ ...form, billNumber: e.target.value })} placeholder={t("# تلقائي", "Auto #")} dir="ltr" className="border-border font-english h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">رقم فاتورة المورد</Label>
-                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="من فاتورة المورد" className="border-border h-9 text-sm" />
+                <Label className="text-foreground/80 text-xs">{t("رقم فاتورة المورد", "Supplier invoice number")}</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("من فاتورة المورد", "From supplier invoice")} className="border-border h-9 text-sm" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">العملة</Label>
+                <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
                   <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    {currencies(t).map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">المبالغ</Label>
+                <Label className="text-foreground/80 text-xs">{t("المبالغ", "Amounts")}</Label>
                 <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
                   <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all-exclusive">غير شاملة الضريبة</SelectItem>
-                    <SelectItem value="all-inclusive">شاملة الضريبة</SelectItem>
-                    <SelectItem value="custom">مخصصة لكل بند</SelectItem>
+                    <SelectItem value="all-exclusive">{t("غير شاملة الضريبة", "Tax exclusive")}</SelectItem>
+                    <SelectItem value="all-inclusive">{t("شاملة الضريبة", "Tax inclusive")}</SelectItem>
+                    <SelectItem value="custom">{t("مخصصة لكل بند", "Custom per line")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -498,8 +498,8 @@ export function PurchaseBills() {
             <div className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-foreground" style={{ fontWeight: 600 }}>تفاصيل الدفع</h3>
-                  <p className="text-muted-foreground text-xs">اختياري · اتركه فارغاً لترك الفاتورة مستحقة</p>
+                  <h3 className="text-foreground" style={{ fontWeight: 600 }}>{t("تفاصيل الدفع", "Payment details")}</h3>
+                  <p className="text-muted-foreground text-xs">{t("اختياري · اتركه فارغاً لترك الفاتورة مستحقة", "Optional · leave empty to keep invoice due")}</p>
                 </div>
                 <Button
                   type="button"
@@ -517,19 +517,19 @@ export function PurchaseBills() {
                   }}
                   className="border-border text-foreground/80 hover:bg-primary/5"
                 >
-                  {showPaymentSplits ? "إخفاء الدفع" : "+ إضافة دفعة"}
+                  {showPaymentSplits ? t("إخفاء الدفع", "Hide payment") : t("+ إضافة دفعة", "+ Add payment")}
                 </Button>
               </div>
 
               {showPaymentSplits && (
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2 pb-1">
-                    <span className="text-xs text-muted-foreground">قوالب تقسيط سريعة:</span>
+                    <span className="text-xs text-muted-foreground">{t("قوالب تقسيط سريعة:", "Quick installment templates:")}</span>
                     <Button type="button" variant="outline" size="sm" onClick={() => applyBnplSplit("tamara")} className="border-border text-foreground/80 hover:bg-primary/5 h-7 text-xs">
-                      تمارا (Tamara)
+                      {t("تمارا (Tamara)", "Tamara")}
                     </Button>
                     <Button type="button" variant="outline" size="sm" onClick={() => applyBnplSplit("generic")} className="border-border text-foreground/80 hover:bg-primary/5 h-7 text-xs">
-                      دفع لاحق (BNPL)
+                      {t("دفع لاحق (BNPL)", "Buy Now Pay Later (BNPL)")}
                     </Button>
                   </div>
                   {paymentSplits.map((split, idx) => (
@@ -542,14 +542,14 @@ export function PurchaseBills() {
                         }}>
                           <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="CASH">نقد</SelectItem>
-                            <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
-                            <SelectItem value="CARD">بطاقة</SelectItem>
+                            <SelectItem value="CASH">{t("نقد", "Cash")}</SelectItem>
+                            <SelectItem value="BANK_TRANSFER">{t("تحويل بنكي", "Bank transfer")}</SelectItem>
+                            <SelectItem value="CARD">{t("بطاقة", "Card")}</SelectItem>
                             <SelectItem value="STC_PAY">STC Pay</SelectItem>
-                            <SelectItem value="MADA">مدى</SelectItem>
-                            <SelectItem value="CHECK">شيك</SelectItem>
-                            <SelectItem value="CLEARING">حساب تسوية</SelectItem>
-                            <SelectItem value="OTHER">أخرى</SelectItem>
+                            <SelectItem value="MADA">{t("مدى", "Mada")}</SelectItem>
+                            <SelectItem value="CHECK">{t("شيك", "Check")}</SelectItem>
+                            <SelectItem value="CLEARING">{t("حساب تسوية", "Clearing account")}</SelectItem>
+                            <SelectItem value="OTHER">{t("أخرى", "Other")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -558,7 +558,7 @@ export function PurchaseBills() {
                           type="number"
                           min={0}
                           step="0.01"
-                          placeholder="المبلغ"
+                          placeholder={t("المبلغ", "Amount")}
                           value={split.amount}
                           dir="ltr"
                           className="h-9 border-border font-english text-sm"
@@ -578,13 +578,13 @@ export function PurchaseBills() {
                             setPaymentSplits(next);
                           }}
                           items={splitAccountOptions(split.method)}
-                          placeholder={split.method === "CLEARING" ? "حساب تسوية" : "حساب / بنك"}
+                          placeholder={split.method === "CLEARING" ? t("حساب تسوية", "Clearing account") : t("حساب / بنك", "Account / bank")}
                           className="border-0"
                         />
                       </div>
                       <div className="md:col-span-3">
                         <Input
-                          placeholder="مرجع"
+                          placeholder={t("مرجع", "Reference")}
                           value={split.reference}
                           className="h-9 border-border text-sm"
                           onChange={(e) => {
@@ -599,7 +599,7 @@ export function PurchaseBills() {
                           type="button"
                           onClick={() => setPaymentSplits(paymentSplits.filter((_, i) => i !== idx))}
                           className="rounded-md p-1.5 text-destructive hover:bg-destructive/10"
-                          title="حذف"
+                          title={t("حذف", "Delete")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -614,7 +614,7 @@ export function PurchaseBills() {
                       onClick={() => setPaymentSplits([...paymentSplits, { id: `${Date.now()}-${paymentSplits.length}`, method: "BANK_TRANSFER", amount: "", accountId: "", reference: "", notes: "" }])}
                       className="border-border text-foreground/80 hover:bg-primary/5"
                     >
-                      + دفعة أخرى
+                      {t("+ دفعة أخرى", "+ Another payment")}
                     </Button>
                     {(() => {
                       const totals = computeTotals(lines);
@@ -622,7 +622,7 @@ export function PurchaseBills() {
                       const remaining = Math.max(0, totals.total - paid);
                       return (
                         <div className="text-sm text-muted-foreground">
-                          المجموع: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{paid.toFixed(2)}</span> · متبقي: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{remaining.toFixed(2)}</span> {form.currency}
+                          {t("المجموع", "Total")}: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{paid.toFixed(2)}</span> · {t("متبقي", "Remaining")}: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{remaining.toFixed(2)}</span> {form.currency}
                         </div>
                       );
                     })()}
@@ -634,12 +634,12 @@ export function PurchaseBills() {
             <DocumentDropZone
               compact
               target="bill-lines"
-              hint="استخرج بنود فاتورة المشتريات من فاتورة المورد"
+              hint={t("استخرج بنود فاتورة المشتريات من فاتورة المورد", "Extract purchase bill lines from the supplier invoice")}
               defaultTaxRate={0.15}
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
-                  push("error", "لم يتم استخراج بنود من المستند");
+                  push("error", t("لم يتم استخراج بنود من المستند", "No lines were extracted from the document"));
                   return;
                 }
                 const newLines: InvoiceLine[] = data.lines.map((l: any) => ({
@@ -656,39 +656,39 @@ export function PurchaseBills() {
                 setSourceFile(data.sourceFile || null);
                 setSourceFileHash(data.sourceFileHash || null);
                 setExtractedDocNumber(data.documentNumber || null);
-                push("success", `تم استخراج ${newLines.length} بنداً من فاتورة المورد`);
+                push("success", t(`تم استخراج ${newLines.length} بنداً من فاتورة المورد`, `Extracted ${newLines.length} line(s) from the supplier invoice`));
               }}
               onError={(msg) => push("error", msg)}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">ملاحظات داخلية</Label>
+                <Label className="text-foreground/80 text-xs">{t("ملاحظات داخلية", "Internal notes")}</Label>
                 <textarea
                   rows={3}
-                  placeholder="ملاحظات داخلية لا تظهر للمورد..."
+                  placeholder={t("ملاحظات داخلية لا تظهر للمورد...", "Internal notes not shown to supplier...")}
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   className="w-full rounded-md border border-border px-3 py-2 text-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">الإجمالي</Label>
+                <Label className="text-foreground/80 text-xs">{t("الإجمالي", "Total")}</Label>
                 <div className="rounded-lg border border-border bg-card p-4 space-y-2">
                   {(() => {
                     const totals = computeTotals(lines);
                     return (
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">المجموع الفرعي</span>
+                          <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
                           <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">الضريبة (15%)</span>
+                          <span className="text-muted-foreground min-w-0 break-words">{t("الضريبة (15%)", "Tax (15%)")}</span>
                           <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
-                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>الإجمالي:</span>
+                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>{t("الإجمالي:", "Total:")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                             {form.currency} {totals.total.toFixed(2)}
                           </span>
@@ -712,26 +712,26 @@ export function PurchaseBills() {
                   <AlertTriangle className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">فاتورة محتملة مكررة</h3>
-                  <p className="text-sm text-muted-foreground">وجدنا فواتير سابقة بنفس المورد والتاريخ/المبلغ تقريباً.</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t("فاتورة محتملة مكررة", "Possible duplicate invoice")}</h3>
+                  <p className="text-sm text-muted-foreground">{t("وجدنا فواتير سابقة بنفس المورد والتاريخ/المبلغ تقريباً.", "We found previous invoices with the same supplier and similar date/amount.")}</p>
                 </div>
               </div>
               <div className="divide-y divide-border border border-border rounded-xl overflow-hidden">
                 {duplicate.matches.map((m: any) => (
                   <div key={m.id} className="flex items-center justify-between p-3 hover:bg-muted">
                     <div>
-                      <p className="text-sm text-foreground font-medium">{m.billNumber || "فاتورة بدون رقم"}</p>
+                      <p className="text-sm text-foreground font-medium">{m.billNumber || t("فاتورة بدون رقم", "Invoice without number")}</p>
                       <p className="text-xs text-muted-foreground">{m.contact?.displayName} · {Number(m.total).toFixed(2)} {m.currency} · {m.issueDate?.slice(0, 10)}</p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={() => confirmMerge(m.id)}>
-                      دمج كمستند
+                      {t("دمج كمستند", "Merge as document")}
                     </Button>
                   </div>
                 ))}
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setDuplicate({ open: false, matches: [], pendingSubmit: null })}>
-                  مراجعة البيانات
+                  {t("مراجعة البيانات", "Review data")}
                 </Button>
                 <Button
                   type="button"
@@ -742,7 +742,7 @@ export function PurchaseBills() {
                   }}
                   className="bg-primary hover:bg-primary/80"
                 >
-                  إنشاء فاتورة جديدة
+                  {t("إنشاء فاتورة جديدة", "Create new invoice")}
                 </Button>
               </div>
             </div>
@@ -757,23 +757,23 @@ export function PurchaseBills() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>فواتير المشتريات</h1>
-          <p className="text-muted-foreground mt-1">إدارة فواتير الموردين</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("فواتير المشتريات", "Purchase invoices")}</h1>
+          <p className="text-muted-foreground mt-1">{t("إدارة فواتير الموردين", "Manage supplier invoices")}</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />فاتورة مشتريات جديدة</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">إجمالي المشتريات</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي المشتريات", "Total purchases")}</div>
           <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">عدد الفواتير</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("عدد الفواتير", "Invoice count")}</div>
           <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">متأخرة</div>
+          <div className="text-muted-foreground text-sm mb-1">{t("متأخرة", "Overdue")}</div>
           <div className="font-english text-destructive" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(b => b.status === "OVERDUE").length}</div>
         </CardContent></Card>
       </div>
@@ -781,24 +781,24 @@ export function PurchaseBills() {
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground">قائمة فواتير المشتريات</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder="بحث..." className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+            <CardTitle className="text-foreground">{t("قائمة فواتير المشتريات", "Purchase invoices list")}</CardTitle>
+            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
            filtered.length === 0 ? (
-            <div className="py-12 text-center"><ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد فواتير مشتريات بعد</p></div>
+            <div className="py-12 text-center"><ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد فواتير مشتريات بعد", "No purchase invoices yet")}</p></div>
           ) : (
             <table className="w-full">
               <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرقم</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>المورد</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاستحقاق</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الحالة</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الإجمالي</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المورد", "Supplier")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الاستحقاق", "Due date")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</th>
+                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
               </tr></thead>
               <tbody>
                 {filtered.map(b => (
@@ -807,14 +807,14 @@ export function PurchaseBills() {
                     <td className="py-3 px-4 text-sm text-foreground/80">{b.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{b.issueDate?.slice(0, 10)}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{b.dueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
+                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{statusLabels(t)[b.status] || b.status}</span></td>
                     <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()} {b.currency}</td>
                     <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
-                        <button onClick={() => openEdit(b)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title="تعديل"><Edit2 className="h-4 w-4" /></button>
+                        <button onClick={() => openEdit(b)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
                         {b.status === "DRAFT" && (
-                          <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-500/10 flex items-center gap-1 border border-emerald-500/20" title="اعتماد الفاتورة">
-                            ✓ اعتماد
+                          <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-500/10 flex items-center gap-1 border border-emerald-500/20" title={t("اعتماد الفاتورة", "Approve invoice")}>
+                            {t("✓ اعتماد", "✓ Approve")}
                           </button>
                         )}
                         {pendingDelete === b.id ? (

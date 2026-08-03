@@ -19,6 +19,15 @@
     if (String(e?.reason?.message || e?.reason || "").includes("dynamically imported module")) healStaleChunk();
   });
 
-  // No service worker: the app has no offline requirement, and legacy SWs caused
-  // two production incidents (stale cache · redirect loops). public/sw.js is now
-  // a kill-switch that unregisters old workers and wipes their caches.
+  // Register the kill-switch service worker so that any legacy SW from a prior
+  // deploy gets replaced, wipes all caches, unregisters itself, and reloads the
+  // page clean. Without this registration, users with an old SW never receive the
+  // kill-switch — the stale SW keeps intercepting fetch() calls and causes
+  // "Failed to fetch" on API requests.
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js", { scope: "/" })
+        .catch(() => { /* SW registration failed — app works without it */ })
+    })
+  }

@@ -7,7 +7,7 @@
  * - Token is sent to the API in the `x-captcha-response` header; better-auth's
  *   captcha plugin verifies it server-side (env-gated on TURNSTILE_SECRET_KEY).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -40,6 +40,7 @@ function loadScript(): Promise<void> {
 export function Turnstile({ onVerify }: { onVerify: (token: string | null) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!SITEKEY) {
@@ -54,10 +55,15 @@ export function Turnstile({ onVerify }: { onVerify: (token: string | null) => vo
           sitekey: SITEKEY,
           callback: (token: string) => onVerify(token),
           "expired-callback": () => onVerify(null),
-          "error-callback": () => onVerify(null),
+          // On error (iOS Safari ITP, content blockers, etc.) hide the widget
+          // and let the user proceed — the server-side captcha plugin is
+          // env-gated on TURNSTILE_SECRET_KEY and currently not enforced.
+          "error-callback": () => { onVerify(null); setFailed(true); },
+          "timeout-callback": () => { onVerify(null); setFailed(true); },
+          "unsupported-callback": () => { onVerify(null); setFailed(true); },
         });
       })
-      .catch(() => onVerify(null));
+      .catch(() => { onVerify(null); setFailed(true); });
     return () => {
       cancelled = true;
       if (widgetIdRef.current && window.turnstile) {
@@ -67,6 +73,6 @@ export function Turnstile({ onVerify }: { onVerify: (token: string | null) => vo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!SITEKEY) return null;
+  if (!SITEKEY || failed) return null;
   return <div ref={hostRef} className="flex justify-center my-3" />;
 }

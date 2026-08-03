@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { ReportDocument, normalizeReportSettings } from "../components/report-document";
 import { api, ApiError, type Org, type ReportPayload, type ReportPrintSettings } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 const defaultColors = {
   primaryColor: "#0B1B49",
@@ -12,6 +13,7 @@ const defaultColors = {
 };
 
 export function ReportPrintDesigner() {
+  const { t } = useLanguage();
   const { id = "income-statement" } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

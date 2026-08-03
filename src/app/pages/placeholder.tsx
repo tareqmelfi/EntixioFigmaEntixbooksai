@@ -2,6 +2,7 @@ import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { Construction, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useLanguage } from "../components/LanguageContext";
 
 interface PlaceholderPageProps {
   title: string;
@@ -10,12 +11,13 @@ interface PlaceholderPageProps {
 
 export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
+    <div className="min-h-screen bg-white" dir={language === "ar" ? "rtl" : "ltr"}>
       <SharedNavbar />
       <main>
-      
+
       <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center">
           <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-[#1276E3] to-[#349FC4] flex items-center justify-center shadow-2xl">
@@ -32,7 +34,7 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
             className="inline-flex items-center gap-2 bg-primary hover:bg-primary/80 text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl cursor-pointer"
             style={{ fontSize: "15px", fontWeight: 600 }}
           >
-            العودة للرئيسية
+            {t("العودة للرئيسية", "Back home")}
             <ArrowLeft className="w-5 h-5" />
           </button>
         </div>

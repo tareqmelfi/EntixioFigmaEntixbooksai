@@ -10,6 +10,7 @@ import {
 import { Card, CardContent } from "../components/ui/card";
 import { api } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { useLanguage } from "../components/LanguageContext";
 
 // ── Types ──
 type FeatureStatus = "live" | "partial" | "planned" | "phase2" | "phase3";
@@ -19,7 +20,9 @@ interface Feature {
   nameEn?: string;
   status: FeatureStatus;
   description: string;
+  descEn?: string;
   details?: string[];
+  detailsEn?: string[];
   critical?: boolean;
 }
 
@@ -32,12 +35,12 @@ interface FeatureModule {
   features: Feature[];
 }
 
-const statusConfig: Record<FeatureStatus, { label: string; color: string; bg: string; icon: LucideIcon }> = {
-  live: { label: "مفعّل", color: "text-[#166534]", bg: "bg-[#DCFCE7]", icon: CheckCircle },
-  partial: { label: "جزئي", color: "text-[#92400E]", bg: "bg-[#FEF3C7]", icon: AlertCircle },
-  planned: { label: "مخطط", color: "text-[#1E40AF]", bg: "bg-[#DBEAFE]", icon: Clock },
-  phase2: { label: "المرحلة 2", color: "text-[#6B21A8]", bg: "bg-[#F3E8FF]", icon: Target },
-  phase3: { label: "المرحلة 3", color: "text-[#9D174D]", bg: "bg-[#FCE7F3]", icon: Sparkles },
+const statusConfig: Record<FeatureStatus, { label: string; labelEn: string; color: string; bg: string; icon: LucideIcon }> = {
+  live: { label: "مفعّل", labelEn: "Active", color: "text-[#166534]", bg: "bg-[#DCFCE7]", icon: CheckCircle },
+  partial: { label: "جزئي", labelEn: "Partial", color: "text-[#92400E]", bg: "bg-[#FEF3C7]", icon: AlertCircle },
+  planned: { label: "مخطط", labelEn: "Planned", color: "text-[#1E40AF]", bg: "bg-[#DBEAFE]", icon: Clock },
+  phase2: { label: "المرحلة 2", labelEn: "Phase 2", color: "text-[#6B21A8]", bg: "bg-[#F3E8FF]", icon: Target },
+  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-[#9D174D]", bg: "bg-[#FCE7F3]", icon: Sparkles },
 };
 
 // ── Feature Modules ──
@@ -49,13 +52,13 @@ const modules: FeatureModule[] = [
     color: "text-foreground",
     bgColor: "bg-[#0B1B49]/10",
     features: [
-      { name: "دليل الحسابات", status: "live", description: "شجرة حسابات متعددة المستويات مع إمكانية التوسيع والطي", details: ["هيكل شجري تفاعلي", "تصنيفات: أصل / التزام / حقوق ملكية / إيراد / مصروف", "بحث وفلترة متقدمة", "KPI cards قابلة للنقر مع فلترة الشجرة"] },
-      { name: "قوالب GAAP / IFRS", status: "partial", description: "قوالب معيارية حسب نوع النشاط التجاري", details: ["قالب أساسي موجود", "يحتاج: قوالب جاهزة حسب القطاع (تقنية / تجزئة / مقاولات / خدمات)"], critical: true },
-      { name: "قيود اليومية", status: "live", description: "إنشاء وإدارة قيود يدوية مع workflow كامل", details: ["مسودة → مرحّل → ملغي", "التحقق من التوازن (مدين = دائن)", "ربط بمراكز التكلفة", "عرض تفاصيل القيد"] },
-      { name: "مراكز التكلفة", status: "live", description: "تتبع المصاريف والإيرادات حسب مركز التكلفة", details: ["متاح في كل سطر قيد", "تقارير حسب مركز التكلفة في التقارير"] },
-      { name: "هيكل مراكز تكلفة متعدد المستويات", status: "planned", description: "هيكل هرمي لمراكز التكلفة مع تقارير مفصلة", critical: true },
-      { name: "تعدد العملات", status: "partial", description: "دعم عملات متعددة مع تحويل سعر الصرف", details: ["تم: تعريف العملة لكل جهة اتصال (أجنبية)", "يحتاج: تحويل سعر الصرف التلقائي في الفواتير", "يحتاج: حسابات أرباح/خسائر فروق العملة"], critical: true },
-      { name: "السنة المالية", status: "planned", description: "إدارة الفترات المالية مع إقفال وفتح الفترات", details: ["تعريف بداية ونهاية السنة", "إقفال الفترات (شهري/ربعي/سنوي)", "قيود الإقفال التلقائية"], critical: true },
+      { name: "دليل الحسابات", nameEn: "Chart of Accounts", status: "live", description: "شجرة حسابات متعددة المستويات مع إمكانية التوسيع والطي", descEn: "Multi-level account tree with expand/collapse", details: ["هيكل شجري تفاعلي", "تصنيفات: أصل / التزام / حقوق ملكية / إيراد / مصروف", "بحث وفلترة متقدمة", "KPI cards قابلة للنقر مع فلترة الشجرة"], detailsEn: ["Interactive tree structure", "Categories: Asset / Liability / Equity / Revenue / Expense", "Advanced search and filtering", "Clickable KPI cards with tree filtering"] },
+      { name: "قوالب GAAP / IFRS", nameEn: "GAAP / IFRS Templates", status: "partial", description: "قوالب معيارية حسب نوع النشاط التجاري", descEn: "Standard templates by business activity type", details: ["قالب أساسي موجود", "يحتاج: قوالب جاهزة حسب القطاع (تقنية / تجزئة / مقاولات / خدمات)"], detailsEn: ["Basic template available", "Needs: ready-made templates by sector (tech / retail / contracting / services)"], critical: true },
+      { name: "قيود اليومية", nameEn: "Journal Entries", status: "live", description: "إنشاء وإدارة قيود يدوية مع workflow كامل", descEn: "Create and manage manual journal entries with full workflow", details: ["مسودة → مرحّل → ملغي", "التحقق من التوازن (مدين = دائن)", "ربط بمراكز التكلفة", "عرض تفاصيل القيد"], detailsEn: ["Draft → Posted → Cancelled", "Balance validation (debit = credit)", "Link to cost centers", "View entry details"] },
+      { name: "مراكز التكلفة", nameEn: "Cost Centers", status: "live", description: "تتبع المصاريف والإيرادات حسب مركز التكلفة", descEn: "Track expenses and revenue by cost center", details: ["متاح في كل سطر قيد", "تقارير حسب مركز التكلفة في التقارير"], detailsEn: ["Available on every entry line", "Cost center reports in Reports"] },
+      { name: "هيكل مراكز تكلفة متعدد المستويات", nameEn: "Multi-level Cost Center Structure", status: "planned", description: "هيكل هرمي لمراكز التكلفة مع تقارير مفصلة", descEn: "Hierarchical cost center structure with detailed reports", critical: true },
+      { name: "تعدد العملات", nameEn: "Multi-currency", status: "partial", description: "دعم عملات متعددة مع تحويل سعر الصرف", descEn: "Support multiple currencies with exchange rate conversion", details: ["تم: تعريف العملة لكل جهة اتصال (أجنبية)", "يحتاج: تحويل سعر الصرف التلقائي في الفواتير", "يحتاج: حسابات أرباح/خسائر فروق العملة"], detailsEn: ["Done: define currency per contact (foreign)", "Needs: automatic exchange rate conversion in invoices", "Needs: exchange gain/loss accounts"], critical: true },
+      { name: "السنة المالية", nameEn: "Fiscal Year", status: "planned", description: "إدارة الفترات المالية مع إقفال وفتح الفترات", descEn: "Manage fiscal periods with closing and opening", details: ["تعريف بداية ونهاية السنة", "إقفال الفترات (شهري/ربعي/سنوي)", "قيود الإقفال التلقائية"], detailsEn: ["Define year start and end", "Close periods (monthly/quarterly/annual)", "Automatic closing entries"], critical: true },
     ],
   },
   {
@@ -65,13 +68,13 @@ const modules: FeatureModule[] = [
     color: "text-primary",
     bgColor: "bg-primary/10",
     features: [
-      { name: "فواتير المبيعات", status: "live", description: "إنشاء وإدارة فواتير المبيعات بالكامل", details: ["إنشاء / تعديل / عرض / حذف", "بنود ذكية مع ضريبة القيمة المضافة", "حالات: مسودة / مرسلة / مدفوعة / متأخرة", "بحث + فلتر بالحالة", "KPI cards قابلة للنقر"] },
-      { name: "قالب فاتورة رسمي + QR زاتكا المرحلة 1", status: "live", description: "قالب طباعة معتمد بشعار وختم المنشأة · ضريبة لكل بند (خاضع/ضريبة/إجمالي) · QR بصيغة TLV زاتكا (تم التحقق بفك التشفير) · حالة معتمدة · إلزام حساب الإيراد قبل الاعتماد · معاينة حية طبق الأصل · اسم PDF تلقائي", details: ["مطابق للفواتير المسلّمة فعلياً للعملاء", "شروط وأحكام عامة افتراضية قابلة للتخصيص"] },
-      { name: "اقتراح ذكي للبنود", status: "planned", description: "اقتراح تلقائي من قاعدة المنتجات عند الكتابة", details: ["قاعدة بيانات المنتجات/الخدمات", "اقتراح السعر والوصف تلقائياً"] },
-      { name: "عروض الأسعار", status: "live", description: "إنشاء عروض أسعار مع تحويلها لفواتير", details: ["إنشاء عرض سعر كامل", "حالات: مسودة / مرسل / مقبول / مرفوض / محوّل لفاتورة", "تحويل مباشر لفاتورة بضغطة"] },
-      { name: "سندات القبض", status: "live", description: "تسجيل المدفوعات المستلمة من العملاء", details: ["ربط بالفاتورة", "طرق دفع متعددة", "KPI cards مع إجماليات"] },
-      { name: "الإشعارات الدائنة", status: "live", description: "إصدار إشعارات دائنة للمرتجعات", details: ["ربط بالفاتورة الأصلية", "حالات: مسودة / صادر / مطبق"] },
-      { name: "ترقيم تسلسلي مع بادئة قابلة للتخصيص", status: "live", description: "ترقيم تلقائي مع إمكانية تعديل البادئة", details: ["ترقيم تسلسلي موجود (INV-2026-XXX)", "يحتاج: إعدادات تخصيص البادئة والصيغة"] },
+      { name: "فواتير المبيعات", nameEn: "Sales Invoices", status: "live", description: "إنشاء وإدارة فواتير المبيعات بالكامل", descEn: "Full creation and management of sales invoices", details: ["إنشاء / تعديل / عرض / حذف", "بنود ذكية مع ضريبة القيمة المضافة", "حالات: مسودة / مرسلة / مدفوعة / متأخرة", "بحث + فلتر بالحالة", "KPI cards قابلة للنقر"], detailsEn: ["Create / edit / view / delete", "Smart line items with VAT", "Statuses: draft / sent / paid / overdue", "Search + filter by status", "Clickable KPI cards"] },
+      { name: "قالب فاتورة رسمي + QR زاتكا المرحلة 1", nameEn: "Official invoice template + ZATKA QR Phase 1", status: "live", description: "قالب طباعة معتمد بشعار وختم المنشأة · ضريبة لكل بند (خاضع/ضريبة/إجمالي) · QR بصيغة TLV زاتكا (تم التحقق بفك التشفير) · حالة معتمدة · إلزام حساب الإيراد قبل الاعتماد · معاينة حية طبق الأصل · اسم PDF تلقائي", descEn: "Approved print template with establishment logo and stamp · per-line tax (taxable/tax/total) · ZATKA TLV-format QR (verified by decoding) · approved status · revenue account required before approval · live WYSIWYG preview · automatic PDF filename", details: ["مطابق للفواتير المسلّمة فعلياً للعملاء", "شروط وأحكام عامة افتراضية قابلة للتخصيص"], detailsEn: ["Matches invoices actually delivered to customers", "Customizable default terms and conditions"] },
+      { name: "اقتراح ذكي للبنود", nameEn: "Smart line-item suggestions", status: "planned", description: "اقتراح تلقائي من قاعدة المنتجات عند الكتابة", descEn: "Auto-suggest from product database while typing", details: ["قاعدة بيانات المنتجات/الخدمات", "اقتراح السعر والوصف تلقائياً"], detailsEn: ["Products/services database", "Auto-suggest price and description"] },
+      { name: "عروض الأسعار", nameEn: "Quotations", status: "live", description: "إنشاء عروض أسعار مع تحويلها لفواتير", descEn: "Create quotations and convert them to invoices", details: ["إنشاء عرض سعر كامل", "حالات: مسودة / مرسل / مقبول / مرفوض / محوّل لفاتورة", "تحويل مباشر لفاتورة بضغطة"], detailsEn: ["Create a full quotation", "Statuses: draft / sent / accepted / rejected / converted to invoice", "One-click conversion to invoice"] },
+      { name: "سندات القبض", nameEn: "Receipt vouchers", status: "live", description: "تسجيل المدفوعات المستلمة من العملاء", descEn: "Record payments received from customers", details: ["ربط بالفاتورة", "طرق دفع متعددة", "KPI cards مع إجماليات"], detailsEn: ["Link to invoice", "Multiple payment methods", "KPI cards with totals"] },
+      { name: "الإشعارات الدائنة", nameEn: "Credit notes", status: "live", description: "إصدار إشعارات دائنة للمرتجعات", descEn: "Issue credit notes for returns", details: ["ربط بالفاتورة الأصلية", "حالات: مسودة / صادر / مطبق"], detailsEn: ["Link to original invoice", "Statuses: draft / issued / applied"] },
+      { name: "ترقيم تسلسلي مع بادئة قابلة للتخصيص", nameEn: "Sequential numbering with customizable prefix", status: "live", description: "ترقيم تلقائي مع إمكانية تعديل البادئة", descEn: "Automatic numbering with editable prefix", details: ["ترقيم تسلسلي موجود (INV-2026-XXX)", "يحتاج: إعدادات تخصيص البادئة والصيغة"], detailsEn: ["Sequential numbering exists (INV-2026-XXX)", "Needs: prefix and format customization settings"] },
     ],
   },
   {
@@ -81,10 +84,10 @@ const modules: FeatureModule[] = [
     color: "text-[#166534]",
     bgColor: "bg-[#166534]/10",
     features: [
-      { name: "فواتير المشتريات", status: "live", description: "إدارة فواتير الموردين مع ربط المورد", details: ["إنشاء / عرض / حذف", "ربط بالمورد مع بحث ذكي", "بنود مع ضريبة"] },
-      { name: "سندات الصرف", status: "live", description: "تسجيل المبالغ المصروفة للموردين" },
-      { name: "المصروفات النقدية", status: "live", description: "تسجيل المصاريف اليومية مع التصنيف" },
-      { name: "ربط المشتريات بالمدفوعات", status: "partial", description: "تخصيص المدفوعات على فواتير الشراء", details: ["يحتاج: شاشة تخصيص مدفوعات على فواتير متعددة"] },
+      { name: "فواتير المشتريات", nameEn: "Purchase invoices", status: "live", description: "إدارة فواتير الموردين مع ربط المورد", descEn: "Manage supplier invoices with supplier linking", details: ["إنشاء / عرض / حذف", "ربط بالمورد مع بحث ذكي", "بنود مع ضريبة"], detailsEn: ["Create / view / delete", "Link to supplier with smart search", "Line items with tax"] },
+      { name: "سندات الصرف", nameEn: "Payment vouchers", status: "live", description: "تسجيل المبالغ المصروفة للموردين", descEn: "Record amounts paid to suppliers" },
+      { name: "المصروفات النقدية", nameEn: "Cash expenses", status: "live", description: "تسجيل المصاريف اليومية مع التصنيف", descEn: "Record daily expenses with categorization" },
+      { name: "ربط المشتريات بالمدفوعات", nameEn: "Link purchases to payments", status: "partial", description: "تخصيص المدفوعات على فواتير الشراء", descEn: "Allocate payments to purchase invoices", details: ["يحتاج: شاشة تخصيص مدفوعات على فواتير متعددة"], detailsEn: ["Needs: payment allocation screen across multiple invoices"] },
     ],
   },
   {
@@ -94,16 +97,16 @@ const modules: FeatureModule[] = [
     color: "text-[#166534]",
     bgColor: "bg-[#166534]/10",
     features: [
-      { name: "UUID 128-bit لكل فاتورة", status: "live", description: "معرف فريد عالمي لكل فاتورة", critical: true },
-      { name: "ربط تسلسلي مشفر (Sequential Hash)", status: "live", description: "ربط كل فاتورة بالسابقة تشفيرياً", critical: true },
-      { name: "رمز QR مع 9 عناصر TLV", status: "partial", description: "QR يحتوي بيانات البائع والضريبة بتشفير Base64", critical: true, details: ["اسم البائع", "الرقم الضريبي", "تاريخ الفاتورة", "إجمالي الفاتورة", "مبلغ الضريبة", "Hash الفاتورة", "التوقيع الرقمي", "المفتاح العام", "ختم CSID"] },
-      { name: "ختم CSID التشفيري", status: "partial", description: "توقيع رقمي من هيئة الزكاة والضريبة", details: ["حقل CSID موجود في الإعدادات", "يحتاج: التطبيق الفعلي على الفواتير"] },
-      { name: "عداد فواتير غير قابل لإعادة التعيين", status: "live", description: "عداد تسلسلي متطلب من ZATCA (موجود في الإعدادات)" },
-      { name: "صيغة XML/UBL 2.1 + PDF/A-3", status: "partial", description: "تصدير الفواتير بالصيغة المعتمدة", critical: true },
-      { name: "تكامل API مع منصة فاتورة", status: "partial", description: "ربط مع FATOORA platform", details: ["إعدادات الاتصال موجودة", "يحتاج: التكامل الفعلي للـ API"] },
-      { name: "المرحلة 1 (الإصدار): QR للـ B2C", status: "live", description: "رمز QR للمستهلكين + حفظ إلكتروني", critical: true },
-      { name: "المرحلة 2 (التكامل): API للـ B2B", status: "planned", description: "اعتماد فوري B2B + إبلاغ B2C خلال 24 ساعة", critical: true },
-      { name: "بيئة اختبار Sandbox", status: "partial", description: "بيئة اختبار للتحقق من التكامل قبل الإنتاج" },
+      { name: "UUID 128-bit لكل فاتورة", nameEn: "128-bit UUID per invoice", status: "live", description: "معرف فريد عالمي لكل فاتورة", descEn: "Globally unique identifier for each invoice", critical: true },
+      { name: "ربط تسلسلي مشفر (Sequential Hash)", nameEn: "Encrypted sequential linking (Sequential Hash)", status: "live", description: "ربط كل فاتورة بالسابقة تشفيرياً", descEn: "Cryptographically link each invoice to the previous one", critical: true },
+      { name: "رمز QR مع 9 عناصر TLV", nameEn: "QR code with 9 TLV elements", status: "partial", description: "QR يحتوي بيانات البائع والضريبة بتشفير Base64", descEn: "QR containing seller and tax data in Base64 encoding", critical: true, details: ["اسم البائع", "الرقم الضريبي", "تاريخ الفاتورة", "إجمالي الفاتورة", "مبلغ الضريبة", "Hash الفاتورة", "التوقيع الرقمي", "المفتاح العام", "ختم CSID"], detailsEn: ["Seller name", "Tax number", "Invoice date", "Invoice total", "Tax amount", "Invoice hash", "Digital signature", "Public key", "CSID stamp"] },
+      { name: "ختم CSID التشفيري", nameEn: "CSID cryptographic stamp", status: "partial", description: "توقيع رقمي من هيئة الزكاة والضريبة", descEn: "Digital signature from the Zakat and Tax authority", details: ["حقل CSID موجود في الإعدادات", "يحتاج: التطبيق الفعلي على الفواتير"], detailsEn: ["CSID field exists in settings", "Needs: actual application to invoices"] },
+      { name: "عداد فواتير غير قابل لإعادة التعيين", nameEn: "Non-resettable invoice counter", status: "live", description: "عداد تسلسلي متطلب من ZATCA (موجود في الإعدادات)", descEn: "Sequential counter required by ZATCA (exists in settings)" },
+      { name: "صيغة XML/UBL 2.1 + PDF/A-3", nameEn: "XML/UBL 2.1 + PDF/A-3 format", status: "partial", description: "تصدير الفواتير بالصيغة المعتمدة", descEn: "Export invoices in the approved format", critical: true },
+      { name: "تكامل API مع منصة فاتورة", nameEn: "API integration with Fatoora platform", status: "partial", description: "ربط مع FATOORA platform", descEn: "Link with FATOORA platform", details: ["إعدادات الاتصال موجودة", "يحتاج: التكامل الفعلي للـ API"], detailsEn: ["Connection settings exist", "Needs: actual API integration"] },
+      { name: "المرحلة 1 (الإصدار): QR للـ B2C", nameEn: "Phase 1 (Generation): QR for B2C", status: "live", description: "رمز QR للمستهلكين + حفظ إلكتروني", descEn: "QR code for consumers + electronic storage", critical: true },
+      { name: "المرحلة 2 (التكامل): API للـ B2B", nameEn: "Phase 2 (Integration): API for B2B", status: "planned", description: "اعتماد فوري B2B + إبلاغ B2C خلال 24 ساعة", descEn: "Instant B2B clearance + B2C reporting within 24 hours", critical: true },
+      { name: "بيئة اختبار Sandbox", nameEn: "Sandbox test environment", status: "partial", description: "بيئة اختبار للتحقق من التكامل قبل الإنتاج", descEn: "Test environment to verify integration before production" },
     ],
   },
   {
@@ -113,15 +116,15 @@ const modules: FeatureModule[] = [
     color: "text-[#179FC5]",
     bgColor: "bg-[#179FC5]/10",
     features: [
-      { name: "ميزان المراجعة", status: "live", description: "تقرير ميزان المراجعة" },
-      { name: "قائمة الدخل", status: "live", description: "قائمة الأرباح والخسائر (P&L)", details: ["عادية / بحسب الفرع / بحسب مركز التكلفة / بحسب المشروع"] },
-      { name: "قائمة المركز المالي", status: "live", description: "الميزانية العمومية (Balance Sheet)" },
-      { name: "قائمة التدفقات النقدية", status: "live", description: "مباشرة وغير مباشرة", details: ["الطريقة المباشرة", "الطريقة غير المباشرة"] },
-      { name: "إقرار ضريبة القيمة المضافة", status: "live", description: "تقرير VAT Return" },
-      { name: "فلترة نطاق تاريخي", status: "live", description: "تحديد فترة زمنية مخصصة للتقارير" },
-      { name: "تصدير PDF / Excel", status: "live", description: "تصدير جميع التقارير" },
-      { name: "تقارير موحدة (Consolidated)", status: "live", description: "ميزانية ودخل وتدفق نقدي موحد لمتعدد الشركات" },
-      { name: "تقارير الإدارة (PDF)", status: "live", description: "تقارير تنفيذية شاملة" },
+      { name: "ميزان المراجعة", nameEn: "Trial balance", status: "live", description: "تقرير ميزان المراجعة", descEn: "Trial balance report" },
+      { name: "قائمة الدخل", nameEn: "Income statement", status: "live", description: "قائمة الأرباح والخسائر (P&L)", descEn: "Profit and loss statement (P&L)", details: ["عادية / بحسب الفرع / بحسب مركز التكلفة / بحسب المشروع"], detailsEn: ["Standard / by branch / by cost center / by project"] },
+      { name: "قائمة المركز المالي", nameEn: "Statement of financial position", status: "live", description: "الميزانية العمومية (Balance Sheet)", descEn: "Balance Sheet" },
+      { name: "قائمة التدفقات النقدية", nameEn: "Cash flow statement", status: "live", description: "مباشرة وغير مباشرة", descEn: "Direct and indirect", details: ["الطريقة المباشرة", "الطريقة غير المباشرة"], detailsEn: ["Direct method", "Indirect method"] },
+      { name: "إقرار ضريبة القيمة المضافة", nameEn: "VAT return", status: "live", description: "تقرير VAT Return", descEn: "VAT Return report" },
+      { name: "فلترة نطاق تاريخي", nameEn: "Date range filter", status: "live", description: "تحديد فترة زمنية مخصصة للتقارير", descEn: "Define a custom date range for reports" },
+      { name: "تصدير PDF / Excel", nameEn: "PDF / Excel export", status: "live", description: "تصدير جميع التقارير", descEn: "Export all reports" },
+      { name: "تقارير موحدة (Consolidated)", nameEn: "Consolidated reports", status: "live", description: "ميزانية ودخل وتدفق نقدي موحد لمتعدد الشركات", descEn: "Consolidated balance sheet, income, and cash flow for multiple companies" },
+      { name: "تقارير الإدارة (PDF)", nameEn: "Management reports (PDF)", status: "live", description: "تقارير تنفيذية شاملة", descEn: "Comprehensive executive reports" },
     ],
   },
   {
@@ -131,15 +134,15 @@ const modules: FeatureModule[] = [
     color: "text-[#6B21A8]",
     bgColor: "bg-[#6B21A8]/10",
     features: [
-      { name: "إدارة العملاء", status: "live", description: "إدارة كاملة مع بيانات الاتصال والأدوار المتعددة" },
-      { name: "حدود ائتمانية للعملاء", status: "planned", description: "تعيين سقف ائتماني مع تنبيهات عند التجاوز", critical: true },
-      { name: "إدارة الموردين", status: "live", description: "بيانات الموردين مع الأدوار والتصنيفات" },
-      { name: "شروط الدفع للموردين", status: "partial", description: "تعيين شروط دفع افتراضية لكل مورد", details: ["موجود في الفواتير", "يحتاج: ربط مع ملف المورد"] },
-      { name: "ملفات المستقلين (Freelancers)", status: "live", description: "تسجيل وإدارة المتعاونين المستقلين" },
-      { name: "خط زمني للنشاط", status: "live", description: "سجل كامل لتاريخ التفاعلات والمعاملات" },
-      { name: "CRM خفيف", status: "partial", description: "ملاحظات وتصنيفات وآخر تفاعل", details: ["سجل النشاط موجود", "يحتاج: tags / ملاحظات حرة / تذكيرات"] },
-      { name: "بحث ذكي وإنشاء فوري", status: "live", description: "اكتب اسم العميل في أي نموذج واختر أو أنشئ جديد بدون مغادرة الصفحة", details: ["بحث أثناء الكتابة (Autocomplete)", "إنشاء سريع مع نموذج مدمج", "تصنيف محلي / أجنبي", "بيانات ضريبية (VAT / ITN / LEI)", "ضريبة الاستقطاع للكيانات الأجنبية"] },
-      { name: "كيانات أجنبية مع ضريبة استقطاع", status: "live", description: "تصنيف كيان أجنبي مع نسبة استقطاع وتصنيف المعاملة", details: ["عملة مختلفة تلقائياً", "ITN بدل سجل تجاري", "LEI Code مع رابط GLEIF", "ضريبة استقطاع % مع تصنيف", "يظهر في الإقرار الضريبي الشهري"] },
+      { name: "إدارة العملاء", nameEn: "Customer management", status: "live", description: "إدارة كاملة مع بيانات الاتصال والأدوار المتعددة", descEn: "Full management with contact data and multiple roles" },
+      { name: "حدود ائتمانية للعملاء", nameEn: "Customer credit limits", status: "planned", description: "تعيين سقف ائتماني مع تنبيهات عند التجاوز", descEn: "Set a credit ceiling with alerts on breach", critical: true },
+      { name: "إدارة الموردين", nameEn: "Supplier management", status: "live", description: "بيانات الموردين مع الأدوار والتصنيفات", descEn: "Supplier data with roles and categories" },
+      { name: "شروط الدفع للموردين", nameEn: "Supplier payment terms", status: "partial", description: "تعيين شروط دفع افتراضية لكل مورد", descEn: "Set default payment terms per supplier", details: ["موجود في الفواتير", "يحتاج: ربط مع ملف المورد"], detailsEn: ["Exists in invoices", "Needs: link to supplier profile"] },
+      { name: "ملفات المستقلين (Freelancers)", nameEn: "Freelancer profiles", status: "live", description: "تسجيل وإدارة المتعاونين المستقلين", descEn: "Register and manage independent contractors" },
+      { name: "خط زمني للنشاط", nameEn: "Activity timeline", status: "live", description: "سجل كامل لتاريخ التفاعلات والمعاملات", descEn: "Full history log of interactions and transactions" },
+      { name: "CRM خفيف", nameEn: "Lightweight CRM", status: "partial", description: "ملاحظات وتصنيفات وآخر تفاعل", descEn: "Notes, categories, and last interaction", details: ["سجل النشاط موجود", "يحتاج: tags / ملاحظات حرة / تذكيرات"], detailsEn: ["Activity log exists", "Needs: tags / free notes / reminders"] },
+      { name: "بحث ذكي وإنشاء فوري", nameEn: "Smart search and instant create", status: "live", description: "اكتب اسم العميل في أي نموذج واختر أو أنشئ جديد بدون مغادرة الصفحة", descEn: "Type a customer name in any form and select or create new without leaving the page", details: ["بحث أثناء الكتابة (Autocomplete)", "إنشاء سريع مع نموذج مدمج", "تصنيف محلي / أجنبي", "بيانات ضريبية (VAT / ITN / LEI)", "ضريبة الاستقطاع للكيانات الأجنبية"], detailsEn: ["Search as you type (autocomplete)", "Quick create with an inline form", "Local / foreign classification", "Tax data (VAT / ITN / LEI)", "Withholding tax for foreign entities"] },
+      { name: "كيانات أجنبية مع ضريبة استقطاع", nameEn: "Foreign entities with withholding tax", status: "live", description: "تصنيف كيان أجنبي مع نسبة استقطاع وتصنيف المعاملة", descEn: "Classify a foreign entity with withholding rate and transaction classification", details: ["عملة مختلفة تلقائياً", "ITN بدل سجل تجاري", "LEI Code مع رابط GLEIF", "ضريبة استقطاع % مع تصنيف", "يظهر في الإقرار الضريبي الشهري"], detailsEn: ["Different currency automatically", "ITN instead of commercial registration", "LEI Code with GLEIF link", "Withholding tax % with classification", "Appears in the monthly tax return"] },
     ],
   },
   {
@@ -149,9 +152,9 @@ const modules: FeatureModule[] = [
     color: "text-[#92400E]",
     bgColor: "bg-[#92400E]/10",
     features: [
-      { name: "الأصول الثابتة", status: "live", description: "إدارة الأصول مع الإهلاك والقيمة الدفترية", details: ["جدول الإهلاك", "رسوم بيانية", "حالات: نشط / مستبعد / قيد الصيانة"] },
-      { name: "المخزون", status: "live", description: "إدارة المنتجات والمستودعات مع حد إعادة الطلب" },
-      { name: "المنتجات والخدمات", status: "live", description: "قسم شامل للمنتجات والخدمات مع تغيير النوع ديناميكياً", details: ["منتج / خدمة / أصل", "صفحة تفصيلية لكل عنصر", "حركات مالية وحركات مخزون", "فلاتر متعددة + بحث + checkboxes"] },
+      { name: "الأصول الثابتة", nameEn: "Fixed assets", status: "live", description: "إدارة الأصول مع الإهلاك والقيمة الدفترية", descEn: "Manage assets with depreciation and book value", details: ["جدول الإهلاك", "رسوم بيانية", "حالات: نشط / مستبعد / قيد الصيانة"], detailsEn: ["Depreciation schedule", "Charts", "Statuses: active / disposed / under maintenance"] },
+      { name: "المخزون", nameEn: "Inventory", status: "live", description: "إدارة المنتجات والمستودعات مع حد إعادة الطلب", descEn: "Manage products and warehouses with reorder point" },
+      { name: "المنتجات والخدمات", nameEn: "Products and services", status: "live", description: "قسم شامل للمنتجات والخدمات مع تغيير النوع ديناميكياً", descEn: "Comprehensive products and services section with dynamic type switching", details: ["منتج / خدمة / أصل", "صفحة تفصيلية لكل عنصر", "حركات مالية وحركات مخزون", "فلاتر متعددة + بحث + checkboxes"], detailsEn: ["Product / service / asset", "Detail page for each item", "Financial movements and inventory movements", "Multiple filters + search + checkboxes"] },
     ],
   },
   {
@@ -161,13 +164,13 @@ const modules: FeatureModule[] = [
     color: "text-[#9D174D]",
     bgColor: "bg-[#9D174D]/10",
     features: [
-      { name: "دورات الرواتب", status: "live", description: "تشغيل دورات رواتب شهرية مع قائمة الموظفين" },
-      { name: "مسير الرواتب", status: "planned", description: "معالجة وتشغيل الرواتب الشهرية مع التفاصيل", critical: true },
-      { name: "الموظفين", status: "planned", description: "إدارة بيانات الموظفين وعقودهم", critical: true },
-      { name: "مطالبات الموظفين", status: "planned", description: "تقديم واعتماد مطالبات المصاريف" },
-      { name: "الحضور والانصراف", status: "phase2", description: "تسجيل ومتابعة حضور الموظفين" },
-      { name: "الإجازات", status: "phase2", description: "طلبات واعتمادات الإجازات" },
-      { name: "امتثال GOSI", status: "phase2", description: "حساب تلقائي لاشتراكات التأمينات الاجتماعية", critical: true },
+      { name: "دورات الرواتب", nameEn: "Payroll cycles", status: "live", description: "تشغيل دورات رواتب شهرية مع قائمة الموظفين", descEn: "Run monthly payroll cycles with employee list" },
+      { name: "مسير الرواتب", nameEn: "Payroll run", status: "planned", description: "معالجة وتشغيل الرواتب الشهرية مع التفاصيل", descEn: "Process and run monthly payroll with details", critical: true },
+      { name: "الموظفين", nameEn: "Employees", status: "planned", description: "إدارة بيانات الموظفين وعقودهم", descEn: "Manage employee data and contracts", critical: true },
+      { name: "مطالبات الموظفين", nameEn: "Employee claims", status: "planned", description: "تقديم واعتماد مطالبات المصاريف", descEn: "Submit and approve expense claims" },
+      { name: "الحضور والانصراف", nameEn: "Attendance", status: "phase2", description: "تسجيل ومتابعة حضور الموظفين", descEn: "Record and track employee attendance" },
+      { name: "الإجازات", nameEn: "Leave", status: "phase2", description: "طلبات واعتمادات الإجازات", descEn: "Leave requests and approvals" },
+      { name: "امتثال GOSI", nameEn: "GOSI compliance", status: "phase2", description: "حساب تلقائي لاشتراكات التأمينات الاجتماعية", descEn: "Automatic calculation of social insurance contributions", critical: true },
     ],
   },
   {
@@ -177,10 +180,10 @@ const modules: FeatureModule[] = [
     color: "text-[#075985]",
     bgColor: "bg-[#075985]/10",
     features: [
-      { name: "إدارة المشاريع", status: "phase2", description: "إنشاء مشاريع وربطها بالفواتير والمصروفات" },
-      { name: "المهام", status: "phase2", description: "مهام فرعية مع تعيين موظفين ومواعيد" },
-      { name: "تتبع الوقت", status: "phase2", description: "تسجيل ساعات العمل على المشاريع" },
-      { name: "تحليل الربحية", status: "phase2", description: "مقارنة الإيرادات بالمصاريف لكل مشروع", critical: true },
+      { name: "إدارة المشاريع", nameEn: "Project management", status: "phase2", description: "إنشاء مشاريع وربطها بالفواتير والمصروفات", descEn: "Create projects and link them to invoices and expenses" },
+      { name: "المهام", nameEn: "Tasks", status: "phase2", description: "مهام فرعية مع تعيين موظفين ومواعيد", descEn: "Subtasks with employee assignment and due dates" },
+      { name: "تتبع الوقت", nameEn: "Time tracking", status: "phase2", description: "تسجيل ساعات العمل على المشاريع", descEn: "Log work hours on projects" },
+      { name: "تحليل الربحية", nameEn: "Profitability analysis", status: "phase2", description: "مقارنة الإيرادات بالمصاريف لكل مشروع", descEn: "Compare revenue to expenses per project", critical: true },
     ],
   },
   {
@@ -190,10 +193,10 @@ const modules: FeatureModule[] = [
     color: "text-[#1E40AF]",
     bgColor: "bg-[#1E40AF]/10",
     features: [
-      { name: "إدارة الحسابات البنكية", status: "live", description: "إنشاء وإدارة الحسابات البنكية والصناديق", details: ["حسابات جارية / توفير / صناديق", "أرصدة وعملات متعددة", "IBAN ومعلومات البنك"] },
-      { name: "تحويلات بين الحسابات", status: "planned", description: "تحويل أرصدة بين الحسابات البنكية" },
-      { name: "مطابقة بنكية", status: "planned", description: "مطابقة كشف الحساب مع الحركات", critical: true },
-      { name: "استيراد كشوف بنكية (CSV/OFX)", status: "planned", description: "رفع كشوف الحساب لمطابقتها" },
+      { name: "إدارة الحسابات البنكية", nameEn: "Bank account management", status: "live", description: "إنشاء وإدارة الحسابات البنكية والصناديق", descEn: "Create and manage bank accounts and cash boxes", details: ["حسابات جارية / توفير / صناديق", "أرصدة وعملات متعددة", "IBAN ومعلومات البنك"], detailsEn: ["Current / savings / cash boxes", "Balances and multiple currencies", "IBAN and bank information"] },
+      { name: "تحويلات بين الحسابات", nameEn: "Transfers between accounts", status: "planned", description: "تحويل أرصدة بين الحسابات البنكية", descEn: "Transfer balances between bank accounts" },
+      { name: "مطابقة بنكية", nameEn: "Bank reconciliation", status: "planned", description: "مطابقة كشف الحساب مع الحركات", descEn: "Match bank statement with transactions", critical: true },
+      { name: "استيراد كشوف بنكية (CSV/OFX)", nameEn: "Import bank statements (CSV/OFX)", status: "planned", description: "رفع كشوف الحساب لمطابقتها", descEn: "Upload bank statements for reconciliation" },
     ],
   },
   {
@@ -203,9 +206,9 @@ const modules: FeatureModule[] = [
     color: "text-[#075985]",
     bgColor: "bg-[#075985]/10",
     features: [
-      { name: "مراكز التكلفة", status: "live", description: "إدارة مراكز التكلفة مع الميزانيات والمصروفات", details: ["ميزانيات ونسب استخدام", "هيكل أب-ابن", "ربط بالقيود والفواتير"] },
-      { name: "الفروع", status: "live", description: "إدارة الفروع والمواقع", details: ["بيانات الفرع والعنوان", "المدير والموظفين", "إيرادات كل فرع"] },
-      { name: "إقفال الفترات", status: "planned", description: "إقفال الفترات المالية ومنع التعديل بعد الإقفال", critical: true },
+      { name: "مراكز التكلفة", nameEn: "Cost centers", status: "live", description: "إدارة مراكز التكلفة مع الميزانيات والمصروفات", descEn: "Manage cost centers with budgets and expenses", details: ["ميزانيات ونسب استخدام", "هيكل أب-ابن", "ربط بالقيود والفواتير"], detailsEn: ["Budgets and utilization rates", "Parent-child structure", "Link to entries and invoices"] },
+      { name: "الفروع", nameEn: "Branches", status: "live", description: "إدارة الفروع والمواقع", descEn: "Manage branches and locations", details: ["بيانات الفرع والعنوان", "المدير والموظفين", "إيرادات كل فرع"], detailsEn: ["Branch data and address", "Manager and employees", "Revenue per branch"] },
+      { name: "إقفال الفترات", nameEn: "Period closing", status: "planned", description: "إقفال الفترات المالية ومنع التعديل بعد الإقفال", descEn: "Close fiscal periods and prevent editing after closing", critical: true },
     ],
   },
   {
@@ -215,13 +218,13 @@ const modules: FeatureModule[] = [
     color: "text-foreground/80",
     bgColor: "bg-[#374151]/10",
     features: [
-      { name: "REST API", status: "live", description: "واجهة برمجية كاملة للتكامل مع أنظمة خارجية" },
-      { name: "Webhooks", status: "live", description: "إشعارات فورية للأحداث" },
-      { name: "قوالب المستندات", status: "live", description: "إدارة قوالب الفواتير والمستندات بتصاميم متعددة", details: ["فواتير بيع / عروض أسعار / سندات", "تحديد قالب افتراضي", "تصميمات: كلاسيك / حديث / مبسّط"] },
-      { name: "ربط سلة (Salla)", status: "planned", description: "تكامل مع متجر سلة الإلكتروني" },
-      { name: "ربط زد (Zid)", status: "planned", description: "تكامل مع متجر زد الإلكتروني" },
-      { name: "ربط Stripe / Moyasar", status: "planned", description: "بوابات دفع إلكترونية" },
-      { name: "ربط واتساب أعمال", status: "phase2", description: "إرسال الفواتير عبر WhatsApp Business" },
+      { name: "REST API", nameEn: "REST API", status: "live", description: "واجهة برمجية كاملة للتكامل مع أنظمة خارجية", descEn: "Full API for integration with external systems" },
+      { name: "Webhooks", nameEn: "Webhooks", status: "live", description: "إشعارات فورية للأحداث", descEn: "Instant event notifications" },
+      { name: "قوالب المستندات", nameEn: "Document templates", status: "live", description: "إدارة قوالب الفواتير والمستندات بتصاميم متعددة", descEn: "Manage invoice and document templates with multiple designs", details: ["فواتير بيع / عروض أسعار / سندات", "تحديد قالب افتراضي", "تصميمات: كلاسيك / حديث / مبسّط"], detailsEn: ["Sales invoices / quotations / vouchers", "Set a default template", "Designs: classic / modern / minimal"] },
+      { name: "ربط سلة (Salla)", nameEn: "Salla integration", status: "planned", description: "تكامل مع متجر سلة الإلكتروني", descEn: "Integration with Salla online store" },
+      { name: "ربط زد (Zid)", nameEn: "Zid integration", status: "planned", description: "تكامل مع متجر زد الإلكتروني", descEn: "Integration with Zid online store" },
+      { name: "ربط Stripe / Moyasar", nameEn: "Stripe / Moyasar integration", status: "planned", description: "بوابات دفع إلكترونية", descEn: "Electronic payment gateways" },
+      { name: "ربط واتساب أعمال", nameEn: "WhatsApp Business integration", status: "phase2", description: "إرسال الفواتير عبر WhatsApp Business", descEn: "Send invoices via WhatsApp Business" },
     ],
   },
   {
@@ -231,9 +234,9 @@ const modules: FeatureModule[] = [
     color: "text-[#1E40AF]",
     bgColor: "bg-[#1E40AF]/10",
     features: [
-      { name: "المطابقة التلقائية", status: "phase3", description: "مطابقة تلقائية بين كشوف البنك والمعاملات" },
-      { name: "Plaid (US)", status: "phase3", description: "ربط الحسابات البنكية الأمريكية عبر Plaid" },
-      { name: "Open Banking (GCC)", status: "phase3", description: "ربط الحسابات البنكية الخليجية عبر Open Banking" },
+      { name: "المطابقة التلقائية", nameEn: "Automatic reconciliation", status: "phase3", description: "مطابقة تلقائية بين كشوف البنك والمعاملات", descEn: "Auto-match bank statements with transactions" },
+      { name: "Plaid (US)", nameEn: "Plaid (US)", status: "phase3", description: "ربط الحسابات البنكية الأمريكية عبر Plaid", descEn: "Link US bank accounts via Plaid" },
+      { name: "Open Banking (GCC)", nameEn: "Open Banking (GCC)", status: "phase3", description: "ربط الحسابات البنكية الخليجية عبر Open Banking", descEn: "Link GCC bank accounts via Open Banking" },
     ],
   },
   {
@@ -243,9 +246,9 @@ const modules: FeatureModule[] = [
     color: "text-[#075985]",
     bgColor: "bg-[#075985]/10",
     features: [
-      { name: "بوابة العملاء", status: "phase3", description: "واجهة للعملاء لعرض فواتيرهم والدفع" },
-      { name: "بوابة الموردين", status: "phase3", description: "واجهة للموردين لتتبع مستحقاتهم" },
-      { name: "بوابة المساهمين", status: "phase3", description: "واجهة للمساهمين عرض التقارير المالية" },
+      { name: "بوابة العملاء", nameEn: "Customer portal", status: "phase3", description: "واجهة للعملاء لعرض فواتيرهم والدفع", descEn: "Interface for customers to view invoices and pay" },
+      { name: "بوابة الموردين", nameEn: "Supplier portal", status: "phase3", description: "واجهة للموردين لتتبع مستحقاتهم", descEn: "Interface for suppliers to track their dues" },
+      { name: "بوابة المساهمين", nameEn: "Shareholder portal", status: "phase3", description: "واجهة للمساهمين عرض التقارير المالية", descEn: "Interface for shareholders to view financial reports" },
     ],
   },
   {
@@ -255,14 +258,15 @@ const modules: FeatureModule[] = [
     color: "text-[#7C3AED]",
     bgColor: "bg-[#7C3AED]/10",
     features: [
-      { name: "OCR - قراءة الفواتير", status: "partial", description: "استخراج بيانات الفواتير من صور وPDF تلقائياً", details: ["واجهة الرفع موجودة", "يحتاج: تكامل Google Vision API"] },
-      { name: "التصنيف التلقائي", status: "phase3", description: "تصنيف المعاملات تلقائياً على الحسابات المناسبة" },
-      { name: "توقعات التدفق النقدي", status: "phase3", description: "تنبؤ بالسيولة المستقبلية بناءً على الأنماط التاريخية" },
+      { name: "OCR - قراءة الفواتير", nameEn: "OCR - invoice reading", status: "partial", description: "استخراج بيانات الفواتير من صور وPDF تلقائياً", descEn: "Extract invoice data from images and PDFs automatically", details: ["واجهة الرفع موجودة", "يحتاج: تكامل Google Vision API"], detailsEn: ["Upload interface exists", "Needs: Google Vision API integration"] },
+      { name: "التصنيف التلقائي", nameEn: "Automatic categorization", status: "phase3", description: "تصنيف المعاملات تلقائياً على الحسابات المناسبة", descEn: "Auto-categorize transactions to appropriate accounts" },
+      { name: "توقعات التدفق النقدي", nameEn: "Cash flow forecasting", status: "phase3", description: "تنبؤ بالسيولة المستقبلية بناءً على الأنماط التاريخية", descEn: "Predict future liquidity based on historical patterns" },
     ],
   },
 ];
 
 export function FeatureRoadmap() {
+  const { language, t } = useLanguage();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.title)));
   const [filterStatus, setFilterStatus] = useState<FeatureStatus | "all">("all");
   const { toasts, push, dismiss } = useToasts();
@@ -296,8 +300,8 @@ export function FeatureRoadmap() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>خارطة المزايا</h1>
-        <p className="text-muted-foreground mt-1">مراجعة شاملة لجميع مزايا المنصة وحالة التنفيذ</p>
+        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("خارطة المزايا", "Feature Roadmap")}</h1>
+        <p className="text-muted-foreground mt-1">{t("مراجعة شاملة لجميع مزايا المنصة وحالة التنفيذ", "Comprehensive review of all platform features and implementation status")}</p>
       </div>
 
       {/* Summary Cards */}
@@ -305,12 +309,12 @@ export function FeatureRoadmap() {
         <button onClick={() => setFilterStatus(filterStatus === "all" ? "all" : "all")} className="text-start">
           <Card className={`border-border hover:shadow-md transition-all ${filterStatus === "all" ? "ring-2 ring-[#1276E3]/20" : ""}`}>
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>الإجمالي</p>
+              <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</p>
               <p className="font-english text-foreground mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.total}</p>
               <div className="w-full bg-[#E5E7EB] rounded-full h-1.5 mt-2">
                 <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
               </div>
-              <p className="text-xs text-muted-foreground mt-1 font-english">{completionRate}% مكتمل</p>
+              <p className="text-xs text-muted-foreground mt-1 font-english">{completionRate}% {t("مكتمل", "complete")}</p>
             </CardContent>
           </Card>
         </button>
@@ -321,10 +325,10 @@ export function FeatureRoadmap() {
             <button key={status} onClick={() => setFilterStatus(filterStatus === status ? "all" : status)} className="text-start">
               <Card className={`border-border hover:shadow-md transition-all ${filterStatus === status ? "ring-2 ring-[#1276E3]/20" : ""}`}>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{cfg.label}</p>
+                  <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t(cfg.label, cfg.labelEn)}</p>
                   <p className={`font-english mt-1 ${cfg.color}`} style={{ fontSize: "1.5rem", fontWeight: 700 }}>{count}</p>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>
-                    <cfg.icon className="h-3 w-3" />{cfg.label}
+                    <cfg.icon className="h-3 w-3" />{t(cfg.label, cfg.labelEn)}
                   </span>
                 </CardContent>
               </Card>
@@ -334,10 +338,10 @@ export function FeatureRoadmap() {
         <button onClick={() => setFilterStatus("all")} className="text-start">
           <Card className="border-[#FEF3C7] bg-[#FEF3C7]/20 hover:shadow-md transition-all">
             <CardContent className="p-4">
-              <p className="text-xs text-[#92400E]" style={{ fontWeight: 600 }}>حرجة</p>
+              <p className="text-xs text-[#92400E]" style={{ fontWeight: 600 }}>{t("حرجة", "Critical")}</p>
               <p className="font-english text-[#92400E] mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.criticalDone}/{stats.critical}</p>
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 bg-[#FEF3C7] text-[#92400E]" style={{ fontWeight: 500 }}>
-                <Star className="h-3 w-3" />أساسية
+                <Star className="h-3 w-3" />{t("أساسية", "Essential")}
               </span>
             </CardContent>
           </Card>
@@ -365,11 +369,11 @@ export function FeatureRoadmap() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-foreground" style={{ fontWeight: 700 }}>{mod.title}</span>
-                      {mod.titleEn && <span className="text-xs text-muted-foreground/60 font-english">{mod.titleEn}</span>}
+                      <span className="text-foreground" style={{ fontWeight: 700 }}>{t(mod.title, mod.titleEn)}</span>
+                      {language === "ar" && mod.titleEn && <span className="text-xs text-muted-foreground/60 font-english">{mod.titleEn}</span>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-muted-foreground font-english">{liveCount}/{totalCount} مفعّل</span>
+                      <span className="text-xs text-muted-foreground font-english">{liveCount}/{totalCount} {t("مفعّل", "active")}</span>
                       <div className="w-16 bg-[#E5E7EB] rounded-full h-1">
                         <div className="bg-[#22C55E] h-1 rounded-full" style={{ width: `${(liveCount / totalCount) * 100}%` }} />
                       </div>
@@ -388,27 +392,27 @@ export function FeatureRoadmap() {
                         <cfg.icon className={`h-4.5 w-4.5 mt-0.5 shrink-0 ${cfg.color}`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>{feature.name}</span>
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>{cfg.label}</span>
+                            <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t(feature.name, feature.nameEn)}</span>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>{t(cfg.label, cfg.labelEn)}</span>
                             <button
-                              onClick={async (e) => { e.stopPropagation(); if (reported.has(feature.name)) return; try { await api.notifications.create({ type: "feature_report", title: `بلاغ على ميزة: ${feature.name}`, body: `قسم: ${mod.title} · الحالة: ${cfg.label}`, link: "/app/roadmap", refType: "feature", refId: feature.name }); setReported(prev => new Set(prev).add(feature.name)); push("success", `تم استلام بلاغك على «${feature.name}»`); } catch { push("error", "تعذر إرسال البلاغ"); } }}
+                              onClick={async (e) => { e.stopPropagation(); if (reported.has(feature.name)) return; try { await api.notifications.create({ type: "feature_report", title: `${t("بلاغ على ميزة:", "Feature report:")} ${t(feature.name, feature.nameEn)}`, body: `${t("قسم:", "Module:")} ${t(mod.title, mod.titleEn)} · ${t("الحالة:", "Status:")} ${t(cfg.label, cfg.labelEn)}`, link: "/app/roadmap", refType: "feature", refId: feature.name }); setReported(prev => new Set(prev).add(feature.name)); push("success", `${t("تم استلام بلاغك على", "We received your report on")} «${t(feature.name, feature.nameEn)}»`); } catch { push("error", t("تعذر إرسال البلاغ", "Could not send the report")); } }}
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-border text-muted-foreground/60 hover:text-[#E84B4B] hover:border-[#E84B4B]/40 opacity-0 group-hover:opacity-100"}`}
-                              title="أبلغ عن مشكلة في هذه الميزة — يصل البلاغ لفريق التطوير">
-                              {reported.has(feature.name) ? "✓ وصل البلاغ" : "⚑ بلاغ"}
+                              title={t("أبلغ عن مشكلة في هذه الميزة — يصل البلاغ لفريق التطوير", "Report an issue with this feature — the report reaches the dev team")}>
+                              {reported.has(feature.name) ? t("✓ وصل البلاغ", "✓ Report received") : t("⚑ بلاغ", "⚑ Report")}
                             </button>
                             {feature.critical && (
                               <span className="inline-flex items-center gap-0.5 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs text-[#92400E]" style={{ fontWeight: 600 }}>
-                                <Star className="h-3 w-3" />حرج
+                                <Star className="h-3 w-3" />{t("حرج", "Critical")}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">{feature.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{t(feature.description, feature.descEn)}</p>
                           {feature.details && feature.details.length > 0 && (
                             <ul className="mt-1.5 space-y-0.5">
                               {feature.details.map((d, j) => (
                                 <li key={j} className="text-xs text-muted-foreground/60 flex items-start gap-1.5">
                                   <span className="mt-1.5 h-1 w-1 rounded-full bg-[#D1D5DB] shrink-0" />
-                                  {d}
+                                  {t(d, feature.detailsEn?.[j])}
                                 </li>
                               ))}
                             </ul>
@@ -427,17 +431,17 @@ export function FeatureRoadmap() {
       {/* Legend */}
       <Card className="border-border">
         <CardContent className="p-5">
-          <h3 className="text-foreground mb-3" style={{ fontWeight: 700 }}>دليل الحالات</h3>
+          <h3 className="text-foreground mb-3" style={{ fontWeight: 700 }}>{t("دليل الحالات", "Status legend")}</h3>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {Object.entries(statusConfig).map(([key, cfg]) => (
               <div key={key} className="flex items-center gap-2">
                 <cfg.icon className={`h-4 w-4 ${cfg.color}`} />
-                <span className={`text-sm ${cfg.color}`} style={{ fontWeight: 500 }}>{cfg.label}</span>
+                <span className={`text-sm ${cfg.color}`} style={{ fontWeight: 500 }}>{t(cfg.label, cfg.labelEn)}</span>
               </div>
             ))}
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-[#92400E]" />
-              <span className="text-sm text-[#92400E]" style={{ fontWeight: 500 }}>حرج — أساسي للإطلاق</span>
+              <span className="text-sm text-[#92400E]" style={{ fontWeight: 500 }}>{t("حرج — أساسي للإطلاق", "Critical — essential for launch")}</span>
             </div>
           </div>
         </CardContent>

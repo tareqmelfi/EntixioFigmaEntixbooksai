@@ -43,6 +43,7 @@ const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "ما
 const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
 
 export function PurchasesDashboard() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { language } = useLanguage();
   const [data, setData] = useState<Data | null>(null);

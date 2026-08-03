@@ -41,15 +41,19 @@ import { AttachmentViewer, ViewerAttachment } from "../components/attachment-vie
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
-const PAYMENT_METHOD_LABELS: Record<ApiExpense["paymentMethod"], string> = {
-  CASH: "نقداً",
-  BANK_TRANSFER: "تحويل بنكي",
-  CARD: "بطاقة ائتمان",
-  STC_PAY: "STC Pay",
-  MADA: "مدى",
-  CHECK: "شيك",
-  OTHER: "أخرى",
-};
+type Translate = (ar: string, en?: string) => string;
+
+function paymentMethodLabels(t: Translate): Record<ApiExpense["paymentMethod"], string> {
+  return {
+    CASH: t("نقداً", "Cash"),
+    BANK_TRANSFER: t("تحويل بنكي", "Bank Transfer"),
+    CARD: t("بطاقة ائتمان", "Credit Card"),
+    STC_PAY: "STC Pay",
+    MADA: t("مدى", "Mada"),
+    CHECK: t("شيك", "Check"),
+    OTHER: t("أخرى", "Other"),
+  };
+}
 
 type UploadedAttachment = {
   name: string;
@@ -114,19 +118,25 @@ type CurrencySettlement = {
   isCrossCurrency: boolean;
 };
 
-const CURRENCIES = [
-  { value: "SAR", label: "ريال سعودي · SAR" },
-  { value: "USD", label: "دولار أمريكي · USD" },
-  { value: "EUR", label: "يورو · EUR" },
-  { value: "AED", label: "درهم إماراتي · AED" },
-  { value: "GBP", label: "جنيه إسترليني · GBP" },
-];
+function currencies(t: Translate) {
+  return [
+    { value: "SAR", label: t("ريال سعودي · SAR", "Saudi Riyal · SAR") },
+    { value: "USD", label: t("دولار أمريكي · USD", "US Dollar · USD") },
+    { value: "EUR", label: t("يورو · EUR", "Euro · EUR") },
+    { value: "AED", label: t("درهم إماراتي · AED", "UAE Dirham · AED") },
+    { value: "GBP", label: t("جنيه إسترليني · GBP", "British Pound · GBP") },
+  ];
+}
 
-const FX_TREATMENT_LABELS: Record<FxTreatment, string> = {
-  MERGE_INTO_EXPENSE: "ادمج الفرق في تكلفة المصروف",
-  FX_LOSS: "سجل الفرق كخسارة / ربح فرق عملة",
-  BANK_FEE: "سجل الفرق كتكلفة تحويل أو رسوم بنك",
-};
+const CURRENCY_VALUES = ["SAR", "USD", "EUR", "AED", "GBP"];
+
+function fxTreatmentLabels(t: Translate): Record<FxTreatment, string> {
+  return {
+    MERGE_INTO_EXPENSE: t("ادمج الفرق في تكلفة المصروف", "Merge the difference into the expense cost"),
+    FX_LOSS: t("سجل الفرق كخسارة / ربح فرق عملة", "Record the difference as FX loss / gain"),
+    BANK_FEE: t("سجل الفرق كتكلفة تحويل أو رسوم بنك", "Record the difference as transfer cost or bank fees"),
+  };
+}
 
 const DEFAULT_RATES_TO_SAR: Record<string, number> = {
   SAR: 1,
@@ -306,7 +316,7 @@ function num(value: any): number | null {
 function normalizeCurrency(value: any, fallback = "SAR"): string {
   const raw = String(value || "").trim().toUpperCase();
   const code = raw.match(/[A-Z]{3}/)?.[0];
-  if (code && CURRENCIES.some((currency) => currency.value === code)) return code;
+  if (code && CURRENCY_VALUES.includes(code)) return code;
   return fallback;
 }
 
@@ -339,7 +349,7 @@ function detectedDocumentCurrency(data: any, fallback = "SAR"): string {
   );
 }
 
-function calculateCurrencySettlement(form: FormState, sourceTotal: number): CurrencySettlement {
+function calculateCurrencySettlement(form: FormState, sourceTotal: number, t: Translate): CurrencySettlement {
   const sourceCurrency = normalizeCurrency(form.sourceCurrency);
   const baseCurrency = normalizeCurrency(form.baseCurrency, sourceCurrency);
   const actualPaidCurrency = normalizeCurrency(form.actualPaidCurrency, baseCurrency);
@@ -364,7 +374,7 @@ function calculateCurrencySettlement(form: FormState, sourceTotal: number): Curr
     actualRate,
     difference,
     treatment: form.fxTreatment,
-    treatmentLabel: FX_TREATMENT_LABELS[form.fxTreatment],
+    treatmentLabel: fxTreatmentLabels(t)[form.fxTreatment],
     isCrossCurrency: sourceCurrency !== baseCurrency || sourceCurrency !== actualPaidCurrency,
   };
 }
@@ -545,15 +555,15 @@ function buildExtractionWarnings(data: any, items: ApiExpense[], total: number |
   const warnings = Array.isArray(data?.warnings) ? [...data.warnings] : [];
   const date = data?.issueDate || null;
   const vendor = data?.issuer?.name || "";
-  if (!data?.issuer?.name) warnings.push("اسم المورد غير واضح؛ سيتم حفظه كنص ويمكن تعديله قبل الحفظ.");
-  if (!date) warnings.push("لم يتم تحديد تاريخ واضح من الإيصال، راجع التاريخ قبل الحفظ.");
+  if (!data?.issuer?.name) warnings.push(t("اسم المورد غير واضح؛ سيتم حفظه كنص ويمكن تعديله قبل الحفظ.", "Supplier name unclear; will be saved as text and can be edited before saving."));
+  if (!date) warnings.push(t("لم يتم تحديد تاريخ واضح من الإيصال، راجع التاريخ قبل الحفظ.", "No clear date detected from receipt, check the date before saving."));
   if (date) {
     const parsed = new Date(`${date}T00:00:00`);
     const today = new Date();
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(today.getFullYear() - 2);
-    if (parsed.getTime() > today.getTime() + 86_400_000) warnings.push("تاريخ الإيصال في المستقبل، راجعه قبل الحفظ.");
-    if (parsed < twoYearsAgo) warnings.push("تاريخ الإيصال قديم جداً، تأكد أنه ليس قراءة خاطئة.");
+    if (parsed.getTime() > today.getTime() + 86_400_000) warnings.push(t("تاريخ الإيصال في المستقبل، راجعه قبل الحفظ.", "Receipt date is in the future, check before saving."));
+    if (parsed < twoYearsAgo) warnings.push(t("تاريخ الإيصال قديم جداً، تأكد أنه ليس قراءة خاطئة.", "Receipt date is very old, make sure it is not a misread."));
   }
   if (total && date) {
     const duplicate = items.find((item) => {
@@ -562,7 +572,7 @@ function buildExtractionWarnings(data: any, items: ApiExpense[], total: number |
       const sameVendor = !vendor || !item.vendorName || item.vendorName.toLowerCase().includes(vendor.toLowerCase()) || vendor.toLowerCase().includes(item.vendorName.toLowerCase());
       return sameAmount && sameDate && sameVendor;
     });
-    if (duplicate) warnings.push(`قد يكون مسجلاً مسبقاً: ${duplicate.number} بنفس التاريخ والمبلغ.`);
+    if (duplicate) warnings.push(t("قد يكون مسجلاً مسبقاً: ", "May already be registered: ") + duplicate.number + t(" بنفس التاريخ والمبلغ.", " with same date and amount."));
   }
   return Array.from(new Set(warnings.filter(Boolean)));
 }
@@ -570,7 +580,7 @@ function buildExtractionWarnings(data: any, items: ApiExpense[], total: number |
 function selectedAttachment(expense: ApiExpense) {
   const type = expense.attachmentType || "";
   const base64 = expense.attachmentBase64 || "";
-  const name = expense.attachmentName || expense.receiptUrl || "المرفق";
+  const name = expense.attachmentName || expense.receiptUrl || t("المرفق", "Attachment");
   if (base64) return { type, base64, name };
   if (expense.receiptUrl) return { type, url: expense.receiptUrl, name };
   return null;
@@ -603,7 +613,7 @@ export function Expenses() {
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftAvailable, setDraftAvailable] = useState(() => hasStoredExpenseDraft());
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -641,7 +651,7 @@ export function Expenses() {
             amount: ocr.subtotal != null ? String(ocr.subtotal) : (ocr.total != null ? String(ocr.total) : f.amount),
             documentNumber: ocr.invoiceNumber || ocr.documentNumber || f.documentNumber || "",
             supplierTaxId: ocr.vendorTaxId || ocr.taxId || f.supplierTaxId || "",
-            description: ocr.description || (Array.isArray(ocr.lines) ? `${ocr.lines.length} بنود مُستخرجة` : "") || f.description,
+            description: ocr.description || (Array.isArray(ocr.lines) ? t("بنود مُستخرجة", "extracted items") : "") || f.description,
             sourceCurrency: ocr.currency || f.sourceCurrency || "SAR",
           }));
           setExtractionSummary(ocr.__error ? null : ocr);
@@ -689,7 +699,7 @@ export function Expenses() {
       setFormData(draft.formData);
       setExtractionSummary(draft.extractionSummary);
       setDraftSavedAt(draft.updatedAt);
-      setDraftNotice("تم استرجاع مسودة مصروف محفوظة تلقائياً.");
+      setDraftNotice(t("تم استرجاع مسودة مصروف محفوظة تلقائياً.", "Saved expense draft restored automatically."));
     } else {
       setFormData(emptyForm());
       setExtractionSummary(null);
@@ -796,11 +806,11 @@ export function Expenses() {
     const expectedPaymentTotal = settlement.isCrossCurrency ? settlement.actualPaidAmount : totalAmount;
     const expectedPaymentCurrency = settlement.isCrossCurrency ? settlement.actualPaidCurrency : settlement.sourceCurrency;
     if (!formData.category.trim() || totalAmount <= 0) {
-      setCreateError("الرجاء تعبئة التصنيف والمبلغ");
+      setCreateError(t("الرجاء تعبئة التصنيف والمبلغ", "Please fill in category and amount"));
       return;
     }
     if (Math.abs(splitTotal - expectedPaymentTotal) > 0.05) {
-      setCreateError(`مجموع المدفوعات ${money(splitTotal, expectedPaymentCurrency)} لا يطابق المبلغ المتوقع ${money(expectedPaymentTotal, expectedPaymentCurrency)}`);
+      setCreateError(t("مجموع المدفوعات ", "Payment total ") + money(splitTotal, expectedPaymentCurrency) + t(" لا يطابق المبلغ المتوقع ", " does not match expected ") + money(expectedPaymentTotal, expectedPaymentCurrency));
       return;
     }
     setBusy(true);
@@ -853,16 +863,16 @@ export function Expenses() {
       await refresh();
       const full = await api.expenses.get(saved.id);
       setSelected(full);
-      push("success", editingId ? `تم تحديث المصروف ${saved.number}` : `تم حفظ المصروف ${saved.number}`);
-      if ((saved as any).duplicateExpense) push("info", `تنبيه: يوجد مصروف مشابه ${(saved as any).duplicateExpense.number}`, 7000);
+      push("success", editingId ? t("تم تحديث المصروف ", "Expense updated ") + saved.number : t("تم حفظ المصروف ", "Expense saved ") + saved.number);
+      if ((saved as any).duplicateExpense) push("info", t("تنبيه: يوجد مصروف مشابه ", "Warning: similar expense ") + (saved as any).duplicateExpense.number, 7000);
       const ing = (saved as any).ingestion;
       if (!editingId && ing?.dedupeDecision === "UPDATED") {
-        push("info", "مصروف مطابق موجود — تم تحديثه بدل إنشاء نسخة مكررة", 6000);
+        push("info", t("مصروف مطابق موجود — تم تحديثه بدل إنشاء نسخة مكررة", "Matching expense found — updated instead of creating duplicate"), 6000);
       } else if (!editingId && ing?.dedupeDecision === "SKIPPED_DUPLICATE") {
-        push("info", "المصروف موجود مسبقاً — لم يتم إنشاء نسخة مكررة", 6000);
+        push("info", t("المصروف موجود مسبقاً — لم يتم إنشاء نسخة مكررة", "Expense already exists — no duplicate created"), 6000);
       }
       if (!editingId && ing?.attachmentStatus?.attached > 0) {
-        push("info", `أُرفق ${ing.attachmentStatus.attached} ملف بالمصروف`, 5000);
+        push("info", t("أُرفق ", "Attached ") + ing.attachmentStatus.attached + t(" ملف بالمصروف", " file(s) to expense"), 5000);
       }
       closeCreate(false);
     } catch (e: any) {
@@ -920,14 +930,14 @@ export function Expenses() {
     setAttBusy(true);
     let uploaded = 0;
     for (const file of Array.from(files)) {
-      if (file.size > 25 * 1024 * 1024) { push("error", `${file.name}: الحد الأقصى 25 ميجا`); continue; }
+      if (file.size > 25 * 1024 * 1024) { push("error", file.name + t(": الحد الأقصى 25 ميجا", ": Max 25MB")); continue; }
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result || ""));
         r.onerror = () => reject(new Error("read failed"));
         r.readAsDataURL(file);
       }).catch(() => "");
-      if (!dataUrl) { push("error", `${file.name}: تعذّر قراءة الملف`); continue; }
+      if (!dataUrl) { push("error", file.name + t(": تعذّر قراءة الملف", ": Could not read file")); continue; }
       try {
         await api.expenses.attachments.upload(selected.id, {
           filename: file.name,
@@ -944,11 +954,11 @@ export function Expenses() {
           arr.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, base64: dataUrl.split(",")[1] || "" });
           await api.expenses.update(selected.id, { extractedJson: { ...cur, attachmentsFull: arr } } as any);
           uploaded++;
-        } catch { push("error", `${file.name}: فشل الرفع`); }
+        } catch { push("error", file.name + t(": فشل الرفع", ": Upload failed")); }
       }
     }
     if (uploaded > 0) {
-      push("success", uploaded === 1 ? "تم رفع المرفق" : `تم رفع ${uploaded} مرفقات`);
+      push("success", uploaded === 1 ? t("تم رفع المرفق", "Attachment uploaded") : t("تم رفع ", "Uploaded ") + uploaded + t(" مرفقات", " attachments"));
       try { setSelected(await api.expenses.get(selected.id)); } catch { /* keep current */ }
     }
     setAttBusy(false);
@@ -969,8 +979,8 @@ export function Expenses() {
         setActiveAttIdx((i) => Math.min(i, Math.max(0, next.length - 1)));
         return next;
       });
-      push("success", "تم حذف المرفق");
-    } catch { push("error", "فشل حذف المرفق"); }
+      push("success", t("تم حذف المرفق", "Attachment deleted"));
+    } catch { push("error", t("فشل حذف المرفق", "Failed to delete attachment")); }
   }
 
   async function handleDelete(id: string) {
@@ -979,7 +989,7 @@ export function Expenses() {
       await api.expenses.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
       if (selected?.id === id) setSelected(null);
-      push("success", "تم حذف المصروف");
+      push("success", t("تم حذف المصروف", "Expense deleted"));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Delete failed" }));
     }
@@ -1018,9 +1028,9 @@ export function Expenses() {
           confidence: data?.confidence ?? null,
           model: data?._meta?.model || null,
           lineCount: 0,
-          warnings: [data?.message || "تم اكتشاف كشف حساب بنكي. لم يتم تحويله إلى مصروف."],
+          warnings: [data?.message || t("تم اكتشاف كشف حساب بنكي. لم يتم تحويله إلى مصروف.", "Bank statement detected. Not converted to expense.")],
         });
-        push("error", "تم اكتشاف كشف حساب بنكي. لم يتم تعبئة المصروف أو حفظه.");
+        push("error", t("تم اكتشاف كشف حساب بنكي. لم يتم تعبئة المصروف أو حفظه.", "Bank statement detected. Expense was not filled or saved."));
         return;
       }
       const totals = extractionTotals(data);
@@ -1071,7 +1081,7 @@ export function Expenses() {
         lineCount: lineItems.length,
         warnings,
       });
-      push("success", `تم استخراج البيانات بثقة ${Math.round((data?.confidence || 0) * 100)}%`);
+      push("success", t("تم استخراج البيانات بثقة ", "Data extracted with ") + Math.round((data?.confidence || 0) * 100) + "%");
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الاستخراج", en: "Extraction failed" }));
     }
@@ -1120,15 +1130,15 @@ export function Expenses() {
     return (
       <>
         <FullPageForm
-          title={editingId ? "تعديل مصروف" : "مصروف جديد"}
-          subtitle="ارفع الإيصال وسيتم استخراج المورد والضريبة والأصناف تلقائياً"
+          title={editingId ? t("تعديل مصروف", "Edit expense") : t("مصروف جديد", "New expense")}
+          subtitle={t("ارفع الإيصال وسيتم استخراج المورد والضريبة والأصناف تلقائياً", "Upload the receipt and supplier, tax, and items will be extracted automatically")}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => closeCreate()} className="border-border">إلغاء</Button>
+              <Button type="button" variant="outline" onClick={() => closeCreate()} className="border-border">{t("إلغاء", "Cancel")}</Button>
               <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
-                {busy ? "..." : editingId ? "تحديث" : "حفظ"}
+                {busy ? "..." : editingId ? t("تحديث", "Update") : t("حفظ", "Save")}
               </Button>
             </div>
           }
@@ -1136,7 +1146,7 @@ export function Expenses() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.1fr)] max-w-7xl mx-auto items-start">
             <DocumentPreviewPane
               className="xl:sticky xl:top-4 min-h-[640px]"
-              hint="ارفع إيصالاً أو فاتورة مصروف"
+              hint={t("ارفع إيصالاً أو فاتورة مصروف", "Upload a receipt or expense invoice")}
               onFilesAdded={handleFilesAdded}
               onExtract={handleExtract}
               autoExtract={!editingId}
@@ -1150,10 +1160,10 @@ export function Expenses() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 font-semibold">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span>مسودة محفوظة تلقائياً</span>
+                        <span>{t("مسودة محفوظة تلقائياً", "Auto-saved draft")}</span>
                         {savedAtLabel && <span className="font-english text-xs font-normal text-muted-foreground">{savedAtLabel}</span>}
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">لو رجعت للقائمة أو قفلت الشاشة، ترجع تكمل نفس المصروف من زر المسودة.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t("لو رجعت للقائمة أو قفلت الشاشة، ترجع تكمل نفس المصروف من زر المسودة.", "If you go back or close the screen, you can resume from the draft button.")}</p>
                     </div>
                     <Button
                       type="button"
@@ -1168,7 +1178,7 @@ export function Expenses() {
                         setDraftNotice(null);
                       }}
                     >
-                      حذف المسودة وبدء جديد
+                      {t("حذف المسودة وبدء جديد", "Delete draft and start fresh")}
                     </Button>
                   </div>
                   {draftNotice && <div className="mt-2 rounded-md bg-primary/5 px-2 py-1 text-xs text-[#0B5CAD]">{draftNotice}</div>}
@@ -1179,18 +1189,18 @@ export function Expenses() {
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
-                      <div className="font-semibold">تمت قراءة المرفق وتعبئة بيانات المورد والضريبة والأصناف</div>
+                      <div className="font-semibold">{t("تمت قراءة المرفق وتعبئة بيانات المورد والضريبة والأصناف", "Attachment read and supplier, tax, items filled")}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         <span className="font-english">{extractionSummary.fileName}</span>
                         {extractionSummary.vendor ? <> · {extractionSummary.vendor}</> : null}
-                        {extractionSummary.documentNumber ? <> · رقم <span className="font-english">{extractionSummary.documentNumber}</span></> : null}
+                        {extractionSummary.documentNumber ? <> · {t("رقم", "No.")} <span className="font-english">{extractionSummary.documentNumber}</span></> : null}
                         {extractionSummary.total ? <> · <span className="font-english">{extractionSummary.total.toFixed(2)} SAR</span></> : null}
-                        {extractionSummary.confidence != null ? <> · ثقة <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
+                        {extractionSummary.confidence != null ? <> · {t("ثقة", "Confidence")} <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
                       </div>
                       <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                        <div className="rounded bg-white px-2 py-1">قبل الضريبة <span className="font-english">{money(extractionSummary.subtotal || 0)}</span></div>
-                        <div className="rounded bg-white px-2 py-1">الضريبة <span className="font-english">{money(extractionSummary.tax || 0)}</span></div>
-                        <div className="rounded bg-white px-2 py-1">الأصناف <span className="font-english">{extractionSummary.lineCount}</span></div>
+                        <div className="rounded bg-white px-2 py-1">{t("قبل الضريبة ", "Before tax ")}<span className="font-english">{money(extractionSummary.subtotal || 0)}</span></div>
+                        <div className="rounded bg-white px-2 py-1">{t("الضريبة ", "Tax ")}<span className="font-english">{money(extractionSummary.tax || 0)}</span></div>
+                        <div className="rounded bg-white px-2 py-1">{t("الأصناف ", "Items ")}<span className="font-english">{extractionSummary.lineCount}</span></div>
                       </div>
                       {extractionSummary.warnings.length > 0 && (
                         <div className="mt-2 space-y-1">
@@ -1210,44 +1220,44 @@ export function Expenses() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">المورد / الجهة</Label>
-                  <Input placeholder="مثال: شركة الكهرباء" value={formData.vendorName} onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })} className="border-border" />
-                  <p className="text-xs text-muted-foreground">إذا لم يكن المورد مسجلاً سيتم إنشاؤه تلقائياً كجهة موردة.</p>
+                  <Label className="text-foreground/80">{t("المورد / الجهة", "Supplier / Entity")}</Label>
+                  <Input placeholder={t("مثال: شركة الكهرباء", "e.g. Electric Company")} value={formData.vendorName} onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })} className="border-border" />
+                  <p className="text-xs text-muted-foreground">{t("إذا لم يكن المورد مسجلاً سيتم إنشاؤه تلقائياً كجهة موردة.", "If the supplier is not registered, it will be created automatically.")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">الرقم الضريبي للمورد</Label>
+                  <Label className="text-foreground/80">{t("الرقم الضريبي للمورد", "Supplier Tax No.")}</Label>
                   <Input dir="ltr" placeholder="300000000000003" value={formData.supplierTaxId} onChange={(e) => setFormData({ ...formData, supplierTaxId: normalizeDigits(e.target.value) })} className="border-border font-english" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">التصنيف *</Label>
-                  <Input placeholder="مثال: ضيافة ووجبات · فواتير خدمات" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-border" />
+                  <Label className="text-foreground/80">{t("التصنيف *", "Category *")}</Label>
+                  <Input placeholder={t("مثال: ضيافة ووجبات · فواتير خدمات", "e.g. Entertainment & meals · Service invoices")} value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-border" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">رقم الفاتورة / الإيصال</Label>
+                  <Label className="text-foreground/80">{t("رقم الفاتورة / الإيصال", "Invoice / Receipt No.")}</Label>
                   <Input dir="ltr" placeholder="429299" value={formData.documentNumber} onChange={(e) => setFormData({ ...formData, documentNumber: normalizeDigits(e.target.value) })} className="border-border font-english" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">التاريخ *</Label>
+                  <Label className="text-foreground/80">{t("التاريخ *", "Date *")}</Label>
                   <DateInput value={formData.date} onChange={(iso) => setFormData({ ...formData, date: iso })} required inputClassName="" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">طريقة الدفع *</Label>
+                  <Label className="text-foreground/80">{t("طريقة الدفع *", "Payment Method *")}</Label>
                   <Select value={formData.paymentMethod} onValueChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}>
                     <SelectTrigger className="border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CASH">نقداً</SelectItem>
-                      <SelectItem value="BANK_TRANSFER">تحويل بنكي</SelectItem>
-                      <SelectItem value="CARD">بطاقة ائتمان</SelectItem>
-                      <SelectItem value="MADA">مدى</SelectItem>
+                      <SelectItem value="CASH">{t("نقداً", "Cash")}</SelectItem>
+                      <SelectItem value="BANK_TRANSFER">{t("تحويل بنكي", "Bank Transfer")}</SelectItem>
+                      <SelectItem value="CARD">{t("بطاقة ائتمان", "Credit Card")}</SelectItem>
+                      <SelectItem value="MADA">{t("مدى", "Mada")}</SelectItem>
                       <SelectItem value="STC_PAY">STC Pay</SelectItem>
-                      <SelectItem value="CHECK">شيك</SelectItem>
-                      <SelectItem value="OTHER">أخرى</SelectItem>
+                      <SelectItem value="CHECK">{t("شيك", "Check")}</SelectItem>
+                      <SelectItem value="OTHER">{t("أخرى", "Other")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1255,7 +1265,7 @@ export function Expenses() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">قبل الضريبة *</Label>
+                  <Label className="text-foreground/80">{t("قبل الضريبة *", "Before Tax *")}</Label>
                   <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.amount} onChange={(e) => {
                     const amount = normalizeDigits(e.target.value);
                     const tax = Number(normalizeDigits(formData.taxAmount || "0"));
@@ -1263,7 +1273,7 @@ export function Expenses() {
                   }} required dir="ltr" className="border-border font-english" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">ضريبة VAT</Label>
+                  <Label className="text-foreground/80">{t("ضريبة VAT", "VAT")}</Label>
                   <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.taxAmount} onChange={(e) => {
                     const taxAmount = normalizeDigits(e.target.value);
                     const amount = Number(normalizeDigits(formData.amount || "0"));
@@ -1271,7 +1281,7 @@ export function Expenses() {
                   }} dir="ltr" className="border-border font-english" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">الإجمالي</Label>
+                  <Label className="text-foreground/80">{t("الإجمالي", "Total")}</Label>
                   <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: normalizeDigits(e.target.value) })} dir="ltr" className="border-border font-english" />
                 </div>
               </div>
@@ -1279,18 +1289,18 @@ export function Expenses() {
               <div className="rounded-lg border border-[#BFDBFE] bg-[#F8FBFF] p-3">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">تسوية العملة والدفع الفعلي</h3>
-                    <p className="text-xs text-muted-foreground">افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.</p>
+                    <h3 className="text-sm font-semibold text-foreground">{t("تسوية العملة والدفع الفعلي", "Currency Settlement & Actual Payment")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.", "Separate invoice currency from bank currency, and record FX difference or transfer cost clearly.")}</p>
                   </div>
                   {currencySettlement.isCrossCurrency && (
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${currencySettlement.difference > 0 ? "bg-amber-100 text-amber-800" : currencySettlement.difference < 0 ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>
-                      فرق {money(Math.abs(currencySettlement.difference), currencySettlement.actualPaidCurrency)}
+                      {t("فرق", "Diff")} {money(Math.abs(currencySettlement.difference), currencySettlement.actualPaidCurrency)}
                     </span>
                   )}
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">عملة الفاتورة</Label>
+                    <Label className="text-xs text-foreground/80">{t("عملة الفاتورة", "Invoice currency")}</Label>
                     <Select value={formData.sourceCurrency} onValueChange={(sourceCurrency) => {
                       const exchangeRate = String(defaultExchangeRate(sourceCurrency, formData.baseCurrency));
                       const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
@@ -1306,7 +1316,7 @@ export function Expenses() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">عملة الدفاتر</Label>
+                    <Label className="text-xs text-foreground/80">{t("عملة الدفاتر", "Books currency")}</Label>
                     <Select value={formData.baseCurrency} onValueChange={(baseCurrency) => {
                       const exchangeRate = String(defaultExchangeRate(formData.sourceCurrency, baseCurrency));
                       const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
@@ -1323,15 +1333,15 @@ export function Expenses() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">سعر السوق / العادل</Label>
+                    <Label className="text-xs text-foreground/80">{t("سعر السوق / العادل", "Market / Fair rate")}</Label>
                     <Input dir="ltr" inputMode="decimal" value={formData.exchangeRate} onChange={(e) => setFormData({ ...formData, exchangeRate: normalizeDigits(e.target.value) })} className="h-9 border-border font-english text-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">المسحوب فعلياً</Label>
+                    <Label className="text-xs text-foreground/80">{t("المسحوب فعلياً", "Actually paid")}</Label>
                     <Input dir="ltr" inputMode="decimal" placeholder={String(currencySettlement.bookBaseAmount || 0)} value={formData.actualPaidAmount} onChange={(e) => setFormData({ ...formData, actualPaidAmount: normalizeDigits(e.target.value) })} className="h-9 border-border font-english text-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">عملة السحب</Label>
+                    <Label className="text-xs text-foreground/80">{t("عملة السحب", "Payment currency")}</Label>
                     <Select value={formData.actualPaidCurrency} onValueChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}>
                       <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
@@ -1340,19 +1350,19 @@ export function Expenses() {
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr]">
                   <div className="rounded-md border border-border bg-white p-2">
-                    <p className="text-[11px] text-muted-foreground">إجمالي الفاتورة</p>
+                    <p className="text-[11px] text-muted-foreground">{t("إجمالي الفاتورة", "Invoice total")}</p>
                     <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.sourceTotal, currencySettlement.sourceCurrency)}</p>
                   </div>
                   <div className="rounded-md border border-border bg-white p-2">
-                    <p className="text-[11px] text-muted-foreground">القيمة العادلة</p>
+                    <p className="text-[11px] text-muted-foreground">{t("القيمة العادلة", "Fair value")}</p>
                     <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.bookBaseAmount, currencySettlement.baseCurrency)}</p>
                   </div>
                   <div className="rounded-md border border-border bg-white p-2">
-                    <p className="text-[11px] text-muted-foreground">السحب البنكي</p>
+                    <p className="text-[11px] text-muted-foreground">{t("السحب البنكي", "Bank withdrawal")}</p>
                     <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">معالجة الفرق</Label>
+                    <Label className="text-xs text-foreground/80">{t("معالجة الفرق", "Difference handling")}</Label>
                     <Select value={formData.fxTreatment} onValueChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}>
                       <SelectTrigger className="h-9 border-border bg-white text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -1366,8 +1376,8 @@ export function Expenses() {
               <div className="rounded-lg border border-border bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">تقسيم البنود</h3>
-                    <p className="text-xs text-muted-foreground">راجع الأصناف المقروءة وعدل الحساب لكل بند قبل الحفظ.</p>
+                    <h3 className="text-sm font-semibold text-foreground">{t("تقسيم البنود", "Line Items")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("راجع الأصناف المقروءة وعدل الحساب لكل بند قبل الحفظ.", "Review extracted items and adjust the account for each line before saving.")}</p>
                   </div>
                   <Button
                     type="button"
@@ -1378,29 +1388,29 @@ export function Expenses() {
                       lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, discountAmount: 0, taxRate: 0.15, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة", costCenter: "", projectCode: "", sourceCurrency: f.sourceCurrency }],
                     }))}
                   >
-                    <Plus className="me-1 h-3.5 w-3.5" /> إضافة بند
+                    <Plus className="me-1 h-3.5 w-3.5" /> {t("إضافة بند", "Add line")}
                   </Button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1180px] text-sm">
                     <thead className="bg-muted text-xs text-muted-foreground">
                       <tr>
-                        <th className="px-2 py-2 text-start">الوصف</th>
-                        <th className="px-2 py-2 text-start">التصنيف</th>
-                        <th className="px-2 py-2 text-start">الحساب</th>
-                        <th className="px-2 py-2 text-start">مشروع / مركز</th>
-                        <th className="px-2 py-2 text-start">الكمية</th>
-                        <th className="px-2 py-2 text-start">السعر</th>
-                        <th className="px-2 py-2 text-start">خصم</th>
+                        <th className="px-2 py-2 text-start">{t("الوصف", "Description")}</th>
+                        <th className="px-2 py-2 text-start">{t("التصنيف", "Category")}</th>
+                        <th className="px-2 py-2 text-start">{t("الحساب", "Account")}</th>
+                        <th className="px-2 py-2 text-start">{t("مشروع / مركز", "Project / Center")}</th>
+                        <th className="px-2 py-2 text-start">{t("الكمية", "Qty")}</th>
+                        <th className="px-2 py-2 text-start">{t("السعر", "Price")}</th>
+                        <th className="px-2 py-2 text-start">{t("خصم", "Discount")}</th>
                         <th className="px-2 py-2 text-start">VAT</th>
-                        <th className="px-2 py-2 text-start">شامل؟</th>
-                        <th className="px-2 py-2 text-start">الإجمالي</th>
+                        <th className="px-2 py-2 text-start">{t("شامل؟", "Incl?")}</th>
+                        <th className="px-2 py-2 text-start">{t("الإجمالي", "Total")}</th>
                         <th className="px-2 py-2" />
                       </tr>
                     </thead>
                     <tbody>
                       {formData.lineItems.length === 0 && (
-                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.</td></tr>
+                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">لم يتم استخراج أصناف بعد. يمكنك {t("إضافة بند", "Add line")} يدوي أو إعادة رفع الفاتورة.</td></tr>
                       )}
                       {formData.lineItems.map((line, idx) => (
                         <tr key={idx} className="border-t border-border/50">
@@ -1450,8 +1460,8 @@ export function Expenses() {
                             <Select value={line.taxInclusive ? "yes" : "no"} onValueChange={(value) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxInclusive: value === "yes" } : item) }))}>
                               <SelectTrigger className="h-8 w-20 border-border text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="yes">شامل</SelectItem>
-                                <SelectItem value="no">غير شامل</SelectItem>
+                                <SelectItem value="yes">{t("شامل", "Inclusive")}</SelectItem>
+                                <SelectItem value="no">{t("غير شامل", "Exclusive")}</SelectItem>
                               </SelectContent>
                             </Select>
                           </td>
@@ -1471,8 +1481,8 @@ export function Expenses() {
               <div className="rounded-lg border border-border bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">تقسيم المدفوعات</h3>
-                    <p className="text-xs text-muted-foreground">يدعم الدفع الجزئي: كاش + بطاقة + تحويل.</p>
+                    <h3 className="text-sm font-semibold text-foreground">{t("تقسيم المدفوعات", "Payment Splits")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("يدعم الدفع الجزئي: كاش + بطاقة + تحويل.", "Supports split payments: cash + card + transfer.")}</p>
                   </div>
                   <Button
                     type="button"
@@ -1480,7 +1490,7 @@ export function Expenses() {
                     className="h-8 border-border text-xs"
                     onClick={() => setFormData((f) => ({ ...f, paymentSplits: [...f.paymentSplits, { method: "CASH", amount: 0, currency: f.actualPaidCurrency, reference: null }] }))}
                   >
-                    <Plus className="me-1 h-3.5 w-3.5" /> إضافة دفعة
+                    <Plus className="me-1 h-3.5 w-3.5" /> {t("إضافة دفعة", "Add payment")}
                   </Button>
                 </div>
                 <div className="space-y-2 p-3">
@@ -1502,7 +1512,7 @@ export function Expenses() {
                         <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
                         <SelectContent>{CURRENCIES.map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.value}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Input placeholder="مرجع / آخر 4 أرقام البطاقة" value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
+                      <Input placeholder={t("مرجع / آخر 4 أرقام البطاقة", "Reference / last 4 digits")} value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
                         const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                         return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, reference: e.target.value } : item) };
                       })} className="h-9 border-border" />
@@ -1517,24 +1527,24 @@ export function Expenses() {
                     </div>
                   ))}
                   <div className={`text-xs ${Math.abs(paymentRowsTotal - (currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal)) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>
-                    مجموع المدفوعات: <span className="font-english">{money(paymentRowsTotal, currencySettlement.actualPaidCurrency)}</span>
+                    {t("مجموع المدفوعات:", "Payment total:")} <span className="font-english">{money(paymentRowsTotal, currencySettlement.actualPaidCurrency)}</span>
                     <span className="mx-1 text-muted-foreground/60">/</span>
-                    المتوقع: <span className="font-english">{money(currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currencySettlement.isCrossCurrency ? currencySettlement.actualPaidCurrency : currencySettlement.sourceCurrency)}</span>
+                    {t("المتوقع:", "Expected:")} <span className="font-english">{money(currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currencySettlement.isCrossCurrency ? currencySettlement.actualPaidCurrency : currencySettlement.sourceCurrency)}</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-foreground/80">ملاحظات</Label>
-                <textarea rows={3} placeholder="تفاصيل إضافية..." value={formData.notes || formData.description} onChange={(e) => setFormData({ ...formData, notes: e.target.value, description: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+                <Label className="text-foreground/80">{t("ملاحظات", "Notes")}</Label>
+                <textarea rows={3} placeholder={t("تفاصيل إضافية...", "Additional details...")} value={formData.notes || formData.description} onChange={(e) => setFormData({ ...formData, notes: e.target.value, description: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
               </div>
 
               <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground">
-                سيتم حفظ الفاتورة <span className="font-english font-semibold">{money(formTotal, currencySettlement.sourceCurrency)}</span>
+                {t("سيتم حفظ الفاتورة", "Will save invoice")} <span className="font-english font-semibold">{money(formTotal, currencySettlement.sourceCurrency)}</span>
                 {currencySettlement.isCrossCurrency && (
-                  <> · السحب الفعلي <span className="font-english font-semibold">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</span></>
+                  <> · {t("السحب الفعلي", "Actual withdrawal")} <span className="font-english font-semibold">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</span></>
                 )}
-                {" "}مع {formData.attachments.length ? `${formData.attachments.length} مرفق` : "بدون مرفق"}.
+                {" "} مع {formData.attachments.length ? `${formData.attachments.length} مرفق` : "بدون مرفق"}.
               </div>
             </div>
           </div>
@@ -1549,41 +1559,41 @@ export function Expenses() {
     const paymentSplits = Array.isArray(selected.paymentSplits) && selected.paymentSplits.length
       ? selected.paymentSplits
       : [{ method: selected.paymentMethod, amount: Number(selected.total || 0), reference: selected.reference || null }];
-    const vendorName = selected.contact?.displayName || selected.vendorName || "غير محدد";
+    const vendorName = selected.contact?.displayName || selected.vendorName || t("غير محدد", "Unspecified");
     const selectedSettlement = (selected.extractedJson as any)?.currencySettlement as CurrencySettlement | undefined;
     return (
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={() => { setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="border-border">
-              <ArrowRight className="me-2 h-4 w-4" /> المصروفات
+              <ArrowRight className="me-2 h-4 w-4" /> {t("المصروفات", "Expenses")}
             </Button>
             <div>
-              <h1 className="text-foreground" style={{ fontSize: "1.2rem", fontWeight: 700 }}>مصروف <span className="font-english">{selected.number}</span></h1>
+              <h1 className="text-foreground" style={{ fontSize: "1.2rem", fontWeight: 700 }}>{t("مصروف ", "Expense ")}<span className="font-english">{selected.number}</span></h1>
               <p className="text-sm text-muted-foreground">{vendorName} · {selected.category}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => { setSearchQuery(vendorName); setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="border-border">
-              <Building2 className="me-2 h-4 w-4" /> مصاريف الجهة
+              <Building2 className="me-2 h-4 w-4" /> {t("مصاريف الجهة", "Entity expenses")}
             </Button>
             <Button variant="outline" onClick={openCreate} className="border-border">
-              <CopyPlus className="me-2 h-4 w-4" /> مصروف جديد
+              <CopyPlus className="me-2 h-4 w-4" /> {t("مصروف جديد", "New expense")}
             </Button>
             <Button variant="outline" onClick={() => openEdit(selected)} className="border-border">
-              <Edit3 className="me-2 h-4 w-4" /> تعديل
+              <Edit3 className="me-2 h-4 w-4" /> {t("تعديل", "Edit")}
             </Button>
-            <Button variant="outline" onClick={() => push("info", "الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات")} className="border-border">
-              <Send className="me-2 h-4 w-4" /> إرسال
+            <Button variant="outline" onClick={() => push("info", t("الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات", "Email sending will be linked to expense templates later"))} className="border-border">
+              <Send className="me-2 h-4 w-4" /> {t("إرسال", "Send")}
             </Button>
-            <Button variant="outline" onClick={() => push("info", "ربط المصروف بالحساب البنكي/القيد سيكون من شاشة المطابقة البنكية")} className="border-border">
-              <Link2 className="me-2 h-4 w-4" /> ربط حساب
+            <Button variant="outline" onClick={() => push("info", t("ربط المصروف بالحساب البنكي/القيد سيكون من شاشة المطابقة البنكية", "Linking expense to bank account/entry will be from bank reconciliation screen"))} className="border-border">
+              <Link2 className="me-2 h-4 w-4" /> {t("ربط حساب", "Link account")}
             </Button>
             {pendingDelete === selected.id ? (
               <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
             ) : (
               <Button variant="outline" onClick={() => setPendingDelete(selected.id)} className="border-red-200 text-red-600 hover:bg-red-50">
-                <Trash2 className="me-2 h-4 w-4" /> حذف
+                <Trash2 className="me-2 h-4 w-4" /> {t("حذف", "Delete")}
               </Button>
             )}
           </div>
@@ -1595,11 +1605,11 @@ export function Expenses() {
               <CardContent className="p-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">الإجمالي</p>
+                    <p className="text-xs text-muted-foreground">{t("الإجمالي", "Total")}</p>
                     <p className="font-english text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{money(selected.total, selected.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">قبل الضريبة</p>
+                    <p className="text-xs text-muted-foreground">{t("قبل الضريبة", "Before tax")}</p>
                     <p className="font-english text-sm text-foreground">{money(selected.subtotal ?? selected.amount, selected.currency)}</p>
                   </div>
                   <div>
@@ -1607,8 +1617,8 @@ export function Expenses() {
                     <p className="font-english text-sm text-foreground">{money(selected.taxAmount, selected.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">طريقة الدفع</p>
-                    <p className="text-sm text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} دفعات` : PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
+                    <p className="text-xs text-muted-foreground">{t("طريقة الدفع", "Payment method")}</p>
+                    <p className="text-sm text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} {t("دفعات", "payments")}` : PAYMENT_METHOD_LABELS[selected.paymentMethod]}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1616,23 +1626,23 @@ export function Expenses() {
 
             {selectedSettlement && (
               <Card className="border-[#BFDBFE] bg-[#F8FBFF]">
-                <CardHeader><CardTitle className="text-foreground">تسوية العملة</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-foreground">{t("تسوية العملة", "Currency Settlement")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">عملة الفاتورة</p>
+                      <p className="text-xs text-muted-foreground">{t("عملة الفاتورة", "Invoice currency")}</p>
                       <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">القيمة العادلة</p>
+                      <p className="text-xs text-muted-foreground">{t("القيمة العادلة", "Fair value")}</p>
                       <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">السحب البنكي</p>
+                      <p className="text-xs text-muted-foreground">{t("السحب البنكي", "Bank withdrawal")}</p>
                       <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">الفرق</p>
+                      <p className="text-xs text-muted-foreground">{t("الفرق", "Difference")}</p>
                       <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-amber-700" : selectedSettlement.difference < 0 ? "text-emerald-700" : "text-foreground"}`}>
                         {money(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
                       </p>
@@ -1644,16 +1654,16 @@ export function Expenses() {
             )}
 
             <Card className="border-border">
-              <CardHeader><CardTitle className="text-foreground">المدفوعات</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-foreground">{t("المدفوعات", "Payments")}</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[520px] text-sm">
                     <thead className="bg-muted text-xs text-muted-foreground">
                       <tr>
-                        <th className="px-3 py-2 text-start">الطريقة</th>
-                        <th className="px-3 py-2 text-start">المرجع</th>
-                        <th className="px-3 py-2 text-start">الحساب</th>
-                        <th className="px-3 py-2 text-start">المبلغ</th>
+                        <th className="px-3 py-2 text-start">{t("الطريقة", "Method")}</th>
+                        <th className="px-3 py-2 text-start">{t("المرجع", "Reference")}</th>
+                        <th className="px-3 py-2 text-start">{t("الحساب", "Account")}</th>
+                        <th className="px-3 py-2 text-start">{t("المبلغ", "Amount")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1672,34 +1682,34 @@ export function Expenses() {
             </Card>
 
             <Card className="border-border">
-              <CardHeader><CardTitle className="text-foreground">بيانات المصروف</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-foreground">{t("بيانات المصروف", "Expense Details")}</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                <div><span className="text-muted-foreground">رقم المصروف:</span> <span className="font-english">{selected.number}</span></div>
-                <div><span className="text-muted-foreground">رقم الفاتورة:</span> <span className="font-english">{selected.documentNumber || selected.reference || "—"}</span></div>
-                <div><span className="text-muted-foreground">التاريخ:</span> <span className="font-english">{selected.date.slice(0, 10)}</span></div>
-                <div><span className="text-muted-foreground">التصنيف:</span> <span>{selected.category}</span></div>
-                <div><span className="text-muted-foreground">المورد:</span> <span>{vendorName}</span></div>
-                <div><span className="text-muted-foreground">الرقم الضريبي:</span> <span className="font-english">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</span></div>
-                {selected.description && <div className="md:col-span-2"><span className="text-muted-foreground">الوصف:</span> <span>{selected.description}</span></div>}
-                {selected.notes && <div className="md:col-span-2"><span className="text-muted-foreground">ملاحظات:</span> <span>{selected.notes}</span></div>}
-                {selected.duplicateOfId && <div className="md:col-span-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">يوجد مصروف مشابه وتم تعليمه للمراجعة.</div>}
+                <div><span className="text-muted-foreground">{t("رقم المصروف:", "Expense No.:")}</span> <span className="font-english">{selected.number}</span></div>
+                <div><span className="text-muted-foreground">{t("رقم الفاتورة:", "Invoice No.:")}</span> <span className="font-english">{selected.documentNumber || selected.reference || "—"}</span></div>
+                <div><span className="text-muted-foreground">{t("التاريخ:", "Date:")}</span> <span className="font-english">{selected.date.slice(0, 10)}</span></div>
+                <div><span className="text-muted-foreground">{t("التصنيف:", "Category:")}</span> <span>{selected.category}</span></div>
+                <div><span className="text-muted-foreground">{t("المورد:", "Supplier:")}</span> <span>{vendorName}</span></div>
+                <div><span className="text-muted-foreground">{t("الرقم الضريبي:", "Tax No.:")}</span> <span className="font-english">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</span></div>
+                {selected.description && <div className="md:col-span-2"><span className="text-muted-foreground">{t("الوصف:", "Description:")}</span> <span>{selected.description}</span></div>}
+                {selected.notes && <div className="md:col-span-2"><span className="text-muted-foreground">{t("ملاحظات:", "Notes:")}</span> <span>{selected.notes}</span></div>}
+                {selected.duplicateOfId && <div className="md:col-span-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">{t("يوجد مصروف مشابه وتم تعليمه للمراجعة.", "Similar expense found and flagged for review.")}</div>}
               </CardContent>
             </Card>
 
             <Card className="border-border">
-              <CardHeader><CardTitle className="text-foreground">الأصناف والضريبة</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-foreground">{t("الأصناف والضريبة", "Items & Tax")}</CardTitle></CardHeader>
               <CardContent>
                 {lineItems.length ? (
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[640px] text-sm">
                       <thead className="bg-muted text-xs text-muted-foreground">
                         <tr>
-                          <th className="px-3 py-2 text-start">الوصف</th>
-                          <th className="px-3 py-2 text-start">الحساب</th>
-                          <th className="px-3 py-2 text-start">الكمية</th>
-                          <th className="px-3 py-2 text-start">السعر</th>
+                          <th className="px-3 py-2 text-start">{t("الوصف", "Description")}</th>
+                          <th className="px-3 py-2 text-start">{t("الحساب", "Account")}</th>
+                          <th className="px-3 py-2 text-start">{t("الكمية", "Qty")}</th>
+                          <th className="px-3 py-2 text-start">{t("السعر", "Price")}</th>
                           <th className="px-3 py-2 text-start">VAT</th>
-                          <th className="px-3 py-2 text-start">الإجمالي</th>
+                          <th className="px-3 py-2 text-start">{t("الإجمالي", "Total")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1719,7 +1729,7 @@ export function Expenses() {
                 ) : (
                   <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    لا توجد أصناف محفوظة لهذا المصروف. ارفع الإيصال أو عدل المصروف لإضافتها.
+                    {t("لا توجد أصناف محفوظة لهذا المصروف. ارفع الإيصال أو عدل المصروف لإضافتها.", "No items saved for this expense. Upload the receipt or edit the expense to add them.")}
                   </div>
                 )}
               </CardContent>
@@ -1754,8 +1764,8 @@ export function Expenses() {
               {detailAttachments.length === 0 ? (
                 <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted text-center">
                   <FileImage className="mb-3 h-10 w-10 text-muted-foreground/60" />
-                  <p className="text-sm text-muted-foreground">لا توجد مرفقات لهذا المصروف</p>
-                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs text-primary hover:underline">ارفع أول مرفق</button>
+                  <p className="text-sm text-muted-foreground">{t("لا توجد مرفقات لهذا المصروف", "No attachments for this expense")}</p>
+                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs text-primary hover:underline">{t("ارفع أول مرفق", "Upload first attachment")}</button>
                 </div>
               ) : (
                 <>
@@ -1775,7 +1785,7 @@ export function Expenses() {
                         type="button"
                         onClick={() => handleAttachmentRemove(detailAttachments[activeAttIdx])}
                         className="text-red-500/70 hover:text-red-600 p-1"
-                        title="حذف المرفق"
+                        title={t("حذف المرفق", "Delete attachment")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1821,10 +1831,10 @@ export function Expenses() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المصروفات النقدية</h1>
-          <p className="text-muted-foreground mt-1">إدارة المصروفات اليومية مع قراءة الفواتير والمرفقات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المصروفات النقدية", "Cash Expenses")}</h1>
+          <p className="text-muted-foreground mt-1">{t("إدارة المصروفات اليومية مع قراءة الفواتير والمرفقات", "Manage daily expenses with receipt scanning and attachments")}</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />مصروف جديد</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("مصروف جديد", "New expense")}</Button>
       </div>
 
       {draftAvailable && (
@@ -1833,12 +1843,12 @@ export function Expenses() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               <div>
-                <div className="font-semibold">يوجد مصروف محفوظ كمسودة تلقائية</div>
-                <div className="text-xs text-muted-foreground">لن تضيع البيانات لو خرجت من الشاشة قبل الحفظ النهائي.</div>
+                <div className="font-semibold">{t("يوجد مصروف محفوظ كمسودة تلقائية", "Auto-saved draft found")}</div>
+                <div className="text-xs text-muted-foreground">{t("لن تضيع البيانات لو خرجت من الشاشة قبل الحفظ النهائي.", "Data wont be lost if you leave before final save.")}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={openDraft} className="h-8 border-border text-xs">إكمال المسودة</Button>
+              <Button type="button" variant="outline" onClick={openDraft} className="h-8 border-border text-xs">{t("إكمال المسودة", "Complete draft")}</Button>
               <Button
                 type="button"
                 variant="outline"
@@ -1859,26 +1869,26 @@ export function Expenses() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">إجمالي المصروفات</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(total)}</div><p className="text-xs text-muted-foreground mt-1">إجمالي</p></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</CardTitle></CardHeader>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(total)}</div><p className="text-xs text-muted-foreground mt-1">{t("إجمالي", "Total")}</p></CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">عدد المصروفات</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-muted-foreground mt-1">مصروف</p></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("عدد المصروفات", "Expense Count")}</CardTitle></CardHeader>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-muted-foreground mt-1">{t("مصروف", "expense")}</p></CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">متوسط المصروف</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(items.length ? avg : 0)}</div><p className="text-xs text-muted-foreground mt-1">لكل مصروف</p></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("متوسط المصروف", "Average Expense")}</CardTitle></CardHeader>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(items.length ? avg : 0)}</div><p className="text-xs text-muted-foreground mt-1">{t("لكل مصروف", "per expense")}</p></CardContent>
         </Card>
       </div>
 
       <Card className="border-border">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-foreground">قائمة المصروفات</CardTitle>
+            <CardTitle className="text-foreground">{t("قائمة المصروفات", "Expenses List")}</CardTitle>
             <div className="relative">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input placeholder="بحث بالمورد، رقم الفاتورة، التصنيف..." className="w-full min-w-[260px] ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder={t("بحث بالمورد، رقم الفاتورة، التصنيف...", "Search by supplier, invoice no., category...")} className="w-full min-w-[260px] ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
           </div>
         </CardHeader>
@@ -1895,18 +1905,18 @@ export function Expenses() {
               </colgroup>
               <thead>
                 <tr className="border-b border-border bg-muted">
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>رقم</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>المورد / التصنيف</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>التاريخ</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>المبلغ</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>إجراءات</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("رقم", "No.")}</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("المورد / التصنيف", "Supplier / Category")}</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("رقم الفاتورة", "Invoice No.")}</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("المبلغ", "Amount")}</th>
+                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">جارٍ التحميل...</td></tr>}
+                {loading && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</td></tr>}
                 {!loading && filtered.length === 0 && (
-                  <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد مصروفات · اضغط "مصروف جديد" لإضافة أول مصروف</p></td></tr>
+                  <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></td></tr>
                 )}
                 {!loading && filtered.map((e) => (
                   <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer">

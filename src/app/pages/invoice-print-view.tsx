@@ -14,6 +14,7 @@ import { api, ApiError, Invoice, Org, Contact } from "../lib/api";
 import { Loader2, Printer, X } from "lucide-react";
 import qrcode from "qrcode-generator";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
+import { useLanguage } from "../components/LanguageContext";
 
 function safeNum(v: any, d = 0): number {
   const n = Number(v);
@@ -21,6 +22,7 @@ function safeNum(v: any, d = 0): number {
 }
 
 export function InvoicePrintView() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const langOverride = searchParams.get("lang"); // "ar" | "en" | null

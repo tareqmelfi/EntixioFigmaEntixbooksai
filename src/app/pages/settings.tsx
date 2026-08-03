@@ -14,14 +14,6 @@ import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLog
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 
-const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: string }> = {
-  BYOK:            { label: "مفتاحي الخاص (BYOK)",   price: "$0",      alloc: "غير محدود" },
-  HOSTED_FREE:     { label: "مجاني",                  price: "$0",      alloc: "$5/شهر" },
-  HOSTED_PRO:      { label: "احترافي",                price: "$19/شهر", alloc: "$30/شهر" },
-  HOSTED_BUSINESS: { label: "أعمال",                  price: "$49/شهر", alloc: "$100/شهر" },
-  PAYG:            { label: "ادفع عند الاستخدام",     price: "$1.20 لكل $1",    alloc: "غير محدود" },
-};
-
 type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans";
 const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans"];
 
@@ -60,6 +52,13 @@ export function Settings() {
   const { toasts, push, dismiss } = useToasts();
   const [pendingSignOut, setPendingSignOut] = useState(false);
   const { t } = useLanguage();
+  const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: string }> = {
+    BYOK:            { label: t("مفتاحي الخاص (BYOK)", "Bring Your Own Key (BYOK)"),   price: "$0",      alloc: t("غير محدود", "Unlimited") },
+    HOSTED_FREE:     { label: t("مجاني", "Free"),                  price: "$0",      alloc: t("$5/شهر", "$5/month") },
+    HOSTED_PRO:      { label: t("احترافي", "Pro"),                price: t("$19/شهر", "$19/month"), alloc: t("$30/شهر", "$30/month") },
+    HOSTED_BUSINESS: { label: t("أعمال", "Business"),                  price: t("$49/شهر", "$49/month"), alloc: t("$100/شهر", "$100/month") },
+    PAYG:            { label: t("ادفع عند الاستخدام", "Pay as you go"),     price: t("$1.20 لكل $1", "$1.20 per $1"),    alloc: t("غير محدود", "Unlimited") },
+  };
 
   useEffect(() => {
     const requested = searchParams.get("tab");
@@ -81,7 +80,7 @@ export function Settings() {
       const orgs = await api.orgs.list();
       const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
       const active = (stored ? orgs.find(o => o.id === stored) : null) || orgs[0];
-      if (!active) { setError("لا توجد شركة"); setLoading(false); return; }
+      if (!active) { setError(t("لا توجد شركة", "No company")); setLoading(false); return; }
       setOrg(active);
       setForm({
         name: active.name, legalName: active.legalName || "",
@@ -100,7 +99,7 @@ export function Settings() {
       });
       const m = await api.orgs.members(active.id);
       setMembers(m.members);
-    } catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل التحميل"); }
+    } catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load")); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
@@ -136,7 +135,7 @@ export function Settings() {
       setOrg(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل الحفظ"); }
+    } catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Failed to save")); }
     finally { setBusy(false); }
   };
 
@@ -146,7 +145,7 @@ export function Settings() {
       const c = await api.aiBilling.get();
       setAiConfig(c);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل تحميل إعدادات AI");
+      push("error", e instanceof ApiError ? e.message : t("فشل تحميل إعدادات AI", "Failed to load AI settings"));
     }
   }, [push]);
 
@@ -159,15 +158,15 @@ export function Settings() {
     try {
       const c = await api.aiBilling.update({ mode });
       setAiConfig(c);
-      push("success", `تم التحويل إلى ${MODE_LABELS[mode].label}`);
+      push("success", t(`تم التحويل إلى ${MODE_LABELS[mode].label}`, `Switched to ${MODE_LABELS[mode].label}`));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحديث");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحديث", "Update failed"));
     } finally { setAiBusy(false); }
   };
 
   const handleSaveByok = async () => {
     if (!byokKey.trim() || byokKey.length < 20) {
-      push("error", "المفتاح غير صحيح · يجب أن يبدأ بـ sk-");
+      push("error", t("المفتاح غير صحيح · يجب أن يبدأ بـ sk-", "Invalid key · must start with sk-"));
       return;
     }
     setAiBusy(true);
@@ -175,9 +174,9 @@ export function Settings() {
       const c = await api.aiBilling.update({ mode: "BYOK", byokProvider, byokKey: byokKey.trim() });
       setAiConfig(c);
       setByokKey("");
-      push("success", "تم حفظ المفتاح وتفعيل BYOK");
+      push("success", t("تم حفظ المفتاح وتفعيل BYOK", "Key saved and BYOK activated"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحفظ");
+      push("error", e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
     } finally { setAiBusy(false); }
   };
 
@@ -186,9 +185,9 @@ export function Settings() {
     try {
       const c = await api.aiBilling.update({ clearByok: true, mode: "HOSTED_FREE" });
       setAiConfig(c);
-      push("success", "تم حذف المفتاح · رجعت للباقة المجانية");
+      push("success", t("تم حذف المفتاح · رجعت للباقة المجانية", "Key deleted · reverted to the free plan"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+      push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed"));
     } finally { setAiBusy(false); }
   };
 
@@ -231,122 +230,122 @@ export function Settings() {
       </div>
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {saved && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">✅ تم الحفظ</div>}
+      {saved && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">✅ {t("تم الحفظ", "Saved")}</div>}
 
       {tab === "company" && (
         <Card className="border-border">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Building2 className="h-5 w-5" /> بيانات الشركة</CardTitle><CardDescription>الاسم · الرقم الضريبي · العملة · الشعار · الختم · بيانات التواصل</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Building2 className="h-5 w-5" /> {t("بيانات الشركة", "Company data")}</CardTitle><CardDescription>{t("الاسم · الرقم الضريبي · العملة · الشعار · الختم · بيانات التواصل", "Name · Tax number · Currency · Logo · Stamp · Contact info")}</CardDescription></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>اسم الشركة *</Label>
+              <div className="space-y-2"><Label>{t("اسم الشركة *", "Company name *")}</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border-border" /></div>
-              <div className="space-y-2"><Label>الاسم القانوني</Label>
+              <div className="space-y-2"><Label>{t("الاسم القانوني", "Legal name")}</Label>
                 <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="ENSIDEX LLC" className="border-border" /></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2"><Label>الدولة</Label>
+              <div className="space-y-2"><Label>{t("الدولة", "Country")}</Label>
                 <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
-                  <option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="KW">الكويت</option>
-                  <option value="QA">قطر</option><option value="BH">البحرين</option><option value="OM">عُمان</option>
-                  <option value="EG">مصر</option><option value="US">الولايات المتحدة</option><option value="GB">المملكة المتحدة</option>
+                  <option value="SA">{t("السعودية", "Saudi Arabia")}</option><option value="AE">{t("الإمارات", "UAE")}</option><option value="KW">{t("الكويت", "Kuwait")}</option>
+                  <option value="QA">{t("قطر", "Qatar")}</option><option value="BH">{t("البحرين", "Bahrain")}</option><option value="OM">{t("عُمان", "Oman")}</option>
+                  <option value="EG">{t("مصر", "Egypt")}</option><option value="US">{t("الولايات المتحدة", "United States")}</option><option value="GB">{t("المملكة المتحدة", "United Kingdom")}</option>
                 </select></div>
-              <div className="space-y-2"><Label>العملة الأساسية</Label>
+              <div className="space-y-2"><Label>{t("العملة الأساسية", "Base currency")}</Label>
                 <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                   <option value="SAR">SAR</option><option value="USD">USD</option><option value="AED">AED</option>
                   <option value="EUR">EUR</option><option value="GBP">GBP</option><option value="KWD">KWD</option>
                 </select></div>
-              <div className="space-y-2"><Label>نهاية السنة المالية</Label>
+              <div className="space-y-2"><Label>{t("نهاية السنة المالية", "Fiscal year end")}</Label>
                 <Select value={String(form.fiscalYearEnd)} onValueChange={(v) => setForm({ ...form, fiscalYearEnd: Number(v) })}>
                   <SelectTrigger className="border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <SelectItem key={m} value={String(m)}>{["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"][m-1]}</SelectItem>)}
+                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <SelectItem key={m} value={String(m)}>{[t("يناير","January"),t("فبراير","February"),t("مارس","March"),t("أبريل","April"),t("مايو","May"),t("يونيو","June"),t("يوليو","July"),t("أغسطس","August"),t("سبتمبر","September"),t("أكتوبر","October"),t("نوفمبر","November"),t("ديسمبر","December")][m-1]}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground/60 mt-1">شهر إقفال الحسابات السنوي (KSA: ديسمبر افتراضي)</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">{t("شهر إقفال الحسابات السنوي (KSA: ديسمبر افتراضي)", "Annual accounts closing month (KSA: December by default)")}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>{form.country === "US" ? "EIN" : form.country === "AE" ? "TRN" : "الرقم الضريبي"}</Label>
+              <div className="space-y-2"><Label>{form.country === "US" ? "EIN" : form.country === "AE" ? "TRN" : t("الرقم الضريبي", "Tax number")}</Label>
                 <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
-              <div className="space-y-2"><Label>{form.country === "US" ? "State Filing #" : "السجل التجاري"}</Label>
+              <div className="space-y-2"><Label>{form.country === "US" ? "State Filing #" : t("السجل التجاري", "Commercial registration")}</Label>
                 <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
             </div>
 
             {/* Branding · logo + stamp upload (UX-157) */}
             <div className="border-t border-border/50 pt-4">
-              <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>الشعار والختم</h3>
+              <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>{t("الشعار والختم", "Logo & stamp")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-xs mb-2 block">الشعار (مربع أو طولي · يظهر على الفواتير)</Label>
+                  <Label className="text-xs mb-2 block">{t("الشعار (مربع أو طولي · يظهر على الفواتير)", "Logo (square or rectangular · shown on invoices)")}</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-3">
                     <input type="file" id="company-logo" accept="image/*" hidden
                       onChange={async (e) => {
                         const f = e.target.files?.[0]; if (!f) return;
-                        if (f.size > 2 * 1024 * 1024) { setError("الحد الأقصى 2 ميجا"); return; }
+                        if (f.size > 2 * 1024 * 1024) { setError(t("الحد الأقصى 2 ميجا", "Max 2 MB")); return; }
                         const r = new FileReader(); r.onload = () => setForm(p => ({ ...p, logoUrl: String(r.result || "") })); r.readAsDataURL(f);
                       }} />
                     {form.logoUrl ? (
                       <div className="flex items-center gap-3">
                         <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
-                          <label htmlFor="company-logo" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                          <button type="button" onClick={() => setForm(p => ({ ...p, logoUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                          <label htmlFor="company-logo" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, logoUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
                         </div>
                       </div>
                     ) : (
                       <label htmlFor="company-logo" className="cursor-pointer block text-center py-4">
-                        <div className="text-sm text-primary font-medium">رفع الشعار</div>
-                        <div className="text-xs text-muted-foreground/60 mt-1">PNG · SVG · JPG · حتى 2MB</div>
+                        <div className="text-sm text-primary font-medium">{t("رفع الشعار", "Upload logo")}</div>
+                        <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG · SVG · JPG · حتى 2MB", "PNG · SVG · JPG · up to 2MB")}</div>
                       </label>
                     )}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs mb-2 block">الختم الرسمي (يظهر على العقود + السندات)</Label>
+                  <Label className="text-xs mb-2 block">{t("الختم الرسمي (يظهر على العقود + السندات)", "Official stamp (shown on contracts + vouchers)")}</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-3">
                     <input type="file" id="company-stamp" accept="image/*" hidden
                       onChange={async (e) => {
                         const f = e.target.files?.[0]; if (!f) return;
-                        if (f.size > 2 * 1024 * 1024) { setError("الحد الأقصى 2 ميجا"); return; }
+                        if (f.size > 2 * 1024 * 1024) { setError(t("الحد الأقصى 2 ميجا", "Max 2 MB")); return; }
                         const r = new FileReader(); r.onload = () => setForm(p => ({ ...p, stampUrl: String(r.result || "") })); r.readAsDataURL(f);
                       }} />
                     {form.stampUrl ? (
                       <div className="flex items-center gap-3">
                         <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
-                          <label htmlFor="company-stamp" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                          <button type="button" onClick={() => setForm(p => ({ ...p, stampUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                          <label htmlFor="company-stamp" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, stampUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
                         </div>
                       </div>
                     ) : (
                       <label htmlFor="company-stamp" className="cursor-pointer block text-center py-4">
-                        <div className="text-sm text-primary font-medium">رفع الختم</div>
-                        <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                        <div className="text-sm text-primary font-medium">{t("رفع الختم", "Upload stamp")}</div>
+                        <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG شفاف يفضّل · حتى 2MB", "Transparent PNG preferred · up to 2MB")}</div>
                       </label>
                     )}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs mb-2 block">توقيع صاحب الصلاحية (يظهر كتوقيع إلكتروني على السندات)</Label>
+                  <Label className="text-xs mb-2 block">{t("توقيع صاحب الصلاحية (يظهر كتوقيع إلكتروني على السندات)", "Authorized signatory (shown as an electronic signature on vouchers)")}</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-3">
                     <input type="file" id="company-signature" accept="image/*" hidden
                       onChange={async (e) => {
                         const f = e.target.files?.[0]; if (!f) return;
-                        if (f.size > 2 * 1024 * 1024) { setError("الحد الأقصى 2 ميجا"); return; }
+                        if (f.size > 2 * 1024 * 1024) { setError(t("الحد الأقصى 2 ميجا", "Max 2 MB")); return; }
                         const r = new FileReader(); r.onload = () => setForm(p => ({ ...p, signatureUrl: String(r.result || "") })); r.readAsDataURL(f);
                       }} />
                     {form.signatureUrl ? (
                       <div className="flex items-center gap-3">
                         <img src={form.signatureUrl} alt="signature" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
-                          <label htmlFor="company-signature" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                          <button type="button" onClick={() => setForm(p => ({ ...p, signatureUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                          <label htmlFor="company-signature" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, signatureUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
                         </div>
                       </div>
                     ) : (
                       <label htmlFor="company-signature" className="cursor-pointer block text-center py-4">
-                        <div className="text-sm text-primary font-medium">رفع التوقيع</div>
-                        <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                        <div className="text-sm text-primary font-medium">{t("رفع التوقيع", "Upload signature")}</div>
+                        <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG شفاف يفضّل · حتى 2MB", "Transparent PNG preferred · up to 2MB")}</div>
                       </label>
                     )}
                   </div>
@@ -356,47 +355,47 @@ export function Settings() {
 
             {/* Contact info (UX-132) */}
             <div className="border-t border-border/50 pt-4">
-              <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>بيانات التواصل</h3>
+              <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>{t("بيانات التواصل", "Contact info")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2"><Label className="text-xs">البريد الإلكتروني</Label>
+                <div className="space-y-2"><Label className="text-xs">{t("البريد الإلكتروني", "Email")}</Label>
                   <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" placeholder="info@company.com" className="border-border font-english" /></div>
-                <div className="space-y-2"><Label className="text-xs">الهاتف</Label>
+                <div className="space-y-2"><Label className="text-xs">{t("الهاتف", "Phone")}</Label>
                   <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" placeholder="+966500000000" className="border-border font-english" /></div>
-                <div className="space-y-2"><Label className="text-xs">الموقع</Label>
+                <div className="space-y-2"><Label className="text-xs">{t("الموقع", "Website")}</Label>
                   <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} dir="ltr" placeholder="https://company.com" className="border-border font-english" /></div>
               </div>
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label className="text-xs">الصناعة</Label>
+                <div className="space-y-2"><Label className="text-xs">{t("الصناعة", "Industry")}</Label>
                   <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
-                    <option value="">اختر...</option>
-                    <option value="CONSULTING">استشارات</option>
-                    <option value="RETAIL">تجارة تجزئة</option>
-                    <option value="REAL_ESTATE">عقارات</option>
-                    <option value="VET_CLINIC">عيادة بيطرية</option>
-                    <option value="PRODUCTION">إنتاج إعلامي</option>
-                    <option value="EDUCATION">تعليم</option>
-                    <option value="SAAS">SaaS · تكنولوجيا</option>
-                    <option value="OTHER">أخرى</option>
+                    <option value="">{t("اختر...", "Select...")}</option>
+                    <option value="CONSULTING">{t("استشارات", "Consulting")}</option>
+                    <option value="RETAIL">{t("تجارة تجزئة", "Retail")}</option>
+                    <option value="REAL_ESTATE">{t("عقارات", "Real estate")}</option>
+                    <option value="VET_CLINIC">{t("عيادة بيطرية", "Veterinary clinic")}</option>
+                    <option value="PRODUCTION">{t("إنتاج إعلامي", "Media production")}</option>
+                    <option value="EDUCATION">{t("تعليم", "Education")}</option>
+                    <option value="SAAS">{t("SaaS · تكنولوجيا", "SaaS · Technology")}</option>
+                    <option value="OTHER">{t("أخرى", "Other")}</option>
                   </select>
                 </div>
-                <div className="space-y-2"><Label className="text-xs">اللغة الافتراضية للفواتير</Label>
+                <div className="space-y-2"><Label className="text-xs">{t("اللغة الافتراضية للفواتير", "Default invoice language")}</Label>
                   <select value={form.defaultInvoiceLanguage} onChange={(e) => setForm({ ...form, defaultInvoiceLanguage: e.target.value as "ar" | "en" })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
-                    <option value="ar">عربي · Arabic</option>
-                    <option value="en">إنجليزي · English</option>
+                    <option value="ar">{t("عربي · Arabic", "Arabic")}</option>
+                    <option value="en">{t("إنجليزي · English", "English")}</option>
                   </select>
-                  <p className="text-[10px] text-muted-foreground/60">يحدد اللغة الافتراضية للفواتير + السندات + التقارير عند الطباعة</p>
+                  <p className="text-[10px] text-muted-foreground/60">{t("يحدد اللغة الافتراضية للفواتير + السندات + التقارير عند الطباعة", "Sets the default language for invoices + vouchers + reports when printing")}</p>
                 </div>
               </div>
             </div>
             {form.country !== "US" && (
               <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-blue-100">
                 <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
-                <label htmlFor="zatca" className="text-sm text-foreground cursor-pointer">تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)</label>
+                <label htmlFor="zatca" className="text-sm text-foreground cursor-pointer">{t("تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)", "Enable ZATCA Phase 2 e-invoicing (Saudi market · UUID + QR + XML)")}</label>
               </div>
             )}
             {form.country === "US" && (
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900">
-                🇺🇸 وضع الشركات الأمريكية مفعّل · لا حاجة لـ ZATCA · أنت مرتبط ببوابات أمريكية (Stripe · Plaid · 1099) ولا تحتاج للسوق السعودي
+                {t("🇺🇸 وضع الشركات الأمريكية مفعّل · لا حاجة لـ ZATCA · أنت مرتبط ببوابات أمريكية (Stripe · Plaid · 1099) ولا تحتاج للسوق السعودي", "🇺🇸 US company mode is on · no ZATCA needed · you are linked to US gateways (Stripe · Plaid · 1099) and don't need the Saudi market")}
               </div>
             )}
             {/* Inbox forwarding alias (UX-159) · shows the unique email for this org */}
@@ -448,24 +447,24 @@ export function Settings() {
                       try {
                         const r = await (api as any).seedDemoData(org.id);
                         if (r?.ok) {
-                          push("success", "تمت إضافة البيانات التجريبية");
+                          push("success", t("تمت إضافة البيانات التجريبية", "Demo data added"));
                           setSaved(true);
                           setTimeout(() => window.location.reload(), 800);
                         }
                       } catch (e: any) {
-                        setError(e?.message || "فشل التعبئة");
+                        setError(e?.message || t("فشل التعبئة", "Seeding failed"));
                       }
                     }}
                     className="px-3 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700"
                   >
-                    تأكيد التعبئة
+                    {t("تأكيد التعبئة", "Confirm seeding")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSeedArmed(false)}
                     className="px-3 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted"
                   >
-                    إلغاء
+                    {t("إلغاء", "Cancel")}
                   </button>
                 </div>
               ) : (
@@ -474,24 +473,24 @@ export function Settings() {
                   onClick={() => setSeedArmed(true)}
                   className="px-3 py-2 text-sm rounded-md border border-green-200 text-green-700 hover:bg-green-50 flex items-center gap-2"
                 >
-                  ✨ تعبئة بيانات تجريبية كاملة
+                  ✨ {t("تعبئة بيانات تجريبية كاملة", "Seed full demo data")}
                 </button>
               )}
               <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ التغييرات</>}
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> {t("حفظ التغييرات", "Save changes")}</>}
               </Button>
             </div>
 
             <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-800">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span>تحتاج حذف هذه الشركة؟ الحذف متاح للمالك فقط ويتطلب كتابة اسم الشركة للتأكيد.</span>
+                <span>{t("تحتاج حذف هذه الشركة؟ الحذف متاح للمالك فقط ويتطلب كتابة اسم الشركة للتأكيد.", "Need to delete this company? Deletion is available to the owner only and requires typing the company name to confirm.")}</span>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => selectTab("data")}
                   className="shrink-0 border-red-200 bg-white text-red-700 hover:bg-red-50"
                 >
-                  <Trash2 className="me-2 h-4 w-4" /> فتح الحذف
+                  <Trash2 className="me-2 h-4 w-4" /> {t("فتح الحذف", "Open delete")}
                 </Button>
               </div>
             </div>
@@ -505,8 +504,8 @@ export function Settings() {
       {tab === "ai" && (
         <Card className="border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground"><Sparkles className="h-5 w-5" /> الذكاء الاصطناعي · الاشتراك والمفتاح</CardTitle>
-            <CardDescription>اختر الباقة · أو ضع مفتاحك الخاص (BYOK) · لا تكاليف إضافية علينا</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-foreground"><Sparkles className="h-5 w-5" /> {t("الذكاء الاصطناعي · الاشتراك والمفتاح", "AI · subscription & key")}</CardTitle>
+            <CardDescription>{t("اختر الباقة · أو ضع مفتاحك الخاص (BYOK) · لا تكاليف إضافية علينا", "Choose a plan · or use your own key (BYOK) · no extra cost from us")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {!aiConfig ? (
@@ -517,20 +516,20 @@ export function Settings() {
                 <div className="rounded-lg border border-border p-4 bg-muted">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>الباقة الحالية: {MODE_LABELS[aiConfig.mode].label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">المخصص: {MODE_LABELS[aiConfig.mode].alloc} · السعر: {MODE_LABELS[aiConfig.mode].price}</p>
+                      <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("الباقة الحالية", "Current plan")}: {MODE_LABELS[aiConfig.mode].label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("المخصص", "Allocation")}: {MODE_LABELS[aiConfig.mode].alloc} · {t("السعر", "Price")}: {MODE_LABELS[aiConfig.mode].price}</p>
                     </div>
                     {aiConfig.disabled && (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200">
-                        <AlertTriangle className="h-3 w-3" /> معطّل من الإدارة
+                        <AlertTriangle className="h-3 w-3" /> {t("معطّل من الإدارة", "Disabled by admin")}
                       </span>
                     )}
                   </div>
                   {aiConfig.mode !== "BYOK" && aiConfig.mode !== "PAYG" && (
                     <>
                       <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 mb-1">
-                        <span>المستخدَم: <span className="font-english text-foreground">${Number(aiConfig.spentThisPeriod).toFixed(2)}</span></span>
-                        <span className="font-english">${Number(aiConfig.monthlyAllocation).toFixed(2)} + ${Number(aiConfig.creditBalance).toFixed(2)} رصيد</span>
+                        <span>{t("المستخدَم", "Used")}: <span className="font-english text-foreground">${Number(aiConfig.spentThisPeriod).toFixed(2)}</span></span>
+                        <span className="font-english">${Number(aiConfig.monthlyAllocation).toFixed(2)} + ${Number(aiConfig.creditBalance).toFixed(2)} {t("رصيد", "credit")}</span>
                       </div>
                       <div className="h-2 rounded-full bg-[#E5E7EB] overflow-hidden">
                         <div
@@ -545,7 +544,7 @@ export function Settings() {
 
                 {/* Mode selector */}
                 <div>
-                  <Label className="text-foreground/80">اختر الباقة</Label>
+                  <Label className="text-foreground/80">{t("اختر الباقة", "Choose a plan")}</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                     {(Object.entries(MODE_LABELS) as [AiKeyMode, typeof MODE_LABELS[AiKeyMode]][]).map(([k, m]) => (
                       <button
@@ -560,10 +559,10 @@ export function Settings() {
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>{m.label}</p>
-                          {aiConfig.mode === k && <span className="text-xs text-primary">✓ نشطة</span>}
+                          {aiConfig.mode === k && <span className="text-xs text-primary">{t("✓ نشطة", "✓ Active")}</span>}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{m.alloc} · <span className="font-english">{m.price}</span></p>
-                        {k === "BYOK" && <p className="text-xs text-primary mt-1">↓ ضع مفتاحك أدناه</p>}
+                        {k === "BYOK" && <p className="text-xs text-primary mt-1">{t("↓ ضع مفتاحك أدناه", "↓ Enter your key below")}</p>}
                       </button>
                     ))}
                   </div>
@@ -573,10 +572,10 @@ export function Settings() {
                 <div className="rounded-lg border border-border p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Key className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm text-foreground" style={{ fontWeight: 600 }}>مفتاحي الخاص (BYOK)</h3>
+                    <h3 className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("مفتاحي الخاص (BYOK)", "Bring Your Own Key (BYOK)")}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">
-                    استخدم مفتاح OpenRouter أو Anthropic الخاص بك · لا تكاليف منا · المفتاح مشفّر بـAES-256-GCM في قاعدة البيانات
+                    {t("استخدم مفتاح OpenRouter أو Anthropic الخاص بك · لا تكاليف منا · المفتاح مشفّر بـAES-256-GCM في قاعدة البيانات", "Use your own OpenRouter or Anthropic key · no cost from us · the key is encrypted with AES-256-GCM in the database")}
                   </p>
 
                   {aiConfig.byokKeyHint ? (
@@ -584,27 +583,27 @@ export function Settings() {
                       <div className="flex items-center justify-between rounded-md bg-primary/5 border border-blue-100 p-3">
                         <div>
                           <p className="text-sm text-foreground" style={{ fontWeight: 500 }}>
-                            المفتاح النشط: <span className="font-english">{aiConfig.byokKeyHint}</span>
+                            {t("المفتاح النشط", "Active key")}: <span className="font-english">{aiConfig.byokKeyHint}</span>
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">المزود: {aiConfig.byokProvider}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{t("المزود", "Provider")}: {aiConfig.byokProvider}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={async () => {
                             try {
                               const r = await api.aiBilling.testKey();
                               if (r.ok) {
-                                push("success", `✅ المفتاح يعمل · ${r.message || ""} (${r.elapsedMs}ms)`);
+                                push("success", t(`✅ المفتاح يعمل · ${r.message || ""} (${r.elapsedMs}ms)`, `✅ Key works · ${r.message || ""} (${r.elapsedMs}ms)`));
                               } else {
-                                push("error", `❌ المفتاح لا يعمل: ${r.message || r.error || "مجهول"}`);
+                                push("error", t(`❌ المفتاح لا يعمل: ${r.message || r.error || "مجهول"}`, `❌ Key does not work: ${r.message || r.error || "unknown"}`));
                               }
                             } catch (e: any) {
-                              push("error", e?.message || "فشل الاختبار");
+                              push("error", e?.message || t("فشل الاختبار", "Test failed"));
                             }
                           }} variant="outline" disabled={aiBusy} className="border-green-300 text-green-700 hover:bg-green-50">
-                            اختبار الاتصال
+                            {t("اختبار الاتصال", "Test connection")}
                           </Button>
                           <Button onClick={handleClearByok} variant="outline" disabled={aiBusy} className="border-red-200 text-red-600 hover:bg-red-50">
-                            حذف المفتاح
+                            {t("حذف المفتاح", "Delete key")}
                           </Button>
                         </div>
                       </div>
@@ -612,14 +611,14 @@ export function Settings() {
                   ) : (
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-foreground/80 text-xs">المزود</Label>
+                        <Label className="text-foreground/80 text-xs">{t("المزود", "Provider")}</Label>
                         <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as any)} className="w-full mt-1 rounded-md border border-border px-3 py-2 text-sm bg-white">
-                          <option value="openrouter">OpenRouter (موصى به · أسعار أفضل)</option>
-                          <option value="anthropic">Anthropic (مباشر)</option>
+                          <option value="openrouter">{t("OpenRouter (موصى به · أسعار أفضل)", "OpenRouter (recommended · better pricing)")}</option>
+                          <option value="anthropic">{t("Anthropic (مباشر)", "Anthropic (direct)")}</option>
                         </select>
                       </div>
                       <div>
-                        <Label className="text-foreground/80 text-xs">المفتاح</Label>
+                        <Label className="text-foreground/80 text-xs">{t("المفتاح", "Key")}</Label>
                         <Input
                           type="password"
                           value={byokKey}
@@ -629,18 +628,18 @@ export function Settings() {
                           className="font-english border-border mt-1"
                         />
                         <p className="text-xs text-muted-foreground/60 mt-1">
-                          احصل على مفتاح من <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-primary hover:underline">openrouter.ai/keys</a>
+                          {t("احصل على مفتاح من", "Get a key from")} <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-primary hover:underline">openrouter.ai/keys</a>
                         </p>
                       </div>
                       <Button onClick={handleSaveByok} disabled={aiBusy || !byokKey} className="bg-primary hover:bg-primary/90">
-                        {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ المفتاح وتفعيل BYOK"}
+                        {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ المفتاح وتفعيل BYOK", "Save key and activate BYOK")}
                       </Button>
                     </div>
                   )}
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  💡 يتم إعادة ضبط الاستهلاك تلقائياً كل 30 يوم · رصيد الـtop-up يضاف إلى المخصص الشهري
+                  {t("💡 يتم إعادة ضبط الاستهلاك تلقائياً كل 30 يوم · رصيد الـtop-up يضاف إلى المخصص الشهري", "💡 Usage resets automatically every 30 days · top-up credit is added to the monthly allocation")}
                 </p>
               </>
             )}
@@ -657,15 +656,15 @@ export function Settings() {
 
       {tab === "account" && (
         <Card className="border-border">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Shield className="h-5 w-5" /> حسابي</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Shield className="h-5 w-5" /> {t("حسابي", "My account")}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg border border-border p-4">
-              <p className="text-sm text-muted-foreground">جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على <span className="font-english">.entix.io</span></p>
+              <p className="text-sm text-muted-foreground">{t("جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على", "Secure session · 30 days · encrypted via HttpOnly cookie on")} <span className="font-english">.entix.io</span></p>
             </div>
             {pendingSignOut ? (
-            <InlineConfirm onConfirm={handleSignOut} onCancel={() => setPendingSignOut(false)} label="تسجيل الخروج؟" />
+            <InlineConfirm onConfirm={handleSignOut} onCancel={() => setPendingSignOut(false)} label={t("تسجيل الخروج؟", "Sign out?")} />
           ) : (
-            <Button onClick={() => setPendingSignOut(true)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4 me-2" /> تسجيل الخروج</Button>
+            <Button onClick={() => setPendingSignOut(true)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4 me-2" /> {t("تسجيل الخروج", "Sign out")}</Button>
           )}
           </CardContent>
         </Card>
@@ -693,6 +692,7 @@ function DataResetTab({
   const [deleting, setDeleting] = useState(false);
   const [audit, setAudit] = useState<AuditLogItem[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(true);
+  const { t } = useLanguage();
 
   const loadAudit = useCallback(async () => {
     setLoadingAudit(true);
@@ -710,7 +710,7 @@ function DataResetTab({
 
   const runReset = async (mode: "blank" | "demo" | "clean_company") => {
     if (confirmName.trim() !== org.name && confirmName.trim() !== org.slug) {
-      push("error", "اكتب اسم الشركة أو slug كما هو للتأكيد");
+      push("error", t("اكتب اسم الشركة أو slug كما هو للتأكيد", "Type the company name or slug as-is to confirm"));
       return;
     }
     setBusy(mode);
@@ -719,16 +719,16 @@ function DataResetTab({
       if (mode === "clean_company" && result.org) {
         setOrgId(result.org.id);
         setOrg(result.org);
-        push("success", "تم إنشاء شركة نظيفة والتبديل عليها");
+        push("success", t("تم إنشاء شركة نظيفة والتبديل عليها", "Created a clean company and switched to it"));
         setTimeout(() => window.location.reload(), 500);
         return;
       }
-      push("success", mode === "demo" ? "تمت إعادة ضبط البيانات وتحميل بيانات تجريبية" : "تمت إعادة ضبط بيانات الشركة");
+      push("success", mode === "demo" ? t("تمت إعادة ضبط البيانات وتحميل بيانات تجريبية", "Data reset and demo data loaded") : t("تمت إعادة ضبط بيانات الشركة", "Company data has been reset"));
       setConfirmName("");
       await refresh();
       await loadAudit();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشلت العملية");
+      push("error", e instanceof ApiError ? e.message : t("فشلت العملية", "Operation failed"));
     } finally {
       setBusy(null);
     }
@@ -739,17 +739,17 @@ function DataResetTab({
 
   const deleteCompany = async () => {
     if (deleteDisabled) {
-      push("error", "اكتب اسم الشركة أو slug كما هو للحذف");
+      push("error", t("اكتب اسم الشركة أو slug كما هو للحذف", "Type the company name or slug as-is to delete"));
       return;
     }
     setDeleting(true);
     try {
       const result = await api.orgs.remove(org.id, { confirmName: deleteConfirmName.trim() });
       if (result.nextOrgId) setOrgId(result.nextOrgId);
-      push("success", "تم حذف الشركة والتبديل إلى شركة أخرى");
+      push("success", t("تم حذف الشركة والتبديل إلى شركة أخرى", "Company deleted and switched to another company"));
       setTimeout(() => window.location.assign("/app/settings?tab=company"), 500);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل حذف الشركة");
+      push("error", e instanceof ApiError ? e.message : t("فشل حذف الشركة", "Failed to delete company"));
     } finally {
       setDeleting(false);
     }
@@ -760,48 +760,48 @@ function DataResetTab({
       <Card className="border-[#F4B4B4] bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
-            <Database className="h-5 w-5 text-red-600" /> إعادة ضبط البيانات
+            <Database className="h-5 w-5 text-red-600" /> {t("إعادة ضبط البيانات", "Reset data")}
           </CardTitle>
           <CardDescription>
-            هذه الأدوات مخصصة للنسخة الخاصة والتجارب. لا تحذف المستخدم أو عضوية الشركة أو جلسات الدخول.
+            {t("هذه الأدوات مخصصة للنسخة الخاصة والتجارب. لا تحذف المستخدم أو عضوية الشركة أو جلسات الدخول.", "These tools are for the self-hosted edition and trials. They do not delete the user, company membership, or login sessions.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
             <div className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>اكتب <span className="font-semibold">{org.name}</span> أو <span className="font-english">{org.slug}</span> لتأكيد أي عملية.</p>
+              <p>{t("اكتب", "Type")} <span className="font-semibold">{org.name}</span> {t("أو", "or")} <span className="font-english">{org.slug}</span> {t("لتأكيد أي عملية.", "to confirm any operation.")}</p>
             </div>
           </div>
           <Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={org.name} className="border-border" />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <ResetOption
-              title="شركة فاضية"
-              description="يمسح المستندات والجهات والمنتجات ويعيد دليل الحسابات والضريبة والمستودع الرئيسي."
+              title={t("شركة فاضية", "Blank company")}
+              description={t("يمسح المستندات والجهات والمنتجات ويعيد دليل الحسابات والضريبة والمستودع الرئيسي.", "Erases documents, contacts, and products, and resets the chart of accounts, taxes, and the main warehouse.")}
               icon={RotateCcw}
               disabled={disabled}
               busy={busy === "blank"}
               onClick={() => runReset("blank")}
-              action="إعادة ضبط"
+              action={t("إعادة ضبط", "Reset")}
             />
             <ResetOption
-              title="بيانات تجريبية"
-              description="يمسح البيانات ثم يضيف عميل ومورد وموظف ومنتج وفاتورة ومشتريات جاهزة للفحص."
+              title={t("بيانات تجريبية", "Demo data")}
+              description={t("يمسح البيانات ثم يضيف عميل ومورد وموظف ومنتج وفاتورة ومشتريات جاهزة للفحص.", "Erases data then adds a customer, supplier, employee, product, invoice, and purchases ready for inspection.")}
               icon={Sparkles}
               disabled={disabled}
               busy={busy === "demo"}
               onClick={() => runReset("demo")}
-              action="تحميل ديمو"
+              action={t("تحميل ديمو", "Load demo")}
             />
             <ResetOption
-              title="شركة نظيفة جديدة"
-              description="ينشئ شركة جديدة بنفس معلوماتك الأساسية ويترك الشركة الحالية كما هي."
+              title={t("شركة نظيفة جديدة", "New clean company")}
+              description={t("ينشئ شركة جديدة بنفس معلوماتك الأساسية ويترك الشركة الحالية كما هي.", "Creates a new company with your same basic info and leaves the current company as-is.")}
               icon={ShieldCheck}
               disabled={disabled}
               busy={busy === "clean_company"}
               onClick={() => runReset("clean_company")}
-              action="إنشاء نسخة"
+              action={t("إنشاء نسخة", "Create copy")}
             />
           </div>
         </CardContent>
@@ -810,15 +810,15 @@ function DataResetTab({
       <Card className="border-red-200 bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-700">
-            <Trash2 className="h-5 w-5" /> حذف الشركة
+            <Trash2 className="h-5 w-5" /> {t("حذف الشركة", "Delete company")}
           </CardTitle>
           <CardDescription>
-            يحذف الشركة الحالية وكل بياناتها التابعة. لا يمكن حذف آخر شركة في الحساب، والحذف متاح للمالك فقط.
+            {t("يحذف الشركة الحالية وكل بياناتها التابعة. لا يمكن حذف آخر شركة في الحساب، والحذف متاح للمالك فقط.", "Deletes the current company and all its dependent data. The last company in the account cannot be deleted, and deletion is available to the owner only.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800">
-            للتأكيد اكتب <span className="font-semibold">{org.name}</span> أو <span className="font-english">{org.slug}</span> كما هو.
+            {t("للتأكيد اكتب", "To confirm, type")} <span className="font-semibold">{org.name}</span> {t("أو", "or")} <span className="font-english">{org.slug}</span> {t("كما هو.", "as-is.")}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
@@ -834,7 +834,7 @@ function DataResetTab({
               variant="outline"
               className="shrink-0 border-red-300 text-red-700 hover:bg-red-50"
             >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> حذف الشركة</>}
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> {t("حذف الشركة", "Delete company")}</>}
             </Button>
           </div>
         </CardContent>
@@ -842,22 +842,22 @@ function DataResetTab({
 
       <Card className="border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">سجل التدقيق</CardTitle>
-          <CardDescription>آخر عمليات حساسة على بيانات الشركة.</CardDescription>
+          <CardTitle className="text-foreground">{t("سجل التدقيق", "Audit log")}</CardTitle>
+          <CardDescription>{t("آخر عمليات حساسة على بيانات الشركة.", "Recent sensitive operations on company data.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {loadingAudit ? (
             <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-primary" /></div>
           ) : audit.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">لا يوجد سجل تدقيق بعد</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">{t("لا يوجد سجل تدقيق بعد", "No audit log yet")}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px]">
                 <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">العملية</th>
-                  <th className="px-4 py-3 text-start">النوع</th>
-                  <th className="px-4 py-3 text-start">المستوى</th>
-                  <th className="px-4 py-3 text-start">التاريخ</th>
+                  <th className="px-4 py-3 text-start">{t("العملية", "Operation")}</th>
+                  <th className="px-4 py-3 text-start">{t("النوع", "Type")}</th>
+                  <th className="px-4 py-3 text-start">{t("المستوى", "Level")}</th>
+                  <th className="px-4 py-3 text-start">{t("التاريخ", "Date")}</th>
                 </tr></thead>
                 <tbody>
                   {audit.map((item) => (
@@ -916,15 +916,16 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
   const [config, setConfig] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   type NumberingKindUi = "contact" | "invoice" | "quote" | "bill" | "receipt" | "payment";
   const kinds: Array<[NumberingKindUi, string]> = [
-    ["contact", "العملاء/الموردين"],
-    ["invoice", "فواتير المبيعات"],
-    ["quote", "عروض الأسعار"],
-    ["bill", "فواتير المشتريات"],
-    ["receipt", "سندات القبض"],
-    ["payment", "سندات الصرف"],
+    ["contact", t("العملاء/الموردين", "Customers/Suppliers")],
+    ["invoice", t("فواتير المبيعات", "Sales invoices")],
+    ["quote", t("عروض الأسعار", "Price quotes")],
+    ["bill", t("فواتير المشتريات", "Purchase invoices")],
+    ["receipt", t("سندات القبض", "Receipt vouchers")],
+    ["payment", t("سندات الصرف", "Payment vouchers")],
   ];
   const tokenHintByKind: Record<NumberingKindUi, string> = {
     contact: "{CLIENT}",
@@ -1007,16 +1008,16 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
       setConfig(normalized);
       await api.orgs.saveNumbering(orgId, normalized);
       if (wasNormalized) {
-        push("success", "تم تحويل XXXX تلقائياً إلى المتغير المناسب وحفظ الإعدادات");
+        push("success", t("تم تحويل XXXX تلقائياً إلى المتغير المناسب وحفظ الإعدادات", "Automatically converted XXXX to the appropriate token and saved settings"));
       } else {
-        push("success", "تم حفظ إعدادات الترقيم");
+        push("success", t("تم حفظ إعدادات الترقيم", "Numbering settings saved"));
       }
     } catch (e: any) {
       const msg = String(e?.message || "");
       if (msg.includes("Do not use XXXX") || msg.includes("Unsupported token")) {
-        push("error", "صيغة البادئة غير صحيحة. استخدم المتغيرات: {ENTITY} {CLIENT} {VENDOR} {PROJECT} {DOC} {YYYY} {YY} {MM} {DD} {SEQ}");
+        push("error", t("صيغة البادئة غير صحيحة. استخدم المتغيرات: {ENTITY} {CLIENT} {VENDOR} {PROJECT} {DOC} {YYYY} {YY} {MM} {DD} {SEQ}", "Invalid prefix format. Use the tokens: {ENTITY} {CLIENT} {VENDOR} {PROJECT} {DOC} {YYYY} {YY} {MM} {DD} {SEQ}"));
       } else {
-        push("error", e?.message || "فشل الحفظ");
+        push("error", e?.message || t("فشل الحفظ", "Save failed"));
       }
     } finally { setBusy(false); }
   };
@@ -1026,9 +1027,9 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground">الترقيم التلقائي للمستندات</CardTitle>
+        <CardTitle className="text-foreground">{t("الترقيم التلقائي للمستندات", "Automatic document numbering")}</CardTitle>
         <CardDescription className="leading-7">
-          المتغيرات المدعومة: <code className="font-english bg-gray-100 px-1 rounded">{"{ENTITY}"}</code>{" "}
+          {t("المتغيرات المدعومة", "Supported tokens")}: <code className="font-english bg-gray-100 px-1 rounded">{"{ENTITY}"}</code>{" "}
           <code className="font-english bg-gray-100 px-1 rounded">{"{CLIENT}"}</code>{" "}
           <code className="font-english bg-gray-100 px-1 rounded">{"{VENDOR}"}</code>{" "}
           <code className="font-english bg-gray-100 px-1 rounded">{"{PROJECT}"}</code>{" "}
@@ -1042,10 +1043,10 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground font-medium border-b pb-2">
-          <div className="col-span-3">النوع</div>
-          <div className="col-span-5">البادئة</div>
-          <div className="col-span-2 text-center">عدد الأرقام</div>
-          <div className="col-span-2">معاينة</div>
+          <div className="col-span-3">{t("النوع", "Type")}</div>
+          <div className="col-span-5">{t("البادئة", "Prefix")}</div>
+          <div className="col-span-2 text-center">{t("عدد الأرقام", "Digits")}</div>
+          <div className="col-span-2">{t("معاينة", "Preview")}</div>
         </div>
         {kinds.map(([k, label]) => (
           <div key={k} className="grid grid-cols-12 gap-2 items-center">
@@ -1060,7 +1061,7 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
                   const normalized = normalizeLegacyPrefix(e.target.value, k);
                   if (normalized === e.target.value) return;
                   setConfig((prev: any) => ({ ...prev, [k]: { ...prev[k], prefix: normalized } }));
-                  push("success", `تم تحويل XXXX تلقائياً إلى ${tokenHintByKind[k]}`);
+                  push("success", t(`تم تحويل XXXX تلقائياً إلى ${tokenHintByKind[k]}`, `Automatically converted XXXX to ${tokenHintByKind[k]}`));
                 }}
               />
               <p className="text-[11px] text-muted-foreground font-english" dir="ltr">
@@ -1080,7 +1081,7 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
           </div>
         ))}
         <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90 mt-3">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> {t("حفظ", "Save")}</>}
         </Button>
       </CardContent>
     </Card>
@@ -1112,10 +1113,10 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
     if (oauth && status) {
       const reason = url.searchParams.get("reason");
       if (status === "success") {
-        push("success", `تم ربط ${oauth === "stripe" ? "Stripe" : "PayPal"} بنجاح`);
+        push("success", t(`تم ربط ${oauth === "stripe" ? "Stripe" : "PayPal"} بنجاح`, `${oauth === "stripe" ? "Stripe" : "PayPal"} connected successfully`));
         api.orgs.get(org.id).then(setOrg).catch(() => {});
       } else {
-        push("error", `فشل ربط ${oauth}: ${reason || "خطأ غير معروف"}`);
+        push("error", t(`فشل ربط ${oauth}: ${reason || "خطأ غير معروف"}`, `Failed to connect ${oauth}: ${reason || "unknown error"}`));
       }
       url.searchParams.delete("oauth");
       url.searchParams.delete("status");
@@ -1272,7 +1273,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         <div className="text-xs text-muted-foreground mt-2">
           {t("البوابات السعودية تتطلب نسخ المفتاح يدوياً (لا يوجد OAuth):", "Saudi gateways require manual key entry:")}
         </div>
-        <Provider name="moyasar" label="🟢 Moyasar (السعودية · SAR · مدى/Apple Pay)" fields={[
+        <Provider name="moyasar" label={t("🟢 Moyasar (السعودية · SAR · مدى/Apple Pay)", "🟢 Moyasar (Saudi Arabia · SAR · Mada/Apple Pay)")} fields={[
           ["publishableKey", "Publishable Key (pk_live_...)", "text"],
           ["secretKey", "Secret Key (sk_live_...)", "secret"],
         ]} />
@@ -1287,20 +1288,20 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
               <input type="checkbox" checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
               {t("إظهار المفاتيح السرية", "Show secret keys")}
             </label>
-            <Provider name="stripe" label="💳 Stripe (نسخ يدوي)" fields={[
+            <Provider name="stripe" label={t("💳 Stripe (نسخ يدوي)", "💳 Stripe (manual paste)")} fields={[
               ["publishableKey", "Publishable Key (pk_live_...)", "text"],
               ["secretKey", "Secret Key (sk_live_...)", "secret"],
             ]} />
-            <Provider name="paypal" label="🅿️ PayPal (نسخ يدوي)" fields={[
+            <Provider name="paypal" label={t("🅿️ PayPal (نسخ يدوي)", "🅿️ PayPal (manual paste)")} fields={[
               ["clientId", "Client ID", "text"],
               ["clientSecret", "Client Secret", "secret"],
               ["mode", t("البيئة (live | sandbox)", "Mode (live | sandbox)"), "text"],
             ]} />
-            <Provider name="tamara" label="🛍️ Tamara (تقسيط)" fields={[
+            <Provider name="tamara" label={t("🛍️ Tamara (تقسيط)", "🛍️ Tamara (installments)")} fields={[
               ["publicKey", "Public Key", "text"],
               ["token", "API Token", "secret"],
             ]} />
-            <Provider name="tabby" label="🛒 Tabby (تقسيط)" fields={[
+            <Provider name="tabby" label={t("🛒 Tabby (تقسيط)", "🛒 Tabby (installments)")} fields={[
               ["publicKey", "Public Key", "text"],
               ["secretKey", "Secret Key", "secret"],
             ]} />
@@ -1321,6 +1322,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
   const [stats, setStats] = useState<any>(null);
   const [industries, setIndustries] = useState<any[]>([]);
   const [pendingSeed, setPendingSeed] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     (api as any).products.categories?.().then(setStats).catch(() => {});
@@ -1334,11 +1336,11 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
     setBusy(industryId);
     try {
       const result: any = await (api as any).products.seedIndustry(industryId);
-      push("success", `${result?.catalog?.icon || ""} تمت إضافة ${result?.created || 0} منتج · تخطي ${result?.skipped || 0}`);
+      push("success", t(`${result?.catalog?.icon || ""} تمت إضافة ${result?.created || 0} منتج · تخطي ${result?.skipped || 0}`, `${result?.catalog?.icon || ""} Added ${result?.created || 0} products · skipped ${result?.skipped || 0}`));
       const s = await (api as any).products.categories?.();
       setStats(s);
     } catch (e: any) {
-      push("error", e?.message || "فشل");
+      push("error", e?.message || t("فشل", "Failed"));
     } finally { setBusy(null); }
   };
 
@@ -1347,23 +1349,23 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
     setBusy("ensidex");
     try {
       const result: any = await (api as any).products.seedEnsidexCatalog?.();
-      push("success", `تمت إضافة ${result?.created || 0} منتج`);
+      push("success", t(`تمت إضافة ${result?.created || 0} منتج`, `Added ${result?.created || 0} products`));
       const s = await (api as any).products.categories?.();
       setStats(s);
     } catch (e: any) {
-      push("error", e?.message || "فشل");
+      push("error", e?.message || t("فشل", "Failed"));
     } finally { setBusy(null); }
   };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground">كتالوج المنتجات</CardTitle>
-        <CardDescription>اختر قطاعك واحصل على كتالوج جاهز · أو اعتمد كتالوج ENSIDEX الداخلي</CardDescription>
+        <CardTitle className="text-foreground">{t("كتالوج المنتجات", "Product catalog")}</CardTitle>
+        <CardDescription>{t("اختر قطاعك واحصل على كتالوج جاهز · أو اعتمد كتالوج ENSIDEX الداخلي", "Choose your sector and get a ready catalog · or adopt the internal ENSIDEX catalog")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">اختر قطاع شركتك</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">{t("اختر قطاع شركتك", "Choose your company sector")}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {industries.map((ind) => (
               <div key={ind.id} className="rounded-lg border border-border p-4 hover:border-[#1276E3] transition">
@@ -1383,12 +1385,12 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
                 <Button onClick={() => setPendingSeed(ind.id)} disabled={busy === ind.id}
                   variant="outline" className="w-full mt-3 border-border hover:bg-primary/5">
                   {busy === ind.id ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : null}
-                  زرع
+                  {t("زرع", "Seed")}
                 </Button>
                 {pendingSeed === ind.id && (
                   <div className="mt-2">
                     <InlineConfirm
-                      label="إضافة منتجات قطاع جديدة؟"
+                      label={t("إضافة منتجات قطاع جديدة؟", "Add new sector products?")}
                       onConfirm={() => seedIndustry(ind.id)}
                       onCancel={() => setPendingSeed(null)}
                     />
@@ -1403,18 +1405,18 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="text-foreground font-medium">كتالوج ENSIDEX الداخلي</div>
+              <div className="text-foreground font-medium">{t("كتالوج ENSIDEX الداخلي", "Internal ENSIDEX catalog")}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                فقط للمنشآت الداخلية المصرح لها · 50+ منتج وخدمة
+                {t("فقط للمنشآت الداخلية المصرح لها · 50+ منتج وخدمة", "For authorized internal organizations only · 50+ products and services")}
               </p>
               <Button onClick={() => setPendingSeed("ensidex")} disabled={busy === "ensidex"} className="bg-amber-600 hover:bg-amber-700 text-white mt-3">
                 {busy === "ensidex" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
-                زرع كتالوج ENSIDEX
+                {t("زرع كتالوج ENSIDEX", "Seed ENSIDEX catalog")}
               </Button>
               {pendingSeed === "ensidex" && (
                 <div className="mt-2">
                   <InlineConfirm
-                    label="زرع كتالوج ENSIDEX؟"
+                    label={t("زرع كتالوج ENSIDEX؟", "Seed ENSIDEX catalog?")}
                     onConfirm={seedEnsidexCatalog}
                     onCancel={() => setPendingSeed(null)}
                   />
@@ -1426,13 +1428,13 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
 
         {stats && stats.categories && stats.categories.length > 0 && (
           <div className="rounded-lg border border-border p-4">
-            <div className="text-sm font-medium text-foreground mb-3">الفئات الحالية</div>
+            <div className="text-sm font-medium text-foreground mb-3">{t("الفئات الحالية", "Current categories")}</div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {stats.categories.map((c: any) => (
                 <div key={c.category} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
                   <span className="text-foreground font-english" dir="ltr">{c.category}</span>
                   <span className="text-xs text-muted-foreground">
-                    <span className="font-english" dir="ltr">{c.count}</span> منتج · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString()}</span>
+                    <span className="font-english" dir="ltr">{c.count}</span> {t("منتج", "products")} · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString()}</span>
                   </span>
                 </div>
               ))}
@@ -1452,6 +1454,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
   const [busy, setBusy] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -1460,15 +1463,15 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
       const r = await api.orgs.inviteMember(orgId, { email: inviteEmail.trim(), role: inviteRole });
       if (r.pending) {
         setInviteUrl(r.inviteUrl || null);
-        push("info", `${r.message} · انسخ الرابط أدناه`);
+        push("info", t(`${r.message} · انسخ الرابط أدناه`, `${r.message} · copy the link below`));
       } else {
         const next = [r.member, ...members];
         setLocal(next); setMembers(next);
-        push("success", `تمت الدعوة · ${inviteEmail}`);
+        push("success", t(`تمت الدعوة · ${inviteEmail}`, `Invited · ${inviteEmail}`));
       }
       setInviteEmail("");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشلت الدعوة");
+      push("error", e instanceof ApiError ? e.message : t("فشلت الدعوة", "Invite failed"));
     } finally { setBusy(false); }
   };
 
@@ -1477,8 +1480,8 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
       await api.orgs.updateMemberRole(orgId, memberId, role);
       const next = members.map(m => m.id === memberId ? { ...m, role } : m);
       setLocal(next); setMembers(next);
-      push("success", "تم التحديث");
-    } catch (e: any) { push("error", e?.message || "فشل"); }
+      push("success", t("تم التحديث", "Updated"));
+    } catch (e: any) { push("error", e?.message || t("فشل", "Failed")); }
   };
 
   const handleRemove = async (memberId: string) => {
@@ -1487,55 +1490,55 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
       await api.orgs.removeMember(orgId, memberId);
       const next = members.filter(m => m.id !== memberId);
       setLocal(next); setMembers(next);
-      push("success", "تم الحذف");
-    } catch (e: any) { push("error", e?.message || "فشل"); }
+      push("success", t("تم الحذف", "Deleted"));
+    } catch (e: any) { push("error", e?.message || t("فشل", "Failed")); }
   };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground"><Users className="h-5 w-5" /> أعضاء الفريق</CardTitle>
-        <CardDescription>{members.length} عضو · يمكنك دعوة محاسبين، مدراء، مشاهدين</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-foreground"><Users className="h-5 w-5" /> {t("أعضاء الفريق", "Team members")}</CardTitle>
+        <CardDescription>{members.length} {t("عضو · يمكنك دعوة محاسبين، مدراء، مشاهدين", "members · you can invite accountants, managers, viewers")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 items-end p-3 bg-muted rounded-lg">
           <div className="flex-1">
-            <Label className="text-xs">البريد الإلكتروني</Label>
+            <Label className="text-xs">{t("البريد الإلكتروني", "Email")}</Label>
             <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
               placeholder="user@example.com" dir="ltr" className="font-english" />
           </div>
           <div>
-            <Label className="text-xs">الدور</Label>
+            <Label className="text-xs">{t("الدور", "Role")}</Label>
             <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)}
               className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-              <option value="OWNER">مالك</option>
-              <option value="ADMIN">مدير</option>
-              <option value="ACCOUNTANT">محاسب</option>
-              <option value="VIEWER">مشاهد</option>
+              <option value="OWNER">{t("مالك", "Owner")}</option>
+              <option value="ADMIN">{t("مدير", "Admin")}</option>
+              <option value="ACCOUNTANT">{t("محاسب", "Accountant")}</option>
+              <option value="VIEWER">{t("مشاهد", "Viewer")}</option>
             </select>
           </div>
           <Button onClick={handleInvite} disabled={busy || !inviteEmail.trim()} className="bg-primary">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "دعوة"}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("دعوة", "Invite")}
           </Button>
         </div>
 
         {inviteUrl && (
           <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs">
-            <div className="font-medium text-amber-700 mb-1">المستخدم لم يُسجَّل بعد · انسخ الرابط وأرسله له:</div>
+            <div className="font-medium text-amber-700 mb-1">{t("المستخدم لم يُسجَّل بعد · انسخ الرابط وأرسله له:", "The user is not registered yet · copy the link and send it to them:")}</div>
             <div className="flex items-center gap-2">
               <input value={inviteUrl} readOnly className="flex-1 text-xs px-2 py-1 rounded border border-border font-english" dir="ltr" />
-              <button onClick={() => { navigator.clipboard.writeText(inviteUrl); push("success", "تم النسخ"); }} className="text-xs text-primary hover:underline">نسخ</button>
-              <button onClick={() => setInviteUrl(null)} className="text-xs text-muted-foreground hover:underline">إخفاء</button>
+              <button onClick={() => { navigator.clipboard.writeText(inviteUrl); push("success", t("تم النسخ", "Copied")); }} className="text-xs text-primary hover:underline">{t("نسخ", "Copy")}</button>
+              <button onClick={() => setInviteUrl(null)} className="text-xs text-muted-foreground hover:underline">{t("إخفاء", "Hide")}</button>
             </div>
           </div>
         )}
 
         <table className="w-full">
           <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-            <th className="py-3 px-4 text-start font-medium">الاسم</th>
-            <th className="py-3 px-4 text-start font-medium">البريد</th>
-            <th className="py-3 px-4 text-start font-medium">الدور</th>
-            <th className="py-3 px-4 text-start font-medium">منذ</th>
+            <th className="py-3 px-4 text-start font-medium">{t("الاسم", "Name")}</th>
+            <th className="py-3 px-4 text-start font-medium">{t("البريد", "Email")}</th>
+            <th className="py-3 px-4 text-start font-medium">{t("الدور", "Role")}</th>
+            <th className="py-3 px-4 text-start font-medium">{t("منذ", "Since")}</th>
             <th className="py-3 px-4"></th>
           </tr></thead>
           <tbody>
@@ -1546,22 +1549,22 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
                 <td className="py-3 px-4">
                   <select value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value)}
                     className="text-xs rounded border border-border px-2 py-1 bg-white">
-                    <option value="OWNER">مالك</option>
-                    <option value="ADMIN">مدير</option>
-                    <option value="ACCOUNTANT">محاسب</option>
-                    <option value="VIEWER">مشاهد</option>
+                    <option value="OWNER">{t("مالك", "Owner")}</option>
+                    <option value="ADMIN">{t("مدير", "Admin")}</option>
+                    <option value="ACCOUNTANT">{t("محاسب", "Accountant")}</option>
+                    <option value="VIEWER">{t("مشاهد", "Viewer")}</option>
                   </select>
                 </td>
                 <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
                 <td className="py-3 px-4 text-end">
                   {pendingRemove === m.id ? (
                     <InlineConfirm
-                      label="حذف العضو؟"
+                      label={t("حذف العضو؟", "Remove member?")}
                       onConfirm={() => handleRemove(m.id)}
                       onCancel={() => setPendingRemove(null)}
                     />
                   ) : (
-                    <button onClick={() => setPendingRemove(m.id)} className="text-xs text-red-600 hover:underline">حذف</button>
+                    <button onClick={() => setPendingRemove(m.id)} className="text-xs text-red-600 hover:underline">{t("حذف", "Delete")}</button>
                   )}
                 </td>
               </tr>
@@ -1580,29 +1583,30 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
   const [mode, setMode] = useState<"sandbox" | "simulation" | "production">((org as any).zatcaMode || "sandbox");
   const [status, setStatus] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     api.zatca.status().then(setStatus).catch(() => {});
   }, []);
 
   const handleOnboard = async () => {
-    if (!csid.trim() || !csidSecret.trim()) { push("error", "أدخل CSID والمفتاح السري"); return; }
+    if (!csid.trim() || !csidSecret.trim()) { push("error", t("أدخل CSID والمفتاح السري", "Enter CSID and the secret key")); return; }
     setBusy(true);
     try {
       await api.zatca.onboard({ csid: csid.trim(), csidSecret: csidSecret.trim(), mode });
-      push("success", "تم الحفظ · ZATCA Phase 2 مفعّل");
+      push("success", t("تم الحفظ · ZATCA Phase 2 مفعّل", "Saved · ZATCA Phase 2 enabled"));
       const s = await api.zatca.status();
       setStatus(s);
     } catch (e: any) {
-      push("error", e?.message || "فشل");
+      push("error", e?.message || t("فشل", "Failed"));
     } finally { setBusy(false); }
   };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">📋 ZATCA Phase 2 · الفوترة الإلكترونية</CardTitle>
-        <CardDescription>تكامل مع هيئة الزكاة والضريبة والجمارك (السعودية) · UUID + QR + XML + CSID</CardDescription>
+        <CardTitle className="text-foreground flex items-center gap-2">📋 {t("ZATCA Phase 2 · الفوترة الإلكترونية", "ZATCA Phase 2 · e-invoicing")}</CardTitle>
+        <CardDescription>{t("تكامل مع هيئة الزكاة والضريبة والجمارك (السعودية) · UUID + QR + XML + CSID", "Integration with the Zakat, Tax and Customs Authority (Saudi Arabia) · UUID + QR + XML + CSID")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {status && (
@@ -1610,40 +1614,40 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
             <div className="flex items-center justify-between">
               <div>
                 <div className={`font-medium ${status.ready ? "text-green-700" : "text-amber-700"}`}>
-                  {status.ready ? "✅ جاهز للترحيل" : "⚠️ يحتاج إعداد"}
+                  {status.ready ? t("✅ جاهز للترحيل", "✅ Ready to clear") : t("⚠️ يحتاج إعداد", "⚠️ Needs setup")}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">{status.nextActions}</div>
               </div>
               <div className="text-end text-xs text-muted-foreground">
-                <div>الفواتير المُرحَّلة: <span className="font-english font-bold" dir="ltr">{status.invoicesProcessed || 0}</span></div>
+                <div>{t("الفواتير المُرحَّلة", "Cleared invoices")}: <span className="font-english font-bold" dir="ltr">{status.invoicesProcessed || 0}</span></div>
                 <div>ICV: <span className="font-english" dir="ltr">{status.icv || 0}</span></div>
-                <div>الوضع: {status.mode}</div>
+                <div>{t("الوضع", "Mode")}: {status.mode}</div>
               </div>
             </div>
           </div>
         )}
 
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs">
-          <div className="font-medium text-foreground mb-2">📚 خطوات الحصول على CSID:</div>
+          <div className="font-medium text-foreground mb-2">{t("📚 خطوات الحصول على CSID:", "📚 Steps to obtain CSID:")}</div>
           <ol className="space-y-1 text-foreground/80 list-decimal list-inside">
-            <li>سجّل دخول في <a href="https://fatoora.zatca.gov.sa" target="_blank" rel="noreferrer" className="text-primary hover:underline">fatoora.zatca.gov.sa</a> بهوية المنشأة</li>
-            <li>اختر "إصدار CSID" (Compliance / Cryptographic Stamp ID)</li>
-            <li>سيُصدر لك ملفان: <code className="bg-white px-1 rounded">CSID Token</code> + <code className="bg-white px-1 rounded">Secret</code></li>
-            <li>الصقهما هنا واحفظ</li>
+            <li>{t("سجّل دخول في", "Sign in at")} <a href="https://fatoora.zatca.gov.sa" target="_blank" rel="noreferrer" className="text-primary hover:underline">fatoora.zatca.gov.sa</a> {t("بهوية المنشأة", "with your establishment ID")}</li>
+            <li>{t("اختر \"إصدار CSID\" (Compliance / Cryptographic Stamp ID)", "Choose \"Issue CSID\" (Compliance / Cryptographic Stamp ID)")}</li>
+            <li>{t("سيُصدر لك ملفان:", "It will issue two files:")} <code className="bg-white px-1 rounded">CSID Token</code> + <code className="bg-white px-1 rounded">Secret</code></li>
+            <li>{t("الصقهما هنا واحفظ", "Paste them here and save")}</li>
           </ol>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
             <Label className="text-xs">CSID Token</Label>
-            <Input value={csid} onChange={(e) => setCsid(e.target.value)} dir="ltr" className="font-english" placeholder="base64 token من ZATCA" />
+            <Input value={csid} onChange={(e) => setCsid(e.target.value)} dir="ltr" className="font-english" placeholder={t("base64 token من ZATCA", "base64 token from ZATCA")} />
           </div>
           <div>
-            <Label className="text-xs">الوضع</Label>
+            <Label className="text-xs">{t("الوضع", "Mode")}</Label>
             <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-              <option value="sandbox">Sandbox (تجريبي)</option>
+              <option value="sandbox">{t("Sandbox (تجريبي)", "Sandbox (test)")}</option>
               <option value="simulation">Simulation</option>
-              <option value="production">Production (إنتاج)</option>
+              <option value="production">{t("Production (إنتاج)", "Production (live)")}</option>
             </select>
           </div>
           <div className="md:col-span-3">
@@ -1653,7 +1657,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         </div>
 
         <Button onClick={handleOnboard} disabled={busy} className="bg-primary">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ وتفعيل"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ وتفعيل", "Save and activate")}
         </Button>
       </CardContent>
     </Card>
@@ -1669,9 +1673,10 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   const [printLogoUrl, setPrintLogoUrl] = useState((org as any).printLogoUrl || "");
   const [stampUrl, setStampUrl] = useState((org as any).stampUrl || "");
   const [busy, setBusy] = useState(false);
+  const { t } = useLanguage();
 
   const upload = (kind: "logoUrl" | "printLogoUrl" | "stampUrl") => async (file: File) => {
-    if (file.size > 2 * 1024 * 1024) { push("error", "الحد الأقصى 2 ميجا"); return; }
+    if (file.size > 2 * 1024 * 1024) { push("error", t("الحد الأقصى 2 ميجا", "Max 2 MB")); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const url = String(reader.result || "");
@@ -1691,22 +1696,22 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         stampUrl: stampUrl || null,
       } as any);
       setOrg(updated);
-      push("success", "تم الحفظ");
+      push("success", t("تم الحفظ", "Saved"));
     } catch (e: any) {
-      push("error", e?.message || "فشل");
+      push("error", e?.message || t("فشل", "Failed"));
     } finally { setBusy(false); }
   };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground">العلامة التجارية</CardTitle>
-        <CardDescription>الشعار · الختم · الألوان · الخط · تنعكس على الفواتير، السندات، العقود</CardDescription>
+        <CardTitle className="text-foreground">{t("العلامة التجارية", "Branding")}</CardTitle>
+        <CardDescription>{t("الشعار · الختم · الألوان · الخط · تنعكس على الفواتير، السندات، العقود", "Logo · Stamp · Colors · Font · reflected on invoices, vouchers, contracts")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs mb-2 block">الشعار · Avatar (يظهر في الواجهة)</Label>
+            <Label className="text-xs mb-2 block">{t("الشعار · Avatar (يظهر في الواجهة)", "Logo · Avatar (shown in the UI)")}</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-4">
               <input type="file" id="brand-logo" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("logoUrl")(f); }} />
@@ -1714,21 +1719,21 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 <div className="flex items-center gap-3">
                   <img src={logoUrl} alt="logo" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="brand-logo" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                    <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                    <label htmlFor="brand-logo" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                    <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
                   </div>
                 </div>
               ) : (
                 <label htmlFor="brand-logo" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-primary font-medium">رفع شعار صغير</div>
-                  <div className="text-xs text-muted-foreground/60 mt-1">يفضّل مربع · PNG/SVG · حتى 2MB</div>
+                  <div className="text-sm text-primary font-medium">{t("رفع شعار صغير", "Upload small logo")}</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">{t("يفضّل مربع · PNG/SVG · حتى 2MB", "Square preferred · PNG/SVG · up to 2MB")}</div>
                 </label>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">يظهر في الـ org switcher + الـ header</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">{t("يظهر في الـ org switcher + الـ header", "Shown in the org switcher + the header")}</p>
           </div>
           <div>
-            <Label className="text-xs mb-2 block">شعار الطباعة · Print Logo (يظهر على الفواتير)</Label>
+            <Label className="text-xs mb-2 block">{t("شعار الطباعة · Print Logo (يظهر على الفواتير)", "Print Logo (shown on invoices)")}</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-4">
               <input type="file" id="brand-print-logo" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("printLogoUrl")(f); }} />
@@ -1736,21 +1741,21 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 <div className="flex items-center gap-3">
                   <img src={printLogoUrl} alt="print logo" className="max-w-[200px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="brand-print-logo" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                    <button type="button" onClick={() => setPrintLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                    <label htmlFor="brand-print-logo" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                    <button type="button" onClick={() => setPrintLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
                   </div>
                 </div>
               ) : (
                 <label htmlFor="brand-print-logo" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-primary font-medium">رفع شعار للطباعة</div>
-                  <div className="text-xs text-muted-foreground/60 mt-1">يفضّل أفقي بدقة عالية · PNG/SVG · حتى 2MB</div>
+                  <div className="text-sm text-primary font-medium">{t("رفع شعار للطباعة", "Upload print logo")}</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">{t("يفضّل أفقي بدقة عالية · PNG/SVG · حتى 2MB", "Horizontal high-res preferred · PNG/SVG · up to 2MB")}</div>
                 </label>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">يظهر على الفواتير · السندات · العقود · لو فاضي يستخدم الـ Avatar</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">{t("يظهر على الفواتير · السندات · العقود · لو فاضي يستخدم الـ Avatar", "Shown on invoices · vouchers · contracts · if empty, the Avatar is used")}</p>
           </div>
           <div>
-            <Label className="text-xs mb-2 block">الختم الرسمي</Label>
+            <Label className="text-xs mb-2 block">{t("الختم الرسمي", "Official stamp")}</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-4">
               <input type="file" id="brand-stamp" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("stampUrl")(f); }} />
@@ -1758,14 +1763,14 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 <div className="flex items-center gap-3">
                   <img src={stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="brand-stamp" className="text-xs text-primary hover:underline cursor-pointer">تغيير</label>
-                    <button type="button" onClick={() => setStampUrl("")} className="text-xs text-red-600 text-start hover:underline">حذف</button>
+                    <label htmlFor="brand-stamp" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                    <button type="button" onClick={() => setStampUrl("")} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
                   </div>
                 </div>
               ) : (
                 <label htmlFor="brand-stamp" className="cursor-pointer block text-center py-4">
-                  <div className="text-sm text-primary font-medium">رفع الختم</div>
-                  <div className="text-xs text-muted-foreground/60 mt-1">PNG شفاف يفضّل · حتى 2MB</div>
+                  <div className="text-sm text-primary font-medium">{t("رفع الختم", "Upload stamp")}</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG شفاف يفضّل · حتى 2MB", "Transparent PNG preferred · up to 2MB")}</div>
                 </label>
               )}
             </div>
@@ -1774,21 +1779,21 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label className="text-xs mb-2 block">اللون الأساسي</Label>
+            <Label className="text-xs mb-2 block">{t("اللون الأساسي", "Primary color")}</Label>
             <div className="flex items-center gap-2">
               <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-9 w-16 rounded border border-border" />
               <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} dir="ltr" className="font-english" />
             </div>
           </div>
           <div>
-            <Label className="text-xs mb-2 block">لون التميز</Label>
+            <Label className="text-xs mb-2 block">{t("لون التميز", "Accent color")}</Label>
             <div className="flex items-center gap-2">
               <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-16 rounded border border-border" />
               <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} dir="ltr" className="font-english" />
             </div>
           </div>
           <div>
-            <Label className="text-xs mb-2 block">الخط</Label>
+            <Label className="text-xs mb-2 block">{t("الخط", "Font")}</Label>
             <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
               <option value="Tajawal">Tajawal</option>
               <option value="Noto Sans Arabic">Noto Sans Arabic</option>
@@ -1798,22 +1803,22 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         </div>
 
         <div className="rounded-lg border border-border p-4 bg-muted">
-          <div className="text-xs text-muted-foreground mb-2">معاينة</div>
+          <div className="text-xs text-muted-foreground mb-2">{t("معاينة", "Preview")}</div>
           <div className="bg-white rounded p-4 border" style={{ borderColor: primaryColor, fontFamily }}>
             <div className="flex items-center justify-between border-b pb-2 mb-2" style={{ borderColor: primaryColor }}>
               {logoUrl ? <img src={logoUrl} alt="" className="max-h-[40px]" /> : <div style={{ color: accentColor, fontWeight: 700 }}>{org.name}</div>}
-              <div className="text-xs text-muted-foreground">فاتورة · INV-2026-0001</div>
+              <div className="text-xs text-muted-foreground">{t("فاتورة", "Invoice")} · INV-2026-0001</div>
             </div>
             <div className="text-sm" style={{ color: accentColor }}>
-              العميل: عميل تجريبي<br />
-              المبلغ: <span style={{ color: primaryColor, fontWeight: 700 }}>1,150 SAR</span>
+              {t("العميل", "Customer")}: {t("عميل تجريبي", "Demo customer")}<br />
+              {t("المبلغ", "Amount")}: <span style={{ color: primaryColor, fontWeight: 700 }}>1,150 SAR</span>
             </div>
             {stampUrl && <img src={stampUrl} className="mt-3 max-h-[60px] opacity-80" />}
           </div>
         </div>
 
         <Button onClick={handleSave} disabled={busy} className="bg-primary">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> حفظ</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> {t("حفظ", "Save")}</>}
         </Button>
       </CardContent>
     </Card>
@@ -1823,19 +1828,20 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 // ── PLANS TAB ───────────────────────────────────────────────────────────────
 function PlansTab({ org }: { org: Org }) {
   const isAdmin = (org as any).platformRole === "ADMIN";
+  const { t } = useLanguage();
   const plans = [
-    { id: "free", name: "مجاني", price: "$0", users: "2", invoices: "20/شهر", ai: "$5/شهر", features: ["حساب واحد", "فواتير أساسية", "تصدير PDF"] },
-    { id: "pro", name: "احترافي", price: "$19/شهر", users: "5", invoices: "غير محدود", ai: "$30/شهر", features: ["حسابات متعددة", "ZATCA", "تكاملات بنكية", "API access"], popular: true },
-    { id: "business", name: "أعمال", price: "$49/شهر", users: "20", invoices: "غير محدود", ai: "$100/شهر", features: ["كل ميزات Pro", "AI advanced", "متعدد العملات", "إغلاق سنوي", "Audit log"] },
-    { id: "enterprise", name: "مؤسسات", price: "تواصل معنا", users: "غير محدود", invoices: "غير محدود", ai: "غير محدود", features: ["SSO", "SLA", "Priority support", "Custom integrations", "Dedicated account manager"] },
+    { id: "free", name: t("مجاني", "Free"), price: "$0", users: "2", invoices: t("20/شهر", "20/month"), ai: t("$5/شهر", "$5/month"), features: [t("حساب واحد", "One account"), t("فواتير أساسية", "Basic invoices"), t("تصدير PDF", "PDF export")] },
+    { id: "pro", name: t("احترافي", "Pro"), price: t("$19/شهر", "$19/month"), users: "5", invoices: t("غير محدود", "Unlimited"), ai: t("$30/شهر", "$30/month"), features: [t("حسابات متعددة", "Multiple accounts"), "ZATCA", t("تكاملات بنكية", "Bank integrations"), "API access"], popular: true },
+    { id: "business", name: t("أعمال", "Business"), price: t("$49/شهر", "$49/month"), users: "20", invoices: t("غير محدود", "Unlimited"), ai: t("$100/شهر", "$100/month"), features: [t("كل ميزات Pro", "All Pro features"), "AI advanced", t("متعدد العملات", "Multi-currency"), t("إغلاق سنوي", "Yearly closing"), "Audit log"] },
+    { id: "enterprise", name: t("مؤسسات", "Enterprise"), price: t("تواصل معنا", "Contact us"), users: t("غير محدود", "Unlimited"), invoices: t("غير محدود", "Unlimited"), ai: t("غير محدود", "Unlimited"), features: ["SSO", "SLA", "Priority support", "Custom integrations", "Dedicated account manager"] },
   ];
-  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: ["جميع الميزات مفتوحة", "بدون حد على العملاء/الفواتير/AI", "Cross-org admin dashboard", "متاح فقط لمشرفي المنصة"] };
+  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: [t("جميع الميزات مفتوحة", "All features unlocked"), t("بدون حد على العملاء/الفواتير/AI", "No limit on customers/invoices/AI"), "Cross-org admin dashboard", t("متاح فقط لمشرفي المنصة", "Available to platform admins only")] };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground">الباقات والاشتراكات</CardTitle>
-        <CardDescription>اختر الباقة المناسبة · يمكن الترقية أو التخفيض في أي وقت</CardDescription>
+        <CardTitle className="text-foreground">{t("الباقات والاشتراكات", "Plans & subscriptions")}</CardTitle>
+        <CardDescription>{t("اختر الباقة المناسبة · يمكن الترقية أو التخفيض في أي وقت", "Choose the right plan · upgrade or downgrade at any time")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isAdmin && (
@@ -1843,7 +1849,7 @@ function PlansTab({ org }: { org: Org }) {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-amber-700 font-bold text-lg">⚡ {adminPlan.name}</div>
-                <div className="text-xs text-amber-600">باقة الادمن · مفعّلة تلقائياً لك</div>
+                <div className="text-xs text-amber-600">{t("باقة الادمن · مفعّلة تلقائياً لك", "Admin plan · auto-enabled for you")}</div>
               </div>
               <div className="text-end">
                 <div className="font-english font-bold text-2xl text-amber-700" dir="ltr">{adminPlan.price}</div>
@@ -1860,11 +1866,11 @@ function PlansTab({ org }: { org: Org }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {plans.map(p => (
             <div key={p.id} className={`rounded-lg border p-4 ${p.popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-border"} relative`}>
-              {p.popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">الأكثر شعبية</div>}
+              {p.popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">{t("الأكثر شعبية", "Most popular")}</div>}
               <div className="text-foreground font-bold">{p.name}</div>
               <div className="text-2xl font-bold text-foreground mt-2 font-english" dir="ltr">{p.price}</div>
               <div className="text-xs text-muted-foreground mt-3 space-y-1">
-                <div>👤 {p.users} مستخدمين</div>
+                <div>👤 {p.users} {t("مستخدمين", "users")}</div>
                 <div>📄 {p.invoices}</div>
                 <div>🤖 AI: {p.ai}</div>
               </div>
@@ -1874,13 +1880,13 @@ function PlansTab({ org }: { org: Org }) {
                 ))}
               </ul>
               <Button className="w-full mt-4 bg-primary hover:bg-primary/90" disabled>
-                {p.id === "enterprise" ? "تواصل" : "اختيار"}
+                {p.id === "enterprise" ? t("تواصل", "Contact") : t("اختيار", "Select")}
               </Button>
             </div>
           ))}
         </div>
         <p className="text-xs text-muted-foreground/60 text-center">
-          الفوترة عبر Stripe · اشتراك شهري قابل للإلغاء في أي وقت
+          {t("الفوترة عبر Stripe · اشتراك شهري قابل للإلغاء في أي وقت", "Billed via Stripe · monthly subscription, cancelable at any time")}
         </p>
       </CardContent>
     </Card>

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import { EntixWordmark } from "../components/entix-brand";
 import { api, ApiError } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 type PortalTab = "home" | "invoices" | "statement" | "documents";
 
@@ -53,6 +54,7 @@ const STATUS_AR_MAP: Record<string, string> = {
 };
 
 function statusLabel(status: string) {
+  const { t } = useLanguage();
   return STATUS_AR_MAP[status] || status;
 }
 

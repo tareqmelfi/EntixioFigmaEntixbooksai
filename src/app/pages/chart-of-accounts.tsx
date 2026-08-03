@@ -19,6 +19,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { useLanguage } from "../components/LanguageContext";
 import { api, ApiError, Account, AccountTransactions } from "../lib/api";
 
 type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
@@ -49,16 +50,21 @@ type ImportRow = {
   rowStatus?: "new" | "code_duplicate" | "name_duplicate" | "needs_review";
 };
 
-const TYPE_LABELS: Record<AccountType, string> = {
-  ASSET: "أصل", LIABILITY: "التزام", EQUITY: "حقوق ملكية", REVENUE: "إيراد", EXPENSE: "مصروف",
-};
-const TYPE_LABELS_PLURAL: Record<AccountType, string> = {
-  ASSET: "الأصول",
-  LIABILITY: "الالتزامات",
-  EQUITY: "حقوق الملكية",
-  REVENUE: "الإيرادات",
-  EXPENSE: "المصروفات",
-};
+type TFunc = (ar: string, en?: string) => string;
+function buildTypeLabels(t: TFunc): Record<AccountType, string> {
+  return {
+    ASSET: t("أصل", "Asset"), LIABILITY: t("التزام", "Liability"), EQUITY: t("حقوق ملكية", "Equity"), REVENUE: t("إيراد", "Revenue"), EXPENSE: t("مصروف", "Expense"),
+  };
+}
+function buildTypeLabelsPlural(t: TFunc): Record<AccountType, string> {
+  return {
+    ASSET: t("الأصول", "Assets"),
+    LIABILITY: t("الالتزامات", "Liabilities"),
+    EQUITY: t("حقوق الملكية", "Equity"),
+    REVENUE: t("الإيرادات", "Revenue"),
+    EXPENSE: t("المصروفات", "Expenses"),
+  };
+}
 const TYPE_COLORS: Record<AccountType, string> = {
   ASSET: "bg-blue-100 text-blue-700",
   LIABILITY: "bg-red-100 text-red-700",
@@ -76,12 +82,14 @@ const TYPE_PREFIX: Record<AccountType, string> = {
   EXPENSE:   "5",
 };
 
-const CASH_FLOW_META: Record<CashFlowType, { label: string; hint: string }> = {
-  OPERATING: { label: "التشغيلات (Operating)", hint: "للمبيعات، المصروفات اليومية، العملاء، الموردين، النقد والبنوك المستخدمة يومياً." },
-  INVESTING: { label: "الاستثمارات (Investing)", hint: "لشراء أو بيع الأصول طويلة الأجل والاستثمارات." },
-  FINANCING: { label: "التمويلات (Financing)", hint: "للقروض، رأس المال، توزيعات الملاك، وحركات التمويل." },
-  NON_CASH: { label: "غير نقدي (Non-Cash)", hint: "للحسابات التي لا تمثل حركة نقدية مباشرة مثل الإهلاك والتسويات." },
-};
+function buildCashFlowMeta(t: TFunc): Record<CashFlowType, { label: string; hint: string }> {
+  return {
+    OPERATING: { label: t("التشغيلات (Operating)", "Operating"), hint: t("للمبيعات، المصروفات اليومية، العملاء، الموردين، النقد والبنوك المستخدمة يومياً.", "For sales, daily expenses, customers, suppliers, cash and banks used daily.") },
+    INVESTING: { label: t("الاستثمارات (Investing)", "Investing"), hint: t("لشراء أو بيع الأصول طويلة الأجل والاستثمارات.", "For buying or selling long-term assets and investments.") },
+    FINANCING: { label: t("التمويلات (Financing)", "Financing"), hint: t("للقروض، رأس المال، توزيعات الملاك، وحركات التمويل.", "For loans, capital, owner distributions, and financing movements.") },
+    NON_CASH: { label: t("غير نقدي (Non-Cash)", "Non-Cash"), hint: t("للحسابات التي لا تمثل حركة نقدية مباشرة مثل الإهلاك والتسويات.", "For accounts that do not represent direct cash movement such as depreciation and adjustments.") },
+  };
+}
 
 function formatAmount(value: number | null | undefined): string {
   return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -129,18 +137,20 @@ function defaultForm(type: AccountType = "ASSET", parentId = "", parent?: Accoun
 }
 
 // Visual meta per type · gradient + icon + ring color (UX-192)
-const TYPE_META: Record<AccountType, {
+function buildTypeMeta(t: TFunc): Record<AccountType, {
   icon: any;
   bg: string;       // chip soft bg (used very sparingly)
   text: string;     // chip text
   hint: string;
-}> = {
-  ASSET:     { icon: Wallet,       bg: "bg-primary/5", text: "text-primary", hint: "ما تملكه الشركة" },
-  LIABILITY: { icon: CreditCard,   bg: "bg-muted", text: "text-muted-foreground", hint: "ما عليها للغير" },
-  EQUITY:    { icon: Landmark,     bg: "bg-muted", text: "text-muted-foreground", hint: "حقوق الملاّك" },
-  REVENUE:   { icon: TrendingUp,   bg: "bg-muted", text: "text-muted-foreground", hint: "ما تكسبه الشركة" },
-  EXPENSE:   { icon: TrendingDown, bg: "bg-muted", text: "text-muted-foreground", hint: "ما تنفقه الشركة" },
-};
+}> {
+  return {
+    ASSET:     { icon: Wallet,       bg: "bg-primary/5", text: "text-primary", hint: t("ما تملكه الشركة", "What the company owns") },
+    LIABILITY: { icon: CreditCard,   bg: "bg-muted", text: "text-muted-foreground", hint: t("ما عليها للغير", "What it owes others") },
+    EQUITY:    { icon: Landmark,     bg: "bg-muted", text: "text-muted-foreground", hint: t("حقوق الملاّك", "Owners' equity") },
+    REVENUE:   { icon: TrendingUp,   bg: "bg-muted", text: "text-muted-foreground", hint: t("ما تكسبه الشركة", "What the company earns") },
+    EXPENSE:   { icon: TrendingDown, bg: "bg-muted", text: "text-muted-foreground", hint: t("ما تنفقه الشركة", "What the company spends") },
+  };
+}
 
 
 /** Suggest next available code in the bucket. If parent provided, use parent.code as prefix. */
@@ -205,6 +215,11 @@ function flattenTree(roots: TreeNode[], expanded: Set<string>): TreeNode[] {
 }
 
 export function ChartOfAccounts() {
+  const { t } = useLanguage();
+  const TYPE_LABELS = buildTypeLabels(t);
+  const TYPE_LABELS_PLURAL = buildTypeLabelsPlural(t);
+  const TYPE_META = buildTypeMeta(t);
+  const CASH_FLOW_META = buildCashFlowMeta(t);
   const [items, setItems] = useState<Account[]>([]);
   const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
@@ -232,7 +247,7 @@ export function ChartOfAccounts() {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
 
   const aiSuggest = async (sourceText: string) => {
-    if (!sourceText.trim()) { push("error", "اكتب اسم الحساب أولاً"); return; }
+    if (!sourceText.trim()) { push("error", t("اكتب اسم الحساب أولاً", "Type the account name first")); return; }
     setAiBusy(true); setAiSuggestion(null);
     try {
       const parent = form.parentId ? items.find(a => a.id === form.parentId) : null;
@@ -254,10 +269,10 @@ export function ChartOfAccounts() {
         allowExpenseClaim: nextUsage.allowExpenseClaim,
         ...((!codeManuallyEdited && !prev.parentId && r.suggestedCode && r.type === prev.type) ? { code: r.suggestedCode } : {}),
       }));
-      setAiSuggestion(r.reasoning || `${r.category || TYPE_LABELS[form.type]} · لم يتم تغيير التصنيف المختار`);
-      push("success", "تم الاقتراح بالذكاء ✨");
+      setAiSuggestion(r.reasoning || `${r.category || TYPE_LABELS[form.type]} · ${t("لم يتم تغيير التصنيف المختار", "Selected classification not changed")}`);
+      push("success", t("تم الاقتراح بالذكاء ✨", "AI suggestion done ✨"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الاقتراح");
+      push("error", e instanceof ApiError ? e.message : t("فشل الاقتراح", "Suggestion failed"));
     } finally { setAiBusy(false); }
   };
 
@@ -267,7 +282,7 @@ export function ChartOfAccounts() {
       const data = await api.accounts.transactions(accountId);
       setTxPanel({ accountId, data, loading: false });
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل تحميل العمليات");
+      push("error", e instanceof ApiError ? e.message : t("فشل تحميل العمليات", "Failed to load transactions"));
       setTxPanel(null);
     }
   };
@@ -281,9 +296,9 @@ export function ChartOfAccounts() {
       const rootIds = d.items.filter(a => !a.parentId).map(a => a.id);
       setExpanded(new Set(rootIds));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل التحميل");
+      push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
-  }, [push]);
+  }, [push, t]);
   useEffect(() => { refresh(); }, [refresh]);
 
   // Build tree
@@ -351,7 +366,7 @@ export function ChartOfAccounts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.code.trim() || !form.name.trim()) { push("error", "الرمز والاسم مطلوبان"); return; }
+    if (!form.code.trim() || !form.name.trim()) { push("error", t("الرمز والاسم مطلوبان", "Code and name are required")); return; }
     setBusy(true);
     try {
       if (editingId) {
@@ -368,7 +383,7 @@ export function ChartOfAccounts() {
           allowExpenseClaim: form.allowExpenseClaim,
         });
         setItems(prev => prev.map(x => x.id === a.id ? a : x));
-        push("success", "تم التحديث");
+        push("success", t("تم التحديث", "Updated"));
       } else {
         const a = await api.accounts.create({
           code: form.code.trim(), name: form.name.trim(),
@@ -382,14 +397,14 @@ export function ChartOfAccounts() {
           allowExpenseClaim: form.allowExpenseClaim,
         });
         setItems(prev => [...prev, a]);
-        push("success", `تم إنشاء الحساب ${a.code}`);
+        push("success", t("تم إنشاء الحساب ", "Account created ") + a.code);
         // expand the parent so user sees the new child
         if (a.parentId) setExpanded(prev => new Set([...prev, a.parentId!]));
       }
       setOpen(false);
       resetForm();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? (e.message === "code_already_exists" ? "الرمز موجود مسبقاً" : e.message) : "فشل الحفظ");
+      push("error", e instanceof ApiError ? (e.message === "code_already_exists" ? t("الرمز موجود مسبقاً", "Code already exists") : e.message) : t("فشل الحفظ", "Failed to save"));
     } finally { setBusy(false); }
   };
 
@@ -398,14 +413,14 @@ export function ChartOfAccounts() {
     try {
       await api.accounts.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
-      push("success", "تم الحذف");
+      push("success", t("تم الحذف", "Deleted"));
     } catch (e: any) {
       if (source && e instanceof ApiError && (e.message.includes("قيود") || e.message.includes("فرعية") || e.message.includes("has_journals") || e.message.includes("has_children"))) {
         setMergeSource(source);
         setMergeTargetId("");
-        push("error", "لا يمكن حذف هذا الحساب مباشرة · اختر حساباً لنقل القيود أو الحسابات الفرعية إليه");
+        push("error", t("لا يمكن حذف هذا الحساب مباشرة · اختر حساباً لنقل القيود أو الحسابات الفرعية إليه", "Cannot delete this account directly · choose an account to move entries or sub-accounts to"));
       } else {
-        push("error", e instanceof ApiError ? e.message : "فشل الحذف");
+        push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed"));
       }
     } finally { setPendingDelete(null); }
   };
@@ -415,12 +430,12 @@ export function ChartOfAccounts() {
     setMergeBusy(true);
     try {
       const r = await api.accounts.merge(mergeSource.id, mergeTargetId);
-      push("success", r.message || "تم الدمج");
+      push("success", r.message || t("تم الدمج", "Merged"));
       setMergeSource(null);
       setMergeTargetId("");
       await refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : "فشل الدمج");
+      push("error", e instanceof ApiError ? e.message : t("فشل الدمج", "Merge failed"));
     } finally {
       setMergeBusy(false);
     }
@@ -462,7 +477,7 @@ export function ChartOfAccounts() {
     a.download = `chart-of-accounts-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    push('success', `تم تصدير ${items.length} حساب`);
+    push('success', t("تم تصدير ", "Exported ") + items.length + t(" حساب", " accounts"));
   };
 
   // ── Smart import ──
@@ -534,13 +549,13 @@ export function ChartOfAccounts() {
       const missingType = !row.type;
       const lowConfidence = typeof row.confidence === "number" && row.confidence < 0.7;
       const needsReviewReason = duplicateNameCode
-        ? `اسم مشابه للحساب ${duplicateNameCode}`
+        ? t("اسم مشابه للحساب ", "Similar name to account ") + duplicateNameCode
         : parentMissing
-          ? `الأب ${row.parentCode} غير موجود`
+          ? t("الأب ", "Parent ") + row.parentCode + t(" غير موجود", " not found")
           : missingType
-            ? "التصنيف غير واضح"
+            ? t("التصنيف غير واضح", "Type unclear")
             : lowConfidence
-              ? "ثقة التحليل منخفضة"
+              ? t("ثقة التحليل منخفضة", "Low analysis confidence")
               : null;
       return {
         ...row,
@@ -604,11 +619,11 @@ export function ChartOfAccounts() {
           confidence: row.confidence ?? null,
         })).filter((row: ImportRow) => row.code));
         if (parsed.length === 0) {
-          push("error", "لم يستخرج التحليل حسابات واضحة من الملف");
+          push("error", t("لم يستخرج التحليل حسابات واضحة من الملف", "Analysis did not extract clear accounts from the file"));
           return;
         }
         setImportPreview({ rows: parsed, mapping: {}, rawHeaders: [], source: "file", warnings: r.warnings || [], fileName: file.name });
-        push("success", `تم تحليل ${parsed.length} حساب من الملف`);
+        push("success", t("تم تحليل ", "Analyzed ") + parsed.length + t(" حساب من الملف", " accounts from file"));
         return;
       }
       const text = await file.text();
@@ -632,12 +647,12 @@ export function ChartOfAccounts() {
       })).filter(r => r.code);
 
       if (parsed.length === 0) {
-        push('error', 'لم يتم العثور على صفوف صالحة · تأكد من وجود عمود "code" أو "رمز"');
+        push('error', t("لم يتم العثور على صفوف صالحة · تأكد من وجود عمود code أو رمز", "No valid rows found · ensure a code or رمز column exists"));
         return;
       }
       setImportPreview({ rows: annotateImportRows(parsed), mapping, rawHeaders: headers, source: "csv", fileName: file.name });
     } catch (e: any) {
-      push('error', e?.message || 'فشل قراءة الملف');
+      push('error', e?.message || t("فشل قراءة الملف", "Failed to read file"));
     } finally {
       setImportBusy(false);
     }
@@ -649,7 +664,7 @@ export function ChartOfAccounts() {
     try {
       const rowsToImport = importPreview.rows.filter(row => row.rowStatus === "new");
       if (rowsToImport.length === 0) {
-        push("error", "لا توجد حسابات جديدة جاهزة للاستيراد · راجع الصفوف الملونة أولاً");
+        push("error", t("لا توجد حسابات جديدة جاهزة للاستيراد · راجع الصفوف الملونة أولاً", "No new accounts ready for import · review highlighted rows first"));
         return;
       }
       const r = await api.accounts.importBulk(rowsToImport.map(row => ({
@@ -664,7 +679,7 @@ export function ChartOfAccounts() {
       setImportPreview(null);
       refresh();
     } catch (e: any) {
-      push('error', e instanceof ApiError ? e.message : 'فشل الاستيراد');
+      push('error', e instanceof ApiError ? e.message : t("فشل الاستيراد", "Import failed"));
     } finally {
       setImportBusy(false);
     }
@@ -676,20 +691,20 @@ export function ChartOfAccounts() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>دليل الحسابات</h1>
-          <p className="text-muted-foreground mt-1">شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("دليل الحسابات", "Chart of Accounts")}</h1>
+          <p className="text-muted-foreground mt-1">{t("شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات", "Hierarchical account tree by type · 1xxx Assets · 2xxx Liabilities · 3xxx Equity · 4xxx Revenue · 5xxx Expenses")}</p>
         </div>
         <div className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept=".csv,text/csv,.pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif,.xlsx,.xls" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy} className="border-border">
             {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" />}
-            استيراد ذكي
+            {t("استيراد ذكي", "Smart Import")}
           </Button>
           <Button variant="outline" onClick={handleExport} className="border-border">
-            <Download className="me-2 h-4 w-4" /> تصدير CSV
+            <Download className="me-2 h-4 w-4" /> {t("تصدير CSV", "Export CSV")}
           </Button>
-          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />حساب جديد</Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t(t("حساب جديد", "New Account"), "New Account")}</Button>
         </div>
       </div>
 
@@ -714,7 +729,7 @@ export function ChartOfAccounts() {
               <div className="font-english text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
                 {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </div>
-              <p className="text-[11px] text-muted-foreground/60 mt-1.5"><span className="font-english">{typeItems.length}</span> حساب · الرصيد الإجمالي</p>
+              <p className="text-[11px] text-muted-foreground/60 mt-1.5"><span className="font-english">{typeItems.length}</span> {t("حساب · الرصيد الإجمالي", "account · Total balance")}</p>
             </button>
           );
         })}
@@ -726,12 +741,12 @@ export function ChartOfAccounts() {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input placeholder="بحث بالاسم أو الرمز..." className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-[#1276E3]" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>الكل ({items.length})</button>
+            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-[#1276E3]" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
             <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">+ توسيع</button>
             <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">طيّ</button>
-            <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} حساب معروض</span>
+            <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
           </div>
         </CardContent>
       </Card>
@@ -742,8 +757,8 @@ export function ChartOfAccounts() {
       ) : items.length === 0 ? (
         <Card className="border-border border-dashed"><CardContent className="py-16 text-center">
           <BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">لا توجد حسابات بعد</p>
-          <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="me-2 h-4 w-4" />أضف أول حساب</Button>
+          <p className="text-sm text-muted-foreground mb-3">{t("لا توجد حسابات بعد", "No accounts yet")}</p>
+          <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="me-2 h-4 w-4" />{t("أضف أول حساب", "Add first account")}</Button>
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -768,21 +783,21 @@ export function ChartOfAccounts() {
                     <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
                       <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></div>
-                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} حساب رئيسي · إجمالي <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
                     onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                     className="text-[11px] text-primary hover:bg-primary/5 transition px-2 py-1 rounded inline-flex items-center gap-1"
-                    title={`إضافة حساب جديد · ${TYPE_LABELS[t]}`}
+                    title={t("إضافة حساب جديد · ", "Add new account · ") + TYPE_LABELS[t]}
                   >
-                    <Plus className="h-3.5 w-3.5" /> إضافة
+                    <Plus className="h-3.5 w-3.5" /> {t("إضافة", "Add")}
                   </button>
                 </div>
                 <CardContent className="p-0">
                   {visibleRoots.length === 0 ? (
                     <div className="py-6 text-center text-xs text-muted-foreground/60">
-                      {searchQuery ? "لا نتائج مطابقة" : "لا توجد حسابات في هذا التصنيف"}
+                      {searchQuery ? t("لا نتائج مطابقة", "No matching results") : t("لا توجد حسابات في هذا التصنيف", "No accounts in this category")}
                     </div>
                   ) : (
                     <div className="divide-y divide-[#F3F4F6]">
@@ -843,19 +858,19 @@ export function ChartOfAccounts() {
                               <button
                                 onClick={() => { setForm(defaultForm(node.type as AccountType, node.id, node)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                                 className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary"
-                                title="إضافة حساب فرعي تحت هذا"
+                                title={t("إضافة حساب فرعي تحت هذا", "Add sub-account under this")}
                               >
                                 <PlusCircle className="h-3.5 w-3.5" />
                               </button>
                               <button onClick={() => openEdit(node)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title="تعديل"><Edit2 className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title="العمليات"><History className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title={t("العمليات", "Transactions")}><History className="h-3.5 w-3.5" /></button>
                               {pendingDelete === node.id ? (
                                 <span className="flex items-center gap-0.5 text-[10px]">
-                                  <button onClick={() => handleDelete(node.id)} className="px-1.5 py-0.5 rounded bg-red-600 text-white">تأكيد</button>
+                                  <button onClick={() => handleDelete(node.id)} className="px-1.5 py-0.5 rounded bg-red-600 text-white">{t("تأكيد", "Confirm")}</button>
                                   <button onClick={() => setPendingDelete(null)} className="px-1.5 py-0.5 rounded border border-border">x</button>
                                 </span>
                               ) : (
-                                <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1 text-red-600 hover:bg-red-50" title="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+                                <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
                               )}
                             </div>
                           </div>
@@ -866,7 +881,7 @@ export function ChartOfAccounts() {
                         onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                         className="w-full px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-muted flex items-center gap-2 border-t border-dashed border-border"
                       >
-                        <Plus className="h-3.5 w-3.5" /> إضافة حساب رئيسي جديد لـ{TYPE_LABELS[t]}
+                        <Plus className="h-3.5 w-3.5" /> {t("إضافة", "Add")} حساب رئيسي جديد لـ{TYPE_LABELS[t]}
                       </button>
                     </div>
                   )}
@@ -885,13 +900,13 @@ export function ChartOfAccounts() {
               <div>
                 <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                   <History className="h-5 w-5 text-primary" />
-                  {txPanel.data ? `${txPanel.data.account.code} · ${txPanel.data.account.nameAr || txPanel.data.account.name}` : "جارٍ التحميل..."}
+                  {txPanel.data ? `${txPanel.data.account.code} · ${txPanel.data.account.nameAr || txPanel.data.account.name}` : t("جارٍ التحميل...", "Loading...")}
                 </h2>
                 {txPanel.data && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {txPanel.data.total} عملية ·
+                    {txPanel.data.total} {t("عملية", "transactions")}
                     <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-amber-700"}`}>
-                      الرصيد: {txPanel.data.finalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </span>
                   </p>
                 )}
@@ -905,20 +920,20 @@ export function ChartOfAccounts() {
               ) : !txPanel.data || txPanel.data.transactions.length === 0 ? (
                 <div className="py-12 text-center">
                   <BookOpen className="h-10 w-10 text-[#E5E7EB] mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">لا توجد عمليات على هذا الحساب بعد</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب</p>
+                  <p className="text-sm text-muted-foreground">{t("لا توجد عمليات على هذا الحساب بعد", "No transactions on this account yet")}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{t("العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب", "Transactions will appear here when invoices and expenses are linked to this account")}</p>
                 </div>
               ) : (
                 <div className="rounded-lg border border-border overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
                       <tr>
-                        <th className="text-start px-3 py-2 font-medium">التاريخ</th>
-                        <th className="text-start px-3 py-2 font-medium">رقم القيد</th>
-                        <th className="text-start px-3 py-2 font-medium">الوصف</th>
-                        <th className="text-end px-3 py-2 font-medium">مدين</th>
-                        <th className="text-end px-3 py-2 font-medium">دائن</th>
-                        <th className="text-end px-3 py-2 font-medium">الرصيد</th>
+                        <th className="text-start px-3 py-2 font-medium">{t("التاريخ", "Date")}</th>
+                        <th className="text-start px-3 py-2 font-medium">{t("رقم القيد", "Entry No.")}</th>
+                        <th className="text-start px-3 py-2 font-medium">{t("الوصف", "Description")}</th>
+                        <th className="text-end px-3 py-2 font-medium">{t("مدين", "Debit")}</th>
+                        <th className="text-end px-3 py-2 font-medium">{t("دائن", "Credit")}</th>
+                        <th className="text-end px-3 py-2 font-medium">{t("الرصيد", "Balance")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -950,7 +965,7 @@ export function ChartOfAccounts() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
-                <FileSpreadsheet className="h-5 w-5 text-primary" /> معاينة الاستيراد
+                <FileSpreadsheet className="h-5 w-5 text-primary" /> {t("معاينة الاستيراد", "Import Preview")}
                 {importPreview.fileName && <span className="font-english text-xs text-muted-foreground">· {importPreview.fileName}</span>}
               </h2>
               <button type="button" onClick={() => setImportPreview(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
@@ -958,10 +973,10 @@ export function ChartOfAccounts() {
 
             <div className="p-4 space-y-3 overflow-y-auto flex-1">
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-                ✓ تم اكتشاف <span className="font-english font-bold">{importPreview.rows.length}</span> صف من {importPreview.source === "csv" ? "CSV" : "تحليل ذكي للملف"}
-                <span className="ms-2">· جديد: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "new").length}</span></span>
-                <span className="ms-2">· مكرر بالرمز: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "code_duplicate").length}</span></span>
-                <span className="ms-2">· يحتاج مراجعة: <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review").length}</span></span>
+                ✓ {t("تم اكتشاف", "Detected")} <span className="font-english font-bold">{importPreview.rows.length}</span> {t("صف من", "rows from")} {importPreview.source === "csv" ? "CSV" : t("تحليل ذكي للملف", "smart file analysis")}
+                <span className="ms-2">· {t("جديد:", "New:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "new").length}</span></span>
+                <span className="ms-2">· {t("مكرر بالرمز:", "Code duplicate:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "code_duplicate").length}</span></span>
+                <span className="ms-2">· {t("يحتاج مراجعة:", "Needs review:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review").length}</span></span>
                 {(Object.entries(importPreview.mapping).some(([_, v]) => v) || (importPreview.warnings || []).length > 0) && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {Object.entries(importPreview.mapping).filter(([_, v]) => v).map(([k, v]) => (
@@ -978,7 +993,7 @@ export function ChartOfAccounts() {
                 )}
                 <div className="mt-2 flex items-start gap-1.5 text-[11px] text-blue-700/80">
                   <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  الأخضر جاهز للإضافة، الأحمر موجود مسبقاً ولن يستورد، والبرتقالي يحتاج مراجعة حتى لا يتكرر دليل الحسابات أو يركب تحت أب خطأ.
+                  {t("الأخضر جاهز للإضافة، الأحمر موجود مسبقاً ولن يستورد، والبرتقالي يحتاج مراجعة حتى لا يتكرر دليل الحسابات أو يركب تحت أب خطأ.", "Green is ready to add, red already exists and wont be imported, orange needs review to avoid duplicates or wrong parent.")}
                 </div>
               </div>
 
@@ -986,11 +1001,11 @@ export function ChartOfAccounts() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-start font-medium">الرمز</th>
-                      <th className="px-3 py-2 text-start font-medium">الاسم</th>
-                      <th className="px-3 py-2 text-start font-medium">العربية</th>
-                      <th className="px-3 py-2 text-start font-medium">التصنيف</th>
-                      <th className="px-3 py-2 text-start font-medium">الأب</th>
+                      <th className="px-3 py-2 text-start font-medium">{t("الرمز", "Code")}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t("الاسم", "Name")}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t("العربية", "Arabic")}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t("التصنيف", "Type")}</th>
+                      <th className="px-3 py-2 text-start font-medium">{t("الأب", "Parent")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1001,16 +1016,16 @@ export function ChartOfAccounts() {
                           <td className="px-3 py-1.5 font-english font-semibold text-primary">{r.code}</td>
                           <td className="px-3 py-1.5 font-english">
                             {r.name || '—'}
-                            {r.rowStatus === "new" && <span className="ms-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">سيضاف</span>}
-                            {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">رمز موجود</span>}
-                            {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">اسم مشابه: {r.duplicateNameCode}</span>}
+                            {r.rowStatus === "new" && <span className="ms-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">{t("سيضاف", "Will add")}</span>}
+                            {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">{t("رمز موجود", "Code exists")}</span>}
+                            {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">t("اسم مشابه:", "Similar name:") {r.duplicateNameCode}</span>}
                             {r.rowStatus === "needs_review" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{r.needsReviewReason}</span>}
                           </td>
                           <td className="px-3 py-1.5">{r.nameAr || '—'}</td>
                           <td className="px-3 py-1.5">
                             <span className={`text-xs px-1.5 py-0.5 rounded ${TYPE_COLORS[inferredType as AccountType] || 'bg-gray-100'}`}>
                               {TYPE_LABELS[inferredType as AccountType] || inferredType}
-                              {!r.type && <span className="text-[9px] ms-1 opacity-60">(تلقائي)</span>}
+                              {!r.type && <span className="text-[9px] ms-1 opacity-60">t("(تلقائي)", "(auto)")</span>}
                             </span>
                           </td>
                           <td className="px-3 py-1.5 font-english text-xs text-muted-foreground">{r.parentCode || '—'}</td>
@@ -1021,13 +1036,13 @@ export function ChartOfAccounts() {
                 </table>
               </div>
 
-              <p className="text-xs text-muted-foreground/60">عند الحفظ سيتم استيراد الصفوف الخضراء فقط · المعاينة تبقى محفوظة مؤقتاً لو أغلقتها ورجعت لها.</p>
+              <p className="text-xs text-muted-foreground/60">{t("عند الحفظ سيتم استيراد الصفوف الخضراء فقط · المعاينة تبقى محفوظة مؤقتاً لو أغلقتها ورجعت لها.", "On save only green rows will be imported · preview is temporarily saved if you close and return.")}</p>
             </div>
 
             <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
-              <Button type="button" variant="outline" onClick={() => setImportPreview(null)} className="border-border" disabled={importBusy}>إلغاء</Button>
+              <Button type="button" variant="outline" onClick={() => setImportPreview(null)} className="border-border" disabled={importBusy}>{t("إلغاء", "Cancel")}</Button>
               <Button onClick={confirmImport} disabled={importBusy} className="bg-primary hover:bg-primary/90">
-                {importBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : `استيراد ${importPreview.rows.filter(r => r.rowStatus === "new").length} حساب جاهز`}
+                {importBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("استيراد ", "Import ") + importPreview.rows.filter(r => r.rowStatus === "new").length + t(" حساب جاهز", " accounts ready")}
               </Button>
             </div>
           </div>
@@ -1040,7 +1055,7 @@ export function ChartOfAccounts() {
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                 <ArrowRightLeft className="h-5 w-5 text-amber-600" />
-                نقل ودمج الحساب
+                {t("نقل ودمج الحساب", "Move & Merge Account")}
               </h2>
               <button type="button" onClick={() => setMergeSource(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
             </div>
@@ -1048,22 +1063,22 @@ export function ChartOfAccounts() {
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <div>
-                  لا أحذف الحساب إذا عليه قيود أو حسابات فرعية. اختر حساباً من نفس التصنيف ليتم نقل القيود والحسابات الفرعية إليه ثم تعطيل الحساب القديم.
+                  {t("لا أحذف الحساب إذا عليه قيود أو حسابات فرعية. اختر حساباً من نفس التصنيف ليتم نقل القيود والحسابات الفرعية إليه ثم تعطيل الحساب القديم.", "Wont delete the account if it has entries or sub-accounts. Choose an account of the same type to move entries and sub-accounts to, then deactivate the old account.")}
                 </div>
               </div>
               <div className="rounded-lg border border-border bg-[#FAFBFC] p-3">
-                <div className="text-xs text-muted-foreground/60 mb-1">الحساب المراد دمجه</div>
+                <div className="text-xs text-muted-foreground/60 mb-1">{t("الحساب المراد دمجه", "Account to merge")}</div>
                 <div className="font-english text-sm text-foreground font-semibold">{mergeSource.code} · {mergeSource.nameAr || mergeSource.name}</div>
                 <div className="text-xs text-muted-foreground mt-1">{TYPE_LABELS[mergeSource.type as AccountType]} · الرصيد {formatAmount(mergeSource.balance)}</div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">الحساب البديل *</Label>
+                <Label className="text-xs text-muted-foreground">{t("الحساب البديل *", "Replacement account *")}</Label>
                 <select
                   value={mergeTargetId}
                   onChange={(e) => setMergeTargetId(e.target.value)}
                   className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english"
                 >
-                  <option value="">اختر حساباً من نفس التصنيف</option>
+                  <option value="">{t("اختر حساباً من نفس التصنيف", "Select an account of the same type")}</option>
                   {items.filter(a => a.id !== mergeSource.id && a.type === mergeSource.type).map(a => (
                     <option key={a.id} value={a.id}>{a.code} · {a.nameAr || a.name} · {formatAmount(a.balance)}</option>
                   ))}
@@ -1071,9 +1086,9 @@ export function ChartOfAccounts() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
-              <Button type="button" variant="outline" onClick={() => setMergeSource(null)} className="border-border" disabled={mergeBusy}>إلغاء</Button>
+              <Button type="button" variant="outline" onClick={() => setMergeSource(null)} className="border-border" disabled={mergeBusy}>{t("إلغاء", "Cancel")}</Button>
               <Button type="button" onClick={confirmMerge} disabled={mergeBusy || !mergeTargetId} className="bg-amber-600 hover:bg-amber-700">
-                {mergeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "نقل القيود وتعطيل القديم"}
+                {mergeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("نقل القيود وتعطيل القديم", "Move entries & deactivate old")}
               </Button>
             </div>
           </div>
@@ -1085,12 +1100,12 @@ export function ChartOfAccounts() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-4 border-b border-border/50">
-                <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>{editingId ? "تعديل حساب" : "حساب جديد"}</h2>
+                <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>{editingId ? t("تعديل حساب", "Edit Account") : t("حساب جديد", "New Account")}</h2>
                 <button type="button" onClick={() => setOpen(false)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
               </div>
               <div className="p-4 space-y-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">التصنيف *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("التصنيف *", "Type *")}</Label>
                   <select value={form.type} onChange={(e) => {
                     const nextType = e.target.value as AccountType;
                     const usage = usageDefaults(nextType, `${form.name} ${form.nameAr}`);
@@ -1108,12 +1123,12 @@ export function ChartOfAccounts() {
                     ))}
                   </select>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    الرقم الأساسي لهذا التصنيف يبدأ بـ <span className="font-english">{TYPE_PREFIX[form.type]}xxxx</span> · الاقتراح الذكي لن يغيّر هذا التصنيف.
+                    {t("الرقم الأساسي لهذا التصنيف يبدأ بـ", "Base code for this type starts with")} <span className="font-english">{TYPE_PREFIX[form.type]}xxxx</span> · {t("الاقتراح الذكي لن يغيّر هذا التصنيف.", "Smart suggest wont change this type.")}
                   </p>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground">الحساب الأب (اختياري)</Label>
+                  <Label className="text-xs text-muted-foreground">{t("الحساب الأب (اختياري)", "Parent account (optional)")}</Label>
                   <select value={form.parentId} onChange={(e) => {
                     const parent = items.find(a => a.id === e.target.value) || null;
                     setForm(prev => ({
@@ -1123,17 +1138,17 @@ export function ChartOfAccounts() {
                     }));
                   }}
                     className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english">
-                    <option value="">— لا يوجد · حساب رئيسي —</option>
+                    <option value="">{t("— لا يوجد · حساب رئيسي —", "— None · Parent account —")}</option>
                     {parentOptions.map(p => (
                       <option key={p.id} value={p.id}>{p.code} · {p.nameAr || p.name}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-muted-foreground/60 mt-1">اربطه بحساب رئيسي ليصبح فرعياً وتظهر شجرة هرمية</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{t("اربطه بحساب رئيسي ليصبح فرعياً وتظهر شجرة هرمية", "Link to a parent to make it a sub-account and show hierarchy")}</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-1">
-                    <Label className="text-xs text-muted-foreground">الرمز * <span className="text-muted-foreground/60 text-[10px]">{!codeManuallyEdited && "(تلقائي)"}</span></Label>
+                    <Label className="text-xs text-muted-foreground">{t("الرمز *", "Code *")} <span className="text-muted-foreground/60 text-[10px]">{!codeManuallyEdited && t("(تلقائي)", "(auto)")}</span></Label>
                     <Input
                       value={form.code}
                       onChange={(e) => { setForm({ ...form, code: e.target.value }); setCodeManuallyEdited(true); }}
@@ -1141,15 +1156,15 @@ export function ChartOfAccounts() {
                       required dir="ltr" className="border-border font-english"
                     />
                     {codeManuallyEdited && (
-                      <button type="button" onClick={() => { setCodeManuallyEdited(false); }} className="text-xs text-primary hover:underline mt-1">↻ اقتراح تلقائي</button>
+                      <button type="button" onClick={() => { setCodeManuallyEdited(false); }} className="text-xs text-primary hover:underline mt-1">{t("↻ اقتراح تلقائي", "↻ Auto suggest")}</button>
                     )}
                   </div>
                   <div className="col-span-2">
                     <Label className="text-xs text-muted-foreground flex items-center justify-between">
-                      <span>الاسم بالإنجليزية *</span>
+                      <span>{t("الاسم بالإنجليزية *", "English name *")}</span>
                       <button type="button" onClick={() => aiSuggest(form.name || form.nameAr)} disabled={aiBusy} className="text-[10px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50">
                         {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                        اقتراح بالذكاء
+                        {t("اقتراح بالذكاء", "AI suggest")}
                       </button>
                     </Label>
                     <Input value={form.name} onChange={(e) => {
@@ -1164,10 +1179,10 @@ export function ChartOfAccounts() {
 
                 <div>
                   <Label className="text-xs text-muted-foreground flex items-center justify-between">
-                    <span>الاسم بالعربية</span>
+                    <span>{t("الاسم بالعربية", "Arabic name")}</span>
                     <button type="button" onClick={() => aiSuggest(form.nameAr || form.name)} disabled={aiBusy} className="text-[10px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50">
                       {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      اقتراح بالذكاء
+                      {t("اقتراح بالذكاء", "AI suggest")}
                     </button>
                   </Label>
                   <Input value={form.nameAr} onChange={(e) => {
@@ -1176,7 +1191,7 @@ export function ChartOfAccounts() {
                     setForm({ ...form, nameAr, ...usageDefaults(form.type, `${form.name} ${nameAr}`, parent || null) });
                   }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) { e.preventDefault(); aiSuggest(form.nameAr); } }}
-                    placeholder="مستلزمات مكتبية · أو اكتب 'جهاز' / 'مبيعات' والذكاء يقترح" className="border-border" />
+                    placeholder={t("مستلزمات مكتبية · أو اكتب جهاز / مبيعات والذكاء يقترح", "Office supplies · or type device / sales for AI suggest")} className="border-border" />
                 </div>
 
                 {aiSuggestion && (
@@ -1186,12 +1201,12 @@ export function ChartOfAccounts() {
                 )}
 
                 <div>
-                  <Label className="text-xs text-muted-foreground">الوصف (اختياري)</Label>
-                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="استخدامات الحساب..." className="w-full rounded-md border border-border px-3 py-2 text-sm" />
+                  <Label className="text-xs text-muted-foreground">{t("الوصف (اختياري)", "Description (optional)")}</Label>
+                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder={t("استخدامات الحساب...", "Account usage...")} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground">نوع التدفق النقدي *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("نوع التدفق النقدي *", "Cash flow type *")}</Label>
                   <select value={form.cashFlowType}
                     onChange={(e) => { setCashFlowManuallyEdited(true); setForm({ ...form, cashFlowType: e.target.value as CashFlowType }); }}
                     className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
@@ -1203,14 +1218,14 @@ export function ChartOfAccounts() {
                 </div>
 
                 <div className="rounded-lg border border-border p-3 space-y-2">
-                  <div className="text-xs text-muted-foreground font-medium">أين يظهر هذا الحساب؟</div>
+                  <div className="text-xs text-muted-foreground font-medium">{t("أين يظهر هذا الحساب؟", "Where does this account appear?")}</div>
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={form.allowPosting}
                       onChange={(e) => setForm({ ...form, allowPosting: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-foreground">يظهر في القيود اليدوية</div>
-                      <div className="text-xs text-muted-foreground/60">فعّله إذا كان المحاسب يقدر يختار الحساب عند تسجيل قيد يدوي</div>
+                      <div className="text-sm text-foreground">{t("يظهر في القيود اليدوية", "Shows in manual entries")}</div>
+                      <div className="text-xs text-muted-foreground/60">{t("فعّله إذا كان المحاسب يقدر يختار الحساب عند تسجيل قيد يدوي", "Enable if accountant can select this account when making a manual entry")}</div>
                     </div>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
@@ -1218,8 +1233,8 @@ export function ChartOfAccounts() {
                       onChange={(e) => setForm({ ...form, allowPayment: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-foreground">يظهر كحساب دفع أو تحصيل</div>
-                      <div className="text-xs text-muted-foreground/60">عادة لحسابات البنك والصندوق والبطاقات، وليس لكل حساب مصروف</div>
+                      <div className="text-sm text-foreground">{t("يظهر كحساب دفع أو تحصيل", "Shows as payment/receipt account")}</div>
+                      <div className="text-xs text-muted-foreground/60">{t("عادة لحسابات البنك والصندوق والبطاقات، وليس لكل حساب مصروف", "Usually for bank, cash, and card accounts, not for every expense")}</div>
                     </div>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
@@ -1227,15 +1242,15 @@ export function ChartOfAccounts() {
                       onChange={(e) => setForm({ ...form, allowExpenseClaim: e.target.checked })}
                       className="mt-1" />
                     <div>
-                      <div className="text-sm text-foreground">يظهر في مطالبات ومصاريف الموظفين</div>
-                      <div className="text-xs text-muted-foreground/60">فعّله لحسابات المصروفات التي يستخدمها الموظفون في المطالبات</div>
+                      <div className="text-sm text-foreground">{t("يظهر في مطالبات ومصاريف الموظفين", "Shows in employee claims")}</div>
+                      <div className="text-xs text-muted-foreground/60">{t("فعّله لحسابات المصروفات التي يستخدمها الموظفون في المطالبات", "Enable for expense accounts used by employees in claims")}</div>
                     </div>
                   </label>
                 </div>
 
                 {/* Preview */}
                 <div className="rounded-lg border border-border bg-[#FAFBFC] p-3">
-                  <div className="text-xs text-muted-foreground/60 mb-1">معاينة</div>
+                  <div className="text-xs text-muted-foreground/60 mb-1">{t("معاينة", "Preview")}</div>
                   <div className="flex items-center gap-2">
                     <span className="font-english text-sm text-primary font-bold">{form.code || "—"}</span>
                     <span className="text-sm text-foreground">·</span>
@@ -1244,13 +1259,13 @@ export function ChartOfAccounts() {
                   </div>
                   {form.parentId && (() => {
                     const p = items.find(a => a.id === form.parentId);
-                    return p ? <div className="text-xs text-muted-foreground/60 mt-1 font-english">↑ تحت: {p.code} · {p.nameAr || p.name}</div> : null;
+                    return p ? <div className="text-xs text-muted-foreground/60 mt-1 font-english">↑ {t("تحت:", "Under:")} {p.code} · {p.nameAr || p.name}</div> : null;
                   })()}
                 </div>
               </div>
               <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">إلغاء</Button>
-                <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? "حفظ التعديلات" : "حفظ")}</Button>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">{t("إلغاء", "Cancel")}</Button>
+                <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? t("حفظ التعديلات", "Save changes") : t("حفظ", "Save"))}</Button>
               </div>
             </form>
           </div>
