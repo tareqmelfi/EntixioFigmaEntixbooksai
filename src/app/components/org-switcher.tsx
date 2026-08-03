@@ -2,7 +2,8 @@
  * Org Switcher · لتغيير الشركة + {t("إنشاء شركة جديدة", "Create new company")}
  * يظهر في app-sidebar.tsx · يستبدل الـbutton الجامد القديم
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { ChevronDown, Plus, Check, X } from "lucide-react";
 import { api, Org, setOrgId } from "../lib/api";
@@ -39,6 +40,18 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [loading, setLoading] = useState(true);
   const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Calculate dropdown position for portal rendering (avoids sidebar overflow clipping)
+  const updateDropdownPos = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const width = Math.min(368, window.innerWidth - 24); // 23rem = 368px
+      const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+      setDropdownPos({ top: rect.bottom + 4, left, width });
+    }
+  }, []);
 
   const refresh = async () => {
     try {
@@ -72,6 +85,11 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
+
+  // Update dropdown position when opening
+  useEffect(() => {
+    if (open) updateDropdownPos();
+  }, [open, updateDropdownPos]);
 
   const handleSelect = (o: Org) => {
     setActiveOrg(o);
@@ -188,6 +206,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        ref={buttonRef}
         onClick={() => setOpen(!open)}
         className={`mb-2 flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-white px-2.5 py-2 text-sm text-foreground hover:bg-muted hover:border-[#1276E3]/30 transition-all ${className || ""}`}
       >
@@ -213,8 +232,16 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {open && (
-        <div className="absolute end-0 top-full z-[60] mt-1 w-[min(23rem,calc(100vw-1.5rem))] max-h-[min(70vh,520px)] overflow-hidden rounded-lg border border-border bg-white shadow-xl">
+      {open && dropdownPos && createPortal(
+        <div
+          className="fixed z-[100] overflow-hidden rounded-lg border border-border bg-white shadow-xl"
+          style={{
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+            maxHeight: 'min(70vh, 520px)',
+          }}
+        >
           {/* Search bar · Wafeq style */}
           <div className="p-2 border-b border-border/50">
             <input
@@ -302,7 +329,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               <div className="py-8 text-center text-sm text-muted-foreground/60">{t("لا توجد منشأة بهذا الاسم", "No company found with this name")}</div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {showCreate && (
