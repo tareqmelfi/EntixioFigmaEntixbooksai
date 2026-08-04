@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
-import { api, ApiError, Invoice, Org, Contact } from "../lib/api";
+import { api, ApiError, Invoice, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import { Loader2, Printer, X } from "lucide-react";
 import qrcode from "qrcode-generator";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
@@ -36,7 +36,28 @@ export function InvoicePrintView() {
     if (!id) return;
     (async () => {
       try {
-        const inv = await api.invoices.get(id);
+        // This is a standalone route (outside AuthGuard — often inside the
+        // editor's preview iframe with a fresh JS context where orgId is null).
+        // Adopt the stored org id first, otherwise every call 400s with
+        // "missing X-Org-Id header" and the pane shows "Invoice unavailable".
+        bootstrapOrgIdFromStorage();
+        let inv: Invoice | null = null;
+        try {
+          inv = await api.invoices.get(id);
+        } catch {
+          // The stored org may not be the invoice's org (e.g. shared print
+          // link opened while another org is active). The server enforces
+          // membership on every attempt, so walking the user's own
+          // memberships is safe — non-member orgs just 403.
+          const meRes = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/me`, { credentials: "include" });
+          const me = meRes.ok ? await meRes.json() : null;
+          for (const m of me?.memberships || []) {
+            if (!m?.org?.id) continue;
+            setOrgId(m.org.id);
+            try { inv = await api.invoices.get(id); if (inv) break; } catch { /* try next */ }
+          }
+        }
+        if (!inv) throw new Error("not_found");
         setInvoice(inv);
         if (inv.contactId) {
           const c = await api.contacts.get(inv.contactId).catch(() => null);
@@ -140,6 +161,7 @@ export function InvoicePrintView() {
             </button>
             <a
               href="/login"
+              target="_top"
               style={{ padding: "10px 16px", borderRadius: 8, background: "#1276E3", color: "white", textDecoration: "none", fontWeight: 800 }}
             >
               Sign in

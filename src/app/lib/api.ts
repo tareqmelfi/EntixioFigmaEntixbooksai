@@ -47,6 +47,21 @@ if (typeof localStorage !== 'undefined') {
   // Intentionally NOT reading entix_org_id here
 }
 
+/**
+ * Print views ONLY (standalone /print/* routes outside AuthGuard, often in
+ * iframes with a fresh JS context): explicitly adopt the stored org id.
+ * Safe because the API's requireOrg middleware verifies membership on every
+ * org-scoped call — a stale id can never leak another user's data, it just
+ * 403s/404s. Callers should still retry across memberships on failure (the
+ * stored org may not be the document's org).
+ */
+export function bootstrapOrgIdFromStorage(): string | null {
+  if (typeof localStorage === 'undefined') return null
+  const stored = localStorage.getItem('entix_org_id')
+  if (stored) setOrgId(stored)
+  return stored
+}
+
 // ── Error type ────────────────────────────────────────────────────────────────
 export class ApiError extends Error {
   status: number

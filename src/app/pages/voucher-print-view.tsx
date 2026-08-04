@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
-import { api, ApiError, Voucher, Org, Contact } from "../lib/api";
+import { api, ApiError, Voucher, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import qrcode from "qrcode-generator";
 import { authStore } from "../components/auth-store";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
@@ -47,7 +47,23 @@ export function VoucherPrintView() {
     if (!id) return;
     (async () => {
       try {
-        const row = await api.vouchers.get(id);
+        // Standalone route (outside AuthGuard — fresh JS context has orgId
+        // null, so every call would 400 "missing X-Org-Id header"). Adopt the
+        // stored org id first; retry across memberships if it wasn't the doc's.
+        bootstrapOrgIdFromStorage();
+        let row: Voucher | null = null;
+        try {
+          row = await api.vouchers.get(id);
+        } catch {
+          const meRes = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/me`, { credentials: "include" });
+          const me = meRes.ok ? await meRes.json() : null;
+          for (const m of me?.memberships || []) {
+            if (!m?.org?.id) continue;
+            setOrgId(m.org.id);
+            try { row = await api.vouchers.get(id); if (row) break; } catch { /* try next */ }
+          }
+        }
+        if (!row) throw new Error("not_found");
         setVoucher(row);
 
         if (row.contactId) {
