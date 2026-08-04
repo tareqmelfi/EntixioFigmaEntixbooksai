@@ -404,6 +404,17 @@ export const api = {
   },
 
   // Fixed Assets
+  // Document templates (print layouts for invoices / quotes / vouchers / notes)
+  documentTemplates: {
+    list: (params?: { type?: string }) =>
+      request<{ items: any[]; total: number }>('/api/document-templates', { query: params }),
+    create: (data: any) => request<any>('/api/document-templates', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
+    setDefault: (id: string) => request<any>(`/api/document-templates/${id}/set-default`, { method: 'POST' }),
+    duplicate: (id: string) => request<any>(`/api/document-templates/${id}/duplicate`, { method: 'POST' }),
+    remove: (id: string) => request<void>(`/api/document-templates/${id}`, { method: 'DELETE' }),
+  },
+
   fixedAssets: {
     list: () => request<{ items: any[]; total: number; totalCost: number; netBookValue: number; totalDepreciation: number }>('/api/fixed-assets'),
     nextCode: () => request<{ code: string }>('/api/fixed-assets/next-code'),

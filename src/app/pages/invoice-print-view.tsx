@@ -95,6 +95,15 @@ export function InvoicePrintView() {
   // Downscale branding images for print — full-source data URLs stalled Chrome's
   // print preview ("Saving…" until tab switch).
   const [printImages, setPrintImages] = useState<{ logo: string; stamp: string } | null>(null);
+  // Org's default INVOICE document template (templates page) — drives colors/logo/terms when set
+  const [docTpl, setDocTpl] = useState<any | null>(null);
+  useEffect(() => {
+    if (!org) return;
+    api.documentTemplates.list({ type: "INVOICE" })
+      .then((d) => setDocTpl(d.items.find((x: any) => x.isDefault) || d.items[0] || null))
+      .catch(() => setDocTpl(null));
+  }, [org]);
+
   useEffect(() => {
     if (!org) return;
     let cancelled = false;
@@ -178,8 +187,9 @@ export function InvoicePrintView() {
   const lang = (langOverride === "ar" || langOverride === "en") ? langOverride : (orgDefaultLang || inferredLang);
   const isKsa = lang === "ar"; // keep variable name for minimum-diff
   const branding = (org as any).paymentSettings?.branding || {};
-  const primary = branding.primaryColor || "#1276E3";
-  const accent = branding.accentColor || "#0B1B49";
+  // Default INVOICE template (templates page) takes precedence over org branding
+  const primary = docTpl?.accentColor || branding.primaryColor || "#1276E3";
+  const accent = docTpl?.primaryColor || branding.accentColor || "#0B1B49";
 
   const total = safeNum(invoice.total);
   const subtotal = safeNum(invoice.subtotal);
@@ -465,7 +475,7 @@ export function InvoicePrintView() {
           {/* Terms & Conditions · inline (flows naturally · breaks to next page only when content overflows) */}
           {(() => {
             const raw = String((invoice as any).termsConditions || "").trim();
-            const custom = raw && !/^Ref:\s*\S+$/.test(raw) ? raw : null;
+            const custom = (raw && !/^Ref:\s*\S+$/.test(raw) ? raw : null) || (docTpl?.showTerms !== false && docTpl?.terms ? String(docTpl.terms) : null);
             const defaultTerms = isKsa
               ? "1. تعتبر هذه الفاتورة مستنداً رسمياً صادراً وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك للفوترة الإلكترونية.\n2. يستحق السداد وفق شروط الدفع الموضحة أعلاه، ولا تعتبر هذه الفاتورة سند قبض وإبراء ذمة إلا بعد سداد كامل المبلغ المستحق.\n3. يرجى إبلاغنا بأي ملاحظة على هذه الفاتورة خلال 7 أيام من تاريخ الإصدار، وبعدها تعتبر نهائية ومقبولة.\n4. تتم أي إرجاعات أو استبدالات وفق السياسة المتفق عليها وبالحالة الأصلية للأصناف."
               : "1. This invoice is an official document issued per ZATCA e-invoicing requirements.\n2. Payment is due per the terms stated above; this invoice is not a receipt until fully settled.\n3. Any objection must be raised within 7 days of the issue date, after which the invoice is final.\n4. Returns and exchanges follow the agreed policy and require items in original condition.";
