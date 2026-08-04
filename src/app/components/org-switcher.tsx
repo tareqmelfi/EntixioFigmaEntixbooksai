@@ -91,20 +91,30 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     if (open) updateDropdownPos();
   }, [open, updateDropdownPos]);
 
-  const handleSelect = (o: Org) => {
+  const handleSelect = async (o: Org) => {
     setActiveOrg(o);
     setOrgId(o.id);
     // Mark this as an explicit user pick so authStore.refresh() honors it on
     // reload — even for demo orgs (clearStaleState wipes it on next login).
+    // The timestamp doubles as a freshness marker for the server-sync race.
     try { localStorage.setItem('entix_org_explicit', String(Date.now())); } catch {}
     // Persist the pick on the server profile so EVERY platform (web + iOS)
-    // resolves the same active company for this user. Fire-and-forget.
-    fetch(`${API_BASE_URL}/me/preferences`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selectedOrgId: o.id }),
-    }).catch(() => {});
+    // resolves the same active company for this user.
+    // CRITICAL: this must COMPLETE (or time out) BEFORE the reload below —
+    // reloading immediately cancels the in-flight PATCH, the server keeps the
+    // OLD org, and authStore's server-first priority then bounces the user
+    // back to it on every load ("switcher does nothing" bug).
+    try {
+      await Promise.race([
+        fetch(`${API_BASE_URL}/me/preferences`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selectedOrgId: o.id }),
+        }),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } catch {}
     setOpen(false);
     // Hard refresh so all pages re-fetch with the new org id
     window.location.reload();

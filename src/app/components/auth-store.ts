@@ -142,6 +142,18 @@ class AuthStore {
         // The flag is wiped on login/logout by clearStaleState().
         const explicitPick = typeof localStorage !== 'undefined'
           ? localStorage.getItem('entix_org_explicit') : null
+        // FRESH explicit pick wins over the server copy: if the user picked an
+        // org moments ago but the server write raced/failed, the server still
+        // holds the OLD org. Trusting the server blindly then bounced the user
+        // back on every reload ("switcher does nothing" bug). A fresh (<5 min)
+        // explicit pick is by definition the user's latest intent — honor it
+        // and heal the server below.
+        const explicitTs = explicitPick ? Number(explicitPick) : 0
+        const freshLocalPick =
+          storedMatch && explicitTs > 0 && Date.now() - explicitTs < 5 * 60_000
+            ? storedMatch
+            : null
+        const serverWins = serverMatch && (!freshLocalPick || freshLocalPick.org?.id === serverMatch.org?.id)
         // If the stored org is a demo org WITHOUT an explicit pick, prefer the
         // oldest non-demo org instead. This fixes the case where a stale demo
         // id from a previous session hid the user's real company data.
@@ -150,7 +162,12 @@ class AuthStore {
         const ownerMatch = !storedMatch || storedIsDemo
           ? (oldestReal || sorted.find((m: any) => m?.role === 'OWNER'))
           : null
-        let activeMembership = serverMatch || (storedIsDemo ? null : storedMatch) || ownerMatch || sorted[0]
+        let activeMembership =
+          (serverWins ? serverMatch : null) ||
+          freshLocalPick ||
+          (storedIsDemo ? null : storedMatch) ||
+          ownerMatch ||
+          sorted[0]
 
         // First login via Google can arrive with zero orgs.
         // Auto-bootstrap a seeded demo org so app routes never crash with missing X-Org-Id.
