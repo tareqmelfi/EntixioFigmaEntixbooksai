@@ -25,9 +25,9 @@ import { api, PurchasesDashboard as Data } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة", RECEIVED: "مستلمة", PAID: "مدفوعة", PARTIAL: "مدفوعة جزئياً",
-  OVERDUE: "متأخرة", CANCELLED: "ملغاة",
+const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
+  DRAFT: { ar: "مسودة", en: "Draft" }, RECEIVED: { ar: "مستلمة", en: "Received" }, PAID: { ar: "مدفوعة", en: "Paid" }, PARTIAL: { ar: "مدفوعة جزئياً", en: "Partially paid" },
+  OVERDUE: { ar: "متأخرة", en: "Overdue" }, CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-700",
@@ -39,13 +39,13 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
 
 export function PurchasesDashboard() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const { language } = useLanguage();
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,10 +123,10 @@ export function PurchasesDashboard() {
     const monthly = (data as (Data & { monthly?: Array<{ month: string; total: number }> }) | null)?.monthly;
     if (!monthly) return [];
     return monthly.map((m) => ({
-      month: typeof m.month === "string" && m.month.includes("-") ? AR_MONTHS[Number(m.month.split("-")[1]) - 1] : String(m.month),
+      month: typeof m.month === "string" && m.month.includes("-") ? (language === "ar" ? AR_MONTHS : EN_MONTHS)[Number(m.month.split("-")[1]) - 1] : String(m.month),
       total: Number(m.total) || 0,
     }));
-  }, [data]);
+  }, [data, language]);
 
   const categoryData = useMemo(() => {
     if (!data?.expensesByCategory) return [];
@@ -140,9 +140,9 @@ export function PurchasesDashboard() {
   if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (error || !data) return (
     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-3">
-      <span>{error || "تعذّر التحميل"}</span>
+      <span>{error || t("تعذّر التحميل", "Could not load")}</span>
       <Button type="button" variant="outline" size="sm" onClick={refresh} className="border-red-300 text-red-700 hover:bg-red-100">
-        {language === "en" ? "Retry" : "إعادة المحاولة"}
+        {t("إعادة المحاولة", "Retry")}
       </Button>
     </div>
   );
@@ -170,21 +170,21 @@ export function PurchasesDashboard() {
       )}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>المشتريات</h1>
-          <p className="text-muted-foreground mt-1 text-sm">نظرة شاملة على مشترياتك ومصروفاتك</p>
+          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المشتريات", "Purchases")}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t("نظرة شاملة على مشترياتك ومصروفاتك", "A complete view of your purchases and expenses")}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={() => navigate("/app/purchases/bills?new=1")} className="bg-primary hover:bg-primary/80">
-            <Plus className="me-1 h-4 w-4" /> فاتورة مشتريات
+            <Plus className="me-1 h-4 w-4" /> {t("فاتورة مشتريات", "New Bill")}
           </Button>
           <Button variant="outline" onClick={() => navigate("/app/expenses?new=1")} className="border-border text-primary">
-            <Plus className="me-1 h-4 w-4" /> مصروف
+            <Plus className="me-1 h-4 w-4" /> {t("مصروف", "Expense")}
           </Button>
           <Button variant="outline" onClick={() => navigate("/app/payments?new=1")} className="border-border text-primary">
-            <Plus className="me-1 h-4 w-4" /> سند صرف
+            <Plus className="me-1 h-4 w-4" /> {t("سند صرف", "Payment")}
           </Button>
           <Button variant="outline" onClick={() => navigate("/app/reports?type=purchases")} className="border-border text-muted-foreground">
-            <Download className="me-1 h-4 w-4" /> تصدير
+            <Download className="me-1 h-4 w-4" /> {t("تصدير", "Export")}
           </Button>
         </div>
       </div>
@@ -194,7 +194,7 @@ export function PurchasesDashboard() {
         <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">عدد الفواتير</span>
+              <span className="text-xs text-muted-foreground">{t("عدد الفواتير", "Bills Count")}</span>
               <FileText className="h-4 w-4 text-primary" />
             </div>
             <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{data.ytd.billCount}</div>
@@ -203,7 +203,7 @@ export function PurchasesDashboard() {
         <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">إجمالي المشتريات</span>
+              <span className="text-xs text-muted-foreground">{t("إجمالي المشتريات", "Total Purchases")}</span>
               <ShoppingCart className="h-4 w-4 text-primary" />
             </div>
             <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(totalAllTime)}</div>
@@ -212,7 +212,7 @@ export function PurchasesDashboard() {
         <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">المصروفات النقدية</span>
+              <span className="text-xs text-muted-foreground">{t("المصروفات النقدية", "Cash Expenses")}</span>
               <Receipt className="h-4 w-4 text-amber-500" />
             </div>
             <div className="text-amber-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(Number(data.ytd.expenses))}</div>
@@ -221,7 +221,7 @@ export function PurchasesDashboard() {
         <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">هذا الشهر</span>
+              <span className="text-xs text-muted-foreground">{t("هذا الشهر", "This Month")}</span>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </div>
             <div className="text-green-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(Number(data.thisMonth.bills))}</div>
@@ -235,11 +235,11 @@ export function PurchasesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> أكبر مورد</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> {t("أكبر مورد", "Top supplier")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topSupplier?.name || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">SR</span> {topSupplier ? Number(topSupplier.total).toLocaleString() : "—"}
+                <span className="text-muted-foreground/60">{cur}</span> {topSupplier ? Number(topSupplier.total).toLocaleString() : "—"}
               </div>
             </div>
           </CardContent>
@@ -248,11 +248,11 @@ export function PurchasesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> أكثر تأخر</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> {t("أكثر تأخر", "Most overdue")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{mostOverdueSupplier?.contact || "—"}</p>
               </div>
               <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">SR</span> {mostOverdueSupplier ? Number(mostOverdueSupplier.total).toLocaleString() : "0"}
+                <span className="text-muted-foreground/60">{cur}</span> {mostOverdueSupplier ? Number(mostOverdueSupplier.total).toLocaleString() : "0"}
               </div>
             </div>
           </CardContent>
@@ -261,11 +261,11 @@ export function PurchasesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Building2 className="h-3 w-3 text-primary" /> أكثر تصنيف</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Building2 className="h-3 w-3 text-primary" /> {t("أكثر تصنيف", "Top category")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topCategory?.category || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">SR</span> {topCategory ? Number(topCategory.total).toLocaleString() : "—"}
+                <span className="text-muted-foreground/60">{cur}</span> {topCategory ? Number(topCategory.total).toLocaleString() : "—"}
               </div>
             </div>
           </CardContent>
@@ -276,11 +276,11 @@ export function PurchasesDashboard() {
       <Card className="border-border">
         <CardContent className="p-0">
           <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-border/50">
-            <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>آخر فواتير المشتريات</h2>
+            <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("آخر فواتير المشتريات", "Recent Bills")}</h2>
             <div className="relative">
               <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
               <Input
-                placeholder="البحث في الفواتير..."
+                placeholder={t("البحث في الفواتير...", "Search bills...")}
                 className="w-64 ps-9 h-9 border-border text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -288,16 +288,16 @@ export function PurchasesDashboard() {
             </div>
           </div>
           {filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">لا توجد فواتير مشتريات بعد</div>
+            <div className="p-12 text-center text-sm text-muted-foreground">{t("لا توجد فواتير مشتريات بعد", "No purchase bills yet")}</div>
           ) : (
             <table className="w-full">
               <thead>
                 <tr className="bg-muted text-xs text-muted-foreground">
-                  <th className="py-2.5 px-5 text-start" style={{ fontWeight: 600 }}>رقم الفاتورة</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>المورد</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>التاريخ</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>المبلغ ({cur})</th>
-                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>الحالة</th>
+                  <th className="py-2.5 px-5 text-start" style={{ fontWeight: 600 }}>{t("رقم الفاتورة", "Bill #")}</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>{t("المورد", "Supplier")}</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>{t("المبلغ", "Amount")} ({cur})</th>
+                  <th className="py-2.5 px-2 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
                   <th className="py-2.5 px-2 w-10"></th>
                 </tr>
               </thead>
@@ -308,7 +308,7 @@ export function PurchasesDashboard() {
                     <td className="py-3 px-2 text-sm text-foreground/80">{b.contact}</td>
                     <td className="py-3 px-2 font-english text-xs text-muted-foreground">{b.date}</td>
                     <td className="py-3 px-2 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()}</td>
-                    <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
+                    <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] ? (language === "ar" ? STATUS_LABELS[b.status].ar : STATUS_LABELS[b.status].en) : b.status}</span></td>
                     <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-muted-foreground/60" /></td>
                   </tr>
                 ))}
@@ -321,7 +321,7 @@ export function PurchasesDashboard() {
                 onClick={() => navigate("/app/purchases/bills")}
                 className="text-sm text-primary hover:underline inline-flex items-center gap-1"
               >
-                عرض جميع الفواتير <ArrowLeft className="h-3.5 w-3.5" />
+                {t("عرض جميع الفواتير", "View all bills")} <ArrowLeft className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
@@ -333,12 +333,12 @@ export function PurchasesDashboard() {
         <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>المشتريات الشهرية</h2>
-              <span className="text-xs text-muted-foreground">آخر 6 أشهر</span>
+              <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("المشتريات الشهرية", "Monthly Purchases")}</h2>
+              <span className="text-xs text-muted-foreground">{t("آخر 6 أشهر", "Last 6 months")}</span>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               {monthlyData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">لا توجد بيانات بعد</div>
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">{t("لا توجد بيانات بعد", "No data yet")}</div>
               ) : (
                 <ResponsiveContainer>
                   <BarChart data={monthlyData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -356,12 +356,12 @@ export function PurchasesDashboard() {
         <Card className="border-border">
           <CardContent className="p-5">
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>المصروفات حسب التصنيف</h2>
-              <span className="text-xs text-muted-foreground">السنة حتى الآن</span>
+              <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("المصروفات حسب التصنيف", "Expenses by Category")}</h2>
+              <span className="text-xs text-muted-foreground">{t("السنة حتى الآن", "Year to date")}</span>
             </div>
             <div style={{ width: "100%", height: 280 }}>
               {categoryData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">لا توجد بيانات بعد</div>
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">{t("لا توجد بيانات بعد", "No data yet")}</div>
               ) : (
                 <ResponsiveContainer>
                   <PieChart>

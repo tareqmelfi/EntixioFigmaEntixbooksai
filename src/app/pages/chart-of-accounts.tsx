@@ -704,26 +704,26 @@ export function ChartOfAccounts() {
           <Button variant="outline" onClick={handleExport} className="border-border">
             <Download className="me-2 h-4 w-4" /> {t("تصدير CSV", "Export CSV")}
           </Button>
-          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t(t("حساب جديد", "New Account"), "New Account")}</Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("حساب جديد", "New Account")}</Button>
         </div>
       </div>
 
       {/* Type cards · quiet white tiles (UX-198 · minimal Wave-style) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).map(t => {
-          const meta = TYPE_META[t];
+        {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).map(typeKey => {
+          const meta = TYPE_META[typeKey];
           const Icon = meta.icon;
-          const typeItems = items.filter(a => a.type === t);
+          const typeItems = items.filter(a => a.type === typeKey);
           const total = typeItems.reduce((s, a) => s + (a.balance ?? 0), 0);
-          const isActive = filterType === t;
+          const isActive = filterType === typeKey;
           return (
             <button
-              key={t}
-              onClick={() => setFilterType(isActive ? "ALL" : t)}
+              key={typeKey}
+              onClick={() => setFilterType(isActive ? "ALL" : typeKey)}
               className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-[#1276E3] ${isActive ? "border-[#1276E3] ring-1 ring-[#1276E3]/20" : "border-border"}`}
             >
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs text-muted-foreground">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></span>
+                <span className="text-xs text-muted-foreground">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></span>
                 <Icon className="h-4 w-4 text-muted-foreground/60" />
               </div>
               <div className="font-english text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
@@ -762,10 +762,10 @@ export function ChartOfAccounts() {
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).filter(t => filterType === "ALL" || filterType === t).map(t => {
-            const meta = TYPE_META[t];
+          {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).filter(typeKey => filterType === "ALL" || filterType === typeKey).map(typeKey => {
+            const meta = TYPE_META[typeKey];
             const Icon = meta.icon;
-            const sectionRoots = tree.filter(n => n.type === t);
+            const sectionRoots = tree.filter(n => n.type === typeKey);
             // Apply search filter on tree
             const filterNode = (n: typeof sectionRoots[0]): boolean => {
               if (!searchQuery) return true;
@@ -774,22 +774,22 @@ export function ChartOfAccounts() {
               return n.children.some(filterNode);
             };
             const visibleRoots = sectionRoots.filter(filterNode);
-            const sectionTotal = items.filter(a => a.type === t).reduce((s, a) => s + (a.balance ?? 0), 0);
+            const sectionTotal = items.filter(a => a.type === typeKey).reduce((s, a) => s + (a.balance ?? 0), 0);
 
             return (
-              <Card key={t} className={`border-border overflow-hidden`}>
+              <Card key={typeKey} className={`border-border overflow-hidden`}>
                 <div className={`border-b border-border px-4 py-2.5 flex items-center justify-between ${meta.bg}`}>
                   <div className="flex items-center gap-2">
                     <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
-                      <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[t]} · <span className="font-english">{TYPE_PREFIX[t]}xxxx</span></div>
+                      <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></div>
                       <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
-                    onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                    onClick={() => { setForm(defaultForm(typeKey)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                     className="text-[11px] text-primary hover:bg-primary/5 transition px-2 py-1 rounded inline-flex items-center gap-1"
-                    title={t("إضافة حساب جديد · ", "Add new account · ") + TYPE_LABELS[t]}
+                    title={t("إضافة حساب جديد · ", "Add new account · ") + TYPE_LABELS[typeKey]}
                   >
                     <Plus className="h-3.5 w-3.5" /> {t("إضافة", "Add")}
                   </button>
@@ -878,10 +878,10 @@ export function ChartOfAccounts() {
                       })()}
                       {/* Inline add at bottom of section */}
                       <button
-                        onClick={() => { setForm(defaultForm(t)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
+                        onClick={() => { setForm(defaultForm(typeKey)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
                         className="w-full px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-muted flex items-center gap-2 border-t border-dashed border-border"
                       >
-                        <Plus className="h-3.5 w-3.5" /> {t("إضافة", "Add")} حساب رئيسي جديد لـ{TYPE_LABELS[t]}
+                        <Plus className="h-3.5 w-3.5" /> {t("إضافة", "Add")} {t("حساب رئيسي جديد لـ", "new parent account to ")}{TYPE_LABELS[typeKey]}
                       </button>
                     </div>
                   )}

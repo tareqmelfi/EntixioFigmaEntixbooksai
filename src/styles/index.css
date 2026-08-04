@@ -3,7 +3,7 @@
 @import './theme.css';
 
 :root {
-  --entix-font-ar: 'Tajawal', 'Noto Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --entix-font-ar: 'Noto Sans Arabic', 'Tajawal', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --entix-font-en: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 

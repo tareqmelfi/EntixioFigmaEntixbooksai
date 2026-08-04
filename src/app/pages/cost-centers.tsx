@@ -6,8 +6,10 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 export function CostCenters() {
+  const { t } = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
@@ -20,45 +22,45 @@ export function CostCenters() {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try { setItems((await api.costCenters.list()).items); }
-    catch (e: any) { setError(e instanceof ApiError ? e.message : "فشل التحميل"); }
+    catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load")); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.code.trim() || !form.name.trim()) { setError("الرمز والاسم مطلوبان"); return; }
+    if (!form.code.trim() || !form.name.trim()) { setError(t("الرمز والاسم مطلوبان", "Code and name are required")); return; }
     setBusy(true); setError(null);
     try {
       const c = await api.costCenters.create({ code: form.code.trim(), name: form.name.trim() });
       setItems(prev => [...prev, c]);
       setOpen(false); setForm({ code: "", name: "" });
-    } catch (e: any) { setError(e instanceof ApiError ? (e.message === "code_exists" ? "الرمز موجود" : e.message) : "فشل الحفظ"); }
+    } catch (e: any) { setError(e instanceof ApiError ? (e.message === "code_exists" ? t("الرمز موجود", "Code already exists") : e.message) : t("فشل الحفظ", "Save failed")); }
     finally { setBusy(false); }
   };
 
   const handleDelete = async (id: string) => {
     setPendingDelete(null);
     try { await api.costCenters.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
-    catch (e: any) { push("error", e instanceof ApiError ? e.message : "فشل الحذف"); }
+    catch (e: any) { push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed")); }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>مراكز التكلفة</h1><p className="text-muted-foreground mt-1">تتبع المصاريف والإيرادات حسب مركز التكلفة</p></div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />مركز جديد</Button>
+        <div><h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("مراكز التكلفة", "Cost Centers")}</h1><p className="text-muted-foreground mt-1">{t("تتبع المصاريف والإيرادات حسب مركز التكلفة", "Track expenses and revenue by cost center")}</p></div>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />{t("مركز جديد", "New Cost Center")}</Button>
       </div>
 
       <Card className="border-border">
-        <CardHeader><CardTitle className="text-foreground">القائمة · {items.length}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-foreground">{t("القائمة", "List")} · {items.length}</CardTitle></CardHeader>
         <CardContent>
           {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
-           items.length === 0 ? <div className="py-12 text-center"><Target className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">لا توجد مراكز تكلفة</p></div> :
+           items.length === 0 ? <div className="py-12 text-center"><Target className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد مراكز تكلفة", "No cost centers")}</p></div> :
           (<table className="w-full"><thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الرمز</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>الاسم</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>إجراءات</th>
+            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرمز", "Code")}</th>
+            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الاسم", "Name")}</th>
+            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
           </tr></thead><tbody>
             {items.map(c => <tr key={c.id} className="border-b border-border/50 hover:bg-primary/5">
               <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{c.code}</td>
@@ -70,12 +72,12 @@ export function CostCenters() {
       </Card>
 
       <SidePanel open={open} onClose={() => setOpen(false)}>
-        <div className="mb-3"><h2 className="text-foreground text-lg font-semibold">مركز تكلفة جديد</h2></div>
+        <div className="mb-3"><h2 className="text-foreground text-lg font-semibold">{t("مركز تكلفة جديد", "New Cost Center")}</h2></div>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-            <div className="space-y-2"><Label>الرمز *</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CC-001" dir="ltr" className="font-english" /></div>
-            <div className="space-y-2"><Label>الاسم *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="قسم المبيعات" /></div>
-            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>إلغاء</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : "حفظ"}</Button></div>
+            <div className="space-y-2"><Label>{t("الرمز", "Code")} *</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CC-001" dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>{t("الاسم", "Name")} *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("قسم المبيعات", "Sales department")} /></div>
+            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("إلغاء", "Cancel")}</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : t("حفظ", "Save")}</Button></div>
           </form>
         </SidePanel>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
