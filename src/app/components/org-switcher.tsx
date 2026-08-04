@@ -40,6 +40,11 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [loading, setLoading] = useState(true);
   const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // The portaled dropdown content renders at document.body — OUTSIDE
+  // dropdownRef. Without a second ref, the outside-close handler (mousedown)
+  // unmounts the dropdown before the item's click completes, so handleSelect
+  // NEVER fired: "the switcher does nothing" bug (pre-existing).
+  const dropdownContentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
@@ -76,11 +81,15 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
 
   useEffect(() => { refresh(); }, []);
 
-  // Close on outside click
+  // Close on outside click — checks BOTH the trigger container and the
+  // portaled dropdown content (see dropdownContentRef above).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const inTrigger = dropdownRef.current?.contains(target);
+      const inContent = dropdownContentRef.current?.contains(target);
+      if (!inTrigger && !inContent) setOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
@@ -255,6 +264,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
 
       {open && dropdownPos && createPortal(
         <div
+          ref={dropdownContentRef}
           className="fixed z-[100] overflow-hidden rounded-lg border border-border bg-white shadow-xl"
           style={{
             top: dropdownPos.top,
