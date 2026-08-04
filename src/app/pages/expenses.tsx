@@ -90,7 +90,7 @@ type FormState = {
 };
 
 type ExtractionSummary = {
-  fileName: string;
+  fileName: string | null;
   vendor?: string | null;
   total?: number | null;
   tax?: number | null;
@@ -638,26 +638,74 @@ export function Expenses() {
       openCreate();
       setSearchParams({}, { replace: true });
     }
-    // Receipt Capture → "إنشاء مصروف من النتيجة" · prefill from the stashed OCR JSON.
+    // Receipt Capture → "تعديل في النموذج" · prefill from the stashed OCR JSON.
     if (searchParams.get("fromOcr") === "1") {
       try {
         const raw = sessionStorage.getItem("entix_ocr_prefill");
         if (raw) {
           const ocr = JSON.parse(raw);
           setEditingId(null);
-          setFormData((f: any) => ({
-            ...emptyForm(),
-            ...f,
-            vendorName: ocr.vendor || f.vendorName || "",
-            date: ocr.date ? String(ocr.date).slice(0, 10) : f.date,
-            totalAmount: ocr.total != null ? String(ocr.total) : f.totalAmount,
-            amount: ocr.subtotal != null ? String(ocr.subtotal) : (ocr.total != null ? String(ocr.total) : f.amount),
-            documentNumber: ocr.invoiceNumber || ocr.documentNumber || f.documentNumber || "",
-            supplierTaxId: ocr.vendorTaxId || ocr.taxId || f.supplierTaxId || "",
-            description: ocr.description || (Array.isArray(ocr.lines) ? t("بنود مُستخرجة", "extracted items") : "") || f.description,
-            sourceCurrency: ocr.currency || f.sourceCurrency || "SAR",
-          }));
-          setExtractionSummary(ocr.__error ? null : ocr);
+          if (ocr && !ocr.__error && (ocr.issuer || ocr.totals || Array.isArray(ocr.lines))) {
+            // Raw extractor shape (issuer/totals/lines) — map it exactly like handleExtract
+            // so amounts, line items, payments and the document's own currency survive.
+            const totals = extractionTotals(ocr);
+            const lineItems = normalizeLineItems(ocr);
+            const sourceCurrency = detectedDocumentCurrency(ocr, "SAR");
+            const baseCurrency = normalizeCurrency("SAR");
+            const exchangeRate = String(defaultExchangeRate(sourceCurrency, baseCurrency));
+            const payments = normalizePayments(ocr, totals.total, "CARD", sourceCurrency);
+            const warnings = buildExtractionWarnings(t, ocr, items, totals.total || null);
+            const vendorName = cleanVendorName(ocr?.issuer?.name);
+            setFormData((f: any) => ({
+              ...emptyForm(),
+              ...f,
+              category: inferCategory(ocr),
+              amount: totals.subtotal ? String(totals.subtotal) : (totals.total ? String(totals.total) : f.amount),
+              taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
+              totalAmount: totals.total ? String(totals.total) : f.totalAmount,
+              sourceCurrency,
+              baseCurrency,
+              exchangeRate,
+              date: ocr?.issueDate ? String(ocr.issueDate).slice(0, 10) : f.date,
+              vendorName: vendorName || f.vendorName,
+              supplierTaxId: ocr?.issuer?.taxId || f.supplierTaxId,
+              documentNumber: ocr?.documentNumber || f.documentNumber,
+              description: ocr?.notes || ocr?.documentNumber || (lineItems.length ? t("بنود مُستخرجة", "extracted items") : "") || f.description,
+              lineItems: lineItems.length ? lineItems.map((line) => ({ ...line, sourceCurrency })) : f.lineItems,
+              paymentSplits: payments.length ? payments : f.paymentSplits,
+              paymentMethod: payments[0]?.method || f.paymentMethod,
+              extractedJson: ocr,
+              ocrConfidence: ocr?.confidence ?? null,
+            }));
+            setExtractionSummary({
+              fileName: null,
+              vendor: vendorName || null,
+              total: totals.total || null,
+              tax: totals.tax || null,
+              subtotal: totals.subtotal || null,
+              date: ocr?.issueDate || null,
+              documentNumber: ocr?.documentNumber || null,
+              confidence: ocr?.confidence ?? null,
+              model: ocr?._meta?.model || null,
+              lineCount: lineItems.length,
+              warnings,
+            });
+          } else {
+            // Legacy flat shape / error envelope · keep the previous lenient mapping.
+            setFormData((f: any) => ({
+              ...emptyForm(),
+              ...f,
+              vendorName: ocr.vendor || f.vendorName || "",
+              date: ocr.date ? String(ocr.date).slice(0, 10) : f.date,
+              totalAmount: ocr.total != null ? String(ocr.total) : f.totalAmount,
+              amount: ocr.subtotal != null ? String(ocr.subtotal) : (ocr.total != null ? String(ocr.total) : f.amount),
+              documentNumber: ocr.invoiceNumber || ocr.documentNumber || f.documentNumber || "",
+              supplierTaxId: ocr.vendorTaxId || ocr.taxId || f.supplierTaxId || "",
+              description: ocr.description || (Array.isArray(ocr.lines) ? t("بنود مُستخرجة", "extracted items") : "") || f.description,
+              sourceCurrency: ocr.currency || f.sourceCurrency || "SAR",
+            }));
+            setExtractionSummary(ocr.__error ? null : ocr);
+          }
           setCreateOpen(true);
         }
       } catch { /* malformed stash · fall through to a blank form */ }
