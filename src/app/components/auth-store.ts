@@ -124,6 +124,14 @@ class AuthStore {
         // Demo orgs are created by the "seed demo data" feature and have slugs
         // like "demo-sa-fova" or "demo-us-9sou".
         const isDemo = (m: any) => (m?.org?.slug || '').startsWith('demo-')
+        // Cross-platform truth: the server-side selection (User.selectedOrgId)
+        // is written by ANY platform on an explicit pick (validated against
+        // membership server-side). It always wins over the local copy so web
+        // and iOS show the SAME company for the same user.
+        const serverOrgId: string | null = me?.selectedOrgId || null
+        const serverMatch = serverOrgId
+          ? sorted.find((m: any) => m?.org?.id === serverOrgId)
+          : null
         const storedOrgId = typeof localStorage !== 'undefined'
           ? localStorage.getItem('entix_org_id') : null
         const storedMatch = storedOrgId
@@ -142,7 +150,7 @@ class AuthStore {
         const ownerMatch = !storedMatch || storedIsDemo
           ? (oldestReal || sorted.find((m: any) => m?.role === 'OWNER'))
           : null
-        let activeMembership = (storedIsDemo ? null : storedMatch) || ownerMatch || sorted[0]
+        let activeMembership = serverMatch || (storedIsDemo ? null : storedMatch) || ownerMatch || sorted[0]
 
         // First login via Google can arrive with zero orgs.
         // Auto-bootstrap a seeded demo org so app routes never crash with missing X-Org-Id.
@@ -175,7 +183,20 @@ class AuthStore {
           }
         }
 
-        if (activeMembership?.org?.id) setOrgId(activeMembership.org.id)
+        if (activeMembership?.org?.id) {
+          setOrgId(activeMembership.org.id)
+          // Keep the server-side selection in sync when we resolved to a
+          // different org than the one stored on the profile (first login,
+          // fallback path, or membership change). Best-effort fire-and-forget.
+          if (activeMembership.org.id !== serverOrgId) {
+            fetch(`${API_BASE}/me/preferences`, {
+              method: 'PATCH',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ selectedOrgId: activeMembership.org.id }),
+            }).catch(() => {})
+          }
+        }
 
         const resolvedRole = activeMembership?.role?.toLowerCase?.()
         const newUser: User = {

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { ChevronDown, Plus, Check, X } from "lucide-react";
-import { api, Org, setOrgId } from "../lib/api";
+import { api, Org, setOrgId, API_BASE_URL } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { useLanguage } from "./LanguageContext";
 
@@ -97,6 +97,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     // Mark this as an explicit user pick so authStore.refresh() honors it on
     // reload — even for demo orgs (clearStaleState wipes it on next login).
     try { localStorage.setItem('entix_org_explicit', String(Date.now())); } catch {}
+    // Persist the pick on the server profile so EVERY platform (web + iOS)
+    // resolves the same active company for this user. Fire-and-forget.
+    fetch(`${API_BASE_URL}/me/preferences`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedOrgId: o.id }),
+    }).catch(() => {});
     setOpen(false);
     // Hard refresh so all pages re-fetch with the new org id
     window.location.reload();
