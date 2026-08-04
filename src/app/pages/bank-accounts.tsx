@@ -1,15 +1,17 @@
 /**
  * Bank Accounts · CRUD wired to /api/bank-accounts
+ * Detail view (/app/bank-accounts/:id) shows the account's transactions
+ * (vouchers linked via bankAccountId) with click-through and reconcile link.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
-import { ArrowRight, Plus, Search, Trash2, Wallet, Loader2 } from "lucide-react";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router";
+import { ArrowRight, ArrowDownToLine, ArrowUpFromLine, Plus, Search, Trash2, Wallet, Loader2, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
-import { api, ApiError, BankAccount } from "../lib/api";
+import { api, ApiError, BankAccount, Voucher } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
 // KSA banks · IBAN bank-code (positions 5-6) → name + SWIFT
@@ -132,6 +134,21 @@ export function BankAccounts() {
     (b.accountNumber || "").includes(searchQuery));
   const selectedAccount = routeAccountId ? items.find((item) => item.id === routeAccountId) : null;
 
+  // Transactions (vouchers) linked to the selected bank account
+  const navigate = useNavigate();
+  const [transactions, setTransactions] = useState<Voucher[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
+  useEffect(() => {
+    if (!selectedAccount) { setTransactions([]); return; }
+    let cancelled = false;
+    setTxLoading(true);
+    api.vouchers.list({ bankAccountId: selectedAccount.id })
+      .then((d) => { if (!cancelled) setTransactions(d.items || []); })
+      .catch(() => { if (!cancelled) setTransactions([]); })
+      .finally(() => { if (!cancelled) setTxLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedAccount?.id]);
+
   const resetForm = () => setForm(blankForm(defaultCountry, defaultCurrency || currencyForCountry(defaultCountry)));
 
   const openNewAccount = () => {
@@ -249,6 +266,87 @@ export function BankAccounts() {
         </Card>
       )}
 
+      {selectedAccount && (
+        <Card className="border-border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-foreground">{t("العمليات", "Transactions")} · {transactions.length}</CardTitle>
+              <Link to={`/app/bank-reconciliation?bankAccountId=${selectedAccount.id}`} className="text-xs text-primary hover:underline">
+                {t("استيراد كشف حساب لإضافة عمليات", "Import a statement to add transactions")}
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {txLoading ? (
+              <div className="py-10 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+            ) : transactions.length === 0 ? (
+              <div className="py-12 text-center">
+                <Wallet className="h-10 w-10 mx-auto text-muted-foreground/60 mb-3" />
+                <p className="text-sm text-muted-foreground">{t("لا توجد عمليات على هذا الحساب بعد", "No transactions on this account yet")}</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">{t("استورد كشف حساب أو سجل سند قبض/صرف مربوط بهذا الحساب", "Import a statement or record a receipt/payment voucher linked to this account")}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px]">
+                  <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("النوع", "Type")}</th>
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الطرف", "Counterparty")}</th>
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المرجع / الملاحظات", "Reference / notes")}</th>
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المبلغ", "Amount")}</th>
+                    <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الربط", "Linked to")}</th>
+                  </tr></thead>
+                  <tbody>
+                    {transactions.map((v) => {
+                      const inbound = v.type === "RECEIPT";
+                      const detailPath = inbound ? `/app/receipts/${v.id}` : `/app/payments/${v.id}`;
+                      const linkedPath = v.invoiceId ? `/app/invoices/${v.invoiceId}` : v.billId ? `/app/purchases/bills/${v.billId}` : null;
+                      return (
+                        <tr
+                          key={v.id}
+                          onClick={() => navigate(detailPath)}
+                          className="border-b border-border/50 hover:bg-primary/5 cursor-pointer"
+                        >
+                          <td className="py-3 px-4 text-sm text-muted-foreground font-english">{v.date ? new Date(v.date).toLocaleDateString("en-GB") : "—"}</td>
+                          <td className="py-3 px-4 text-sm">
+                            <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                              {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
+                              {inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm font-english text-foreground">{v.number}</td>
+                          <td className="py-3 px-4 text-sm text-foreground/80">{v.contact?.displayName || "—"}</td>
+                          <td className="py-3 px-4 text-xs text-muted-foreground max-w-[220px] truncate" title={v.notes || v.reference || ""}>
+                            {v.reference || v.notes || "—"}
+                          </td>
+                          <td className={`py-3 px-4 text-sm font-english ${inbound ? "text-emerald-700" : "text-amber-700"}`} style={{ fontWeight: 600 }}>
+                            {inbound ? "+" : "−"}{Number(v.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {v.currency}
+                          </td>
+                          <td className="py-3 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                            {linkedPath ? (
+                              <Link to={linkedPath} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                <Link2 className="h-3 w-3" />
+                                {v.invoiceId ? t("فاتورة", "Invoice") : t("فاتورة شراء", "Bill")}
+                              </Link>
+                            ) : (
+                              <Link to={`/app/bank-reconciliation?bankAccountId=${selectedAccount.id}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary hover:underline">
+                                <Link2 className="h-3 w-3" />
+                                {t("اربط بفاتورة/مصروف", "Link to invoice/expense")}
+                              </Link>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الأرصدة", "Total balance")}</div>
@@ -286,14 +384,18 @@ export function BankAccounts() {
               </tr></thead>
               <tbody>
                 {filtered.map(b => (
-                  <tr key={b.id} className="border-b border-border/50 hover:bg-primary/5">
+                  <tr
+                    key={b.id}
+                    onClick={() => navigate(`/app/bank-accounts/${b.id}`)}
+                    className="border-b border-border/50 hover:bg-primary/5 cursor-pointer"
+                  >
                     <td className="py-3 px-4 text-sm" style={{ fontWeight: 500 }}>
                       <Link to={`/app/bank-accounts/${b.id}`} className="text-foreground hover:text-primary hover:underline">{b.name}</Link>
                     </td>
                     <td className="py-3 px-4 text-sm text-foreground/80">{b.bankName || "—"}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{accountIdentifier(b)}</td>
                     <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.balance).toLocaleString()} {b.currency}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       {pendingDelete === b.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />
                       ) : (

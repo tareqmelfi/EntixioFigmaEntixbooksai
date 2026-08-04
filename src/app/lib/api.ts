@@ -774,7 +774,7 @@ export const api = {
 
   // Vouchers (سند قبض / سند صرف)
   vouchers: {
-    list: (params?: { type?: 'RECEIPT' | 'PAYMENT' }) =>
+    list: (params?: { type?: 'RECEIPT' | 'PAYMENT'; bankAccountId?: string; contactId?: string; invoiceId?: string; billId?: string }) =>
       request<{ items: Voucher[]; total: number; summary: { sumAmount: string; avgAmount: string } }>(
         '/api/vouchers',
         { query: params },
