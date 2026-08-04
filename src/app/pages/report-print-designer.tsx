@@ -44,7 +44,7 @@ export function ReportPrintDesigner() {
           setSettings(nextSettings);
         }
       } catch (e: any) {
-        if (alive) setError(e instanceof ApiError ? e.message : "تعذر تحميل مصمم التقرير");
+        if (alive) setError(e instanceof ApiError ? e.message : t("تعذر تحميل مصمم التقرير", "Could not load the report designer"));
       } finally {
         if (alive) setLoading(false);
       }
@@ -72,7 +72,7 @@ export function ReportPrintDesigner() {
       setOrg(updated);
       setSaved(true);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "تعذر حفظ إعدادات التقرير");
+      setError(e instanceof ApiError ? e.message : t("تعذر حفظ إعدادات التقرير", "Could not save report settings"));
     } finally {
       setSaving(false);
     }
@@ -124,29 +124,29 @@ export function ReportPrintDesigner() {
       <div className="report-designer-chrome flex flex-col gap-3 rounded-xl border border-border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <button onClick={() => navigate(`/app/reports/${id}${window.location.search}`)} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowRight className="h-4 w-4" /> الرجوع للتقرير
+            <ArrowRight className="h-4 w-4" /> {t("الرجوع للتقرير", "Back to report")}
           </button>
-          <h1 className="text-2xl font-bold text-foreground">مصمم التقرير والطباعة</h1>
-          <p className="mt-1 text-sm text-muted-foreground">تحكم في الشعار والشكل ثم اطبع أو احفظ PDF.</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("مصمم التقرير والطباعة", "Report & print designer")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("تحكم في الشعار والشكل ثم اطبع أو احفظ PDF.", "Control logo and layout, then print or save as PDF.")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={saveSettings} disabled={saving || !org}>
             {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
-            حفظ كإعداد شركة
+            {t("حفظ كإعداد شركة", "Save as company default")}
           </Button>
           <Button onClick={printReport} disabled={!report}>
-            <Printer className="me-2 h-4 w-4" />طباعة / Save PDF
+            <Printer className="me-2 h-4 w-4" />{t("طباعة / Save PDF", "Print / Save PDF")}
           </Button>
         </div>
       </div>
 
-      {saved && <div className="report-designer-chrome rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">تم حفظ قالب التقارير للشركة.</div>}
+      {saved && <div className="report-designer-chrome rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{t("تم حفظ قالب التقارير للشركة.", "Report template saved for the company.")}</div>}
       {error && <div className="report-designer-chrome rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {loading ? (
         <div className="rounded-xl border border-border bg-white py-20 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-          <div className="mt-3 text-sm text-muted-foreground">جاري تجهيز المعاينة...</div>
+          <div className="mt-3 text-sm text-muted-foreground">{t("جاري تجهيز المعاينة...", "Preparing preview...")}</div>
         </div>
       ) : report ? (
         <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -154,64 +154,64 @@ export function ReportPrintDesigner() {
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Palette className="h-4 w-4" />إعدادات الشكل
+                  <Palette className="h-4 w-4" />{t("إعدادات الشكل", "Appearance settings")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Control label="الشعار">
+                <Control label={t("الشعار", "Logo")}>
                   <select value={resolved.logoSource} onChange={(e) => update("logoSource", e.target.value as any)} className={selectClass}>
-                    <option value="print">شعار الطباعة</option>
-                    <option value="main">شعار الشركة</option>
-                    <option value="none">بدون شعار</option>
+                    <option value="print">{t("شعار الطباعة", "Print logo")}</option>
+                    <option value="main">{t("شعار الشركة", "Company logo")}</option>
+                    <option value="none">{t("بدون شعار", "No logo")}</option>
                   </select>
                 </Control>
                 <div className="grid grid-cols-2 gap-3">
-                  <Control label="الورق">
+                  <Control label={t("الورق", "Paper")}>
                     <select value={resolved.paper} onChange={(e) => update("paper", e.target.value as any)} className={selectClass}>
                       <option value="A4">A4</option>
                       <option value="Letter">Letter</option>
                     </select>
                   </Control>
-                  <Control label="الاتجاه">
+                  <Control label={t("الاتجاه", "Orientation")}>
                     <select value={resolved.orientation} onChange={(e) => update("orientation", e.target.value as any)} className={selectClass}>
-                      <option value="portrait">طولي</option>
-                      <option value="landscape">عرضي</option>
+                      <option value="portrait">{t("طولي", "Portrait")}</option>
+                      <option value="landscape">{t("عرضي", "Landscape")}</option>
                     </select>
                   </Control>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Control label="اللغة">
+                  <Control label={t("اللغة", "Language")}>
                     <select value={resolved.language} onChange={(e) => update("language", e.target.value as any)} className={selectClass}>
                       <option value="ar">عربي RTL</option>
                       <option value="en">English LTR</option>
                     </select>
                   </Control>
-                  <Control label="حجم الخط">
+                  <Control label={t("حجم الخط", "Font size")}>
                     <select value={resolved.fontScale} onChange={(e) => update("fontScale", e.target.value as any)} className={selectClass}>
-                      <option value="compact">صغير</option>
-                      <option value="normal">عادي</option>
-                      <option value="large">كبير</option>
+                      <option value="compact">{t("صغير", "Small")}</option>
+                      <option value="normal">{t("عادي", "Normal")}</option>
+                      <option value="large">{t("كبير", "Large")}</option>
                     </select>
                   </Control>
                 </div>
-                <Control label="كثافة الجدول">
+                <Control label={t("كثافة الجدول", "Table density")}>
                   <select value={resolved.density} onChange={(e) => update("density", e.target.value as any)} className={selectClass}>
-                    <option value="comfortable">مريح</option>
-                    <option value="standard">قياسي</option>
-                    <option value="compact">مضغوط</option>
+                    <option value="comfortable">{t("مريح", "Comfortable")}</option>
+                    <option value="standard">{t("قياسي", "Standard")}</option>
+                    <option value="compact">{t("مضغوط", "Compact")}</option>
                   </select>
                 </Control>
                 <div className="grid grid-cols-2 gap-3">
-                  <Control label="اللون الأساسي">
+                  <Control label={t("اللون الأساسي", "Primary color")}>
                     <input value={resolved.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-white p-1" />
                   </Control>
-                  <Control label="لون التمييز">
+                  <Control label={t("لون التمييز", "Accent color")}>
                     <input value={resolved.accentColor} onChange={(e) => update("accentColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-white p-1" />
                   </Control>
                 </div>
-                <Toggle label="معلومات الشركة" checked={resolved.showCompanyInfo} onChange={(value) => update("showCompanyInfo", value)} />
-                <Toggle label="معلومات الضريبة والسجل" checked={resolved.showTaxInfo} onChange={(value) => update("showTaxInfo", value)} />
-                <Toggle label="تذييل التقرير" checked={resolved.showFooter} onChange={(value) => update("showFooter", value)} />
+                <Toggle label={t("معلومات الشركة", "Company info")} checked={resolved.showCompanyInfo} onChange={(value) => update("showCompanyInfo", value)} />
+                <Toggle label={t("معلومات الضريبة والسجل", "Tax & registration info")} checked={resolved.showTaxInfo} onChange={(value) => update("showTaxInfo", value)} />
+                <Toggle label={t("تذييل التقرير", "Report footer")} checked={resolved.showFooter} onChange={(value) => update("showFooter", value)} />
                 <Toggle label="Prepared for" checked={resolved.showPreparedBy} onChange={(value) => update("showPreparedBy", value)} />
               </CardContent>
             </Card>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
+import { useLanguage } from "./LanguageContext";
 
 const defaultSettings: Required<ReportPrintSettings> = {
   logoSource: "print",
@@ -33,8 +34,13 @@ export function ReportDocument({
   mode?: "screen" | "print";
   onRowClick?: (row: ReportRow) => void;
 }) {
-  const resolved = normalizeReportSettings(settings);
-  const dir = resolved.language === "en" ? "ltr" : "rtl";
+  const { t, language: appLanguage } = useLanguage();
+  // The document language follows the org's explicit print-setting when set;
+  // otherwise it follows the APP UI language — an English app must render an
+  // English report, never Arabic chrome (product rule: no language mixing).
+  const resolved = { ...normalizeReportSettings(settings), language: settings?.language || appLanguage };
+  const isEn = resolved.language === "en";
+  const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 15 : resolved.fontScale === "compact" ? 12 : 13;
   const cellPadding = resolved.density === "comfortable" ? "12px 14px" : resolved.density === "compact" ? "7px 10px" : "9px 12px";
@@ -63,15 +69,15 @@ export function ReportDocument({
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0">
             <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              {report.status === "demo" ? "Demo Preview" : "Live Report"}
+              {report.status === "demo" ? t("معاينة ديمو", "Demo Preview") : t("تقرير مباشر", "Live Report")}
             </div>
             <h1 className="mt-2 text-3xl font-bold leading-tight" style={{ color: "var(--report-primary)" }}>
               {resolved.language === "en" ? report.englishTitle : report.title}
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{report.description}</p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">من {report.period.from}</span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">إلى {report.period.to}</span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{t("من", "From")} {report.period.from}</span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{t("إلى", "To")} {report.period.to}</span>
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{report.currency}</span>
             </div>
           </div>
@@ -95,9 +101,9 @@ export function ReportDocument({
 
         {resolved.showTaxInfo && (
           <div className="mt-6 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-            <Info label="الرقم الضريبي" value={report.org.vatNumber || "—"} />
-            <Info label="السجل التجاري" value={report.org.crNumber || "—"} />
-            <Info label="تاريخ الإصدار" value={new Date(report.generatedAt).toLocaleString("ar-SA")} />
+            <Info label={t("الرقم الضريبي", "VAT number")} value={report.org.vatNumber || "—"} />
+            <Info label={t("السجل التجاري", "Commercial registration")} value={report.org.crNumber || "—"} />
+            <Info label={t("تاريخ الإصدار", "Issue date")} value={new Date(report.generatedAt).toLocaleString(isEn ? "en-GB" : "ar-SA")} />
           </div>
         )}
       </header>
@@ -117,7 +123,7 @@ export function ReportDocument({
                 {section.description && <p className="mt-1 text-xs text-slate-500">{section.description}</p>}
               </div>
               <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--report-accent) 12%, white)", color: "var(--report-accent)" }}>
-                {section.rows.length} صف
+                {section.rows.length} {t("صف", "rows")}
               </span>
             </div>
             <div className="overflow-hidden rounded-lg border border-slate-200">
@@ -155,7 +161,7 @@ export function ReportDocument({
                   )) : (
                     <tr>
                       <td colSpan={section.columns.length} className="px-4 py-10 text-center text-sm text-slate-500">
-                        لا توجد بيانات في هذا القسم خلال الفترة المحددة.
+                        {t("لا توجد بيانات في هذا القسم خلال الفترة المحددة.", "No data in this section for the selected period.")}
                       </td>
                     </tr>
                   )}
