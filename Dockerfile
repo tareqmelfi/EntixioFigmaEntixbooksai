@@ -14,6 +14,10 @@ RUN npm ci --no-audit --no-fund
 
 # Build (vite only — skip puppeteer prerender to avoid Docker chromium issues)
 COPY . .
+# Vite bakes VITE_* vars at build time — Coolify passes build-time env as
+# Docker build args, so declare + export it before the vite build runs.
+ARG VITE_TURNSTILE_SITEKEY=""
+ENV VITE_TURNSTILE_SITEKEY=$VITE_TURNSTILE_SITEKEY
 RUN npm run build:vite-only
 
 # ── Serve stage ──────────────────────────────────────────────────────────────
