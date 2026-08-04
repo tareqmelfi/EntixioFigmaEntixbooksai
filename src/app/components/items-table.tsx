@@ -21,7 +21,7 @@
  *  - Bilingual digit normalization
  */
 import { useRef, useState, useMemo, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
-import { Plus, Trash2, Settings2, Square, SquareCheck } from "lucide-react";
+import { Plus, Trash2, Settings2, Square, SquareCheck, Building2 } from "lucide-react";
 import { Input } from "./ui/input";
 import { SearchableCombobox } from "./searchable-combobox";
 import { BarcodeScannerButton } from "./barcode-scanner";
@@ -42,6 +42,8 @@ export interface InvoiceLine {
   recognitionStartDate?: string;        // ISO date (yyyy-mm-dd)
   recognitionMonths?: number;           // 1..120
   deferredRevenueAccountId?: string;    // LIABILITY account; server resolves when null
+  /** Purchases only · auto-register this line as a fixed asset on bill save */
+  isAsset?: boolean;
 }
 
 export type TaxMode = "all-inclusive" | "all-exclusive" | "custom";
@@ -453,6 +455,7 @@ export function ItemsTable({
   const showTax = !hidden.tax;
   const showTaxAmount = !hidden.taxAmount;
   const showRecognition = !hidden.recognition;
+  const showAssetCol = direction === "purchases";
   const hiddenCount = Number(hidden.account) + Number(hidden.tax) + Number(hidden.taxAmount) + Number(hidden.recognition);
 
   // Backend uses REVENUE not INCOME · accept both for compatibility
@@ -484,6 +487,7 @@ export function ItemsTable({
               {showTaxAmount && <col className="min-w-[120px] w-[9%]" />}
               <col className="min-w-[132px] w-[10%]" />
               {showRecognition && <col className="min-w-[150px] w-[12%]" />}
+              {showAssetCol && <col className="w-[52px]" />}
               <col className="w-10" />
             </colgroup>
             <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -522,6 +526,9 @@ export function ItemsTable({
                       <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-white">جديد</span>
                     </span>
                   </th>
+                )}
+                {showAssetCol && (
+                  <th className="py-2.5 px-1 text-center" style={{ fontWeight: 600 }} title="تسجيل السطر كأصل ثابت تلقائياً عند الحفظ">أصل</th>
                 )}
                 <th className="py-2.5 px-2 w-10"></th>
               </tr>
@@ -698,6 +705,24 @@ export function ItemsTable({
                           </div>
                         ) : (
                           <span className="text-[10px] text-muted-foreground/50">—</span>
+                        )}
+                      </td>
+                    )}
+                    {showAssetCol && (
+                      <td className="px-1 py-1 text-center">
+                        {isReal && gross > 0 ? (
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={line.isAsset === true}
+                            onClick={() => updateLine(i, { isAsset: !line.isAsset })}
+                            title={line.isAsset ? "سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء" : "تسجيل السطر كأصل ثابت تلقائياً عند الحفظ"}
+                            className={`rounded-md p-1.5 transition-colors ${line.isAsset ? "bg-primary/10 text-primary ring-1 ring-primary/40" : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground"}`}
+                          >
+                            <Building2 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/40">—</span>
                         )}
                       </td>
                     )}

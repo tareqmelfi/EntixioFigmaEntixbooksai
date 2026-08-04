@@ -406,7 +406,12 @@ export const api = {
   // Fixed Assets
   fixedAssets: {
     list: () => request<{ items: any[]; total: number; totalCost: number; netBookValue: number; totalDepreciation: number }>('/api/fixed-assets'),
+    nextCode: () => request<{ code: string }>('/api/fixed-assets/next-code'),
     create: (data: any) => request<any>('/api/fixed-assets', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/fixed-assets/${id}`, { method: 'PATCH', body: data }),
+    dispose: (id: string, data: { disposalDate: string; disposalAmount: number; disposalReason?: string | null }) =>
+      request<any>(`/api/fixed-assets/${id}/dispose`, { method: 'POST', body: data }),
+    restore: (id: string) => request<any>(`/api/fixed-assets/${id}/restore`, { method: 'POST' }),
     remove: (id: string) => request<void>(`/api/fixed-assets/${id}`, { method: 'DELETE' }),
   },
 
@@ -1322,6 +1327,9 @@ export interface Expense {
   attachmentSizeBytes?: number | null
   attachmentBase64?: string | null
   attachmentCount?: number
+  /** Auto-register a fixed asset from this expense (server links it back) */
+  registerAsAsset?: boolean
+  assetAccountId?: string | null
   lineItems?: ExpenseLine[] | null
   paymentSplits?: ExpensePaymentSplit[] | null
   extractedJson?: any
@@ -1390,6 +1398,9 @@ export interface ExpenseInput {
   attachmentSizeBytes?: number | null
   attachmentBase64?: string | null
   attachmentCount?: number
+  /** Auto-register a fixed asset from this expense (server links it back) */
+  registerAsAsset?: boolean
+  assetAccountId?: string | null
   lineItems?: ExpenseLine[] | null
   paymentSplits?: ExpensePaymentSplit[] | null
   extractedJson?: any

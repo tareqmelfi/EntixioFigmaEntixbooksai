@@ -85,6 +85,8 @@ type FormState = {
   attachments: UploadedAttachment[];
   extractedJson: any;
   ocrConfidence: number | null;
+  /** تسجيل المصروف كأصل ثابت تلقائياً عند الحفظ */
+  registerAsAsset?: boolean;
 };
 
 type ExtractionSummary = {
@@ -172,6 +174,7 @@ function emptyForm(): FormState {
     attachments: [],
     extractedJson: null,
     ocrConfidence: null,
+    registerAsAsset: false,
   };
 }
 
@@ -858,6 +861,8 @@ export function Expenses() {
         },
         ocrConfidence: formData.ocrConfidence,
         autoCreateSupplier: true,
+        // تسجيل كأصل ثابت تلقائياً (يرتبط بالمصروف ويأخذ كوداً تلقائياً)
+        registerAsAsset: formData.registerAsAsset === true,
       };
       const saved = editingId ? await api.expenses.update(editingId, input) : await api.expenses.create(input);
       await refresh();
@@ -1234,6 +1239,17 @@ export function Expenses() {
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("التصنيف *", "Category *")}</Label>
                   <Input placeholder={t("مثال: ضيافة ووجبات · فواتير خدمات", "e.g. Entertainment & meals · Service invoices")} value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-border" />
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={formData.registerAsAsset === true}
+                    onClick={() => setFormData({ ...formData, registerAsAsset: !formData.registerAsAsset })}
+                    className={`mt-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors ${formData.registerAsAsset ? "border-primary/40 bg-primary/5 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span style={{ fontWeight: formData.registerAsAsset ? 700 : 500 }}>{t("تسجيل كأصل ثابت تلقائياً", "Auto-register as a fixed asset")}</span>
+                    {formData.registerAsAsset && <span className="ms-auto text-[10px] opacity-80">{t("سيأخذ كوداً تلقائياً ويرتبط بالمصروف", "gets an auto code linked to this expense")}</span>}
+                  </button>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("رقم الفاتورة / الإيصال", "Invoice / Receipt No.")}</Label>

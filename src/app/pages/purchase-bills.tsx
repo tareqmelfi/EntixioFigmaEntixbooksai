@@ -282,6 +282,9 @@ export function PurchaseBills() {
           taxRate: l.taxRate ?? 0,
           taxRateId: (l as any).taxRateId || null,
           accountId: (l as any).accountId || null,
+          // خط الأصل: يُسجَّل تلقائياً في الأصول الثابتة مربوطاً بحساب السطر
+          isAsset: l.isAsset === true,
+          assetAccountId: l.isAsset ? ((l as any).accountId || null) : null,
         })),
         paymentSplits: hasSplits
           ? paymentSplits.map((sp) => ({

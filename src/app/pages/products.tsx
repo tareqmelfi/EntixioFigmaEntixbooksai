@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, Account } from "../lib/api";
+import { SearchableCombobox } from "../components/searchable-combobox";
 import { useLanguage } from "../components/LanguageContext";
 
 const IMAGE_STORE_KEY = "entix_product_images_v1";
@@ -21,6 +21,8 @@ const EMPTY_FORM = {
   type: "SERVICE",
   unitPrice: "",
   costPrice: "0",
+  incomeAccountId: "",
+  expenseAccountId: "",
 };
 
 export function Products() {
@@ -35,6 +37,7 @@ export function Products() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [localImages, setLocalImages] = useState<Record<string, string>>({});
   const [, setPendingDelete] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -49,6 +52,9 @@ export function Products() {
     } catch {
       setLocalImages({});
     }
+  }, []);
+  useEffect(() => {
+    api.accounts.list().then((d) => setAccounts(d.items)).catch(() => {});
   }, []);
 
   const saveLocalImage = (id: string, imageUrl: string) => {
@@ -84,6 +90,8 @@ export function Products() {
       type: item.type || "SERVICE",
       unitPrice: String(item.unitPrice ?? ""),
       costPrice: String(item.costPrice ?? "0"),
+      incomeAccountId: item.incomeAccountId || "",
+      expenseAccountId: item.expenseAccountId || "",
     });
     setError(null);
     setOpen(true);
@@ -118,6 +126,7 @@ export function Products() {
         sku: form.sku || null, name: form.name, nameAr: form.nameAr || null,
         description: form.description || null, category: form.category || null, imageUrl: form.imageUrl || null,
         type: form.type, unitPrice: Number(form.unitPrice), costPrice: Number(form.costPrice || 0),
+        incomeAccountId: form.incomeAccountId || null, expenseAccountId: form.expenseAccountId || null,
       };
       const p = editingId ? await api.products.update(editingId, payload) : await api.products.create(payload);
       setItems(prev => editingId ? prev.map(x => x.id === editingId ? p : x) : [...prev, p]);
@@ -207,14 +216,19 @@ export function Products() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>{t("النوع", "Type")}</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SERVICE">{t("خدمة", "Service")}</SelectItem>
-                    <SelectItem value="GOOD">{t("بضاعة", "Good")}</SelectItem>
-                    <SelectItem value="INVENTORY">{t("مخزون", "Inventory")}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-1 rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("النوع", "Type")}>
+                  {([["SERVICE", t("خدمة", "Service")], ["GOOD", t("بضاعة", "Good")], ["INVENTORY", t("مخزون", "Inventory")]] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      role="radio"
+                      aria-checked={form.type === val}
+                      onClick={() => setForm({ ...form, type: val })}
+                      className={`flex-1 rounded-md px-2 py-1.5 text-xs transition-colors ${form.type === val ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                      style={{ fontWeight: form.type === val ? 700 : 500 }}
+                    >{label}</button>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="space-y-2"><Label>{t("الاسم بالإنجليزية", "Name (English)")} *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} dir="ltr" className="font-english" /></div>
@@ -226,6 +240,27 @@ export function Products() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("سعر البيع", "Sale price")} *</Label><Input type="number" step="0.01" min="0" required value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>{t("سعر التكلفة", "Cost price")}</Label><Input type="number" step="0.01" min="0" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} dir="ltr" className="font-english" /></div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("الربط المحاسبي", "Accounting links")}</div>
+              <div className="space-y-2">
+                <Label>{t("حساب الإيراد (عند البيع)", "Income account (on sale)")}</Label>
+                <SearchableCombobox
+                  value={form.incomeAccountId}
+                  onChange={(id) => setForm({ ...form, incomeAccountId: id })}
+                  items={accounts.filter(a => a.type === "REVENUE").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }))}
+                  placeholder={t("اختر حساب الإيراد...", "Choose income account...")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("حساب المصروف/التكلفة (عند الشراء)", "Expense/COGS account (on purchase)")}</Label>
+                <SearchableCombobox
+                  value={form.expenseAccountId}
+                  onChange={(id) => setForm({ ...form, expenseAccountId: id })}
+                  items={accounts.filter(a => a.type === "EXPENSE" || a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }))}
+                  placeholder={t("اختر حساب المصروف...", "Choose expense account...")}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("إلغاء", "Cancel")}</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : editingId ? t("تحديث", "Update") : t("حفظ", "Save")}</Button></div>
           </form>
