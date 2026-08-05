@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { SidePanel, ToastStack, useToasts } from "../components/side-panel";
+import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -151,6 +151,36 @@ export function AdminDashboard() {
         </CardContent></Card>
       </div>
 
+      {topupFor && (
+        <Card className="border-[#1276E3]/40 bg-primary/[0.02]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-foreground text-base">{t(`شحن رصيد · ${topupFor.org.name}`, `Top up · ${topupFor.org.name}`)}</CardTitle>
+              <button onClick={() => setTopupFor(null)} className="text-xs text-muted-foreground hover:text-foreground">{t("إغلاق", "Close")}</button>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("إضافة رصيد فوق المخصص الشهري", "Add credit on top of the monthly allocation")}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <div className="rounded-lg bg-white border border-border p-3 text-xs">
+                <p className="text-muted-foreground">{t("الرصيد الحالي:", "Current balance:")}</p>
+                <p className="text-foreground font-english mt-1" style={{ fontWeight: 600 }}>${Number(topupFor.creditBalance).toFixed(2)}</p>
+              </div>
+              <div className="space-y-2"><Label>{t("المبلغ بالدولار *", "Amount (USD) *")}</Label>
+                <Input type="number" min="0.01" step="0.01" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>{t("ملاحظة (اختياري)", "Note (optional)")}</Label>
+                <Input value={topupNote} onChange={(e) => setTopupNote(e.target.value)} placeholder={t("منحة · ترقية · تعويض ...", "Grant · upgrade · compensation ...")} /></div>
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={() => setTopupFor(null)} className="border-border">{t("إلغاء", "Cancel")}</Button>
+                <Button onClick={handleTopup} disabled={busy} className="bg-primary hover:bg-primary/90">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("شحن", "Top up")}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("الشركات", "Companies")} · {items.length}</CardTitle></CardHeader>
         <CardContent className="p-0">
@@ -249,34 +279,7 @@ export function AdminDashboard() {
         </Card>
       )}
 
-      <SidePanel
-        open={!!topupFor}
-        onClose={() => setTopupFor(null)}
-        title={topupFor ? `شحن رصيد · ${topupFor.org.name}` : ""}
-        description="إضافة رصيد فوق المخصص الشهري"
-        width="sm"
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => setTopupFor(null)} className="border-border">إلغاء</Button>
-            <Button onClick={handleTopup} disabled={busy} className="bg-primary hover:bg-primary/90">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "شحن"}
-            </Button>
-          </div>
-        }
-      >
-        {topupFor && (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted border border-border p-3 text-xs">
-              <p className="text-muted-foreground">الرصيد الحالي:</p>
-              <p className="text-foreground font-english mt-1" style={{ fontWeight: 600 }}>${Number(topupFor.creditBalance).toFixed(2)}</p>
-            </div>
-            <div className="space-y-2"><Label>المبلغ بالدولار *</Label>
-              <Input type="number" min="0.01" step="0.01" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} dir="ltr" className="font-english" /></div>
-            <div className="space-y-2"><Label>ملاحظة (اختياري)</Label>
-              <Input value={topupNote} onChange={(e) => setTopupNote(e.target.value)} placeholder="منحة · ترقية · تعويض ..." /></div>
-          </div>
-        )}
-      </SidePanel>
+
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

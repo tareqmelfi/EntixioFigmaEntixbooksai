@@ -198,27 +198,38 @@ export const router = createBrowserRouter([
       { path: "taxes", element: lazyElement(() => import("./pages/taxes"), "Taxes"), errorElement: <ErrorBoundary /> },
       // Bank Accounts
       { path: "bank-accounts", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },
-      { path: "bank-accounts/new", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },
+      { path: "bank-accounts/new", element: lazyElement(() => import("./pages/bank-account-new"), "BankAccountNew"), errorElement: <ErrorBoundary /> },
       { path: "bank-accounts/:id", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },
       { path: "bank-reconciliation", element: lazyElement(() => import("./pages/bank-reconciliation"), "BankReconciliation"), errorElement: <ErrorBoundary /> },
       { path: "fiscal-periods", element: lazyElement(() => import("./pages/fiscal-periods"), "FiscalPeriods"), errorElement: <ErrorBoundary /> },
       // Assets
       { path: "assets", element: lazyElement(() => import("./pages/fixed-assets"), "FixedAssets"), errorElement: <ErrorBoundary /> },
+      { path: "assets/new", element: lazyElement(() => import("./pages/asset-detail"), "AssetDetail"), errorElement: <ErrorBoundary /> },
       { path: "assets/:id", element: lazyElement(() => import("./pages/asset-detail"), "AssetDetail"), errorElement: <ErrorBoundary /> },
       // Cost Centers, Projects, Branches
       { path: "cost-centers", element: lazyElement(() => import("./pages/cost-centers"), "CostCenters"), errorElement: <ErrorBoundary /> },
+      { path: "cost-centers/new", element: lazyElement(() => import("./pages/cost-center-detail"), "CostCenterDetail"), errorElement: <ErrorBoundary /> },
+      { path: "cost-centers/:id", element: lazyElement(() => import("./pages/cost-center-detail"), "CostCenterDetail"), errorElement: <ErrorBoundary /> },
       { path: "projects", element: lazyElement(() => import("./pages/projects"), "Projects"), errorElement: <ErrorBoundary /> },
+      { path: "projects/new", element: lazyElement(() => import("./pages/project-detail"), "ProjectDetail"), errorElement: <ErrorBoundary /> },
+      { path: "projects/:id", element: lazyElement(() => import("./pages/project-detail"), "ProjectDetail"), errorElement: <ErrorBoundary /> },
       { path: "branches", element: lazyElement(() => import("./pages/branches"), "Branches"), errorElement: <ErrorBoundary /> },
+      { path: "branches/new", element: lazyElement(() => import("./pages/branch-detail"), "BranchDetail"), errorElement: <ErrorBoundary /> },
+      { path: "branches/:id", element: lazyElement(() => import("./pages/branch-detail"), "BranchDetail"), errorElement: <ErrorBoundary /> },
       // Products & Services
       { path: "products", element: lazyElement(() => import("./pages/products"), "Products"), errorElement: <ErrorBoundary /> },
+      { path: "products/new", element: lazyElement(() => import("./pages/product-detail"), "ProductDetail"), errorElement: <ErrorBoundary /> },
       { path: "products/:id", element: lazyElement(() => import("./pages/product-detail"), "ProductDetail"), errorElement: <ErrorBoundary /> },
       { path: "inventory", element: lazyElement(() => import("./pages/inventory"), "Inventory"), errorElement: <ErrorBoundary /> },
       { path: "warehouses", element: lazyElement(() => import("./pages/inventory"), "Inventory"), errorElement: <ErrorBoundary /> },
       { path: "stock-movements", element: lazyElement(() => import("./pages/inventory"), "Inventory"), errorElement: <ErrorBoundary /> },
+      { path: "inventory/warehouses/new", element: lazyElement(() => import("./pages/warehouse-new"), "WarehouseNew"), errorElement: <ErrorBoundary /> },
+      { path: "inventory/movements/new", element: lazyElement(() => import("./pages/stock-movement-new"), "StockMovementNew"), errorElement: <ErrorBoundary /> },
       // Payroll & Employees
       { path: "payroll", element: lazyElement(() => import("./pages/payroll"), "Payroll"), errorElement: <ErrorBoundary /> },
       { path: "payroll/:id", element: lazyElement(() => import("./pages/payroll-detail"), "PayrollDetail"), errorElement: <ErrorBoundary /> },
       { path: "employees", element: lazyElement(() => import("./pages/employees"), "Employees"), errorElement: <ErrorBoundary /> },
+      { path: "employees/new", element: lazyElement(() => import("./pages/employee-new"), "EmployeeNew"), errorElement: <ErrorBoundary /> },
       // Contacts (formerly العملاء والموردين)
       { path: "contacts", element: lazyElement(() => import("./pages/contacts"), "Contacts"), errorElement: <ErrorBoundary /> },
       { path: "contacts/:id", element: lazyElement(() => import("./pages/contact-detail"), "ContactDetail"), errorElement: <ErrorBoundary /> },
@@ -228,6 +239,8 @@ export const router = createBrowserRouter([
       // Keep it working by redirecting to Settings > ZATCA tab.
       { path: "integrations/zatca", element: <Navigate to="/app/settings?tab=zatca" replace />, errorElement: <ErrorBoundary /> },
       { path: "templates", element: lazyElement(() => import("./pages/templates"), "Templates"), errorElement: <ErrorBoundary /> },
+      { path: "templates/new", element: lazyElement(() => import("./pages/template-detail"), "TemplateDetail"), errorElement: <ErrorBoundary /> },
+      { path: "templates/:id", element: lazyElement(() => import("./pages/template-detail"), "TemplateDetail"), errorElement: <ErrorBoundary /> },
       // Analytics & Settings
       { path: "reports", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "reports/:id", element: lazyElement(() => import("./pages/report-view"), "ReportView"), errorElement: <ErrorBoundary /> },

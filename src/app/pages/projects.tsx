@@ -1,12 +1,12 @@
+/**
+ * Projects list — app-wide standard: rows open the FULL detail page
+ * (/app/projects/:id) instead of a slide-over. New project → /app/projects/new.
+ */
 import { useEffect, useState, useCallback } from "react";
-import { FolderKanban, Plus, Trash2, Loader2 } from "lucide-react";
+import { FolderKanban, Plus, Loader2, ChevronLeft } from "lucide-react";
+import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { DateInput } from "../components/date-input";
-import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { SidePanel, ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -18,14 +18,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function Projects() {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
-  const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ code: "", name: "", startDate: "", endDate: "", status: "ACTIVE" });
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
@@ -35,34 +31,14 @@ export function Projects() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.code.trim() || !form.name.trim()) { setError(t("الرمز والاسم مطلوبان", "Code and name are required")); return; }
-    setBusy(true); setError(null);
-    try {
-      const p = await api.projects.create({
-        code: form.code.trim(), name: form.name.trim(),
-        startDate: form.startDate || null, endDate: form.endDate || null,
-        status: form.status,
-      });
-      setItems(prev => [...prev, p]);
-      setOpen(false); setForm({ code: "", name: "", startDate: "", endDate: "", status: "ACTIVE" });
-    } catch (e: any) { setError(e instanceof ApiError ? (e.message === "code_exists" ? t("الرمز موجود", "Code already exists") : e.message) : t("فشل الحفظ", "Save failed")); }
-    finally { setBusy(false); }
-  };
-
-  const handleDelete = async (id: string) => {
-    setPendingDelete(null);
-    try { await api.projects.remove(id); setItems(prev => prev.filter(x => x.id !== id)); }
-    catch (e: any) { push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed")); }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المشاريع", "Projects")}</h1><p className="text-muted-foreground mt-1">{t("إدارة المشاريع وربطها بالفواتير والمصروفات", "Manage projects and link them to invoices and expenses")}</p></div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={() => setOpen(true)}><Plus className="me-2 h-4 w-4" />{t("مشروع جديد", "New Project")}</Button>
+        <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/projects/new")}><Plus className="me-2 h-4 w-4" />{t("مشروع جديد", "New Project")}</Button>
       </div>
+
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("القائمة", "List")} · {items.length}</CardTitle></CardHeader>
@@ -75,47 +51,21 @@ export function Projects() {
             <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("البداية", "Start")}</th>
             <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("النهاية", "End")}</th>
             <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
-            <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
+            <th className="py-3 px-4 w-[50px]"></th>
           </tr></thead><tbody>
-            {items.map(p => <tr key={p.id} className="border-b border-border/50 hover:bg-primary/5">
-              <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{p.code}</td>
-              <td className="py-3 px-4 text-sm text-foreground">{p.name}</td>
-              <td className="py-3 px-4 font-english text-xs text-muted-foreground">{p.startDate?.slice(0, 10) || "—"}</td>
-              <td className="py-3 px-4 font-english text-xs text-muted-foreground">{p.endDate?.slice(0, 10) || "—"}</td>
-              <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[p.status] || ""}`}>{STATUS_LABELS[p.status] ? (language === "ar" ? STATUS_LABELS[p.status].ar : STATUS_LABELS[p.status].en) : p.status}</span></td>
-              <td className="py-3 px-4">{pendingDelete === p.id ? (<InlineConfirm onConfirm={() => handleDelete(p.id)} onCancel={() => setPendingDelete(null)} />) : (<button onClick={() => setPendingDelete(p.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>)}</td>
-            </tr>)}
+            {items.map(p => (
+              <tr key={p.id} onClick={() => navigate(`/app/projects/${p.id}`)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
+                <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{p.code}</td>
+                <td className="py-3 px-4 text-sm text-foreground">{p.name}</td>
+                <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{p.startDate?.slice(0, 10) || "—"}</td>
+                <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{p.endDate?.slice(0, 10) || "—"}</td>
+                <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[p.status] || ""}`}>{STATUS_LABELS[p.status] ? (language === "ar" ? STATUS_LABELS[p.status].ar : STATUS_LABELS[p.status].en) : p.status}</span></td>
+                <td className="py-3 px-2 text-muted-foreground/50"><ChevronLeft className="h-4 w-4" /></td>
+              </tr>
+            ))}
           </tbody></table>)}
         </CardContent>
       </Card>
-
-      <SidePanel open={open} onClose={() => setOpen(false)}>
-        <div className="mb-3"><h2 className="text-foreground text-lg font-semibold">{t("مشروع جديد", "New Project")}</h2></div>
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>{t("الرمز", "Code")} *</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="PRJ-001" dir="ltr" className="font-english" /></div>
-              <div className="space-y-2"><Label>{t("الحالة", "Status")}</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">{t("نشط", "Active")}</SelectItem>
-                    <SelectItem value="ON_HOLD">{t("متوقف", "On Hold")}</SelectItem>
-                    <SelectItem value="COMPLETED">{t("مكتمل", "Completed")}</SelectItem>
-                    <SelectItem value="CANCELLED">{t("ملغي", "Cancelled")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2"><Label>{t("اسم المشروع", "Project name")} *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("مشروع تطوير التطبيق", "App development project")} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>{t("تاريخ البداية", "Start date")}</Label><DateInput value={form.startDate} onChange={(iso) => setForm({ ...form, startDate: iso })} inputClassName="" /></div>
-              <div className="space-y-2"><Label>{t("تاريخ النهاية", "End date")}</Label><DateInput value={form.endDate} onChange={(iso) => setForm({ ...form, endDate: iso })} inputClassName="" /></div>
-            </div>
-            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border"><Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("إلغاء", "Cancel")}</Button><Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">{busy ? "..." : t("حفظ", "Save")}</Button></div>
-          </form>
-        </SidePanel>
-      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

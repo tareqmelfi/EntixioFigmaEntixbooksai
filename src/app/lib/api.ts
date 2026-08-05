@@ -392,23 +392,31 @@ export const api = {
   // Branches
   branches: {
     list: () => request<{ items: any[]; total: number }>('/api/branches'),
+    get: (id: string) => request<any>(`/api/branches/${id}`),
     create: (data: { name: string; code?: string; address?: string }) =>
       request<any>('/api/branches', { method: 'POST', body: data }),
+    update: (id: string, data: { name?: string; code?: string; address?: string }) =>
+      request<any>(`/api/branches/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/branches/${id}`, { method: 'DELETE' }),
   },
 
   // Cost Centers
   costCenters: {
     list: () => request<{ items: any[]; total: number }>('/api/cost-centers'),
+    get: (id: string) => request<any>(`/api/cost-centers/${id}`),
     create: (data: { code: string; name: string }) =>
       request<any>('/api/cost-centers', { method: 'POST', body: data }),
+    update: (id: string, data: { code?: string; name?: string }) =>
+      request<any>(`/api/cost-centers/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/cost-centers/${id}`, { method: 'DELETE' }),
   },
 
   // Projects
   projects: {
     list: () => request<{ items: any[]; total: number }>('/api/projects'),
+    get: (id: string) => request<any>(`/api/projects/${id}`),
     create: (data: any) => request<any>('/api/projects', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/projects/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
   },
 
@@ -417,6 +425,7 @@ export const api = {
   documentTemplates: {
     list: (params?: { type?: string }) =>
       request<{ items: any[]; total: number }>('/api/document-templates', { query: params }),
+    get: (id: string) => request<any>(`/api/document-templates/${id}`),
     create: (data: any) => request<any>('/api/document-templates', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
     setDefault: (id: string) => request<any>(`/api/document-templates/${id}/set-default`, { method: 'POST' }),
@@ -426,6 +435,7 @@ export const api = {
 
   fixedAssets: {
     list: () => request<{ items: any[]; total: number; totalCost: number; netBookValue: number; totalDepreciation: number }>('/api/fixed-assets'),
+    get: (id: string) => request<any>(`/api/fixed-assets/${id}`),
     nextCode: () => request<{ code: string }>('/api/fixed-assets/next-code'),
     create: (data: any) => request<any>('/api/fixed-assets', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/fixed-assets/${id}`, { method: 'PATCH', body: data }),
@@ -441,6 +451,7 @@ export const api = {
       request<{ items: any[]; total: number; categories: Array<{ category: string; count: number }> }>('/api/products', { query: params }),
     categories: () =>
       request<{ categories: Array<{ category: string; count: number; totalValue: number }> }>('/api/products/categories'),
+    get: (id: string) => request<any>(`/api/products/${id}`),
     create: (data: any) => request<any>('/api/products', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/products/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/products/${id}`, { method: 'DELETE' }),
