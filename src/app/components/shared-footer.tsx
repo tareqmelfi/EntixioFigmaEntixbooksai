@@ -221,7 +221,7 @@ export function SharedFooter() {
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#94A3B8] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
-              &copy; 2026 ENTIX.IO. Owned by شركة سبيك بروز للاستثمار · CR 3400010090. Operated and powered by ENSIDEX LLC.
+              &copy; 2026 ENTIX.IO. {t("مملوكة لشركة سبيك بروز للاستثمار القابضة · س.ت 3400010090. تشغيل وتطوير ENSIDEX LLC.", "Owned by Spike Bros Investment Holding · CR 3400010090. Operated and powered by ENSIDEX LLC.")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {footerLinks.legal.map((link) => (
