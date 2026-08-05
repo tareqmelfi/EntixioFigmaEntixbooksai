@@ -206,6 +206,15 @@ export const router = createBrowserRouter([
       { path: "assets", element: lazyElement(() => import("./pages/fixed-assets"), "FixedAssets"), errorElement: <ErrorBoundary /> },
       { path: "assets/new", element: lazyElement(() => import("./pages/asset-detail"), "AssetDetail"), errorElement: <ErrorBoundary /> },
       { path: "assets/:id", element: lazyElement(() => import("./pages/asset-detail"), "AssetDetail"), errorElement: <ErrorBoundary /> },
+      // Investment wallets + shareholders register
+      { path: "investments", element: lazyElement(() => import("./pages/investments"), "Investments"), errorElement: <ErrorBoundary /> },
+      { path: "investments/new", element: lazyElement(() => import("./pages/investment-wallet-detail"), "InvestmentWalletDetail"), errorElement: <ErrorBoundary /> },
+      { path: "investments/:id", element: lazyElement(() => import("./pages/investment-wallet-detail"), "InvestmentWalletDetail"), errorElement: <ErrorBoundary /> },
+      { path: "investments/:id/transactions/new", element: lazyElement(() => import("./pages/wallet-transaction-new"), "WalletTransactionNew"), errorElement: <ErrorBoundary /> },
+      { path: "shareholders", element: lazyElement(() => import("./pages/shareholders"), "Shareholders"), errorElement: <ErrorBoundary /> },
+      { path: "shareholders/new", element: lazyElement(() => import("./pages/shareholder-detail"), "ShareholderDetail"), errorElement: <ErrorBoundary /> },
+      { path: "shareholders/:id", element: lazyElement(() => import("./pages/shareholder-detail"), "ShareholderDetail"), errorElement: <ErrorBoundary /> },
+      { path: "share-transactions/new", element: lazyElement(() => import("./pages/share-transaction-new"), "ShareTransactionNew"), errorElement: <ErrorBoundary /> },
       // Cost Centers, Projects, Branches
       { path: "cost-centers", element: lazyElement(() => import("./pages/cost-centers"), "CostCenters"), errorElement: <ErrorBoundary /> },
       { path: "cost-centers/new", element: lazyElement(() => import("./pages/cost-center-detail"), "CostCenterDetail"), errorElement: <ErrorBoundary /> },

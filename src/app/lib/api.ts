@@ -445,6 +445,30 @@ export const api = {
     remove: (id: string) => request<void>(`/api/fixed-assets/${id}`, { method: 'DELETE' }),
   },
 
+  // Investment wallets (trading + funded prop) · shareholders register
+  investments: {
+    listWallets: () => request<{ items: any[]; total: number }>('/api/investments/wallets'),
+    nextWalletCode: () => request<{ code: string }>('/api/investments/wallets/next-code'),
+    getWallet: (id: string) => request<any>(`/api/investments/wallets/${id}`),
+    createWallet: (data: any) => request<any>('/api/investments/wallets', { method: 'POST', body: data }),
+    updateWallet: (id: string, data: any) => request<any>(`/api/investments/wallets/${id}`, { method: 'PATCH', body: data }),
+    closeWallet: (id: string) => request<any>(`/api/investments/wallets/${id}/close`, { method: 'POST' }),
+    deleteWallet: (id: string) => request<void>(`/api/investments/wallets/${id}`, { method: 'DELETE' }),
+    addWalletTransaction: (walletId: string, data: any) =>
+      request<any>(`/api/investments/wallets/${walletId}/transactions`, { method: 'POST', body: data }),
+    deleteWalletTransaction: (id: string) => request<void>(`/api/investments/wallet-transactions/${id}`, { method: 'DELETE' }),
+    walletReport: (id: string) => request<any>(`/api/investments/wallets/${id}/report`),
+    listShareholders: () => request<{ items: any[]; total: number; summary: any }>('/api/investments/shareholders'),
+    nextShareholderCode: () => request<{ code: string }>('/api/investments/shareholders/next-code'),
+    getShareholder: (id: string) => request<any>(`/api/investments/shareholders/${id}`),
+    createShareholder: (data: any) => request<any>('/api/investments/shareholders', { method: 'POST', body: data }),
+    updateShareholder: (id: string, data: any) => request<any>(`/api/investments/shareholders/${id}`, { method: 'PATCH', body: data }),
+    deleteShareholder: (id: string) => request<void>(`/api/investments/shareholders/${id}`, { method: 'DELETE' }),
+    listShareTransactions: () => request<{ items: any[]; total: number }>('/api/investments/share-transactions'),
+    createShareTransaction: (data: any) => request<any>('/api/investments/share-transactions', { method: 'POST', body: data }),
+    deleteShareTransaction: (id: string) => request<void>(`/api/investments/share-transactions/${id}`, { method: 'DELETE' }),
+  },
+
   // Products
   products: {
     list: (params?: { type?: string; category?: string }) =>
