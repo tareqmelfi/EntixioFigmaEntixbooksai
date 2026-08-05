@@ -1,34 +1,165 @@
 import { motion } from "motion/react";
-import { CheckCircle2, X, Sparkles, ArrowLeft, HelpCircle } from "lucide-react";
+import { CheckCircle2, X, Sparkles, ArrowLeft, ArrowRight, HelpCircle } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { api } from "../lib/api";
 import { authStore } from "../components/auth-store";
+import { useLanguage } from "../components/LanguageContext";
+
+type Tier = "starter" | "professional" | "enterprise";
+type Cell = { ar: string; en: string } | boolean;
+
+const FEATURE_LABELS: Record<string, { ar: string; en: string }> = {
+  invoices: { ar: "الفواتير", en: "Invoices" },
+  users: { ar: "المستخدمون", en: "Users" },
+  reports: { ar: "التقارير", en: "Reports" },
+  storage: { ar: "التخزين", en: "Storage" },
+  support: { ar: "الدعم", en: "Support" },
+  zatca: { ar: "الفوترة الإلكترونية ZATCA", en: "ZATCA e-invoicing" },
+  offline: { ar: "العمل أوفلاين", en: "Offline mode" },
+  api: { ar: "الوصول للـ API", en: "API access" },
+  customization: { ar: "التخصيص", en: "Customization" },
+  multiCurrency: { ar: "تعدد العملات", en: "Multi-currency" },
+  advanced: { ar: "مميزات متقدمة", en: "Advanced features" },
+};
+
+interface PlanDef {
+  tier: Tier;
+  name: { ar: string; en: string };
+  desc: { ar: string; en: string };
+  color: string;
+  popular?: boolean;
+  price: Record<"SAR" | "USD", { monthly: number; yearly: number }>;
+  features: Record<string, Cell>;
+}
+
+const PLANS: PlanDef[] = [
+  {
+    tier: "starter",
+    name: { ar: "أساسي", en: "Starter" },
+    desc: { ar: "للمشاريع الناشئة والأفراد", en: "For early-stage projects & individuals" },
+    color: "#6B7280",
+    price: { SAR: { monthly: 0, yearly: 0 }, USD: { monthly: 0, yearly: 0 } },
+    features: {
+      invoices: { ar: "5 فواتير شهرياً", en: "5 invoices / month" },
+      users: { ar: "مستخدم واحد", en: "1 user" },
+      reports: { ar: "تقارير أساسية", en: "Basic reports" },
+      storage: { ar: "1 جيجا تخزين", en: "1 GB storage" },
+      support: { ar: "دعم بالبريد الإلكتروني", en: "Email support" },
+      zatca: true, offline: true, api: false, customization: false, multiCurrency: false, advanced: false,
+    },
+  },
+  {
+    tier: "professional",
+    name: { ar: "احترافي", en: "Professional" },
+    desc: { ar: "للشركات الصغيرة والمتوسطة", en: "For small & medium businesses" },
+    color: "#1276E3",
+    popular: true,
+    price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 29, yearly: 290 } },
+    features: {
+      invoices: { ar: "فواتير غير محدودة", en: "Unlimited invoices" },
+      users: { ar: "حتى 5 مستخدمين", en: "Up to 5 users" },
+      reports: { ar: "تقارير متقدمة + AI", en: "Advanced reports + AI" },
+      storage: { ar: "50 جيجا تخزين", en: "50 GB storage" },
+      support: { ar: "دعم مباشر", en: "Live support" },
+      zatca: true, offline: true,
+      api: { ar: "Read-only API", en: "Read-only API" },
+      customization: true, multiCurrency: true, advanced: true,
+    },
+  },
+  {
+    tier: "enterprise",
+    name: { ar: "مؤسسي", en: "Enterprise" },
+    desc: { ar: "للمؤسسات الكبيرة", en: "For large organizations" },
+    color: "#0B1B49",
+    price: { SAR: { monthly: 299, yearly: 2990 }, USD: { monthly: 79, yearly: 790 } },
+    features: {
+      invoices: { ar: "فواتير غير محدودة", en: "Unlimited invoices" },
+      users: { ar: "مستخدمون غير محدودون", en: "Unlimited users" },
+      reports: { ar: "تقارير مخصصة + AI متقدم", en: "Custom reports + advanced AI" },
+      storage: { ar: "تخزين غير محدود", en: "Unlimited storage" },
+      support: { ar: "دعم مخصص 24/7", en: "Dedicated 24/7 support" },
+      zatca: true, offline: true,
+      api: { ar: "Full API Access", en: "Full API Access" },
+      customization: { ar: "تخصيص كامل", en: "Full customization" },
+      multiCurrency: true,
+      advanced: { ar: "مميزات مؤسسية متقدمة", en: "Advanced enterprise features" },
+    },
+  },
+];
+
+interface ComparisonRow { name: { ar: string; en: string }; free: Cell; pro: Cell; enterprise: Cell }
+interface ComparisonCategory { category: { ar: string; en: string }; features: ComparisonRow[] }
+
+const COMPARISON: ComparisonCategory[] = [
+  { category: { ar: "الفواتير والمبيعات", en: "Invoicing & sales" }, features: [
+    { name: { ar: "عدد الفواتير", en: "Invoice volume" }, free: { ar: "5 / شهر", en: "5 / month" }, pro: { ar: "غير محدود", en: "Unlimited" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
+    { name: { ar: "الفواتير الإلكترونية ZATCA", en: "ZATCA e-invoicing" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "QR Code", en: "QR Code" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "عروض الأسعار", en: "Quotes" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "إشعارات دائنة", en: "Credit notes" }, free: false, pro: true, enterprise: true },
+    { name: { ar: "الفواتير المتكررة", en: "Recurring invoices" }, free: false, pro: true, enterprise: true },
+    { name: { ar: "قوالب فواتير مخصصة", en: "Custom invoice templates" }, free: { ar: "1", en: "1" }, pro: { ar: "10", en: "10" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
+  ]},
+  { category: { ar: "المحاسبة والتقارير", en: "Accounting & reports" }, features: [
+    { name: { ar: "دليل الحسابات", en: "Chart of accounts" }, free: { ar: "محدود", en: "Limited" }, pro: { ar: "كامل", en: "Full" }, enterprise: { ar: "كامل + مخصص", en: "Full + custom" } },
+    { name: { ar: "القيود اليومية", en: "Journal entries" }, free: false, pro: true, enterprise: true },
+    { name: { ar: "تقارير الأرباح والخسائر", en: "Profit & loss" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "الميزانية العمومية", en: "Balance sheet" }, free: false, pro: true, enterprise: true },
+    { name: { ar: "تقارير الضرائب", en: "Tax reports" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "تحليلات AI", en: "AI analytics" }, free: false, pro: { ar: "أساسية", en: "Basic" }, enterprise: { ar: "متقدمة", en: "Advanced" } },
+    { name: { ar: "تقارير مخصصة", en: "Custom reports" }, free: false, pro: false, enterprise: true },
+  ]},
+  { category: { ar: "المستخدمون والصلاحيات", en: "Users & permissions" }, features: [
+    { name: { ar: "عدد المستخدمين", en: "User seats" }, free: { ar: "1", en: "1" }, pro: { ar: "5", en: "5" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
+    { name: { ar: "الأدوار والصلاحيات", en: "Roles & permissions" }, free: false, pro: { ar: "3 أدوار", en: "3 roles" }, enterprise: { ar: "أدوار مخصصة", en: "Custom roles" } },
+    { name: { ar: "سجل العمليات Audit Trail", en: "Audit trail" }, free: false, pro: { ar: "محدود", en: "Limited" }, enterprise: { ar: "كامل", en: "Full" } },
+    { name: { ar: "موافقات متعددة المستويات", en: "Multi-level approvals" }, free: false, pro: false, enterprise: true },
+  ]},
+  { category: { ar: "التكامل والمزامنة", en: "Integration & sync" }, features: [
+    { name: { ar: "العمل أوفلاين", en: "Offline mode" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "المزامنة التلقائية", en: "Automatic sync" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "API Access", en: "API access" }, free: false, pro: { ar: "Read-only", en: "Read-only" }, enterprise: { ar: "Full Access", en: "Full Access" } },
+    { name: { ar: "Webhooks", en: "Webhooks" }, free: false, pro: false, enterprise: true },
+    { name: { ar: "سيرفر VPS خاص", en: "Dedicated VPS" }, free: false, pro: false, enterprise: true },
+  ]},
+  { category: { ar: "الدعم والتدريب", en: "Support & training" }, features: [
+    { name: { ar: "الدعم الفني", en: "Support channel" }, free: { ar: "بريد", en: "Email" }, pro: { ar: "دردشة", en: "Chat" }, enterprise: { ar: "24/7 مخصص", en: "24/7 dedicated" } },
+    { name: { ar: "وقت الاستجابة", en: "Response time" }, free: { ar: "48 ساعة", en: "48 hours" }, pro: { ar: "4 ساعات", en: "4 hours" }, enterprise: { ar: "1 ساعة", en: "1 hour" } },
+    { name: { ar: "تدريب مجاني", en: "Free training" }, free: false, pro: { ar: "فيديوهات", en: "Videos" }, enterprise: { ar: "تدريب مباشر", en: "Live training" } },
+    { name: { ar: "مدير حساب مخصص", en: "Dedicated account manager" }, free: false, pro: false, enterprise: true },
+  ]},
+];
 
 export function PricingPage() {
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
+  const isAr = language !== "en";
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [currency, setCurrency] = useState<"SAR" | "USD">(isAr ? "SAR" : "USD");
   const [showComparison, setShowComparison] = useState(false);
   const [livePriceIds, setLivePriceIds] = useState<Record<string, string>>({});
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
 
-  // Live Stripe plans → map tier+interval to the real priceId so the CTA
-  // can start a real checkout for logged-in users (guests register first).
+  const cell = (v: Cell): string => (typeof v === "boolean" ? "" : isAr ? v.ar : v.en);
+
+  // Live Stripe plans → map tier+interval+currency to the real priceId so the
+  // CTA can start a real checkout for logged-in users (guests register first).
   useEffect(() => {
     api.stripe.plans().then((d) => {
       const map: Record<string, string> = {};
       for (const p of d.plans || []) {
-        map[`${p.tier}:${p.interval}`] = p.stripePriceId;
+        map[`${p.tier}:${p.interval}:${(p.currency || "sar").toLowerCase()}`] = p.stripePriceId;
       }
       setLivePriceIds(map);
     }).catch(() => {});
   }, []);
 
-  const subscribe = async (tier: "starter" | "professional" | "enterprise") => {
+  const subscribe = async (tier: Tier) => {
     const interval = billingCycle === "monthly" ? "month" : "year";
-    const priceId = livePriceIds[`${tier}:${interval}`];
+    const priceId = livePriceIds[`${tier}:${interval}:${currency.toLowerCase()}`];
     if (tier === "starter" || !priceId) { navigate("/register"); return; }
     if (!authStore.getState().isAuthenticated) { navigate("/register"); return; }
     setCheckoutBusy(tier);
@@ -45,135 +176,34 @@ export function PricingPage() {
     }
   };
 
-  const plans = [
-    {
-      name: "أساسي",
-      nameEn: "Starter",
-      price: { monthly: 0, yearly: 0 },
-      desc: "للمشاريع الناشئة والأفراد",
-      color: "#6B7280",
-      features: {
-        invoices: "5 فواتير شهرياً",
-        users: "مستخدم واحد",
-        reports: "تقارير أساسية",
-        storage: "1 جيجا تخزين",
-        support: "دعم بالبريد الإلكتروني",
-        zatca: true,
-        offline: true,
-        api: false,
-        customization: false,
-        multiCurrency: false,
-        advanced: false,
-      }
-    },
-    {
-      name: "احترافي",
-      nameEn: "Professional",
-      price: { monthly: 99, yearly: 950 }, // ~20% discount
-      desc: "للشركات الصغيرة والمتوسطة",
-      color: "#1276E3",
-      popular: true,
-      features: {
-        invoices: "فواتير غير محدودة",
-        users: "حتى 5 مستخدمين",
-        reports: "تقارير متقدمة + AI",
-        storage: "50 جيجا تخزين",
-        support: "دعم مباشر",
-        zatca: true,
-        offline: true,
-        api: "Read-only API",
-        customization: true,
-        multiCurrency: true,
-        advanced: true,
-      }
-    },
-    {
-      name: "مؤسسي",
-      nameEn: "Enterprise",
-      price: { monthly: 299, yearly: 2990 }, // ~16% discount
-      desc: "للمؤسسات الكبيرة",
-      color: "#0B1B49",
-      features: {
-        invoices: "فواتير غير محدودة",
-        users: "مستخدمون غير محدودون",
-        reports: "تقارير مخصصة + AI متقدم",
-        storage: "تخزين غير محدود",
-        support: "دعم مخصص 24/7",
-        zatca: true,
-        offline: true,
-        api: "Full API Access",
-        customization: "تخصيص كامل",
-        multiCurrency: true,
-        advanced: "مميزات مؤسسية متقدمة",
-      }
-    },
-  ];
-
-  const comparisonFeatures = [
-    { category: "الفواتير والمبيعات", features: [
-      { name: "عدد الفواتير", free: "5 / شهر", pro: "غير محدود", enterprise: "غير محدود" },
-      { name: "الفواتير الإلكترونية ZATCA", free: true, pro: true, enterprise: true },
-      { name: "QR Code", free: true, pro: true, enterprise: true },
-      { name: "عروض الأسعار", free: true, pro: true, enterprise: true },
-      { name: "إشعارات دائنة", free: false, pro: true, enterprise: true },
-      { name: "الفواتير المتكررة", free: false, pro: true, enterprise: true },
-      { name: "قوالب فواتير مخصصة", free: "1", pro: "10", enterprise: "غير محدود" },
-    ]},
-    { category: "المحاسبة والتقارير", features: [
-      { name: "دليل الحسابات", free: "محدود", pro: "كامل", enterprise: "كامل + مخصص" },
-      { name: "القيود اليومية", free: false, pro: true, enterprise: true },
-      { name: "تقارير الأرباح والخسائر", free: true, pro: true, enterprise: true },
-      { name: "الميزانية العمومية", free: false, pro: true, enterprise: true },
-      { name: "تقارير الضرائب", free: true, pro: true, enterprise: true },
-      { name: "تحليلات AI", free: false, pro: "أساسية", enterprise: "متقدمة" },
-      { name: "تقارير مخصصة", free: false, pro: false, enterprise: true },
-    ]},
-    { category: "المستخدمون والصلاحيات", features: [
-      { name: "عدد المستخدمين", free: "1", pro: "5", enterprise: "غير محدود" },
-      { name: "الأدوار والصلاحيات", free: false, pro: "3 أدوار", enterprise: "أدوار مخصصة" },
-      { name: "سجل العمليات Audit Trail", free: false, pro: "محدود", enterprise: "كامل" },
-      { name: "موافقات متعددة المستويات", free: false, pro: false, enterprise: true },
-    ]},
-    { category: "التكامل والمزامنة", features: [
-      { name: "العمل أوفلاين", free: true, pro: true, enterprise: true },
-      { name: "المزامنة التلقائية", free: true, pro: true, enterprise: true },
-      { name: "API Access", free: false, pro: "Read-only", enterprise: "Full Access" },
-      { name: "Webhooks", free: false, pro: false, enterprise: true },
-      { name: "سيرفر VPS خاص", free: false, pro: false, enterprise: true },
-    ]},
-    { category: "الدعم والتدريب", features: [
-      { name: "الدعم الفني", free: "بريد", pro: "دردشة", enterprise: "24/7 مخصص" },
-      { name: "وقت الاستجابة", free: "48 ساعة", pro: "4 ساعات", enterprise: "1 ساعة" },
-      { name: "تدريب مجاني", free: false, pro: "فيديوهات", enterprise: "تدريب مباشر" },
-      { name: "مدير حساب مخصص", free: false, pro: false, enterprise: true },
-    ]},
-  ];
-
   const faqs = [
     {
-      q: "هل يمكنني الترقية أو التخفيض في أي وقت؟",
-      a: "نعم، يمكنك تغيير باقتك في أي وقت. عند الترقية، ستدفع الفرق المتناسب للفترة المتبقية. عند التخفيض، سيطبق التغيير في بداية دورة الفوترة التالية."
+      q: { ar: "هل يمكنني الترقية أو التخفيض في أي وقت؟", en: "Can I upgrade or downgrade anytime?" },
+      a: { ar: "نعم، يمكنك تغيير باقتك في أي وقت. عند الترقية، ستدفع الفرق المتناسب للفترة المتبقية. عند التخفيض، سيطبق التغيير في بداية دورة الفوترة التالية.", en: "Yes, change your plan anytime. Upgrades are prorated for the remaining period; downgrades apply at the next billing cycle." },
     },
     {
-      q: "ماذا يحدث بعد انتهاء الفترة التجريبية؟",
-      a: "بعد انتهاء الـ 14 يوم تجريبية، يمكنك الاستمرار في الباقة المجانية أو الترقية لباقة مدفوعة. لن تفقد أي بيانات في كلتا الحالتين."
+      q: { ar: "ماذا يحدث بعد انتهاء الفترة التجريبية؟", en: "What happens after the free trial ends?" },
+      a: { ar: "بعد انتهاء الشهر المجاني، يمكنك الاستمرار في الباقة المجانية أو الترقية لباقة مدفوعة. لن تفقد أي بيانات في كلتا الحالتين.", en: "After your free month, continue on the free Starter plan or upgrade to a paid one. Your data is kept either way." },
     },
     {
-      q: "هل الأسعار شاملة ضريبة القيمة المضافة؟",
-      a: "الأسعار المعروضة غير شاملة ضريبة القيمة المضافة (15%). سيتم إضافة الضريبة عند الدفع حسب موقعك."
+      q: { ar: "هل الأسعار شاملة ضريبة القيمة المضافة؟", en: "Are prices VAT-inclusive?" },
+      a: { ar: "الأسعار المعروضة غير شاملة ضريبة القيمة المضافة (15%). سيتم إضافة الضريبة عند الدفع حسب موقعك.", en: "Listed prices exclude VAT (15% in KSA). Any applicable tax is added at checkout based on your location." },
     },
     {
-      q: "ما هي طرق الدفع المتاحة؟",
-      a: "نقبل جميع البطاقات الائتمانية (Visa, Mastercard, Mada) والدفع عبر Apple Pay. للباقة المؤسسية، نوفر خيار الفواتير الشهرية."
+      q: { ar: "ما هي طرق الدفع المتاحة؟", en: "Which payment methods do you accept?" },
+      a: { ar: "نقبل جميع البطاقات الائتمانية (Visa, Mastercard, Mada) والدفع عبر Apple Pay. للباقة المؤسسية، نوفر خيار الفواتير الشهرية.", en: "All major cards (Visa, Mastercard, Mada) and Apple Pay. Monthly invoicing is available on the Enterprise plan." },
     },
     {
-      q: "هل يمكنني استرداد أموالي؟",
-      a: "نعم، نوفر ضمان استرداد الأموال لمدة 30 يوم من تاريخ الاشتراك الأول. لا توجد أسئلة معقدة."
+      q: { ar: "هل يمكنني استرداد أموالي؟", en: "Can I get a refund?" },
+      a: { ar: "نعم، نوفر ضمان استرداد الأموال لمدة 30 يوم من تاريخ الاشتراك الأول. لا توجد أسئلة معقدة.", en: "Yes — 30-day money-back guarantee from your first subscription date. No questions asked." },
     },
   ];
 
+  const currencySymbol = currency === "USD" ? "$" : "";
+  const Arrow = isAr ? ArrowLeft : ArrowRight;
+
   return (
-    <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
+    <div className="min-h-screen bg-white" dir={isAr ? "rtl" : "ltr"} style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
       <SharedNavbar />
       <main>
 
@@ -183,48 +213,56 @@ export function PricingPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-[#349FC4]" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>أسعار شفافة • بدون رسوم خفية</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("أسعار شفافة • بدون رسوم خفية", "Transparent pricing • no hidden fees")}</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
-              اختر الباقة المناسبة
+              {t("اختر الباقة المناسبة", "Pick the plan that fits")}
               <br />
               <span className="bg-gradient-to-l from-[#349FC4] to-[#60A5FA] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
-                لحجم أعمالك
+                {t("لحجم أعمالك", "your business size")}
               </span>
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8" style={{ lineHeight: 1.8 }}>
-              خطط مرنة تنمو معك. ابدأ مجاناً وادفع فقط مقابل ما تحتاجه
+              {t("خطط مرنة تنمو معك. ابدأ مجاناً وادفع فقط مقابل ما تحتاجه", "Flexible plans that grow with you. Start free — pay only for what you need.")}
             </p>
 
-            {/* Billing Cycle Toggle */}
-            <div className="flex items-center justify-center gap-3 mb-4">
+            {/* Billing Cycle + Currency Toggles */}
+            <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
               <button
                 onClick={() => setBillingCycle("monthly")}
                 className={`px-6 py-2.5 rounded-xl transition-all cursor-pointer ${
-                  billingCycle === "monthly"
-                    ? "bg-white text-foreground shadow-lg"
-                    : "bg-white/10 text-white hover:bg-white/20"
+                  billingCycle === "monthly" ? "bg-white text-foreground shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                شهري
+                {t("شهري", "Monthly")}
               </button>
               <button
                 onClick={() => setBillingCycle("yearly")}
                 className={`px-6 py-2.5 rounded-xl transition-all cursor-pointer relative ${
-                  billingCycle === "yearly"
-                    ? "bg-white text-foreground shadow-lg"
-                    : "bg-white/10 text-white hover:bg-white/20"
+                  billingCycle === "yearly" ? "bg-white text-foreground shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                سنوي
-                <span className="absolute -top-2 -left-2 bg-[#22C55E] text-white px-2 py-0.5 rounded-full text-xs">
-                  وفّر 20%
+                {t("سنوي", "Yearly")}
+                <span className="absolute -top-2 -end-2 bg-[#22C55E] text-white px-2 py-0.5 rounded-full text-xs">
+                  {t("وفّر ~20%", "Save ~20%")}
                 </span>
               </button>
+              <span className="inline-flex rounded-xl overflow-hidden border border-white/25">
+                {(["SAR", "USD"] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCurrency(c)}
+                    className={`px-4 py-2.5 transition-all cursor-pointer ${currency === c ? "bg-white text-foreground" : "bg-white/10 text-white hover:bg-white/20"}`}
+                    style={{ fontSize: "14px", fontWeight: 700 }}
+                  >
+                    {c === "SAR" ? t("ر.س", "SAR") : "$ USD"}
+                  </button>
+                ))}
+              </span>
             </div>
-            <p className="text-white/60 text-sm">جميع الباقات تأتي مع تجربة مجانية 14 يوم</p>
+            <p className="text-white/60 text-sm">{t("جميع الباقات المدفوعة تأتي مع شهر مجاني كامل", "Every paid plan starts with a full free month")}</p>
           </motion.div>
         </div>
       </section>
@@ -233,9 +271,9 @@ export function PricingPage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8 -mt-12 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
-            {plans.map((plan, i) => (
+            {PLANS.map((plan, i) => (
               <motion.div
-                key={plan.name}
+                key={plan.tier}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
@@ -248,42 +286,42 @@ export function PricingPage() {
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <span className="bg-gradient-to-l from-[#1276E3] to-[#349FC4] text-white px-5 py-1.5 rounded-full whitespace-nowrap shadow-lg" style={{ fontSize: "13px", fontWeight: 600 }}>
-                      الأكثر شعبية ⭐
+                      {t("الأكثر شعبية ⭐", "Most popular ⭐")}
                     </span>
                   </div>
                 )}
-                
+
                 <div className="mb-8">
                   <h3 className="text-foreground mb-2" style={{ fontSize: "24px", fontWeight: 700 }}>
-                    {plan.name}
+                    {isAr ? plan.name.ar : plan.name.en}
                   </h3>
                   <p className="text-muted-foreground" style={{ fontSize: "14px" }}>
-                    {plan.desc}
+                    {isAr ? plan.desc.ar : plan.desc.en}
                   </p>
                 </div>
 
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2 mb-2" dir="ltr">
                     <span className="text-foreground" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
-                      {plan.price[billingCycle] === 0 
-                        ? "مجاني" 
-                        : plan.price[billingCycle].toLocaleString("en-US")}
+                      {plan.price[currency][billingCycle] === 0
+                        ? t("مجاني", "Free")
+                        : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString("en-US")}`}
                     </span>
-                    {plan.price[billingCycle] > 0 && (
+                    {plan.price[currency][billingCycle] > 0 && (
                       <span className="text-muted-foreground" style={{ fontSize: "16px" }}>
-                        SR / {billingCycle === "monthly" ? "شهر" : "سنة"}
+                        {currency === "SAR" ? t("ر.س", "SAR") : ""} / {billingCycle === "monthly" ? t("شهر", "mo") : t("سنة", "yr")}
                       </span>
                     )}
                   </div>
-                  {billingCycle === "yearly" && plan.price.yearly > 0 && (
+                  {billingCycle === "yearly" && plan.price[currency].yearly > 0 && (
                     <p className="text-[#22C55E]" style={{ fontSize: "13px" }} dir="ltr">
-                      وفّر {((plan.price.monthly * 12 - plan.price.yearly)).toLocaleString("en-US")} SR سنوياً
+                      {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString("en-US")} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
                     </p>
                   )}
                 </div>
 
                 <button
-                  onClick={() => subscribe((["starter", "professional", "enterprise"] as const)[i] || "starter")}
+                  onClick={() => subscribe(plan.tier)}
                   disabled={checkoutBusy !== null}
                   className={`w-full py-3.5 rounded-xl transition-all mb-8 cursor-pointer ${
                     plan.popular
@@ -292,14 +330,16 @@ export function PricingPage() {
                   } disabled:opacity-60`}
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >
-                  {checkoutBusy === (["starter", "professional", "enterprise"] as const)[i]
-                    ? "جارٍ تحويلك لصفحة الدفع الآمنة..."
-                    : plan.price[billingCycle] === 0 ? "ابدأ مجاناً" : "ابدأ التجربة المجانية"}
+                  {checkoutBusy === plan.tier
+                    ? t("جارٍ تحويلك لصفحة الدفع الآمنة...", "Taking you to secure checkout...")
+                    : plan.price[currency][billingCycle] === 0
+                      ? t("ابدأ مجاناً", "Start free")
+                      : t("ابدأ شهرك المجاني", "Start your free month")}
                 </button>
 
                 <div className="space-y-4">
                   <h4 className="text-foreground/80 mb-4" style={{ fontSize: "14px", fontWeight: 600 }}>
-                    ما ستحصل عليه:
+                    {t("ما ستحصل عليه:", "What you get:")}
                   </h4>
                   {Object.entries(plan.features).map(([key, value]) => (
                     <div key={key} className="flex items-start gap-3">
@@ -313,7 +353,9 @@ export function PricingPage() {
                         <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
                       )}
                       <span className="text-foreground/80" style={{ fontSize: "14px" }}>
-                        {typeof value === "boolean" ? key : value}
+                        {typeof value === "boolean"
+                          ? (isAr ? FEATURE_LABELS[key]?.ar : FEATURE_LABELS[key]?.en) || key
+                          : cell(value)}
                       </span>
                     </div>
                   ))}
@@ -332,8 +374,8 @@ export function PricingPage() {
             className="inline-flex items-center gap-2 bg-white border-2 border-[#1276E3] text-primary px-8 py-3.5 rounded-xl hover:bg-primary hover:text-white transition-all cursor-pointer shadow-lg"
             style={{ fontSize: "16px", fontWeight: 600 }}
           >
-            {showComparison ? "إخفاء" : "عرض"} جدول المقارنة التفصيلي
-            <ArrowLeft className={`w-5 h-5 transition-transform ${showComparison ? "rotate-90" : "-rotate-90"}`} />
+            {showComparison ? t("إخفاء", "Hide") : t("عرض", "View")} {t("جدول المقارنة التفصيلي", "detailed comparison")}
+            <Arrow className={`w-5 h-5 transition-transform ${showComparison ? "rotate-90" : "-rotate-90"}`} />
           </button>
         </div>
       </section>
@@ -348,71 +390,51 @@ export function PricingPage() {
         >
           <div className="max-w-7xl mx-auto">
             <h2 className="text-foreground mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
-              مقارنة شاملة بين الباقات
+              {t("مقارنة شاملة بين الباقات", "Full plan comparison")}
             </h2>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-gray-200">
-                    <th className="text-right p-4 text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
-                      الميزة
+                    <th className="text-start p-4 text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
+                      {t("الميزة", "Feature")}
                     </th>
-                    {plans.map((plan) => (
-                      <th key={plan.name} className="p-4 text-center" style={{ minWidth: "150px" }}>
+                    {PLANS.map((plan) => (
+                      <th key={plan.tier} className="p-4 text-center" style={{ minWidth: "150px" }}>
                         <div className="text-foreground" style={{ fontSize: "16px", fontWeight: 700 }}>
-                          {plan.name}
+                          {isAr ? plan.name.ar : plan.name.en}
                         </div>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {comparisonFeatures.map((category) => (
+                  {COMPARISON.map((category) => (
                     <>
-                      <tr key={category.category} className="bg-gray-100">
+                      <tr key={isAr ? category.category.ar : category.category.en} className="bg-gray-100">
                         <td colSpan={4} className="p-4 text-foreground" style={{ fontSize: "15px", fontWeight: 700 }}>
-                          {category.category}
+                          {isAr ? category.category.ar : category.category.en}
                         </td>
                       </tr>
                       {category.features.map((feature, i) => (
-                        <tr key={feature.name} className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                        <tr key={isAr ? feature.name.ar : feature.name.en} className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                           <td className="p-4 text-foreground/80" style={{ fontSize: "14px" }}>
-                            {feature.name}
+                            {isAr ? feature.name.ar : feature.name.en}
                           </td>
-                          <td className="p-4 text-center">
-                            {typeof feature.free === "boolean" ? (
-                              feature.free ? (
-                                <CheckCircle2 className="w-5 h-5 text-[#22C55E] mx-auto" />
+                          {([feature.free, feature.pro, feature.enterprise] as Cell[]).map((v, ci) => (
+                            <td key={ci} className="p-4 text-center">
+                              {typeof v === "boolean" ? (
+                                v ? (
+                                  <CheckCircle2 className="w-5 h-5 text-[#22C55E] mx-auto" />
+                                ) : (
+                                  <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
+                                )
                               ) : (
-                                <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
-                              )
-                            ) : (
-                              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{feature.free}</span>
-                            )}
-                          </td>
-                          <td className="p-4 text-center">
-                            {typeof feature.pro === "boolean" ? (
-                              feature.pro ? (
-                                <CheckCircle2 className="w-5 h-5 text-[#22C55E] mx-auto" />
-                              ) : (
-                                <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
-                              )
-                            ) : (
-                              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{feature.pro}</span>
-                            )}
-                          </td>
-                          <td className="p-4 text-center">
-                            {typeof feature.enterprise === "boolean" ? (
-                              feature.enterprise ? (
-                                <CheckCircle2 className="w-5 h-5 text-[#22C55E] mx-auto" />
-                              ) : (
-                                <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
-                              )
-                            ) : (
-                              <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{feature.enterprise}</span>
-                            )}
-                          </td>
+                                <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{cell(v)}</span>
+                              )}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </>
@@ -428,7 +450,7 @@ export function PricingPage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-foreground mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
-            الأسئلة الشائعة
+            {t("الأسئلة الشائعة", "Frequently asked questions")}
           </h2>
           <div className="space-y-4">
             {faqs.map((faq, i) => (
@@ -444,10 +466,10 @@ export function PricingPage() {
                   <HelpCircle className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
                   <div>
                     <h3 className="text-foreground mb-2" style={{ fontSize: "16px", fontWeight: 600 }}>
-                      {faq.q}
+                      {isAr ? faq.q.ar : faq.q.en}
                     </h3>
                     <p className="text-muted-foreground" style={{ fontSize: "14px", lineHeight: 1.8 }}>
-                      {faq.a}
+                      {isAr ? faq.a.ar : faq.a.en}
                     </p>
                   </div>
                 </div>
@@ -466,18 +488,18 @@ export function PricingPage() {
             viewport={{ once: true }}
           >
             <h2 className="text-white mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700 }}>
-              لا زلت غير متأكد؟
+              {t("لا زلت غير متأكد؟", "Still not sure?")}
             </h2>
             <p className="text-white/80 text-lg mb-8" style={{ lineHeight: 1.8 }}>
-              جرّب ENTIX.IO مجاناً لمدة 14 يوم. لا حاجة لبطاقة ائتمانية.
+              {t("جرّب ENTIX.IO مجاناً لمدة شهر كامل. لا حاجة لبطاقة ائتمانية.", "Try ENTIX.IO free for a full month. No credit card required.")}
             </p>
             <button
               onClick={() => navigate("/register")}
               className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
-              ابدأ تجربتك المجانية الآن
-              <ArrowLeft className="w-5 h-5" />
+              {t("ابدأ تجربتك المجانية الآن", "Start your free trial now")}
+              <Arrow className="w-5 h-5" />
             </button>
           </motion.div>
         </div>
