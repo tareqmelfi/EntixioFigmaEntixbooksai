@@ -688,6 +688,9 @@ function DataResetTab({
 }) {
   const [confirmName, setConfirmName] = useState("");
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [accountConfirm, setAccountConfirm] = useState("");
+  const [accountDeleting, setAccountDeleting] = useState(false);
+  const [accountScheduled, setAccountScheduled] = useState<string | null>(null);
   const [busy, setBusy] = useState<"blank" | "demo" | "clean_company" | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [audit, setAudit] = useState<AuditLogItem[]>([]);
@@ -752,6 +755,23 @@ function DataResetTab({
       push("error", e instanceof ApiError ? e.message : t("فشل حذف الشركة", "Failed to delete company"));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (accountDeleting) return;
+    setAccountDeleting(true);
+    try {
+      const res = await api.meDeleteAccount(accountConfirm.trim());
+      setAccountScheduled((res.purgeAfter || "").slice(0, 10));
+      // The server revoked every session — show the schedule, then land on login.
+      setTimeout(async () => {
+        await authStore.logout();
+        window.location.href = "/login";
+      }, 4500);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل طلب الحذف", "Deletion request failed"));
+      setAccountDeleting(false);
     }
   };
 
@@ -839,6 +859,64 @@ function DataResetTab({
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-red-300 bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-700">
+            <ShieldCheck className="h-5 w-5" /> {t("حذف الحساب نهائياً", "Delete account permanently")}
+          </CardTitle>
+          <CardDescription>
+            {t(
+              "يحذف حسابك بالكامل — كل شركاتك وبياناتك وجلساتك على كل الأجهزة. لا يتم من الجوال أبداً، ويتطلب كتابة بريدك الإلكتروني للتأكيد.",
+              "Deletes your entire account — all your companies, data, and sessions on every device. Never from the phone, and requires typing your email to confirm.",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
+            {t(
+              "حماية الاسترداد: بعد الطلب تدخل مهلة 30 يوماً — سجّل دخولك خلالها واختر «استرداد الحساب» ليُلغى الحذف ويعود كل شيء كما كان. بعد 30 يوماً يُمحى نهائياً.",
+              "Recovery protection: after the request a 30-day window starts — sign in during it and choose “Restore account” to cancel and get everything back. After 30 days it's permanently erased.",
+            )}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              value={accountConfirm}
+              onChange={(e) => setAccountConfirm(e.target.value)}
+              placeholder={authStore.getState().user?.email || t("بريدك الإلكتروني", "Your email")}
+              className="border-red-200 font-english"
+              dir="ltr"
+            />
+            <Button
+              type="button"
+              onClick={deleteAccount}
+              disabled={accountDeleting || !accountConfirm.trim() || accountConfirm.trim().toLowerCase() !== (authStore.getState().user?.email || "").toLowerCase()}
+              variant="outline"
+              className="shrink-0 border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              {accountDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> {t("جدولة حذف الحساب", "Schedule account deletion")}</>}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70">
+            {t("الزر لا يعمل إلا إذا كتبت بريدك الإلكتروني كاملاً كما هو مسجل.", "The button only activates when you type your full registered email.")}
+          </p>
+        </CardContent>
+      </Card>
+
+      {accountScheduled && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4 text-center">
+            <div className="text-4xl">🗓️</div>
+            <h2 className="text-foreground" style={{ fontWeight: 700 }}>{t("تمت جدولة حذف حسابك", "Account deletion scheduled")}</h2>
+            <p className="text-sm text-foreground/80 leading-6">
+              {t("سيُحذف نهائياً في", "It will be permanently deleted on")}{" "}
+              <span className="font-english font-semibold" dir="ltr">{accountScheduled}</span>.
+              {" "}{t("سجّل دخولك قبلها واختر «استرداد الحساب» لإلغاء الحذف.", "Sign in before then and choose “Restore account” to cancel.")}
+            </p>
+            <p className="text-xs text-muted-foreground">{t("ستُسجَّل خروجك من كل الأجهزة الآن…", "You're being signed out on all devices…")}</p>
+          </div>
+        </div>
+      )}
 
       <Card className="border-border">
         <CardHeader>

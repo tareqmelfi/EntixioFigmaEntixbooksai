@@ -27,6 +27,8 @@ export interface User {
   role: 'admin' | 'accountant' | 'viewer'
   avatar?: string
   createdAt: string
+  /** ISO timestamp when account deletion was requested (null = healthy). */
+  deletionRequestedAt?: string | null
 }
 
 export interface AuthState {
@@ -228,6 +230,9 @@ class AuthStore {
               : 'viewer',
           avatar: data.user.image || undefined,
           createdAt: data.user.createdAt,
+          // 30-day deletion grace: when set, the AuthGuard swaps the whole
+          // app for the restore screen (cancel → full recovery).
+          deletionRequestedAt: me?.deletionRequestedAt || null,
         }
         writeCachedUser(newUser)
         this.state = { user: newUser, isAuthenticated: true, loading: false }

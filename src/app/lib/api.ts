@@ -193,6 +193,15 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
 export const api = {
   // Identity
   me: () => request<MeResponse>('/me'),
+  // Account deletion (30-day recovery window · web-only by design)
+  meDeleteAccount: (confirm: string) =>
+    request<{ ok: boolean; deletionRequestedAt: string; purgeAfter: string; graceDays: number; message: string }>(
+      '/me/delete-account', { method: 'POST', body: { confirm }, skipOrg: true },
+    ),
+  meCancelDeletion: () =>
+    request<{ ok: boolean; restored: boolean; message: string }>(
+      '/me/cancel-deletion', { method: 'POST', body: {}, skipOrg: true },
+    ),
 
   // Orgs
   orgs: {
