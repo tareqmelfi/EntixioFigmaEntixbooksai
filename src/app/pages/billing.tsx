@@ -36,16 +36,28 @@ export function Billing() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cycle, setCycle] = useState<"month" | "year">("month");
+  // Plan currency follows the org's country (US → USD · everyone else → SAR),
+  // unless the active subscription already carries a currency.
+  const [planCurrency, setPlanCurrency] = useState<"sar" | "usd">("sar");
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [s, p] = await Promise.all([
+      const [s, p, orgs] = await Promise.all([
         api.stripe.subscription().catch(() => null),
         api.stripe.plans().catch(() => ({ plans: [] })),
+        api.orgs.list().catch(() => []),
       ]);
-      setSub(s && !s.error ? s : null);
+      const active = s && !s.error ? s : null;
+      setSub(active);
       setPlans(p.plans || []);
+      if (active?.plan?.currency) {
+        setPlanCurrency(String(active.plan.currency).toLowerCase() === "usd" ? "usd" : "sar");
+      } else {
+        const storedId = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
+        const org = (storedId ? (orgs as any[]).find((o) => o.id === storedId) : null) || (orgs as any[])[0];
+        setPlanCurrency(org?.country === "US" ? "usd" : "sar");
+      }
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
@@ -94,7 +106,9 @@ export function Billing() {
   const statusMeta = STATUS_LABELS[status] || STATUS_LABELS.TRIALING;
   const daysLeft = sub?.trialEndsAt ? Math.max(0, Math.ceil((new Date(sub.trialEndsAt).getTime() - Date.now()) / 86400000)) : null;
   const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-GB") : null;
-  const visiblePlans = plans.filter((p) => p.interval === cycle);
+  const visiblePlans = plans.filter(
+    (p) => p.interval === cycle && String(p.currency || "sar").toLowerCase() === planCurrency,
+  );
   const currentPriceId = sub?.plan?.stripePriceId;
 
   if (loading) {
