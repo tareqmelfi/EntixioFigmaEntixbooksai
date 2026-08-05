@@ -2173,7 +2173,7 @@ function PlansTab({ org }: { org: Org }) {
             </thead>
             <tbody className="text-center">
               {([
-                { ar: "سعر البداية الشهري", en: "Starting monthly price", us: planCurrency === "usd" ? "$29" : (planCurrency === "sar" ? "99 ر.س" : "$29"), qbo: "$35", xero: "$29", zoho: "$20" },
+                { ar: "سعر البداية الشهري", en: "Starting monthly price", us: planCurrency === "usd" ? "$29" : "SAR 99", qbo: "$35", xero: "$29", zoho: "$20" },
                 { ar: "تجربة مجانية", en: "Free trial", us: t("30 يومًا كاملة", "Full 30 days"), qbo: t("30 يومًا", "30 days"), xero: t("30 يومًا", "30 days"), zoho: t("14 يومًا", "14 days") },
                 { ar: "السنوي بخصم واضح", en: "Annual with clear discount", us: t("شهران مجانًا ✓", "2 months free ✓"), qbo: t("خصم أول 3 أشهر فقط", "First 3 months promo only"), xero: t("—", "—"), zoho: t("شهران مجانًا", "2 months free") },
                 { ar: "وكيل ذكاء اصطناعي يسجّل ويحلّل", en: "AI agent that records & analyzes", us: "✓", qbo: t("مدفوع إضافي", "Paid add-on"), xero: "✗", zoho: t("جزئي", "Partial" ) },
