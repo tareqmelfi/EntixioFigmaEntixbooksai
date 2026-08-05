@@ -34,7 +34,7 @@ export function Settings() {
   const [busy, setBusy] = useState(false);
   const [seedArmed, setSeedArmed] = useState(false);
   const [form, setForm] = useState({
-    name: "", legalName: "", country: "SA", baseCurrency: "SAR",
+    name: "", legalName: "", legalType: "" as string, country: "SA", baseCurrency: "SAR",
     vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
     logoUrl: "", stampUrl: "", signatureUrl: "",
     email: "", phone: "", website: "",
@@ -84,6 +84,7 @@ export function Settings() {
       setOrg(active);
       setForm({
         name: active.name, legalName: active.legalName || "",
+        legalType: (active as any).legalType || "",
         country: active.country, baseCurrency: active.baseCurrency,
         vatNumber: active.vatNumber || "", crNumber: active.crNumber || "",
         fiscalYearEnd: (active as any).fiscalYearEnd || 12,
@@ -118,6 +119,7 @@ export function Settings() {
       const yearStart = (form.fiscalYearEnd % 12) + 1;
       const updated = await api.orgs.update(org.id, {
         name: form.name, legalName: form.legalName || null,
+        legalType: form.legalType || null,
         country: form.country, baseCurrency: form.baseCurrency,
         vatNumber: form.vatNumber || null, crNumber: form.crNumber || null,
         fiscalYearEnd: form.fiscalYearEnd,
@@ -241,6 +243,32 @@ export function Settings() {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border-border" /></div>
               <div className="space-y-2"><Label>{t("الاسم القانوني", "Legal name")}</Label>
                 <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="ENSIDEX LLC" className="border-border" /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("الكيان القانوني", "Legal entity type")}</Label>
+              <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+                {([
+                  ["LLC", t("ذات مسؤولية محدودة", "LLC")],
+                  ["JSC", t("مساهمة", "Joint-stock")],
+                  ["SOLE_PROP", t("مؤسسة فردية", "Sole prop.")],
+                  ["PARTNERSHIP", t("شراكة", "Partnership")],
+                  ["NONPROFIT", t("غير ربحية", "Non-profit")],
+                  ["OTHER", t("أخرى", "Other")],
+                ] as [string, string][]).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm({ ...form, legalType: form.legalType === value ? "" : value })}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${form.legalType === value ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    style={{ fontWeight: form.legalType === value ? 600 : 500 }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">
+                {t("«مساهمة» تفعّل سجل المساهمين وحركات الأسهم · باقي الأنواع تستخدم سجل الملاك المرتبط بجهات الاتصال", "“Joint-stock” enables the shareholders register & share transactions · other forms use the contact-linked owners registry")}
+              </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>{t("الدولة", "Country")}</Label>

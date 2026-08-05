@@ -3,7 +3,7 @@
  *   /app/shareholders/new  → register form (auto SH-001 code)
  *   /app/shareholders/:id  → holdings + this shareholder's share moves + edit/delete
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowRight, Edit2, Loader2, Plus, Save, Sparkles, Trash2, Users2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -11,8 +11,10 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
+import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { useLegalType } from "../lib/use-legal-type";
 
 const num = (v: any) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
 const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -23,26 +25,34 @@ const KIND_LABELS: Record<string, { ar: string; en: string }> = {
   CANCEL: { ar: "إلغاء أسهم", en: "Cancellation" },
 };
 
-const EMPTY_FORM = { code: "", name: "", nationalId: "", email: "", phone: "", notes: "" };
+const EMPTY_FORM = { code: "", name: "", nationalId: "", email: "", phone: "", notes: "", contactId: "" };
 
 export function ShareholderDetail() {
   const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = !id || id === "new";
+  const legalType = useLegalType();
+  const isJsc = legalType === "JSC";
 
   const { toasts, push, dismiss } = useToasts();
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [person, setPerson] = useState<any | null>(null);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(isNew);
   const [pendingDelete, setPendingDelete] = useState(false);
 
+  const contactItems = useMemo(
+    () => contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: [c.customCode, c.email].filter(Boolean).join(" · ") })),
+    [contacts],
+  );
+
   const applyPerson = useCallback((s: any) => {
     setPerson(s);
-    setForm({ code: s.code || "", name: s.name || "", nationalId: s.nationalId || "", email: s.email || "", phone: s.phone || "", notes: s.notes || "" });
+    setForm({ code: s.code || "", name: s.name || "", nationalId: s.nationalId || "", email: s.email || "", phone: s.phone || "", notes: s.notes || "", contactId: s.contactId || "" });
   }, []);
 
   const load = useCallback(async () => {
@@ -56,15 +66,18 @@ export function ShareholderDetail() {
     finally { setLoading(false); }
   }, [id, isNew, applyPerson, t]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { api.contacts.list({ limit: 300 }).then((d: any) => setContacts(d.items || [])).catch(() => {}); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { setError(t("الاسم مطلوب", "Name is required")); return; }
     setBusy(true); setError(null);
     try {
-      const payload = { code: form.code.trim() || undefined, name: form.name.trim(), nationalId: form.nationalId || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null };
+      const payload = { code: form.code.trim() || undefined, name: form.name.trim(), nationalId: form.nationalId || null, email: form.email || null, phone: form.phone || null, notes: form.notes || null, contactId: form.contactId || null };
       const saved = isNew ? await api.investments.createShareholder(payload) : await api.investments.updateShareholder(id!, payload);
-      push("success", isNew ? t("تم تسجيل المساهم", "Shareholder registered") : t("تم تحديث المساهم", "Shareholder updated"));
+      push("success", isNew
+        ? (isJsc ? t("تم تسجيل المساهم", "Shareholder registered") : t("تم تسجيل المالك", "Owner registered"))
+        : (isJsc ? t("تم تحديث المساهم", "Shareholder updated") : t("تم تحديث المالك", "Owner updated")));
       if (isNew) navigate(`/app/shareholders/${saved.id}`, { replace: true });
       else { applyPerson({ ...person, ...saved }); setEditMode(false); }
     } catch (e: any) {
@@ -75,7 +88,7 @@ export function ShareholderDetail() {
   const handleDelete = async () => {
     try {
       await api.investments.deleteShareholder(id!);
-      push("success", t("تم حذف المساهم", "Shareholder deleted"));
+      push("success", isJsc ? t("تم حذف المساهم", "Shareholder deleted") : t("تم حذف المالك", "Owner deleted"));
       navigate("/app/shareholders");
     } catch (e: any) {
       push("error", e instanceof ApiError && e.message === "has_transactions" ? t("له حركات في السجل — لا يمكن حذفه", "Has register transactions — cannot delete") : t("فشل الحذف", "Delete failed"));
@@ -91,7 +104,7 @@ export function ShareholderDetail() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
-          <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات المساهم", "Shareholder details")}</div>
+          <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{isJsc ? t("بيانات المساهم", "Shareholder details") : t("بيانات المالك", "Owner details")}</div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>{t("الرمز", "Code")}</Label>
@@ -107,7 +120,20 @@ export function ShareholderDetail() {
             </div>
             <div className="space-y-2"><Label>{t("رقم الهوية / السجل", "ID / CR number")}</Label><Input value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} dir="ltr" className="font-english" /></div>
           </div>
-          <div className="space-y-2"><Label>{t("الاسم *", "Name *")}</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("اسم المساهم شخصاً أو شركة", "Shareholder name — person or company")} /></div>
+          <div className="space-y-2"><Label>{t("الاسم *", "Name *")}</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={isJsc ? t("اسم المساهم شخصاً أو شركة", "Shareholder name — person or company") : t("اسم المالك شخصاً أو شركة", "Owner name — person or company")} /></div>
+          <div className="space-y-2">
+            <Label>{t("الربط بجهة اتصال", "Linked contact")}</Label>
+            <SearchableCombobox
+              value={form.contactId}
+              onChange={(contactId) => {
+                const c = contacts.find((x) => x.id === contactId);
+                setForm((f) => ({ ...f, contactId, name: f.name || (c?.displayName ?? ""), email: f.email || (c?.email ?? ""), phone: f.phone || (c?.phone ?? "") }));
+              }}
+              items={contactItems}
+              placeholder={t("اختر من سجل جهات الاتصال...", "Pick from contacts...")}
+            />
+            <p className="text-[10px] text-muted-foreground">{t("اختياري — يعبّي الاسم والبيانات من جهة الاتصال ويُعلّمها كمالك", "Optional — fills name/details from the contact and flags it as owner")}</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2"><Label>{t("البريد", "Email")}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" className="font-english" /></div>
             <div className="space-y-2"><Label>{t("الجوال", "Mobile")}</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" className="font-english" /></div>
@@ -119,7 +145,7 @@ export function ShareholderDetail() {
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/shareholders") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
         <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("تسجيل المساهم", "Register shareholder") : t("حفظ التغييرات", "Save changes")}</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? (isJsc ? t("تسجيل المساهم", "Register shareholder") : t("تسجيل المالك", "Register owner")) : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
     </form>
@@ -199,7 +225,7 @@ export function ShareholderDetail() {
       </div>
       {pendingDelete && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("حذف المساهم نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this shareholder permanently? (allowed only with no transactions)")}</p>
+          <p className="text-xs text-red-700 mb-2">{isJsc ? t("حذف المساهم نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this shareholder permanently? (allowed only with no transactions)") : t("حذف المالك نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this owner permanently? (allowed only with no transactions)")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}

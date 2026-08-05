@@ -9,13 +9,15 @@ import {
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
   Plug, FileCode, HelpCircle, Globe,
   Users2, Inbox, Camera, TrendingUp, HardHat,
-  Pin, MousePointer, EyeOff,
+  Pin, MousePointer, EyeOff, Crown,
   PanelRightClose,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
+import { api } from "../lib/api";
+import { useLegalType } from "../lib/use-legal-type";
 
 const EN_TEXT: Record<string, string> = {
   "لوحة التحكم": "Dashboard",
@@ -54,6 +56,11 @@ const EN_TEXT: Record<string, string> = {
   "مراكز التكلفة": "Cost centers",
   "المشاريع": "Projects",
   "الفروع": "Branches",
+  "محافظ الاستثمار": "Investment wallets",
+  "سجل المساهمين": "Shareholders",
+  "سجل الملاك": "Owners registry",
+  "الملاك والمجلس": "Ownership & Board",
+  "المقاولون والفريلانسر": "Contractors & freelancers",
   "للمطورين": "Developers",
   "التكاملات": "Integrations",
   "القوالب": "Templates",
@@ -72,7 +79,14 @@ const EN_TEXT: Record<string, string> = {
 
 function useSidebarText() {
   const { t } = useLanguage();
-  return (value?: string) => value ? t(value, EN_TEXT[value] || value) : "";
+  // Company-type awareness: joint-stock companies (JSC) keep the
+  // "shareholders register" label; every other legal form gets "owners".
+  const legalType = useLegalType();
+  return (value?: string) => {
+    if (!value) return "";
+    const v = value === "سجل المساهمين" && legalType !== "JSC" ? "سجل الملاك" : value;
+    return t(v, EN_TEXT[v] || v);
+  };
 }
 
 interface SubItem {
@@ -146,6 +160,7 @@ const sections: MenuSection[] = [
         children: [
           { title: "الموظفين", icon: Users2, path: "/app/employees" },
           { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
+          { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
         ],
       },
     ],
@@ -166,11 +181,17 @@ const sections: MenuSection[] = [
       { title: "تسوية البنوك", icon: Landmark, path: "/app/bank-reconciliation" },
       { title: "الفترات المالية", icon: CalendarDays, path: "/app/fiscal-periods" },
       { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
-      { title: "محافظ الاستثمار", icon: TrendingUp, path: "/app/investments", badge: "جديد" },
-      { title: "سجل المساهمين", icon: Users2, path: "/app/shareholders", badge: "جديد" },
+      {
+        title: "الملاك والمجلس",
+        icon: Crown,
+        badge: "جديد",
+        children: [
+          { title: "محافظ الاستثمار", icon: TrendingUp, path: "/app/investments" },
+          { title: "سجل المساهمين", icon: Users2, path: "/app/shareholders" },
+        ],
+      },
       { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
       { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
-      { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors", badge: "جديد" },
       { title: "الفروع", icon: GitBranch, path: "/app/branches" },
     ],
   },

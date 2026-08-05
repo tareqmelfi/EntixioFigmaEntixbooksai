@@ -1008,6 +1008,8 @@ export interface Org {
   inboundEmailLocal?: string | null // custom inbound alias · default bills+<slug>@in.entix.io
   name: string
   legalName?: string | null
+  /** Legal form: 'JSC' (joint-stock → shareholders register) · anything else → owners registry */
+  legalType?: string | null
   country: string
   baseCurrency: string
   fiscalYearStart: number
