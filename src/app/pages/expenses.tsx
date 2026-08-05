@@ -30,13 +30,13 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
 import { useReturnTo } from "../lib/use-return-to";
 import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
+import { SearchableCombobox } from "../components/searchable-combobox";
 import { AttachmentViewer, ViewerAttachment } from "../components/attachment-viewer";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
@@ -87,6 +87,8 @@ type FormState = {
   ocrConfidence: number | null;
   /** تسجيل المصروف كأصل ثابت تلقائياً عند الحفظ */
   registerAsAsset?: boolean;
+  /** حساب الأصل من الشجرة — اختيار حساب داخل فرع الأصول يسجّله تلقائياً حتى بدون تفعيل العلم */
+  assetAccountId?: string;
 };
 
 type ExtractionSummary = {
@@ -132,6 +134,32 @@ function currencies(t: Translate) {
 
 const CURRENCY_VALUES = ["SAR", "USD", "EUR", "AED", "GBP"];
 
+/**
+ * Compact segmented control — the app standard for enums.
+ * Popup/dropdown menus are forbidden in this product: enums render as
+ * segmented buttons, entities use SearchableCombobox.
+ */
+function SegGroup({ value, onChange, options, compact }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+  compact?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1 rounded-lg bg-muted/50 p-1 w-fit max-w-full">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={`rounded-md transition-colors ${compact ? "px-2 py-1 text-[11px]" : "px-2.5 py-1.5 text-xs"} ${value === o.value ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          style={{ fontWeight: value === o.value ? 700 : 500 }}
+        >{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
 function fxTreatmentLabels(t: Translate): Record<FxTreatment, string> {
   return {
     MERGE_INTO_EXPENSE: t("ادمج الفرق في تكلفة المصروف", "Merge the difference into the expense cost"),
@@ -175,6 +203,7 @@ function emptyForm(): FormState {
     extractedJson: null,
     ocrConfidence: null,
     registerAsAsset: false,
+    assetAccountId: "",
   };
 }
 
@@ -611,6 +640,7 @@ export function Expenses() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormState>(() => emptyForm());
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [extractionSummary, setExtractionSummary] = useState<ExtractionSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -632,6 +662,9 @@ export function Expenses() {
   }, [push, language]);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    api.accounts.list().then((d) => setAccounts((d as any).items || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
@@ -911,6 +944,7 @@ export function Expenses() {
         autoCreateSupplier: true,
         // تسجيل كأصل ثابت تلقائياً (يرتبط بالمصروف ويأخذ كوداً تلقائياً)
         registerAsAsset: formData.registerAsAsset === true,
+        assetAccountId: formData.assetAccountId || null,
       };
       const saved = editingId ? await api.expenses.update(editingId, input) : await api.expenses.create(input);
       await refresh();
@@ -1298,6 +1332,29 @@ export function Expenses() {
                     <span style={{ fontWeight: formData.registerAsAsset ? 700 : 500 }}>{t("تسجيل كأصل ثابت تلقائياً", "Auto-register as a fixed asset")}</span>
                     {formData.registerAsAsset && <span className="ms-auto text-[10px] opacity-80">{t("سيأخذ كوداً تلقائياً ويرتبط بالمصروف", "gets an auto code linked to this expense")}</span>}
                   </button>
+                  <div className="space-y-1.5">
+                    <SearchableCombobox
+                      value={formData.assetAccountId || ""}
+                      onChange={(assetAccountId) => setFormData({ ...formData, assetAccountId })}
+                      items={accounts
+                        .filter((a) => a.type === "ASSET")
+                        .map((a) => ({
+                          id: a.id,
+                          label: `${a.code} · ${a.nameAr || a.name}`,
+                          sublabel: /fixed|intangible/i.test(a.subtype || "") ? t("فرع الأصول الثابتة", "fixed-asset branch") : (a.subtype || undefined),
+                        }))}
+                      placeholder={t("حساب الأصل من الشجرة (اختياري)...", "Asset account from the chart (optional)...")}
+                    />
+                    {formData.assetAccountId && (() => {
+                      const acct = accounts.find((a) => a.id === formData.assetAccountId);
+                      const isFixed = acct?.type === "ASSET" && /fixed|intangible/i.test(acct.subtype || "");
+                      return isFixed ? (
+                        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800">
+                          {t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً حتى بدون تفعيل الزر", "Account is inside the assets branch · registers as a fixed asset automatically even without the toggle")}
+                        </p>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("رقم الفاتورة / الإيصال", "Invoice / Receipt No.")}</Label>
@@ -1312,18 +1369,11 @@ export function Expenses() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("طريقة الدفع *", "Payment Method *")}</Label>
-                  <Select value={formData.paymentMethod} onValueChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}>
-                    <SelectTrigger className="border-border"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CASH">{t("نقداً", "Cash")}</SelectItem>
-                      <SelectItem value="BANK_TRANSFER">{t("تحويل بنكي", "Bank Transfer")}</SelectItem>
-                      <SelectItem value="CARD">{t("بطاقة ائتمان", "Credit Card")}</SelectItem>
-                      <SelectItem value="MADA">{t("مدى", "Mada")}</SelectItem>
-                      <SelectItem value="STC_PAY">STC Pay</SelectItem>
-                      <SelectItem value="CHECK">{t("شيك", "Check")}</SelectItem>
-                      <SelectItem value="OTHER">{t("أخرى", "Other")}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SegGroup
+                    value={formData.paymentMethod}
+                    onChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}
+                    options={Object.entries(paymentMethodLabels(t)).map(([value, label]) => ({ value, label }))}
+                  />
                 </div>
               </div>
 
@@ -1365,36 +1415,40 @@ export function Expenses() {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("عملة الفاتورة", "Invoice currency")}</Label>
-                    <Select value={formData.sourceCurrency} onValueChange={(sourceCurrency) => {
-                      const exchangeRate = String(defaultExchangeRate(sourceCurrency, formData.baseCurrency));
-                      const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
-                      setFormData({
-                        ...formData,
-                        sourceCurrency,
-                        exchangeRate,
-                        actualPaidAmount: sourceCurrency === formData.baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
-                      });
-                    }}>
-                      <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <SegGroup
+                      compact
+                      value={formData.sourceCurrency}
+                      onChange={(sourceCurrency) => {
+                        const exchangeRate = String(defaultExchangeRate(sourceCurrency, formData.baseCurrency));
+                        const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
+                        setFormData({
+                          ...formData,
+                          sourceCurrency,
+                          exchangeRate,
+                          actualPaidAmount: sourceCurrency === formData.baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
+                        });
+                      }}
+                      options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("عملة الدفاتر", "Books currency")}</Label>
-                    <Select value={formData.baseCurrency} onValueChange={(baseCurrency) => {
-                      const exchangeRate = String(defaultExchangeRate(formData.sourceCurrency, baseCurrency));
-                      const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
-                      setFormData({
-                        ...formData,
-                        baseCurrency,
-                        actualPaidCurrency: baseCurrency,
-                        exchangeRate,
-                        actualPaidAmount: formData.sourceCurrency === baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
-                      });
-                    }}>
-                      <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <SegGroup
+                      compact
+                      value={formData.baseCurrency}
+                      onChange={(baseCurrency) => {
+                        const exchangeRate = String(defaultExchangeRate(formData.sourceCurrency, baseCurrency));
+                        const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
+                        setFormData({
+                          ...formData,
+                          baseCurrency,
+                          actualPaidCurrency: baseCurrency,
+                          exchangeRate,
+                          actualPaidAmount: formData.sourceCurrency === baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
+                        });
+                      }}
+                      options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("سعر السوق / العادل", "Market / Fair rate")}</Label>
@@ -1406,10 +1460,12 @@ export function Expenses() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("عملة السحب", "Payment currency")}</Label>
-                    <Select value={formData.actualPaidCurrency} onValueChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}>
-                      <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <SegGroup
+                      compact
+                      value={formData.actualPaidCurrency}
+                      onChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}
+                      options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
+                    />
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr]">
@@ -1427,12 +1483,12 @@ export function Expenses() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("معالجة الفرق", "Difference handling")}</Label>
-                    <Select value={formData.fxTreatment} onValueChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}>
-                      <SelectTrigger className="h-9 border-border bg-white text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(fxTreatmentLabels(t)).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <SegGroup
+                      compact
+                      value={formData.fxTreatment}
+                      onChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}
+                      options={Object.entries(fxTreatmentLabels(t)).map(([value, label]) => ({ value, label }))}
+                    />
                   </div>
                 </div>
               </div>
@@ -1521,13 +1577,12 @@ export function Expenses() {
                             }} className="h-8 w-20 border-border font-english" />
                           </td>
                           <td className="px-2 py-2">
-                            <Select value={line.taxInclusive ? "yes" : "no"} onValueChange={(value) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxInclusive: value === "yes" } : item) }))}>
-                              <SelectTrigger className="h-8 w-20 border-border text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="yes">{t("شامل", "Inclusive")}</SelectItem>
-                                <SelectItem value="no">{t("غير شامل", "Exclusive")}</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <SegGroup
+                              compact
+                              value={line.taxInclusive ? "yes" : "no"}
+                              onChange={(value) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxInclusive: value === "yes" } : item) }))}
+                              options={[{ value: "yes", label: t("شامل", "Incl.") }, { value: "no", label: t("غير شامل", "Excl.") }]}
+                            />
                           </td>
                           <td className="px-2 py-2 font-english">{money(line.lineTotal ?? Math.max(0, ((line.quantity || 1) * (line.unitPrice || 0)) - Number(line.discountAmount || 0)), formData.sourceCurrency)}</td>
                           <td className="px-2 py-2 text-center">
@@ -1559,35 +1614,41 @@ export function Expenses() {
                 </div>
                 <div className="space-y-2 p-3">
                   {paymentRows.map((payment, idx) => (
-                    <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[160px_140px_1fr_130px_36px]">
-                      <Select value={payment.method} onValueChange={(method) => setFormData((f) => {
-                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
-                        return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
-                      })}>
-                        <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(paymentMethodLabels(t)).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Select value={normalizeCurrency(payment.currency, formData.actualPaidCurrency)} onValueChange={(currency) => setFormData((f) => {
-                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
-                        return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, currency } : item) };
-                      })}>
-                        <SelectTrigger className="h-9 border-border"><SelectValue /></SelectTrigger>
-                        <SelectContent>{currencies(t).map((currency) => <SelectItem key={currency.value} value={currency.value}>{currency.value}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Input placeholder={t("مرجع / آخر 4 أرقام البطاقة", "Reference / last 4 digits")} value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
-                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
-                        return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, reference: e.target.value } : item) };
-                      })} className="h-9 border-border" />
-                      <Input dir="ltr" inputMode="decimal" value={String(payment.amount || "")} onChange={(e) => setFormData((f) => {
-                        const amount = Number(normalizeDigits(e.target.value || "0"));
-                        const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
-                        return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, amount } : item) };
-                      })} className="h-9 border-border font-english" />
-                      <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    <div key={idx} className="rounded-lg border border-border/60 bg-muted/20 p-2.5 space-y-2">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <SegGroup
+                          compact
+                          value={payment.method}
+                          onChange={(method) => setFormData((f) => {
+                            const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
+                            return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
+                          })}
+                          options={Object.entries(paymentMethodLabels(t)).map(([value, label]) => ({ value, label }))}
+                        />
+                        <SegGroup
+                          compact
+                          value={normalizeCurrency(payment.currency, formData.actualPaidCurrency)}
+                          onChange={(currency) => setFormData((f) => {
+                            const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
+                            return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, currency } : item) };
+                          })}
+                          options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_150px_36px]">
+                        <Input placeholder={t("مرجع / آخر 4 أرقام البطاقة", "Reference / last 4 digits")} value={payment.reference || payment.cardLast4 || ""} onChange={(e) => setFormData((f) => {
+                          const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
+                          return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, reference: e.target.value } : item) };
+                        })} className="h-9 border-border" />
+                        <Input dir="ltr" inputMode="decimal" value={String(payment.amount || "")} onChange={(e) => setFormData((f) => {
+                          const amount = Number(normalizeDigits(e.target.value || "0"));
+                          const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
+                          return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, amount } : item) };
+                        })} className="h-9 border-border font-english" />
+                        <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                   <div className={`text-xs ${Math.abs(paymentRowsTotal - (currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal)) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>

@@ -484,7 +484,7 @@ export function PurchaseBills() {
                 taxRate: p.taxRate ? Number(p.taxRate) : 0.15, taxInclusive: !!p.taxInclusive,
                 accountId: p.expenseAccountId || p.revenueAccountId,
               }))}
-              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.name, type: a.type }))}
+              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.name, type: a.type, subtype: a.subtype }))}
               onCreateProduct={async (name) => {
                 const p = await (api as any).products.create({ code: `P-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, sellPrice: 0, kind: "GOOD", isActive: true });
                 setProducts((prev) => [p, ...prev]);

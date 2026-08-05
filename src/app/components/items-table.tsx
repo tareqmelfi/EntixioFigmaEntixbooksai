@@ -64,6 +64,8 @@ export interface AccountOption {
   name: string;
   /** "INCOME" | "EXPENSE" | "ASSET" etc. */
   type: string;
+  /** Chart subtype · 'fixed'/'intangible' marks the fixed-asset branch */
+  subtype?: string | null;
 }
 
 interface Props {
@@ -456,6 +458,12 @@ export function ItemsTable({
   const showTaxAmount = !hidden.taxAmount;
   const showRecognition = !hidden.recognition;
   const showAssetCol = direction === "purchases";
+  /** Xero-style: accounts inside the fixed-asset branch auto-register the line as an asset (no flag needed) */
+  const fixedAssetAccountIds = new Set(
+    accounts
+      .filter((a) => a.type === "ASSET" && /fixed|intangible/i.test(a.subtype || ""))
+      .map((a) => a.id),
+  );
   const hiddenCount = Number(hidden.account) + Number(hidden.tax) + Number(hidden.taxAmount) + Number(hidden.recognition);
 
   // Backend uses REVENUE not INCOME · accept both for compatibility
@@ -711,16 +719,25 @@ export function ItemsTable({
                     {showAssetCol && (
                       <td className="px-1 py-1 text-center">
                         {isReal && gross > 0 ? (
-                          <button
-                            type="button"
-                            role="checkbox"
-                            aria-checked={line.isAsset === true}
-                            onClick={() => updateLine(i, { isAsset: !line.isAsset })}
-                            title={line.isAsset ? "سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء" : "تسجيل السطر كأصل ثابت تلقائياً عند الحفظ"}
-                            className={`rounded-md p-1.5 transition-colors ${line.isAsset ? "bg-primary/10 text-primary ring-1 ring-primary/40" : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground"}`}
-                          >
-                            <Building2 className="h-3.5 w-3.5" />
-                          </button>
+                          line.accountId && fixedAssetAccountIds.has(line.accountId) ? (
+                            <span
+                              className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1.5 text-emerald-700 ring-1 ring-emerald-300"
+                              title="الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ"
+                            >
+                              <Building2 className="h-3.5 w-3.5" />
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              role="checkbox"
+                              aria-checked={line.isAsset === true}
+                              onClick={() => updateLine(i, { isAsset: !line.isAsset })}
+                              title={line.isAsset ? "سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء" : "تسجيل السطر كأصل ثابت تلقائياً عند الحفظ"}
+                              className={`rounded-md p-1.5 transition-colors ${line.isAsset ? "bg-primary/10 text-primary ring-1 ring-primary/40" : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground"}`}
+                            >
+                              <Building2 className="h-3.5 w-3.5" />
+                            </button>
+                          )
                         ) : (
                           <span className="text-[10px] text-muted-foreground/40">—</span>
                         )}

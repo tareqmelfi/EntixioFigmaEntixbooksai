@@ -722,6 +722,7 @@ export function Invoices() {
                 code: a.code,
                 name: a.nameAr || a.name,
                 type: a.type,
+                subtype: a.subtype,
               }))}
               onCreateProduct={(name) => new Promise((resolve, reject) => {
                 setQuickProductReq({ name, resolve, reject });
@@ -836,7 +837,7 @@ export function Invoices() {
         {quickProductReq && (
           <QuickCreateProduct
             initialName={quickProductReq.name}
-            accounts={accounts.map((a: any) => ({ id: a.id, name: a.nameAr || a.name, code: a.code, type: a.type }))}
+            accounts={accounts.map((a: any) => ({ id: a.id, name: a.nameAr || a.name, code: a.code, type: a.type, subtype: a.subtype }))}
             onCreate={async (input) => {
               const p = await (api as any).products.create(input);
               setProducts((prev) => [p, ...prev]);

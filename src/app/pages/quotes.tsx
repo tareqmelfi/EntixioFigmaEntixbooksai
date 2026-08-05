@@ -324,7 +324,7 @@ export function Quotes() {
               direction="sales"
               minRows={10}
               products={products.map((p: any) => ({ id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, defaultAccountId: p.incomeAccountId }))}
-              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.nameAr || a.name, type: a.type }))}
+              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.nameAr || a.name, type: a.type, subtype: a.subtype }))}
               onCreateProduct={async (name: string) => {
                 const created = await (api as any).products.create({ name, type: "SERVICE", unitPrice: "0", isActive: true });
                 setProducts((prev) => [created, ...prev]);
