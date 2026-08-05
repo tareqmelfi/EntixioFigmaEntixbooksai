@@ -76,8 +76,14 @@ await page.setViewport({ width: 1440, height: 900 })
 let ok = 0, failed = []
 for (const [route, [title, description]] of Object.entries(META)) {
   try {
-    await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'networkidle0', timeout: 45000 })
-    await new Promise((r) => setTimeout(r, 1200))
+    try {
+      await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'networkidle0', timeout: 45000 })
+    } catch {
+      // Pages with long-polling widgets (Turnstile on /login) never reach
+      // networkidle0 — fall back to load + settle instead of failing the route.
+      await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'load', timeout: 45000 })
+    }
+    await new Promise((r) => setTimeout(r, 1800))
     let html = await page.content()
     // per-route SEO truth (REND-02)
     html = html
