@@ -47,7 +47,9 @@ export function InboxPage() {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState<StatusFilter>("ALL");
   const [orgSlug, setOrgSlug] = useState<string>("YOUR-ORG");
+  const [orgAlias, setOrgAlias] = useState<{ local: string; domain: string } | null>(null);
   const [mailboxStatus, setMailboxStatus] = useState<any>(null);
+  const [approveAllBusy, setApproveAllBusy] = useState(false);
 
   // Fetch list
   const refresh = useCallback(async () => {
@@ -74,6 +76,9 @@ export function InboxPage() {
       const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
       const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
       if (active?.slug) setOrgSlug(active.slug);
+      const local = (active as any)?.inboundEmailLocal || (active?.slug ? `bills-${active.slug}` : null);
+      const domain = (active as any)?.inboundEmailDomain || "in.entix.io";
+      if (local) setOrgAlias({ local, domain });
     }).catch(() => {});
     api.inbox.status().then(setMailboxStatus).catch(() => setMailboxStatus(null));
   }, []);
@@ -87,6 +92,27 @@ export function InboxPage() {
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل تحميل تفاصيل الرسالة", en: "Failed to load message details" }));
     }
+  };
+
+  // Batch approve: every EXTRACTED message becomes a DRAFT bill — the email
+  // twin of the scan-receipts "record all". Server dedupe keeps reruns safe.
+  const handleApproveAll = async () => {
+    const targets = items.filter((m) => m.status === "EXTRACTED");
+    if (!targets.length || approveAllBusy) return;
+    setApproveAllBusy(true);
+    let ok = 0, dup = 0, failed = 0;
+    for (const m of targets) {
+      try {
+        const r = await api.inbox.approve(m.id) as any;
+        if (r?.dedupeDecision === "SKIPPED_DUPLICATE") dup++;
+        else ok++;
+      } catch { failed++; }
+    }
+    setApproveAllBusy(false);
+    if (ok) push("success", t(`✓ اعتُمد ${ok} مستند وأنشئت فواتير شرائه`, `✓ ${ok} document(s) approved and their bills created`));
+    if (dup) push("info", t(`${dup} مستند موجود مسبقاً — لم يُكرَّر`, `${dup} already existed — not duplicated`));
+    if (failed) push("error", t(`تعذّر اعتماد ${failed} مستند — راجعها يدوياً`, `${failed} document(s) could not be approved — review them`));
+    await refresh();
   };
 
   const handleApprove = async () => {
@@ -162,7 +188,7 @@ export function InboxPage() {
     navigate("/app/expenses/new?fromOcr=1");
   };
 
-  const forwardAddress = mailboxStatus?.address || `bills+${orgSlug}@entix.io`;
+  const forwardAddress = orgAlias ? `${orgAlias.local}@${orgAlias.domain}` : (mailboxStatus?.address || `bills+${orgSlug}@entix.io`);
 
   return (
     <div className="space-y-4">
@@ -206,8 +232,17 @@ export function InboxPage() {
         </CardContent>
       </Card>
 
-      {/* Filter pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Filter pills + batch approve */}
+      <div className="flex gap-2 overflow-x-auto pb-1 items-center">
+        <button
+          onClick={handleApproveAll}
+          disabled={approveAllBusy || !items.some((m) => m.status === "EXTRACTED")}
+          className="px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-1.5"
+        >
+          {approveAllBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+          {t("اعتماد الكل", "Approve all")} ({items.filter((m) => m.status === "EXTRACTED").length})
+        </button>
+        <span className="text-border">|</span>
         {(["ALL", "RECEIVED", "EXTRACTED", "APPROVED", "REJECTED"] as StatusFilter[]).map((s) => (
           <button
             key={s}

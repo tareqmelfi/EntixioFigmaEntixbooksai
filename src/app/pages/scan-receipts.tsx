@@ -17,7 +17,8 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { api } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-const INBOUND_DOMAIN = "in.entix.io"; // dedicated inbound subdomain · apex mail stays on Google
+const INBOUND_DOMAINS = ["in.entix.io", "bill.entix.io"] as const; // receive-only subdomains · apex mail stays on Google Workspace
+const DEFAULT_INBOUND_DOMAIN = "in.entix.io";
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // vision models struggle beyond this
 const EXTRACT_CONCURRENCY = 2;
 
@@ -178,6 +179,8 @@ export function ScanReceipts() {
   const [orgName, setOrgName] = useState("");
   const [orgLegalName, setOrgLegalName] = useState("");
   const [customLocal, setCustomLocal] = useState<string | null>(null);
+  const [customDomain, setCustomDomain] = useState<string | null>(null);
+  const [domainBusy, setDomainBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [editBusy, setEditBusy] = useState(false);
@@ -453,6 +456,7 @@ export function ScanReceipts() {
         setOrgName((active as any)?.name || "");
         setOrgLegalName((active as any)?.legalName || "");
         setCustomLocal((active as any)?.inboundEmailLocal || null);
+        setCustomDomain((active as any)?.inboundEmailDomain || null);
       } catch (e: any) {
         push("error", t("تعذّر تحميل إعدادات الإيميل — تأكد أن قاعدة البيانات محدّثة (inboundEmailLocal).", "Could not load email settings — make sure the database is up to date (inboundEmailLocal)."));
       }
@@ -467,9 +471,10 @@ export function ScanReceipts() {
     return true;
   };
 
-  const defaultLocal = orgSlug ? `bills+${orgSlug}` : "";
+  const defaultLocal = orgSlug ? `bills-${orgSlug}` : "";
   const activeLocal = customLocal || defaultLocal;
-  const alias = activeLocal ? `${activeLocal}@${INBOUND_DOMAIN}` : "—";
+  const activeDomain = (INBOUND_DOMAINS as readonly string[]).includes(customDomain || "") ? (customDomain as string) : DEFAULT_INBOUND_DOMAIN;
+  const alias = activeLocal ? `${activeLocal}@${activeDomain}` : "—";
 
   const copyAlias = async () => {
     if (!activeLocal) return;
@@ -495,11 +500,23 @@ export function ScanReceipts() {
       await api.orgs.update(orgId, { inboundEmailLocal: v || null } as any);
       setCustomLocal(v || null);
       setEditOpen(false);
-      push("success", v ? `${t("صار عنوانك", "Your address is now")} ${v}@${INBOUND_DOMAIN}` : t("رجعنا للعنوان الافتراضي", "Reverted to the default address"));
+      push("success", v ? `${t("صار عنوانك", "Your address is now")} ${v}@${activeDomain}` : t("رجعنا للعنوان الافتراضي", "Reverted to the default address"));
     } catch (e: any) {
       const code = e?.code || "";
       setEditError(code === "inbound_local_taken" ? t("هذا العنوان مستخدم من شركة أخرى · اختر غيره", "This address is used by another company · choose a different one") : (e?.message || t("فشل الحفظ", "Save failed")));
     } finally { setEditBusy(false); }
+  };
+
+  const saveDomain = async (domain: string) => {
+    if (domain === activeDomain || domainBusy || !orgId) return;
+    setDomainBusy(true);
+    try {
+      await api.orgs.update(orgId, { inboundEmailDomain: domain } as any);
+      setCustomDomain(domain);
+      push("success", t(`صار عنوانك على ${domain}`, `Your address now lives on ${domain}`));
+    } catch (e: any) {
+      push("error", e?.message || t("فشل حفظ الدومين", "Could not save the domain"));
+    } finally { setDomainBusy(false); }
   };
 
   const readyJobs = jobs.filter((j) => j.status === "ready" && !j.excluded);
@@ -878,8 +895,32 @@ export function ScanReceipts() {
               <Pencil className="h-3.5 w-3.5" /> {t("تخصيص", "Customize")}
             </button>
           </div>
+          {/* domain choice · segmented (no dropdowns) · both receive-only */}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-muted-foreground">{t("الدومين:", "Domain:")}</span>
+            <div className="inline-flex rounded-lg bg-muted p-0.5 border border-border" dir="ltr">
+              {INBOUND_DOMAINS.map((domain) => (
+                <button
+                  key={domain}
+                  onClick={() => saveDomain(domain)}
+                  disabled={domainBusy}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-english transition ${activeDomain === domain ? "bg-white text-primary shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  @{domain}
+                </button>
+              ))}
+            </div>
+            {domainBusy && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground/80 leading-5 flex items-start gap-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600" />
+            {t(
+              "عنوان استقبال فقط — الدومينان مقفلان بالكامل (SPF + DMARC reject) فلا يقدر أحد يرسل «منه» أو ينتحل شركتك. بريد الموظفين الحقيقي يبقى على @entix.io ولا نخلطه أبداً.",
+              "Receive-only address — both domains are fully locked (SPF + DMARC reject), so nobody can send FROM it or impersonate your company. Real employee mail stays on @entix.io and we never mix it.",
+            )}
+          </p>
           {customLocal && (
-            <p className="mt-1.5 text-[11px] text-emerald-700">{t("عنوان مخصص · الافتراضي:", "Custom address · Default:")} <span className="font-english" dir="ltr">{defaultLocal}@{INBOUND_DOMAIN}</span></p>
+            <p className="mt-1.5 text-[11px] text-emerald-700">{t("عنوان مخصص · الافتراضي:", "Custom address · Default:")} <span className="font-english" dir="ltr">{defaultLocal}@{activeDomain}</span></p>
           )}
 
           {/* alias editor */}
@@ -890,12 +931,12 @@ export function ScanReceipts() {
                 <input
                   value={editValue}
                   onChange={(e) => { setEditValue(e.target.value); setEditError(null); }}
-                  placeholder={defaultLocal || "bills.tareq"}
+                  placeholder={defaultLocal || "tareq"}
                   className="flex-1 min-w-[180px] font-english text-sm rounded-md border border-border bg-white px-3 py-2"
                   dir="ltr"
                   autoFocus
                 />
-                <span className="font-english text-sm text-muted-foreground">@{INBOUND_DOMAIN}</span>
+                <span className="font-english text-sm text-muted-foreground">@{activeDomain}</span>
               </div>
               <p className="text-[11px] text-muted-foreground leading-5">
                 {t("مثال:", "Example:")} <span className="font-english" dir="ltr">bills.tareq</span> · {t("اتركه فاضيًا للرجوع للعنوان الافتراضي", "leave it empty to revert to the default address")} <span className="font-english" dir="ltr">{defaultLocal}</span>
