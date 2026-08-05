@@ -1935,66 +1935,265 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 function PlansTab({ org }: { org: Org }) {
   const isAdmin = (org as any).platformRole === "ADMIN";
   const { t } = useLanguage();
-  const plans = [
-    { id: "free", name: t("مجاني", "Free"), price: "$0", users: "2", invoices: t("20/شهر", "20/month"), ai: t("$5/شهر", "$5/month"), features: [t("حساب واحد", "One account"), t("فواتير أساسية", "Basic invoices"), t("تصدير PDF", "PDF export")] },
-    { id: "pro", name: t("احترافي", "Pro"), price: t("$19/شهر", "$19/month"), users: "5", invoices: t("غير محدود", "Unlimited"), ai: t("$30/شهر", "$30/month"), features: [t("حسابات متعددة", "Multiple accounts"), "ZATCA", t("تكاملات بنكية", "Bank integrations"), "API access"], popular: true },
-    { id: "business", name: t("أعمال", "Business"), price: t("$49/شهر", "$49/month"), users: "20", invoices: t("غير محدود", "Unlimited"), ai: t("$100/شهر", "$100/month"), features: [t("كل ميزات Pro", "All Pro features"), "AI advanced", t("متعدد العملات", "Multi-currency"), t("إغلاق سنوي", "Yearly closing"), "Audit log"] },
-    { id: "enterprise", name: t("مؤسسات", "Enterprise"), price: t("تواصل معنا", "Contact us"), users: t("غير محدود", "Unlimited"), invoices: t("غير محدود", "Unlimited"), ai: t("غير محدود", "Unlimited"), features: ["SSO", "SLA", "Priority support", "Custom integrations", "Dedicated account manager"] },
-  ];
-  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", users: "∞", invoices: "∞", ai: "∞", features: [t("جميع الميزات مفتوحة", "All features unlocked"), t("بدون حد على العملاء/الفواتير/AI", "No limit on customers/invoices/AI"), "Cross-org admin dashboard", t("متاح فقط لمشرفي المنصة", "Available to platform admins only")] };
+  const [sub, setSub] = useState<any>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cycle, setCycle] = useState<"month" | "year">("month");
+  const [planCurrency, setPlanCurrency] = useState<"sar" | "usd">("sar");
+  const [banner, setBanner] = useState<{ kind: "success" | "info"; text: string } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [s, p] = await Promise.all([
+        api.stripe.subscription().catch(() => null),
+        api.stripe.plans().catch(() => ({ plans: [] as any[] })),
+      ]);
+      const active = s && !(s as any).error ? s : null;
+      setSub(active);
+      setPlans(p.plans || []);
+      if (active?.plan?.currency) {
+        setPlanCurrency(String(active.plan.currency).toLowerCase() === "usd" ? "usd" : "sar");
+      } else {
+        setPlanCurrency(org.country === "US" ? "usd" : "sar");
+      }
+    } finally { setLoading(false); }
+  }, [org.country]);
+  useEffect(() => { load(); }, [load]);
+
+  // Return from Stripe checkout → banner + refresh
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("success") === "true") {
+      setBanner({ kind: "success", text: t("تم الاشتراك بنجاح — يتم تفعيل حسابك خلال لحظات ✓", "Subscribed successfully — your account activates within moments ✓") });
+      url.searchParams.delete("success");
+      window.history.replaceState({}, "", url.toString());
+      setTimeout(load, 4000);
+    } else if (url.searchParams.get("canceled") === "true") {
+      setBanner({ kind: "info", text: t("أُلغيت عملية الدفع — يمكنك الاشتراك في أي وقت", "Checkout canceled — you can subscribe anytime") });
+      url.searchParams.delete("canceled");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [load, t]);
+
+  const handleCheckout = async (priceId: string) => {
+    setBusy(priceId);
+    setError(null);
+    try {
+      const { url } = await api.stripe.createCheckoutSession(
+        priceId,
+        `${window.location.origin}/app/settings?tab=plans&success=true`,
+        `${window.location.origin}/app/settings?tab=plans&canceled=true`,
+      );
+      window.location.href = url;
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : t("تعذر بدء الدفع", "Could not start checkout"));
+      setBusy(null);
+    }
+  };
+
+  const visiblePlans = plans
+    .filter((p) => p.interval === cycle && String(p.currency || "sar").toLowerCase() === planCurrency)
+    .sort((a, b) => a.price - b.price);
+  const currentPriceId = sub?.plan?.stripePriceId;
+
+  const money = (cents: number) => {
+    const v = cents / 100;
+    return v.toLocaleString("en-US", { maximumFractionDigits: v % 1 ? 2 : 0 });
+  };
+  const cur = planCurrency.toUpperCase();
+
+  // Annual = ~2 months free vs monthly×12 (computed from live prices)
+  const annualSaving = (yearlyCents: number, tier: string) => {
+    const monthly = plans.find((m) => m.interval === "month" && m.tier === tier && String(m.currency).toLowerCase() === planCurrency);
+    if (!monthly) return null;
+    const fullYear = monthly.price * 12;
+    const saved = fullYear - yearlyCents;
+    if (saved <= 0) return null;
+    return { saved, months: Math.round((saved / monthly.price) * 10) / 10 };
+  };
+
+  const tierFeatures: Record<string, { ar: string[]; en: string[] }> = {
+    starter: {
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA", "شهر مجاني على أي باقة مدفوعة"],
+      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA", "Free month on any paid plan"],
+    },
+    professional: {
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA + QR", "Bank feeds (Plaid)", "Full API access"],
+    },
+    enterprise: {
+      ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
+      en: ["Everything in Pro", "Unlimited users", "Advanced unlimited AI", "Full multi-currency", "Audit log", "Priority support"],
+    },
+  };
+
+  const adminPlan = { id: "admin", name: "ADMIN ULTRA", price: "FREE", features: [t("جميع الميزات مفتوحة", "All features unlocked"), t("بدون حد على العملاء/الفواتير/AI", "No limit on customers/invoices/AI"), "Cross-org admin dashboard", t("متاح فقط لمشرفي المنصة", "Available to platform admins only")] };
+
+  if (loading) {
+    return <Card className="border-border"><CardContent className="p-10 text-center text-muted-foreground text-sm">{t("يُحمَّل…", "Loading…")}</CardContent></Card>;
+  }
 
   return (
-    <Card className="border-border">
-      <CardHeader>
-        <CardTitle className="text-foreground">{t("الباقات والاشتراكات", "Plans & subscriptions")}</CardTitle>
-        <CardDescription>{t("اختر الباقة المناسبة · يمكن الترقية أو التخفيض في أي وقت", "Choose the right plan · upgrade or downgrade at any time")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isAdmin && (
-          <div className="rounded-lg border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
+    <div className="space-y-5">
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">{t("الباقات والاشتراكات", "Plans & subscriptions")}</CardTitle>
+          <CardDescription>{t("اختر الباقة المناسبة · شهر كامل مجانًا · إلغاء في أي وقت", "Choose the right plan · a full free month · cancel anytime")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {banner && (
+            <div className={`rounded-lg px-4 py-2.5 text-sm ${banner.kind === "success" ? "bg-[#F0FBF6] text-[#16785A] border border-[#16785A]/30" : "bg-[#EFF6FF] text-primary border border-primary/20"}`}>
+              {banner.text}
+            </div>
+          )}
+
+          {/* Current subscription line */}
+          {sub?.plan && (
+            <div className="flex items-center justify-between flex-wrap gap-2 rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
+              <span className="text-foreground">
+                {t("باقتك الحالية:", "Current plan:")} <strong>{sub.plan.name}</strong>
+                {" · "}
+                <span className="text-muted-foreground">
+                  {sub.status === "TRIALING"
+                    ? t(`تجربة مجانية · تنتهي ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-GB") : ""}`, `Free trial · ends ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-GB") : ""}`)
+                    : t(sub.status === "ACTIVE" ? "نشطة" : sub.status, sub.status === "ACTIVE" ? "Active" : sub.status)}
+                </span>
+              </span>
+              <a href="/app/billing" className="text-primary text-sm hover:underline" style={{ fontWeight: 600 }}>{t("إدارة الدفع والفوترة ←", "Manage billing →")}</a>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="rounded-lg border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 p-5">
+              <div className="flex items-center justify-between mb-2">
                 <div className="text-amber-700 font-bold text-lg">⚡ {adminPlan.name}</div>
-                <div className="text-xs text-amber-600">{t("باقة الادمن · مفعّلة تلقائياً لك", "Admin plan · auto-enabled for you")}</div>
-              </div>
-              <div className="text-end">
                 <div className="font-english font-bold text-2xl text-amber-700" dir="ltr">{adminPlan.price}</div>
               </div>
-            </div>
-            <ul className="text-sm text-foreground/80 space-y-1">
-              {adminPlan.features.map((f, i) => (
-                <li key={i} className="flex items-center gap-2"><span className="text-green-600">✓</span>{f}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {plans.map(p => (
-            <div key={p.id} className={`rounded-lg border p-4 ${p.popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-border"} relative`}>
-              {p.popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">{t("الأكثر شعبية", "Most popular")}</div>}
-              <div className="text-foreground font-bold">{p.name}</div>
-              <div className="text-2xl font-bold text-foreground mt-2 font-english" dir="ltr">{p.price}</div>
-              <div className="text-xs text-muted-foreground mt-3 space-y-1">
-                <div>👤 {p.users} {t("مستخدمين", "users")}</div>
-                <div>📄 {p.invoices}</div>
-                <div>🤖 AI: {p.ai}</div>
-              </div>
-              <ul className="text-xs text-foreground/80 mt-3 space-y-1">
-                {p.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-1"><span className="text-green-600 mt-0.5">✓</span><span>{f}</span></li>
-                ))}
+              <ul className="text-sm text-foreground/80 space-y-1">
+                {adminPlan.features.map((f, i) => (<li key={i} className="flex items-center gap-2"><span className="text-green-600">✓</span>{f}</li>))}
               </ul>
-              <Button className="w-full mt-4 bg-primary hover:bg-primary/90" disabled>
-                {p.id === "enterprise" ? t("تواصل", "Contact") : t("اختيار", "Select")}
-              </Button>
             </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground/60 text-center">
-          {t("الفوترة عبر Stripe · اشتراك شهري قابل للإلغاء في أي وقت", "Billed via Stripe · monthly subscription, cancelable at any time")}
-        </p>
-      </CardContent>
-    </Card>
+          )}
+
+          {/* Toggles: currency + cycle (segmented, no dropdowns) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+              {(["sar", "usd"] as const).map((c) => (
+                <button key={c} onClick={() => setPlanCurrency(c)} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${planCurrency === c ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: planCurrency === c ? 700 : 500 }}>{c.toUpperCase()}</button>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+              <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
+              <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors flex items-center gap-1.5 ${cycle === "year" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>
+                {t("سنوي", "Annual")}
+                <span className="rounded bg-[#DCFCE7] text-[#166534] px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("شهران مجانًا", "2 months free")}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Plan cards · live Stripe catalog */}
+          <div className={`grid grid-cols-1 gap-3 ${visiblePlans.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+            {visiblePlans.map((p) => {
+              const isCurrent = currentPriceId === p.stripePriceId;
+              const popular = p.tier === "professional";
+              const saving = cycle === "year" ? annualSaving(p.price, p.tier) : null;
+              const monthlyEquivalent = cycle === "year" ? Math.round(p.price / 12) : null;
+              const feats = tierFeatures[p.tier] || { ar: p.features || [], en: p.features || [] };
+              return (
+                <div key={p.id} className={`rounded-lg border p-4 relative flex flex-col ${popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-border"}`}>
+                  {popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">{t("الأكثر شعبية", "Most popular")}</div>}
+                  <div className="text-foreground font-bold">{p.name}</div>
+
+                  {p.price === 0 ? (
+                    <div className="text-2xl font-bold text-foreground mt-2 font-english" dir="ltr">{t("مجاني", "Free")}</div>
+                  ) : cycle === "year" && saving ? (
+                    <div className="mt-2">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-2xl font-bold text-foreground font-english" dir="ltr">{cur} {money(p.price)}<span className="text-sm font-normal text-muted-foreground">/{t("سنة", "yr")}</span></span>
+                        <span className="text-sm text-muted-foreground line-through font-english" dir="ltr">{cur} {money(p.price + saving.saved)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="rounded bg-[#DCFCE7] text-[#166534] px-2 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>
+                          {t(`وفّر ${cur} ${money(saving.saved)} · ${saving.months} شهر مجانًا`, `Save ${cur} ${money(saving.saved)} · ${saving.months} months free`)}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-english" dir="ltr">≈ {cur} {money(monthlyEquivalent!)}/{t("شهر", "mo")}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-2xl font-bold text-foreground mt-2 font-english" dir="ltr">{cur} {money(p.price)}<span className="text-sm font-normal text-muted-foreground">/{t("شهر", "mo")}</span></div>
+                  )}
+
+                  <ul className="text-xs text-foreground/80 mt-3 space-y-1 flex-1">
+                    {feats.ar.map((f, i) => (
+                      <li key={i} className="flex items-start gap-1"><span className="text-green-600 mt-0.5">✓</span><span>{t(f, (feats.en[i] || f))}</span></li>
+                    ))}
+                  </ul>
+
+                  {isCurrent ? (
+                    <Button className="w-full mt-4" variant="outline" disabled>{t("باقتك الحالية ✓", "Your current plan ✓")}</Button>
+                  ) : p.price === 0 ? (
+                    <Button className="w-full mt-4" variant="outline" disabled>{sub?.plan ? t("متاح عند انتهاء الباقة", "Available when your plan ends") : t("باقتك الحالية ✓", "Your current plan ✓")}</Button>
+                  ) : (
+                    <Button className="w-full mt-4 bg-primary hover:bg-primary/90" disabled={busy !== null} onClick={() => handleCheckout(p.stripePriceId)}>
+                      {busy === p.stripePriceId ? t("يُحوّل لـ Stripe…", "Redirecting to Stripe…") : t(`اشترك — شهر مجاني ثم ${cur} ${money(p.price)}`, `Subscribe — free month, then ${cur} ${money(p.price)}`)}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <p className="text-xs text-muted-foreground/60 text-center">
+            {t("الفوترة عبر Stripe الآمنة · شهر كامل مجانًا على كل باقة مدفوعة · إلغاء في أي وقت", "Secure Stripe billing · a full free month on every paid plan · cancel anytime")}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ── Benchmark · how Entix compares (public list prices, 2026) ── */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">{t("لماذا Entix؟ مقارنة صريحة بالمنافسين", "Why Entix? An honest competitor benchmark")}</CardTitle>
+          <CardDescription>{t("أسعار القوائم المنشورة 2026 — قد تتغير لديهم؛ أسعارنا ثابتة هنا", "Public list prices as of 2026 — theirs may change; ours are fixed here")}</CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead>
+              <tr className="border-b border-border text-start">
+                <th className="text-start py-2.5 pe-3 text-muted-foreground font-medium">{t("المقارنة", "Benchmark")}</th>
+                <th className="py-2.5 px-3 text-center">
+                  <div className="inline-flex flex-col items-center"><span className="text-primary font-bold">ENTIX.IO</span><span className="text-[10px] text-[#166534] bg-[#DCFCE7] rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
+                </th>
+                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">QuickBooks</th>
+                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Xero</th>
+                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Zoho Books</th>
+              </tr>
+            </thead>
+            <tbody className="text-center">
+              {([
+                { ar: "سعر البداية الشهري", en: "Starting monthly price", us: planCurrency === "usd" ? "$29" : (planCurrency === "sar" ? "99 ر.س" : "$29"), qbo: "$35", xero: "$29", zoho: "$20" },
+                { ar: "تجربة مجانية", en: "Free trial", us: t("30 يومًا كاملة", "Full 30 days"), qbo: t("30 يومًا", "30 days"), xero: t("30 يومًا", "30 days"), zoho: t("14 يومًا", "14 days") },
+                { ar: "السنوي بخصم واضح", en: "Annual with clear discount", us: t("شهران مجانًا ✓", "2 months free ✓"), qbo: t("خصم أول 3 أشهر فقط", "First 3 months promo only"), xero: t("—", "—"), zoho: t("شهران مجانًا", "2 months free") },
+                { ar: "وكيل ذكاء اصطناعي يسجّل ويحلّل", en: "AI agent that records & analyzes", us: "✓", qbo: t("مدفوع إضافي", "Paid add-on"), xero: "✗", zoho: t("جزئي", "Partial" ) },
+                { ar: "عربي كامل + ZATCA Phase 2", en: "Full Arabic + ZATCA Phase 2", us: "✓", qbo: "✗", xero: "✗", zoho: t("جزئي", "Partial") },
+                { ar: "تعدد عملات + اختيار عملة الدفع", en: "Multi-currency + payer-chosen currency", us: "✓", qbo: t("باقات أعلى", "Higher tiers"), xero: t("باقات أعلى", "Higher tiers"), zoho: "✓" },
+                { ar: "ربط بنكي (US)", en: "Bank feeds (US)", us: "✓ Plaid", qbo: "✓", xero: "✓", zoho: "✓" },
+                { ar: "API مفتوح كامل", en: "Full open API", us: "✓", qbo: "✓", xero: "✓", zoho: "✓" },
+              ] as const).map((row, i) => (
+                <tr key={i} className="border-b border-border/50">
+                  <td className="text-start py-2.5 pe-3 text-foreground">{t(row.ar, row.en)}</td>
+                  <td className="py-2.5 px-3 bg-[#EFF6FF]/60 text-primary font-semibold">{row.us}</td>
+                  <td className="py-2.5 px-3 text-muted-foreground">{row.qbo}</td>
+                  <td className="py-2.5 px-3 text-muted-foreground">{row.xero}</td>
+                  <td className="py-2.5 px-3 text-muted-foreground">{row.zoho}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
