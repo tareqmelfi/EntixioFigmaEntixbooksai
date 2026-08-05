@@ -640,6 +640,12 @@ export const api = {
       defaultTaxRate?: number;
       currency?: string;
     }) => request<any>('/api/agent/extract-document', { method: 'POST', body: data }),
+    /** HR-5 · employee document (iqama/passport/CV) → contract fields */
+    extractEmployeeDocument: (data: {
+      fileBase64: string;
+      fileName?: string;
+      mimeType: string;
+    }) => request<any>('/api/agent/employee-document', { method: 'POST', body: data }),
     normalizeImage: (data: {
       fileBase64: string;
       fileName?: string;

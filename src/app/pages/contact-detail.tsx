@@ -16,7 +16,7 @@ import {
   ArrowRight, Building2, Mail, Phone, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, ExternalLink, AlertCircle, Plus, Send,
   Clock, Hash, Briefcase, User, Files,
-  KeyRound, Activity, Tag, Landmark , Eye, Printer, Download, Trash2 } from "lucide-react";
+  KeyRound, Activity, Tag, Landmark , Eye, Printer, Download, Trash2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError, ContactSummary } from "../lib/api";
@@ -904,6 +904,10 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
   const [expiresAt, setExpiresAt] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  // HR-5 · auto-fill from document
+  const [extracting, setExtracting] = useState(false);
+  const [extracted, setExtracted] = useState<any>(null);
+  const [applying, setApplying] = useState(false);
 
   // Resolve this contact's employment contract (documents hang off it)
   useEffect(() => {
@@ -925,6 +929,55 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
     } catch { /* list stays as-is */ }
   }, [contractId]);
   useEffect(() => { loadDocs(); }, [loadDocs]);
+
+  const extractFromFile = async () => {
+    if (!file || extracting) return;
+    setExtracting(true);
+    setExtracted(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("read_failed"));
+        reader.readAsDataURL(file);
+      });
+      const base64 = dataUrl.split(",")[1] || "";
+      const r = await api.agent.extractEmployeeDocument({ fileBase64: base64, fileName: file.name, mimeType: file.type || "image/jpeg" });
+      if (r?.error) throw new Error(r.message || r.error);
+      setExtracted(r);
+      // Prefill the upload form from what the model saw
+      if (r?.documentKind && DOC_KINDS.some((k) => k.id === r.documentKind)) setKind(r.documentKind);
+      if (r?.expiryDate) setExpiresAt(r.expiryDate);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("تعذر الاستخراج", "Extraction failed"));
+    } finally { setExtracting(false); }
+  };
+
+  const applyExtracted = async () => {
+    if (!extracted || !contractId || applying) return;
+    setApplying(true);
+    try {
+      const name = (extracted.fullNameAr || extracted.fullName || "").trim();
+      const contactPatch: any = {};
+      if (name) contactPatch.displayName = name;
+      if (extracted.nationalId) contactPatch.nationalId = extracted.nationalId;
+      if (extracted.nationalityCode) contactPatch.country = extracted.nationalityCode;
+      if (Object.keys(contactPatch).length > 0) {
+        await api.contacts.update(contactId, contactPatch);
+      }
+      const contractPatch: any = {};
+      if (extracted.jobTitle) contractPatch.jobTitle = extracted.jobTitle;
+      if (extracted.nationalityCode) contractPatch.nationalityCode = extracted.nationalityCode;
+      if (extracted.birthDate) contractPatch.dateOfBirth = extracted.birthDate;
+      if (Object.keys(contractPatch).length > 0) {
+        await api.payroll.updateContract(contractId, contractPatch);
+      }
+      push("success", t("عبّأنا الحقول من المستند ✓ — راجعها في ملف الموظف", "Fields filled from the document ✓ — review them in the employee file"));
+      setExtracted(null);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل التعبئة", "Apply failed"));
+    } finally { setApplying(false); }
+  };
 
   const upload = async () => {
     if (!file || !contractId || busy) return;
@@ -1029,8 +1082,38 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
                   {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5 me-1" />}
                   {t("رفع", "Upload")}
                 </Button>
+                <Button size="sm" variant="outline" disabled={!file || extracting} onClick={extractFromFile}>
+                  {extracting ? <Loader2 className="h-3.5 w-3.5 animate-spin me-1" /> : <Sparkles className="h-3.5 w-3.5 me-1" />}
+                  {t("استخراج وتعبئة تلقائية", "Extract & auto-fill")}
+                </Button>
               </div>
             </div>
+
+            {/* HR-5 extracted-fields review card */}
+            {extracted && (
+              <div className="rounded-lg border border-primary/30 bg-[#EFF6FF]/50 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-primary">{t("قرأنا المستند — راجع قبل التعبئة", "We read the document — review before applying")}</div>
+                  <button onClick={() => setExtracted(null)} className="text-muted-foreground/60 hover:text-foreground text-xs">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  {extracted.fullNameAr || extracted.fullName ? <div><span className="text-muted-foreground">{t("الاسم:", "Name:")}</span> <span className="text-foreground font-medium">{extracted.fullNameAr || extracted.fullName}</span></div> : null}
+                  {extracted.nationalId ? <div><span className="text-muted-foreground">{t("رقم الهوية/الإقامة:", "ID/Iqama no:")}</span> <span className="text-foreground font-english">{extracted.nationalId}</span></div> : null}
+                  {extracted.passportNumber ? <div><span className="text-muted-foreground">{t("رقم الجواز:", "Passport no:")}</span> <span className="text-foreground font-english">{extracted.passportNumber}</span></div> : null}
+                  {extracted.nationality ? <div><span className="text-muted-foreground">{t("الجنسية:", "Nationality:")}</span> <span className="text-foreground">{extracted.nationality}</span></div> : null}
+                  {extracted.birthDate ? <div><span className="text-muted-foreground">{t("الميلاد:", "Birth:")}</span> <span className="text-foreground font-english">{extracted.birthDate}</span></div> : null}
+                  {extracted.jobTitle ? <div><span className="text-muted-foreground">{t("المسمى الوظيفي:", "Job title:")}</span> <span className="text-foreground">{extracted.jobTitle}</span></div> : null}
+                  {extracted.expiryDate ? <div><span className="text-muted-foreground">{t("انتهاء المستند:", "Doc expiry:")}</span> <span className="text-foreground font-english">{extracted.expiryDate}</span></div> : null}
+                </div>
+                {Array.isArray(extracted.warnings) && extracted.warnings.length > 0 && (
+                  <div className="text-[11px] text-amber-700">⚠ {extracted.warnings.join(" · ")}</div>
+                )}
+                <Button size="sm" className="bg-primary hover:bg-primary/90" disabled={applying} onClick={applyExtracted}>
+                  {applying ? <Loader2 className="h-3.5 w-3.5 animate-spin me-1" /> : <Sparkles className="h-3.5 w-3.5 me-1" />}
+                  {t("تعبئة الحقول في ملف الموظف", "Fill the employee file")}
+                </Button>
+              </div>
+            )}
 
             {/* List */}
             {items.length === 0 ? (
