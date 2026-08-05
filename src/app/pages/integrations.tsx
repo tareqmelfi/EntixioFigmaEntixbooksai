@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   Plug, Search, CheckCircle2, Clock,
   Zap, Globe, CreditCard, ShoppingCart, MessageSquare,
@@ -10,6 +11,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { useOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "../components/LanguageContext";
+import { api } from "../lib/api";
 
 type IntegrationStatus = "connected" | "available" | "coming";
 type CategoryKey = "government" | "banking" | "payments" | "ecommerce" | "communication" | "developer";
@@ -24,22 +26,9 @@ interface Integration {
   iconColor: string;
   iconBg: string;
   status: IntegrationStatus;
+  /** Where the card's action button actually goes — every card must DO something real */
+  action?: { kind: "route"; to: string } | { kind: "external"; to: string };
 }
-
-const integrations: Integration[] = [
-  { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "فوترة إلكترونية متوافقة مع المرحلة 2", en: "Phase 2 compliant e-invoicing" }, category: "government", icon: Shield, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "available" },
-  { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "coming" },
-  { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "available" },
-  { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "coming" },
-  { id: "stripe", name: "Stripe", nameAr: "بوابة الدفع", description: { ar: "قبول المدفوعات عبر الإنترنت", en: "Accept online payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: "available" },
-  { id: "moyasar", name: "Moyasar", nameAr: "ميسّر", description: { ar: "بوابة دفع سعودية (مدى + فيزا)", en: "Saudi payment gateway (mada + Visa)" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: "available" },
-  { id: "salla", name: "Salla", nameAr: "سلة", description: { ar: "ربط مع متجر سلة الإلكتروني", en: "Connect your Salla online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "available" },
-  { id: "zid", name: "Zid", nameAr: "زد", description: { ar: "ربط مع متجر زد الإلكتروني", en: "Connect your Zid online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "available" },
-  { id: "shopify", name: "Shopify", nameAr: "شوبيفاي", description: { ar: "ربط مع متجر Shopify", en: "Connect your Shopify store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
-  { id: "whatsapp", name: "WhatsApp Business", nameAr: "واتساب أعمال", description: { ar: "إرسال الفواتير والتنبيهات عبر واتساب", en: "Send invoices and alerts via WhatsApp" }, category: "communication", icon: MessageSquare, iconColor: "#166534", iconBg: "#DCFCE7", status: "coming" },
-  { id: "webhook", name: "Webhooks", nameAr: "ويب هوكس", description: { ar: "ربط مخصص مع أي نظام خارجي", en: "Custom integration with any external system" }, category: "developer", icon: Webhook, iconColor: "#374151", iconBg: "#F3F4F6", status: "available" },
-  { id: "api", name: "REST API", nameAr: "واجهة برمجية", description: { ar: "API كامل للتكامل مع أنظمتك", en: "Full API to integrate with your systems" }, category: "developer", icon: Globe, iconColor: "#374151", iconBg: "#F3F4F6", status: "connected" },
-];
 
 const CATEGORY_LABELS: Record<CategoryKey, { ar: string; en: string }> = {
   government: { ar: "حكومي", en: "Government" },
@@ -59,9 +48,49 @@ const statusConfig: Record<IntegrationStatus, { label: { ar: string; en: string 
 export function Integrations() {
   const { t, language } = useLanguage();
   const isAr = language === "ar";
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryKey | "">("");
   const { isSA } = useOrgRegion();
+
+  // ── Live connection state (replaces the old static list) ──────────────
+  const [activeOrg, setActiveOrg] = useState<{ id: string; zatcaEnabled?: boolean } | null>(null);
+  const [oauth, setOauth] = useState<any>(null);
+  useEffect(() => {
+    let alive = true;
+    api.orgs.list().then(async (list) => {
+      if (!alive) return;
+      const storedId = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
+      const active = (storedId ? list.find((o) => o.id === storedId) : null) || list[0];
+      if (!active) return;
+      setActiveOrg(active as any);
+      try {
+        const status = await (api as any).oauth.status(active.id);
+        if (alive) setOauth(status);
+      } catch { /* status chips fall back to org fields */ }
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const stripeConnected = !!oauth?.stripe?.connected;
+  const moyasarConnected = !!oauth?.moyasar?.connected;
+  const zatcaConnected = !!activeOrg?.zatcaEnabled;
+
+  const integrations: Integration[] = [
+    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "فوترة إلكترونية متوافقة مع المرحلة 2", en: "Phase 2 compliant e-invoicing" }, category: "government", icon: Shield, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: zatcaConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=zatca" } },
+    { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "coming" },
+    { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "available", action: { kind: "route", to: "/app/integrations/plaid" } },
+    { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "coming" },
+    { id: "stripe", name: "Stripe", nameAr: "بوابة الدفع", description: { ar: "قبول المدفوعات عبر الإنترنت", en: "Accept online payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: stripeConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
+    { id: "moyasar", name: "Moyasar", nameAr: "ميسّر", description: { ar: "بوابة دفع سعودية (مدى + فيزا)", en: "Saudi payment gateway (mada + Visa)" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: moyasarConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
+    { id: "paypal", name: "PayPal", nameAr: "باي بال", description: { ar: "قبول المدفوعات الدولية", en: "Accept international payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: "coming" },
+    { id: "salla", name: "Salla", nameAr: "سلة", description: { ar: "ربط مع متجر سلة الإلكتروني", en: "Connect your Salla online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
+    { id: "zid", name: "Zid", nameAr: "زد", description: { ar: "ربط مع متجر زد الإلكتروني", en: "Connect your Zid online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
+    { id: "shopify", name: "Shopify", nameAr: "شوبيفاي", description: { ar: "ربط مع متجر Shopify", en: "Connect your Shopify store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
+    { id: "whatsapp", name: "WhatsApp Business", nameAr: "واتساب أعمال", description: { ar: "إرسال الفواتير والتنبيهات عبر واتساب", en: "Send invoices and alerts via WhatsApp" }, category: "communication", icon: MessageSquare, iconColor: "#166534", iconBg: "#DCFCE7", status: "coming" },
+    { id: "webhook", name: "Webhooks", nameAr: "ويب هوكس", description: { ar: "ربط مخصص مع أي نظام خارجي", en: "Custom integration with any external system" }, category: "developer", icon: Webhook, iconColor: "#374151", iconBg: "#F3F4F6", status: "coming" },
+    { id: "api", name: "REST API", nameAr: "واجهة برمجية", description: { ar: "API كامل للتكامل مع أنظمتك", en: "Full API to integrate with your systems" }, category: "developer", icon: Globe, iconColor: "#374151", iconBg: "#F3F4F6", status: "connected", action: { kind: "external", to: "https://api.entix.io/health" } },
+  ];
 
   const categories = [...new Set(integrations.map(i => i.category))];
   const filtered = integrations.filter(i => {
@@ -70,6 +99,12 @@ export function Integrations() {
     const matchesCategory = !categoryFilter || i.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  const runAction = (integration: Integration) => {
+    if (!integration.action) return;
+    if (integration.action.kind === "route") navigate(integration.action.to);
+    else window.open(integration.action.to, "_blank", "noopener");
+  };
 
   return (
     <div className="space-y-6">
@@ -141,10 +176,10 @@ export function Integrations() {
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{isAr ? integration.description.ar : integration.description.en}</p>
                 {integration.status === "connected" && (
-                  <Button variant="outline" className="w-full border-[#0B1B49] text-foreground" size="sm">{t("إعدادات", "Settings")}</Button>
+                  <Button variant="outline" className="w-full border-[#0B1B49] text-foreground" size="sm" onClick={() => runAction(integration)}>{t("إعدادات", "Settings")}</Button>
                 )}
                 {integration.status === "available" && !regionLocked && (
-                  <Button className="w-full bg-primary hover:bg-primary/90" size="sm">{t("ربط الآن", "Connect now")}</Button>
+                  <Button className="w-full bg-primary hover:bg-primary/90" size="sm" onClick={() => runAction(integration)}>{t("ربط الآن", "Connect now")}</Button>
                 )}
                 {regionLocked && (
                   <Button variant="outline" className="w-full border-border text-muted-foreground/60" size="sm" disabled>

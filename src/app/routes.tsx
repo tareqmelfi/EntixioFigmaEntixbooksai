@@ -250,6 +250,7 @@ export const router = createBrowserRouter([
       { path: "contacts/:id", element: lazyElement(() => import("./pages/contact-detail"), "ContactDetail"), errorElement: <ErrorBoundary /> },
       // Developer
       { path: "integrations", element: lazyElement(() => import("./pages/integrations"), "Integrations"), errorElement: <ErrorBoundary /> },
+      { path: "integrations/plaid", element: lazyElement(() => import("./pages/integrations-plaid"), "IntegrationsPlaid"), errorElement: <ErrorBoundary /> },
       // Backward compatibility: old header/deep links point to this path.
       // Keep it working by redirecting to Settings > ZATCA tab.
       { path: "integrations/zatca", element: <Navigate to="/app/settings?tab=zatca" replace />, errorElement: <ErrorBoundary /> },

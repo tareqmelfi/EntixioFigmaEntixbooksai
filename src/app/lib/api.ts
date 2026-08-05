@@ -949,6 +949,16 @@ export const api = {
         body: { orgId },
       }),
   },
+
+  // Plaid · US bank linking (link-token → Plaid Link → exchange)
+  plaid: {
+    linkToken: () =>
+      request<{ link_token?: string; linkToken?: string }>('/api/plaid/link-token'),
+    exchange: (data: { publicToken: string; institutionId?: string; institutionName?: string }) =>
+      request<{ ok: boolean; itemId: string; accountsCount: number; bankAccounts: string[]; institution: { name?: string } | null; message?: string }>(
+        '/api/plaid/exchange', { method: 'POST', body: data },
+      ),
+  },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
