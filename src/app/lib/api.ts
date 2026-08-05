@@ -469,6 +469,27 @@ export const api = {
     deleteShareTransaction: (id: string) => request<void>(`/api/investments/share-transactions/${id}`, { method: 'DELETE' }),
   },
 
+  // Contractors (freelancers · مقاولون) · work logs · direct payments · project performance
+  contractors: {
+    list: () => request<{ items: any[]; total: number; peers: any }>('/api/contractors'),
+    nextCode: () => request<{ code: string }>('/api/contractors/next-code'),
+    get: (id: string) => request<any>(`/api/contractors/${id}`),
+    create: (data: any) => request<any>('/api/contractors', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/api/contractors/${id}`, { method: 'PATCH', body: data }),
+    deactivate: (id: string) => request<any>(`/api/contractors/${id}/deactivate`, { method: 'POST' }),
+    remove: (id: string) => request<void>(`/api/contractors/${id}`, { method: 'DELETE' }),
+    engage: (projectId: string, data: any) => request<any>(`/api/contractors/projects/${projectId}/engage`, { method: 'POST', body: data }),
+    endEngagement: (projectId: string, engagementId: string) =>
+      request<void>(`/api/contractors/projects/${projectId}/engage/${engagementId}`, { method: 'DELETE' }),
+    logWork: (data: any) => request<any>('/api/contractors/work-logs', { method: 'POST', body: data }),
+    listWorkLogs: (params?: { projectId?: string; contractorId?: string }) =>
+      request<{ items: any[]; total: number }>('/api/contractors/work-logs', { query: params }),
+    deleteWorkLog: (id: string) => request<void>(`/api/contractors/work-logs/${id}`, { method: 'DELETE' }),
+    pay: (data: any) => request<any>('/api/contractors/payments', { method: 'POST', body: data }),
+    deletePayment: (id: string) => request<void>(`/api/contractors/payments/${id}`, { method: 'DELETE' }),
+    projectPerformance: (projectId: string) => request<any>(`/api/contractors/projects/${projectId}/performance`),
+  },
+
   // Products
   products: {
     list: (params?: { type?: string; category?: string }) =>

@@ -222,6 +222,12 @@ export const router = createBrowserRouter([
       { path: "projects", element: lazyElement(() => import("./pages/projects"), "Projects"), errorElement: <ErrorBoundary /> },
       { path: "projects/new", element: lazyElement(() => import("./pages/project-detail"), "ProjectDetail"), errorElement: <ErrorBoundary /> },
       { path: "projects/:id", element: lazyElement(() => import("./pages/project-detail"), "ProjectDetail"), errorElement: <ErrorBoundary /> },
+      // Contractors & work logs (freelancers · different from suppliers)
+      { path: "contractors", element: lazyElement(() => import("./pages/contractors"), "Contractors"), errorElement: <ErrorBoundary /> },
+      { path: "contractors/new", element: lazyElement(() => import("./pages/contractor-detail"), "ContractorDetail"), errorElement: <ErrorBoundary /> },
+      { path: "contractors/:id", element: lazyElement(() => import("./pages/contractor-detail"), "ContractorDetail"), errorElement: <ErrorBoundary /> },
+      { path: "contractors/:id/pay", element: lazyElement(() => import("./pages/contractor-payment-new"), "ContractorPaymentNew"), errorElement: <ErrorBoundary /> },
+      { path: "work-logs/new", element: lazyElement(() => import("./pages/work-log-new"), "WorkLogNew"), errorElement: <ErrorBoundary /> },
       { path: "branches", element: lazyElement(() => import("./pages/branches"), "Branches"), errorElement: <ErrorBoundary /> },
       { path: "branches/new", element: lazyElement(() => import("./pages/branch-detail"), "BranchDetail"), errorElement: <ErrorBoundary /> },
       { path: "branches/:id", element: lazyElement(() => import("./pages/branch-detail"), "BranchDetail"), errorElement: <ErrorBoundary /> },
