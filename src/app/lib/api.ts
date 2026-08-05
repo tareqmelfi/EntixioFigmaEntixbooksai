@@ -849,6 +849,15 @@ export const api = {
     contracts: () => request<{ items: any[]; total: number }>('/api/payroll/contracts'),
     saveContract: (data: any) => request<any>('/api/payroll/contracts', { method: 'POST', body: data }),
     updateContract: (id: string, data: any) => request<any>(`/api/payroll/contracts/${id}`, { method: 'PATCH', body: data }),
+    // Employee documents (HR-4): iqama/passport/contract/CV files per contract
+    documents: (contractId: string) =>
+      request<{ items: any[]; total: number }>(`/api/payroll/contracts/${contractId}/documents`),
+    uploadDocument: (contractId: string, data: { documentKind: string; fileName: string; fileBase64: string; fileType?: string; expiresAt?: string | null }) =>
+      request<any>(`/api/payroll/contracts/${contractId}/documents`, { method: 'POST', body: data }),
+    downloadDocument: (id: string) =>
+      request<{ id: string; fileName: string; fileType: string | null; fileBase64: string }>(`/api/payroll/documents/${id}/download`),
+    removeDocument: (id: string) =>
+      request<{ ok: boolean }>(`/api/payroll/documents/${id}`, { method: 'DELETE' }),
     runs: () => request<{ items: any[]; total: number }>('/api/payroll/runs'),
     getRun: (id: string) => request<any>(`/api/payroll/runs/${id}`),
     saveRun: (data: { period: string; runNumber?: string; notes?: string | null; employees?: any[] }) =>

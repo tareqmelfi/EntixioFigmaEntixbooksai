@@ -16,11 +16,13 @@ import {
   ArrowRight, Building2, Mail, Phone, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, ExternalLink, AlertCircle, Plus, Send,
   Clock, Hash, Briefcase, User, Files,
-  KeyRound, Activity, Tag, Landmark , Eye, Printer } from "lucide-react";
+  KeyRound, Activity, Tag, Landmark , Eye, Printer, Download, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { api, ApiError, ContactSummary } from "../lib/api";
 import { ContactWizard } from "../components/contact-wizard";
 import { ImageCropperModal } from "../components/image-cropper-modal";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
 
 type Tab = "overview" | "operations" | "documents" | "portal" | "activity";
@@ -395,7 +397,7 @@ export function ContactDetail() {
       {/* Tab content */}
       {tab === "overview" && <OverviewTab data={data} cur={cur} />}
       {tab === "operations" && <OperationsTab data={data} cur={cur} />}
-      {tab === "documents" && <DocumentsTab contactId={contact.id} />}
+      {tab === "documents" && <DocumentsTab contact={contact} />}
       {tab === "portal" && <PortalTab contact={contact} />}
       {tab === "activity" && <ActivityTab contactId={contact.id} />}
       {/* تعديل العميل — in place (was: navigate away to /app/contacts?edit= and
@@ -855,20 +857,213 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
 }
 
 // ── Documents tab ─────────────────────────────────────────────────────────
-function DocumentsTab({ contactId }: { contactId: string }) {
+function DocumentsTab({ contact }: { contact: any }) {
   const { t } = useLanguage();
   return (
+    <div className="space-y-4">
+      {/* HR-4 #27 — employee HR documents (iqama/passport/contract/CV…) */}
+      {contact.isEmployee && <EmployeeDocumentsSection contactId={contact.id} />}
+
+      <Card className="border-border">
+        <CardContent className="py-12 text-center">
+          <Files className="h-10 w-10 text-[#E5E7EB] mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">{t("لم يتم رفع أي مستندات لهذه الجهة", "No documents uploaded for this contact")}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">{t("العقود · بطاقات الضريبة · السجلات التجارية · ملفات الهوية", "Contracts · tax cards · commercial registrations · ID files")}</p>
+          <Link
+            to={`/app/files/upload?contactId=${contact.id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-sm mt-4 hover:bg-[#0F66C7] transition"
+          >
+            <Plus className="h-3.5 w-3.5" /> {t("رفع مستند", "Upload document")}
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── Employee HR documents (HR-4 #27) — real upload/list/expiry/download ──
+
+const DOC_KINDS: Array<{ id: string; ar: string; en: string }> = [
+  { id: "IQAMA", ar: "إقامة", en: "Iqama" },
+  { id: "PASSPORT", ar: "جواز سفر", en: "Passport" },
+  { id: "CONTRACT", ar: "عقد عمل", en: "Work contract" },
+  { id: "CV", ar: "سيرة ذاتية", en: "CV" },
+  { id: "LICENSE", ar: "رخصة مهنية", en: "License" },
+  { id: "CERTIFICATE", ar: "شهادة", en: "Certificate" },
+  { id: "MEDICAL", ar: "فحص طبي", en: "Medical" },
+];
+
+function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
+  const { t } = useLanguage();
+  const { toasts, push, dismiss } = useToasts();
+  const [contractId, setContractId] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(true);
+  const [items, setItems] = useState<any[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [kind, setKind] = useState("IQAMA");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
+  // Resolve this contact's employment contract (documents hang off it)
+  useEffect(() => {
+    let alive = true;
+    api.payroll.contracts().then((r) => {
+      if (!alive) return;
+      const found = (r.items || []).find((it: any) => it.contactId === contactId);
+      setContractId(found?.id || null);
+      setResolving(false);
+    }).catch(() => setResolving(false));
+    return () => { alive = false; };
+  }, [contactId]);
+
+  const loadDocs = useCallback(async () => {
+    if (!contractId) return;
+    try {
+      const r = await api.payroll.documents(contractId);
+      setItems(r.items || []);
+    } catch { /* list stays as-is */ }
+  }, [contractId]);
+  useEffect(() => { loadDocs(); }, [loadDocs]);
+
+  const upload = async () => {
+    if (!file || !contractId || busy) return;
+    if (file.size > 4 * 1024 * 1024) {
+      push("error", t("الملف أكبر من 4MB — صغّر الملف وأعد الرفع", "File is over 4MB — shrink it and retry"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("read_failed"));
+        reader.readAsDataURL(file);
+      });
+      const base64 = dataUrl.split(",")[1] || "";
+      await api.payroll.uploadDocument(contractId, {
+        documentKind: kind,
+        fileName: file.name,
+        fileBase64: base64,
+        fileType: file.type || undefined,
+        expiresAt: expiresAt || null,
+      });
+      setFile(null);
+      setExpiresAt("");
+      push("success", t("تم رفع المستند ✓", "Document uploaded ✓"));
+      await loadDocs();
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل الرفع", "Upload failed"));
+    } finally { setBusy(false); }
+  };
+
+  const download = async (id: string) => {
+    try {
+      const doc = await api.payroll.downloadDocument(id);
+      const a = document.createElement("a");
+      a.href = `data:${doc.fileType || "application/octet-stream"};base64,${doc.fileBase64}`;
+      a.download = doc.fileName;
+      a.click();
+    } catch { push("error", t("تعذر التنزيل", "Could not download")); }
+  };
+
+  const remove = async (id: string) => {
+    setPendingDelete(null);
+    try {
+      await api.payroll.removeDocument(id);
+      setItems((prev) => prev.filter((d) => d.id !== id));
+      push("success", t("حُذف المستند", "Document deleted"));
+    } catch { push("error", t("فشل الحذف", "Delete failed")); }
+  };
+
+  const kindLabel = (id: string) => {
+    const k = DOC_KINDS.find((x) => x.id === id);
+    return k ? t(k.ar, k.en) : id;
+  };
+
+  const expiryBadge = (expiresAt: string | null) => {
+    if (!expiresAt) return null;
+    const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
+    if (days < 0) return <span className="rounded bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("منتهٍ!", "Expired!")}</span>;
+    if (days <= 30) return <span className="rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t(`ينتهي خلال ${days} يوم`, `Expires in ${days}d`)}</span>;
+    return <span className="rounded bg-green-100 text-green-700 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("ساري", "Valid")}</span>;
+  };
+
+  return (
     <Card className="border-border">
-      <CardContent className="py-12 text-center">
-        <Files className="h-10 w-10 text-[#E5E7EB] mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">{t("لم يتم رفع أي مستندات لهذه الجهة", "No documents uploaded for this contact")}</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">{t("العقود · بطاقات الضريبة · السجلات التجارية · ملفات الهوية", "Contracts · tax cards · commercial registrations · ID files")}</p>
-        <Link
-          to={`/app/files/upload?contactId=${contactId}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-sm mt-4 hover:bg-[#0F66C7] transition"
-        >
-          <Plus className="h-3.5 w-3.5" /> {t("رفع مستند", "Upload document")}
-        </Link>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+      <CardHeader>
+        <CardTitle className="text-foreground flex items-center gap-2 text-base">
+          <Files className="h-4 w-4 text-primary" /> {t("مستندات الموظف (HR)", "Employee documents (HR)")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {resolving ? (
+          <div className="py-4 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" /></div>
+        ) : !contractId ? (
+          <p className="text-sm text-muted-foreground">{t("لا يوجد عقد توظيف لهذا الموظف بعد — أنشئ العقد من صفحة الرواتب أولًا ثم ارفع المستندات هنا.", "No employment contract for this employee yet — create the contract from Payroll first, then upload documents here.")}</p>
+        ) : (
+          <>
+            {/* Upload row */}
+            <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
+              <div className="flex gap-1.5 flex-wrap">
+                {DOC_KINDS.map((k) => (
+                  <button key={k.id} onClick={() => setKind(k.id)} className={`rounded-lg px-2.5 py-1 text-[11px] transition-colors ${kind === k.id ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: kind === k.id ? 700 : 500 }}>{t(k.ar, k.en)}</button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="text-xs text-muted-foreground file:me-2 file:rounded-lg file:border-0 file:bg-muted/60 file:px-3 file:py-1.5 file:text-xs file:text-foreground hover:file:bg-muted"
+                />
+                <input
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-foreground"
+                  title={t("تاريخ انتهاء المستند (اختياري)", "Document expiry (optional)")}
+                />
+                <Button size="sm" className="bg-primary hover:bg-primary/90" disabled={!file || busy} onClick={upload}>
+                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5 me-1" />}
+                  {t("رفع", "Upload")}
+                </Button>
+              </div>
+            </div>
+
+            {/* List */}
+            {items.length === 0 ? (
+              <p className="text-xs text-muted-foreground/70 text-center py-2">{t("لا مستندات مرفوعة بعد — إقامة · جواز · عقد · سيرة ذاتية", "No documents yet — iqama · passport · contract · CV")}</p>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {items.map((d) => (
+                  <div key={d.id} className="flex items-center gap-3 py-2.5">
+                    <span className="rounded bg-primary/10 text-primary px-2 py-1 text-[10px] shrink-0" style={{ fontWeight: 700 }}>{kindLabel(d.documentKind)}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-foreground truncate font-english">{d.fileName}</div>
+                      <div className="text-[10px] text-muted-foreground/60 font-english">
+                        {d.fileSizeBytes ? `${Math.round(d.fileSizeBytes / 1024)} KB` : ""}
+                        {d.expiresAt ? ` · ${String(d.expiresAt).slice(0, 10)}` : ""}
+                      </div>
+                    </div>
+                    {expiryBadge(d.expiresAt)}
+                    <button onClick={() => download(d.id)} className="rounded-md p-1.5 text-primary hover:bg-primary/10" title={t("تنزيل", "Download")}>
+                      <Download className="h-4 w-4" />
+                    </button>
+                    {pendingDelete === d.id ? (
+                      <InlineConfirm onConfirm={() => remove(d.id)} onCancel={() => setPendingDelete(null)} label={t("حذف؟", "Delete?")} />
+                    ) : (
+                      <button onClick={() => setPendingDelete(d.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );

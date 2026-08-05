@@ -79,13 +79,13 @@ export function SharedFooter() {
                 <Mail className="w-4 h-4 text-primary group-hover:text-[#349FC4] transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>support@entix.io</span>
               </a>
-              <a href="tel:+966800430088" className="flex items-center gap-2.5 text-[#94A3B8] hover:text-white transition-colors group cursor-pointer">
+              <a href="tel:+1442444410" className="flex items-center gap-2.5 text-[#94A3B8] hover:text-white transition-colors group cursor-pointer">
                 <Phone className="w-4 h-4 text-primary group-hover:text-[#349FC4] transition-colors" />
-                <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr" }}>+966 800 430 088</span>
+                <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr" }}>+1 (442) 444-410</span>
               </a>
               <div className="flex items-start gap-2.5 text-[#94A3B8]">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span style={{ fontSize: "13px" }}>{t("الرياض، المملكة العربية السعودية", "Riyadh, Saudi Arabia")}</span>
+                <span style={{ fontSize: "13px" }}>{t("وايومنغ، الولايات المتحدة الأمريكية · ENSIDEX LLC", "Wyoming, United States · ENSIDEX LLC")}</span>
               </div>
             </div>
 
@@ -221,7 +221,7 @@ export function SharedFooter() {
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#94A3B8] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
-              &copy; 2026 ENTIX.IO. {t("مملوكة لشركة سبيك بروز للاستثمار القابضة · س.ت 3400010090. تشغيل وتطوير ENSIDEX LLC.", "Owned by Spike Bros Investment Holding · CR 3400010090. Operated and powered by ENSIDEX LLC.")}
+              &copy; 2026 ENTIX.IO. {t("تشغيل وتطوير ENSIDEX LLC · وايومنغ، الولايات المتحدة.", "Operated and powered by ENSIDEX LLC · Wyoming, USA.")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {footerLinks.legal.map((link) => (

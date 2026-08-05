@@ -1,9 +1,10 @@
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import {
   Shield, BarChart3, Globe, Zap, Cloud, Smartphone,
   FileText, ArrowLeft, CheckCircle2, ChevronDown,
   Database, Wifi, WifiOff, Server,
-  Receipt, Calculator, TrendingUp, Clock, Play
+  Receipt, Calculator, TrendingUp, Clock, Play,
+  CreditCard, Landmark, Gift, Users
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
@@ -12,6 +13,7 @@ import { InteractiveDashboard3D } from "../components/interactive-dashboard-3d";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useLanguage } from "../components/LanguageContext";
+import { useMarketingRegion } from "../components/marketing-region";
 
 // ─── Animated counter ───
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -45,7 +47,7 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
   return <div ref={ref} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fontWeight: 700 }}>{count.toLocaleString("en-US")}{suffix}</div>;
 }
 
-const FEATURES = [
+const FEATURES_SA = [
   { icon: FileText, title: "فواتير احترافية", titleEn: "Professional invoices", desc: "إنشاء وإدارة الفواتير بمعايير ZATCA مع QR Code وتوقيع رقمي", descEn: "Create and manage ZATCA-ready invoices with QR codes and digital signatures." },
   { icon: BarChart3, title: "تقارير مالية متقدمة", titleEn: "Advanced financial reports", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء رئيسية", descEn: "A clear dashboard with interactive charts and key financial indicators." },
   { icon: Shield, title: "أمان وموثوقية", titleEn: "Secure and reliable", desc: "تشفير AES-256 وحماية متعددة الطبقات مع نسخ احتياطي تلقائي", descEn: "Layered protection, encrypted storage, and automated backups." },
@@ -57,42 +59,101 @@ const FEATURES = [
   { icon: TrendingUp, title: "تحليلات ذكية", titleEn: "Smart analytics", desc: "تنبؤات مالية مدعومة بالذكاء الاصطناعي مع توصيات لتحسين الأداء", descEn: "AI-assisted financial signals and recommendations for better decisions." },
 ];
 
-const PRICING = [
-  { 
-    name: "أساسي", 
+const FEATURES_US = [
+  { icon: FileText, title: "فواتير احترافية", titleEn: "Professional invoices", desc: "فواتير نظيفة بضريبة المبيعات الأمريكية مع تتبع الموردين 1099 وإمكانية الطباعة والمشاركة", descEn: "Clean invoices with US sales-tax handling, 1099 vendor tracking, printing, and sharing." },
+  { icon: BarChart3, title: "تقارير مالية متقدمة", titleEn: "Advanced financial reports", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء رئيسية", descEn: "A clear dashboard with interactive charts and key financial indicators." },
+  { icon: Shield, title: "أمان وموثوقية", titleEn: "Secure and reliable", desc: "تشفير AES-256 وحماية متعددة الطبقات مع نسخ احتياطي تلقائي", descEn: "Layered protection, encrypted storage, and automated backups." },
+  { icon: Globe, title: "دعم متعدد اللغات", titleEn: "Arabic and English", desc: "واجهة عربية كاملة RTL مع دعم اللغة الإنجليزية والعملات المتعددة", descEn: "Native Arabic RTL with English LTR support and multi-currency workflows." },
+  { icon: Cloud, title: "سحابي + محلي", titleEn: "Cloud + local", desc: "اعمل أونلاين أو أوفلاين مع مزامنة ذكية تلقائية للبيانات", descEn: "Work online or offline with controlled data synchronization." },
+  { icon: CreditCard, title: "مدفوعات Stripe", titleEn: "Stripe payments", desc: "اقبل البطاقات والمدفوعات الإلكترونية مباشرة على فواتيرك عبر Stripe", descEn: "Accept cards and online payments directly on your invoices via Stripe." },
+  { icon: Receipt, title: "إدارة المصروفات", titleEn: "Expense management", desc: "تتبع المصروفات والمشتريات مع تصنيف تلقائي ومراكز تكلفة", descEn: "Track expenses, purchases, categories, and cost centers." },
+  { icon: Landmark, title: "ربط البنوك Plaid", titleEn: "Plaid bank feeds", desc: "اربط حساباتك البنكية الأمريكية عبر Plaid لمطابقة المعاملات تلقائياً", descEn: "Connect US bank accounts via Plaid for automatic transaction matching." },
+  { icon: TrendingUp, title: "تحليلات ذكية", titleEn: "Smart analytics", desc: "تنبؤات مالية مدعومة بالذكاء الاصطناعي مع توصيات لتحسين الأداء", descEn: "AI-assisted financial signals and recommendations for better decisions." },
+];
+
+// Pricing · anchor-high standard prices + launch offer (room for real discounts)
+// displayed price = today's charge · standard = anchor shown with strikethrough
+const PRICING_SA = [
+  {
+    name: "أساسي",
     nameEn: "Starter",
-    price: "0", 
+    price: "0",
+    standard: null as string | null,
     period: "مجاني للأبد",
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
     descEn: "For solo operators and small projects",
     features: ["5 فواتير شهرياً", "مستخدم واحد", "تقارير أساسية", "دعم بالبريد"],
     featuresEn: ["5 invoices monthly", "1 user", "Basic reports", "Email support"],
-    highlighted: false 
+    highlighted: false
   },
-  { 
-    name: "احترافي", 
+  {
+    name: "احترافي",
     nameEn: "Professional",
-    price: "99", 
+    price: "99",
+    standard: "149",
     period: "ريال / شهرياً",
     periodEn: "SAR / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
     features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "ZATCA متوافق", "دعم مباشر", "تطبيق جوال"],
     featuresEn: ["Unlimited invoices", "5 users", "Advanced reports", "ZATCA-ready", "Live support", "Mobile app"],
-    highlighted: true 
+    highlighted: true
   },
-  { 
-    name: "مؤسسي", 
+  {
+    name: "مؤسسي",
     nameEn: "Enterprise",
-    price: "299", 
+    price: "299",
+    standard: "449",
     period: "ريال / شهرياً",
     periodEn: "SAR / month",
     desc: "للمؤسسات الكبيرة",
     descEn: "For larger organizations",
     features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم مخصص 24/7"],
     featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Dedicated 24/7 support"],
-    highlighted: false 
+    highlighted: false
+  },
+];
+
+const PRICING_US = [
+  {
+    name: "أساسي",
+    nameEn: "Starter",
+    price: "0",
+    standard: null as string | null,
+    period: "مجاني للأبد",
+    periodEn: "free forever",
+    desc: "للمشاريع الصغيرة والفردية",
+    descEn: "For solo operators and small projects",
+    features: ["5 فواتير شهرياً", "مستخدم واحد", "تقارير أساسية", "دعم بالبريد"],
+    featuresEn: ["5 invoices monthly", "1 user", "Basic reports", "Email support"],
+    highlighted: false
+  },
+  {
+    name: "احترافي",
+    nameEn: "Professional",
+    price: "29",
+    standard: "49",
+    period: "دولار / شهرياً",
+    periodEn: "USD / month",
+    desc: "للشركات الصغيرة والمتوسطة",
+    descEn: "For small and medium businesses",
+    features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "مدفوعات Stripe", "ربط Plaid البنكي", "دعم مباشر"],
+    featuresEn: ["Unlimited invoices", "5 users", "Advanced reports", "Stripe payments", "Plaid bank feeds", "Live support"],
+    highlighted: true
+  },
+  {
+    name: "مؤسسي",
+    nameEn: "Enterprise",
+    price: "79",
+    standard: "129",
+    period: "دولار / شهرياً",
+    periodEn: "USD / month",
+    desc: "للمؤسسات الكبيرة",
+    descEn: "For larger organizations",
+    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم مخصص 24/7"],
+    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Dedicated 24/7 support"],
+    highlighted: false
   },
 ];
 
@@ -106,6 +167,9 @@ const STATS = [
 export function Landing() {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
+  const { isSA } = useMarketingRegion();
+  const FEATURES = isSA ? FEATURES_SA : FEATURES_US;
+  const PRICING = isSA ? PRICING_SA : PRICING_US;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [, setScrolled] = useState(false);
 
@@ -123,7 +187,9 @@ export function Landing() {
   }, []);
 
   const faqs = [
-    { q: t("هل ENTIX.IO متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO compatible with Saudi e-invoicing requirements?"), a: t("نعم، ENTIX.IO متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي المطلوب.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") },
+    isSA
+      ? { q: t("هل ENTIX.IO متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO compatible with Saudi e-invoicing requirements?"), a: t("نعم، ENTIX.IO متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي المطلوب.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") }
+      : { q: t("هل يدعم ENTIX.IO ضريبة المبيعات والمدفوعات الأمريكية؟", "Does ENTIX.IO support US sales tax and payments?"), a: t("نعم، يدعم ضريبة المبيعات الأمريكية وتتبع الموردين 1099، مع قبول المدفوعات عبر Stripe وربط الحسابات البنكية عبر Plaid.", "Yes. ENTIX.IO handles US sales tax and 1099 vendor tracking, accepts payments via Stripe, and connects bank feeds via Plaid.") },
     { q: t("هل يمكنني العمل بدون إنترنت؟", "Can I work without internet?"), a: t("نعم، يدعم ENTIX.IO العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً على الجهاز وتتم المزامنة تلقائياً عند عودة الاتصال بالإنترنت. يمكنك جدولة المزامنة نهاية اليوم أو القيام بها يدوياً.", "Yes. ENTIX.IO supports offline work, keeps data locally, and syncs when the connection returns.") },
     { q: t("هل يمكن تثبيته على سيرفر خاص؟", "Can it run on a private server?"), a: t("نعم، في الباقة المؤسسية يمكنك تثبيت ENTIX.IO على VPS الخاص بك مع قاعدة بيانات PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي المحلي.", "Yes. Enterprise deployments can run on a private VPS with PostgreSQL, backups, and full data control.") },
     { q: t("كيف يتم تأمين البيانات؟", "How is data secured?"), a: t("نستخدم تشفير AES-256 للبيانات المخزنة وTLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي وإمكانية تصدير البيانات في أي وقت بصيغة JSON.", "Data is protected with encrypted storage, secure transport, automated backups, and export options.") },

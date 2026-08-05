@@ -609,7 +609,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة (العرض) *", "Company name (display) *")}</label>
                 <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder={t("مثال: شركة سبيك بروز للاستثمار", "e.g. Spec Pros Investment Co.")} className={inp} />
+                  placeholder={t("مثال: شركة الأفق للتجارة", "e.g. Horizon Trading Co.")} className={inp} />
               </div>
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground/80 block mb-1">{t("الاسم القانوني الكامل", "Full legal name")}</label>
