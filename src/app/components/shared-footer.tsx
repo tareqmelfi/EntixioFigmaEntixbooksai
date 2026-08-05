@@ -240,7 +240,7 @@ export function SharedFooter() {
           {/* Development notice */}
           <div className="mt-6 text-center">
             <p className="text-[#F59E0B]/80 max-w-2xl mx-auto" style={{ fontSize: "12px", lineHeight: 1.7 }}>
-              {t("⚠ الموقع حالياً تحت التطوير — لا يمكن الاشتراك في الوقت الحالي. سيتم الإعلان عن التشغيل الكامل قريباً.", "This site is currently in development. Subscriptions are not open yet; full launch will be announced soon.")}
+              {t("الاشتراك متاح الآن — دفع آمن عبر Stripe.", "Subscriptions are open — secure payment via Stripe.")}
             </p>
           </div>
         </div>

@@ -248,7 +248,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                         <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إعدادات المنشأة", "Company settings")}</span>
                       </button>
                     </Link>
-                    <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
+                    <Link to="/app/billing" onClick={() => setShowProfile(false)}>
                       <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
                         <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("الباقة والاشتراك", "Plan & billing")}</span>
                       </button>
@@ -266,7 +266,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   </div>
 
                   <div className="border-t border-border py-1">
-                    <Link to="/app/settings?tab=plans" onClick={() => setShowProfile(false)}>
+                    <Link to="/app/billing" onClick={() => setShowProfile(false)}>
                       <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
                         <Settings className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة جميع اشتراكاتي", "Manage subscriptions")}</span>
                       </button>

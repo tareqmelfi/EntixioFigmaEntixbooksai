@@ -469,6 +469,15 @@ export const api = {
     deleteShareTransaction: (id: string) => request<void>(`/api/investments/share-transactions/${id}`, { method: 'DELETE' }),
   },
 
+  // Stripe billing · subscription plans + checkout + portal
+  stripe: {
+    plans: () => request<{ plans: any[] }>('/api/stripe/plans'),
+    subscription: () => request<any>('/api/stripe/subscription'),
+    createCheckoutSession: (priceId: string, successUrl?: string, cancelUrl?: string) =>
+      request<{ url: string }>('/api/stripe/create-checkout-session', { method: 'POST', body: { priceId, successUrl, cancelUrl } }),
+    customerPortal: () => request<{ url: string }>('/api/stripe/customer-portal', { method: 'POST', body: {} }),
+  },
+
   // Contractors (freelancers · مقاولون) · work logs · direct payments · project performance
   contractors: {
     list: () => request<{ items: any[]; total: number; peers: any }>('/api/contractors'),

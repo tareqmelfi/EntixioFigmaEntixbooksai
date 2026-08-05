@@ -2,13 +2,48 @@ import { motion } from "motion/react";
 import { CheckCircle2, X, Sparkles, ArrowLeft, HelpCircle } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { api } from "../lib/api";
+import { authStore } from "../components/auth-store";
 
 export function PricingPage() {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [showComparison, setShowComparison] = useState(false);
+  const [livePriceIds, setLivePriceIds] = useState<Record<string, string>>({});
+  const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
+
+  // Live Stripe plans → map tier+interval to the real priceId so the CTA
+  // can start a real checkout for logged-in users (guests register first).
+  useEffect(() => {
+    api.stripe.plans().then((d) => {
+      const map: Record<string, string> = {};
+      for (const p of d.plans || []) {
+        map[`${p.tier}:${p.interval}`] = p.stripePriceId;
+      }
+      setLivePriceIds(map);
+    }).catch(() => {});
+  }, []);
+
+  const subscribe = async (tier: "starter" | "professional" | "enterprise") => {
+    const interval = billingCycle === "monthly" ? "month" : "year";
+    const priceId = livePriceIds[`${tier}:${interval}`];
+    if (tier === "starter" || !priceId) { navigate("/register"); return; }
+    if (!authStore.getState().isAuthenticated) { navigate("/register"); return; }
+    setCheckoutBusy(tier);
+    try {
+      const { url } = await api.stripe.createCheckoutSession(
+        priceId,
+        `${window.location.origin}/app/billing?success=true`,
+        `${window.location.origin}/pricing?canceled=true`,
+      );
+      window.location.href = url;
+    } catch {
+      setCheckoutBusy(null);
+      navigate("/app/billing");
+    }
+  };
 
   const plans = [
     {
@@ -248,15 +283,18 @@ export function PricingPage() {
                 </div>
 
                 <button
-                  onClick={() => navigate("/register")}
+                  onClick={() => subscribe((["starter", "professional", "enterprise"] as const)[i] || "starter")}
+                  disabled={checkoutBusy !== null}
                   className={`w-full py-3.5 rounded-xl transition-all mb-8 cursor-pointer ${
                     plan.popular
                       ? "bg-primary hover:bg-primary/80 text-white shadow-lg shadow-[#1276E3]/25"
                       : "bg-gray-100 hover:bg-gray-200 text-foreground"
-                  }`}
+                  } disabled:opacity-60`}
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >
-                  {plan.price[billingCycle] === 0 ? "ابدأ مجاناً" : "ابدأ التجربة المجانية"}
+                  {checkoutBusy === (["starter", "professional", "enterprise"] as const)[i]
+                    ? "جارٍ تحويلك لصفحة الدفع الآمنة..."
+                    : plan.price[billingCycle] === 0 ? "ابدأ مجاناً" : "ابدأ التجربة المجانية"}
                 </button>
 
                 <div className="space-y-4">
