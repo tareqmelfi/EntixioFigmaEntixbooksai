@@ -165,9 +165,23 @@ export function Billing() {
         <>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{t("الباقات", "Plans")}</h2>
-            <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
-              <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
-              <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "year" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>{t("سنوي · وفّر", "Yearly · save")}</button>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1 rounded-lg bg-muted/50 p-1" title={t("عملة الدفع", "Billing currency")}>
+                {(["sar", "usd"] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setPlanCurrency(c)}
+                    className={`rounded-md px-3 py-1.5 text-sm transition-colors ${planCurrency === c ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`}
+                    style={{ fontWeight: planCurrency === c ? 700 : 500 }}
+                  >
+                    {c === "sar" ? t("ر.س", "SAR") : "$ USD"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+                <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
+                <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "year" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>{t("سنوي · وفّر", "Yearly · save")}</button>
+              </div>
             </div>
           </div>
 
