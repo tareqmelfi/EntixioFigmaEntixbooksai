@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import { ChevronDown, Plus, Check, X } from "lucide-react";
 import { api, Org, setOrgId, API_BASE_URL } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
+import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
 import { useLanguage } from "./LanguageContext";
 
 function orgInitials(name?: string | null) {
@@ -39,6 +40,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [demoConflict, setDemoConflict] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // The portaled dropdown content renders at document.body — OUTSIDE
   // dropdownRef. Without a second ref, the outside-close handler (mousedown)
@@ -295,26 +297,57 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             {t("إنشاء منشأة جديدة", "Create new company")}
           </button>
 
-          {/* Seed two demos (SA + US) · only show if user has 0 or 1 org · UX-179 */}
+          {/* W27 · ONE temporary demo (auto-deletes after 30 days) — no more accumulation */}
           {(true) /* UX-194 · always show */ && (
-            <button
-              onClick={async () => {
-                try {
-                  const r = await (api as any).seedTwoDemos();
-                  if (r?.ok) {
-                    setSeedMessage({ kind: "success", text: t("تم إنشاء ", "Created ") + r.seeded.length + t(" شركة تجريبية كاملة · جارٍ التحميل...", " full demo companies · Loading...") });
-                    window.setTimeout(() => window.location.reload(), 800);
+            <div className="border-b border-border/50">
+              <button
+                onClick={async () => {
+                  try {
+                    const r = await (api as any).seedDemo({ country: "SA" });
+                    if (r?.ok) {
+                      setSeedMessage({ kind: "success", text: t("تم إنشاء شركة الديمو · تُحذف تلقائيًا بعد 30 يوم · جارٍ التحميل...", "Demo company created · auto-deletes after 30 days · Loading...") });
+                      window.setTimeout(() => window.location.reload(), 900);
+                    }
+                  } catch (e: any) {
+                    if (e?.status === 409 || e?.body?.error === "demo_exists" || String(e?.message || "").includes("demo_exists")) {
+                      setDemoConflict(true);
+                      setSeedMessage(null);
+                    } else {
+                      setSeedMessage({ kind: "error", text: t("فشل: ", "Failed: ") + (e?.messageAr || e?.message || t("خطأ غير معروف", "Unknown error")) });
+                    }
                   }
-                } catch (e: any) {
-                  setSeedMessage({ kind: "error", text: t("فشل: ", "Failed: ") + (e?.message || t("خطأ غير معروف", "Unknown error")) });
-                }
-              }}
-              className={`flex w-full ${rowDirClass} items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50 border-b border-border/50`}
-              style={{ fontWeight: 600 }}
-            >
-              <Plus className="h-4 w-4" />
-              {t("+ إنشاء بيانات تجريبية كاملة (SA + US)", "+ Create full demo data (SA + US)")}
-            </button>
+                }}
+                className={`flex w-full ${rowDirClass} items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50`}
+                style={{ fontWeight: 600 }}
+              >
+                <Plus className="h-4 w-4" />
+                {t("+ إنشاء شركة ديمو مؤقتة (30 يوم)", "+ Create temporary demo (30 days)")}
+              </button>
+              {demoConflict && (
+                <div className="mx-2 mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-2">
+                  <div>{t("عندك شركة ديمو موجودة — إنشاء واحدة جديدة يحذف الحالية نهائيًا.", "You already have a demo — creating a new one permanently deletes the current one.")}</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const r = await (api as any).seedDemo({ country: "SA", replace: true });
+                          if (r?.ok) {
+                            setDemoConflict(false);
+                            setSeedMessage({ kind: "success", text: t("تم استبدال الديمو · تُحذف بعد 30 يوم · جارٍ التحميل...", "Demo replaced · deletes after 30 days · Loading...") });
+                            window.setTimeout(() => window.location.reload(), 900);
+                          }
+                        } catch (e: any) {
+                          setSeedMessage({ kind: "error", text: t("فشل: ", "Failed: ") + (e?.messageAr || e?.message || "") });
+                        }
+                      }}
+                      className="rounded bg-amber-600 px-2.5 py-1 text-white hover:bg-amber-700"
+                      style={{ fontWeight: 600 }}
+                    >{t("استبدال الديمو", "Replace demo")}</button>
+                    <button onClick={() => setDemoConflict(false)} className="rounded border border-amber-300 px-2.5 py-1 hover:bg-amber-100">{t("إبقاء الحالية", "Keep current")}</button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {seedMessage && (
@@ -456,11 +489,25 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
     taxRegistrationDate: "",
     firstVatPeriodStart: "",
     vatPeriod: "monthly",
+    usFilingClass: "",
     logoUrl: "",
     stampUrl: "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // W27 · simplified creation: only the essentials are visible by default;
+  // everything else lives behind the advanced toggle ("complete later").
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [industryItems, setIndustryItems] = useState<ComboboxItem[]>([]);
+  useEffect(() => {
+    api.industryTemplates()
+      .then((rows) => setIndustryItems(rows.map((r) => ({
+        id: r.id,
+        label: (isRtl ? r.nameAr : r.name) + (r.icon ? ` ${r.icon}` : ""),
+        sublabel: r.description,
+      }))))
+      .catch(() => { /* templates are a nicety — free text still works */ });
+  }, [isRtl]);
 
   const spec = COUNTRY_SPECS[form.country] || COUNTRY_SPECS.SA;
 
@@ -510,6 +557,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
         "logoUrl","stampUrl",
         "vatPeriod","taxRegistrationDate","firstVatPeriodStart",
       ].forEach(optStr);
+      if (form.country === "US" && form.usFilingClass) payload.usFilingClass = form.usFilingClass;
       const org = await api.orgs.create(payload);
       onCreated(org);
     } catch (e: any) {
@@ -536,7 +584,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <button type="button" onClick={onClose} className="rounded p-1.5 text-muted-foreground hover:bg-muted/50"><X className="h-5 w-5" /></button>
             <div>
               <h1 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t("إنشاء شركة جديدة", "Create new company")}</h1>
-              <p className="text-xs text-muted-foreground">{t("بعد الإنشاء: 20 حساب · 3 معدلات ضريبية · ZATCA جاهز", "After creating: 20 accounts · 3 tax rates · ZATCA ready")}</p>
+              <p className="text-xs text-muted-foreground">{t("الاسم فقط يكفي للبدء · شجرة حسابات تنبني حسب النشاط وتعدّل لاحقًا", "A name is enough to start · the chart of accounts builds from your industry and edits later")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -552,32 +600,134 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           )}
 
-          {/* Section: Branding */}
+          {/* ═══ W27 · STEP 1: country FIRST — everything below adapts to it ═══ */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الهوية البصرية", "Brand identity")}</h2>
-            <p className="text-xs text-muted-foreground mb-4">{t("شعار الشركة + الختم الرسمي · يظهران على الفواتير والعقود", "Company logo + official stamp · shown on invoices and contracts")}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("دولة الشركة", "Company country")} <span className="text-red-500">*</span></h2>
+            <p className="text-xs text-muted-foreground mb-4">{t("كل شيء بعدها (الضريبة · العنوان · التقارير) يتكيّف حسب الدولة", "Everything after this (tax · address · reports) adapts to the country")}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {([
+                { c: "SA", flag: "🇸🇦", ar: "السعودية", en: "Saudi Arabia", subAr: "ض.ق.م 15% · ZATCA جاهز · العنوان الوطني", subEn: "VAT 15% · ZATCA ready · national address" },
+                { c: "US", flag: "🇺🇸", ar: "أمريكا", en: "United States", subAr: "Sales Tax · filing حسب الولاية", subEn: "Sales tax · state filing" },
+              ] as const).map((o) => (
+                <button key={o.c} type="button" onClick={() => setCountry(o.c)}
+                  className={`flex items-center gap-3 rounded-lg border-2 px-4 py-3.5 text-start transition ${form.country === o.c ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-primary/40"}`}>
+                  <span style={{ fontSize: "1.6rem" }}>{o.flag}</span>
+                  <span>
+                    <span className="block text-foreground" style={{ fontWeight: 700 }}>{t(o.ar, o.en)}</span>
+                    <span className="block text-[11px] text-muted-foreground mt-0.5">{t(o.subAr, o.subEn)}</span>
+                  </span>
+                  {form.country === o.c && <Check className="h-4 w-4 text-primary ms-auto shrink-0" />}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <label className="text-xs text-muted-foreground shrink-0">{t("دولة أخرى:", "Other country:")}</label>
+              <select value={["SA", "US"].includes(form.country) ? "" : form.country} onChange={(e) => e.target.value && setCountry(e.target.value)}
+                className="rounded-md border border-border px-2.5 py-1.5 text-xs bg-white focus:border-[#1276E3] focus:outline-none">
+                <option value="">{t("اختر…", "Choose…")}</option>
+                <option value="AE">{t("الإمارات", "UAE")}</option>
+                <option value="KW">{t("الكويت", "Kuwait")}</option>
+                <option value="QA">{t("قطر", "Qatar")}</option>
+                <option value="BH">{t("البحرين", "Bahrain")}</option>
+                <option value="OM">{t("عُمان", "Oman")}</option>
+                <option value="EG">{t("مصر", "Egypt")}</option>
+                <option value="GB">{t("بريطانيا", "UK")}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* ═══ W27 · STEP 2: essentials only — name · logo · email · industry ═══ */}
+          <div className="rounded-lg border border-border p-5">
+            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الأساسيات — وتكمل الباقي لاحقًا من الإعدادات", "Essentials — complete the rest later in Settings")}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة", "Company name")} <span className="text-red-500">*</span></label>
+                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder={t("مثال: شركة الأفق للتجارة", "e.g. Horizon Trading Co.")} className={inp} />
+              </div>
               <div>
-                <label className="text-sm text-foreground/80 block mb-1.5">{t("الشعار · يقبل مربع أو طولي", "Logo · square or wide accepted")}</label>
-                <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-[#1276E3] transition">
+                <label className="text-sm text-foreground/80 block mb-1.5">{t("الشعار", "Logo")}</label>
+                <div className="border-2 border-dashed border-border rounded-lg px-3 py-2 hover:border-[#1276E3] transition">
                   <input type="file" accept="image/*" hidden id="logo-upload"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "logoUrl"); }} />
                   {form.logoUrl ? (
                     <div className="flex items-center gap-3">
-                      <img src={form.logoUrl} alt="logo" className="max-w-[240px] max-h-[80px] object-contain bg-muted rounded p-1" />
+                      <img src={form.logoUrl} alt="logo" className="max-w-[140px] max-h-[44px] object-contain bg-muted rounded p-1" />
                       <div className="flex flex-col gap-1">
                         <label htmlFor="logo-upload" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
                         <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline text-start">{t("حذف", "Remove")}</button>
                       </div>
                     </div>
                   ) : (
-                    <label htmlFor="logo-upload" className="cursor-pointer block text-center py-4">
-                      <div className="text-sm text-primary font-medium">{t("اضغط لرفع الشعار", "Click to upload logo")}</div>
-                      <div className="text-xs text-muted-foreground/60 mt-1">{t("PNG · SVG · JPG · حتى 2MB", "PNG · SVG · JPG · up to 2MB")}</div>
+                    <label htmlFor="logo-upload" className="cursor-pointer flex items-center justify-between gap-2 py-1">
+                      <span className="text-xs text-primary font-medium">{t("اضغط لرفع الشعار", "Click to upload logo")}</span>
+                      <span className="text-[10px] text-muted-foreground/60">{t("حتى 2MB", "up to 2MB")}</span>
                     </label>
                   )}
                 </div>
               </div>
+              <div>
+                <label className="text-sm text-foreground/80 block mb-1">{t("البريد الإلكتروني", "Email")}</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="info@company.com" className={inp + " font-english"} dir="ltr" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground/80 block mb-1">{t("نشاط الشركة", "Industry")}</label>
+                <SearchableCombobox
+                  value={form.industry}
+                  onChange={(id) => setForm({ ...form, industry: id })}
+                  onCreate={async (q) => {
+                    setIndustryItems((arr) => arr.some((x) => x.id === q) ? arr : [...arr, { id: q, label: q }]);
+                    return q;
+                  }}
+                  items={industryItems}
+                  placeholder={t("اختر النشاط… أو اكتب «أخرى» واسم نشاطك", "Pick an industry… or type your own (Other)")}
+                  createLabel={(q) => t(`أخرى: «${q}»`, `Other: "${q}"`)}
+                />
+                <p className="text-[11px] text-muted-foreground/70 mt-1">{t("شجرة الحسابات تنبني تلقائيًا حسب النشاط المختار — وتقدر تعدّلها في أي وقت", "The chart of accounts builds automatically from the chosen industry — editable anytime")}</p>
+              </div>
+              {form.country === "US" && (
+                <div className="md:col-span-2">
+                  <label className="text-sm text-foreground/80 block mb-1.5">{t("تصنيف الـfiling الضريبي (أمريكا)", "US tax filing classification")}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: "disregarded", ar: "Disregarded (LLC فردية)", en: "Disregarded (single-member LLC)" },
+                      { id: "partnership", ar: "Partnership", en: "Partnership" },
+                      { id: "scorp", ar: "S-Corp", en: "S-Corp" },
+                      { id: "ccorp", ar: "C-Corp", en: "C-Corp" },
+                    ] as const).map((o) => (
+                      <button key={o.id} type="button" onClick={() => setForm({ ...form, usFilingClass: form.usFilingClass === o.id ? "" : o.id })}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition ${form.usFilingClass === o.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                        style={{ fontWeight: form.usFilingClass === o.id ? 700 : 500 }}>
+                        {t(o.ar, o.en)}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70 mt-1.5">{t("💡 وايومنغ LLC فردية = Disregarded — الأسهل والأشهر · تقاريرك الضريبية تطلع جاهزة للتعبئة حسب التصنيف", "💡 A Wyoming single-member LLC = Disregarded — the easiest, most common · your tax reports come out ready to fill by classification")}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ═══ W27 · create-now note + billing model ═══ */}
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900 space-y-1.5">
+            <div>✅ {t("تقدر تنشئ الشركة الآن بالاسم فقط — وبعد الدخول تكمل السجل التجاري · الضريبة · العنوان من الإعدادات", "You can create the company with just a name — after entering, complete the CR · tax · address from Settings")}</div>
+            <div>💳 {t("الاشتراك يكون على الشركة وليس على حسابك — كل شركة لها باقتها · وشركتك الإضافية عليها خصم 30% تلقائي", "Subscription is per company, not per account — each company has its own plan · your additional companies get an automatic 30% off")}</div>
+          </div>
+
+          {/* ═══ W27 · advanced toggle — everything below is optional ═══ */}
+          <button type="button" onClick={() => setShowAdvanced((v) => !v)}
+            className="flex w-full items-center justify-between rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:bg-muted/40 transition">
+            <span>{t("بيانات إضافية (اختياري): الاسم القانوني · التسجيل الضريبي · العنوان · الختم · السنة المالية", "More details (optional): legal name · tax registration · address · stamp · fiscal year")}</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+          </button>
+
+          {showAdvanced && (<>
+          {/* Section: Branding — stamp only (logo moved to essentials) */}
+          <div className="rounded-lg border border-border p-5">
+            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الختم الرسمي", "Official stamp")}</h2>
+            <p className="text-xs text-muted-foreground mb-4">{t("يظهر على الفواتير والعقود", "Shown on invoices and contracts")}</p>
+            <div className="grid grid-cols-1 gap-5">
               <div>
                 <label className="text-sm text-foreground/80 block mb-1.5">{t("الختم الرسمي", "Official stamp")}</label>
                 <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-[#1276E3] transition">
@@ -602,33 +752,14 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             </div>
           </div>
 
-          {/* Section: Basic info */}
+          {/* Section: Basic info — advanced only (name · country · industry moved to the essentials above) */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("البيانات الأساسية", "Basic info")}</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("البيانات الأساسية الإضافية", "Additional basic info")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة (العرض) *", "Company name (display) *")}</label>
-                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder={t("مثال: شركة الأفق للتجارة", "e.g. Horizon Trading Co.")} className={inp} />
-              </div>
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground/80 block mb-1">{t("الاسم القانوني الكامل", "Full legal name")}</label>
                 <input type="text" value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })}
                   placeholder="Spec Pros Fund LP" className={inp} />
-              </div>
-              <div>
-                <label className="text-sm text-foreground/80 block mb-1">{t("الدولة", "Country")}</label>
-                <select value={form.country} onChange={(e) => setCountry(e.target.value)} className={inp + " bg-white"}>
-                  <option value="SA">{t("السعودية (KSA)", "Saudi Arabia (KSA)")}</option>
-                  <option value="AE">{t("الإمارات (UAE)", "United Arab Emirates (UAE)")}</option>
-                  <option value="KW">{t("الكويت", "Kuwait")}</option>
-                  <option value="QA">{t("قطر", "Qatar")}</option>
-                  <option value="BH">{t("البحرين", "Bahrain")}</option>
-                  <option value="OM">{t("عُمان", "Oman")}</option>
-                  <option value="EG">{t("مصر", "Egypt")}</option>
-                  <option value="US">{t("الولايات المتحدة (USA)", "United States (USA)")}</option>
-                  <option value="GB">{t("المملكة المتحدة (UK)", "United Kingdom (UK)")}</option>
-                </select>
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1">{t("العملة الأساسية", "Base currency")}</label>
@@ -639,11 +770,6 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                   <option value="EUR">{t("EUR · يورو", "EUR · Euro")}</option>
                   <option value="GBP">{t("GBP · جنيه", "GBP · Pound")}</option>
                 </select>
-              </div>
-              <div>
-                <label className="text-sm text-foreground/80 block mb-1">{t("مجال الشركة", "Industry")}</label>
-                <input type="text" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                  placeholder={t("استشارات · إنتاج فني · عقاري · …", "Consulting · media production · real estate · …")} className={inp} />
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1">{t("نهاية السنة المالية (شهر)", "Fiscal year end (month)")}</label>
@@ -697,12 +823,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
           {/* Section: Contact info */}
           <div className="rounded-lg border border-border p-5">
             <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("بيانات الاتصال", "Contact info")}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm text-foreground/80 block mb-1">{t("البريد الإلكتروني", "Email")}</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="info@ensidex.com" className={inp + " font-english"} dir="ltr" />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-foreground/80 block mb-1">{t("رقم الهاتف", "Phone number")}</label>
                 <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -810,6 +931,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               {t("💡 ابدأ بكتابة العنوان (مثل \"30 N Gould\") · سيظهر مساعد التعبئة التلقائية قريباً", "💡 Start typing the address (e.g. \"30 N Gould\") · autocomplete assistant coming soon")}
             </p>
           </div>
+          </>)}
         </div>
       </form>
     </div>

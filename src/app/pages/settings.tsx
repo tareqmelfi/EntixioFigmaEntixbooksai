@@ -3,7 +3,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink, Database, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
+import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink, Database, RotateCcw, ShieldCheck, Trash2, ArrowLeftRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -721,6 +721,10 @@ function DataResetTab({
   const [accountScheduled, setAccountScheduled] = useState<string | null>(null);
   const [busy, setBusy] = useState<"blank" | "demo" | "clean_company" | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // W27 · transfer ownership (e.g. I created it but it belongs to a client)
+  const [transferEmail, setTransferEmail] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
+  const isOwner = (org as any).role === "OWNER" || (org as any).role == null;
   const [audit, setAudit] = useState<AuditLogItem[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(true);
   const { t } = useLanguage();
@@ -885,6 +889,52 @@ function DataResetTab({
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> {t("حذف الشركة", "Delete company")}</>}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* W27 · transfer ownership — hand the company to another account (e.g. a client) */}
+      <Card className="border-amber-200 bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <ArrowLeftRight className="h-5 w-5 text-amber-600" /> {t("نقل ملكية الشركة", "Transfer company ownership")}
+          </CardTitle>
+          <CardDescription>
+            {t("أنشأت الشركة بحسابك لكنها تخص عميلًا؟ انقل الملكية لإيميل حسابه — يصبح هو المالك وتبقى أنت مديرًا (ADMIN). يجب أن يكون مسجلًا أولًا.", "Created the company under your account but it belongs to a client? Transfer ownership to their account email — they become OWNER and you stay an ADMIN. They must be registered first.")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              value={transferEmail}
+              onChange={(e) => setTransferEmail(e.target.value)}
+              placeholder="client@email.com"
+              className="border-amber-200 font-english"
+              dir="ltr"
+              type="email"
+            />
+            <Button
+              type="button"
+              disabled={transferBusy || !transferEmail.includes("@") || !isOwner}
+              variant="outline"
+              className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-50"
+              onClick={async () => {
+                setTransferBusy(true);
+                try {
+                  const r = await api.transferOwnership(org.id, transferEmail.trim());
+                  push("success", t("تم نقل الملكية إلى ", "Ownership transferred to ") + r.newOwnerEmail + t(" · أنت الآن مدير", " · you are now an admin"));
+                  setTransferEmail("");
+                  await refresh();
+                } catch (e: any) {
+                  push("error", e instanceof ApiError ? ((e as any).messageAr || e.message) : t("فشل نقل الملكية", "Ownership transfer failed"));
+                } finally {
+                  setTransferBusy(false);
+                }
+              }}
+            >
+              {transferBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ArrowLeftRight className="h-4 w-4 me-2" /> {t("نقل الملكية", "Transfer ownership")}</>}
+            </Button>
+          </div>
+          {!isOwner && <p className="text-xs text-muted-foreground">{t("متاح للمالك فقط", "Available to the owner only")}</p>}
         </CardContent>
       </Card>
 

@@ -951,9 +951,19 @@ export const api = {
     request<{ ok: true; seeded: any }>(
       `/orgs/${orgId}/seed-demo-data`, { method: 'POST', body: {}, skipOrg: true },
     ),
-  seedTwoDemos: () =>
-    request<{ ok: true; seeded: Array<{ id: string; slug: string; name: string; country: string; currency: string }> }>(
-      '/orgs/_/seed-two-demos', { method: 'POST', body: {}, skipOrg: true },
+  // W27 · single demo policy — one demo per user, auto-expires after 30 days.
+  // 409 demo_exists unless replace=true (the server deletes the old demo first).
+  seedDemo: (opts: { country?: 'SA' | 'US'; replace?: boolean } = {}) =>
+    request<{ ok: true; seeded: Array<{ id: string; slug: string; name: string; country: string; currency: string }>; demoExpiresAt: string; expiresInDays: number }>(
+      '/orgs/_/seed-demo', { method: 'POST', body: { country: opts.country ?? 'SA', replace: opts.replace === true }, skipOrg: true },
+    ),
+  industryTemplates: () =>
+    request<Array<{ id: string; name: string; nameAr: string; description: string; icon: string | null; accountCount: number }>>(
+      '/orgs/industry-templates', { skipOrg: true },
+    ),
+  transferOwnership: (orgId: string, email: string) =>
+    request<{ ok: true; newOwnerEmail: string }>(
+      `/orgs/${orgId}/transfer-ownership`, { method: 'POST', body: { email }, skipOrg: true },
     ),
 
   // OAuth · payment provider connections (UX-137)
