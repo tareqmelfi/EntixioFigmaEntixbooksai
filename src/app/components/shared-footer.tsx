@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Instagram, Linkedin, Youtube, Twitter, Facebook, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
 
@@ -48,14 +48,6 @@ export function SharedFooter() {
     ],
   };
 
-  const socialLinks = [
-    { icon: Instagram, href: "https://instagram.com", label: "Instagram", color: "#E4405F" },
-    { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn", color: "#0A66C2" },
-    { icon: Youtube, href: "https://youtube.com", label: "YouTube", color: "#FF0000" },
-    { icon: Twitter, href: "https://twitter.com", label: "Twitter", color: "#1DA1F2" },
-    { icon: Facebook, href: "https://facebook.com", label: "Facebook", color: "#1877F2" },
-  ];
-
   return (
     <footer className="bg-[#0B1B49] text-white" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Main footer content */}
@@ -89,21 +81,6 @@ export function SharedFooter() {
               </div>
             </div>
 
-            {/* Social links */}
-            <div className="flex items-center gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all hover:scale-110 cursor-pointer group"
-                  aria-label={social.label}
-                >
-                  <social.icon className="w-4 h-4 text-[#94A3B8] group-hover:text-white transition-colors" />
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Product */}
@@ -234,6 +211,13 @@ export function SharedFooter() {
                     {t(link.label, link.labelEn)}
                 </Link>
               ))}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("entix:cookie-preferences"))}
+                className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer"
+                style={{ fontSize: "13px" }}
+              >
+                {t("تفضيلات الكوكيز", "Cookie preferences")}
+              </button>
             </div>
           </div>
           
