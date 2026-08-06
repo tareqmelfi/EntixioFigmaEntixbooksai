@@ -142,6 +142,18 @@ export const router = createBrowserRouter([
   { path: "/glossary", element: lazyElement(() => import("./pages/other-pages"), "Glossary"), errorElement: <ErrorBoundary /> },
   { path: "/refund", element: lazyElement(() => import("./pages/other-pages"), "Refund"), errorElement: <ErrorBoundary /> },
   { path: "/sla", element: lazyElement(() => import("./pages/other-pages"), "SLA"), errorElement: <ErrorBoundary /> },
+  // POS cashier — full-screen, no app sidebar (approved mockup is a dedicated
+  // cashier workstation screen; every pixel counts on touch terminals).
+  {
+    path: "/app/pos",
+    element: (
+      <AuthGuard>
+        {lazyElement(() => import("./pages/pos"), "PosPage")}
+      </AuthGuard>
+    ),
+    errorElement: <ErrorBoundary />,
+  },
+
   // Protected app routes
   {
     path: "/app",
@@ -266,7 +278,6 @@ export const router = createBrowserRouter([
       { path: "settings", element: lazyElement(() => import("./pages/settings"), "Settings"), errorElement: <ErrorBoundary /> },
       { path: "billing", element: lazyElement(() => import("./pages/billing"), "Billing"), errorElement: <ErrorBoundary /> },
       { path: "onboarding", element: lazyElement(() => import("./pages/onboarding-wizard"), "OnboardingWizard"), errorElement: <ErrorBoundary /> },
-      { path: "pos", element: lazyElement(() => import("./pages/pos"), "PosPage"), errorElement: <ErrorBoundary /> },
       { path: "system-status", element: lazyElement(() => import("./pages/system-status"), "SystemStatus"), errorElement: <ErrorBoundary /> },
       { path: "notifications", element: lazyElement(() => import("./pages/notifications"), "Notifications"), errorElement: <ErrorBoundary /> },
       { path: "admin", element: lazyElement(() => import("./pages/admin"), "AdminDashboard"), errorElement: <ErrorBoundary /> },
