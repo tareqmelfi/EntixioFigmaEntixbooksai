@@ -1,10 +1,10 @@
-import { useNavigate, Link } from "react-router";
+import { useNavigate } from "react-router";
 import {
   Shield, BarChart3, Globe, Zap, Cloud, Smartphone,
   FileText, ArrowLeft, CheckCircle2, ChevronDown,
   Database, Wifi, WifiOff, Server,
   Receipt, Calculator, TrendingUp, Clock, Play,
-  CreditCard, Landmark, Gift, Users, Rocket
+  CreditCard, Landmark, Rocket
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
@@ -71,14 +71,12 @@ const FEATURES_US = [
   { icon: TrendingUp, title: "تحليلات ذكية", titleEn: "Smart analytics", desc: "تنبؤات مالية مدعومة بالذكاء الاصطناعي مع توصيات لتحسين الأداء", descEn: "AI-assisted financial signals and recommendations for better decisions." },
 ];
 
-// Pricing · anchor-high standard prices + launch offer (room for real discounts)
-// displayed price = today's charge · standard = anchor shown with strikethrough
+// Pricing · matches the live plan catalog (api/stripe/plans)
 const PRICING_SA = [
   {
     name: "أساسي",
     nameEn: "Starter",
     price: "0",
-    standard: null as string | null,
     period: "مجاني للأبد",
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
@@ -91,12 +89,11 @@ const PRICING_SA = [
     name: "احترافي",
     nameEn: "Professional",
     price: "99",
-    standard: "149",
     period: "ريال / شهرياً",
     periodEn: "SAR / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "ZATCA متوافق", "دعم مباشر", "تطبيق جوال"],
+    features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "جاهز لـ ZATCA", "دعم مباشر", "تطبيق جوال"],
     featuresEn: ["Unlimited invoices", "5 users", "Advanced reports", "ZATCA-ready", "Live support", "Mobile app"],
     highlighted: true
   },
@@ -104,13 +101,12 @@ const PRICING_SA = [
     name: "مؤسسي",
     nameEn: "Enterprise",
     price: "299",
-    standard: "449",
     period: "ريال / شهرياً",
     periodEn: "SAR / month",
     desc: "للمؤسسات الكبيرة",
     descEn: "For larger organizations",
-    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم مخصص 24/7"],
-    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Dedicated 24/7 support"],
+    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم ذو أولوية"],
+    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Priority support"],
     highlighted: false
   },
 ];
@@ -120,7 +116,6 @@ const PRICING_US = [
     name: "أساسي",
     nameEn: "Starter",
     price: "0",
-    standard: null as string | null,
     period: "مجاني للأبد",
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
@@ -133,7 +128,6 @@ const PRICING_US = [
     name: "احترافي",
     nameEn: "Professional",
     price: "29",
-    standard: "49",
     period: "دولار / شهرياً",
     periodEn: "USD / month",
     desc: "للشركات الصغيرة والمتوسطة",
@@ -146,22 +140,21 @@ const PRICING_US = [
     name: "مؤسسي",
     nameEn: "Enterprise",
     price: "79",
-    standard: "129",
     period: "دولار / شهرياً",
     periodEn: "USD / month",
     desc: "للمؤسسات الكبيرة",
     descEn: "For larger organizations",
-    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم مخصص 24/7"],
-    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Dedicated 24/7 support"],
+    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم ذو أولوية"],
+    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Priority support"],
     highlighted: false
   },
 ];
 
 const STATS = [
-  { value: 2500, suffix: "+", label: "شركة تستخدم Entix", labelEn: "companies using Entix" },
-  { value: 150, suffix: "K+", label: "فاتورة صدرت", labelEn: "invoices issued" },
-  { value: 99.9, suffix: "%", label: "وقت التشغيل", labelEn: "uptime" },
-  { value: 24, suffix: "/7", label: "دعم فني متواصل", labelEn: "support coverage" },
+  { value: 30, suffix: "", label: "يومًا تجربة مجانية", labelEn: "days of free trial" },
+  { value: 2, suffix: "", label: "سوق — السعودية وأمريكا", labelEn: "markets — Saudi & US" },
+  { value: 20, suffix: "+", label: "حساب جاهز في الدليل المحاسبي", labelEn: "preconfigured accounts" },
+  { value: 100, suffix: "%", label: "ملكية بياناتك — تصدير في أي وقت", labelEn: "your data, exportable anytime" },
 ];
 
 export function Landing() {
@@ -208,7 +201,7 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-primary px-4 py-2 rounded-full" style={{ fontSize: "13px", fontWeight: 600 }}>
                 <Zap className="w-4 h-4" />
-                <span>{t("نظام محاسبة سحابي متكامل للسوق السعودي", "Cloud accounting for Saudi businesses")}</span>
+                <span>{t("نظام محاسبة سحابي متكامل للسوقين السعودي والأمريكي", "Cloud accounting for Saudi & US businesses")}</span>
               </div>
               <div className="inline-flex items-center gap-1.5 bg-[#F0FDF4] text-[#15803D] border border-[#22C55E]/30 px-3.5 py-2 rounded-full" style={{ fontSize: "12px", fontWeight: 700 }}>
                 <Rocket className="w-3.5 h-3.5" />
@@ -222,7 +215,7 @@ export function Landing() {
             </h1>
             <p className="text-muted-foreground mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
               {t(
-                "ENTIX.IO نظام محاسبة سحابي يعمل أونلاين وأوفلاين. متوافق مع ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
+                "ENTIX.IO نظام محاسبة سحابي يعمل أونلاين وأوفلاين. جاهز للفوترة الإلكترونية ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
                 "ENTIX.IO is a cloud accounting platform that works online and offline. It supports ZATCA workflows, Arabic RTL, English LTR, and the daily financial operations of growing businesses."
               )}
             </p>

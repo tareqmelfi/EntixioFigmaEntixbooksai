@@ -269,14 +269,14 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-[#F0FDF4] text-[#22C55E] px-4 py-2 rounded-full mb-4">
               <FileCheck className="w-4 h-4" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>التزام كامل</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>جاهزية نظامية</span>
             </div>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              متوافق مع جميع المتطلبات القانونية
+              مصمم لدعم المتطلبات النظامية
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              نظام مصمم بعناية ليتوافق بالكامل مع متطلبات هيئة الزكاة والضريبة والجمارك ZATCA 
-              والمعايير الدولية
+              نظام مصمم بعناية لدعم متطلبات هيئة الزكاة والضريبة والجمارك ZATCA للفوترة الإلكترونية —
+              والتفعيل يتم عبر شهادة CSID الخاصة بمنشأتك من بوابة فاتورة
             </p>
           </motion.div>
 
@@ -285,17 +285,17 @@ export function Integration() {
             {[
               {
                 icon: Award,
-                title: "متوافق مع ZATCA",
+                title: "جاهز لـ ZATCA",
                 subtitle: "المرحلة الثانية من الفوترة الإلكترونية",
                 color: "#22C55E",
                 features: [
                   "فواتير بصيغة XML القياسية",
-                  "توليد QR Code متوافق",
+                  "توليد QR Code وفق المواصفات",
                   "توقيع رقمي مشفر (Cryptographic Stamp)",
                   "ختم زمني موثوق (Timestamp)",
                   "معرف فريد عالمي UUID",
                   "تشفير بـ ECDSA / SHA-256",
-                  "ربط مع منصة فاتورة",
+                  "ربط مع منصة فاتورة عبر شهادة CSID الخاصة بمنشأتك",
                   "سجل كامل غير قابل للتعديل",
                 ]
               },
@@ -355,10 +355,10 @@ export function Integration() {
           {/* Compliance Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { value: "100%", label: "توافق ZATCA", icon: Award },
-              { value: "256-bit", label: "تشفير AES", icon: Lock },
-              { value: "24/7", label: "مراقبة الأمان", icon: Eye },
-              { value: "99.9%", label: "وقت التشغيل", icon: Zap },
+              { value: "Phase 2", label: "جاهزية ZATCA", icon: Award },
+              { value: "ECDSA", label: "توقيع رقمي مشفر", icon: Lock },
+              { value: "يوميًا", label: "نسخ احتياطي تلقائي", icon: Eye },
+              { value: "Online + Offline", label: "يعمل في الحالتين", icon: Zap },
             ].map((stat) => (
               <motion.div
                 key={stat.label}
@@ -509,10 +509,10 @@ export function Integration() {
             className="bg-gradient-to-br from-[#0B1B49] to-[#1276E3] rounded-2xl p-10 text-center text-white"
           >
             <h3 className="text-white mb-6" style={{ fontSize: "24px", fontWeight: 700 }}>
-              شهادات الأمان والامتثال
+              ممارسات الأمان لدينا
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {["ISO 27001", "SOC 2 Type II", "GDPR", "PCI DSS"].map((cert) => (
+              {["تشفير TLS أثناء النقل", "نسخ احتياطي يومي تلقائي", "جلسات HttpOnly مشفّرة", "ECDSA / SHA-256 للفواتير"].map((cert) => (
                 <div key={cert} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-colors">
                   <Award className="w-10 h-10 mx-auto mb-3 text-[#60A5FA]" />
                   <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
@@ -534,10 +534,10 @@ export function Integration() {
             viewport={{ once: true }}
           >
             <h2 className="text-foreground mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700 }}>
-              بياناتك في أمان تام
+              بياناتك محمية وملكك دائمًا
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              ابدأ اليوم بثقة تامة في نظام محمي بأعلى معايير الأمان ومتوافق مع جميع المتطلبات القانونية
+              نطبّق ممارسات حماية قياسية — تشفير أثناء النقل، نسخ احتياطي يومي، وجلسات آمنة — وتصدّر بياناتك كاملة متى شئت
             </p>
             <button 
               onClick={() => navigate("/register")}

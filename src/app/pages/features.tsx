@@ -18,11 +18,11 @@ export function Features() {
   const features = [
     {
       icon: FileText,
-      title: "فواتير إلكترونية متوافقة",
-      desc: "إنشاء فواتير احترافية متوافقة بالكامل مع المرحلة الثانية من ZATCA مع QR Code وتوقيع رقمي",
+      title: "فواتير إلكترونية جاهزة لـ ZATCA",
+      desc: "إنشاء فواتير احترافية مع QR Code وتوقيع رقمي وجاهزية للمرحلة الثانية من ZATCA — التفعيل عبر شهادة CSID من بوابة فاتورة",
       color: "#0B1B49",
       details: [
-        "توافق كامل مع متطلبات هيئة الزكاة والضريبة والجمارك",
+        "مصمم لدعم متطلبات هيئة الزكاة والضريبة والجمارك للمرحلة الثانية",
         "توليد QR Code تلقائي لكل فاتورة",
         "توقيع رقمي مشفر وختم زمني",
         "قوالب فواتير قابلة للتخصيص بالكامل",
@@ -232,7 +232,7 @@ export function Features() {
           </div>
           <div className="text-sm text-muted-foreground">
             <p>رمز QR للفاتورة</p>
-            <p className="text-xs">متوافق مع ZATCA</p>
+            <p className="text-xs">جاهز لـ ZATCA</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -332,7 +332,7 @@ export function Features() {
                 className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                ابدأ تجربتك المجانية
+                ابدأ شهرك المجاني
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <button 
@@ -457,7 +457,7 @@ export function Features() {
                 className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "16px", fontWeight: 600 }}
               >
-                ابدأ تجربتك المجانية — 14 يوم
+                ابدأ شهرك المجاني — 30 يومًا كاملة
                 <ArrowLeft className="w-5 h-5" />
               </button>
             </div>

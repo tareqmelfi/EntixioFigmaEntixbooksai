@@ -80,7 +80,7 @@ const PLANS: PlanDef[] = [
       users: { ar: "مستخدمون غير محدودون", en: "Unlimited users" },
       reports: { ar: "تقارير مخصصة + AI متقدم", en: "Custom reports + advanced AI" },
       storage: { ar: "تخزين غير محدود", en: "Unlimited storage" },
-      support: { ar: "دعم مخصص 24/7", en: "Dedicated 24/7 support" },
+      support: { ar: "دعم ذو أولوية", en: "Priority support" },
       zatca: true, offline: true,
       api: { ar: "Full API Access", en: "Full API Access" },
       customization: { ar: "تخصيص كامل", en: "Full customization" },
@@ -191,7 +191,7 @@ export function PricingPage() {
     },
     {
       q: { ar: "ماذا يحدث بعد انتهاء الفترة التجريبية؟", en: "What happens after the free trial ends?" },
-      a: { ar: "بعد انتهاء الشهر المجاني، يمكنك الاستمرار في الباقة المجانية أو الترقية لباقة مدفوعة. لن تفقد أي بيانات في كلتا الحالتين.", en: "After your free month, continue on the free Starter plan or upgrade to a paid one. Your data is kept either way." },
+      a: { ar: "بعد انتهاء الشهر المجاني تختار الباقة المناسبة للاستمرار — بياناتك محفوظة بالكامل ولا تُفقد في أي حال.", en: "After your free month, simply pick the plan you want to continue on — your data stays fully intact either way." },
     },
     {
       q: { ar: "هل الأسعار شاملة ضريبة القيمة المضافة؟", en: "Are prices VAT-inclusive?" },
@@ -410,23 +410,26 @@ export function PricingPage() {
             className="rounded-3xl bg-gradient-to-br from-[#0B1B49] to-[#1276E3] text-white p-8 sm:p-10 relative overflow-hidden shadow-2xl"
           >
             <div className="absolute -top-10 -end-10 w-40 h-40 bg-[#349FC4]/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
               <span className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
                 <ArrowLeftRight className="w-5 h-5 text-[#349FC4]" />
               </span>
               <h2 style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 800 }}>
                 {t("عندك اشتراك في برنامج محاسبة آخر؟", "Subscribed to another accounting app?")}
               </h2>
+              <span className="bg-[#F59E0B] text-[#0B1B49] px-3 py-1 rounded-full" style={{ fontSize: "12px", fontWeight: 800 }}>
+                {t("للاشتراك السنوي فقط", "Annual plans only")}
+              </span>
             </div>
             <p className="text-white/85 mb-6" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
-                "ننقل بياناتك مجاناً، والمدة المتبقية في اشتراكك الحالي نضيفها لك كاملة مجاناً — فوق شهرك المجاني. ما تخسر ولا يوم دفعته.",
-                "We migrate your data FREE, and the remaining time on your current subscription gets added in full, FREE — on top of your free month. You never lose a paid day."
+                "اشترك سنوياً وننقل بياناتك مجاناً، والمدة المتبقية في اشتراكك الحالي نضيفها لك كاملة مجاناً — فوق شهرك المجاني. ما تخسر ولا يوم دفعته.",
+                "Subscribe annually and we migrate your data FREE, with the remaining time on your current subscription added in full, FREE — on top of your free month. You never lose a paid day."
               )}
             </p>
             <div className="grid sm:grid-cols-3 gap-4 mb-7">
               {[
-                { n: "1", ar: "اشترك في الباقة المناسبة لك", en: "Subscribe to the plan that fits you" },
+                { n: "1", ar: "اشترك في الباقة السنوية المناسبة لك", en: "Subscribe to the annual plan that fits you" },
                 { n: "2", ar: "أرسل إثبات اشتراكك الحالي (لقطة شاشة أو فاتورة) إلى support@entix.io", en: "Email proof of your current subscription (screenshot or invoice) to support@entix.io" },
                 { n: "3", ar: "ننقل بياناتك مجاناً ونضيف مدتك المتبقية كاملة لحسابك", en: "We migrate your data FREE and credit your remaining time in full" },
               ].map((s) => (
@@ -448,6 +451,12 @@ export function PricingPage() {
               <Mail className="w-4 h-4" />
               {t("ابدأ التبديل الآن", "Start your switch now")}
             </a>
+            <p className="text-white/60 mt-4" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+              {t(
+                "العرض حصري للاشتراكات السنوية الجديدة ويُطبَّق بعد التحقق من إثبات الاشتراك لدى المنافس.",
+                "Offer is exclusive to new annual subscriptions and applies after we verify your proof of the competitor subscription."
+              )}
+            </p>
           </motion.div>
         </div>
       </section>
@@ -605,7 +614,7 @@ export function PricingPage() {
               className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
-              {t("ابدأ تجربتك المجانية الآن", "Start your free trial now")}
+              {t("ابدأ شهرك المجاني الآن", "Start your free month now")}
               <Arrow className="w-5 h-5" />
             </button>
           </motion.div>

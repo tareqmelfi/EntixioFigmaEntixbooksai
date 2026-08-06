@@ -68,8 +68,8 @@ export function SharedFooter() {
             </div>
             <p className="text-[#94A3B8] max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
               {t(
-                "نظام محاسبة سحابي متكامل للسوق السعودي والأمريكي. يعمل أونلاين وأوفلاين مع مزامنة ذكية ومتوافق بالكامل مع متطلبات ZATCA.",
-                "A cloud accounting platform for Saudi and US operations. Works online and offline with smart sync and ZATCA-ready workflows."
+                "نظام محاسبة سحابي متكامل للسوقين السعودي والأمريكي. يعمل أونلاين وأوفلاين مع مزامنة ذكية وجاهزية للفوترة الإلكترونية وفق متطلبات ZATCA.",
+                "A cloud accounting platform for Saudi and US operations. Works online and offline with smart sync and ZATCA-ready e-invoicing workflows."
               )}
             </p>
             

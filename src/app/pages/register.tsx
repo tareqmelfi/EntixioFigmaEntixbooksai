@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router";
-import { Eye, EyeOff, ArrowRight, CheckCircle2, Users, Globe, BarChart3, Shield } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, CheckCircle2, Users, Globe, BarChart3 } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
 import { Turnstile } from "../components/turnstile";
@@ -116,7 +116,7 @@ export function Register() {
           </div>
 
           <h1 className="text-foreground mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("إنشاء حساب جديد", "Create your account")}</h1>
-          <p className="text-muted-foreground mb-8" style={{ fontSize: "15px" }}>{t("ابدأ تجربتك المجانية — لا حاجة لبطاقة ائتمان", "Start your free trial — no credit card needed")}</p>
+          <p className="text-muted-foreground mb-8" style={{ fontSize: "15px" }}>{t("ابدأ شهرك المجاني — لا حاجة لبطاقة ائتمان", "Start your free month — no credit card needed")}</p>
 
           {error && (
             <motion.div 
@@ -298,8 +298,8 @@ export function Register() {
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-3">
             {[
-              { icon: CheckCircle2, ar: "تجربة مجانية 14 يوم — بدون بطاقة ائتمان", en: "14-day free trial — no credit card required" },
-              { icon: Users, ar: "أكثر من 2,500 شركة تثق بنا", en: "Trusted by 2,500+ companies" },
+              { icon: CheckCircle2, ar: "شهر مجاني كامل — بدون بطاقة ائتمان", en: "Full free month — no credit card required" },
+              { icon: Users, ar: "مصمم للسوقين السعودي والأمريكي", en: "Built for Saudi & US markets" },
               { icon: Globe, ar: "دعم عربي/إنجليزي مع عملات متعددة", en: "Bilingual AR/EN with multi-currency support" },
               { icon: BarChart3, ar: "تقارير ولوحات تحكم احترافية", en: "Professional reports and dashboards" },
             ].map(item => (

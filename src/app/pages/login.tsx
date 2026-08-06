@@ -312,8 +312,8 @@ export function Login() {
             <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br /><EntixWordmark size={39} light /></h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
-                "نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين. متوافق مع ZATCA ومصمم خصيصاً للسوق السعودي.",
-                "A cloud accounting platform that works online and offline, with ZATCA-ready workflows for Saudi businesses."
+                "نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين. جاهز للفوترة الإلكترونية ZATCA ومصمم للسوقين السعودي والأمريكي.",
+                "A cloud accounting platform that works online and offline, with ZATCA-ready e-invoicing for Saudi and US businesses."
               )}
             </p>
           </motion.div>
