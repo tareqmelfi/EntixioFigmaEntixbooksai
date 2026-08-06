@@ -181,7 +181,7 @@ export function Landing() {
 
   const faqs = [
     isSA
-      ? { q: t("هل ENTIX.IO متوافق مع متطلبات الفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO compatible with Saudi e-invoicing requirements?"), a: t("نعم، ENTIX.IO متوافق بالكامل مع المرحلة الثانية من الفوترة الإلكترونية (ZATCA) ويدعم إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي المطلوب.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") }
+      ? { q: t("هل ENTIX.IO جاهز للفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO ready for Saudi e-invoicing?"), a: t("نعم، ENTIX.IO مصمم لدعم المرحلة الثانية من الفوترة الإلكترونية (ZATCA) — إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي، ويُفعَّل عبر شهادة CSID الخاصة بمنشأتك من بوابة فاتورة.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") }
       : { q: t("هل يدعم ENTIX.IO ضريبة المبيعات والمدفوعات الأمريكية؟", "Does ENTIX.IO support US sales tax and payments?"), a: t("نعم، يدعم ضريبة المبيعات الأمريكية وتتبع الموردين 1099، مع قبول المدفوعات عبر Stripe وربط الحسابات البنكية عبر Plaid.", "Yes. ENTIX.IO handles US sales tax and 1099 vendor tracking, accepts payments via Stripe, and connects bank feeds via Plaid.") },
     { q: t("هل يمكنني العمل بدون إنترنت؟", "Can I work without internet?"), a: t("نعم، يدعم ENTIX.IO العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً على الجهاز وتتم المزامنة تلقائياً عند عودة الاتصال بالإنترنت. يمكنك جدولة المزامنة نهاية اليوم أو القيام بها يدوياً.", "Yes. ENTIX.IO supports offline work, keeps data locally, and syncs when the connection returns.") },
     { q: t("هل يمكن تثبيته على سيرفر خاص؟", "Can it run on a private server?"), a: t("نعم، في الباقة المؤسسية يمكنك تثبيت ENTIX.IO على VPS الخاص بك مع قاعدة بيانات PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي المحلي.", "Yes. Enterprise deployments can run on a private VPS with PostgreSQL, backups, and full data control.") },
@@ -238,9 +238,9 @@ export function Landing() {
             </div>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8">
               {[
-                { icon: CheckCircle2, text: t("متوافق مع ZATCA", "ZATCA-ready") },
+                { icon: CheckCircle2, text: t("جاهز لـ ZATCA", "ZATCA-ready") },
                 { icon: WifiOff, text: t("يعمل أوفلاين", "Offline capable") },
-                { icon: Clock, text: t("تجربة مجانية 14 يوم", "14-day free trial") },
+                { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
               ].map(t => (
                 <div key={t.text} className="flex items-center gap-1.5 text-muted-foreground" style={{ fontSize: "13px", fontWeight: 500 }}>
                   <t.icon className="w-4 h-4 text-[#22C55E]" />
