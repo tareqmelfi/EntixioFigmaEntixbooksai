@@ -351,6 +351,35 @@ export function PricingPage() {
         </div>
       </section>
 
+      {/* Lite — grocery / very small business tier */}
+      <section className="pb-14 px-4 sm:px-6 lg:px-8 -mt-2 relative z-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-2xl border-2 border-[#22C55E]/40 bg-gradient-to-br from-[#F0FDF4] to-white p-6 sm:p-7 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 shadow-lg">
+            <div className="flex-1 text-center sm:text-start">
+              <span className="inline-block bg-[#22C55E] text-white px-3 py-1 rounded-full mb-2" style={{ fontSize: "11px", fontWeight: 800 }}>
+                {t("جديد · للبقالات والمشاريع الصغيرة جدًا", "New · for groceries & very small businesses")}
+              </span>
+              <h3 className="text-foreground mb-1" style={{ fontSize: "19px", fontWeight: 800 }}>
+                {t("باقة لايت — 375 ر.س", "Lite plan — SAR 375")} <span className="text-muted-foreground" style={{ fontSize: "14px", fontWeight: 600 }}>{t("سنويًا فقط", "per year, yearly only")}</span>
+              </h3>
+              <p className="text-muted-foreground" style={{ fontSize: "13px", lineHeight: 1.8 }}>
+                {t(
+                  "محاسبة كاملة بدون ذكاء اصطناعي: فواتير ومصروفات غير محدودة، عملاء وموردون وأصناف، تقارير ضريبية، وجاهزية ZATCA — وننقل بياناتك من برنامجك القديم مجانًا أول مرة.",
+                  "Full accounting without AI: unlimited invoices & expenses, customers, suppliers & items, tax reports, ZATCA-ready — and we migrate your data from your old software free, first time."
+                )}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/register")}
+              className="shrink-0 bg-[#22C55E] hover:bg-[#16A34A] text-white px-7 py-3.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-[#22C55E]/25"
+              style={{ fontSize: "14px", fontWeight: 700 }}
+            >
+              {t("ابدأ بلايت", "Start with Lite")}
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Switcher Offer — free migration + remaining time credited FREE */}
       <section className="py-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">

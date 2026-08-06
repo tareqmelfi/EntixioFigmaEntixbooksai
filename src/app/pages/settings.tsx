@@ -2038,6 +2038,10 @@ function PlansTab({ org }: { org: Org }) {
   };
 
   const tierFeatures: Record<string, { ar: string[]; en: string[] }> = {
+    lite: {
+      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "جاهزية ZATCA + QR", "نقل بيانات مجاني أول مرة", "مستخدم واحد"],
+      en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Basic & tax reports", "ZATCA-ready + QR", "Free first-time data migration", "1 user"],
+    },
     starter: {
       ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
       en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],

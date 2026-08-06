@@ -265,6 +265,7 @@ export const router = createBrowserRouter([
       { path: "reports/profit-loss", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "settings", element: lazyElement(() => import("./pages/settings"), "Settings"), errorElement: <ErrorBoundary /> },
       { path: "billing", element: lazyElement(() => import("./pages/billing"), "Billing"), errorElement: <ErrorBoundary /> },
+      { path: "onboarding", element: lazyElement(() => import("./pages/onboarding-wizard"), "OnboardingWizard"), errorElement: <ErrorBoundary /> },
       { path: "system-status", element: lazyElement(() => import("./pages/system-status"), "SystemStatus"), errorElement: <ErrorBoundary /> },
       { path: "notifications", element: lazyElement(() => import("./pages/notifications"), "Notifications"), errorElement: <ErrorBoundary /> },
       { path: "admin", element: lazyElement(() => import("./pages/admin"), "AdminDashboard"), errorElement: <ErrorBoundary /> },

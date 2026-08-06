@@ -123,8 +123,12 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [seedArmed, setSeedArmed] = useState(false);
+  const [onb, setOnb] = useState<{ openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
+  const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStorage.getItem("entix_onb_dismissed") === "1"; } catch { return false; } });
   const { toasts, push, dismiss } = useToasts();
   const navigate = useNavigate();
+
+  useEffect(() => { api.onboarding.status().then(setOnb).catch(() => {}); }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -184,6 +188,18 @@ export function Dashboard() {
           <Link to="/app/vouchers/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ سند", "+ Voucher")}</Link>
         </div>
       </div>
+
+      {onb && !onbDismissed && (!onb.openingBalancesDone || onb.productsCount === 0) && (
+        <div className="rounded-xl border border-[#1276E3]/30 bg-[#EFF6FF] px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="text-sm text-primary" style={{ lineHeight: 1.7 }}>
+            <strong>{t("أكمل إعداد شركتك", "Finish setting up your company")}</strong> — {t("انقل أرصدتك الافتتاحية وأصنافك وعملاءك من برنامجك السابق في دقائق، بدون إدخال يدوي.", "Move your opening balances, items and contacts from your previous software in minutes — no manual entry.")}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to="/app/onboarding" className="px-3.5 py-2 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition" style={{ fontWeight: 600 }}>{t("ابدأ النقل ←", "Start migration →")}</Link>
+            <button onClick={() => { try { localStorage.setItem("entix_onb_dismissed", "1"); } catch {} setOnbDismissed(true); }} className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 cursor-pointer">{t("لاحقًا", "Later")}</button>
+          </div>
+        </div>
+      )}
 
       {isEmpty && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">

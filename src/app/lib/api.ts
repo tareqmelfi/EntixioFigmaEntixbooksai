@@ -801,6 +801,17 @@ export const api = {
       request<{ ok: true; totalRevenue: number; totalExpense: number; netIncome: number }>(`/api/fiscal-periods/${id}/close`, { method: 'POST' }),
   },
 
+  // Onboarding · first-run migration wizard (per-company)
+  onboarding: {
+    status: () => request<{ openingBalancesDone: boolean; openingAt: string | null; productsCount: number; contactsCount: number }>('/api/onboarding/status'),
+    openingBalances: (data: { date?: string; cash?: number; bank?: number; inventory?: number; receivables?: number; payables?: number; notes?: string }) =>
+      request<{ ok: true; entryId: string; entryNumber: string; lines: number; equityAmount: number }>('/api/onboarding/opening-balances', { method: 'POST', body: data }),
+    importProducts: (data: { rows: Array<{ name: string; nameAr?: string; sku?: string; type?: 'GOOD' | 'SERVICE' | 'INVENTORY'; category?: string; unitPrice?: number; costPrice?: number; openingQty?: number }>; openingStock?: boolean }) =>
+      request<{ ok: boolean; created: number; skipped: number; stockApplied: number; errors: Array<{ index: number; name: string; error: string }> }>('/api/onboarding/import-products', { method: 'POST', body: data }),
+    importContacts: (data: { rows: Array<{ name: string; type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'; email?: string; phone?: string; taxId?: string; country?: string }> }) =>
+      request<{ ok: boolean; created: number; skipped: number; errors: Array<{ index: number; name: string; error: string }> }>('/api/onboarding/import-contacts', { method: 'POST', body: data }),
+  },
+
   // ZATCA Phase 2 · CSID + processing + status
   zatca: {
     status: () => request<{
