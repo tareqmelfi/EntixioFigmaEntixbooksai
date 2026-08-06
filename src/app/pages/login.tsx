@@ -118,9 +118,9 @@ export function Login() {
   }, []);
 
   return (
-    <div className="min-h-screen flex" dir={language === "ar" ? "rtl" : "ltr"}>
+    <div className="h-screen flex overflow-hidden" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-8 bg-white">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-8 bg-white h-full overflow-y-auto">
         <motion.div 
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           className="w-full max-w-md"

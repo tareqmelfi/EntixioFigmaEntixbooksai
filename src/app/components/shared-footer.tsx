@@ -198,7 +198,9 @@ export function SharedFooter() {
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[#94A3B8] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
-              &copy; 2026 ENTIX.IO. {t("تشغيل وتطوير ENSIDEX LLC · وايومنغ، الولايات المتحدة.", "Operated and powered by ENSIDEX LLC · Wyoming, USA.")}
+              &copy; 2026 ENTIX.IO · {t("يعمل بواسطة", "Powered by")}{" "}
+              <span className="text-[#349FC4]" style={{ fontWeight: 800, letterSpacing: "0.03em" }}>ENSIDEX</span>{" "}
+              <span>LLC · {t("وايومنغ، الولايات المتحدة", "Wyoming, USA")}</span>
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {footerLinks.legal.map((link) => (
