@@ -394,11 +394,11 @@ export function Integration() {
               <span style={{ fontSize: "13px", fontWeight: 600 }}>أمان متقدم</span>
             </div>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              حماية من الدرجة المصرفية
+              حماية بممارسات قياسية
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              بياناتك المالية محمية بأعلى معايير الأمان العالمية مع تشفير متقدم
-              وحماية متعددة الطبقات
+              بياناتك المالية محمية بتشفير أثناء النقل، ونسخ احتياطي يومي تلقائي،
+              وجلسات آمنة مشفّرة
             </p>
           </motion.div>
 
