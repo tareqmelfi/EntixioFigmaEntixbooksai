@@ -473,7 +473,7 @@ export const api = {
   stripe: {
     plans: () => request<{ plans: any[] }>('/api/stripe/plans'),
     subscription: () => request<any>('/api/stripe/subscription'),
-    createCheckoutSession: (priceId: string, successUrl?: string, cancelUrl?: string) =>
+    createCheckoutSession: (priceId: string, successUrl?: string, cancelUrl?: string): Promise<{ url: string; multiOrgDiscount?: boolean }> =>
       request<{ url: string }>('/api/stripe/create-checkout-session', { method: 'POST', body: { priceId, successUrl, cancelUrl } }),
     customerPortal: () => request<{ url: string }>('/api/stripe/customer-portal', { method: 'POST', body: {} }),
   },

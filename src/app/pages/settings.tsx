@@ -1560,7 +1560,17 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
   const [busy, setBusy] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const [seatInfo, setSeatInfo] = useState<{ tier: string; limit: number | null } | null>(null);
+  const { t, language } = useLanguage();
+
+  // Seat usage follows the plan tier (starter 1 · professional 5 · enterprise unlimited)
+  useEffect(() => {
+    api.stripe.subscription().then((r: any) => {
+      const tier = r?.subscription?.plan?.tier ?? r?.plan?.tier ?? "starter";
+      const limits: Record<string, number | null> = { starter: 1, professional: 5, enterprise: null };
+      setSeatInfo({ tier, limit: tier in limits ? limits[tier] : 1 });
+    }).catch(() => {});
+  }, [orgId]);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -1577,7 +1587,10 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
       }
       setInviteEmail("");
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشلت الدعوة", "Invite failed"));
+      const msg = e instanceof ApiError
+        ? (language === "ar" && e.messageAr ? e.messageAr : e.message)
+        : t("فشلت الدعوة", "Invite failed");
+      push("error", msg);
     } finally { setBusy(false); }
   };
 
@@ -1605,6 +1618,15 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground"><Users className="h-5 w-5" /> {t("أعضاء الفريق", "Team members")}</CardTitle>
         <CardDescription>{members.length} {t("عضو · يمكنك دعوة محاسبين، مدراء، مشاهدين", "members · you can invite accountants, managers, viewers")}</CardDescription>
+        {seatInfo && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {t("المقاعد:", "Seats:")} <span className="font-semibold text-foreground font-english">{members.length}{seatInfo.limit ? ` / ${seatInfo.limit}` : ` / ∞`}</span>
+            {" · "}{t("الدعوات مجانية ضمن باقتك", "Invites are free within your plan")}
+            {seatInfo.limit && members.length >= seatInfo.limit && (
+              <span className="text-amber-600 font-medium">{" · "}{t("وصلت للحد — رقِّ الباقة لإضافة المزيد", "Limit reached — upgrade to add more")}</span>
+            )}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 items-end p-3 bg-muted rounded-lg">
@@ -2042,6 +2064,9 @@ function PlansTab({ org }: { org: Org }) {
         <CardHeader>
           <CardTitle className="text-foreground">{t("الباقات والاشتراكات", "Plans & subscriptions")}</CardTitle>
           <CardDescription>{t("اختر الباقة المناسبة · شهر كامل مجانًا · إلغاء في أي وقت", "Choose the right plan · a full free month · cancel anytime")}</CardDescription>
+          <p className="text-xs text-muted-foreground mt-1.5 leading-6">
+            {t("الاشتراك لكل شركة — كل شركة لها باقتها وشهرها المجاني الخاص، وأعضاء فريقها مجانًا ضمن حدود الباقة. شركتك الإضافية تحصل تلقائيًا على خصم 30% طالما شركتك الأولى مشتركة.", "Billing is per company — each company has its own plan and free month, with free team invites within the plan's seats. Every additional company gets an automatic 30% discount while your first stays subscribed.")}
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {banner && (

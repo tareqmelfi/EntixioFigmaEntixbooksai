@@ -140,7 +140,15 @@ export function PricingPage() {
     },
     {
       q: { ar: "ماذا يحدث بعد انتهاء الفترة التجريبية؟", en: "What happens after the free trial ends?" },
-      a: { ar: "بعد انتهاء الشهر المجاني تختار الباقة المناسبة للاستمرار — بياناتك محفوظة بالكامل ولا تُفقد في أي حال.", en: "After your free month, simply pick the plan you want to continue on — your data stays fully intact either way." },
+      a: { ar: "بعد انتهاء الشهر المجاني تختار الباقة المناسبة للاستمرار، أو تبقى تلقائيًا على الباقة المجانية بحدودها (مستخدم واحد · 5 فواتير شهريًا). بياناتك محفوظة بالكامل ولا تُفقد في أي حال.", en: "After your free month, pick a paid plan to continue — or stay automatically on the free Starter plan within its limits (1 user · 5 invoices/month). Your data stays fully intact either way." },
+    },
+    {
+      q: { ar: "هل الاشتراك على الشركة أم على المستخدم؟", en: "Is billing per company or per user?" },
+      a: { ar: "على الشركة. تدفع باقة واحدة لكل شركة، وتضيف فريقك مجانًا ضمن حدود الباقة (أساسي: مستخدم واحد · احترافي: حتى 5 · مؤسسي: غير محدود). الأعضاء المدعوون لا يدفعون شيئًا — يكفيهم قبول الدعوة.", en: "Per company. You pay one plan per company and invite your team free within the plan's seats (Starter: 1 · Professional: up to 5 · Enterprise: unlimited). Invited members pay nothing — they simply accept the invite." },
+    },
+    {
+      q: { ar: "عندي أكثر من شركة — هل أدفع لكل شركة؟", en: "I run multiple companies — do I pay for each one?" },
+      a: { ar: "لكل شركة اشتراكها المستقل وشهرها المجاني الخاص، وتقدر تُبقي أي شركة على الباقة المجانية بحدودها. ولأنك معنا: كل شركة إضافية تحصل تلقائيًا على خصم 30% طالما شركتك الأولى مشتركة بباقة مدفوعة — يظهر الخصم في صفحة الدفع.", en: "Each company has its own subscription and its own free month, and you can keep any company on the free Starter plan within its limits. As a bonus: every additional company gets an automatic 30% discount while your first company stays on a paid plan — shown at checkout." },
     },
     {
       q: { ar: "هل الأسعار شاملة ضريبة القيمة المضافة؟", en: "Are prices VAT-inclusive?" },
