@@ -2181,7 +2181,7 @@ function PlansTab({ org }: { org: Org }) {
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-foreground">{t("لماذا Entix؟ مقارنة صريحة بالمنافسين", "Why Entix? An honest competitor benchmark")}</CardTitle>
-          <CardDescription>{t("أسعار القوائم المنشورة 2026 — قد تتغير لديهم؛ أسعارنا ثابتة هنا", "Public list prices as of 2026 — theirs may change; ours are fixed here")}</CardDescription>
+          <CardDescription>{t("أسعار المنافسين من مواقعهم الرسمية بتاريخ أغسطس 2026 وقد تتغير — أسعارنا ثابتة هنا", "Competitor list prices from their official sites as of August 2026 — theirs may change; ours are fixed here")}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-sm min-w-[640px]">
@@ -2191,28 +2191,28 @@ function PlansTab({ org }: { org: Org }) {
                 <th className="py-2.5 px-3 text-center">
                   <div className="inline-flex flex-col items-center"><span className="text-primary font-bold">ENTIX.IO</span><span className="text-[10px] text-[#166534] bg-[#DCFCE7] rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
                 </th>
-                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">QuickBooks</th>
-                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Xero</th>
-                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Zoho Books</th>
+                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wafeq {t("وفق", "")}</th>
+                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wave</th>
               </tr>
             </thead>
             <tbody className="text-center">
               {([
-                { ar: "سعر البداية الشهري", en: "Starting monthly price", us: planCurrency === "usd" ? "$29" : "SAR 99", qbo: "$35", xero: "$29", zoho: "$20" },
-                { ar: "تجربة مجانية", en: "Free trial", us: t("30 يومًا كاملة", "Full 30 days"), qbo: t("30 يومًا", "30 days"), xero: t("30 يومًا", "30 days"), zoho: t("14 يومًا", "14 days") },
-                { ar: "السنوي بخصم واضح", en: "Annual with clear discount", us: t("شهران مجانًا ✓", "2 months free ✓"), qbo: t("خصم أول 3 أشهر فقط", "First 3 months promo only"), xero: t("—", "—"), zoho: t("شهران مجانًا", "2 months free") },
-                { ar: "وكيل ذكاء اصطناعي يسجّل ويحلّل", en: "AI agent that records & analyzes", us: "✓", qbo: t("مدفوع إضافي", "Paid add-on"), xero: "✗", zoho: t("جزئي", "Partial" ) },
-                { ar: "عربي كامل + ZATCA Phase 2", en: "Full Arabic + ZATCA Phase 2", us: "✓", qbo: "✗", xero: "✗", zoho: t("جزئي", "Partial") },
-                { ar: "تعدد عملات + اختيار عملة الدفع", en: "Multi-currency + payer-chosen currency", us: "✓", qbo: t("باقات أعلى", "Higher tiers"), xero: t("باقات أعلى", "Higher tiers"), zoho: "✓" },
-                { ar: "ربط بنكي (US)", en: "Bank feeds (US)", us: "✓ Plaid", qbo: "✓", xero: "✓", zoho: "✓" },
-                { ar: "API مفتوح كامل", en: "Full open API", us: "✓", qbo: "✓", xero: "✓", zoho: "✓" },
+                { ar: "سعر البداية الشهري", en: "Starting monthly price", us: planCurrency === "usd" ? "$29" : "SAR 99", wafeq: "SAR 99", wave: "$0 · Pro $19" },
+                { ar: "ماذا تشمل باقة البداية؟", en: "What the entry plan includes", us: t("فواتير + مشتريات + رواتب + مخزون + AI", "Invoices + purchases + payroll + inventory + AI"), wafeq: t("فواتير فقط", "Invoices only"), wave: t("فواتير وقيود أساسية", "Basic invoicing & books") },
+                { ar: "تكلفة مزايا مماثلة لباقتنا", en: "Cost to match our feature set", us: planCurrency === "usd" ? "$29" : "SAR 99", wafeq: "SAR 199 (Premium)", wave: t("$19 + إضافات مدفوعة", "$19 + paid add-ons") },
+                { ar: "باقة مجانية دائمة", en: "Permanent free plan", us: t("✓ (5 فواتير/شهر)", "✓ (5 invoices/mo)"), wafeq: t("✗ — تجربة 14 يوم فقط", "✗ — 14-day trial only"), wave: t("✓ فواتير غير محدودة", "✓ unlimited invoices") },
+                { ar: "تجربة الباقات المدفوعة", en: "Paid-plan trial", us: t("30 يومًا كاملة", "Full 30 days"), wafeq: t("14 يومًا", "14 days"), wave: t("—", "—") },
+                { ar: "المستخدمون في باقة البداية", en: "Users at entry", us: t("حتى 5", "Up to 5"), wafeq: "2", wave: "—" },
+                { ar: "وكيل ذكاء اصطناعي كامل", en: "Full AI agent", us: "✓", wafeq: t("مسح فقط (20/شهر في Plus)", "Scan only (20/mo on Plus)"), wave: t("✗ — الإيصالات بإضافة $8+", "✗ — receipts $8+ add-on") },
+                { ar: "عربي كامل + جاهزية ZATCA", en: "Full Arabic + ZATCA-ready", us: "✓", wafeq: "✓", wave: "✗" },
+                { ar: "ربط بنكي أمريكي", en: "US bank feeds", us: "✓ Plaid", wafeq: "✗", wave: "✓ Plaid" },
+                { ar: "الفوترة لكل شركة", en: "Per-company billing", us: t("✓ + خصم 30% للشركات الإضافية", "✓ + 30% off additional companies"), wafeq: t("كيانات متعددة في الباقات الكبرى", "Multi-entity on higher tiers"), wave: "✓ per business" },
               ] as const).map((row, i) => (
                 <tr key={i} className="border-b border-border/50">
                   <td className="text-start py-2.5 pe-3 text-foreground">{t(row.ar, row.en)}</td>
                   <td className="py-2.5 px-3 bg-[#EFF6FF]/60 text-primary font-semibold">{row.us}</td>
-                  <td className="py-2.5 px-3 text-muted-foreground">{row.qbo}</td>
-                  <td className="py-2.5 px-3 text-muted-foreground">{row.xero}</td>
-                  <td className="py-2.5 px-3 text-muted-foreground">{row.zoho}</td>
+                  <td className="py-2.5 px-3 text-muted-foreground">{row.wafeq}</td>
+                  <td className="py-2.5 px-3 text-muted-foreground">{row.wave}</td>
                 </tr>
               ))}
             </tbody>

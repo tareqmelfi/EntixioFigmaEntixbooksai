@@ -92,6 +92,7 @@ export function PricingPage() {
   const [livePriceIds, setLivePriceIds] = useState<Record<string, string>>({});
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [openFaqs, setOpenFaqs] = useState<number[]>([0]);
 
   const cell = (v: Cell): string => (typeof v === "boolean" ? "" : isAr ? v.ar : v.en);
 
@@ -225,7 +226,7 @@ export function PricingPage() {
               >
                 {t("سنوي", "Yearly")}
                 <span className="absolute -top-2 -end-2 bg-[#22C55E] text-white px-2 py-0.5 rounded-full text-xs">
-                  {t("وفّر ~20%", "Save ~20%")}
+                  {t("شهران مجانًا", "2 months free")}
                 </span>
               </button>
               <span className="inline-flex rounded-xl overflow-hidden border border-white/25">
@@ -305,9 +306,14 @@ export function PricingPage() {
                     )}
                   </div>
                   {billingCycle === "yearly" && plan.price[currency].yearly > 0 && (
-                    <p className="text-[#22C55E]" style={{ fontSize: "13px" }} dir="ltr">
-                      {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString("en-US")} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
-                    </p>
+                    <>
+                      <p className="text-[#22C55E]" style={{ fontSize: "13px" }} dir="ltr">
+                        {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString("en-US")} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
+                      </p>
+                      <p className="text-muted-foreground" style={{ fontSize: "12px" }} dir="ltr">
+                        ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString("en-US", { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString("en-US")} {t("سنويًا", "yearly")}
+                      </p>
+                    </>
                   )}
                 </div>
 
@@ -507,35 +513,116 @@ export function PricingPage() {
         </motion.section>
       )}
 
+      {/* Competitor Benchmark — Wafeq & Wave · verified August 2026 */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="inline-block bg-[#EFF6FF] text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>
+              {t("مقارنة صريحة", "Honest benchmark")}
+            </span>
+            <h2 className="text-foreground mb-3" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
+              {t("كيف نقارن بوفق وويف؟", "How we compare to Wafeq & Wave")}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+              {t(
+                "أسعار المنافسين من مواقعهم الرسمية بتاريخ أغسطس 2026 وقد تتغير — أسعارنا ثابتة هنا. وفق للسوق السعودي، ويف للأمريكي.",
+                "Competitor prices from their official sites as of August 2026 — theirs may change; ours are fixed here. Wafeq for Saudi, Wave for the US."
+              )}
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-lg bg-white">
+            <table className="w-full min-w-[720px]" style={{ fontSize: "14px" }}>
+              <thead>
+                <tr className="border-b-2 border-gray-100 bg-gray-50/60">
+                  <th className="text-start py-4 px-5 text-muted-foreground" style={{ fontWeight: 600 }}>{t("وجه المقارنة", "Benchmark")}</th>
+                  <th className="py-4 px-5 text-center">
+                    <div className="inline-flex flex-col items-center">
+                      <span className="text-primary" style={{ fontWeight: 800 }}>ENTIX.IO</span>
+                      <span className="text-[#166534] bg-[#DCFCE7] rounded-full px-2.5 py-0.5 mt-1" style={{ fontSize: "10px", fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5 text-center text-muted-foreground" style={{ fontWeight: 600 }}>Wafeq</th>
+                  <th className="py-4 px-5 text-center text-muted-foreground" style={{ fontWeight: 600 }}>Wave</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  { ar: "سعر البداية الشهري", en: "Starting monthly price", us: currency === "USD" ? "$29" : "SAR 99", wafeq: "SAR 99", wave: "$0 · Pro $19" },
+                  { ar: "ماذا تشمل باقة البداية؟", en: "Entry plan includes", us: t("فواتير + مشتريات + رواتب + مخزون + AI", "Invoices + purchases + payroll + inventory + AI"), wafeq: t("فواتير فقط", "Invoices only"), wave: t("فواتير وقيود أساسية", "Basic invoicing & books") },
+                  { ar: "تكلفة مزايا مماثلة لباقتنا", en: "Cost to match our features", us: currency === "USD" ? "$29" : "SAR 99", wafeq: "SAR 199 (Premium)", wave: t("$19 + إضافات مدفوعة", "$19 + paid add-ons") },
+                  { ar: "باقة مجانية دائمة", en: "Permanent free plan", us: t("✓ (5 فواتير/شهر)", "✓ (5 invoices/mo)"), wafeq: t("✗ — تجربة 14 يوم فقط", "✗ — 14-day trial only"), wave: t("✓ فواتير غير محدودة", "✓ unlimited invoices") },
+                  { ar: "تجربة الباقات المدفوعة", en: "Paid-plan trial", us: t("30 يومًا كاملة", "Full 30 days"), wafeq: t("14 يومًا", "14 days"), wave: "—" },
+                  { ar: "المستخدمون في باقة البداية", en: "Users at entry", us: t("حتى 5", "Up to 5"), wafeq: "2", wave: "—" },
+                  { ar: "وكيل ذكاء اصطناعي كامل", en: "Full AI agent", us: "✓", wafeq: t("مسح فقط (20/شهر في Plus)", "Scan only (20/mo on Plus)"), wave: t("✗ — الإيصالات بإضافة $8+", "✗ — receipts $8+ add-on") },
+                  { ar: "عربي كامل + جاهزية ZATCA", en: "Full Arabic + ZATCA-ready", us: "✓", wafeq: "✓", wave: "✗" },
+                  { ar: "ربط بنكي أمريكي", en: "US bank feeds", us: "✓ Plaid", wafeq: "✗", wave: "✓ Plaid" },
+                  { ar: "الفوترة لكل شركة", en: "Per-company billing", us: t("✓ + خصم 30% للشركات الإضافية", "✓ + 30% off additional companies"), wafeq: t("كيانات متعددة في الباقات الكبرى", "Multi-entity on higher tiers"), wave: "✓ per business" },
+                ] as const).map((row, i) => (
+                  <tr key={i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+                    <td className="text-start py-3.5 px-5 text-foreground" style={{ fontWeight: 500 }}>{isAr ? row.ar : row.en}</td>
+                    <td className="py-3.5 px-5 text-center bg-[#EFF6FF]/50 text-primary" style={{ fontWeight: 700 }}>{row.us}</td>
+                    <td className="py-3.5 px-5 text-center text-muted-foreground">{row.wafeq}</td>
+                    <td className="py-3.5 px-5 text-center text-muted-foreground">{row.wave}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-foreground mb-12 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
+          <h2 className="text-foreground mb-6 text-center" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
             {t("الأسئلة الشائعة", "Frequently asked questions")}
           </h2>
-          <div className="space-y-4">
-            {faqs.map((faq, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white rounded-xl p-6 border border-gray-200 hover:border-[#1276E3]/30 hover:shadow-lg transition-all"
-              >
-                <div className="flex items-start gap-3">
-                  <HelpCircle className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-foreground mb-2" style={{ fontSize: "16px", fontWeight: 600 }}>
+          <div className="flex justify-center gap-3 mb-10">
+            <button
+              onClick={() => setOpenFaqs(faqs.map((_, i) => i))}
+              className="text-primary hover:underline cursor-pointer"
+              style={{ fontSize: "13px", fontWeight: 600 }}
+            >
+              {t("توسيع الكل", "Expand all")}
+            </button>
+            <span className="text-muted-foreground/40">·</span>
+            <button
+              onClick={() => setOpenFaqs([])}
+              className="text-muted-foreground hover:underline cursor-pointer"
+              style={{ fontSize: "13px", fontWeight: 600 }}
+            >
+              {t("طي الكل", "Collapse all")}
+            </button>
+          </div>
+          <div className="space-y-3">
+            {faqs.map((faq, i) => {
+              const open = openFaqs.includes(i);
+              return (
+                <div
+                  key={i}
+                  className={`bg-white rounded-xl border transition-all ${open ? "border-[#1276E3]/30 shadow-md" : "border-gray-200 hover:border-[#1276E3]/20"}`}
+                >
+                  <button
+                    onClick={() => setOpenFaqs(open ? openFaqs.filter((x) => x !== i) : [...openFaqs, i])}
+                    className="w-full flex items-center gap-3 p-5 text-start cursor-pointer"
+                    aria-expanded={open}
+                  >
+                    <HelpCircle className={`w-5 h-5 flex-shrink-0 transition-colors ${open ? "text-primary" : "text-muted-foreground/50"}`} />
+                    <span className="text-foreground flex-1" style={{ fontSize: "15px", fontWeight: 600 }}>
                       {isAr ? faq.q.ar : faq.q.en}
-                    </h3>
-                    <p className="text-muted-foreground" style={{ fontSize: "14px", lineHeight: 1.8 }}>
-                      {isAr ? faq.a.ar : faq.a.en}
-                    </p>
-                  </div>
+                    </span>
+                    <span className={`text-muted-foreground transition-transform duration-200 ${open ? "rotate-45" : ""}`} style={{ fontSize: "20px", lineHeight: 1 }}>+</span>
+                  </button>
+                  {open && (
+                    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-5 ps-13">
+                      <p className="text-muted-foreground" style={{ fontSize: "14px", lineHeight: 1.9 }}>
+                        {isAr ? faq.a.ar : faq.a.en}
+                      </p>
+                    </motion.div>
+                  )}
                 </div>
-              </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
