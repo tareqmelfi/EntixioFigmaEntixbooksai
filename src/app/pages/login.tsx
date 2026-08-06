@@ -320,7 +320,7 @@ export function Login() {
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-3">
             {[
-              { icon: Shield, text: t("تشفير AES-256 لحماية البيانات", "Encrypted data protection") },
+              { icon: Shield, text: t("مفاتيح التكامل مشفّرة AES-256-GCM", "Integration keys AES-256-GCM encrypted") },
               { icon: Zap, text: t("أداء سريع وتجربة سلسة", "Fast and smooth experience") },
               { icon: Cloud, text: t("مزامنة ذكية مع عمل أوفلاين", "Smart sync with offline work") },
             ].map(item => (
