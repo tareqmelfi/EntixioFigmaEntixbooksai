@@ -38,13 +38,13 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-[#349FC4]" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>تقنية متقدمة • أمان عالي • توافق كامل</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>تقنية متقدمة • أمان عالي • جاهزية نظامية</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               تكامل سلس وأمان
               <br />
               <span className="bg-gradient-to-l from-[#349FC4] to-[#60A5FA] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
-                من الدرجة المصرفية
+                يمكنك الوثوق به
               </span>
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
