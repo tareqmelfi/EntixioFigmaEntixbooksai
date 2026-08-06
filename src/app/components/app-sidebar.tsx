@@ -25,6 +25,7 @@ const EN_TEXT: Record<string, string> = {
   "جديد": "New",
   "العمليات الأساسية": "Core operations",
   "المبيعات": "Sales",
+  "كاشير POS": "Cashier POS",
   "عروض الأسعار": "Quotes",
   "فواتير المبيعات": "Sales invoices",
   "سندات القبض": "Receipts",
@@ -135,6 +136,7 @@ const sections: MenuSection[] = [
         icon: ShoppingCart,
         path: "/app/sales",
         children: [
+          { title: "كاشير POS", icon: ShoppingCart, path: "/app/pos" },
           { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
           { title: "فواتير المبيعات", icon: FileText, path: "/app/invoices" },
           { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
@@ -208,6 +210,7 @@ const searchPages = [
   { label: "لوحة التحكم", path: "/app" },
   { label: "الذكاء الاصطناعي", path: "/app/ai" },
   { label: "المبيعات", path: "/app/sales" },
+  { label: "كاشير POS", path: "/app/pos" },
   { label: "عروض الأسعار", path: "/app/quotes" },
   { label: "فواتير المبيعات", path: "/app/invoices" },
   { label: "سندات القبض", path: "/app/receipts" },

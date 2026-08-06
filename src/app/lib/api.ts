@@ -953,6 +953,24 @@ export const api = {
     ),
   // W27 · single demo policy — one demo per user, auto-expires after 30 days.
   // 409 demo_exists unless replace=true (the server deletes the old demo first).
+  // ── POS · cashier (W27-next) ──
+  posCatalog: () =>
+    request<{ items: Array<{ id: string; sku: string | null; name: string; nameAr: string | null; imageUrl: string | null; type: string; unitPrice: string; stockQty: string; category: string | null; taxRate: { rate: string; type: string } | null }> }>(
+      '/api/pos/catalog',
+    ),
+  posShiftCurrent: () =>
+    request<{ shift: { id: string; openedAt: string; openingFloat: string } | null }>('/api/pos/shift/current'),
+  posShiftOpen: (openingFloat: number) =>
+    request<{ shift: { id: string } }>('/api/pos/shift/open', { method: 'POST', body: { openingFloat } }),
+  posShiftClose: (closingCount: number, notes?: string) =>
+    request<{ summary: { openingFloat: number; cashSales: number; expectedCash: number; closingCount: number; difference: number; salesTotal: number; salesCount: number } }>(
+      '/api/pos/shift/close', { method: 'POST', body: { closingCount, notes } },
+    ),
+  posSale: (data: { lines: Array<{ productId: string; qty: number; unitPrice?: number }>; paymentMethod: 'CASH' | 'CARD' | 'MADA'; amountTendered?: number; shiftId?: string | null; customerId?: string | null }) =>
+    request<{ ok: true; invoice: { id: string; number: string; total: number; subtotal: number; taxTotal: number }; payment: { method: string; amount: number; tendered: number; change: number } }>(
+      '/api/pos/sale', { method: 'POST', body: data },
+    ),
+
   seedDemo: (opts: { country?: 'SA' | 'US'; replace?: boolean } = {}) =>
     request<{ ok: true; seeded: Array<{ id: string; slug: string; name: string; country: string; currency: string }>; demoExpiresAt: string; expiresInDays: number }>(
       '/orgs/_/seed-demo', { method: 'POST', body: { country: opts.country ?? 'SA', replace: opts.replace === true }, skipOrg: true },
