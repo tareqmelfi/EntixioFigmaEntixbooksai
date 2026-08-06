@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { CheckCircle2, X, Sparkles, ArrowLeft, ArrowRight, HelpCircle } from "lucide-react";
+import { CheckCircle2, X, Sparkles, ArrowLeft, ArrowRight, HelpCircle, Rocket, ArrowLeftRight, Gift, AlertCircle, Mail } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useEffect, useState } from "react";
@@ -142,6 +142,7 @@ export function PricingPage() {
   const [showComparison, setShowComparison] = useState(false);
   const [livePriceIds, setLivePriceIds] = useState<Record<string, string>>({});
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const cell = (v: Cell): string => (typeof v === "boolean" ? "" : isAr ? v.ar : v.en);
 
@@ -160,9 +161,14 @@ export function PricingPage() {
   const subscribe = async (tier: Tier) => {
     const interval = billingCycle === "monthly" ? "month" : "year";
     const priceId = livePriceIds[`${tier}:${interval}:${currency.toLowerCase()}`];
-    if (tier === "starter" || !priceId) { navigate("/register"); return; }
-    if (!authStore.getState().isAuthenticated) { navigate("/register"); return; }
+    const authed = authStore.getState().isAuthenticated;
+    // Starter (free): guests register; signed-in users manage it from billing —
+    // never bounce a logged-in user to /register (that just dumps them inside
+    // the app with no explanation).
+    if (tier === "starter" || !priceId) { navigate(authed ? "/app/billing" : "/register"); return; }
+    if (!authed) { navigate("/register"); return; }
     setCheckoutBusy(tier);
+    setCheckoutError(null);
     try {
       const { url } = await api.stripe.createCheckoutSession(
         priceId,
@@ -170,9 +176,11 @@ export function PricingPage() {
         `${window.location.origin}/pricing?canceled=true`,
       );
       window.location.href = url;
-    } catch {
+    } catch (e: any) {
+      // Surface the failure in place — a silent redirect into the app reads
+      // like "the button did nothing".
       setCheckoutBusy(null);
-      navigate("/app/billing");
+      setCheckoutError(e?.message || "checkout_failed");
     }
   };
 
@@ -226,6 +234,20 @@ export function PricingPage() {
               {t("خطط مرنة تنمو معك. ابدأ مجاناً وادفع فقط مقابل ما تحتاجه", "Flexible plans that grow with you. Start free — pay only for what you need.")}
             </p>
 
+            {/* Launch Beta — early-supporter framing */}
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-[#22C55E]/15 border border-[#22C55E]/40 rounded-2xl px-5 py-3 mb-8 max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 bg-[#22C55E] text-white px-3 py-1 rounded-full shrink-0" style={{ fontSize: "12px", fontWeight: 700 }}>
+                <Rocket className="w-3.5 h-3.5" />
+                {t("إطلاق تجريبي", "Launch Beta")}
+              </span>
+              <p className="text-white/90" style={{ fontSize: "13px", lineHeight: 1.6 }}>
+                {t(
+                  "أنت من أوائل المشتركين — شكراً لدعمك! ملاحظاتك تشكّل المنتج ودعمك الآن يصنع الفرق.",
+                  "You're among our very first subscribers — thank you for being an early supporter! Your feedback shapes the product."
+                )}
+              </p>
+            </div>
+
             {/* Billing Cycle + Currency Toggles */}
             <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
               <button
@@ -270,6 +292,18 @@ export function PricingPage() {
       {/* Pricing Cards */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 -mt-12 relative z-10">
         <div className="max-w-7xl mx-auto">
+          {checkoutError && (
+            <div className="max-w-2xl mx-auto mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5" role="alert">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p style={{ fontSize: "14px", fontWeight: 500 }}>
+                {t("تعذّر فتح صفحة الدفع — حاول مرة أخرى أو تواصل معنا على support@entix.io", "Couldn't open secure checkout — please try again or reach us at support@entix.io")}
+                <span className="block text-red-500/70 mt-0.5" style={{ fontSize: "12px" }} dir="ltr">{checkoutError}</span>
+              </p>
+              <button onClick={() => setCheckoutError(null)} className="ms-auto shrink-0 cursor-pointer" aria-label="dismiss">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="grid md:grid-cols-3 gap-8">
             {PLANS.map((plan, i) => (
               <motion.div
@@ -362,6 +396,79 @@ export function PricingPage() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Switcher Offer — free migration + remaining time credited FREE */}
+      <section className="py-14 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-3xl bg-gradient-to-br from-[#0B1B49] to-[#1276E3] text-white p-8 sm:p-10 relative overflow-hidden shadow-2xl"
+          >
+            <div className="absolute -top-10 -end-10 w-40 h-40 bg-[#349FC4]/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center gap-3 mb-4">
+              <span className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
+                <ArrowLeftRight className="w-5 h-5 text-[#349FC4]" />
+              </span>
+              <h2 style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 800 }}>
+                {t("عندك اشتراك في برنامج محاسبة آخر؟", "Subscribed to another accounting app?")}
+              </h2>
+            </div>
+            <p className="text-white/85 mb-6" style={{ fontSize: "15px", lineHeight: 1.9 }}>
+              {t(
+                "ننقل بياناتك مجاناً، والمدة المتبقية في اشتراكك الحالي نضيفها لك كاملة مجاناً — فوق شهرك المجاني. ما تخسر ولا يوم دفعته.",
+                "We migrate your data FREE, and the remaining time on your current subscription gets added in full, FREE — on top of your free month. You never lose a paid day."
+              )}
+            </p>
+            <div className="grid sm:grid-cols-3 gap-4 mb-7">
+              {[
+                { n: "1", ar: "اشترك في الباقة المناسبة لك", en: "Subscribe to the plan that fits you" },
+                { n: "2", ar: "أرسل إثبات اشتراكك الحالي (لقطة شاشة أو فاتورة) إلى support@entix.io", en: "Email proof of your current subscription (screenshot or invoice) to support@entix.io" },
+                { n: "3", ar: "ننقل بياناتك مجاناً ونضيف مدتك المتبقية كاملة لحسابك", en: "We migrate your data FREE and credit your remaining time in full" },
+              ].map((s) => (
+                <div key={s.n} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/15">
+                  <span className="inline-flex w-7 h-7 rounded-full bg-[#22C55E] text-white items-center justify-center mb-2" style={{ fontSize: "13px", fontWeight: 800 }}>
+                    {s.n}
+                  </span>
+                  <p className="text-white/90" style={{ fontSize: "13px", lineHeight: 1.7 }}>
+                    {isAr ? s.ar : s.en}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <a
+              href="mailto:support@entix.io?subject=Switching%20from%20another%20accounting%20app"
+              className="inline-flex items-center gap-2 bg-white text-[#0B1B49] px-6 py-3 rounded-xl hover:bg-white/90 transition-all shadow-lg"
+              style={{ fontSize: "14px", fontWeight: 700 }}
+            >
+              <Mail className="w-4 h-4" />
+              {t("ابدأ التبديل الآن", "Start your switch now")}
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Referral Program — coming soon teaser */}
+      <section className="pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-3xl border-2 border-dashed border-[#1276E3]/40 bg-[#1276E3]/5 p-8 sm:p-10 text-center">
+            <span className="inline-flex items-center gap-2 bg-[#1276E3] text-white px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "12px", fontWeight: 700 }}>
+              <Gift className="w-4 h-4" />
+              {t("قريباً", "Coming soon")}
+            </span>
+            <h2 className="text-foreground mb-3" style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 800 }}>
+              {t("زد دخلك 50% مع برنامج الإحالة", "Boost your income 50% with referrals")}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "14px", lineHeight: 1.9 }}>
+              {t(
+                "أحِل شركات إلى ENTIX.IO واحصل على استرداد 50% يُحوَّل لك عمولات ومدفوعات كمسوّق معتمد — بعقد واضح وآلية دفع موثّقة. البرنامج في مراحله الأخيرة وسيُطلق كاملاً قريباً.",
+                "Refer companies to ENTIX.IO and earn a 50% rebate, paid out as approved-marketer commissions — under a clear agreement and a documented payout process. The program is in its final stages and launches fully soon."
+              )}
+            </p>
           </div>
         </div>
       </section>
