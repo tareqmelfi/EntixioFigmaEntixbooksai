@@ -5,7 +5,6 @@
  * - Nothing tracks today without consent: session/auth cookies are essential-only.
  */
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
 import { Cookie, X, ShieldCheck, BarChart3, Megaphone } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 
@@ -81,9 +80,9 @@ export function CookieConsent() {
                   "نستخدم ملفات ضرورية لتشغيل الموقع (تسجيل الدخول والأمان) — وهي تعمل دائمًا. وبموافقتك فقط نستخدم كوكيز تحليلية لتحسين التجربة. لا نبيع بياناتك أبدًا.",
                   "We use essential cookies to run the site (sign-in and security) — those always stay on. With your consent only, we use analytics cookies to improve the experience. We never sell your data."
                 )}{" "}
-                <Link to="/privacy" className="text-primary hover:underline" style={{ fontWeight: 600 }}>
+                <a href="/privacy" className="text-primary hover:underline" style={{ fontWeight: 600 }}>
                   {t("سياسة الخصوصية", "Privacy policy")}
-                </Link>
+                </a>
               </p>
             </div>
             <button
