@@ -62,7 +62,7 @@ const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string }> = [
 ];
 
 export function HelpCenter() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [cfg, setCfg] = useState<{ whatsapp: string | null; email: string } | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -83,7 +83,9 @@ export function HelpCenter() {
     const next: Msg[] = [...msgs, { role: "user", content: q }];
     setMsgs(next); setInput(""); setBusy(true);
     try {
-      const r = await api.agent.chat({ messages: next.map((m) => ({ role: m.role, content: m.content })) } as any);
+      // locale is sent explicitly — with messages[] the server can't infer the
+      // UI language and would default to Arabic (verified live: EN UI got AR reply).
+      const r = await api.agent.chat({ messages: next.map((m) => ({ role: m.role, content: m.content })), locale: language } as any);
       const answer = (r as any)?.message || t("ما وصلني رد — جرّب مرة ثانية", "No reply came back — try again");
       setMsgs([...next, { role: "assistant", content: answer }]);
     } catch (e: any) {
