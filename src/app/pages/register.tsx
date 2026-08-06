@@ -290,8 +290,8 @@ export function Register() {
             </h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
-                "انضم لآلاف الشركات التي تستخدم ENTIX.IO لإدارة حساباتها بكفاءة وأمان.",
-                "Join thousands of companies using ENTIX.IO to manage their finances with confidence."
+                "أنشئ حسابك وابدأ شهرًا مجانيًا كاملًا — بياناتك تبقى ملكك وتصدّرها متى شئت.",
+                "Create your account and start a full free month — your data stays yours, exportable anytime."
               )}
             </p>
           </motion.div>

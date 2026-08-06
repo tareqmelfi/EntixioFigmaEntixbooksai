@@ -11,20 +11,6 @@ import { useLanguage } from "../components/LanguageContext";
 type Tier = "starter" | "professional" | "enterprise";
 type Cell = { ar: string; en: string } | boolean;
 
-const FEATURE_LABELS: Record<string, { ar: string; en: string }> = {
-  invoices: { ar: "الفواتير", en: "Invoices" },
-  users: { ar: "المستخدمون", en: "Users" },
-  reports: { ar: "التقارير", en: "Reports" },
-  storage: { ar: "التخزين", en: "Storage" },
-  support: { ar: "الدعم", en: "Support" },
-  zatca: { ar: "الفوترة الإلكترونية ZATCA", en: "ZATCA e-invoicing" },
-  offline: { ar: "العمل أوفلاين", en: "Offline mode" },
-  api: { ar: "الوصول للـ API", en: "API access" },
-  customization: { ar: "التخصيص", en: "Customization" },
-  multiCurrency: { ar: "تعدد العملات", en: "Multi-currency" },
-  advanced: { ar: "مميزات متقدمة", en: "Advanced features" },
-};
-
 interface PlanDef {
   tier: Tier;
   name: { ar: string; en: string };
@@ -32,7 +18,7 @@ interface PlanDef {
   color: string;
   popular?: boolean;
   price: Record<"SAR" | "USD", { monthly: number; yearly: number }>;
-  features: Record<string, Cell>;
+  features: { ar: string[]; en: string[] };
 }
 
 const PLANS: PlanDef[] = [
@@ -43,12 +29,8 @@ const PLANS: PlanDef[] = [
     color: "#6B7280",
     price: { SAR: { monthly: 0, yearly: 0 }, USD: { monthly: 0, yearly: 0 } },
     features: {
-      invoices: { ar: "5 فواتير شهرياً", en: "5 invoices / month" },
-      users: { ar: "مستخدم واحد", en: "1 user" },
-      reports: { ar: "تقارير أساسية", en: "Basic reports" },
-      storage: { ar: "1 جيجا تخزين", en: "1 GB storage" },
-      support: { ar: "دعم بالبريد الإلكتروني", en: "Email support" },
-      zatca: true, offline: true, api: false, customization: false, multiCurrency: false, advanced: false,
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
+      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
     },
   },
   {
@@ -59,14 +41,8 @@ const PLANS: PlanDef[] = [
     popular: true,
     price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 29, yearly: 290 } },
     features: {
-      invoices: { ar: "فواتير غير محدودة", en: "Unlimited invoices" },
-      users: { ar: "حتى 5 مستخدمين", en: "Up to 5 users" },
-      reports: { ar: "تقارير متقدمة + AI", en: "Advanced reports + AI" },
-      storage: { ar: "50 جيجا تخزين", en: "50 GB storage" },
-      support: { ar: "دعم مباشر", en: "Live support" },
-      zatca: true, offline: true,
-      api: { ar: "Read-only API", en: "Read-only API" },
-      customization: true, multiCurrency: true, advanced: true,
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
     },
   },
   {
@@ -76,16 +52,8 @@ const PLANS: PlanDef[] = [
     color: "#0B1B49",
     price: { SAR: { monthly: 299, yearly: 2990 }, USD: { monthly: 79, yearly: 790 } },
     features: {
-      invoices: { ar: "فواتير غير محدودة", en: "Unlimited invoices" },
-      users: { ar: "مستخدمون غير محدودون", en: "Unlimited users" },
-      reports: { ar: "تقارير مخصصة + AI متقدم", en: "Custom reports + advanced AI" },
-      storage: { ar: "تخزين غير محدود", en: "Unlimited storage" },
-      support: { ar: "دعم ذو أولوية", en: "Priority support" },
-      zatca: true, offline: true,
-      api: { ar: "Full API Access", en: "Full API Access" },
-      customization: { ar: "تخصيص كامل", en: "Full customization" },
-      multiCurrency: true,
-      advanced: { ar: "مميزات مؤسسية متقدمة", en: "Advanced enterprise features" },
+      ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
+      en: ["Everything in Pro", "Unlimited users", "Advanced unlimited AI", "Full multi-currency", "Audit log", "Priority support"],
     },
   },
 ];
@@ -95,41 +63,22 @@ interface ComparisonCategory { category: { ar: string; en: string }; features: C
 
 const COMPARISON: ComparisonCategory[] = [
   { category: { ar: "الفواتير والمبيعات", en: "Invoicing & sales" }, features: [
-    { name: { ar: "عدد الفواتير", en: "Invoice volume" }, free: { ar: "5 / شهر", en: "5 / month" }, pro: { ar: "غير محدود", en: "Unlimited" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
-    { name: { ar: "الفواتير الإلكترونية ZATCA", en: "ZATCA e-invoicing" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "QR Code", en: "QR Code" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "الفواتير شهريًا", en: "Monthly invoices" }, free: { ar: "5", en: "5" }, pro: { ar: "غير محدود", en: "Unlimited" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
     { name: { ar: "عروض الأسعار", en: "Quotes" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "إشعارات دائنة", en: "Credit notes" }, free: false, pro: true, enterprise: true },
-    { name: { ar: "الفواتير المتكررة", en: "Recurring invoices" }, free: false, pro: true, enterprise: true },
-    { name: { ar: "قوالب فواتير مخصصة", en: "Custom invoice templates" }, free: { ar: "1", en: "1" }, pro: { ar: "10", en: "10" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
+    { name: { ar: "جاهزية ZATCA + QR", en: "ZATCA-ready + QR" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "التقارير", en: "Reports" }, free: { ar: "أساسية", en: "Basic" }, pro: { ar: "متقدمة", en: "Advanced" }, enterprise: { ar: "مخصصة", en: "Custom" } },
   ]},
-  { category: { ar: "المحاسبة والتقارير", en: "Accounting & reports" }, features: [
-    { name: { ar: "دليل الحسابات", en: "Chart of accounts" }, free: { ar: "محدود", en: "Limited" }, pro: { ar: "كامل", en: "Full" }, enterprise: { ar: "كامل + مخصص", en: "Full + custom" } },
-    { name: { ar: "القيود اليومية", en: "Journal entries" }, free: false, pro: true, enterprise: true },
-    { name: { ar: "تقارير الأرباح والخسائر", en: "Profit & loss" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "الميزانية العمومية", en: "Balance sheet" }, free: false, pro: true, enterprise: true },
-    { name: { ar: "تقارير الضرائب", en: "Tax reports" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "تحليلات AI", en: "AI analytics" }, free: false, pro: { ar: "أساسية", en: "Basic" }, enterprise: { ar: "متقدمة", en: "Advanced" } },
-    { name: { ar: "تقارير مخصصة", en: "Custom reports" }, free: false, pro: false, enterprise: true },
+  { category: { ar: "المستخدمون والذكاء الاصطناعي", en: "Users & AI" }, features: [
+    { name: { ar: "عدد المستخدمين", en: "User seats" }, free: { ar: "1", en: "1" }, pro: { ar: "حتى 5", en: "Up to 5" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
+    { name: { ar: "وكيل الذكاء الاصطناعي", en: "AI agent" }, free: false, pro: { ar: "كامل", en: "Full" }, enterprise: { ar: "متقدم بلا حدود", en: "Advanced unlimited" } },
+    { name: { ar: "سجل التدقيق", en: "Audit log" }, free: false, pro: false, enterprise: true },
+    { name: { ar: "تعدد العملات الكامل", en: "Full multi-currency" }, free: false, pro: false, enterprise: true },
   ]},
-  { category: { ar: "المستخدمون والصلاحيات", en: "Users & permissions" }, features: [
-    { name: { ar: "عدد المستخدمين", en: "User seats" }, free: { ar: "1", en: "1" }, pro: { ar: "5", en: "5" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
-    { name: { ar: "الأدوار والصلاحيات", en: "Roles & permissions" }, free: false, pro: { ar: "3 أدوار", en: "3 roles" }, enterprise: { ar: "أدوار مخصصة", en: "Custom roles" } },
-    { name: { ar: "سجل العمليات Audit Trail", en: "Audit trail" }, free: false, pro: { ar: "محدود", en: "Limited" }, enterprise: { ar: "كامل", en: "Full" } },
-    { name: { ar: "موافقات متعددة المستويات", en: "Multi-level approvals" }, free: false, pro: false, enterprise: true },
-  ]},
-  { category: { ar: "التكامل والمزامنة", en: "Integration & sync" }, features: [
-    { name: { ar: "العمل أوفلاين", en: "Offline mode" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "المزامنة التلقائية", en: "Automatic sync" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "API Access", en: "API access" }, free: false, pro: { ar: "Read-only", en: "Read-only" }, enterprise: { ar: "Full Access", en: "Full Access" } },
-    { name: { ar: "Webhooks", en: "Webhooks" }, free: false, pro: false, enterprise: true },
-    { name: { ar: "سيرفر VPS خاص", en: "Dedicated VPS" }, free: false, pro: false, enterprise: true },
-  ]},
-  { category: { ar: "الدعم والتدريب", en: "Support & training" }, features: [
-    { name: { ar: "الدعم الفني", en: "Support channel" }, free: { ar: "بريد", en: "Email" }, pro: { ar: "دردشة", en: "Chat" }, enterprise: { ar: "24/7 مخصص", en: "24/7 dedicated" } },
-    { name: { ar: "وقت الاستجابة", en: "Response time" }, free: { ar: "48 ساعة", en: "48 hours" }, pro: { ar: "4 ساعات", en: "4 hours" }, enterprise: { ar: "1 ساعة", en: "1 hour" } },
-    { name: { ar: "تدريب مجاني", en: "Free training" }, free: false, pro: { ar: "فيديوهات", en: "Videos" }, enterprise: { ar: "تدريب مباشر", en: "Live training" } },
-    { name: { ar: "مدير حساب مخصص", en: "Dedicated account manager" }, free: false, pro: false, enterprise: true },
+  { category: { ar: "التكامل والدعم", en: "Integration & support" }, features: [
+    { name: { ar: "التكاملات البنكية (Plaid)", en: "Bank feeds (Plaid)" }, free: false, pro: true, enterprise: true },
+    { name: { ar: "API", en: "API access" }, free: false, pro: { ar: "كامل", en: "Full" }, enterprise: { ar: "كامل", en: "Full" } },
+    { name: { ar: "الدعم", en: "Support" }, free: { ar: "بريد", en: "Email" }, pro: { ar: "مباشر", en: "Live" }, enterprise: { ar: "أولوية", en: "Priority" } },
+    { name: { ar: "شهر مجاني", en: "Free month" }, free: { ar: "عند الترقية", en: "On upgrade" }, pro: true, enterprise: true },
   ]},
 ];
 
@@ -195,11 +144,11 @@ export function PricingPage() {
     },
     {
       q: { ar: "هل الأسعار شاملة ضريبة القيمة المضافة؟", en: "Are prices VAT-inclusive?" },
-      a: { ar: "الأسعار المعروضة غير شاملة ضريبة القيمة المضافة (15%). سيتم إضافة الضريبة عند الدفع حسب موقعك.", en: "Listed prices exclude VAT (15% in KSA). Any applicable tax is added at checkout based on your location." },
+      a: { ar: "قد تُضاف ضريبة القيمة المضافة عند الدفع حسب موقعك والأنظمة المطبقة — تظهر التفاصيل النهائية في صفحة الدفع قبل التأكيد.", en: "Applicable taxes may be added at checkout based on your location — final details are shown on the payment page before you confirm." },
     },
     {
       q: { ar: "ما هي طرق الدفع المتاحة؟", en: "Which payment methods do you accept?" },
-      a: { ar: "نقبل جميع البطاقات الائتمانية (Visa, Mastercard, Mada) والدفع عبر Apple Pay. للباقة المؤسسية، نوفر خيار الفواتير الشهرية.", en: "All major cards (Visa, Mastercard, Mada) and Apple Pay. Monthly invoicing is available on the Enterprise plan." },
+      a: { ar: "نقبل البطاقات الائتمانية الرئيسية (Visa, Mastercard, Mada) عبر Stripe الآمنة — لا تُحفظ بيانات بطاقتك لدينا.", en: "Major cards (Visa, Mastercard, Mada) via secure Stripe checkout — your card details are never stored with us." },
     },
     {
       q: { ar: "هل يمكنني استرداد أموالي؟", en: "Can I get a refund?" },
@@ -375,22 +324,10 @@ export function PricingPage() {
                   <h4 className="text-foreground/80 mb-4" style={{ fontSize: "14px", fontWeight: 600 }}>
                     {t("ما ستحصل عليه:", "What you get:")}
                   </h4>
-                  {Object.entries(plan.features).map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-3">
-                      {typeof value === "boolean" ? (
-                        value ? (
-                          <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="w-5 h-5 text-[#E5E7EB] flex-shrink-0 mt-0.5" />
-                        )
-                      ) : (
-                        <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
-                      )}
-                      <span className="text-foreground/80" style={{ fontSize: "14px" }}>
-                        {typeof value === "boolean"
-                          ? (isAr ? FEATURE_LABELS[key]?.ar : FEATURE_LABELS[key]?.en) || key
-                          : cell(value)}
-                      </span>
+                  {(isAr ? plan.features.ar : plan.features.en).map((f) => (
+                    <div key={f} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
+                      <span className="text-foreground/80" style={{ fontSize: "14px" }}>{f}</span>
                     </div>
                   ))}
                 </div>

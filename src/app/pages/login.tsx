@@ -312,8 +312,8 @@ export function Login() {
             <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>{t("مرحباً بك في", "Welcome to")}<br /><EntixWordmark size={39} light /></h2>
             <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
-                "نظام محاسبة سحابي متكامل يعمل أونلاين وأوفلاين. جاهز للفوترة الإلكترونية ZATCA ومصمم للسوقين السعودي والأمريكي.",
-                "A cloud accounting platform that works online and offline, with ZATCA-ready e-invoicing for Saudi and US businesses."
+                "نظام محاسبة سحابي متكامل. جاهز للفوترة الإلكترونية ZATCA ومصمم للسوقين السعودي والأمريكي.",
+                "A cloud accounting platform with ZATCA-ready e-invoicing, built for Saudi and US businesses."
               )}
             </p>
           </motion.div>
@@ -322,7 +322,7 @@ export function Login() {
             {[
               { icon: Shield, text: t("مفاتيح التكامل مشفّرة AES-256-GCM", "Integration keys AES-256-GCM encrypted") },
               { icon: Zap, text: t("أداء سريع وتجربة سلسة", "Fast and smooth experience") },
-              { icon: Cloud, text: t("مزامنة ذكية مع عمل أوفلاين", "Smart sync with offline work") },
+              { icon: Cloud, text: t("نسخ احتياطي يومي تلقائي", "Automatic daily backups") },
             ].map(item => (
               <div key={item.text} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                 <item.icon className="w-5 h-5 text-[#349FC4] flex-shrink-0" />

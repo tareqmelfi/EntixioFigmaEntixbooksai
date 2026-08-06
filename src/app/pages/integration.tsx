@@ -1,9 +1,6 @@
 import { motion } from "motion/react";
 import {
-  Wifi, WifiOff, Server, Database, Shield, Lock, Key,
-  CheckCircle2, FileCheck, Award, Globe, Zap, ArrowLeft,
-  RefreshCw, HardDrive, Fingerprint,
-  Eye, AlertTriangle, Sparkles, GitBranch, Circle
+  Wifi, Database, Shield, Lock, Key, CheckCircle2, FileCheck, Award, Globe, Zap, ArrowLeft, RefreshCw, HardDrive, Fingerprint, Eye, AlertTriangle, Sparkles, GitBranch, Circle, Cloud
 } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
@@ -48,7 +45,7 @@ export function Integration() {
               </span>
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              نظام متكامل يعمل أونلاين وأوفلاين مع مزامنة ذكية، مصمم لدعم المتطلبات النظامية،
+              نظام متكامل مصمم لدعم المتطلبات النظامية للفوترة الإلكترونية،
               ومحمي بممارسات أمان قياسية
             </p>
           </motion.div>
@@ -92,13 +89,13 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-primary px-4 py-2 rounded-full mb-4">
               <RefreshCw className="w-4 h-4" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>مزامنة ذكية</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>بنية سحابية موثوقة</span>
             </div>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
               اعمل في أي مكان، في أي وقت
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              نظام مزامنة متقدم يتيح لك العمل بدون إنترنت مع ضمان تزامن جميع بياناتك تلقائياً
+              نظام سحابي بالكامل — بياناتك محفوظة بأمان ومتاحة من أي جهاز ومتصفح، مع نسخ احتياطي يومي تلقائي
             </p>
           </motion.div>
 
@@ -106,40 +103,40 @@ export function Integration() {
           <div className="grid md:grid-cols-3 gap-6 mb-16">
             {[
               {
-                icon: WifiOff,
-                title: "العمل أوفلاين",
-                desc: "استمر في العمل حتى بدون إنترنت. جميع البيانات محفوظة محلياً على جهازك.",
+                icon: Cloud,
+                title: "سحابي بالكامل",
+                desc: "لا حاجة لأي تثبيت — افتح المتصفح وابدأ العمل من أي جهاز.",
                 color: "#0B1B49",
                 features: [
-                  "تخزين محلي آمن بتقنية IndexedDB",
-                  "معالجة فورية للمعاملات",
-                  "لا حاجة لاتصال مستمر",
-                  "قائمة انتظار ذكية للمعاملات",
+                  "وصول من أي جهاز ومتصفح",
+                  "تحديثات تلقائية بدون توقف",
+                  "واجهة عربية وإنجليزية كاملة",
+                  "بيانات محدّثة دائمًا لكل فريقك",
                 ]
               },
               {
-                icon: Wifi,
-                title: "المزامنة التلقائية",
-                desc: "مزامنة ذكية عند توفر الاتصال مع حل تلقائي للتعارضات.",
+                icon: Database,
+                title: "نسخ احتياطي يومي",
+                desc: "نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا.",
                 color: "#1276E3",
                 features: [
-                  "مزامنة تلقائية في الخلفية",
-                  "جدولة مرنة للمزامنة",
-                  "حل ذكي للتعارضات",
-                  "إشعارات فورية بحالة المزامنة",
+                  "نسخ تلقائي يومي",
+                  "احتفاظ 14 يومًا",
+                  "استعادة عند الحاجة",
+                  "تصدير كامل في أي وقت",
                 ],
                 highlighted: true
               },
               {
-                icon: Server,
-                title: "سيرفر خاص VPS",
-                desc: "استضافة على سيرفرك الخاص مع تحكم كامل ببياناتك.",
+                icon: Lock,
+                title: "حماية عبر Cloudflare",
+                desc: "تشفير أثناء النقل وحماية من الهجمات على مستوى الشبكة.",
                 color: "#349FC4",
                 features: [
-                  "تثبيت على VPS خاص بك",
-                  "قاعدة بيانات PostgreSQL",
-                  "نسخ احتياطي محلي",
-                  "تحكم كامل بالبيانات",
+                  "تشفير TLS لكل الاتصالات",
+                  "حماية DDoS عبر Cloudflare",
+                  "Turnstile ضد البوتات",
+                  "تحديد معدل الطلبات",
                 ]
               },
             ].map((mode, i) => (
@@ -358,7 +355,7 @@ export function Integration() {
               { value: "Phase 2", label: "جاهزية ZATCA", icon: Award },
               { value: "ECDSA", label: "توقيع رقمي مشفر", icon: Lock },
               { value: "يوميًا", label: "نسخ احتياطي تلقائي", icon: Eye },
-              { value: "Online + Offline", label: "يعمل في الحالتين", icon: Zap },
+              { value: "AR + EN", label: "واجهة ثنائية اللغة", icon: Zap },
             ].map((stat) => (
               <motion.div
                 key={stat.label}

@@ -2017,12 +2017,12 @@ function PlansTab({ org }: { org: Org }) {
 
   const tierFeatures: Record<string, { ar: string[]; en: string[] }> = {
     starter: {
-      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA", "شهر مجاني على أي باقة مدفوعة"],
-      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA", "Free month on any paid plan"],
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
+      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
     },
     professional: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA + QR", "Bank feeds (Plaid)", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
     },
     enterprise: {
       ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],

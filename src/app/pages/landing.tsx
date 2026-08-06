@@ -1,10 +1,6 @@
 import { useNavigate } from "react-router";
 import {
-  Shield, BarChart3, Globe, Zap, Cloud, Smartphone,
-  FileText, ArrowLeft, CheckCircle2, ChevronDown,
-  Database, Wifi, WifiOff, Server,
-  Receipt, Calculator, TrendingUp, Clock, Play,
-  CreditCard, Landmark, Rocket
+  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
@@ -52,7 +48,7 @@ const FEATURES_SA = [
   { icon: BarChart3, title: "تقارير مالية متقدمة", titleEn: "Advanced financial reports", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء رئيسية", descEn: "A clear dashboard with interactive charts and key financial indicators." },
   { icon: Shield, title: "أمان وموثوقية", titleEn: "Secure and reliable", desc: "تشفير AES-256 وحماية متعددة الطبقات مع نسخ احتياطي تلقائي", descEn: "Layered protection, encrypted storage, and automated backups." },
   { icon: Globe, title: "دعم متعدد اللغات", titleEn: "Arabic and English", desc: "واجهة عربية كاملة RTL مع دعم اللغة الإنجليزية والعملات المتعددة", descEn: "Native Arabic RTL with English LTR support and multi-currency workflows." },
-  { icon: Cloud, title: "سحابي + محلي", titleEn: "Cloud + local", desc: "اعمل أونلاين أو أوفلاين مع مزامنة ذكية تلقائية للبيانات", descEn: "Work online or offline with controlled data synchronization." },
+  { icon: Cloud, title: "سحابي بالكامل", titleEn: "Fully cloud", desc: "بياناتك متاحة من أي جهاز ومتصفح مع نسخ احتياطي يومي تلقائي", descEn: "Access from any device or browser with automatic daily backups." },
   { icon: Smartphone, title: "متوافق مع الجوال", titleEn: "Mobile friendly", desc: "تصميم متجاوب يعمل بسلاسة على جميع الأجهزة والشاشات", descEn: "Responsive screens built for desktop and mobile accounting work." },
   { icon: Receipt, title: "إدارة المصروفات", titleEn: "Expense management", desc: "تتبع المصروفات والمشتريات مع تصنيف تلقائي ومراكز تكلفة", descEn: "Track expenses, purchases, categories, and cost centers." },
   { icon: Calculator, title: "ضريبة القيمة المضافة", titleEn: "VAT handling", desc: "حساب تلقائي للضريبة مع تقارير جاهزة للتقديم لهيئة الزكاة", descEn: "Automated VAT calculations with reports prepared for compliance review." },
@@ -64,7 +60,7 @@ const FEATURES_US = [
   { icon: BarChart3, title: "تقارير مالية متقدمة", titleEn: "Advanced financial reports", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء رئيسية", descEn: "A clear dashboard with interactive charts and key financial indicators." },
   { icon: Shield, title: "أمان وموثوقية", titleEn: "Secure and reliable", desc: "تشفير AES-256 وحماية متعددة الطبقات مع نسخ احتياطي تلقائي", descEn: "Layered protection, encrypted storage, and automated backups." },
   { icon: Globe, title: "دعم متعدد اللغات", titleEn: "Arabic and English", desc: "واجهة عربية كاملة RTL مع دعم اللغة الإنجليزية والعملات المتعددة", descEn: "Native Arabic RTL with English LTR support and multi-currency workflows." },
-  { icon: Cloud, title: "سحابي + محلي", titleEn: "Cloud + local", desc: "اعمل أونلاين أو أوفلاين مع مزامنة ذكية تلقائية للبيانات", descEn: "Work online or offline with controlled data synchronization." },
+  { icon: Cloud, title: "سحابي بالكامل", titleEn: "Fully cloud", desc: "بياناتك متاحة من أي جهاز ومتصفح مع نسخ احتياطي يومي تلقائي", descEn: "Access from any device or browser with automatic daily backups." },
   { icon: CreditCard, title: "مدفوعات Stripe", titleEn: "Stripe payments", desc: "اقبل البطاقات والمدفوعات الإلكترونية مباشرة على فواتيرك عبر Stripe", descEn: "Accept cards and online payments directly on your invoices via Stripe." },
   { icon: Receipt, title: "إدارة المصروفات", titleEn: "Expense management", desc: "تتبع المصروفات والمشتريات مع تصنيف تلقائي ومراكز تكلفة", descEn: "Track expenses, purchases, categories, and cost centers." },
   { icon: Landmark, title: "ربط البنوك Plaid", titleEn: "Plaid bank feeds", desc: "اربط حساباتك البنكية الأمريكية عبر Plaid لمطابقة المعاملات تلقائياً", descEn: "Connect US bank accounts via Plaid for automatic transaction matching." },
@@ -81,8 +77,8 @@ const PRICING_SA = [
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
     descEn: "For solo operators and small projects",
-    features: ["5 فواتير شهرياً", "مستخدم واحد", "تقارير أساسية", "دعم بالبريد"],
-    featuresEn: ["5 invoices monthly", "1 user", "Basic reports", "Email support"],
+    features: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
+    featuresEn: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
     highlighted: false
   },
   {
@@ -93,8 +89,8 @@ const PRICING_SA = [
     periodEn: "SAR / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "جاهز لـ ZATCA", "دعم مباشر", "تطبيق جوال"],
-    featuresEn: ["Unlimited invoices", "5 users", "Advanced reports", "ZATCA-ready", "Live support", "Mobile app"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
     highlighted: true
   },
   {
@@ -105,8 +101,8 @@ const PRICING_SA = [
     periodEn: "SAR / month",
     desc: "للمؤسسات الكبيرة",
     descEn: "For larger organizations",
-    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم ذو أولوية"],
-    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Priority support"],
+    features: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
+    featuresEn: ["Everything in Pro", "Unlimited users", "Advanced unlimited AI", "Full multi-currency", "Audit log", "Priority support"],
     highlighted: false
   },
 ];
@@ -120,8 +116,8 @@ const PRICING_US = [
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
     descEn: "For solo operators and small projects",
-    features: ["5 فواتير شهرياً", "مستخدم واحد", "تقارير أساسية", "دعم بالبريد"],
-    featuresEn: ["5 invoices monthly", "1 user", "Basic reports", "Email support"],
+    features: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
+    featuresEn: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
     highlighted: false
   },
   {
@@ -132,8 +128,8 @@ const PRICING_US = [
     periodEn: "USD / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "5 مستخدمين", "تقارير متقدمة", "مدفوعات Stripe", "ربط Plaid البنكي", "دعم مباشر"],
-    featuresEn: ["Unlimited invoices", "5 users", "Advanced reports", "Stripe payments", "Plaid bank feeds", "Live support"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
     highlighted: true
   },
   {
@@ -144,8 +140,8 @@ const PRICING_US = [
     periodEn: "USD / month",
     desc: "للمؤسسات الكبيرة",
     descEn: "For larger organizations",
-    features: ["كل مميزات الاحترافي", "مستخدمون غير محدودون", "API مفتوح", "سيرفر خاص VPS", "مزامنة محلية", "دعم ذو أولوية"],
-    featuresEn: ["Everything in Professional", "Unlimited users", "Open API", "Private VPS", "Local sync", "Priority support"],
+    features: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
+    featuresEn: ["Everything in Pro", "Unlimited users", "Advanced unlimited AI", "Full multi-currency", "Audit log", "Priority support"],
     highlighted: false
   },
 ];
@@ -183,8 +179,8 @@ export function Landing() {
     isSA
       ? { q: t("هل ENTIX.IO جاهز للفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO ready for Saudi e-invoicing?"), a: t("نعم، ENTIX.IO مصمم لدعم المرحلة الثانية من الفوترة الإلكترونية (ZATCA) — إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي، ويُفعَّل عبر شهادة CSID الخاصة بمنشأتك من بوابة فاتورة.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") }
       : { q: t("هل يدعم ENTIX.IO ضريبة المبيعات والمدفوعات الأمريكية؟", "Does ENTIX.IO support US sales tax and payments?"), a: t("نعم، يدعم ضريبة المبيعات الأمريكية وتتبع الموردين 1099، مع قبول المدفوعات عبر Stripe وربط الحسابات البنكية عبر Plaid.", "Yes. ENTIX.IO handles US sales tax and 1099 vendor tracking, accepts payments via Stripe, and connects bank feeds via Plaid.") },
-    { q: t("هل يمكنني العمل بدون إنترنت؟", "Can I work without internet?"), a: t("نعم، يدعم ENTIX.IO العمل أوفلاين بالكامل. جميع البيانات تُحفظ محلياً على الجهاز وتتم المزامنة تلقائياً عند عودة الاتصال بالإنترنت. يمكنك جدولة المزامنة نهاية اليوم أو القيام بها يدوياً.", "Yes. ENTIX.IO supports offline work, keeps data locally, and syncs when the connection returns.") },
-    { q: t("هل يمكن تثبيته على سيرفر خاص؟", "Can it run on a private server?"), a: t("نعم، في الباقة المؤسسية يمكنك تثبيت ENTIX.IO على VPS الخاص بك مع قاعدة بيانات PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي المحلي.", "Yes. Enterprise deployments can run on a private VPS with PostgreSQL, backups, and full data control.") },
+    { q: t("هل بياناتي محفوظة ويمكنني تصديرها؟", "Is my data safe and exportable?"), a: t("نعم — نسخ احتياطي يومي تلقائي مع احتفاظ بالنسخ 14 يومًا، وتصدّر بياناتك كاملة في أي وقت. بياناتك ملكك دائمًا.", "Yes — automatic daily backups with 14-day retention, and you can export all of your data anytime. Your data is always yours.") },
+    { q: t("هل تتوفر خيارات نشر مخصصة للمؤسسات؟", "Do you offer custom deployments for enterprises?"), a: t("للمؤسسات ذات المتطلبات الخاصة، تواصل معنا على support@entix.io لبحث الخيارات المناسبة.", "For organizations with special requirements, contact us at support@entix.io to discuss the right options.") },
     { q: t("كيف يتم تأمين البيانات؟", "How is data secured?"), a: t("نستخدم تشفير AES-256 للبيانات المخزنة وTLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي وإمكانية تصدير البيانات في أي وقت بصيغة JSON.", "Data is protected with encrypted storage, secure transport, automated backups, and export options.") },
     { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً.", "Yes. ENTIX.IO supports SAR, USD, and additional currencies with exchange-rate workflows.") },
   ];
@@ -215,8 +211,8 @@ export function Landing() {
             </h1>
             <p className="text-muted-foreground mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
               {t(
-                "ENTIX.IO نظام محاسبة سحابي يعمل أونلاين وأوفلاين. جاهز للفوترة الإلكترونية ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
-                "ENTIX.IO is a cloud accounting platform that works online and offline. It supports ZATCA workflows, Arabic RTL, English LTR, and the daily financial operations of growing businesses."
+                "ENTIX.IO نظام محاسبة سحابي متكامل. جاهز للفوترة الإلكترونية ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
+                "ENTIX.IO is a cloud accounting platform with ZATCA-ready e-invoicing, full Arabic RTL and English LTR, built for the daily financial operations of growing businesses."
               )}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -225,7 +221,7 @@ export function Landing() {
                 className="bg-primary hover:bg-primary/80 text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-[#1276E3]/25 flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                {t("ابدأ تجربتك المجانية", "Start your free trial")}
+                {t("ابدأ شهرك المجاني", "Start your free month")}
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <button 
@@ -239,7 +235,7 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8">
               {[
                 { icon: CheckCircle2, text: t("جاهز لـ ZATCA", "ZATCA-ready") },
-                { icon: WifiOff, text: t("يعمل أوفلاين", "Offline capable") },
+                { icon: Database, text: t("نسخ احتياطي يومي", "Daily backups") },
                 { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
               ].map(t => (
                 <div key={t.text} className="flex items-center gap-1.5 text-muted-foreground" style={{ fontSize: "13px", fontWeight: 500 }}>
@@ -343,20 +339,20 @@ export function Landing() {
       <section id="sync" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block bg-[#F0FDF4] text-[#15803D] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("بدون إنترنت", "Offline")}</span>
-            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("يعمل بدون إنترنت", "Works without internet")}</h2>
+            <span className="inline-block bg-[#F0FDF4] text-[#15803D] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأمان والاعتمادية", "Security & reliability")}</span>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("بياناتك محمية وملكك دائمًا", "Your data is protected — and always yours")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.8 }}>
               {t(
-                "صُمم ENTIX.IO لحل مشكلة الاتصال في القطاعات المختلفة. اعمل محلياً وزامن بياناتك عند توفر الاتصال.",
-                "ENTIX.IO is designed for teams that cannot depend on perfect connectivity. Work locally, then sync when the connection is available."
+                "نسخ احتياطي يومي تلقائي مع احتفاظ 14 يومًا، وعزل كامل لبيانات كل منشأة، وتصدير بياناتك كاملة في أي وقت.",
+                "Automatic daily backups with 14-day retention, complete isolation of each organization's data, and full export anytime."
               )}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             {[
-              { icon: WifiOff, color: "#0B1B49", title: "العمل أوفلاين", titleEn: "Offline work", desc: "جميع البيانات تُحفظ محلياً على الجهاز. لا حاجة لاتصال مستمر بالإنترنت. أدخل فواتيرك وسجل معاملاتك في أي وقت.", descEn: "Keep working locally when the connection drops. Enter invoices and transactions without waiting for the network." },
-              { icon: Wifi, color: "#1276E3", title: "مزامنة ذكية", titleEn: "Smart sync", desc: "مزامنة تلقائية نهاية اليوم أو يدوية في أي وقت. حل ذكي للتعارضات مع ضمان عدم فقد أي بيانات.", descEn: "Sync automatically at the end of the day or manually when needed, with controlled conflict handling." },
-              { icon: Server, color: "#349FC4", title: "سيرفر خاص VPS", titleEn: "Private VPS", desc: "ثبّت على سيرفرك الخاص مع PostgreSQL. تحكم كامل ببياناتك مع إمكانية النسخ الاحتياطي والتصدير.", descEn: "Run on a private VPS with PostgreSQL, backups, exports, and full control over your data." },
+              { icon: Database, color: "#0B1B49", title: "نسخ احتياطي يومي", titleEn: "Daily backups", desc: "نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا — بياناتك قابلة للاستعادة عند الحاجة.", descEn: "Automatic backups every day with 14-day retention — your data stays recoverable when needed." },
+              { icon: Shield, color: "#1276E3", title: "عزل كامل للبيانات", titleEn: "Full data isolation", desc: "بيانات كل منشأة معزولة بالكامل مع صلاحيات وصول حسب أدوار المستخدمين وجلسات آمنة مشفّرة.", descEn: "Every organization's data is fully isolated, with role-based access and encrypted secure sessions." },
+              { icon: FileText, color: "#349FC4", title: "تصدير في أي وقت", titleEn: "Export anytime", desc: "بياناتك ملكك — صدّرها كاملة متى شئت، واحذف حسابك وبياناتك عند الطلب.", descEn: "Your data is yours — export it in full anytime, and delete your account and data on request." },
             ].map((item, i) => (
               <motion.div 
                 key={item.title}
@@ -382,9 +378,9 @@ export function Landing() {
           >
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6">
               {[
+                { icon: Globe, label: "Cloudflare", sub: "حماية وتسريع", subEn: "protection & CDN" },
                 { icon: Database, label: "PostgreSQL", sub: "قاعدة البيانات", subEn: "database" },
-                { icon: Cloud, label: "LocalStorage", sub: "تخزين محلي", subEn: "local storage" },
-                { icon: Globe, label: "REST API", sub: "واجهة برمجية", subEn: "API layer" },
+                { icon: CreditCard, label: "Stripe", sub: "مدفوعات آمنة", subEn: "secure payments" },
               ].map((item, i) => (
                 <div key={item.label} className="flex items-center gap-3">
                   {i > 0 && <div className="hidden sm:block w-12 h-[2px] bg-[#349FC4]/40 rounded" />}
@@ -400,8 +396,8 @@ export function Landing() {
             </div>
             <p className="text-[#94A3B8] max-w-2xl mx-auto text-center" style={{ fontSize: "14px", lineHeight: 1.8 }}>
               {t(
-                "بنية تقنية مرنة تدعم التخزين المحلي والسحابي والسيرفر الخاص، مع إمكانية التبديل بينها بدون تعديل أي كود في التطبيق.",
-                "A flexible architecture for local storage, cloud sync, and private server deployments without changing the app workflow."
+                "بنية سحابية حديثة: Cloudflare للحماية والتسريع، وPostgreSQL للبيانات، وStripe للمدفوعات — لا تمر بيانات البطاقات بسيرفراتنا.",
+                "A modern cloud stack: Cloudflare for protection and speed, PostgreSQL for data, and Stripe for payments — card data never touches our servers."
               )}
             </p>
           </motion.div>
@@ -490,7 +486,7 @@ export function Landing() {
               </h2>
               <p className="text-[#94A3B8] max-w-xl mx-auto mb-8" style={{ fontSize: "16px", lineHeight: 1.8 }}>
                 {t(
-                  "انضم لآلاف الشركات السعودية التي تثق في ENTIX.IO لإدارة حساباتها بكفاءة وأمان.",
+                  "ENTIX.IO في مرحلة الإطلاق التجريبي — كن من الداعمين الأوائل وأدر فواتيرك ومصاريفك وتقاريرك بكفاءة وأمان.",
                   "Use ENTIX.IO to manage accounting, invoices, expenses, and reports with a cleaner bilingual workflow."
                 )}
               </p>
@@ -500,16 +496,8 @@ export function Landing() {
                   className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >
-                  {t("ابدأ تجربتك المجانية", "Start your free trial")}
+                  {t("ابدأ شهرك المجاني", "Start your free month")}
                   <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => navigate("/login")}
-                  className="border border-white/20 hover:border-white/40 text-white px-8 py-3.5 rounded-xl transition-all cursor-pointer flex items-center gap-2"
-                  style={{ fontSize: "15px", fontWeight: 500 }}
-                >
-                  <Play className="w-4 h-4" />
-                  {t("شاهد العرض التوضيحي", "Watch demo")}
                 </button>
               </div>
             </div>
