@@ -58,6 +58,7 @@ export function PosPage() {
   const isRtl = language === "ar";
 
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [orgVat, setOrgVat] = useState(0.15);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<string>("*");
@@ -80,7 +81,7 @@ export function PosPage() {
     setShiftChecked(true);
   }, []);
   useEffect(() => {
-    api.posCatalog().then((r) => setCatalog(r.items)).catch((e) => setLoadErr(e?.message || "failed"));
+    api.posCatalog().then((r) => { setCatalog(r.items); if (typeof (r as any).orgVatRate === "number") setOrgVat((r as any).orgVatRate); }).catch((e) => setLoadErr(e?.message || "failed"));
     refreshShift();
     try { setHolds(JSON.parse(localStorage.getItem(holdsKey()) || "[]")); } catch { /* fresh */ }
     const on = () => setOnline(true); const off = () => setOnline(false);
@@ -128,7 +129,7 @@ export function PosPage() {
   const totals = useMemo(() => {
     let net = 0, vat = 0;
     for (const l of cart) {
-      const rate = l.product.taxRate ? Number(l.product.taxRate.rate) : 0.15;
+      const rate = l.product.taxRate ? Number(l.product.taxRate.rate) : orgVat;
       const gross = Number(l.product.unitPrice) * l.qty;
       const n = rate > 0 ? gross / (1 + rate) : gross;
       net += n; vat += gross - n;

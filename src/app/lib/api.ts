@@ -955,7 +955,7 @@ export const api = {
   // 409 demo_exists unless replace=true (the server deletes the old demo first).
   // ── POS · cashier (W27-next) ──
   posCatalog: () =>
-    request<{ items: Array<{ id: string; sku: string | null; name: string; nameAr: string | null; imageUrl: string | null; type: string; unitPrice: string; stockQty: string; category: string | null; taxRate: { rate: string; type: string } | null }> }>(
+    request<{ items: Array<{ id: string; sku: string | null; name: string; nameAr: string | null; imageUrl: string | null; type: string; unitPrice: string; stockQty: string; category: string | null; taxRate: { rate: string; type: string } | null }>; orgVatRate: number }>(
       '/api/pos/catalog',
     ),
   posShiftCurrent: () =>
