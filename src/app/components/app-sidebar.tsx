@@ -519,10 +519,10 @@ function SidebarContent({
             </Link>
 
             <div className="flex items-center gap-1 pt-1">
-              <button className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors">
+              <Link to="/app/help" className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors">
                 <HelpCircle className="h-4 w-4 shrink-0" />
                 <span className="min-w-0 truncate">{tr("مركز المساعدة")}</span>
-              </button>
+              </Link>
               <button
                 onClick={toggleLanguage}
                 className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors"
