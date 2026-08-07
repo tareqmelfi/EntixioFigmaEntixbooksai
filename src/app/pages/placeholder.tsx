@@ -20,7 +20,7 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
 
       <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-[#1276E3] to-[#349FC4] flex items-center justify-center shadow-2xl">
+          <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-2xl">
             <Construction className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>

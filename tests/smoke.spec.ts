@@ -26,7 +26,9 @@ test.describe('Public Pages', () => {
 
   test('pricing page loads', async ({ page }) => {
     await page.goto('/pricing')
-    await expect(page.getByText(/باقة/i).first()).toBeVisible()
+    // Vite dev compiles lazy routes on first hit · allow a generous budget.
+    // Locale follows the browser default · match both AR and EN copy.
+    await expect(page.getByText(/باقة|plan/i).first()).toBeVisible({ timeout: 30000 })
   })
 })
 
@@ -35,8 +37,9 @@ test.describe('Auth Flow', () => {
     await page.goto('/login')
     await page.fill('input[type="email"]', 'test@nonexistent.com')
     await page.fill('input[type="password"]', 'wrongpassword123')
-    await page.click('button[type="submit"]')
-    await expect(page.locator('.text-red-700, .bg-red-50').first()).toBeVisible({ timeout: 10000 })
+    // Submit via Enter · the Turnstile iframe can overlay the button and block page.click
+    await page.press('input[type="password"]', 'Enter')
+    await expect(page.locator('.text-red-700, .bg-red-50').first()).toBeVisible({ timeout: 30000 })
   })
 })
 

@@ -189,7 +189,7 @@ export function ProductDetail() {
                     <div className="flex-1 space-y-2">
                       <input id="product-image-upload" type="file" accept="image/*" hidden onChange={(e) => handleImageFile(e.target.files?.[0])} />
                       <div className="flex flex-wrap gap-2">
-                        <label htmlFor="product-image-upload" className="cursor-pointer rounded-md border border-[#1276E3] px-3 py-2 text-xs text-primary hover:bg-blue-50">{t("اختيار صورة", "Choose image")}</label>
+                        <label htmlFor="product-image-upload" className="cursor-pointer rounded-md border border-primary px-3 py-2 text-xs text-primary hover:bg-blue-50">{t("اختيار صورة", "Choose image")}</label>
                         {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:bg-muted"><X className="inline h-3.5 w-3.5 me-1" />{t("إزالة", "Remove")}</button>}
                       </div>
                       <Input value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder={t("أو ألصق رابط الصورة", "Or paste image URL")} dir="ltr" className="font-english text-xs" />
@@ -239,7 +239,7 @@ export function ProductDetail() {
 
           {/* ── Accounting column (the whole point: every item linked) ── */}
           <div className="space-y-5">
-            <Card className="border-[#1276E3]/40 bg-primary/[0.02]">
+            <Card className="border-primary/40 bg-primary/[0.02]">
               <CardContent className="p-5 space-y-4">
                 <div>
                   <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("الربط المحاسبي", "Accounting links")}</div>
@@ -286,7 +286,7 @@ export function ProductDetail() {
         </div>
 
         {/* Sticky action bar */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/products")}>{t("إلغاء", "Cancel")}</Button>
           <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("حفظ الصنف", "Save item") : t("حفظ التغييرات", "Save changes")}</>}

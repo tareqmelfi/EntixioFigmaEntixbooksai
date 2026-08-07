@@ -89,7 +89,7 @@ export function QuickContactDialog({
               const active = form.entityKind === k;
               return (
                 <button key={k} type="button" onClick={() => setForm({ ...form, entityKind: k })}
-                  className={`p-3 rounded-lg border-2 transition flex items-center gap-2 ${active ? "border-[#1276E3] bg-primary/5" : "border-border"}`}>
+                  className={`p-3 rounded-lg border-2 transition flex items-center gap-2 ${active ? "border-primary bg-primary/5" : "border-border"}`}>
                   <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground/60"}`} />
                   <span className="text-sm">{k === "INDIVIDUAL" ? "فرد" : "منظمة"}</span>
                 </button>
@@ -107,7 +107,7 @@ export function QuickContactDialog({
             <div className="grid grid-cols-3 gap-1.5">
               {(["customer", "supplier", "both"] as Role[]).map(r => (
                 <button key={r} type="button" onClick={() => setForm({ ...form, role: r })}
-                  className={`text-xs px-2 py-1.5 rounded border transition ${form.role === r ? "border-[#1276E3] bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>
+                  className={`text-xs px-2 py-1.5 rounded border transition ${form.role === r ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>
                   {r === "customer" ? "عميل" : r === "supplier" ? "مورّد" : "كلاهما"}
                 </button>
               ))}

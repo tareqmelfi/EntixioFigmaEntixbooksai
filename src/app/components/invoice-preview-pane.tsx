@@ -141,7 +141,7 @@ export function InvoicePreviewPane({
               title="طباعة بالعربي">
               <Printer className="h-3.5 w-3.5" /> عربي
             </button>
-            <span className="w-px bg-[#E5E7EB]" />
+            <span className="w-px bg-muted" />
             <button onClick={() => window.open(`/print/invoice/${doc.id}?lang=en&noprint=1`, '_blank', 'noopener,noreferrer')}
               className="px-2 py-1.5 text-muted-foreground hover:bg-muted/50 flex items-center gap-1 text-xs font-english"
               title="Print in English">

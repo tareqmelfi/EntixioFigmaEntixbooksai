@@ -830,6 +830,21 @@ export const api = {
     getQr: (invoiceId: string) => request<{ qr: string }>(`/api/zatca/invoices/${invoiceId}/qr`),
   },
 
+  // Partners & Affiliates · برنامج الشركاء (عمولات + نقاط + سحب)
+  partners: {
+    register: (data: { name?: string; email?: string; phone?: string; type?: 'FREELANCER' | 'FIRM'; country?: string; commissionTier?: string }) =>
+      request<any>('/api/partners/register', { method: 'POST', body: data }),
+    me: () => request<{
+      partner: any;
+      dashboard: { activeClients: number; totalClients: number; totalEarned: number; totalPaid: number; pendingCommissions: number; clearedCommissions: number };
+      clients: any[]; commissions: any[]; payouts: any[];
+    }>('/api/partners/me'),
+    addClient: (orgId: string) => request<any>('/api/partners/clients', { method: 'POST', body: { orgId } }),
+    requestPayout: (data: { amount?: number; currency?: string; notes?: string }) =>
+      request<any>('/api/partners/payouts', { method: 'POST', body: data }),
+    leaderboard: () => request<{ partners: any[] }>('/api/partners/leaderboard'),
+  },
+
   // Revenue Recognition · الاعتراف بالإيرادات / Deferred Revenue
   // catchUp is fire-and-forget on dashboard load (lazy, survives reboots).
   revenueRecognition: {

@@ -273,7 +273,7 @@ export function BankAccountNew() {
               <>
                 <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
                   <div className="font-semibold">{t("صيغة الحسابات الأمريكية", "US bank account format")}</div>
-                  <p className="mt-1 text-[#4B5563]">{t("استخدم Routing Number + Account Number.", "Use Routing Number + Account Number.")}</p>
+                  <p className="mt-1 text-foreground/70">{t("استخدم Routing Number + Account Number.", "Use Routing Number + Account Number.")}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label className="text-foreground/80">Routing Number * <span className="text-muted-foreground/60 text-xs">(ABA)</span></Label>
@@ -302,7 +302,7 @@ export function BankAccountNew() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/bank-accounts")}>{t("إلغاء", "Cancel")}</Button>
           <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{t("حفظ الحساب", "Save account")}</>}

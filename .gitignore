@@ -12,3 +12,7 @@ qa-reports/
 # local env files must never be committed or leak into builds
 .env.local
 .env.*.local
+
+# Test artifacts
+playwright-report/
+test-results/

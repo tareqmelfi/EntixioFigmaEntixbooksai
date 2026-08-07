@@ -113,7 +113,7 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         placeholder={placeholder}
         disabled={disabled}
         required={required}
-        className={`w-full ${inputClassName || "h-10 text-sm"} rounded-md border ${invalid ? "border-red-400 ring-1 ring-red-300" : "border-border"} bg-white px-3 pe-9 font-english text-start focus:outline-none focus:ring-2 focus:ring-[#1276E3]/25 disabled:opacity-50`}
+        className={`w-full ${inputClassName || "h-10 text-sm"} rounded-md border ${invalid ? "border-red-400 ring-1 ring-red-300" : "border-border"} bg-white px-3 pe-9 font-english text-start focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50`}
         style={{ textAlign: "start" }}
       />
       <button

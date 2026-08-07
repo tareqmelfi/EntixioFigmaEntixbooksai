@@ -10,13 +10,12 @@ import {
   Plug, FileCode, HelpCircle, Globe,
   Users2, Inbox, Camera, TrendingUp, HardHat,
   Pin, MousePointer, EyeOff, Crown,
-  PanelRightClose,
+  PanelRightClose, HandCoins,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
-import { api } from "../lib/api";
 import { useLegalType } from "../lib/use-legal-type";
 
 const EN_TEXT: Record<string, string> = {
@@ -57,6 +56,7 @@ const EN_TEXT: Record<string, string> = {
   "مراكز التكلفة": "Cost centers",
   "المشاريع": "Projects",
   "الفروع": "Branches",
+  "برنامج الشركاء": "Partner Program",
   "محافظ الاستثمار": "Investment wallets",
   "سجل المساهمين": "Shareholders",
   "سجل الملاك": "Owners registry",
@@ -195,6 +195,7 @@ const sections: MenuSection[] = [
       { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
       { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
       { title: "الفروع", icon: GitBranch, path: "/app/branches" },
+      { title: "برنامج الشركاء", icon: HandCoins, path: "/app/partners", badge: "جديد" },
     ],
   },
   {

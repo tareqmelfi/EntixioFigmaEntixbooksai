@@ -22,7 +22,6 @@ import { useLanguage } from "./LanguageContext";
 // The hint is just a UX nicety — the auth-store still revalidates the actual session
 // in the background and revokes if the cookie is gone or expired.
 const HINT_KEY = "entix_auth_hint";
-const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days · same as better-auth session
 
 interface Hint { ok: boolean; ts: number }
 
@@ -33,17 +32,6 @@ function hasLocalQaAuthBypass(): boolean {
   const localHosts = new Set(["127.0.0.1", "localhost", "::1"]);
   const params = new URLSearchParams(window.location.search);
   return localHosts.has(window.location.hostname) && params.get("__qa_auth") === "1";
-}
-
-function readHint(): boolean {
-  try {
-    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(HINT_KEY) : null;
-    if (!raw) return false;
-    const h: Hint = JSON.parse(raw);
-    if (!h.ok) return false;
-    if (Date.now() - h.ts > HINT_TTL_MS) return false;
-    return true;
-  } catch { return false; }
 }
 
 function writeHint(value: boolean) {
@@ -57,7 +45,6 @@ function writeHint(value: boolean) {
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState(authStore.getState());
   const location = useLocation();
-  const optimistic = readHint();
   const localQaAuthBypass = hasLocalQaAuthBypass();
 
   useEffect(() => {
@@ -77,7 +64,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (state.loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#1276E3] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -128,8 +115,8 @@ function AccountRestoreScreen({ requestedAt }: { requestedAt: string }) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#F7F9FC] p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[#DEE4EF] bg-white p-6 shadow-xl space-y-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-muted/50 p-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl space-y-4">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-full bg-red-50 flex items-center justify-center text-xl">⚠️</div>
           <div>
@@ -161,13 +148,13 @@ function AccountRestoreScreen({ requestedAt }: { requestedAt: string }) {
           <button
             onClick={restore}
             disabled={busy}
-            className="w-full rounded-lg bg-[#1276E3] px-4 py-3 text-sm font-bold text-white hover:bg-[#0F66C7] disabled:opacity-60"
+            className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary disabled:opacity-60"
           >
             {busy ? t("يُستعاد…", "Restoring…") : t("استرداد الحساب · إلغاء الحذف", "Restore account · cancel deletion")}
           </button>
           <button
             onClick={signOut}
-            className="w-full rounded-lg border border-[#DEE4EF] px-4 py-2.5 text-xs text-muted-foreground hover:bg-muted/50"
+            className="w-full rounded-lg border border-border px-4 py-2.5 text-xs text-muted-foreground hover:bg-muted/50"
           >
             {t("تسجيل الخروج — أريد المتابعة مع الحذف", "Sign out — I want to proceed with deletion")}
           </button>

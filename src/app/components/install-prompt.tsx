@@ -81,7 +81,7 @@ export function InstallPrompt() {
   return (
     <div className="fixed bottom-4 inset-x-4 z-50 lg:bottom-6 lg:right-6 lg:left-auto lg:max-w-sm">
       <div className="rounded-2xl bg-white border border-border shadow-lg p-4 flex items-start gap-3">
-        <div className="rounded-xl bg-[#0B1B49] p-2.5 flex-shrink-0">
+        <div className="rounded-xl bg-foreground p-2.5 flex-shrink-0">
           <Smartphone className="h-5 w-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">

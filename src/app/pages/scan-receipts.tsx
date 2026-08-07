@@ -8,12 +8,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Camera, Upload, Send, Copy, X, Inbox, Pencil, Check, RotateCcw, Loader2,
-  FileText, Sparkles, ArrowLeft, AlertTriangle, ChevronDown, ChevronUp, Trash2,
+  Sparkles, ArrowLeft, AlertTriangle, ChevronDown, ChevronUp, Trash2,
   ExternalLink, CheckCircle2, ListChecks, Building2,
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { enhanceReceiptImage } from "../lib/receipt-enhance";
 import { api } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -36,6 +37,9 @@ type ReceiptJob = {
   fileName: string;
   mimeType: string;
   fileBase64: string;
+  /** untouched original capture (kept when fileBase64 holds the AI-enhanced copy) */
+  originalBase64?: string;
+  originalMimeType?: string;
   sizeBytes: number;
   status: JobStatus;
   error?: string | null;
@@ -299,8 +303,17 @@ export function ScanReceipts() {
       };
       jobsRef.current.set(id, job);
       newIds.push(id);
-      fileToBase64(file)
-        .then((base64) => patchJob(id, { fileBase64: base64 }))
+      // Enhance phone-captured photos (contrast stretch + downscale) before AI extraction;
+      // the untouched original is kept alongside for the attachments bundle.
+      (async () => {
+        const original = await fileToBase64(file);
+        const enhanced = await enhanceReceiptImage(file);
+        if (enhanced) {
+          patchJob(id, { fileBase64: enhanced.base64, mimeType: enhanced.mimeType, originalBase64: original, originalMimeType: mime });
+        } else {
+          patchJob(id, { fileBase64: original });
+        }
+      })()
         .then(() => {
           queueRef.current.push(id);
           pumpQueue();
@@ -397,7 +410,12 @@ export function ScanReceipts() {
         documentNumber: job.documentNumber,
         lineItems: lineItems.length ? (lineItems as any) : null,
         paymentSplits: payments.length ? (payments as any) : null,
-        attachments: [{ name: job.fileName, contentType: job.mimeType, base64: job.fileBase64, sizeBytes: job.sizeBytes }],
+        attachments: [
+          { name: job.fileName, contentType: job.mimeType, base64: job.fileBase64, sizeBytes: job.sizeBytes },
+          ...(job.originalBase64
+            ? [{ name: `original-${job.fileName}`, contentType: job.originalMimeType || job.mimeType, base64: job.originalBase64, sizeBytes: job.sizeBytes }]
+            : []),
+        ],
         sourceFileHash: result?.sourceFileHash || null,
         extractedJson: result,
         ocrConfidence: job.confidence,
@@ -542,7 +560,7 @@ export function ScanReceipts() {
       {/* 3 options grid · Wave-style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
         {/* Phone scan */}
-        <Card className="border-border hover:border-[#1276E3] transition cursor-pointer group">
+        <Card className="border-border hover:border-primary transition cursor-pointer group">
           <CardContent className="p-6 text-center">
             <div className="w-16 h-16 mx-auto mb-3 rounded-xl bg-primary/5 flex items-center justify-center">
               <Camera className="h-7 w-7 text-primary" />
@@ -575,7 +593,7 @@ export function ScanReceipts() {
             handleFilePick(e.dataTransfer?.files || null);
           }}
         >
-          <Card className={`border-border transition cursor-pointer h-full ${dragOver ? "border-[#1276E3] bg-primary/5 ring-2 ring-primary/30" : "hover:border-[#1276E3]"}`}>
+          <Card className={`border-border transition cursor-pointer h-full ${dragOver ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "hover:border-primary"}`}>
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-xl bg-primary/5 flex items-center justify-center">
                 <Upload className="h-7 w-7 text-primary" />
@@ -590,7 +608,7 @@ export function ScanReceipts() {
         </div>
 
         {/* Email forward */}
-        <Card className="border-border hover:border-[#1276E3] transition">
+        <Card className="border-border hover:border-primary transition">
           <CardContent className="p-6 text-center">
             <div className="w-16 h-16 mx-auto mb-3 rounded-xl bg-primary/5 flex items-center justify-center">
               <Send className="h-7 w-7 text-primary" />
@@ -783,7 +801,7 @@ export function ScanReceipts() {
                             </button>
                             <button
                               onClick={() => openInForm(job)}
-                              className="px-2.5 py-1.5 rounded-md border border-border text-xs hover:bg-primary/5 hover:border-[#1276E3] hover:text-primary flex items-center gap-1"
+                              className="px-2.5 py-1.5 rounded-md border border-border text-xs hover:bg-primary/5 hover:border-primary hover:text-primary flex items-center gap-1"
                               title={t("فتح في نموذج المصروف للتعديل", "Open in the expense form to edit")}
                             >
                               <ExternalLink className="h-3 w-3" /> {t("تعديل", "Edit")}
@@ -809,7 +827,7 @@ export function ScanReceipts() {
                         {(job.status === "error" || job.status === "failed") && job.fileBase64 && (
                           <button
                             onClick={() => openInForm(job)}
-                            className="px-2.5 py-1.5 rounded-md border border-border text-xs hover:bg-primary/5 hover:border-[#1276E3] hover:text-primary flex items-center gap-1"
+                            className="px-2.5 py-1.5 rounded-md border border-border text-xs hover:bg-primary/5 hover:border-primary hover:text-primary flex items-center gap-1"
                           >
                             <ArrowLeft className="h-3 w-3" /> {t("يدوياً", "Manually")}
                           </button>
@@ -883,13 +901,13 @@ export function ScanReceipts() {
             <button
               onClick={copyAlias}
               disabled={!activeLocal}
-              className="px-3 py-2 rounded-md border border-border text-sm hover:bg-primary/5 hover:border-[#1276E3] hover:text-primary transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3 py-2 rounded-md border border-border text-sm hover:bg-primary/5 hover:border-primary hover:text-primary transition flex items-center gap-1.5 disabled:opacity-50"
             >
               <Copy className="h-3.5 w-3.5" /> {t("نسخ", "Copy")}
             </button>
             <button
               onClick={openEdit}
-              className="px-3 py-2 rounded-md border border-border text-sm hover:bg-primary/5 hover:border-[#1276E3] hover:text-primary transition flex items-center gap-1.5"
+              className="px-3 py-2 rounded-md border border-border text-sm hover:bg-primary/5 hover:border-primary hover:text-primary transition flex items-center gap-1.5"
               title={t("غيّر عنوان الاستقبال", "Change the inbound address")}
             >
               <Pencil className="h-3.5 w-3.5" /> {t("تخصيص", "Customize")}
@@ -1002,7 +1020,7 @@ export function ScanReceipts() {
                 </div>
               ))}
             </div>
-            <Button onClick={() => setShowFaq(false)} className="mt-4 w-full bg-primary hover:bg-[#0F66C7]">{t("حسناً", "Got it")}</Button>
+            <Button onClick={() => setShowFaq(false)} className="mt-4 w-full bg-primary hover:bg-primary">{t("حسناً", "Got it")}</Button>
           </div>
         </div>
       )}

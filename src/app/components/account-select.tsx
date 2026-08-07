@@ -123,7 +123,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
         onFocus={() => { setIsOpen(true); setQuery(""); }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
+        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       />
 
       {isOpen && (
@@ -151,7 +151,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
                         key={acc.code}
                         onClick={() => handleSelect(acc)}
                         onMouseEnter={() => setHighlightIndex(flatIdx)}
-                        className={`w-full text-start px-3 py-2 flex items-center gap-2 transition-colors ${highlightIndex === flatIdx ? "bg-[#EFF6FF]" : "hover:bg-muted"}`}
+                        className={`w-full text-start px-3 py-2 flex items-center gap-2 transition-colors ${highlightIndex === flatIdx ? "bg-primary/5" : "hover:bg-muted"}`}
                       >
                         <span className="text-sm font-english text-muted-foreground w-10 shrink-0">{acc.code}</span>
                         <span className="text-sm text-foreground">- {acc.name}</span>

@@ -206,7 +206,7 @@ export function InboxPage() {
       </div>
 
       {/* Forwarding address banner */}
-      <Card className={mailboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white" : "border-amber-200 bg-amber-50"}>
+      <Card className={mailboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-primary/5 to-white" : "border-amber-200 bg-amber-50"}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Mail className="h-5 w-5 text-primary shrink-0" />
@@ -250,7 +250,7 @@ export function InboxPage() {
             className={`px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${
               filter === s
                 ? "bg-primary text-white"
-                : "bg-white border border-border text-muted-foreground hover:border-[#1276E3]/40"
+                : "bg-white border border-border text-muted-foreground hover:border-primary/40"
             }`}
           >
             {s === "ALL" ? t("الكل", "All") : STATUS_LABEL[s] ? t(STATUS_LABEL[s].label.ar, STATUS_LABEL[s].label.en) : s}
@@ -269,7 +269,7 @@ export function InboxPage() {
               </div>
             ) : items.length === 0 ? (
               <div className="text-center py-16 px-6">
-                <InboxIcon className="h-12 w-12 text-[#E5E7EB] mx-auto mb-3" />
+                <InboxIcon className="h-12 w-12 text-muted mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">{t("صندوق الوارد فارغ", "Inbox is empty")}</p>
                 <p className="text-xs text-muted-foreground/60 mt-1">{t("حوّل أي فاتورة إلى", "Forward any invoice to")} <span className="font-english">{forwardAddress}</span> {t("لترى الذكاء يستخرجها هنا", "to watch AI extract it here")}</p>
               </div>
@@ -283,7 +283,7 @@ export function InboxPage() {
                       key={m.id}
                       onClick={() => loadDetail(m.id)}
                       className={`px-4 py-3 cursor-pointer border-b border-border/50 last:border-0 transition ${
-                        active ? "bg-primary/5 border-l-4 border-l-[#1276E3]" : "hover:bg-[#FAFBFC]"
+                        active ? "bg-primary/5 border-l-4 border-l-[#1276E3]" : "hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -323,7 +323,7 @@ export function InboxPage() {
           <CardContent className="p-0">
             {!detail ? (
               <div className="text-center py-20 px-6">
-                <Mail className="h-12 w-12 text-[#E5E7EB] mx-auto mb-3" />
+                <Mail className="h-12 w-12 text-muted mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground/60">{t("اختر رسالة من القائمة", "Select a message from the list")}</p>
               </div>
             ) : (
@@ -390,7 +390,7 @@ function DetailPane({
           </div>
           <div className="flex flex-wrap gap-2">
             {detail.attachments.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-[#FAFBFC] text-xs">
+              <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/40 text-xs">
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 <span className="text-foreground/80 font-english">{a.filename}</span>
                 <span className="text-muted-foreground/60 font-english">· {(a.sizeBytes / 1024).toFixed(0)}KB</span>
@@ -402,7 +402,7 @@ function DetailPane({
 
       {/* Extracted preview */}
       {ex && (
-        <div className="p-5 bg-[#FAFBFC]">
+        <div className="p-5 bg-muted/40">
           <div className="flex items-center justify-between mb-3">
             <div className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-primary" /> {t("ما استخرجه الذكاء", "What AI extracted")}
@@ -521,7 +521,7 @@ function DetailPane({
             <button
               onClick={onReprocess}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               {t("استخراج بالذكاء", "Extract with AI")}
@@ -556,7 +556,7 @@ function Field({ label, value, mono, bold }: { label: string; value?: string | n
     <div>
       <div className="text-xs text-muted-foreground/60">{label}</div>
       <div className={`text-sm text-foreground ${mono ? "font-english" : ""} ${bold ? "font-semibold" : ""}`}>
-        {value || <span className="text-[#D1D5DB]">—</span>}
+        {value || <span className="text-muted-foreground">—</span>}
       </div>
     </div>
   );

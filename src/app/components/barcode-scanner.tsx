@@ -131,7 +131,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
-      <div className="absolute inset-0 bg-[#0B1B49]/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-border/50">
           <div>
@@ -150,7 +150,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
           <button
             onClick={() => setMode("camera")}
             className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 transition-colors ${
-              mode === "camera" ? "bg-white text-primary border-b-2 border-[#1276E3]" : "text-muted-foreground"
+              mode === "camera" ? "bg-white text-primary border-b-2 border-primary" : "text-muted-foreground"
             }`}
           >
             <Camera className="h-3.5 w-3.5" /> الكاميرا
@@ -158,7 +158,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
           <button
             onClick={() => setMode("manual")}
             className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 transition-colors ${
-              mode === "manual" ? "bg-white text-primary border-b-2 border-[#1276E3]" : "text-muted-foreground"
+              mode === "manual" ? "bg-white text-primary border-b-2 border-primary" : "text-muted-foreground"
             }`}
           >
             <Barcode className="h-3.5 w-3.5" /> إدخال يدوي
@@ -182,7 +182,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
               />
               {/* Scanning frame overlay */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-3/4 h-1/3 border-2 border-[#1276E3] rounded-lg shadow-lg" />
+                <div className="w-3/4 h-1/3 border-2 border-primary rounded-lg shadow-lg" />
               </div>
               {scanning && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 text-white px-3 py-1.5 rounded-full text-xs">

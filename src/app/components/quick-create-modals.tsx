@@ -45,7 +45,7 @@ function PopoverShell({ title, subtitle, onClose, onSubmit, busy, error, childre
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir={isRtl ? "rtl" : "ltr"}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-[#0B1B49]/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
         onClick={() => !busy && onClose()}
       />
       {/* Centered card */}

@@ -40,9 +40,9 @@ const CATEGORY_LABELS: Record<CategoryKey, { ar: string; en: string }> = {
 };
 
 const statusConfig: Record<IntegrationStatus, { label: { ar: string; en: string }; color: string; bg: string }> = {
-  connected: { label: { ar: "متصل", en: "Connected" }, color: "text-foreground", bg: "bg-[#ECEEF5]" },
-  available: { label: { ar: "متاح", en: "Available" }, color: "text-primary", bg: "bg-[#EFF6FF]" },
-  coming: { label: { ar: "قريباً", en: "Coming soon" }, color: "text-[#92400E]", bg: "bg-[#FEF3C7]" },
+  connected: { label: { ar: "متصل", en: "Connected" }, color: "text-foreground", bg: "bg-muted" },
+  available: { label: { ar: "متاح", en: "Available" }, color: "text-primary", bg: "bg-primary/5" },
+  coming: { label: { ar: "قريباً", en: "Coming soon" }, color: "text-amber-800", bg: "bg-amber-100" },
 };
 
 export function Integrations() {
@@ -118,22 +118,22 @@ export function Integrations() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-border">
           <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#ECEEF5] p-2.5"><CheckCircle2 className="h-5 w-5 text-foreground" /></div></div>
+            <div className="flex justify-center mb-3"><div className="rounded-xl bg-muted p-2.5"><CheckCircle2 className="h-5 w-5 text-foreground" /></div></div>
             <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "connected").length}</div>
             <p className="text-xs text-muted-foreground mt-1">{t("متصل", "Connected")}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#EFF6FF] p-2.5"><Plug className="h-5 w-5 text-primary" /></div></div>
+            <div className="flex justify-center mb-3"><div className="rounded-xl bg-primary/5 p-2.5"><Plug className="h-5 w-5 text-primary" /></div></div>
             <div className="text-primary font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "available").length}</div>
             <p className="text-xs text-muted-foreground mt-1">{t("متاح للربط", "Available")}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-[#FEF3C7] p-2.5"><Clock className="h-5 w-5 text-[#92400E]" /></div></div>
-            <div className="text-[#92400E] font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "coming").length}</div>
+            <div className="flex justify-center mb-3"><div className="rounded-xl bg-amber-100 p-2.5"><Clock className="h-5 w-5 text-amber-800" /></div></div>
+            <div className="text-amber-800 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "coming").length}</div>
             <p className="text-xs text-muted-foreground mt-1">{t("قريباً", "Coming soon")}</p>
           </CardContent>
         </Card>
@@ -145,9 +145,9 @@ export function Integrations() {
           <Input placeholder={t("بحث عن تكامل...", "Search integrations...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
         <div className="flex gap-1 flex-wrap">
-          <button onClick={() => setCategoryFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!categoryFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+          <button onClick={() => setCategoryFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!categoryFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
           {categories.map(c => (
-            <button key={c} onClick={() => setCategoryFilter(c)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${categoryFilter === c ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 600 }}>{isAr ? CATEGORY_LABELS[c].ar : CATEGORY_LABELS[c].en}</button>
+            <button key={c} onClick={() => setCategoryFilter(c)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${categoryFilter === c ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? CATEGORY_LABELS[c].ar : CATEGORY_LABELS[c].en}</button>
           ))}
         </div>
       </div>
@@ -160,7 +160,7 @@ export function Integrations() {
             : statusConfig[integration.status];
           const Icon = integration.icon;
           return (
-            <Card key={integration.id} className={`border-border transition-all ${regionLocked ? "opacity-60" : "hover:shadow-md hover:border-[#1276E3]/30 cursor-pointer"}`}>
+            <Card key={integration.id} className={`border-border transition-all ${regionLocked ? "opacity-60" : "hover:shadow-md hover:border-primary/30 cursor-pointer"}`}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -176,7 +176,7 @@ export function Integrations() {
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{isAr ? integration.description.ar : integration.description.en}</p>
                 {integration.status === "connected" && (
-                  <Button variant="outline" className="w-full border-[#0B1B49] text-foreground" size="sm" onClick={() => runAction(integration)}>{t("إعدادات", "Settings")}</Button>
+                  <Button variant="outline" className="w-full border-foreground text-foreground" size="sm" onClick={() => runAction(integration)}>{t("إعدادات", "Settings")}</Button>
                 )}
                 {integration.status === "available" && !regionLocked && (
                   <Button className="w-full bg-primary hover:bg-primary/90" size="sm" onClick={() => runAction(integration)}>{t("ربط الآن", "Connect now")}</Button>

@@ -94,7 +94,7 @@ export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو 
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
+        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       />
 
       {isOpen && (query.length > 0 || true) && (
@@ -104,7 +104,7 @@ export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو 
             <button
               onClick={() => { onChange(query); setIsOpen(false); }}
               onMouseEnter={() => setHighlightIndex(results.length)}
-              className={`w-full text-start px-3 py-2.5 flex items-center gap-2 border-b border-border transition-colors ${highlightIndex === results.length ? "bg-[#EFF6FF]" : "hover:bg-muted"}`}
+              className={`w-full text-start px-3 py-2.5 flex items-center gap-2 border-b border-border transition-colors ${highlightIndex === results.length ? "bg-primary/5" : "hover:bg-muted"}`}
             >
               <Plus className="h-4 w-4 text-primary" />
               <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إنشاء صنف جديد</span>
@@ -122,7 +122,7 @@ export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو 
                 key={item.id}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setHighlightIndex(i)}
-                className={`w-full text-start px-3 py-2 flex items-center gap-2 transition-colors ${highlightIndex === i ? "bg-[#EFF6FF]" : "hover:bg-muted"}`}
+                className={`w-full text-start px-3 py-2 flex items-center gap-2 transition-colors ${highlightIndex === i ? "bg-primary/5" : "hover:bg-muted"}`}
               >
                 <Package className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                 <div className="flex-1 min-w-0">

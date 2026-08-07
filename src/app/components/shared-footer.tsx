@@ -49,7 +49,7 @@ export function SharedFooter() {
   };
 
   return (
-    <footer className="bg-[#0B1B49] text-white" dir={language === "ar" ? "rtl" : "ltr"}>
+    <footer className="bg-foreground text-white" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Main footer content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
@@ -58,7 +58,7 @@ export function SharedFooter() {
             <div className="flex items-center mb-4">
               <EntixWordmark size={30} light />
             </div>
-            <p className="text-[#94A3B8] max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+            <p className="text-muted-foreground max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
               {t(
                 "نظام محاسبة سحابي متكامل للسوقين السعودي والأمريكي. جاهزية للفوترة الإلكترونية وفق متطلبات ZATCA مع نسخ احتياطي يومي تلقائي.",
                 "A cloud accounting platform for Saudi and US operations, with ZATCA-ready e-invoicing workflows and automatic daily backups."
@@ -67,15 +67,15 @@ export function SharedFooter() {
             
             {/* Contact info */}
             <div className="space-y-2.5 mb-6">
-              <a href="mailto:support@entix.io" className="flex items-center gap-2.5 text-[#94A3B8] hover:text-white transition-colors group cursor-pointer">
-                <Mail className="w-4 h-4 text-primary group-hover:text-[#349FC4] transition-colors" />
+              <a href="mailto:support@entix.io" className="flex items-center gap-2.5 text-muted-foreground hover:text-white transition-colors group cursor-pointer">
+                <Mail className="w-4 h-4 text-primary group-hover:text-secondary transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>support@entix.io</span>
               </a>
-              <a href="tel:+1442444410" className="flex items-center gap-2.5 text-[#94A3B8] hover:text-white transition-colors group cursor-pointer">
-                <Phone className="w-4 h-4 text-primary group-hover:text-[#349FC4] transition-colors" />
+              <a href="tel:+1442444410" className="flex items-center gap-2.5 text-muted-foreground hover:text-white transition-colors group cursor-pointer">
+                <Phone className="w-4 h-4 text-primary group-hover:text-secondary transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr" }}>+1 (442) 444-410</span>
               </a>
-              <div className="flex items-start gap-2.5 text-[#94A3B8]">
+              <div className="flex items-start gap-2.5 text-muted-foreground">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span style={{ fontSize: "13px" }}>{t("وايومنغ، الولايات المتحدة الأمريكية · ENSIDEX LLC", "Wyoming, United States · ENSIDEX LLC")}</span>
               </div>
@@ -91,7 +91,7 @@ export function SharedFooter() {
                 <li key={link.label}>
                   <Link 
                     to={link.href} 
-                    className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer" 
+                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
                     {t(link.label, link.labelEn)}
@@ -109,7 +109,7 @@ export function SharedFooter() {
                 <li key={link.label}>
                   <Link 
                     to={link.href} 
-                    className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer" 
+                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
                     {t(link.label, link.labelEn)}
@@ -127,7 +127,7 @@ export function SharedFooter() {
                 <li key={link.label}>
                   <Link 
                     to={link.href} 
-                    className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer" 
+                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
                     {t(link.label, link.labelEn)}
@@ -145,7 +145,7 @@ export function SharedFooter() {
                 <li key={link.label}>
                   <Link 
                     to={link.href} 
-                    className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer" 
+                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
                     {t(link.label, link.labelEn)}
@@ -176,7 +176,7 @@ export function SharedFooter() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="text-[#94A3B8] group-hover:text-white transition-colors" style={{ fontSize: "10px" }}>
+                  <div className="text-muted-foreground group-hover:text-white transition-colors" style={{ fontSize: "10px" }}>
                     {app.available ? t("متوفر على", "Available on") : t("قريباً", "Coming soon")}
                   </div>
                   <div className="text-white" style={{ fontSize: "13px", fontWeight: 600 }}>
@@ -186,7 +186,7 @@ export function SharedFooter() {
               </button>
             ))}
           </div>
-          <p className="mt-3 text-[#94A3B8]" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+          <p className="mt-3 text-muted-foreground" style={{ fontSize: "12px", lineHeight: 1.7 }}>
             {t(
               "تطبيقات iPhone وAndroid ما زالت في QA خاص ولم تُنشر بعد على المتاجر.",
               "iPhone and Android companion apps are still in private QA and are not yet live on app stores."
@@ -197,9 +197,9 @@ export function SharedFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-[#94A3B8] text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+            <p className="text-muted-foreground text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
               &copy; 2026 ENTIX.IO · {t("يعمل بواسطة", "Powered by")}{" "}
-              <span className="text-[#349FC4]" style={{ fontWeight: 800, letterSpacing: "0.03em" }}>ENSIDEX</span>{" "}
+              <span className="text-secondary" style={{ fontWeight: 800, letterSpacing: "0.03em" }}>ENSIDEX</span>{" "}
               <span>LLC · {t("وايومنغ، الولايات المتحدة", "Wyoming, USA")}</span>
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
@@ -207,7 +207,7 @@ export function SharedFooter() {
                 <Link 
                   key={link.label}
                   to={link.href} 
-                  className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer" 
+                  className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                   style={{ fontSize: "13px" }}
                 >
                     {t(link.label, link.labelEn)}
@@ -215,7 +215,7 @@ export function SharedFooter() {
               ))}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("entix:cookie-preferences"))}
-                className="text-[#94A3B8] hover:text-white transition-colors cursor-pointer"
+                className="text-muted-foreground hover:text-white transition-colors cursor-pointer"
                 style={{ fontSize: "13px" }}
               >
                 {t("تفضيلات الكوكيز", "Cookie preferences")}
@@ -225,7 +225,7 @@ export function SharedFooter() {
           
           {/* Development notice */}
           <div className="mt-6 text-center">
-            <p className="text-[#F59E0B]/80 max-w-2xl mx-auto" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+            <p className="text-amber-500/80 max-w-2xl mx-auto" style={{ fontSize: "12px", lineHeight: 1.7 }}>
               {t("الاشتراك متاح الآن — دفع آمن عبر Stripe.", "Subscriptions are open — secure payment via Stripe.")}
             </p>
           </div>

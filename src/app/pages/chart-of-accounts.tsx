@@ -720,7 +720,7 @@ export function ChartOfAccounts() {
             <button
               key={typeKey}
               onClick={() => setFilterType(isActive ? "ALL" : typeKey)}
-              className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-[#1276E3] ${isActive ? "border-[#1276E3] ring-1 ring-[#1276E3]/20" : "border-border"}`}
+              className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-primary ${isActive ? "border-primary ring-1 ring-ring/20" : "border-border"}`}
             >
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs text-muted-foreground">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></span>
@@ -743,7 +743,7 @@ export function ChartOfAccounts() {
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-[#1276E3]" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
+            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-primary" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
             <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">+ توسيع</button>
             <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">طيّ</button>
             <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
@@ -756,7 +756,7 @@ export function ChartOfAccounts() {
         <Card className="border-border"><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></CardContent></Card>
       ) : items.length === 0 ? (
         <Card className="border-border border-dashed"><CardContent className="py-16 text-center">
-          <BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
+          <BookOpen className="h-12 w-12 mx-auto text-muted mb-3" />
           <p className="text-sm text-muted-foreground mb-3">{t("لا توجد حسابات بعد", "No accounts yet")}</p>
           <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="me-2 h-4 w-4" />{t("أضف أول حساب", "Add first account")}</Button>
         </CardContent></Card>
@@ -850,7 +850,7 @@ export function ChartOfAccounts() {
                                   {(node.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
-                                <span className="text-[#D1D5DB]">0.00</span>
+                                <span className="text-muted-foreground">0.00</span>
                               )}
                             </div>
                             {/* Hover actions */}
@@ -919,7 +919,7 @@ export function ChartOfAccounts() {
                 <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
               ) : !txPanel.data || txPanel.data.transactions.length === 0 ? (
                 <div className="py-12 text-center">
-                  <BookOpen className="h-10 w-10 text-[#E5E7EB] mx-auto mb-2" />
+                  <BookOpen className="h-10 w-10 text-muted mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">{t("لا توجد عمليات على هذا الحساب بعد", "No transactions on this account yet")}</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">{t("العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب", "Transactions will appear here when invoices and expenses are linked to this account")}</p>
                 </div>
@@ -1066,7 +1066,7 @@ export function ChartOfAccounts() {
                   {t("لا أحذف الحساب إذا عليه قيود أو حسابات فرعية. اختر حساباً من نفس التصنيف ليتم نقل القيود والحسابات الفرعية إليه ثم تعطيل الحساب القديم.", "Wont delete the account if it has entries or sub-accounts. Choose an account of the same type to move entries and sub-accounts to, then deactivate the old account.")}
                 </div>
               </div>
-              <div className="rounded-lg border border-border bg-[#FAFBFC] p-3">
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
                 <div className="text-xs text-muted-foreground/60 mb-1">{t("الحساب المراد دمجه", "Account to merge")}</div>
                 <div className="font-english text-sm text-foreground font-semibold">{mergeSource.code} · {mergeSource.nameAr || mergeSource.name}</div>
                 <div className="text-xs text-muted-foreground mt-1">{TYPE_LABELS[mergeSource.type as AccountType]} · الرصيد {formatAmount(mergeSource.balance)}</div>
@@ -1249,7 +1249,7 @@ export function ChartOfAccounts() {
                 </div>
 
                 {/* Preview */}
-                <div className="rounded-lg border border-border bg-[#FAFBFC] p-3">
+                <div className="rounded-lg border border-border bg-muted/40 p-3">
                   <div className="text-xs text-muted-foreground/60 mb-1">{t("معاينة", "Preview")}</div>
                   <div className="flex items-center gap-2">
                     <span className="font-english text-sm text-primary font-bold">{form.code || "—"}</span>

@@ -115,7 +115,7 @@ export function HelpCenter() {
           <div className="flex flex-wrap gap-2">
             {cfg?.whatsapp && (
               <a href={`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent("مرحبًا، أحتاج مساعدة في ENTIX Books")}`} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm text-white hover:opacity-90" style={{ fontWeight: 700 }}>
+                className="inline-flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2.5 text-sm text-white hover:opacity-90" style={{ fontWeight: 700 }}>
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm5.2 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.3.6-.6.8-.4 1.1.6 1.1 1.4 1.9 2.5 2.5.3.2.5.1.7-.1l.9-1c.2-.2.4-.2.6-.1l1.9.9c.2.1.4.2.4.3.1.2.1.7-.3 1.3Z"/></svg>
                 {t("واتساب الدعم", "Support WhatsApp")}
               </a>

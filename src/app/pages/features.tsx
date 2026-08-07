@@ -226,7 +226,7 @@ export function Features() {
           <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
             <div className="grid grid-cols-4 gap-0.5">
               {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-[#0B1B49]' : 'bg-transparent'}`} />
+                <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-foreground' : 'bg-transparent'}`} />
               ))}
             </div>
           </div>
@@ -255,7 +255,7 @@ export function Features() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-[#0B1B49] to-[#122354] rounded-2xl shadow-2xl p-6"
+      className="bg-gradient-to-br from-foreground to-foreground rounded-2xl shadow-2xl p-6"
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
@@ -285,7 +285,7 @@ export function Features() {
         </div>
         <div className="h-32 flex items-end justify-between gap-2">
           {[45, 60, 55, 70, 65, 80, 75, 90, 85, 95, 88, 100].map((height, i) => (
-            <div key={i} className="flex-1 bg-gradient-to-t from-[#1276E3] to-[#349FC4] rounded-t-lg transition-all hover:opacity-80" 
+            <div key={i} className="flex-1 bg-gradient-to-t from-primary to-secondary rounded-t-lg transition-all hover:opacity-80" 
               style={{ height: `${height}%` }} 
             />
           ))}
@@ -300,10 +300,10 @@ export function Features() {
       <main>
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-white relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-[#349FC4]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/20 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div 
@@ -312,13 +312,13 @@ export function Features() {
             className="text-center mb-12"
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-[#349FC4]" />
+              <Sparkles className="w-4 h-4 text-secondary" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>مميزات متقدمة لإدارة مالية احترافية</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               كل ما تحتاجه لإدارة
               <br />
-              <span className="bg-gradient-to-l from-[#349FC4] to-[#60A5FA] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
+              <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
                 حساباتك بذكاء
               </span>
             </h1>
@@ -370,7 +370,7 @@ export function Features() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all cursor-pointer ${
                   activeTab === tab.id
-                    ? "bg-primary text-white shadow-lg shadow-[#1276E3]/25"
+                    ? "bg-primary text-white shadow-lg shadow-primary/25"
                     : "bg-white text-muted-foreground hover:bg-gray-50 border border-gray-200"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 500 }}
@@ -426,7 +426,7 @@ export function Features() {
                 <ul className="space-y-2">
                   {feature.details.slice(0, 4).map((detail) => (
                     <li key={detail} className="flex items-start gap-2 text-muted-foreground" style={{ fontSize: "13px" }}>
-                      <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                       <span>{detail}</span>
                     </li>
                   ))}
@@ -438,7 +438,7 @@ export function Features() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] to-[#1276E3]">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground to-primary">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

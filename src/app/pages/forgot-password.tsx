@@ -144,7 +144,7 @@ export function ForgotPassword() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
-                    className={`w-full px-4 py-3.5 ${isArabic ? "pe-12" : "ps-12"} rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all`}
+                    className={`w-full px-4 py-3.5 ${isArabic ? "pe-12" : "ps-12"} rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all`}
                     style={{
                       fontSize: "14px",
                       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -162,7 +162,7 @@ export function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25"
+                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {loading ? (

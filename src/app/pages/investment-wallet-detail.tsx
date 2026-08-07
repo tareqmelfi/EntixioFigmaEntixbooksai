@@ -16,7 +16,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
@@ -195,7 +194,7 @@ export function InvestmentWalletDetail() {
 
         <div className="space-y-5">
           {form.kind === "TRADING" ? (
-            <Card className="border-[#1276E3]/40 bg-primary/[0.02]">
+            <Card className="border-primary/40 bg-primary/[0.02]">
               <CardContent className="p-5 space-y-4">
                 <div>
                   <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("الربط المحاسبي", "Accounting link")}</div>
@@ -230,7 +229,7 @@ export function InvestmentWalletDetail() {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/investments") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
         <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("إنشاء المحفظة", "Create wallet") : t("حفظ التغييرات", "Save changes")}</>}

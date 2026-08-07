@@ -55,7 +55,7 @@ export function ReportPrintDesigner() {
   }, [id, from, to, demo]);
 
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
-  const selectClass = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-[#1276E3]";
+  const selectClass = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary";
 
   const update = <K extends keyof ReportPrintSettings>(key: K, value: ReportPrintSettings[K]) => {
     setSaved(false);
@@ -217,7 +217,7 @@ export function ReportPrintDesigner() {
             </Card>
           </aside>
 
-          <div className="entix-print-zone overflow-x-auto rounded-xl bg-[#DDE7F0] p-5 print:overflow-visible print:bg-white print:p-0">
+          <div className="entix-print-zone overflow-x-auto rounded-xl bg-muted p-5 print:overflow-visible print:bg-white print:p-0">
             <ReportDocument report={report} settings={resolved} mode="print" />
           </div>
         </div>

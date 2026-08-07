@@ -226,7 +226,7 @@ export function Settings() {
           <button
             key={k}
             onClick={() => selectTab(k as SettingsTab)}
-            className={`shrink-0 min-w-[76px] max-w-[132px] whitespace-normal px-2 sm:px-3 py-2 text-center text-[12px] sm:text-sm leading-4 transition-colors border-b-2 -mb-px ${tab === k ? "border-[#1276E3] text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`shrink-0 min-w-[76px] max-w-[132px] whitespace-normal px-2 sm:px-3 py-2 text-center text-[12px] sm:text-sm leading-4 transition-colors border-b-2 -mb-px ${tab === k ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >{t(label, labelEn)}</button>
         ))}
       </div>
@@ -432,7 +432,7 @@ export function Settings() {
                 <h3 className="text-sm text-foreground mb-2" style={{ fontWeight: 600 }}>
                   {t("صندوق البريد الوارد · يستلم الفواتير تلقائياً", "Inbound bills mailbox")}
                 </h3>
-                <div className={`rounded-lg border p-3 flex items-center gap-3 ${inboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-[#F4FCFF] to-white" : "border-amber-200 bg-amber-50"}`}>
+                <div className={`rounded-lg border p-3 flex items-center gap-3 ${inboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-primary/5 to-white" : "border-amber-200 bg-amber-50"}`}>
                   <div className="flex-1 min-w-0">
                     <code className="text-sm text-foreground font-english font-semibold block truncate" dir="ltr">
                       {inboxStatus?.address || `bills+${(org as any).slug}@entix.io`}
@@ -559,7 +559,7 @@ export function Settings() {
                         <span>{t("المستخدَم", "Used")}: <span className="font-english text-foreground">${Number(aiConfig.spentThisPeriod).toFixed(2)}</span></span>
                         <span className="font-english">${Number(aiConfig.monthlyAllocation).toFixed(2)} + ${Number(aiConfig.creditBalance).toFixed(2)} {t("رصيد", "credit")}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-[#E5E7EB] overflow-hidden">
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
                           className={`h-full transition-all ${aiConfig.percentUsed >= 1 ? "bg-red-500" : aiConfig.percentUsed >= 0.8 ? "bg-amber-500" : "bg-primary"}`}
                           style={{ width: `${Math.min(aiConfig.percentUsed * 100, 100)}%` }}
@@ -581,8 +581,8 @@ export function Settings() {
                         disabled={aiBusy || aiConfig.mode === k || aiConfig.disabled}
                         className={`text-start rounded-lg border p-3 transition-all ${
                           aiConfig.mode === k
-                            ? "border-[#1276E3] bg-primary/5"
-                            : "border-border hover:border-[#1276E3]/40 hover:bg-muted"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/40 hover:bg-muted"
                         } ${aiBusy ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         <div className="flex items-center justify-between">
@@ -809,7 +809,7 @@ function DataResetTab({
 
   return (
     <div className="space-y-4">
-      <Card className="border-[#F4B4B4] bg-white">
+      <Card className="border-red-300 bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Database className="h-5 w-5 text-red-600" /> {t("إعادة ضبط البيانات", "Reset data")}
@@ -1387,7 +1387,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
             ) : oauthStatus?.stripe?.connected ? (
               <span className="text-xs text-muted-foreground">{t("يُدار من إعدادات الخادم/Stripe", "Managed from server/Stripe settings")}</span>
             ) : (
-              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.connectConfigured} className="bg-[#635BFF] hover:bg-[#4F47CC] text-white">
+              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.connectConfigured} className="bg-primary hover:bg-primary/90 text-white">
                 <ExternalLink className="h-4 w-4 me-2" /> {t("ربط Stripe", "Connect Stripe")}
               </Button>
             )}
@@ -1418,7 +1418,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
             {oauthStatus?.paypal?.connected ? (
               <span className="text-xs text-muted-foreground">{t("للفصل: استخدم لوحة PayPal أو إعدادات الخادم", "To disconnect: use PayPal dashboard or server settings")}</span>
             ) : (
-              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.connectConfigured} className="bg-[#003087] hover:bg-[#001E5F] text-white">
+              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.connectConfigured} className="bg-primary hover:bg-foreground/90 text-white">
                 <ExternalLink className="h-4 w-4 me-2" /> {t("ربط PayPal", "Connect PayPal")}
               </Button>
             )}
@@ -1524,7 +1524,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
           <h3 className="text-sm font-medium text-foreground mb-3">{t("اختر قطاع شركتك", "Choose your company sector")}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {industries.map((ind) => (
-              <div key={ind.id} className="rounded-lg border border-border p-4 hover:border-[#1276E3] transition">
+              <div key={ind.id} className="rounded-lg border border-border p-4 hover:border-primary transition">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -2124,7 +2124,7 @@ function PlansTab({ org }: { org: Org }) {
         </CardHeader>
         <CardContent className="space-y-4">
           {banner && (
-            <div className={`rounded-lg px-4 py-2.5 text-sm ${banner.kind === "success" ? "bg-[#F0FBF6] text-[#16785A] border border-[#16785A]/30" : "bg-[#EFF6FF] text-primary border border-primary/20"}`}>
+            <div className={`rounded-lg px-4 py-2.5 text-sm ${banner.kind === "success" ? "bg-green-50 text-green-700 border border-green-700/30" : "bg-primary/5 text-primary border border-primary/20"}`}>
               {banner.text}
             </div>
           )}
@@ -2168,7 +2168,7 @@ function PlansTab({ org }: { org: Org }) {
               <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
               <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors flex items-center gap-1.5 ${cycle === "year" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>
                 {t("سنوي", "Annual")}
-                <span className="rounded bg-[#DCFCE7] text-[#166534] px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("شهران مجانًا", "2 months free")}</span>
+                <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("شهران مجانًا", "2 months free")}</span>
               </button>
             </div>
           </div>
@@ -2182,7 +2182,7 @@ function PlansTab({ org }: { org: Org }) {
               const monthlyEquivalent = cycle === "year" ? Math.round(p.price / 12) : null;
               const feats = tierFeatures[p.tier] || { ar: p.features || [], en: p.features || [] };
               return (
-                <div key={p.id} className={`rounded-lg border p-4 relative flex flex-col ${popular ? "border-[#1276E3] ring-2 ring-[#1276E3]/30" : "border-border"}`}>
+                <div key={p.id} className={`rounded-lg border p-4 relative flex flex-col ${popular ? "border-primary ring-2 ring-ring/30" : "border-border"}`}>
                   {popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">{t("الأكثر شعبية", "Most popular")}</div>}
                   <div className="text-foreground font-bold">{p.name}</div>
 
@@ -2195,7 +2195,7 @@ function PlansTab({ org }: { org: Org }) {
                         <span className="text-sm text-muted-foreground line-through font-english" dir="ltr">{cur} {money(p.price + saving.saved)}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="rounded bg-[#DCFCE7] text-[#166534] px-2 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>
+                        <span className="rounded bg-green-100 text-green-800 px-2 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>
                           {t(`وفّر ${cur} ${money(saving.saved)} · ${saving.months} شهر مجانًا`, `Save ${cur} ${money(saving.saved)} · ${saving.months} months free`)}
                         </span>
                         <span className="text-xs text-muted-foreground font-english" dir="ltr">≈ {cur} {money(monthlyEquivalent!)}/{t("شهر", "mo")}</span>
@@ -2243,7 +2243,7 @@ function PlansTab({ org }: { org: Org }) {
               <tr className="border-b border-border text-start">
                 <th className="text-start py-2.5 pe-3 text-muted-foreground font-medium">{t("المقارنة", "Benchmark")}</th>
                 <th className="py-2.5 px-3 text-center">
-                  <div className="inline-flex flex-col items-center"><span className="text-primary font-bold">ENTIX.IO</span><span className="text-[10px] text-[#166534] bg-[#DCFCE7] rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
+                  <div className="inline-flex flex-col items-center"><span className="text-primary font-bold">ENTIX.IO</span><span className="text-[10px] text-green-800 bg-green-100 rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
                 </th>
                 <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wafeq {t("وفق", "")}</th>
                 <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wave</th>
@@ -2264,7 +2264,7 @@ function PlansTab({ org }: { org: Org }) {
               ] as const).map((row, i) => (
                 <tr key={i} className="border-b border-border/50">
                   <td className="text-start py-2.5 pe-3 text-foreground">{t(row.ar, row.en)}</td>
-                  <td className="py-2.5 px-3 bg-[#EFF6FF]/60 text-primary font-semibold">{row.us}</td>
+                  <td className="py-2.5 px-3 bg-primary/5/60 text-primary font-semibold">{row.us}</td>
                   <td className="py-2.5 px-3 text-muted-foreground">{row.wafeq}</td>
                   <td className="py-2.5 px-3 text-muted-foreground">{row.wave}</td>
                 </tr>

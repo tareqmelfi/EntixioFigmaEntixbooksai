@@ -195,7 +195,7 @@ function WizardModal(props: {
                 <span className={step === s ? "text-foreground font-semibold" : "text-muted-foreground/60"}>
                   {s === 1 ? t("النوع", "Type") : s === 2 ? t("البيانات", "Details") : s === 3 ? t("الأدوار", "Roles") : t("التفاصيل", "More info")}
                 </span>
-                {s < 4 && <div className="flex-1 h-px bg-[#E5E7EB]" />}
+                {s < 4 && <div className="flex-1 h-px bg-muted" />}
               </div>
             ))}
           </div>
@@ -252,7 +252,7 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
               key={k}
               type="button"
               onClick={() => setForm({ ...form, entityKind: k })}
-              className={`p-6 rounded-xl border-2 transition flex flex-col items-center gap-3 ${active ? "border-[#1276E3] bg-primary/5" : "border-border hover:border-[#1276E3]/40"}`}
+              className={`p-6 rounded-xl border-2 transition flex flex-col items-center gap-3 ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
             >
               <Icon className={`h-10 w-10 ${active ? "text-primary" : "text-muted-foreground/60"}`} />
               <div>
@@ -265,7 +265,7 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
       </div>
 
       {/* AI · upload registration / EIN letter / passport → auto-fill */}
-      <div className="rounded-xl border-2 border-dashed border-[#1276E3]/30 bg-primary/5 p-4">
+      <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4">
         <div className="flex items-center gap-3">
           <Sparkles className="h-6 w-6 text-primary" />
           <div className="flex-1">
@@ -274,7 +274,7 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
-          <Button type="button" variant="outline" disabled={aiBusy} onClick={() => fileRef.current?.click()} className="border-[#1276E3] text-primary">
+          <Button type="button" variant="outline" disabled={aiBusy} onClick={() => fileRef.current?.click()} className="border-primary text-primary">
             {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4 me-1.5" /> {t("رفع مستند", "Upload document")}</>}
           </Button>
         </div>
@@ -410,13 +410,13 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               key={r.key}
               type="button"
               onClick={() => setForm({ ...form, [r.key]: !active } as any)}
-              className={`p-3 rounded-lg border-2 transition flex items-center justify-between ${active ? "border-[#1276E3] bg-primary/5" : "border-border hover:border-[#1276E3]/40"}`}
+              className={`p-3 rounded-lg border-2 transition flex items-center justify-between ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
             >
               <span className="flex items-center gap-2 text-sm text-foreground">
                 <span className={`p-1.5 rounded ${r.bg} ${r.text}`}><Icon className="h-3.5 w-3.5" /></span>
                 {t(r.label, ROLE_LABEL_EN[r.key])}
               </span>
-              <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? "border-[#1276E3] bg-primary" : "border-border"}`}>
+              <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? "border-primary bg-primary" : "border-border"}`}>
                 {active && <span className="text-white text-xs">✓</span>}
               </span>
             </button>
@@ -474,7 +474,7 @@ function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       </div>
 
       {/* Live preview */}
-      <div className="rounded-lg border border-border bg-[#FAFBFC] p-4">
+      <div className="rounded-lg border border-border bg-muted/40 p-4">
         <div className="text-xs text-muted-foreground/60 mb-2">{t("معاينة", "Preview")}</div>
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center font-bold">

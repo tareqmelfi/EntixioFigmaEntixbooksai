@@ -63,7 +63,7 @@ export function PortalLogin() {
                     <input
                       type="email"
                       dir="ltr"
-                      className="w-full rounded-lg border border-border ps-10 pe-3 py-3 text-sm font-english text-foreground/80 placeholder:text-muted-foreground/60 focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
+                      className="w-full rounded-lg border border-border ps-10 pe-3 py-3 text-sm font-english text-foreground/80 placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                       placeholder="ahmed@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -104,7 +104,7 @@ export function PortalLogin() {
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="h-12 w-12 rounded-lg border border-border text-center font-english text-foreground focus:border-[#1276E3] focus:outline-none focus:ring-2 focus:ring-[#1276E3]/20"
+                      className="h-12 w-12 rounded-lg border border-border text-center font-english text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
                       style={{ fontSize: "1.5rem", fontWeight: 700 }}
                     />
                   ))}

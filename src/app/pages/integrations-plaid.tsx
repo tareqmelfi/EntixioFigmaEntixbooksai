@@ -47,7 +47,7 @@ export function IntegrationsPlaid() {
 
       <div>
         <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
-          <span className="rounded-xl bg-[#EFF6FF] p-2"><CreditCard className="h-5 w-5 text-primary" /></span>
+          <span className="rounded-xl bg-primary/5 p-2"><CreditCard className="h-5 w-5 text-primary" /></span>
           {t("الربط البنكي · Plaid", "Bank linking · Plaid")}
         </h1>
         <p className="text-muted-foreground mt-1">{t("اربط حساباتك البنكية الأمريكية واستورد الحركات تلقائيًا", "Connect your US bank accounts and import transactions automatically")}</p>
@@ -58,14 +58,14 @@ export function IntegrationsPlaid() {
       )}
 
       {!loading && configError && (
-        <Card className="border-[#F59E0B]/40 bg-[#FFFBEB]">
+        <Card className="border-amber-500/40 bg-amber-50">
           <CardHeader>
-            <CardTitle className="text-[#92400E] flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4" />{t("مفاتيح Plaid غير مهيأة في الخادم", "Plaid keys are not configured on the server")}</CardTitle>
+            <CardTitle className="text-amber-800 flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4" />{t("مفاتيح Plaid غير مهيأة في الخادم", "Plaid keys are not configured on the server")}</CardTitle>
             <CardDescription>{t("التكامل جاهز بالكامل — ينقصه فقط اعتماد المورّد.", "The integration is fully built — it only needs the vendor credentials.")}</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-[#92400E] space-y-2">
+          <CardContent className="text-sm text-amber-800 space-y-2">
             <p>{t("لتفعيله: أنشئ حسابًا على dashboard.plaid.com ثم أضف هذه المتغيرات في بيئة الخادم (Coolify) وأعد النشر:", "To enable: create an account at dashboard.plaid.com, then add these variables to the server environment (Coolify) and redeploy:")}</p>
-            <div className="rounded-lg bg-white/70 border border-[#F59E0B]/30 p-3 font-english text-xs space-y-1" dir="ltr">
+            <div className="rounded-lg bg-white/70 border border-amber-500/30 p-3 font-english text-xs space-y-1" dir="ltr">
               <div>PLAID_CLIENT_ID=…</div>
               <div>PLAID_SECRET=…</div>
               <div>PLAID_ENV=production</div>
@@ -94,10 +94,10 @@ export function IntegrationsPlaid() {
       )}
 
       {linked && (
-        <Card className="border-[#16785A]/40 bg-[#F0FBF6]">
+        <Card className="border-green-700/40 bg-green-50">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-[#16785A] p-2"><CheckCircle2 className="h-5 w-5 text-white" /></span>
+              <span className="rounded-full bg-green-700 p-2"><CheckCircle2 className="h-5 w-5 text-white" /></span>
               <div>
                 <div className="text-foreground" style={{ fontWeight: 700 }}>{t("تم الربط بنجاح", "Bank linked successfully")}</div>
                 <div className="text-sm text-muted-foreground">{t(`${linked.institution} · ${linked.accountsCount} حساب`, `${linked.institution} · ${linked.accountsCount} accounts`)}</div>

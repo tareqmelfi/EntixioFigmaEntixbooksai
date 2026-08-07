@@ -9,7 +9,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowRight, Banknote, Clock3, Edit2, FolderKanban, Loader2, Plus, Save, Trash2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
@@ -151,7 +151,7 @@ export function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/projects") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
         <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("إنشاء المشروع", "Create project") : t("حفظ التغييرات", "Save changes")}</>}

@@ -72,7 +72,7 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
         {/* Mobile drag-handle indicator */}
         {isMobile && (
           <div className="flex justify-center pt-2 pb-1">
-            <div className="h-1 w-10 rounded-full bg-[#E5E7EB]" aria-hidden="true" />
+            <div className="h-1 w-10 rounded-full bg-muted" aria-hidden="true" />
           </div>
         )}
         <div className="flex items-start justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">

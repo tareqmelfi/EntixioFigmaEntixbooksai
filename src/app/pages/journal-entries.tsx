@@ -295,7 +295,7 @@ export function JournalEntries() {
               <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : items.length === 0 ? (
               <div className="py-12 text-center">
-                <BookOpen className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
+                <BookOpen className="h-12 w-12 mx-auto text-muted mb-3" />
                 <p className="text-sm text-muted-foreground">{t("لا توجد قيود يدوية بعد", "No manual entries yet")}</p>
                 <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">+ {t("أضف أول قيد", "Add first entry")}</button>
               </div>
@@ -327,7 +327,7 @@ export function JournalEntries() {
                   <tbody>
                     {items.map(e => (
                       <tr key={e.id}
-                        className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === e.id ? "bg-[#EFF8FF]" : ""}`}
+                        className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === e.id ? "bg-primary/5" : ""}`}
                         onClick={() => openDetail(e.id)}>
                         <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{e.number}</td>
                         <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{e.date.slice(0, 10)}</td>

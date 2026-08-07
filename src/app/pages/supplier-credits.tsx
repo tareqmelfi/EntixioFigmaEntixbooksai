@@ -233,13 +233,13 @@ export function SupplierCredits() {
               </div>
             </div>
             {selectedBill && (
-              <div className="rounded-lg border border-[#D7E9FF] bg-primary/5 px-3 py-3 text-sm text-foreground">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-sm text-foreground">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <span className="inline-flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     {t("مرتبط بفاتورة المورد", "Linked to supplier bill")} <span className="font-english font-semibold">{selectedBill.billNumber}</span>
                   </span>
-                  <Button type="button" variant="outline" disabled={sourceLoading} onClick={() => loadBillLines(selectedBill.id)} className="border-[#BBD7F5] bg-white">
+                  <Button type="button" variant="outline" disabled={sourceLoading} onClick={() => loadBillLines(selectedBill.id)} className="border-primary/20 bg-white">
                     {sourceLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <FileText className="h-4 w-4 me-2" />}
                     {t("إعادة تعبئة البنود", "Reload lines")}
                   </Button>

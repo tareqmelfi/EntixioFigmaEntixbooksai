@@ -60,7 +60,7 @@ export function TaxRateSelect({ value, onChange, type = "both", className }: Tax
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm text-start font-english focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20 transition-colors"
+        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm text-start font-english focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       >
         {displayValue}
       </button>
@@ -87,7 +87,7 @@ export function TaxRateSelect({ value, onChange, type = "both", className }: Tax
                 key={tr.id}
                 onClick={() => handleSelect(tr)}
                 onMouseEnter={() => setHighlightIndex(i)}
-                className={`w-full text-start px-3 py-2.5 flex items-center justify-between transition-colors ${highlightIndex === i ? "bg-[#EFF6FF]" : "hover:bg-muted"} ${tr.rate === value ? "bg-[#F0F9FF]" : ""}`}
+                className={`w-full text-start px-3 py-2.5 flex items-center justify-between transition-colors ${highlightIndex === i ? "bg-primary/5" : "hover:bg-muted"} ${tr.rate === value ? "bg-sky-50" : ""}`}
               >
                 <span className="text-sm text-foreground">{tr.name}</span>
                 <span className="text-sm font-english text-muted-foreground" style={{ fontWeight: 500 }}>{tr.rate}%</span>

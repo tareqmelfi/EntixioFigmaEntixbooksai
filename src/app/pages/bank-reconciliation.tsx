@@ -320,7 +320,7 @@ export function BankReconciliation() {
               </div>
             </div>
 
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-[#1276E3] transition">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition">
               <FileText className="h-10 w-10 text-muted-foreground/60 mx-auto mb-2" />
               <input type="file" id="bank-stmt" accept=".pdf,application/pdf,.csv,.mt940,.sta,.ofx,.qif,.qfx,.txt,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple hidden
                 onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }} />
@@ -343,7 +343,7 @@ export function BankReconciliation() {
                   </>
                 )}
                 <div className="mt-4 flex items-center justify-center gap-2">
-                  <label htmlFor="bank-stmt" className="rounded-md border border-[#1276E3] bg-white px-3 py-1.5 text-xs text-primary hover:bg-blue-50">
+                  <label htmlFor="bank-stmt" className="rounded-md border border-primary bg-white px-3 py-1.5 text-xs text-primary hover:bg-blue-50">
                     {t("اختيار ملف أو عدة ملفات", "Choose file(s)")}
                   </label>
                   <label htmlFor="bank-stmt-folder" className="rounded-md border border-border bg-white px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted">

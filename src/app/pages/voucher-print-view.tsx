@@ -14,7 +14,6 @@ import qrcode from "qrcode-generator";
 import { authStore } from "../components/auth-store";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
-import { useLanguage } from "../components/LanguageContext";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
   CASH: "نقداً",
@@ -32,7 +31,6 @@ function safeNum(v: any, d = 0): number {
 }
 
 export function VoucherPrintView() {
-  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);

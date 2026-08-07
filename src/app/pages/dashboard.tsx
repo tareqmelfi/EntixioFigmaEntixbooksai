@@ -74,7 +74,7 @@ function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; pa
           <Gauge className="h-4 w-4 text-muted-foreground/60" />
         </div>
         {/* split bar */}
-        <div className="flex h-2 rounded-full overflow-hidden mb-3 bg-[#F1F5F9]">
+        <div className="flex h-2 rounded-full overflow-hidden mb-3 bg-background">
           <div style={{ width: `${collectedPct}%`, backgroundColor: chartColors.teal }} />
           <div style={{ width: `${paidPct}%`, backgroundColor: chartColors.navy }} />
         </div>
@@ -86,7 +86,7 @@ function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; pa
           <span className="text-[11px] text-muted-foreground">{t("صافي المستحق", "Net Due")}</span>
           <div className="flex items-center gap-2">
             <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#E84B4B" : "#10B981" }}>{Math.abs(net).toLocaleString()} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
-            <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#166534]"}`}>{isOwed ? t("علينا", "We owe") : t("لصالحنا ✓", "Owed to us ✓")}</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>{isOwed ? t("علينا", "We owe") : t("لصالحنا ✓", "Owed to us ✓")}</span>
           </div>
         </div>
       </CardContent>
@@ -183,19 +183,19 @@ export function Dashboard() {
           <p className="text-muted-foreground mt-1">{data.org.name} · <span className="font-english">{cur}</span></p>
         </div>
         <div className="flex gap-2">
-          <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition">{t("+ فاتورة", "+ Invoice")}</Link>
+          <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-primary transition">{t("+ فاتورة", "+ Invoice")}</Link>
           <Link to="/app/expenses/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ مصروف", "+ Expense")}</Link>
           <Link to="/app/vouchers/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ سند", "+ Voucher")}</Link>
         </div>
       </div>
 
       {onb && !onbDismissed && (!onb.openingBalancesDone || onb.productsCount === 0) && (
-        <div className="rounded-xl border border-[#1276E3]/30 bg-[#EFF6FF] px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="text-sm text-primary" style={{ lineHeight: 1.7 }}>
             <strong>{t("أكمل إعداد شركتك", "Finish setting up your company")}</strong> — {t("انقل أرصدتك الافتتاحية وأصنافك وعملاءك من برنامجك السابق في دقائق، بدون إدخال يدوي.", "Move your opening balances, items and contacts from your previous software in minutes — no manual entry.")}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Link to="/app/onboarding" className="px-3.5 py-2 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition" style={{ fontWeight: 600 }}>{t("ابدأ النقل ←", "Start migration →")}</Link>
+            <Link to="/app/onboarding" className="px-3.5 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition" style={{ fontWeight: 600 }}>{t("ابدأ النقل ←", "Start migration →")}</Link>
             <button onClick={() => { try { localStorage.setItem("entix_onb_dismissed", "1"); } catch {} setOnbDismissed(true); }} className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 cursor-pointer">{t("لاحقًا", "Later")}</button>
           </div>
         </div>
@@ -224,7 +224,7 @@ export function Dashboard() {
                     push("error", `${t("فشل", "Failed")}: ${e?.message || t("خطأ غير معروف", "unknown error")}`);
                   }
                 }}
-                className="bg-primary hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg"
+                className="bg-primary hover:bg-primary text-white text-sm px-4 py-2 rounded-lg"
               >
                 {t("تأكيد التعبئة", "Confirm")}
               </button>
@@ -238,7 +238,7 @@ export function Dashboard() {
           ) : (
             <button
               onClick={() => setSeedArmed(true)}
-              className="bg-primary hover:bg-[#0F66C7] text-white text-sm px-4 py-2 rounded-lg shrink-0"
+              className="bg-primary hover:bg-primary text-white text-sm px-4 py-2 rounded-lg shrink-0"
             >
               {t("عبّ هذه الشركة ببيانات تجريبية كاملة", "Seed with demo data")}
             </button>
@@ -494,20 +494,20 @@ export function Dashboard() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("الحالي", "Current")}</span>
-                        <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
+                        <div className="flex-1 h-1.5 bg-background rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.curr) / max) * 100}%`, backgroundColor: r.color }} />
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("الشهر الماضي", "Last month")}</span>
-                        <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
+                        <div className="flex-1 h-1.5 bg-background rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.prev) / max) * 100}%`, backgroundColor: r.prevColor }} />
                         </div>
                         <span className="font-english text-[10px] text-muted-foreground/60 shrink-0 w-9 text-end">{fmtCompact(r.prev)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("السنة الماضية", "Last year")}</span>
-                        <div className="flex-1 h-1.5 bg-[#F1F5F9] rounded">
+                        <div className="flex-1 h-1.5 bg-background rounded">
                           <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.ya || 0) / max) * 100}%`, backgroundColor: r.prevColor }} />
                         </div>
                         <span className="font-english text-[10px] text-muted-foreground/60 shrink-0 w-9 text-end">{fmtCompact(r.ya || 0)}</span>
@@ -545,7 +545,7 @@ export function Dashboard() {
                   const trendUp = trendPct >= 0;
                   return (
                     <Link key={b.id} to={`/app/bank-accounts/${b.id}`} className="block group">
-                      <div className="rounded-lg border border-border hover:border-[#1276E3] transition p-2.5 bg-white">
+                      <div className="rounded-lg border border-border hover:border-primary transition p-2.5 bg-white">
                         <div className="flex items-center justify-between gap-2">
                           {/* Right side · name + logo placeholder */}
                           <div className="flex items-center gap-2 min-w-0">

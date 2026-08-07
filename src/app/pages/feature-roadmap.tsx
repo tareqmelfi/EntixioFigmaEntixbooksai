@@ -36,11 +36,11 @@ interface FeatureModule {
 }
 
 const statusConfig: Record<FeatureStatus, { label: string; labelEn: string; color: string; bg: string; icon: LucideIcon }> = {
-  live: { label: "مفعّل", labelEn: "Active", color: "text-[#166534]", bg: "bg-[#DCFCE7]", icon: CheckCircle },
-  partial: { label: "جزئي", labelEn: "Partial", color: "text-[#92400E]", bg: "bg-[#FEF3C7]", icon: AlertCircle },
-  planned: { label: "مخطط", labelEn: "Planned", color: "text-[#1E40AF]", bg: "bg-[#DBEAFE]", icon: Clock },
-  phase2: { label: "المرحلة 2", labelEn: "Phase 2", color: "text-[#6B21A8]", bg: "bg-[#F3E8FF]", icon: Target },
-  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-[#9D174D]", bg: "bg-[#FCE7F3]", icon: Sparkles },
+  live: { label: "مفعّل", labelEn: "Active", color: "text-green-800", bg: "bg-green-100", icon: CheckCircle },
+  partial: { label: "جزئي", labelEn: "Partial", color: "text-amber-800", bg: "bg-amber-100", icon: AlertCircle },
+  planned: { label: "مخطط", labelEn: "Planned", color: "text-primary", bg: "bg-blue-100", icon: Clock },
+  phase2: { label: "المرحلة 2", labelEn: "Phase 2", color: "text-primary", bg: "bg-primary/5", icon: Target },
+  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-destructive", bg: "bg-pink-50", icon: Sparkles },
 };
 
 // ── Feature Modules ──
@@ -50,7 +50,7 @@ const modules: FeatureModule[] = [
     titleEn: "General Ledger",
     icon: Calculator,
     color: "text-foreground",
-    bgColor: "bg-[#0B1B49]/10",
+    bgColor: "bg-foreground/10",
     features: [
       { name: "دليل الحسابات", nameEn: "Chart of Accounts", status: "live", description: "شجرة حسابات متعددة المستويات مع إمكانية التوسيع والطي", descEn: "Multi-level account tree with expand/collapse", details: ["هيكل شجري تفاعلي", "تصنيفات: أصل / التزام / حقوق ملكية / إيراد / مصروف", "بحث وفلترة متقدمة", "KPI cards قابلة للنقر مع فلترة الشجرة"], detailsEn: ["Interactive tree structure", "Categories: Asset / Liability / Equity / Revenue / Expense", "Advanced search and filtering", "Clickable KPI cards with tree filtering"] },
       { name: "قوالب GAAP / IFRS", nameEn: "GAAP / IFRS Templates", status: "partial", description: "قوالب معيارية حسب نوع النشاط التجاري", descEn: "Standard templates by business activity type", details: ["قالب أساسي موجود", "يحتاج: قوالب جاهزة حسب القطاع (تقنية / تجزئة / مقاولات / خدمات)"], detailsEn: ["Basic template available", "Needs: ready-made templates by sector (tech / retail / contracting / services)"], critical: true },
@@ -81,8 +81,8 @@ const modules: FeatureModule[] = [
     title: "المشتريات",
     titleEn: "Purchases",
     icon: Package,
-    color: "text-[#166534]",
-    bgColor: "bg-[#166534]/10",
+    color: "text-green-800",
+    bgColor: "bg-green-800/10",
     features: [
       { name: "فواتير المشتريات", nameEn: "Purchase invoices", status: "live", description: "إدارة فواتير الموردين مع ربط المورد", descEn: "Manage supplier invoices with supplier linking", details: ["إنشاء / عرض / حذف", "ربط بالمورد مع بحث ذكي", "بنود مع ضريبة"], detailsEn: ["Create / view / delete", "Link to supplier with smart search", "Line items with tax"] },
       { name: "سندات الصرف", nameEn: "Payment vouchers", status: "live", description: "تسجيل المبالغ المصروفة للموردين", descEn: "Record amounts paid to suppliers" },
@@ -94,8 +94,8 @@ const modules: FeatureModule[] = [
     title: "الفوترة الإلكترونية (ZATCA)",
     titleEn: "E-Invoicing",
     icon: Shield,
-    color: "text-[#166534]",
-    bgColor: "bg-[#166534]/10",
+    color: "text-green-800",
+    bgColor: "bg-green-800/10",
     features: [
       { name: "UUID 128-bit لكل فاتورة", nameEn: "128-bit UUID per invoice", status: "live", description: "معرف فريد عالمي لكل فاتورة", descEn: "Globally unique identifier for each invoice", critical: true },
       { name: "ربط تسلسلي مشفر (Sequential Hash)", nameEn: "Encrypted sequential linking (Sequential Hash)", status: "live", description: "ربط كل فاتورة بالسابقة تشفيرياً", descEn: "Cryptographically link each invoice to the previous one", critical: true },
@@ -113,8 +113,8 @@ const modules: FeatureModule[] = [
     title: "التقارير المالية",
     titleEn: "Financial Reports",
     icon: BarChart3,
-    color: "text-[#179FC5]",
-    bgColor: "bg-[#179FC5]/10",
+    color: "text-secondary",
+    bgColor: "bg-secondary/10",
     features: [
       { name: "ميزان المراجعة", nameEn: "Trial balance", status: "live", description: "تقرير ميزان المراجعة", descEn: "Trial balance report" },
       { name: "قائمة الدخل", nameEn: "Income statement", status: "live", description: "قائمة الأرباح والخسائر (P&L)", descEn: "Profit and loss statement (P&L)", details: ["عادية / بحسب الفرع / بحسب مركز التكلفة / بحسب المشروع"], detailsEn: ["Standard / by branch / by cost center / by project"] },
@@ -131,8 +131,8 @@ const modules: FeatureModule[] = [
     title: "جهات الاتصال (Party Model)",
     titleEn: "Contacts & CRM",
     icon: Users,
-    color: "text-[#6B21A8]",
-    bgColor: "bg-[#6B21A8]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "إدارة العملاء", nameEn: "Customer management", status: "live", description: "إدارة كاملة مع بيانات الاتصال والأدوار المتعددة", descEn: "Full management with contact data and multiple roles" },
       { name: "حدود ائتمانية للعملاء", nameEn: "Customer credit limits", status: "planned", description: "تعيين سقف ائتماني مع تنبيهات عند التجاوز", descEn: "Set a credit ceiling with alerts on breach", critical: true },
@@ -149,8 +149,8 @@ const modules: FeatureModule[] = [
     title: "الأصول والمخزون",
     titleEn: "Assets & Inventory",
     icon: Building2,
-    color: "text-[#92400E]",
-    bgColor: "bg-[#92400E]/10",
+    color: "text-amber-800",
+    bgColor: "bg-amber-800/10",
     features: [
       { name: "الأصول الثابتة", nameEn: "Fixed assets", status: "live", description: "إدارة الأصول مع الإهلاك والقيمة الدفترية", descEn: "Manage assets with depreciation and book value", details: ["جدول الإهلاك", "رسوم بيانية", "حالات: نشط / مستبعد / قيد الصيانة"], detailsEn: ["Depreciation schedule", "Charts", "Statuses: active / disposed / under maintenance"] },
       { name: "المخزون", nameEn: "Inventory", status: "live", description: "إدارة المنتجات والمستودعات مع حد إعادة الطلب", descEn: "Manage products and warehouses with reorder point" },
@@ -161,8 +161,8 @@ const modules: FeatureModule[] = [
     title: "الرواتب والموارد البشرية",
     titleEn: "Payroll & HR",
     icon: Wallet,
-    color: "text-[#9D174D]",
-    bgColor: "bg-[#9D174D]/10",
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
     features: [
       { name: "دورات الرواتب", nameEn: "Payroll cycles", status: "live", description: "تشغيل دورات رواتب شهرية مع قائمة الموظفين", descEn: "Run monthly payroll cycles with employee list" },
       { name: "مسير الرواتب", nameEn: "Payroll run", status: "planned", description: "معالجة وتشغيل الرواتب الشهرية مع التفاصيل", descEn: "Process and run monthly payroll with details", critical: true },
@@ -177,8 +177,8 @@ const modules: FeatureModule[] = [
     title: "المشاريع",
     titleEn: "Projects",
     icon: Layers,
-    color: "text-[#075985]",
-    bgColor: "bg-[#075985]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "إدارة المشاريع", nameEn: "Project management", status: "phase2", description: "إنشاء مشاريع وربطها بالفواتير والمصروفات", descEn: "Create projects and link them to invoices and expenses" },
       { name: "المهام", nameEn: "Tasks", status: "phase2", description: "مهام فرعية مع تعيين موظفين ومواعيد", descEn: "Subtasks with employee assignment and due dates" },
@@ -190,8 +190,8 @@ const modules: FeatureModule[] = [
     title: "الحسابات البنكية",
     titleEn: "Bank Accounts",
     icon: Landmark,
-    color: "text-[#1E40AF]",
-    bgColor: "bg-[#1E40AF]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "إدارة الحسابات البنكية", nameEn: "Bank account management", status: "live", description: "إنشاء وإدارة الحسابات البنكية والصناديق", descEn: "Create and manage bank accounts and cash boxes", details: ["حسابات جارية / توفير / صناديق", "أرصدة وعملات متعددة", "IBAN ومعلومات البنك"], detailsEn: ["Current / savings / cash boxes", "Balances and multiple currencies", "IBAN and bank information"] },
       { name: "تحويلات بين الحسابات", nameEn: "Transfers between accounts", status: "planned", description: "تحويل أرصدة بين الحسابات البنكية", descEn: "Transfer balances between bank accounts" },
@@ -203,8 +203,8 @@ const modules: FeatureModule[] = [
     title: "مراكز التكلفة والفروع",
     titleEn: "Cost Centers & Branches",
     icon: Target,
-    color: "text-[#075985]",
-    bgColor: "bg-[#075985]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "مراكز التكلفة", nameEn: "Cost centers", status: "live", description: "إدارة مراكز التكلفة مع الميزانيات والمصروفات", descEn: "Manage cost centers with budgets and expenses", details: ["ميزانيات ونسب استخدام", "هيكل أب-ابن", "ربط بالقيود والفواتير"], detailsEn: ["Budgets and utilization rates", "Parent-child structure", "Link to entries and invoices"] },
       { name: "الفروع", nameEn: "Branches", status: "live", description: "إدارة الفروع والمواقع", descEn: "Manage branches and locations", details: ["بيانات الفرع والعنوان", "المدير والموظفين", "إيرادات كل فرع"], detailsEn: ["Branch data and address", "Manager and employees", "Revenue per branch"] },
@@ -216,7 +216,7 @@ const modules: FeatureModule[] = [
     titleEn: "Integrations & Developer",
     icon: Plug,
     color: "text-foreground/80",
-    bgColor: "bg-[#374151]/10",
+    bgColor: "bg-foreground/80/10",
     features: [
       { name: "REST API", nameEn: "REST API", status: "live", description: "واجهة برمجية كاملة للتكامل مع أنظمة خارجية", descEn: "Full API for integration with external systems" },
       { name: "Webhooks", nameEn: "Webhooks", status: "live", description: "إشعارات فورية للأحداث", descEn: "Instant event notifications" },
@@ -231,8 +231,8 @@ const modules: FeatureModule[] = [
     title: "التغذية البنكية",
     titleEn: "Bank Feeds",
     icon: CreditCard,
-    color: "text-[#1E40AF]",
-    bgColor: "bg-[#1E40AF]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "المطابقة التلقائية", nameEn: "Automatic reconciliation", status: "phase3", description: "مطابقة تلقائية بين كشوف البنك والمعاملات", descEn: "Auto-match bank statements with transactions" },
       { name: "Plaid (US)", nameEn: "Plaid (US)", status: "phase3", description: "ربط الحسابات البنكية الأمريكية عبر Plaid", descEn: "Link US bank accounts via Plaid" },
@@ -243,8 +243,8 @@ const modules: FeatureModule[] = [
     title: "البوابات الذاتية",
     titleEn: "Portals",
     icon: Globe,
-    color: "text-[#075985]",
-    bgColor: "bg-[#075985]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "بوابة العملاء", nameEn: "Customer portal", status: "phase3", description: "واجهة للعملاء لعرض فواتيرهم والدفع", descEn: "Interface for customers to view invoices and pay" },
       { name: "بوابة الموردين", nameEn: "Supplier portal", status: "phase3", description: "واجهة للموردين لتتبع مستحقاتهم", descEn: "Interface for suppliers to track their dues" },
@@ -255,8 +255,8 @@ const modules: FeatureModule[] = [
     title: "الذكاء الاصطناعي",
     titleEn: "Smart AI",
     icon: Brain,
-    color: "text-[#7C3AED]",
-    bgColor: "bg-[#7C3AED]/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     features: [
       { name: "OCR - قراءة الفواتير", nameEn: "OCR - invoice reading", status: "partial", description: "استخراج بيانات الفواتير من صور وPDF تلقائياً", descEn: "Extract invoice data from images and PDFs automatically", details: ["واجهة الرفع موجودة", "يحتاج: تكامل Google Vision API"], detailsEn: ["Upload interface exists", "Needs: Google Vision API integration"] },
       { name: "التصنيف التلقائي", nameEn: "Automatic categorization", status: "phase3", description: "تصنيف المعاملات تلقائياً على الحسابات المناسبة", descEn: "Auto-categorize transactions to appropriate accounts" },
@@ -307,11 +307,11 @@ export function FeatureRoadmap() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
         <button onClick={() => setFilterStatus(filterStatus === "all" ? "all" : "all")} className="text-start">
-          <Card className={`border-border hover:shadow-md transition-all ${filterStatus === "all" ? "ring-2 ring-[#1276E3]/20" : ""}`}>
+          <Card className={`border-border hover:shadow-md transition-all ${filterStatus === "all" ? "ring-2 ring-ring/20" : ""}`}>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</p>
               <p className="font-english text-foreground mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.total}</p>
-              <div className="w-full bg-[#E5E7EB] rounded-full h-1.5 mt-2">
+              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
                 <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-english">{completionRate}% {t("مكتمل", "complete")}</p>
@@ -323,7 +323,7 @@ export function FeatureRoadmap() {
           const count = stats[status];
           return (
             <button key={status} onClick={() => setFilterStatus(filterStatus === status ? "all" : status)} className="text-start">
-              <Card className={`border-border hover:shadow-md transition-all ${filterStatus === status ? "ring-2 ring-[#1276E3]/20" : ""}`}>
+              <Card className={`border-border hover:shadow-md transition-all ${filterStatus === status ? "ring-2 ring-ring/20" : ""}`}>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t(cfg.label, cfg.labelEn)}</p>
                   <p className={`font-english mt-1 ${cfg.color}`} style={{ fontSize: "1.5rem", fontWeight: 700 }}>{count}</p>
@@ -336,11 +336,11 @@ export function FeatureRoadmap() {
           );
         })}
         <button onClick={() => setFilterStatus("all")} className="text-start">
-          <Card className="border-[#FEF3C7] bg-[#FEF3C7]/20 hover:shadow-md transition-all">
+          <Card className="border-amber-100 bg-amber-100/20 hover:shadow-md transition-all">
             <CardContent className="p-4">
-              <p className="text-xs text-[#92400E]" style={{ fontWeight: 600 }}>{t("حرجة", "Critical")}</p>
-              <p className="font-english text-[#92400E] mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.criticalDone}/{stats.critical}</p>
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 bg-[#FEF3C7] text-[#92400E]" style={{ fontWeight: 500 }}>
+              <p className="text-xs text-amber-800" style={{ fontWeight: 600 }}>{t("حرجة", "Critical")}</p>
+              <p className="font-english text-amber-800 mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.criticalDone}/{stats.critical}</p>
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 bg-amber-100 text-amber-800" style={{ fontWeight: 500 }}>
                 <Star className="h-3 w-3" />{t("أساسية", "Essential")}
               </span>
             </CardContent>
@@ -374,8 +374,8 @@ export function FeatureRoadmap() {
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-muted-foreground font-english">{liveCount}/{totalCount} {t("مفعّل", "active")}</span>
-                      <div className="w-16 bg-[#E5E7EB] rounded-full h-1">
-                        <div className="bg-[#22C55E] h-1 rounded-full" style={{ width: `${(liveCount / totalCount) * 100}%` }} />
+                      <div className="w-16 bg-muted rounded-full h-1">
+                        <div className="bg-green-500 h-1 rounded-full" style={{ width: `${(liveCount / totalCount) * 100}%` }} />
                       </div>
                     </div>
                   </div>
@@ -396,12 +396,12 @@ export function FeatureRoadmap() {
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>{t(cfg.label, cfg.labelEn)}</span>
                             <button
                               onClick={async (e) => { e.stopPropagation(); if (reported.has(feature.name)) return; try { await api.notifications.create({ type: "feature_report", title: `${t("بلاغ على ميزة:", "Feature report:")} ${t(feature.name, feature.nameEn)}`, body: `${t("قسم:", "Module:")} ${t(mod.title, mod.titleEn)} · ${t("الحالة:", "Status:")} ${t(cfg.label, cfg.labelEn)}`, link: "/app/roadmap", refType: "feature", refId: feature.name }); setReported(prev => new Set(prev).add(feature.name)); push("success", `${t("تم استلام بلاغك على", "We received your report on")} «${t(feature.name, feature.nameEn)}»`); } catch { push("error", t("تعذر إرسال البلاغ", "Could not send the report")); } }}
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-border text-muted-foreground/60 hover:text-[#E84B4B] hover:border-[#E84B4B]/40 opacity-0 group-hover:opacity-100"}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-border text-muted-foreground/60 hover:text-destructive hover:border-destructive/40 opacity-0 group-hover:opacity-100"}`}
                               title={t("أبلغ عن مشكلة في هذه الميزة — يصل البلاغ لفريق التطوير", "Report an issue with this feature — the report reaches the dev team")}>
                               {reported.has(feature.name) ? t("✓ وصل البلاغ", "✓ Report received") : t("⚑ بلاغ", "⚑ Report")}
                             </button>
                             {feature.critical && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs text-[#92400E]" style={{ fontWeight: 600 }}>
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800" style={{ fontWeight: 600 }}>
                                 <Star className="h-3 w-3" />{t("حرج", "Critical")}
                               </span>
                             )}
@@ -411,7 +411,7 @@ export function FeatureRoadmap() {
                             <ul className="mt-1.5 space-y-0.5">
                               {feature.details.map((d, j) => (
                                 <li key={j} className="text-xs text-muted-foreground/60 flex items-start gap-1.5">
-                                  <span className="mt-1.5 h-1 w-1 rounded-full bg-[#D1D5DB] shrink-0" />
+                                  <span className="mt-1.5 h-1 w-1 rounded-full bg-muted shrink-0" />
                                   {t(d, feature.detailsEn?.[j])}
                                 </li>
                               ))}
@@ -440,8 +440,8 @@ export function FeatureRoadmap() {
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-[#92400E]" />
-              <span className="text-sm text-[#92400E]" style={{ fontWeight: 500 }}>{t("حرج — أساسي للإطلاق", "Critical — essential for launch")}</span>
+              <Star className="h-4 w-4 text-amber-800" />
+              <span className="text-sm text-amber-800" style={{ fontWeight: 500 }}>{t("حرج — أساسي للإطلاق", "Critical — essential for launch")}</span>
             </div>
           </div>
         </CardContent>

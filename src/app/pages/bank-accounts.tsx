@@ -98,7 +98,7 @@ export function BankAccounts() {
                   <span className="text-xs text-muted-foreground">{selectedAccount.currency}</span>
                 </div>
                 <h2 className="text-lg font-semibold text-foreground">{selectedAccount.name}</h2>
-                <p className="mt-1 text-sm text-[#4B5563]">{selectedAccount.bankName || t("حساب بنكي", "Bank account")}</p>
+                <p className="mt-1 text-sm text-foreground/70">{selectedAccount.bankName || t("حساب بنكي", "Bank account")}</p>
                 <div className="mt-3 grid gap-2 text-xs md:grid-cols-3">
                   <div className="rounded-md bg-white/70 px-3 py-2">
                     <div className="text-muted-foreground">{t("الدولة", "Country")}</div>

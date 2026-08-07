@@ -100,7 +100,7 @@ export function UploadButton({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={`bg-white border border-border hover:border-[#1276E3] hover:bg-muted text-foreground px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${className}`}
+        className={`bg-white border border-border hover:border-primary hover:bg-muted text-foreground px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors ${className}`}
         style={{ fontSize: "14px", fontWeight: 600 }}
       >
         <Upload className="h-4 w-4" />

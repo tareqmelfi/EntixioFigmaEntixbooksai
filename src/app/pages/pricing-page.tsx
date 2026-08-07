@@ -174,17 +174,17 @@ export function PricingPage() {
       <main>
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-white">
         <div className="max-w-7xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-[#349FC4]" />
+              <Sparkles className="w-4 h-4 text-secondary" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("أسعار شفافة • بدون رسوم خفية", "Transparent pricing • no hidden fees")}</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               {t("اختر الباقة المناسبة", "Pick the plan that fits")}
               <br />
-              <span className="bg-gradient-to-l from-[#349FC4] to-[#60A5FA] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
+              <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
                 {t("لحجم أعمالك", "your business size")}
               </span>
             </h1>
@@ -193,8 +193,8 @@ export function PricingPage() {
             </p>
 
             {/* Launch Beta — early-supporter framing */}
-            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-[#22C55E]/15 border border-[#22C55E]/40 rounded-2xl px-5 py-3 mb-8 max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 bg-[#22C55E] text-white px-3 py-1 rounded-full shrink-0" style={{ fontSize: "12px", fontWeight: 700 }}>
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-green-500/15 border border-green-500/40 rounded-2xl px-5 py-3 mb-8 max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 bg-green-500 text-white px-3 py-1 rounded-full shrink-0" style={{ fontSize: "12px", fontWeight: 700 }}>
                 <Rocket className="w-3.5 h-3.5" />
                 {t("إطلاق تجريبي", "Launch Beta")}
               </span>
@@ -225,7 +225,7 @@ export function PricingPage() {
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {t("سنوي", "Yearly")}
-                <span className="absolute -top-2 -end-2 bg-[#22C55E] text-white px-2 py-0.5 rounded-full text-xs">
+                <span className="absolute -top-2 -end-2 bg-green-500 text-white px-2 py-0.5 rounded-full text-xs">
                   {t("شهران مجانًا", "2 months free")}
                 </span>
               </button>
@@ -271,13 +271,13 @@ export function PricingPage() {
                 transition={{ delay: i * 0.1 }}
                 className={`rounded-3xl p-8 relative ${
                   plan.popular
-                    ? "bg-white shadow-2xl border-2 border-[#1276E3] scale-105 z-10"
+                    ? "bg-white shadow-2xl border-2 border-primary scale-105 z-10"
                     : "bg-white shadow-xl border border-gray-200"
                 }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="bg-gradient-to-l from-[#1276E3] to-[#349FC4] text-white px-5 py-1.5 rounded-full whitespace-nowrap shadow-lg" style={{ fontSize: "13px", fontWeight: 600 }}>
+                    <span className="bg-gradient-to-l from-primary to-secondary text-white px-5 py-1.5 rounded-full whitespace-nowrap shadow-lg" style={{ fontSize: "13px", fontWeight: 600 }}>
                       {t("الأكثر شعبية ⭐", "Most popular ⭐")}
                     </span>
                   </div>
@@ -307,7 +307,7 @@ export function PricingPage() {
                   </div>
                   {billingCycle === "yearly" && plan.price[currency].yearly > 0 && (
                     <>
-                      <p className="text-[#22C55E]" style={{ fontSize: "13px" }} dir="ltr">
+                      <p className="text-green-500" style={{ fontSize: "13px" }} dir="ltr">
                         {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString("en-US")} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
                       </p>
                       <p className="text-muted-foreground" style={{ fontSize: "12px" }} dir="ltr">
@@ -322,7 +322,7 @@ export function PricingPage() {
                   disabled={checkoutBusy !== null}
                   className={`w-full py-3.5 rounded-xl transition-all mb-8 cursor-pointer ${
                     plan.popular
-                      ? "bg-primary hover:bg-primary/80 text-white shadow-lg shadow-[#1276E3]/25"
+                      ? "bg-primary hover:bg-primary/80 text-white shadow-lg shadow-primary/25"
                       : "bg-gray-100 hover:bg-gray-200 text-foreground"
                   } disabled:opacity-60`}
                   style={{ fontSize: "15px", fontWeight: 600 }}
@@ -340,7 +340,7 @@ export function PricingPage() {
                   </h4>
                   {(isAr ? plan.features.ar : plan.features.en).map((f) => (
                     <div key={f} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-[#22C55E] flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-foreground/80" style={{ fontSize: "14px" }}>{f}</span>
                     </div>
                   ))}
@@ -354,9 +354,9 @@ export function PricingPage() {
       {/* Lite — grocery / very small business tier */}
       <section className="pb-14 px-4 sm:px-6 lg:px-8 -mt-2 relative z-10">
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-2xl border-2 border-[#22C55E]/40 bg-gradient-to-br from-[#F0FDF4] to-white p-6 sm:p-7 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 shadow-lg">
+          <div className="rounded-2xl border-2 border-green-500/40 bg-gradient-to-br from-green-50 to-white p-6 sm:p-7 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 shadow-lg">
             <div className="flex-1 text-center sm:text-start">
-              <span className="inline-block bg-[#22C55E] text-white px-3 py-1 rounded-full mb-2" style={{ fontSize: "11px", fontWeight: 800 }}>
+              <span className="inline-block bg-green-500 text-white px-3 py-1 rounded-full mb-2" style={{ fontSize: "11px", fontWeight: 800 }}>
                 {t("جديد · للبقالات والمشاريع الصغيرة جدًا", "New · for groceries & very small businesses")}
               </span>
               <h3 className="text-foreground mb-1" style={{ fontSize: "19px", fontWeight: 800 }}>
@@ -371,7 +371,7 @@ export function PricingPage() {
             </div>
             <button
               onClick={() => navigate("/register")}
-              className="shrink-0 bg-[#22C55E] hover:bg-[#16A34A] text-white px-7 py-3.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-[#22C55E]/25"
+              className="shrink-0 bg-green-500 hover:bg-green-600 text-white px-7 py-3.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-green-500/25"
               style={{ fontSize: "14px", fontWeight: 700 }}
             >
               {t("ابدأ بلايت", "Start with Lite")}
@@ -387,17 +387,17 @@ export function PricingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="rounded-3xl bg-gradient-to-br from-[#0B1B49] to-[#1276E3] text-white p-8 sm:p-10 relative overflow-hidden shadow-2xl"
+            className="rounded-3xl bg-gradient-to-br from-foreground to-primary text-white p-8 sm:p-10 relative overflow-hidden shadow-2xl"
           >
-            <div className="absolute -top-10 -end-10 w-40 h-40 bg-[#349FC4]/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-10 -end-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl pointer-events-none" />
             <div className="flex items-center gap-3 mb-4 flex-wrap">
               <span className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
-                <ArrowLeftRight className="w-5 h-5 text-[#349FC4]" />
+                <ArrowLeftRight className="w-5 h-5 text-secondary" />
               </span>
               <h2 style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 800 }}>
                 {t("عندك اشتراك في برنامج محاسبة آخر؟", "Subscribed to another accounting app?")}
               </h2>
-              <span className="bg-[#F59E0B] text-[#0B1B49] px-3 py-1 rounded-full" style={{ fontSize: "12px", fontWeight: 800 }}>
+              <span className="bg-amber-500 text-foreground px-3 py-1 rounded-full" style={{ fontSize: "12px", fontWeight: 800 }}>
                 {t("للاشتراك السنوي فقط", "Annual plans only")}
               </span>
             </div>
@@ -414,7 +414,7 @@ export function PricingPage() {
                 { n: "3", ar: "ننقل بياناتك مجاناً ونضيف مدتك المتبقية كاملة لحسابك", en: "We migrate your data FREE and credit your remaining time in full" },
               ].map((s) => (
                 <div key={s.n} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/15">
-                  <span className="inline-flex w-7 h-7 rounded-full bg-[#22C55E] text-white items-center justify-center mb-2" style={{ fontSize: "13px", fontWeight: 800 }}>
+                  <span className="inline-flex w-7 h-7 rounded-full bg-green-500 text-white items-center justify-center mb-2" style={{ fontSize: "13px", fontWeight: 800 }}>
                     {s.n}
                   </span>
                   <p className="text-white/90" style={{ fontSize: "13px", lineHeight: 1.7 }}>
@@ -425,7 +425,7 @@ export function PricingPage() {
             </div>
             <a
               href="mailto:support@entix.io?subject=Switching%20from%20another%20accounting%20app"
-              className="inline-flex items-center gap-2 bg-white text-[#0B1B49] px-6 py-3 rounded-xl hover:bg-white/90 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 bg-white text-foreground px-6 py-3 rounded-xl hover:bg-white/90 transition-all shadow-lg"
               style={{ fontSize: "14px", fontWeight: 700 }}
             >
               <Mail className="w-4 h-4" />
@@ -444,8 +444,8 @@ export function PricingPage() {
       {/* Referral Program — coming soon teaser */}
       <section className="pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-3xl border-2 border-dashed border-[#1276E3]/40 bg-[#1276E3]/5 p-8 sm:p-10 text-center">
-            <span className="inline-flex items-center gap-2 bg-[#1276E3] text-white px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "12px", fontWeight: 700 }}>
+          <div className="rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 p-8 sm:p-10 text-center">
+            <span className="inline-flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "12px", fontWeight: 700 }}>
               <Gift className="w-4 h-4" />
               {t("قريباً", "Coming soon")}
             </span>
@@ -467,7 +467,7 @@ export function PricingPage() {
         <div className="max-w-7xl mx-auto text-center">
           <button
             onClick={() => setShowComparison(!showComparison)}
-            className="inline-flex items-center gap-2 bg-white border-2 border-[#1276E3] text-primary px-8 py-3.5 rounded-xl hover:bg-primary hover:text-white transition-all cursor-pointer shadow-lg"
+            className="inline-flex items-center gap-2 bg-white border-2 border-primary text-primary px-8 py-3.5 rounded-xl hover:bg-primary hover:text-white transition-all cursor-pointer shadow-lg"
             style={{ fontSize: "16px", fontWeight: 600 }}
           >
             {showComparison ? t("إخفاء", "Hide") : t("عرض", "View")} {t("جدول المقارنة التفصيلي", "detailed comparison")}
@@ -522,9 +522,9 @@ export function PricingPage() {
                             <td key={ci} className="p-4 text-center">
                               {typeof v === "boolean" ? (
                                 v ? (
-                                  <CheckCircle2 className="w-5 h-5 text-[#22C55E] mx-auto" />
+                                  <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                                 ) : (
-                                  <X className="w-5 h-5 text-[#E5E7EB] mx-auto" />
+                                  <X className="w-5 h-5 text-muted mx-auto" />
                                 )
                               ) : (
                                 <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{cell(v)}</span>
@@ -546,7 +546,7 @@ export function PricingPage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <span className="inline-block bg-[#EFF6FF] text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>
+            <span className="inline-block bg-primary/5 text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>
               {t("مقارنة صريحة", "Honest benchmark")}
             </span>
             <h2 className="text-foreground mb-3" style={{ fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700 }}>
@@ -567,7 +567,7 @@ export function PricingPage() {
                   <th className="py-4 px-5 text-center">
                     <div className="inline-flex flex-col items-center">
                       <span className="text-primary" style={{ fontWeight: 800 }}>ENTIX.IO</span>
-                      <span className="text-[#166534] bg-[#DCFCE7] rounded-full px-2.5 py-0.5 mt-1" style={{ fontSize: "10px", fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span>
+                      <span className="text-green-800 bg-green-100 rounded-full px-2.5 py-0.5 mt-1" style={{ fontSize: "10px", fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span>
                     </div>
                   </th>
                   <th className="py-4 px-5 text-center text-muted-foreground" style={{ fontWeight: 600 }}>Wafeq</th>
@@ -589,7 +589,7 @@ export function PricingPage() {
                 ] as const).map((row, i) => (
                   <tr key={i} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
                     <td className="text-start py-3.5 px-5 text-foreground" style={{ fontWeight: 500 }}>{isAr ? row.ar : row.en}</td>
-                    <td className="py-3.5 px-5 text-center bg-[#EFF6FF]/50 text-primary" style={{ fontWeight: 700 }}>{row.us}</td>
+                    <td className="py-3.5 px-5 text-center bg-primary/5/50 text-primary" style={{ fontWeight: 700 }}>{row.us}</td>
                     <td className="py-3.5 px-5 text-center text-muted-foreground">{row.wafeq}</td>
                     <td className="py-3.5 px-5 text-center text-muted-foreground">{row.wave}</td>
                   </tr>
@@ -629,7 +629,7 @@ export function PricingPage() {
               return (
                 <div
                   key={i}
-                  className={`bg-white rounded-xl border transition-all ${open ? "border-[#1276E3]/30 shadow-md" : "border-gray-200 hover:border-[#1276E3]/20"}`}
+                  className={`bg-white rounded-xl border transition-all ${open ? "border-primary/30 shadow-md" : "border-gray-200 hover:border-primary/20"}`}
                 >
                   <button
                     onClick={() => setOpenFaqs(open ? openFaqs.filter((x) => x !== i) : [...openFaqs, i])}
@@ -657,7 +657,7 @@ export function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] to-[#1276E3]">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground to-primary">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

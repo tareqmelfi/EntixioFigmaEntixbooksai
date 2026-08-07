@@ -195,11 +195,11 @@ export function Landing() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
             <div className="flex flex-wrap items-center gap-2 mb-6">
-              <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-primary px-4 py-2 rounded-full" style={{ fontSize: "13px", fontWeight: 600 }}>
+              <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-full" style={{ fontSize: "13px", fontWeight: 600 }}>
                 <Zap className="w-4 h-4" />
                 <span>{t("نظام محاسبة سحابي متكامل للسوقين السعودي والأمريكي", "Cloud accounting for Saudi & US businesses")}</span>
               </div>
-              <div className="inline-flex items-center gap-1.5 bg-[#F0FDF4] text-[#15803D] border border-[#22C55E]/30 px-3.5 py-2 rounded-full" style={{ fontSize: "12px", fontWeight: 700 }}>
+              <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-500/30 px-3.5 py-2 rounded-full" style={{ fontSize: "12px", fontWeight: 700 }}>
                 <Rocket className="w-3.5 h-3.5" />
                 <span>{t("إطلاق تجريبي — كن من الداعمين الأوائل", "Launch Beta — be an early supporter")}</span>
               </div>
@@ -207,7 +207,7 @@ export function Landing() {
             <h1 className="text-foreground mb-6" style={{ fontSize: "clamp(30px, 5vw, 52px)", fontWeight: 800, lineHeight: 1.2 }}>
               {t("أدر حساباتك المالية", "Run your accounting")}
               <br />
-              <span className="bg-gradient-to-l from-[#1276E3] to-[#349FC4] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>{t("بذكاء وسهولة", "with clarity and control")}</span>
+              <span className="bg-gradient-to-l from-primary to-secondary bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>{t("بذكاء وسهولة", "with clarity and control")}</span>
             </h1>
             <p className="text-muted-foreground mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
               {t(
@@ -218,7 +218,7 @@ export function Landing() {
             <div className="flex flex-wrap gap-3">
               <button 
                 onClick={() => navigate("/register")}
-                className="bg-primary hover:bg-primary/80 text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-[#1276E3]/25 flex items-center gap-2 cursor-pointer"
+                className="bg-primary hover:bg-primary/80 text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-primary/25 flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {t("ابدأ شهرك المجاني", "Start your free month")}
@@ -226,7 +226,7 @@ export function Landing() {
               </button>
               <button 
                 onClick={() => navigate("/login")}
-                className="border-2 border-border hover:border-[#1276E3] text-foreground px-8 py-3.5 rounded-xl transition-all cursor-pointer"
+                className="border-2 border-border hover:border-primary text-foreground px-8 py-3.5 rounded-xl transition-all cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
                 {t("تسجيل الدخول", "Sign in")}
@@ -239,7 +239,7 @@ export function Landing() {
                 { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
               ].map(t => (
                 <div key={t.text} className="flex items-center gap-1.5 text-muted-foreground" style={{ fontSize: "13px", fontWeight: 500 }}>
-                  <t.icon className="w-4 h-4 text-[#22C55E]" />
+                  <t.icon className="w-4 h-4 text-green-500" />
                   {t.text}
                 </div>
               ))}
@@ -252,7 +252,7 @@ export function Landing() {
           >
             {/* Decorative blobs */}
             <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-[#349FC4]/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-secondary/10 rounded-full blur-3xl" />
             
             <InteractiveDashboard3D />
 
@@ -262,11 +262,11 @@ export function Landing() {
               className="hidden sm:block absolute -bottom-6 right-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#ECFDF5] flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-[#22C55E]" />
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
-                  <div className="text-[#15803D]" style={{ fontSize: "13px", fontWeight: 600 }}>+23.5%</div>
+                  <div className="text-green-700" style={{ fontSize: "13px", fontWeight: 600 }}>+23.5%</div>
                   <div className="text-muted-foreground" style={{ fontSize: "11px" }}>{t("نمو الإيرادات", "Revenue growth")}</div>
                 </div>
               </div>
@@ -277,7 +277,7 @@ export function Landing() {
               className="hidden sm:block absolute -top-4 left-4 bg-white rounded-xl shadow-xl border border-gray-100 p-3 sm:p-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center">
                   <FileText className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -291,7 +291,7 @@ export function Landing() {
       </section>
 
       {/* ─── Stats ─── */}
-      <section className="py-12 bg-[#0B1B49]">
+      <section className="py-12 bg-foreground">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map(stat => (
@@ -299,7 +299,7 @@ export function Landing() {
                 <div className="text-white mb-1" style={{ fontSize: "clamp(28px, 4vw, 40px)" }}>
                   <AnimatedNumber target={stat.value} suffix={stat.suffix} />
                 </div>
-                <p className="text-[#94A3B8]" style={{ fontSize: "14px" }}>{t(stat.label, stat.labelEn)}</p>
+                <p className="text-muted-foreground" style={{ fontSize: "14px" }}>{t(stat.label, stat.labelEn)}</p>
               </div>
             ))}
           </div>
@@ -307,10 +307,10 @@ export function Landing() {
       </section>
 
       {/* ─── Features ─── */}
-      <section id="features" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-20 sm:py-24 bg-muted/40 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block bg-[#EFF6FF] text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("المميزات", "Features")}</span>
+            <span className="inline-block bg-primary/5 text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("المميزات", "Features")}</span>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("كل ما تحتاجه في مكان واحد", "Everything your accounting team needs")}</h2>
             <p className="text-muted-foreground max-w-xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>{t("أدوات محاسبية متكاملة مصممة لتسهيل عملك اليومي وتحسين أداءك المالي", "A practical accounting workspace for invoices, reports, expenses, VAT, and financial operations.")}</p>
           </div>
@@ -322,9 +322,9 @@ export function Landing() {
                 whileInView={{ opacity: 1, y: 0 }} 
                 viewport={{ once: true }} 
                 transition={{ delay: i * 0.05, duration: 0.4 }}
-                className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-[#1276E3]/20 hover:shadow-xl hover:shadow-[#1276E3]/5 transition-all duration-300 cursor-pointer group"
+                className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer group"
               >
-                <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] flex items-center justify-center mb-4 group-hover:bg-primary transition-colors duration-300">
+                <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center mb-4 group-hover:bg-primary transition-colors duration-300">
                   <f.icon className="w-5 h-5 text-primary group-hover:text-white transition-colors duration-300" />
                 </div>
                 <h3 className="text-foreground mb-2" style={{ fontSize: "17px", fontWeight: 600 }}>{t(f.title, f.titleEn)}</h3>
@@ -339,7 +339,7 @@ export function Landing() {
       <section id="sync" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block bg-[#F0FDF4] text-[#15803D] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأمان والاعتمادية", "Security & reliability")}</span>
+            <span className="inline-block bg-green-50 text-green-700 px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأمان والاعتمادية", "Security & reliability")}</span>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("بياناتك محمية وملكك دائمًا", "Your data is protected — and always yours")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.8 }}>
               {t(
@@ -360,7 +360,7 @@ export function Landing() {
                 whileInView={{ opacity: 1, y: 0 }} 
                 viewport={{ once: true }} 
                 transition={{ delay: i * 0.1 }}
-                className={`text-center p-8 rounded-2xl bg-gradient-to-b from-[#F8FAFC] to-white border ${i === 1 ? "border-[#1276E3]/20 shadow-xl shadow-[#1276E3]/5 scale-[1.02]" : "border-gray-100"} hover:shadow-lg transition-all`}
+                className={`text-center p-8 rounded-2xl bg-gradient-to-b from-muted/40 to-white border ${i === 1 ? "border-primary/20 shadow-xl shadow-primary/5 scale-[1.02]" : "border-gray-100"} hover:shadow-lg transition-all`}
               >
                 <div className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: item.color }}>
                   <item.icon className="w-7 h-7 text-white" />
@@ -374,7 +374,7 @@ export function Landing() {
           {/* Architecture diagram */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mt-12 bg-gradient-to-br from-[#0B1B49] to-[#122354] rounded-2xl p-8 sm:p-10"
+            className="mt-12 bg-gradient-to-br from-foreground to-foreground rounded-2xl p-8 sm:p-10"
           >
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6">
               {[
@@ -383,18 +383,18 @@ export function Landing() {
                 { icon: CreditCard, label: "Stripe", sub: "مدفوعات آمنة", subEn: "secure payments" },
               ].map((item, i) => (
                 <div key={item.label} className="flex items-center gap-3">
-                  {i > 0 && <div className="hidden sm:block w-12 h-[2px] bg-[#349FC4]/40 rounded" />}
+                  {i > 0 && <div className="hidden sm:block w-12 h-[2px] bg-secondary/40 rounded" />}
                   <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                    <item.icon className="w-5 h-5 text-[#349FC4]" />
+                    <item.icon className="w-5 h-5 text-secondary" />
                     <div>
                       <div className="text-white" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fontWeight: 600 }}>{item.label}</div>
-                      <div className="text-[#94A3B8]" style={{ fontSize: "11px" }}>{t(item.sub, item.subEn)}</div>
+                      <div className="text-muted-foreground" style={{ fontSize: "11px" }}>{t(item.sub, item.subEn)}</div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-[#94A3B8] max-w-2xl mx-auto text-center" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-center" style={{ fontSize: "14px", lineHeight: 1.8 }}>
               {t(
                 "بنية سحابية حديثة: Cloudflare للحماية والتسريع، وPostgreSQL للبيانات، وStripe للمدفوعات — لا تمر بيانات البطاقات بسيرفراتنا.",
                 "A modern cloud stack: Cloudflare for protection and speed, PostgreSQL for data, and Stripe for payments — card data never touches our servers."
@@ -405,10 +405,10 @@ export function Landing() {
       </section>
 
       {/* ─── Pricing ─── */}
-      <section id="pricing" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
+      <section id="pricing" className="py-20 sm:py-24 bg-muted/40 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block bg-[#FFF7ED] text-[#B45309] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأسعار", "Pricing")}</span>
+            <span className="inline-block bg-orange-50 text-amber-700 px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأسعار", "Pricing")}</span>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("خطط أسعار مرنة", "Flexible pricing plans")}</h2>
             <p className="text-muted-foreground" style={{ fontSize: "16px" }}>{t("اختر الخطة المناسبة لحجم أعمالك — يمكنك الترقية في أي وقت", "Choose the plan that fits your business size. You can upgrade at any time.")}</p>
           </div>
@@ -422,21 +422,21 @@ export function Landing() {
                 transition={{ delay: i * 0.1 }}
                 className={`rounded-2xl p-7 border relative ${
                   plan.highlighted
-                    ? "bg-[#0B1B49] border-[#0B1B49] text-white shadow-2xl shadow-[#0B1B49]/20 scale-105 z-10"
-                    : "bg-white border-gray-200 hover:border-[#1276E3]/20 hover:shadow-lg"
+                    ? "bg-foreground border-foreground text-white shadow-2xl shadow-foreground/20 scale-105 z-10"
+                    : "bg-white border-gray-200 hover:border-primary/20 hover:shadow-lg"
                 } transition-all`}
               >
                 {plan.highlighted && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-gradient-to-l from-[#1276E3] to-[#349FC4] text-white px-4 py-1 rounded-full whitespace-nowrap" style={{ fontSize: "12px", fontWeight: 600 }}>{t("الأكثر شعبية", "Most popular")}</span>
+                    <span className="bg-gradient-to-l from-primary to-secondary text-white px-4 py-1 rounded-full whitespace-nowrap" style={{ fontSize: "12px", fontWeight: 600 }}>{t("الأكثر شعبية", "Most popular")}</span>
                   </div>
                 )}
                 <h3 style={{ fontSize: "20px", fontWeight: 600 }} className={plan.highlighted ? "text-white mt-2" : "text-foreground"}>{t(plan.name, plan.nameEn)}</h3>
-                <p style={{ fontSize: "13px" }} className={`mt-1 ${plan.highlighted ? "text-[#94A3B8]" : "text-muted-foreground/60"}`}>{t(plan.desc, plan.descEn)}</p>
+                <p style={{ fontSize: "13px" }} className={`mt-1 ${plan.highlighted ? "text-muted-foreground" : "text-muted-foreground/60"}`}>{t(plan.desc, plan.descEn)}</p>
                 <div className="flex items-baseline gap-1 mt-4 mb-1" dir="ltr">
                   <span style={{ fontSize: "40px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }} className={plan.highlighted ? "text-white" : "text-foreground"}>{plan.price}</span>
                 </div>
-                <p style={{ fontSize: "13px" }} className={plan.highlighted ? "text-[#94A3B8]" : "text-muted-foreground"}>{t(plan.period, plan.periodEn)}</p>
+                <p style={{ fontSize: "13px" }} className={plan.highlighted ? "text-muted-foreground" : "text-muted-foreground"}>{t(plan.period, plan.periodEn)}</p>
                 <hr className={`my-6 ${plan.highlighted ? "border-white/10" : "border-gray-100"}`} />
                 <ul className="space-y-3">
                   {plan.features.map((f, fi) => (
@@ -444,8 +444,8 @@ export function Landing() {
                       <CheckCircle2 
                         className={
                           plan.highlighted 
-                            ? "w-4 h-4 flex-shrink-0 text-[#349FC4]"
-                            : "w-4 h-4 flex-shrink-0 text-[#22C55E]"
+                            ? "w-4 h-4 flex-shrink-0 text-secondary"
+                            : "w-4 h-4 flex-shrink-0 text-green-500"
                         } 
                       />
                       <span className={plan.highlighted ? "text-gray-300" : "text-muted-foreground"}>{t(f, plan.featuresEn[fi])}</span>
@@ -457,7 +457,7 @@ export function Landing() {
                   className={
                     plan.highlighted
                       ? "w-full mt-7 py-3 rounded-xl transition-all cursor-pointer bg-primary hover:bg-primary/80 text-white hover:shadow-lg"
-                      : "w-full mt-7 py-3 rounded-xl transition-all cursor-pointer bg-[#F0F7FF] hover:bg-primary hover:text-white text-primary"
+                      : "w-full mt-7 py-3 rounded-xl transition-all cursor-pointer bg-primary/5 hover:bg-primary hover:text-white text-primary"
                   }
                   style={{ fontSize: "14px", fontWeight: 600 }}
                 >
@@ -474,7 +474,7 @@ export function Landing() {
         <div className="max-w-4xl mx-auto">
           <motion.div 
             initial={{ opacity: 0, scale: 0.98 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-            className="bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden"
+            className="bg-gradient-to-br from-foreground via-foreground to-primary rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden"
           >
             {/* Decorative circles */}
             <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
@@ -484,7 +484,7 @@ export function Landing() {
               <h2 className="text-white mb-4" style={{ fontSize: "clamp(24px, 4vw, 34px)", fontWeight: 700, lineHeight: 1.3 }}>
                 {t("جاهز لتحويل إدارتك المالية؟", "Ready to modernize your financial operations?")}
               </h2>
-              <p className="text-[#94A3B8] max-w-xl mx-auto mb-8" style={{ fontSize: "16px", lineHeight: 1.8 }}>
+              <p className="text-muted-foreground max-w-xl mx-auto mb-8" style={{ fontSize: "16px", lineHeight: 1.8 }}>
                 {t(
                   "ENTIX.IO في مرحلة الإطلاق التجريبي — كن من الداعمين الأوائل وأدر فواتيرك ومصاريفك وتقاريرك بكفاءة وأمان.",
                   "Use ENTIX.IO to manage accounting, invoices, expenses, and reports with a cleaner bilingual workflow."
@@ -506,10 +506,10 @@ export function Landing() {
       </section>
 
       {/* ─── FAQ ─── */}
-      <section id="faq" className="py-20 sm:py-24 bg-[#FAFBFC] px-4 sm:px-6 lg:px-8">
+      <section id="faq" className="py-20 sm:py-24 bg-muted/40 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
-            <span className="inline-block bg-[#F3E8FF] text-[#9333EA] px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("مساعدة", "Help")}</span>
+            <span className="inline-block bg-primary/5 text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("مساعدة", "Help")}</span>
             <h2 className="text-foreground mb-3" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("الأسئلة الشائعة", "Frequently asked questions")}</h2>
           </div>
           <div className="space-y-3">
@@ -517,7 +517,7 @@ export function Landing() {
               <motion.div 
                 key={i} 
                 initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-[#1276E3]/20 transition-colors"
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-primary/20 transition-colors"
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}

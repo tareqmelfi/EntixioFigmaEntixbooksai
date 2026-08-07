@@ -114,7 +114,7 @@ export function Notifications() {
               {items.map(n => (
                 <div
                   key={n.id}
-                  className={`flex items-start gap-4 px-6 py-4 border-b border-border/50 last:border-0 hover:bg-muted cursor-pointer transition-colors ${!n.readAt ? "bg-[#EFF6FF]/30" : ""}`}
+                  className={`flex items-start gap-4 px-6 py-4 border-b border-border/50 last:border-0 hover:bg-muted cursor-pointer transition-colors ${!n.readAt ? "bg-primary/5/30" : ""}`}
                   onClick={() => handleClick(n)}
                 >
                   <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-primary" : "bg-transparent"}`} />

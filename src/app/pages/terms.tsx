@@ -140,7 +140,7 @@ export function Terms() {
       <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-[#0B1B49] flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-foreground flex items-center justify-center shadow-lg">
               <Scale className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-foreground mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
@@ -183,7 +183,7 @@ export function Terms() {
             })}
           </div>
 
-          <div className="bg-[#F8FAFC] rounded-lg p-6 mt-12 border border-[#CBD5E1]">
+          <div className="bg-muted/40 rounded-lg p-6 mt-12 border border-border">
             <h3 className="text-foreground mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
               {isAr ? "ملاحظة مهمة" : "Important note"}
             </h3>

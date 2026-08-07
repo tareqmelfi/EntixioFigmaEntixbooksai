@@ -177,7 +177,7 @@ export function SharedNavbar() {
           <div className="relative" ref={regionRef}>
             <button
               onClick={() => setOpenDropdown(openDropdown === "__region" ? null : "__region")}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-[#1276E3]/30 hover:bg-primary/5 hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-colors"
               style={{ fontSize: "13px", fontWeight: 600 }}
               aria-label={t("اختيار الدولة", "Select country")}
             >
@@ -218,7 +218,7 @@ export function SharedNavbar() {
           </div>
           <button
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-[#1276E3]/30 hover:bg-primary/5 hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-colors"
             style={{ fontSize: "13px", fontWeight: 600 }}
             aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
           >
@@ -234,7 +234,7 @@ export function SharedNavbar() {
           </button>
           <button
             onClick={() => navigate("/register")}
-            className="bg-[#0372B4] hover:bg-[#02609E] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#0372B4]/25 cursor-pointer"
+            className="bg-primary hover:bg-primary text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
             {t("ابدأ مجاناً", "Start free")}
@@ -303,7 +303,7 @@ export function SharedNavbar() {
                       key={r.id}
                       onClick={() => setRegion(r.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer ${
-                        r.id === region ? "border-[#1276E3] bg-primary/5 text-foreground" : "border-gray-200 text-foreground/70 hover:bg-gray-50"
+                        r.id === region ? "border-primary bg-primary/5 text-foreground" : "border-gray-200 text-foreground/70 hover:bg-gray-50"
                       }`}
                       style={{ fontSize: "14px", fontWeight: r.id === region ? 700 : 500 }}
                     >
@@ -332,7 +332,7 @@ export function SharedNavbar() {
               </button>
               <button
                 onClick={() => handleNavigate("/register")}
-                className="w-full bg-[#0372B4] text-white py-3 rounded-xl cursor-pointer hover:bg-[#02609E] transition-colors"
+                className="w-full bg-primary text-white py-3 rounded-xl cursor-pointer hover:bg-primary transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {t("ابدأ مجاناً", "Start free")}
@@ -348,7 +348,7 @@ export function SharedNavbar() {
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
         <button
           onClick={() => navigate("/register")}
-          className="w-full bg-[#0372B4] text-white py-3 rounded-xl shadow-lg shadow-[#0372B4]/20 hover:bg-[#02609E] transition-colors cursor-pointer"
+          className="w-full bg-primary text-white py-3 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary transition-colors cursor-pointer"
           style={{ fontSize: "15px", fontWeight: 600 }}
         >
           {t("ابدأ مجاناً", "Start free")}

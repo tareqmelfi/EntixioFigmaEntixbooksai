@@ -123,7 +123,7 @@ export function FiscalPeriods() {
       ) : items.length === 0 ? (
         <Card className="border-border">
           <CardContent className="py-12 text-center">
-            <CalendarDays className="h-12 w-12 text-[#E5E7EB] mx-auto mb-3" />
+            <CalendarDays className="h-12 w-12 text-muted mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">{t("لم يتم إنشاء فترات لعام", "No periods created for")} {year}</p>
             <p className="text-xs text-muted-foreground/60 mt-1">{t("اضغط \"إنشاء فترات\" لإنشاء 12 فترة شهرية", "Click \"Create periods\" to create 12 monthly periods")}</p>
           </CardContent>

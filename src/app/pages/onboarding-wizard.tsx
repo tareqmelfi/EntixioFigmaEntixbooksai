@@ -142,9 +142,9 @@ export function OnboardingWizard() {
           const active = step === s.id;
           return (
             <div key={s.id} className="flex items-center gap-1.5 sm:gap-3">
-              {i > 0 && <div className={`w-6 sm:w-10 h-[2px] rounded ${step > s.id - 1 ? "bg-[#22C55E]" : "bg-gray-200"}`} />}
+              {i > 0 && <div className={`w-6 sm:w-10 h-[2px] rounded ${step > s.id - 1 ? "bg-green-500" : "bg-gray-200"}`} />}
               <div className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl border transition-all ${
-                active ? "border-[#1276E3] bg-[#EFF6FF] text-primary" : done ? "border-[#22C55E]/40 bg-[#F0FDF4] text-[#15803D]" : "border-gray-200 text-muted-foreground"
+                active ? "border-primary bg-primary/5 text-primary" : done ? "border-green-500/40 bg-green-50 text-green-700" : "border-gray-200 text-muted-foreground"
               }`} style={{ fontSize: "12px", fontWeight: 600 }}>
                 {done && !active ? <CheckCircle2 className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
                 <span className="hidden sm:inline">{t(s.ar, s.en)}</span>
@@ -216,7 +216,7 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
   if (alreadyDone) {
     return (
       <Card>
-        <div className="flex items-center gap-3 text-[#15803D]">
+        <div className="flex items-center gap-3 text-green-700">
           <CheckCircle2 className="w-5 h-5" />
           <p style={{ fontSize: "14px", fontWeight: 600 }}>{t("الأرصدة الافتتاحية مسجّلة مسبقًا ✓", "Opening balances already posted ✓")}</p>
         </div>
@@ -245,7 +245,7 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
             <p className="text-muted-foreground/70 mt-0.5" style={{ fontSize: "11px" }}>{t(f.hintAr, f.hintEn)}</p>
           </div>
         ))}
-        <div className="rounded-xl bg-[#EFF6FF] border border-primary/20 px-4 py-3">
+        <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3">
           <div className="text-muted-foreground" style={{ fontSize: "11px" }}>{t("رأس المال المدفوع (تلقائي)", "Paid-in capital (auto)")}</div>
           <div className="text-primary font-english" style={{ fontSize: "20px", fontWeight: 800 }} dir="ltr">
             {(total - num(form.payables)).toLocaleString("en-US", { maximumFractionDigits: 2 })}
@@ -334,7 +334,7 @@ function StepProducts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
         <button onClick={downloadTemplate} className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
           <Download className="w-4 h-4" /> {t("القالب", "Template")}
         </button>
-        <label className={`inline-flex items-center gap-2 border border-[#8B5CF6]/40 text-[#7C3AED] hover:bg-[#8B5CF6]/5 px-4 py-2.5 rounded-xl cursor-pointer ${aiBusy ? "opacity-60 pointer-events-none" : ""}`} style={{ fontSize: "13px", fontWeight: 600 }}>
+        <label className={`inline-flex items-center gap-2 border border-primary/40 text-primary hover:bg-primary/90/5 px-4 py-2.5 rounded-xl cursor-pointer ${aiBusy ? "opacity-60 pointer-events-none" : ""}`} style={{ fontSize: "13px", fontWeight: 600 }}>
           <Sparkles className="w-4 h-4" /> {aiBusy ? t("يستخرج…", "Extracting…") : t("استخراج AI من ملف", "AI extract from file")}
           <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => { const f = e.target.files?.[0]; if (f) onAiFile(f); e.target.value = ""; }} />
         </label>
@@ -356,7 +356,7 @@ function StepProducts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
       )}
 
       {result && (
-        <div className="rounded-xl bg-[#F0FDF4] border border-[#22C55E]/30 px-4 py-3 text-[#15803D]" style={{ fontSize: "13px", lineHeight: 1.8 }}>
+        <div className="rounded-xl bg-green-50 border border-green-500/30 px-4 py-3 text-green-700" style={{ fontSize: "13px", lineHeight: 1.8 }}>
           ✓ {t("أُنشئ", "Created")} <b className="font-english">{result.created}</b> · {t("تخطّى (موجود)", "Skipped")} <b className="font-english">{result.skipped}</b> · {t("رصيد مخزون", "Stock posted")} <b className="font-english">{result.stockApplied}</b>
           {result.errors.length > 0 && <span className="text-amber-700 block">{t("أخطاء:", "Errors:")} {result.errors.length}</span>}
         </div>
@@ -432,7 +432,7 @@ function StepContacts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
       )}
 
       {result && (
-        <div className="rounded-xl bg-[#F0FDF4] border border-[#22C55E]/30 px-4 py-3 text-[#15803D]" style={{ fontSize: "13px", lineHeight: 1.8 }}>
+        <div className="rounded-xl bg-green-50 border border-green-500/30 px-4 py-3 text-green-700" style={{ fontSize: "13px", lineHeight: 1.8 }}>
           ✓ {t("أُنشئ", "Created")} <b className="font-english">{result.created}</b> · {t("تخطّى (موجود)", "Skipped")} <b className="font-english">{result.skipped}</b>
           {result.errors.length > 0 && <span className="text-amber-700 block">{t("أخطاء:", "Errors:")} {result.errors.length}</span>}
         </div>
@@ -454,8 +454,8 @@ function StepDone({ status, onGo }: { status: { openingBalancesDone: boolean; pr
   return (
     <Card>
       <div className="text-center py-4">
-        <span className="inline-flex w-16 h-16 rounded-full bg-[#F0FDF4] items-center justify-center mb-4">
-          <PartyPopper className="w-8 h-8 text-[#22C55E]" />
+        <span className="inline-flex w-16 h-16 rounded-full bg-green-50 items-center justify-center mb-4">
+          <PartyPopper className="w-8 h-8 text-green-500" />
         </span>
         <h2 className="text-foreground mb-2" style={{ fontSize: "20px", fontWeight: 800 }}>{t("شركتك جاهزة للعمل 🎉", "Your company is ready 🎉")}</h2>
         <p className="text-muted-foreground mb-5" style={{ fontSize: "14px", lineHeight: 1.8 }}>

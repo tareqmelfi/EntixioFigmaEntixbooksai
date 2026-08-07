@@ -184,7 +184,7 @@ export function InteractiveDashboard3D() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5, duration: 0.5 }}
-        className="absolute -top-3 -left-3 z-20 bg-gradient-to-r from-[#1276E3] to-[#349FC4] text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2"
+        className="absolute -top-3 -left-3 z-20 bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2"
         style={{ fontSize: "12px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
       >
         <Sparkles className="w-4 h-4" />
@@ -226,7 +226,7 @@ export function InteractiveDashboard3D() {
         />
         
         {/* Main image with depth layers */}
-        <div className="relative bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] rounded-2xl p-1.5 shadow-2xl shadow-[#0B1B49]/30">
+        <div className="relative bg-gradient-to-br from-foreground via-foreground to-primary rounded-2xl p-1.5 shadow-2xl shadow-foreground/30">
           {/* Light reflection overlay */}
           <motion.div
             className="absolute inset-0 rounded-xl opacity-30 pointer-events-none z-20"
@@ -276,18 +276,18 @@ export function InteractiveDashboard3D() {
         
         {/* Depth layers for 3D effect */}
         <div 
-          className="absolute inset-0 bg-gradient-to-br from-[#0B1B49]/20 to-[#1276E3]/20 rounded-2xl blur-xl -z-10"
+          className="absolute inset-0 bg-gradient-to-br from-foreground/20 to-primary/20 rounded-2xl blur-xl -z-10"
           style={{ transform: "translateZ(-20px)" }}
         />
         <div 
-          className="absolute inset-0 bg-gradient-to-br from-[#1276E3]/10 to-[#349FC4]/10 rounded-2xl blur-2xl -z-20"
+          className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl blur-2xl -z-20"
           style={{ transform: "translateZ(-40px)" }}
         />
       </motion.div>
       
       {/* Corner accents */}
       <motion.div
-        className="absolute -bottom-2 -right-2 w-20 h-20 bg-gradient-to-br from-[#1276E3] to-[#349FC4] rounded-full blur-2xl opacity-50 -z-10"
+        className="absolute -bottom-2 -right-2 w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full blur-2xl opacity-50 -z-10"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.5, 0.7, 0.5]

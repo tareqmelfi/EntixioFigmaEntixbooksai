@@ -126,7 +126,7 @@ export function Privacy() {
       <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-[#0B1B49] flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-foreground flex items-center justify-center shadow-lg">
               <Shield className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-foreground mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
@@ -172,7 +172,7 @@ export function Privacy() {
             })}
           </div>
 
-          <div className="bg-[#EFF6FF] rounded-lg p-6 mt-12 border border-[#1276E3]/20">
+          <div className="bg-primary/5 rounded-lg p-6 mt-12 border border-primary/20">
             <h3 className="text-foreground mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
               {isAr ? "التواصل" : "Contact"}
             </h3>

@@ -126,6 +126,7 @@ export function Invoices() {
   const [signError, setSignError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [pendingApprove, setPendingApprove] = useState<string | null>(null);
 
   // Quick-create contact dialog (full form, not just name)
   const [pendingContact, setPendingContact] = useState<{ name: string; resolve: (id: string) => void; reject: () => void } | null>(null);
@@ -305,8 +306,8 @@ export function Invoices() {
 
     setBusy(true);
     try {
-      // draft → DRAFT · approve → APPROVED (locked, not yet sent) · send → SENT
-      const status = action === "draft" ? "DRAFT" : action === "approve" ? "APPROVED" : "SENT";
+      // draft → DRAFT · approve → APPROVED · send → APPROVED first (SENT only after email succeeds)
+      const status = action === "draft" ? "DRAFT" : "APPROVED";
       const buildPayload = (num?: string) => ({
         contactId: form.contactId,
         ...(num !== undefined ? { invoiceNumber: num } : {}),
@@ -378,6 +379,14 @@ export function Invoices() {
         try {
           await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined, payLink });
           push("success", payLink ? t("تم إرسال الفاتورة مع رابط الدفع", "Invoice sent with payment link") : t("تم إرسال الفاتورة بدون رابط دفع", "Invoice sent without payment link"));
+          // Email succeeded → transition APPROVED → SENT
+          try {
+            await api.invoices.update(inv.id, { status: "SENT" });
+            inv = { ...inv, status: "SENT" };
+            setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "SENT" } as Invoice : x));
+          } catch {
+            push("info", t("أُرسلت الفاتورة لكن تعذر تحديث حالتها إلى «مُرسلة»", "Invoice sent but its status could not be updated to SENT"));
+          }
         } catch (e: any) {
           push("error", e?.message || t("تعذر إرسال الفاتورة بالبريد", "Could not send the invoice by email"));
         }
@@ -404,7 +413,7 @@ export function Invoices() {
     }
   };
 
-  // Approve a DRAFT invoice · transitions DRAFT → SENT (backend: status=APPROVED state coming · for now uses SENT)
+  // Approve a DRAFT invoice · transitions DRAFT → APPROVED
   const handleApprove = async (inv: Invoice) => {
     try {
       // Safety: fetch full invoice to validate lines before accidental approval.
@@ -558,7 +567,7 @@ export function Invoices() {
                       type="button"
                       variant="outline"
                       onClick={() => setPreviewOpen((v) => !v)}
-                      className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
+                      className={previewOpen ? "border-primary text-primary bg-blue-50/60" : "border-border"}
                       title={t("معاينة الفاتورة كمستند (يسار)", "Preview invoice as document (left)")}
                     >
                       {t("معاينة", "Preview")}
@@ -579,7 +588,7 @@ export function Invoices() {
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-[#1276E3] text-primary hover:bg-blue-50" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-blue-50" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
                   {busy ? "..." : t("اعتماد", "Approve")}
                 </Button>
                 <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
@@ -638,7 +647,7 @@ export function Invoices() {
                 <button
                   type="button"
                   onClick={() => { window.location.href = "/app/settings?tab=payments"; }}
-                  className="w-full h-8 rounded-md border border-border bg-white px-2.5 text-xs flex items-center justify-between hover:border-[#1276E3]"
+                  className="w-full h-8 rounded-md border border-border bg-white px-2.5 text-xs flex items-center justify-between hover:border-primary"
                 >
                   <span className="flex items-center gap-1">
                     <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded">MC</span>
@@ -1036,17 +1045,24 @@ export function Invoices() {
                       <div className="flex items-center gap-1.5">
                         <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}</span>
                         {i.status === "DRAFT" && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const ok = window.confirm(t(`تأكيد اعتماد الفاتورة ${i.invoiceNumber}؟`, `Confirm approval of invoice ${i.invoiceNumber}?`));
-                              if (ok) handleApprove(i);
-                            }}
-                            className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200"
-                            title={t("اعتماد الفاتورة", "Approve invoice")}
-                          >
-                            ✓
-                          </button>
+                          pendingApprove === i.id ? (
+                            <InlineConfirm
+                              label={t("اعتماد الفاتورة؟", "Approve invoice?")}
+                              onConfirm={() => { setPendingApprove(null); handleApprove(i); }}
+                              onCancel={() => setPendingApprove(null)}
+                            />
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPendingApprove(i.id);
+                              }}
+                              className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200"
+                              title={t("اعتماد الفاتورة", "Approve invoice")}
+                            >
+                              ✓
+                            </button>
+                          )
                         )}
                       </div>
                     </td>
@@ -1059,7 +1075,7 @@ export function Invoices() {
                           <button
                             onClick={() => handleSplitByCategory(i)}
                             disabled={splittingId === i.id}
-                            className="rounded-md px-2 py-1 text-xs text-[#0B1B49] hover:bg-[#ECEEF5] border border-[#D9DCE7] flex items-center gap-1"
+                            className="rounded-md px-2 py-1 text-xs text-foreground hover:bg-muted border border-border flex items-center gap-1"
                             title={t("تفكيك الفاتورة إلى فواتير حسب القسم", "Split the invoice into invoices by category")}
                           >
                             {splittingId === i.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Split className="h-3.5 w-3.5" />}

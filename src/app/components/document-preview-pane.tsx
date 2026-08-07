@@ -283,7 +283,7 @@ export function DocumentPreviewPane({
       {/* Empty state */}
       {files.length === 0 ? (
         <div
-          className={`flex-1 flex flex-col items-center justify-center min-h-[280px] m-3 rounded-lg border-2 border-dashed transition ${dragOver ? "border-[#1276E3] bg-primary/5" : "border-border"}`}
+          className={`flex-1 flex flex-col items-center justify-center min-h-[280px] m-3 rounded-lg border-2 border-dashed transition ${dragOver ? "border-primary bg-primary/5" : "border-border"}`}
           onDrop={handleDrop}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -295,14 +295,14 @@ export function DocumentPreviewPane({
             <button
               type="button"
               onClick={() => setArchiveOriginal(false)}
-              className={`rounded-md px-2.5 py-1.5 transition ${!archiveOriginal ? "bg-[#0B1B49] text-white" : "text-muted-foreground hover:bg-muted"}`}
+              className={`rounded-md px-2.5 py-1.5 transition ${!archiveOriginal ? "bg-foreground text-white" : "text-muted-foreground hover:bg-muted"}`}
             >
               أرشفة ممسوحة
             </button>
             <button
               type="button"
               onClick={() => setArchiveOriginal(true)}
-              className={`rounded-md px-2.5 py-1.5 transition ${archiveOriginal ? "bg-[#0B1B49] text-white" : "text-muted-foreground hover:bg-muted"}`}
+              className={`rounded-md px-2.5 py-1.5 transition ${archiveOriginal ? "bg-foreground text-white" : "text-muted-foreground hover:bg-muted"}`}
             >
               حفظ كامل
             </button>
@@ -333,7 +333,7 @@ export function DocumentPreviewPane({
               <button
                 type="button"
                 onClick={() => setArchiveOriginal((value) => !value)}
-                className={`h-7 rounded-md border px-2 text-[11px] transition ${archiveOriginal ? "border-[#0B1B49] bg-[#0B1B49] text-white" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}
+                className={`h-7 rounded-md border px-2 text-[11px] transition ${archiveOriginal ? "border-foreground bg-foreground text-white" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}
                 title="يؤثر على الملفات الجديدة التي ترفعها بعد تغيير الخيار"
               >
                 {archiveOriginal ? "حفظ كامل" : "أرشفة ممسوحة"}
@@ -353,13 +353,13 @@ export function DocumentPreviewPane({
             </div>
           </div>
           {processing && (
-            <div className="border-b border-[#D7F0FF] bg-white px-2 py-2">
+            <div className="border-b border-primary/20 bg-white px-2 py-2">
               <ProcessingBanner state={processing} />
             </div>
           )}
 
           {/* Main preview */}
-          <div className="relative flex-1 min-h-[400px] bg-[#F4F5F7] flex items-center justify-center p-2">
+          <div className="relative flex-1 min-h-[400px] bg-muted flex items-center justify-center p-2">
             {active && renderPreview(active)}
             {active?.extracting && (
               <div className="absolute inset-2 flex items-center justify-center rounded-lg bg-white/82 backdrop-blur-sm">
@@ -375,7 +375,7 @@ export function DocumentPreviewPane({
             )}
           </div>
           {active?.note && (
-            <div className="px-3 py-2 bg-primary/5 border-t border-[#D7F0FF] text-xs text-[#0B5CAD] flex items-start gap-2">
+            <div className="px-3 py-2 bg-primary/5 border-t border-primary/20 text-xs text-primary flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
               <span>{active.note}</span>
             </div>
@@ -387,7 +387,7 @@ export function DocumentPreviewPane({
               {files.map((f) => (
                 <button key={f.id}
                   onClick={() => setActiveId(f.id)}
-                  className={`flex-shrink-0 relative group ${f.id === activeId ? "ring-2 ring-[#1276E3]" : "ring-1 ring-[#E5E7EB]"} rounded p-2 hover:bg-muted`}
+                  className={`flex-shrink-0 relative group ${f.id === activeId ? "ring-2 ring-ring" : "ring-1 ring-border"} rounded p-2 hover:bg-muted`}
                 >
                   <div className="w-12 h-14 flex items-center justify-center text-muted-foreground">
                     {f.extracted ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : f.type.startsWith("image/") ? <ImageIcon className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
@@ -417,15 +417,15 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
   const percent = total > 0 ? Math.max(8, Math.min(100, Math.round((current / total) * 100))) : 62;
   const done = state.phase === "done";
   return (
-    <div className={`rounded-lg border ${done ? "border-emerald-200 bg-emerald-50" : "border-[#D7F0FF] bg-primary/5"} ${compact ? "px-3 py-2" : "px-3 py-3"} shadow-sm`}>
+    <div className={`rounded-lg border ${done ? "border-emerald-200 bg-emerald-50" : "border-primary/20 bg-primary/5"} ${compact ? "px-3 py-2" : "px-3 py-3"} shadow-sm`}>
       <div className="flex items-start gap-2">
-        <div className={`relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${done ? "bg-emerald-100" : "bg-[#0B1B49]"}`}>
+        <div className={`relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${done ? "bg-emerald-100" : "bg-foreground"}`}>
           {done ? (
             <CheckCircle2 className="h-4 w-4 text-emerald-700" />
           ) : (
             <>
               <Sparkles className="h-4 w-4 text-white" />
-              <span className="absolute inset-0 rounded-full border border-[#1276E3]/40 animate-ping" />
+              <span className="absolute inset-0 rounded-full border border-primary/40 animate-ping" />
             </>
           )}
         </div>
@@ -445,7 +445,7 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
             </div>
           )}
           {!compact && !done && (
-            <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] text-[#0B5CAD]">
+            <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] text-primary">
               <span className="rounded bg-white px-2 py-1 text-center">تهيئة</span>
               <span className="rounded bg-white px-2 py-1 text-center">OCR</span>
               <span className="rounded bg-white px-2 py-1 text-center">تعبئة</span>

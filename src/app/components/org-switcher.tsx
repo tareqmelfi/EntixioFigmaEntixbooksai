@@ -144,7 +144,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   if (variant === "header-chip") {
     return (
       <div className="relative" ref={dropdownRef}>
-        <div className={`flex items-center rounded-lg border border-border bg-white hover:border-[#1276E3]/30 transition-all ${className || ""}`}>
+        <div className={`flex items-center rounded-lg border border-border bg-white hover:border-primary/30 transition-all ${className || ""}`}>
           <Link
             to="/app"
             className="flex items-center gap-2.5 ps-2 pe-3 py-2 hover:bg-muted rounded-s-lg transition-colors"
@@ -153,7 +153,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             {activeOrg?.logoUrl ? (
               <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-cover bg-white border border-border/50 shrink-0" />
             ) : (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
                 {orgInitials(activeOrg?.name)}
               </div>
             )}
@@ -240,13 +240,13 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       <button
         ref={buttonRef}
         onClick={() => setOpen(!open)}
-        className={`mb-2 flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-white px-2.5 py-2 text-sm text-foreground hover:bg-muted hover:border-[#1276E3]/30 transition-all ${className || ""}`}
+        className={`mb-2 flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-white px-2.5 py-2 text-sm text-foreground hover:bg-muted hover:border-primary/30 transition-all ${className || ""}`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           {activeOrg?.logoUrl ? (
             <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-cover bg-white border border-border/50 shrink-0" />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
               {orgInitials(activeOrg?.name)}
             </div>
           )}
@@ -282,7 +282,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("ابحث عن شركة...", "Search company...")}
-              className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm focus:bg-white focus:border-[#1276E3]/30 outline-none"
+              className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm focus:bg-white focus:border-primary/30 outline-none"
               autoFocus
             />
           </div>
@@ -370,7 +370,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 {o.logoUrl ? (
                   <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-cover bg-white border border-border/50 shrink-0" />
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#1276E3] to-[#179FC5] text-white text-xs font-english" style={{ fontWeight: 700 }}>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-xs font-english" style={{ fontWeight: 700 }}>
                     {orgInitials(o.name)}
                   </div>
                 )}
@@ -573,7 +573,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
     }
   };
 
-  const inp = "w-full rounded-md border border-border px-3 py-2 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20";
+  const inp = "w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20";
 
   return (
     <div className="fixed inset-0 z-[100] bg-white overflow-y-auto" dir={isRtl ? "rtl" : "ltr"}>
@@ -623,7 +623,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <div className="mt-3 flex items-center gap-2">
               <label className="text-xs text-muted-foreground shrink-0">{t("دولة أخرى:", "Other country:")}</label>
               <select value={["SA", "US"].includes(form.country) ? "" : form.country} onChange={(e) => e.target.value && setCountry(e.target.value)}
-                className="rounded-md border border-border px-2.5 py-1.5 text-xs bg-white focus:border-[#1276E3] focus:outline-none">
+                className="rounded-md border border-border px-2.5 py-1.5 text-xs bg-white focus:border-primary focus:outline-none">
                 <option value="">{t("اختر…", "Choose…")}</option>
                 <option value="AE">{t("الإمارات", "UAE")}</option>
                 <option value="KW">{t("الكويت", "Kuwait")}</option>
@@ -647,7 +647,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1.5">{t("الشعار", "Logo")}</label>
-                <div className="border-2 border-dashed border-border rounded-lg px-3 py-2 hover:border-[#1276E3] transition">
+                <div className="border-2 border-dashed border-border rounded-lg px-3 py-2 hover:border-primary transition">
                   <input type="file" accept="image/*" hidden id="logo-upload"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "logoUrl"); }} />
                   {form.logoUrl ? (
@@ -730,7 +730,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <div className="grid grid-cols-1 gap-5">
               <div>
                 <label className="text-sm text-foreground/80 block mb-1.5">{t("الختم الرسمي", "Official stamp")}</label>
-                <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-[#1276E3] transition">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-primary transition">
                   <input type="file" accept="image/*" hidden id="stamp-upload"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "stampUrl"); }} />
                   {form.stampUrl ? (

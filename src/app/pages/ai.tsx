@@ -790,7 +790,7 @@ export function AI() {
             <div className="text-xs text-muted-foreground/60 px-2 py-3">{t("جار تحميل المحادثات...", "Loading conversations...")}</div>
           )}
           {!loadingConversations && conversations.length === 0 && (
-            <div className="rounded-md border border-dashed border-[#D1D5DB] p-3 text-xs text-muted-foreground leading-6">
+            <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground leading-6">
               {t("لا توجد محادثات محفوظة بعد.", "No saved conversations yet.")}
             </div>
           )}
@@ -802,7 +802,7 @@ export function AI() {
                 onClick={() => setActiveConversationId(conversation.id)}
                 className={`w-full text-start rounded-md border px-3 py-2.5 transition-colors ${
                   selected
-                    ? "border-[#1276E3] bg-primary/5 text-foreground"
+                    ? "border-primary bg-primary/5 text-foreground"
                     : "border-transparent hover:border-border hover:bg-muted text-foreground/80"
                 }`}
               >
@@ -863,7 +863,7 @@ export function AI() {
                   <button
                     key={i}
                     onClick={() => handleSend(p)}
-                    className="text-start text-sm rounded-lg border border-border bg-muted hover:bg-primary/5 hover:border-[#1276E3]/40 px-4 py-3 transition-colors"
+                    className="text-start text-sm rounded-lg border border-border bg-muted hover:bg-primary/5 hover:border-primary/40 px-4 py-3 transition-colors"
                   >
                     {p}
                   </button>
@@ -874,10 +874,10 @@ export function AI() {
 
           {!loadingMessages && messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-              <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${m.role === "user" ? "bg-[#0B1B49]" : "bg-primary/10"}`}>
+              <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${m.role === "user" ? "bg-foreground" : "bg-primary/10"}`}>
                 {m.role === "user" ? <User className="h-4 w-4 text-white" /> : <Bot className="h-4 w-4 text-primary" />}
               </div>
-              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-[#0B1B49] text-white ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
+              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-foreground text-white ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
                 {m.attachment && (
                   <div className="mb-2 rounded-lg border border-border/40 p-2 bg-white/10 flex items-center gap-2">
                     <FileText className="h-4 w-4 shrink-0" />
@@ -915,7 +915,7 @@ export function AI() {
                                 {r.recordNumber && <span className="font-english text-[10px] text-muted-foreground">{r.recordNumber}</span>}
                               </td>
                               <td className="py-2 px-3">
-                                <span className="inline-flex rounded-md bg-[#EEF6FF] px-2 py-0.5 text-[11px] text-foreground" style={{ fontWeight: 700 }}>
+                                <span className="inline-flex rounded-md bg-primary/5 px-2 py-0.5 text-[11px] text-foreground" style={{ fontWeight: 700 }}>
                                   {routeLabel((r.route || "manual_review") as DocumentRoute, t)}
                                 </span>
                                 {r.docType && <div className="font-english text-[10px] text-muted-foreground/60 mt-1">{r.docType}</div>}
@@ -1083,7 +1083,7 @@ export function AI() {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder={pending.length > 0 ? t(`أضف ملاحظة (اختياري) ثم اضغط معالجة...`, `Add a note (optional) then press process...`) : t("اسأل المساعد · أو اكتب طلب...", "Ask the assistant · or type a request...")}
               rows={1}
-              className="flex-1 resize-none rounded-md border border-border px-3 py-2.5 text-sm focus:border-[#1276E3] focus:outline-none focus:ring-1 focus:ring-[#1276E3]/20"
+              className="flex-1 resize-none rounded-md border border-border px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20"
               disabled={busy}
             />
             <Button onClick={() => handleSend()} disabled={busy || (!input.trim() && pending.length === 0)} className="bg-primary hover:bg-primary/80 h-10 px-4">

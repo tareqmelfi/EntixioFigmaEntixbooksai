@@ -136,7 +136,7 @@ export function ReportView() {
         </div>
       ) : report ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="overflow-x-auto rounded-xl bg-[#EAF1F8] p-4">
+          <div className="overflow-x-auto rounded-xl bg-muted/50 p-4">
             <ReportDocument report={report} settings={settings} onRowClick={setSelectedRow} />
           </div>
           <aside className="space-y-3">
@@ -145,13 +145,13 @@ export function ReportView() {
                 <h2 className="text-lg font-bold text-foreground">{t("تفاصيل الصف", "Row details")}</h2>
                 {selectedRow ? (
                   <div className="mt-4 space-y-3">
-                    <div className="rounded-lg bg-[#F8FAFC] p-3">
+                    <div className="rounded-lg bg-muted/40 p-3">
                       <div className="text-sm font-semibold text-foreground">{selectedRow.label}</div>
                       {selectedRow.note && <div className="mt-1 text-xs leading-5 text-muted-foreground">{selectedRow.note}</div>}
                     </div>
                     <div className="space-y-2">
                       {Object.entries(selectedRow.values).map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between gap-3 border-b border-[#EEF2F7] pb-2 text-sm">
+                        <div key={key} className="flex items-center justify-between gap-3 border-b border-border pb-2 text-sm">
                           <span className="text-muted-foreground">{key}</span>
                           <span className="font-semibold text-foreground">{String(value ?? "—")}</span>
                         </div>

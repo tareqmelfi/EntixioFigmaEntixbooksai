@@ -38,19 +38,6 @@ export interface AuthState {
 }
 
 const USER_CACHE_KEY = 'entix_user_cache'
-const USER_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
-
-function readCachedUser(): User | null {
-  try {
-    if (typeof localStorage === 'undefined') return null
-    const raw = localStorage.getItem(USER_CACHE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as { user: User; ts: number }
-    if (!parsed?.user?.id) return null
-    if (Date.now() - parsed.ts > USER_CACHE_TTL_MS) return null
-    return parsed.user
-  } catch { return null }
-}
 
 function writeCachedUser(user: User | null) {
   try {

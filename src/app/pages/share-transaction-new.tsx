@@ -199,7 +199,7 @@ export function ShareTransactionNew() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/shareholders")}>{t("إلغاء", "Cancel")}</Button>
           <Button type="submit" disabled={busy || shareholders.length === 0} className="bg-primary hover:bg-primary/90 min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{t("توثيق الحركة", "Record the move")}</>}

@@ -635,7 +635,6 @@ export function PurchaseBills() {
             </div>
 
             <DocumentDropZone
-              compact
               target="bill-lines"
               hint={t("استخرج بنود فاتورة المشتريات من فاتورة المورد", "Extract purchase bill lines from the supplier invoice")}
               defaultTaxRate={0.15}

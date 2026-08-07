@@ -23,8 +23,8 @@ export function Integration() {
       <main>
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0B1B49] via-[#122354] to-[#1276E3] text-white relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-[#349FC4]/20 rounded-full blur-3xl" />
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-white relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-secondary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
         
         <div className="max-w-7xl mx-auto relative z-10">
@@ -34,13 +34,13 @@ export function Integration() {
             className="text-center mb-12"
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-[#349FC4]" />
+              <Sparkles className="w-4 h-4 text-secondary" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>تقنية متقدمة • أمان عالي • جاهزية نظامية</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               تكامل سلس وأمان
               <br />
-              <span className="bg-gradient-to-l from-[#349FC4] to-[#60A5FA] bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
+              <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
                 يمكنك الوثوق به
               </span>
             </h1>
@@ -65,7 +65,7 @@ export function Integration() {
                 }}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
                   activeSection === section.id
-                    ? "bg-primary text-white shadow-lg shadow-[#1276E3]/25"
+                    ? "bg-primary text-white shadow-lg shadow-primary/25"
                     : "bg-gray-50 text-muted-foreground hover:bg-gray-100"
                 }`}
                 style={{ fontSize: "14px", fontWeight: 500 }}
@@ -87,7 +87,7 @@ export function Integration() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-primary px-4 py-2 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-full mb-4">
               <RefreshCw className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>بنية سحابية موثوقة</span>
             </div>
@@ -148,7 +148,7 @@ export function Integration() {
                 transition={{ delay: i * 0.1 }}
                 className={`rounded-2xl p-8 ${
                   mode.highlighted
-                    ? "bg-gradient-to-br from-[#0B1B49] to-[#1276E3] text-white shadow-2xl shadow-[#1276E3]/20 scale-105"
+                    ? "bg-gradient-to-br from-foreground to-primary text-white shadow-2xl shadow-primary/20 scale-105"
                     : "bg-gray-50 border border-gray-200"
                 }`}
               >
@@ -180,7 +180,7 @@ export function Integration() {
                     <li key={feature} className="flex items-start gap-2" style={{ fontSize: "13px" }}>
                       <CheckCircle2 
                         className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                          mode.highlighted ? "text-[#60A5FA]" : "text-[#22C55E]"
+                          mode.highlighted ? "text-sky-400" : "text-green-500"
                         }`} 
                       />
                       <span className={mode.highlighted ? "text-white/90" : "text-muted-foreground"}>
@@ -232,10 +232,10 @@ export function Integration() {
               ].map((step, i) => (
                 <div key={step.step} className="relative">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#1276E3] to-[#349FC4] flex items-center justify-center shadow-lg shadow-[#1276E3]/20">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
                       <step.icon className="w-7 h-7 text-white" />
                     </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#0B1B49] text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-foreground text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {step.step}
                     </div>
                     <h4 className="text-foreground mb-2" style={{ fontSize: "15px", fontWeight: 600 }}>
@@ -246,7 +246,7 @@ export function Integration() {
                     </p>
                   </div>
                   {i < 3 && (
-                    <div className="hidden md:block absolute top-8 -left-3 w-6 h-0.5 bg-gradient-to-l from-[#1276E3] to-transparent" />
+                    <div className="hidden md:block absolute top-8 -left-3 w-6 h-0.5 bg-gradient-to-l from-primary to-transparent" />
                   )}
                 </div>
               ))}
@@ -264,7 +264,7 @@ export function Integration() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 bg-[#F0FDF4] text-[#22C55E] px-4 py-2 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-green-50 text-green-500 px-4 py-2 rounded-full mb-4">
               <FileCheck className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>جاهزية نظامية</span>
             </div>
@@ -362,7 +362,7 @@ export function Integration() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                className="bg-white rounded-xl p-6 text-center border border-gray-200 hover:border-[#1276E3]/30 hover:shadow-lg transition-all"
+                className="bg-white rounded-xl p-6 text-center border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all"
               >
                 <stat.icon className="w-8 h-8 mx-auto mb-3 text-primary" />
                 <div className="text-foreground mb-1" style={{ fontSize: "28px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
@@ -386,7 +386,7 @@ export function Integration() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 bg-[#FEF2F2] text-[#EF4444] px-4 py-2 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-red-50 text-red-500 px-4 py-2 rounded-full mb-4">
               <Shield className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>أمان متقدم</span>
             </div>
@@ -503,7 +503,7 @@ export function Integration() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-[#0B1B49] to-[#1276E3] rounded-2xl p-10 text-center text-white"
+            className="bg-gradient-to-br from-foreground to-primary rounded-2xl p-10 text-center text-white"
           >
             <h3 className="text-white mb-6" style={{ fontSize: "24px", fontWeight: 700 }}>
               ممارسات الأمان لدينا
@@ -511,7 +511,7 @@ export function Integration() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {["تشفير TLS أثناء النقل", "نسخ احتياطي يومي تلقائي", "جلسات HttpOnly مشفّرة", "ECDSA / SHA-256 للفواتير"].map((cert) => (
                 <div key={cert} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-colors">
-                  <Award className="w-10 h-10 mx-auto mb-3 text-[#60A5FA]" />
+                  <Award className="w-10 h-10 mx-auto mb-3 text-sky-400" />
                   <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                     {cert}
                   </div>
@@ -538,7 +538,7 @@ export function Integration() {
             </p>
             <button 
               onClick={() => navigate("/register")}
-              className="bg-primary hover:bg-primary/80 text-white px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-[#1276E3]/25 flex items-center gap-2 mx-auto cursor-pointer"
+              className="bg-primary hover:bg-primary/80 text-white px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-primary/25 flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
               ابدأ تجربتك المجانية

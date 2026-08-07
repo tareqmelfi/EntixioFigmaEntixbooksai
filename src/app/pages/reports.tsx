@@ -785,7 +785,7 @@ export function Reports() {
               <button
                 onClick={() => selectCategory("all")}
                 className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                  category === "all" ? "border-[#1276E3] bg-[#EAF4FF] text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
+                  category === "all" ? "border-primary bg-primary/5 text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                 }`}
               >
                 <span className="flex items-center gap-2"><Filter className="h-4 w-4" />{t("كل التقارير", "All reports")}</span>
@@ -799,7 +799,7 @@ export function Reports() {
                     key={item.id}
                     onClick={() => selectCategory(item.id)}
                     className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                      category === item.id ? "border-[#1276E3] bg-[#EAF4FF] text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
+                      category === item.id ? "border-primary bg-primary/5 text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                     }`}
                   >
                     <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{language === "en" ? item.englishTitle || item.title : item.title}</span>
@@ -817,12 +817,12 @@ export function Reports() {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={t("ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة...", "Search by report name, source, branch, project, tax...")}
-                    className="h-11 w-full rounded-lg border border-border bg-white px-4 pe-10 text-sm outline-none focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10"
+                    className="h-11 w-full rounded-lg border border-border bg-white px-4 pe-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/10"
                   />
                 </label>
                 <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground/80">
                   <span className="font-semibold text-foreground">{profile.standardLabel}</span>
-                  <span className="mx-2 text-[#CBD5E1]">|</span>
+                  <span className="mx-2 text-muted-foreground">|</span>
                   <span>{profile.taxSystem}</span>
                 </div>
               </div>
@@ -887,7 +887,7 @@ function ReportList({
             key={report.id}
             onClick={() => onSelect(report.id)}
             className={`w-full rounded-lg border p-3 text-start transition ${
-              selected ? "border-[#1276E3] bg-[#F7FBFF] shadow-sm" : "border-border bg-white hover:border-[#CBD5E1] hover:bg-muted"
+              selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-white hover:border-border hover:bg-muted"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -897,7 +897,7 @@ function ReportList({
                   {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">{t("جديد", "New")}</span>}
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#4B5563]">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/70">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
               </div>
               <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${category.accent}`}>{language === "en" ? category.englishTitle || category.title : category.title}</span>
             </div>
@@ -936,7 +936,7 @@ function ReportPreview({
 
   return (
     <Card className="entix-report-print border-border">
-      <CardHeader className="border-b border-[#EEF2F7]">
+      <CardHeader className="border-b border-border">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1098,7 +1098,7 @@ function Bar({ label, value, max, color }: { label: string; value: number; max: 
   return (
     <div className="grid grid-cols-[72px_1fr_120px] items-center gap-2 text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <div className="h-2 rounded bg-[#EEF2F7]">
+      <div className="h-2 rounded bg-muted">
         <div className="h-2 rounded" style={{ width: `${Math.min(100, (Math.abs(value) / max) * 100)}%`, background: color }} />
       </div>
       <span className="text-end font-english text-foreground/80">{money(value, "")}</span>

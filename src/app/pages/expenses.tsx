@@ -1242,7 +1242,7 @@ export function Expenses() {
 
             <div className="space-y-4">
               {hasActiveDraft && (
-                <div className="rounded-lg border border-[#D7F0FF] bg-white px-3 py-3 text-sm text-foreground">
+                <div className="rounded-lg border border-primary/20 bg-white px-3 py-3 text-sm text-foreground">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 font-semibold">
@@ -1268,11 +1268,11 @@ export function Expenses() {
                       {t("حذف المسودة وبدء جديد", "Delete draft and start fresh")}
                     </Button>
                   </div>
-                  {draftNotice && <div className="mt-2 rounded-md bg-primary/5 px-2 py-1 text-xs text-[#0B5CAD]">{draftNotice}</div>}
+                  {draftNotice && <div className="mt-2 rounded-md bg-primary/5 px-2 py-1 text-xs text-primary">{draftNotice}</div>}
                 </div>
               )}
               {extractionSummary && (
-                <div className="rounded-lg border border-[#D7F0FF] bg-primary/5 px-3 py-3 text-sm text-foreground">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-sm text-foreground">
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
@@ -1400,7 +1400,7 @@ export function Expenses() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[#BFDBFE] bg-[#F8FBFF] p-3">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{t("تسوية العملة والدفع الفعلي", "Currency Settlement & Actual Payment")}</h3>
@@ -1750,7 +1750,7 @@ export function Expenses() {
             </Card>
 
             {selectedSettlement && (
-              <Card className="border-[#BFDBFE] bg-[#F8FBFF]">
+              <Card className="border-primary/30 bg-primary/5">
                 <CardHeader><CardTitle className="text-foreground">{t("تسوية العملة", "Currency Settlement")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -1963,7 +1963,7 @@ export function Expenses() {
       </div>
 
       {draftAvailable && (
-        <div className="rounded-lg border border-[#D7F0FF] bg-primary/5 px-4 py-3 text-sm text-foreground">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />

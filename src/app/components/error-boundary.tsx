@@ -31,12 +31,12 @@ export function ErrorBoundary() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4FCFF] to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-white p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl border border-border p-8 text-center">
           {/* Icon */}
-          <div className="w-16 h-16 rounded-full bg-[#FEE2E2] flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="h-8 w-8 text-[#DC2626]" />
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
 
           {/* Status Code */}
@@ -105,11 +105,11 @@ export function ErrorBoundary() {
 
 export function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4FCFF] to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-white p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl border border-border p-8 text-center">
           {/* Icon */}
-          <div className="w-16 h-16 rounded-full bg-[#DBEAFE] flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="h-8 w-8 text-primary" />
           </div>
 

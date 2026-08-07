@@ -28,7 +28,7 @@ export function ComingSoonApp({
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="max-w-xl w-full text-center">
-        <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1276E3] to-[#179FC5] flex items-center justify-center shadow-lg">
+        <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
           <Construction className="w-10 h-10 text-white" />
         </div>
 

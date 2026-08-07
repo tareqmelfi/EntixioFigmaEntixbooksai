@@ -82,9 +82,9 @@ export function Templates() {
           <Input placeholder={t("بحث في القوالب...", "Search templates...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
         <div className="flex gap-1 flex-wrap">
-          <button onClick={() => setTypeFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!typeFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+          <button onClick={() => setTypeFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!typeFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
           {(Object.keys(TYPE_META) as DocType[]).map(k => (
-            <button key={k} onClick={() => setTypeFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${typeFilter === k ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 600 }}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
+            <button key={k} onClick={() => setTypeFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${typeFilter === k ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
           ))}
         </div>
       </div>
@@ -111,7 +111,7 @@ export function Templates() {
             const meta = TYPE_META[tpl.type as DocType] || TYPE_META.INVOICE;
             const Icon = meta.icon as React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
             return (
-              <Card key={tpl.id} className="border-border hover:shadow-md hover:border-[#1276E3]/30 transition-all cursor-pointer" onClick={() => navigate(`/app/templates/${tpl.id}`)}>
+              <Card key={tpl.id} className="border-border hover:shadow-md hover:border-primary/30 transition-all cursor-pointer" onClick={() => navigate(`/app/templates/${tpl.id}`)}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export function Templates() {
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-muted-foreground">{isAr ? meta.ar : meta.en} · {isAr ? LAYOUT_META[tpl.layout as Layout]?.ar : LAYOUT_META[tpl.layout as Layout]?.en}</span>
                           {tpl.isDefault && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#ECEEF5] px-2 py-0.5 text-[10px] text-foreground" style={{ fontWeight: 600 }}><Star className="h-2.5 w-2.5 fill-current" />{t("افتراضي", "Default")}</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-foreground" style={{ fontWeight: 600 }}><Star className="h-2.5 w-2.5 fill-current" />{t("افتراضي", "Default")}</span>
                           )}
                         </div>
                       </div>

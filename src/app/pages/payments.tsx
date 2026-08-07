@@ -388,7 +388,7 @@ export function Payments() {
             {loading ? (
               <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : filtered.length === 0 ? (
-              <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" /><p className="text-sm text-muted-foreground">{t("لا سندات", "No vouchers")}</p></div>
+              <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-muted mb-3" /><p className="text-sm text-muted-foreground">{t("لا سندات", "No vouchers")}</p></div>
             ) : (
               <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
                 <colgroup>
@@ -408,7 +408,7 @@ export function Payments() {
                 <tbody>
                   {filtered.map((v) => (
                     <tr key={v.id}
-                      className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === v.id ? "bg-[#EFF8FF]" : ""}`}
+                      className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === v.id ? "bg-primary/5" : ""}`}
                       onClick={() => openSelected(v)}>
                       <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
                       <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
@@ -515,7 +515,7 @@ export function Payments() {
                     type="button"
                     variant="outline"
                     onClick={() => setPreviewOpen((v) => !v)}
-                    className={previewOpen ? "border-[#1276E3] text-primary bg-blue-50/60" : "border-border"}
+                    className={previewOpen ? "border-primary text-primary bg-blue-50/60" : "border-border"}
                     title={t("معاينة السند كمستند (يسار)", "Preview voucher as document (left)")}
                   >
                     {t("معاينة", "Preview")}

@@ -152,7 +152,7 @@ export function AdminDashboard() {
       </div>
 
       {topupFor && (
-        <Card className="border-[#1276E3]/40 bg-primary/[0.02]">
+        <Card className="border-primary/40 bg-primary/[0.02]">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-foreground text-base">{t(`شحن رصيد · ${topupFor.org.name}`, `Top up · ${topupFor.org.name}`)}</CardTitle>

@@ -103,7 +103,7 @@ export function Register() {
             <button
               type="button"
               onClick={toggleLanguage}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-muted-foreground hover:border-[#1276E3]/30 hover:bg-primary/5"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-muted-foreground hover:border-primary/30 hover:bg-primary/5"
               style={{ fontSize: "13px", fontWeight: 600 }}
             >
               <Globe className="h-4 w-4" />
@@ -136,7 +136,7 @@ export function Register() {
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   placeholder={t("محمد", "John")}
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all"
                   style={{ fontSize: "14px" }}
                   required
                 />
@@ -148,7 +148,7 @@ export function Register() {
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   placeholder={t("العلي", "Doe")}
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all"
                   style={{ fontSize: "14px" }}
                   required
                 />
@@ -161,7 +161,7 @@ export function Register() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
-                className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all"
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all"
                 style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                 required
               />
@@ -174,7 +174,7 @@ export function Register() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={t("8 أحرف على الأقل", "At least 8 characters")}
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-[#FAFBFC] focus:bg-white focus:border-[#1276E3] focus:ring-2 focus:ring-[#1276E3]/10 outline-none transition-all pe-12"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all pe-12"
                   style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                   required
                 />
@@ -203,7 +203,7 @@ export function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#1276E3]/25 cursor-pointer"
+              className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
               {loading ? (
@@ -218,9 +218,9 @@ export function Register() {
           {/* Divider · only when a social provider is enabled */}
           {(googleEnabled || microsoftEnabled) && (
           <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
+            <div className="flex-1 h-px bg-muted" />
             <span className="text-muted-foreground/60" style={{ fontSize: "12px" }}>{t("أو", "or")}</span>
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
+            <div className="flex-1 h-px bg-muted" />
           </div>
           )}
 
@@ -231,11 +231,11 @@ export function Register() {
               type="button"
               onClick={handleGoogle}
               disabled={googleLoading || microsoftLoading}
-              className="w-full bg-white border border-border hover:border-[#1276E3] hover:bg-muted disabled:opacity-60 text-foreground py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full bg-white border border-border hover:border-primary hover:bg-muted disabled:opacity-60 text-foreground py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
               {googleLoading ? (
-                <span className="w-5 h-5 border-2 border-[#1276E3]/30 border-t-[#1276E3] rounded-full animate-spin" />
+                <span className="w-5 h-5 border-2 border-primary/30 border-t-[#1276E3] rounded-full animate-spin" />
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -253,11 +253,11 @@ export function Register() {
               type="button"
               onClick={handleMicrosoft}
               disabled={microsoftLoading || googleLoading}
-              className="w-full bg-white border border-border hover:border-[#1276E3] hover:bg-muted disabled:opacity-60 text-foreground py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full bg-white border border-border hover:border-primary hover:bg-muted disabled:opacity-60 text-foreground py-3.5 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
               {microsoftLoading ? (
-                <span className="w-5 h-5 border-2 border-[#1276E3]/30 border-t-[#1276E3] rounded-full animate-spin" />
+                <span className="w-5 h-5 border-2 border-primary/30 border-t-[#1276E3] rounded-full animate-spin" />
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11.4 24H0V12.6h11.4V24z" fill="#F25022"/>
@@ -279,16 +279,16 @@ export function Register() {
       </div>
 
       {/* Left side - Brand */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#0B1B49] via-[#0F2156] to-[#1A2D5C] items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-foreground via-foreground to-foreground items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-20 w-56 h-56 bg-[#349FC4]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-20 w-56 h-56 bg-secondary/10 rounded-full blur-3xl" />
         
         <div className="text-center max-w-md relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <h2 className="text-white mb-4" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.3 }}>
               {t("ابدأ رحلتك", "Start your")}<br />{t("المالية معنا", "financial journey")}
             </h2>
-            <p className="text-[#94A3B8] mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
+            <p className="text-muted-foreground mb-10" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
                 "أنشئ حسابك وابدأ شهرًا مجانيًا كاملًا — بياناتك تبقى ملكك وتصدّرها متى شئت.",
                 "Create your account and start a full free month — your data stays yours, exportable anytime."
@@ -304,8 +304,8 @@ export function Register() {
               { icon: BarChart3, ar: "تقارير ولوحات تحكم احترافية", en: "Professional reports and dashboards" },
             ].map(item => (
               <div key={item.en} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                <item.icon className="w-5 h-5 text-[#349FC4] flex-shrink-0" />
-                <span className="text-[#CBD5E1]" style={{ fontSize: "14px" }}>{t(item.ar, item.en)}</span>
+                <item.icon className="w-5 h-5 text-secondary flex-shrink-0" />
+                <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{t(item.ar, item.en)}</span>
               </div>
             ))}
           </motion.div>

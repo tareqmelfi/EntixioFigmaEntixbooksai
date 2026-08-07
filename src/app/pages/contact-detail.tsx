@@ -182,14 +182,14 @@ export function ContactDetail() {
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setEditOpen(true)}
-            className="px-4 py-1.5 rounded-full border border-[#1276E3] text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-full border border-primary text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
           >
             {t("تعديل العميل", "Edit customer")}
           </button>
           <div className="relative">
             <button
               onClick={() => setMoreOpen((v) => !v)}
-              className="px-4 py-1.5 rounded-full border border-[#1276E3] text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-full border border-primary text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
               aria-expanded={moreOpen}
               aria-haspopup="menu"
             >
@@ -239,7 +239,7 @@ export function ContactDetail() {
                 onChange={(e) => handleLogoPick(e.target.files?.[0])}
               />
               <div
-                className="relative w-24 h-24 rounded-full bg-primary/5 border border-dashed border-[#1276E3] flex items-center justify-center mb-1 group cursor-pointer hover:bg-[#E0F2FE] transition overflow-hidden"
+                className="relative w-24 h-24 rounded-full bg-primary/5 border border-dashed border-primary flex items-center justify-center mb-1 group cursor-pointer hover:bg-primary/10 transition overflow-hidden"
                 title={t("رفع شعار العميل", "Upload customer logo")}
                 onClick={() => !logoBusy && logoInputRef.current?.click()}
               >
@@ -383,7 +383,7 @@ export function ContactDetail() {
                 key={tabKey}
                 onClick={() => setTab(tabKey)}
                 className={`px-4 py-2.5 text-sm flex items-center gap-1.5 border-b-2 transition shrink-0 ${
-                  active ? "border-[#1276E3] text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
                 style={{ fontWeight: active ? 600 : 500 }}
               >
@@ -589,7 +589,7 @@ function Row({ label, value, mono }: { label: string; value?: string | null; mon
 function EmptyMini({ icon: Icon, text, cta }: { icon: any; text: string; cta?: { to: string; label: string } }) {
   return (
     <div className="text-center py-6">
-      <Icon className="h-8 w-8 text-[#E5E7EB] mx-auto mb-2" />
+      <Icon className="h-8 w-8 text-muted mx-auto mb-2" />
       <p className="text-xs text-muted-foreground/60">{text}</p>
       {cta && <Link to={cta.to} className="text-xs text-primary hover:underline mt-2 inline-block">{cta.label}</Link>}
     </div>
@@ -655,8 +655,8 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
             onClick={() => setSection(s.key)}
             className={`text-start p-3 rounded-lg border transition ${
               section === s.key
-                ? "border-[#1276E3] bg-primary/5"
-                : "border-border hover:border-[#1276E3]/40"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/40"
             }`}
           >
             <div className="text-xs text-muted-foreground">{s.label}</div>
@@ -673,7 +673,7 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
         </h3>
         <Link
           to={newLinks[section]}
-          className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-primary transition flex items-center gap-1.5"
         >
           <Plus className="h-3.5 w-3.5" /> {t("إضافة جديد", "Add new")}
         </Link>
@@ -866,12 +866,12 @@ function DocumentsTab({ contact }: { contact: any }) {
 
       <Card className="border-border">
         <CardContent className="py-12 text-center">
-          <Files className="h-10 w-10 text-[#E5E7EB] mx-auto mb-3" />
+          <Files className="h-10 w-10 text-muted mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">{t("لم يتم رفع أي مستندات لهذه الجهة", "No documents uploaded for this contact")}</p>
           <p className="text-xs text-muted-foreground/60 mt-1">{t("العقود · بطاقات الضريبة · السجلات التجارية · ملفات الهوية", "Contracts · tax cards · commercial registrations · ID files")}</p>
           <Link
             to={`/app/files/upload?contactId=${contact.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-sm mt-4 hover:bg-[#0F66C7] transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-sm mt-4 hover:bg-primary transition"
           >
             <Plus className="h-3.5 w-3.5" /> {t("رفع مستند", "Upload document")}
           </Link>
@@ -1091,7 +1091,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
 
             {/* HR-5 extracted-fields review card */}
             {extracted && (
-              <div className="rounded-lg border border-primary/30 bg-[#EFF6FF]/50 p-3 space-y-2">
+              <div className="rounded-lg border border-primary/30 bg-primary/5/50 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-bold text-primary">{t("قرأنا المستند — راجع قبل التعبئة", "We read the document — review before applying")}</div>
                   <button onClick={() => setExtracted(null)} className="text-muted-foreground/60 hover:text-foreground text-xs">✕</button>
@@ -1230,7 +1230,7 @@ function PortalTab({ contact }: { contact: any }) {
           {contact.email ? (
             <button
               disabled={!portalUrl}
-              className="w-full px-3 py-2 rounded-lg bg-primary text-white text-sm hover:bg-[#0F66C7] transition flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full px-3 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" /> {t("إرسال دعوة إلى", "Send invitation to")} <span className="font-english">{contact.email}</span>
             </button>
@@ -1264,7 +1264,7 @@ function ActivityTab({ contactId: _contactId }: { contactId: string }) {
   return (
     <Card className="border-border">
       <CardContent className="py-12 text-center">
-        <Activity className="h-10 w-10 text-[#E5E7EB] mx-auto mb-3" />
+        <Activity className="h-10 w-10 text-muted mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">{t("سجل النشاط قيد البناء", "Activity log is under construction")}</p>
         <p className="text-xs text-muted-foreground/60 mt-1">{t("سيعرض جميع الإجراءات: من أنشأ · من عدّل · متى أُرسلت الفاتورة · متى دُفعت", "It will show all actions: who created · who edited · when the invoice was sent · when it was paid")}</p>
       </CardContent>

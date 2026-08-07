@@ -42,7 +42,7 @@ function StatusCard({ item, language }: { item: CheckItem; language: "ar" | "en"
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="rounded-lg bg-[#EFF6FF] p-2">
+            <div className="rounded-lg bg-primary/5 p-2">
               <Icon className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
@@ -156,7 +156,7 @@ export function SystemStatus() {
           <h1 className="text-[1.75rem] font-bold text-foreground">{t("حالة النظام", "System status")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("فحص سريع لأجزاء التشغيل الأساسية في ENTIX.IO.", "Quick check for the core ENTIX.IO operating surfaces.")}</p>
         </div>
-        <Button onClick={runChecks} disabled={checking} variant="outline" className="border-[#D1D5DB]">
+        <Button onClick={runChecks} disabled={checking} variant="outline" className="border-border">
           <RefreshCw className={`me-2 h-4 w-4 ${checking ? "animate-spin" : ""}`} />
           {t("إعادة الفحص", "Refresh")}
         </Button>

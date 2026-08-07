@@ -182,7 +182,7 @@ function Metric({ label, value, tone = "default" }: { label: string; value: stri
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-[#1276E3] bg-[#EAF4FF] text-primary" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}>
+    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-primary bg-primary/5 text-primary" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}>
       {children}
     </button>
   );

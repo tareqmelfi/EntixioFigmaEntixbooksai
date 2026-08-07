@@ -55,10 +55,10 @@ const STATUS_MAP: Record<string, { ar: string; en: string }> = {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    PAID: "bg-[#DCFCE7] text-[#166534]",
-    PARTIAL: "bg-[#FEF3C7] text-[#92400E]",
-    SENT: "bg-[#EFF6FF] text-[#1E40AF]",
-    OVERDUE: "bg-[#FEE2E2] text-[#991B1B]",
+    PAID: "bg-green-100 text-green-800",
+    PARTIAL: "bg-amber-100 text-amber-800",
+    SENT: "bg-primary/5 text-primary",
+    OVERDUE: "bg-red-100 text-red-800",
     DRAFT: "bg-muted/50 text-muted-foreground",
     CANCELLED: "bg-gray-100 text-gray-600",
   };
@@ -202,7 +202,7 @@ export function PortalHome() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-[#0B1B49] text-white text-xs" style={{ fontWeight: 600 }}>
+                <AvatarFallback className="bg-foreground text-white text-xs" style={{ fontWeight: 600 }}>
                   {(profile?.contact?.displayName || t("عميل", "Customer")).slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -211,7 +211,7 @@ export function PortalHome() {
                 <div className="text-[10px] text-muted-foreground font-english">{profile?.contact?.email || "—"}</div>
               </div>
             </div>
-            <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[#EF4444] hover:bg-[#FEE2E2] transition-colors">
+            <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-100 transition-colors">
               <LogOut className="h-3.5 w-3.5" /> {t("خروج", "Sign out")}
             </button>
           </div>
@@ -224,7 +224,7 @@ export function PortalHome() {
           <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-white" style={{ fontWeight: 600 }}>
             <Building2 className="h-3.5 w-3.5" /> {profile?.org?.name || "ENTIX"}
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground hover:bg-[#E5E7EB] transition-colors" style={{ fontWeight: 600 }}>
+          <button className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors" style={{ fontWeight: 600 }}>
             <User className="h-3.5 w-3.5" /> {t("شخصي", "Personal")}
           </button>
         </div>
@@ -241,7 +241,7 @@ export function PortalHome() {
             <button
               key={tab.key}
               onClick={() => { setActiveTab(tab.key); setSelectedInvoice(null); }}
-              className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${activeTab === tab.key ? "border-[#1276E3] text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${activeTab === tab.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
               style={{ fontWeight: 500 }}
             >
               {tab.label}
@@ -260,9 +260,9 @@ export function PortalHome() {
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <Card className="border-border"><CardContent className="pt-4 pb-3 px-4 text-center"><div className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalInvoices}</div><p className="text-xs text-muted-foreground mt-0.5">{t("إجمالي الفواتير", "Total invoices")}</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#22C55E]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#22C55E] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#F59E0B]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#F59E0B] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-[#EF4444]" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-[#EF4444] font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-green-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-green-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-amber-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-amber-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-red-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-red-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
             </div>
           </>
         )}
@@ -296,14 +296,14 @@ export function PortalHome() {
                     <button
                       onClick={() => handlePayNow(viewingInvoice)}
                       disabled={payBusyFor === viewingInvoice.id}
-                      className="rounded-lg bg-[#22C55E] px-5 py-2.5 text-sm text-white hover:bg-[#16A34A] transition-colors disabled:opacity-60"
+                      className="rounded-lg bg-green-500 px-5 py-2.5 text-sm text-white hover:bg-green-600 transition-colors disabled:opacity-60"
                       style={{ fontWeight: 600 }}
                     >
                       <CreditCard className="h-4 w-4 inline-block me-1.5" />
                       {payBusyFor === viewingInvoice.id ? t("جارٍ التحضير...", "Preparing...") : t("ادفع الآن", "Pay now")}
                     </button>
                   )}
-                  <button className="rounded-lg border border-[#0B1B49] px-4 py-2.5 text-sm text-foreground hover:bg-[#ECEEF5] transition-colors" style={{ fontWeight: 500 }}>
+                  <button className="rounded-lg border border-foreground px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors" style={{ fontWeight: 500 }}>
                     <Download className="h-4 w-4 inline-block me-1.5" />{t("تحميل PDF", "Download PDF")}
                   </button>
                   <button className="rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors" style={{ fontWeight: 500 }}>
@@ -364,7 +364,7 @@ export function PortalHome() {
                       <td className="py-3 pe-3 text-sm text-foreground/80">{s.description}</td>
                       <td className="py-3 pe-3 text-sm font-english text-primary" style={{ fontWeight: 500 }}>{s.ref}</td>
                       <td className="py-3 pe-3 text-sm font-english text-foreground" style={{ fontWeight: 500 }}>{s.debit > 0 ? s.debit.toLocaleString() : "—"}</td>
-                      <td className="py-3 pe-3 text-sm font-english text-[#349FC4]" style={{ fontWeight: 500 }}>{s.credit > 0 ? s.credit.toLocaleString() : "—"}</td>
+                      <td className="py-3 pe-3 text-sm font-english text-secondary" style={{ fontWeight: 500 }}>{s.credit > 0 ? s.credit.toLocaleString() : "—"}</td>
                       <td className="py-3 pe-3 text-sm font-english text-foreground" style={{ fontWeight: 600 }}>{s.balance.toLocaleString()}</td>
                     </tr>
                   ))}
@@ -393,7 +393,7 @@ export function PortalHome() {
                       <div className="text-xs text-muted-foreground/60 font-english">{String(doc.date).slice(0, 10)}</div>
                     </div>
                   </div>
-                  <button className="rounded-md p-1.5 text-primary hover:bg-[#EFF6FF] transition-colors"><Download className="h-4 w-4" /></button>
+                  <button className="rounded-md p-1.5 text-primary hover:bg-primary/5 transition-colors"><Download className="h-4 w-4" /></button>
                 </div>
               ))}
             </CardContent>

@@ -267,7 +267,7 @@ export function EmployeeNew() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#1276E3]/40 bg-primary/[0.02]">
+        <Card className="border-primary/40 bg-primary/[0.02]">
           <CardHeader className="pb-3"><CardTitle className="text-base">{t("حساب الراتب التقديري", "Estimated salary calculation")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -304,7 +304,7 @@ export function EmployeeNew() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-[#F7F9FC] py-3 -mx-1 px-1">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/employees")}>{t("إلغاء", "Cancel")}</Button>
           <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{t("حفظ الموظف", "Save employee")}</>}

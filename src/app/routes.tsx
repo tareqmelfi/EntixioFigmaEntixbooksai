@@ -260,6 +260,8 @@ export const router = createBrowserRouter([
       // Contacts (formerly العملاء والموردين)
       { path: "contacts", element: lazyElement(() => import("./pages/contacts"), "Contacts"), errorElement: <ErrorBoundary /> },
       { path: "contacts/:id", element: lazyElement(() => import("./pages/contact-detail"), "ContactDetail"), errorElement: <ErrorBoundary /> },
+      // Partners & Affiliates · برنامج الشركاء
+      { path: "partners", element: lazyElement(() => import("./pages/partners"), "Partners"), errorElement: <ErrorBoundary /> },
       // Developer
       { path: "integrations", element: lazyElement(() => import("./pages/integrations"), "Integrations"), errorElement: <ErrorBoundary /> },
       { path: "integrations/plaid", element: lazyElement(() => import("./pages/integrations-plaid"), "IntegrationsPlaid"), errorElement: <ErrorBoundary /> },

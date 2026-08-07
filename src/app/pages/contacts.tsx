@@ -169,7 +169,7 @@ export function Contacts() {
         <button onClick={() => setKindFilter("ALL")} className={pillClass(kindFilter === "ALL")}>{t("الكل", "All")}</button>
         <button onClick={() => setKindFilter("COMPANY")} className={pillClass(kindFilter === "COMPANY")}>{t("منظمات", "Organizations")}</button>
         <button onClick={() => setKindFilter("INDIVIDUAL")} className={pillClass(kindFilter === "INDIVIDUAL")}>{t("أفراد", "Individuals")}</button>
-        <span className="mx-2 text-[#E5E7EB]">|</span>
+        <span className="mx-2 text-muted">|</span>
         {(["ALL", "isCustomer", "isSupplier", "isEmployee", "isShareholder", "isFreelancer"] as RoleFilter[]).map(r => {
           const def = ROLES.find(x => x.key === r);
           return (
@@ -196,7 +196,7 @@ export function Contacts() {
             <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
-              <Users className="h-12 w-12 mx-auto text-[#E5E7EB] mb-3" />
+              <Users className="h-12 w-12 mx-auto text-muted mb-3" />
               <p className="text-sm text-muted-foreground">{t("لا توجد جهات اتصال مطابقة", "No matching contacts")}</p>
               <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">{t("+ إضافة جهة جديدة", "+ Add new contact")}</button>
             </div>
@@ -298,12 +298,12 @@ export function Contacts() {
 // ── Subcomponents ────────────────────────────────────────────────────────────
 // ── Subcomponents ────────────────────────────────────────────────────────────
 function pillClass(active: boolean) {
-  return `px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${active ? "bg-primary text-white" : "bg-white border border-border text-muted-foreground hover:border-[#1276E3]/40"}`;
+  return `px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${active ? "bg-primary text-white" : "bg-white border border-border text-muted-foreground hover:border-primary/40"}`;
 }
 
 function KpiCard({ label, value, hint, active, onClick, valueColor = "text-foreground" }: { label: string; value: string; hint: string; active: boolean; onClick: () => void; valueColor?: string }) {
   return (
-    <button onClick={onClick} className={`text-start rounded-lg border px-4 py-3 transition ${active ? "border-[#1276E3] bg-primary/5" : "border-border bg-white hover:border-[#1276E3]/40"}`}>
+    <button onClick={onClick} className={`text-start rounded-lg border px-4 py-3 transition ${active ? "border-primary bg-primary/5" : "border-border bg-white hover:border-primary/40"}`}>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`font-english font-bold mt-1 ${valueColor}`} style={{ fontSize: "1.5rem" }}>{value}</div>
       {hint && <div className="text-xs text-muted-foreground/60 mt-0.5">{hint}</div>}

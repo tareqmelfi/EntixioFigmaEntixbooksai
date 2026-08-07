@@ -74,9 +74,9 @@ export function Contractors() {
       </div>
 
       <div className="flex gap-1 flex-wrap">
-        <button onClick={() => setKindFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!kindFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+        <button onClick={() => setKindFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!kindFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
         {Object.entries(KIND_LABELS).map(([k, v]) => (
-          <button key={k} onClick={() => setKindFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${kindFilter === k ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 600 }}>{t(v.ar, v.en)}</button>
+          <button key={k} onClick={() => setKindFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${kindFilter === k ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t(v.ar, v.en)}</button>
         ))}
       </div>
 
