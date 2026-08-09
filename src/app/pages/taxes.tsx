@@ -31,7 +31,7 @@ export function Taxes() {
   const { t } = useLanguage();
   // W30 · the return's SHAPE follows the org's country — a Wyoming company never
   // sees a Saudi VAT return, and a Saudi company never sees US sales tax.
-  const { isSA, isUS, country } = useOrgRegion();
+  const { isSA, isUS, country, loading: regionLoading } = useOrgRegion();
   const [searchParams, setSearchParams] = useSearchParams();
   const [from, setFrom] = useState(searchParams.get("from") || monthStartIso());
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
@@ -75,7 +75,11 @@ export function Taxes() {
     }
   };
 
+  // W30 fix · wait for the region resolver, and REFETCH when it settles — on a
+  // cold load the hook briefly reports the SA default, so the first fetch would
+  // hit the wrong country's endpoint and the resolved view would stay empty.
   useEffect(() => {
+    if (regionLoading) return;
     let alive = true;
     (async () => {
       if (!alive) return;
@@ -84,7 +88,7 @@ export function Taxes() {
     return () => {
       alive = false;
     };
-  }, [from, to]);
+  }, [from, to, country, regionLoading]);
 
   const currency = payload?.org.baseCurrency || "SAR";
 
