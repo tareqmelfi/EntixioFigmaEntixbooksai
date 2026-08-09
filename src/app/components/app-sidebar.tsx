@@ -569,12 +569,12 @@ function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; act
     <Link to={item.path!} onClick={onClick}>
       <button
         className={`flex w-full items-center rounded-md text-sm transition-colors ${
-          active ? "bg-primary/10 text-primary" : "text-[#0B1B49]/80 hover:bg-accent hover:text-foreground"
+          active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"
         } ${collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"}`}
         title={tr(item.title)}
       >
         {/* Wave style: icon a lighter teal than the navy label text */}
-        <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-[#349FC4]"}`} />
+        <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-secondary"}`} />
         {!collapsed && <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>}
       </button>
     </Link>
@@ -631,10 +631,10 @@ function CollapsibleMenu({
               ? "bg-primary/10 text-primary"
               : isParentActive && isOpen
               ? "bg-foreground/5 text-foreground"
-              : "text-[#0B1B49]/80 hover:bg-accent hover:text-foreground"
+              : "text-foreground/80 hover:bg-accent hover:text-foreground"
           }`}
         >
-          <Icon className={`h-5 w-5 shrink-0 ${isParentActive ? "text-primary" : "text-[#349FC4]"}`} />
+          <Icon className={`h-5 w-5 shrink-0 ${isParentActive ? "text-primary" : "text-secondary"}`} />
           <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>
         </button>
         <button
@@ -669,10 +669,10 @@ function CollapsibleMenu({
               <Link key={child.path + child.title} to={child.path} onClick={onNavigate}>
                 <button
                   className={`flex w-full items-center gap-3 rounded-md ps-10 pe-3 py-2 text-sm transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-[#0B1B49]/75 hover:bg-accent hover:text-foreground"
+                    active ? "bg-primary/10 text-primary" : "text-foreground/75 hover:bg-accent hover:text-foreground"
                   }`}
                 >
-                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-primary" : "text-[#349FC4]/75"}`} />
+                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-primary" : "text-secondary/75"}`} />
                   <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(child.title)}</span>
                 </button>
               </Link>
