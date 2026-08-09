@@ -1,291 +1,332 @@
 /**
- * /app/admin · Cross-org dashboard for platform admin (platform admin).
+ * Admin Dashboard · /app/admin (W31)
  *
- * Server-side gate: api returns 403 if user email not in ADMIN_EMAILS env.
- * Client-side: just calls the API · if 403, shows access-denied message.
+ * «يوزر أدمن مختلف مرة — يشوف المشتركين والشركات ويتحكم ويرد على الدعم»
+ * Server-side gate: every /api/admin/* call returns 403 unless the session
+ * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
-import { useEffect, useState, useCallback } from "react";
-import { Loader2, ShieldCheck, DollarSign, TrendingUp, Power } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-interface OrgRow {
-  id: string;
-  orgId: string;
-  mode: string;
-  monthlyAllocation: string;
-  creditBalance: string;
-  spentThisPeriod: string;
-  periodResetAt: string;
-  disabled: boolean;
-  disabledReason: string | null;
-  byokKeyHint: string | null;
-  org: { id: string; name: string; slug: string; country: string; createdAt: string };
-}
-
-const MODE_BADGES: Record<string, string> = {
-  BYOK: "bg-violet-100 text-violet-700",
-  HOSTED_FREE: "bg-gray-100 text-gray-700",
-  HOSTED_PRO: "bg-blue-100 text-blue-700",
-  HOSTED_BUSINESS: "bg-emerald-100 text-emerald-700",
-  PAYG: "bg-amber-100 text-amber-700",
-};
+type Tab = "overview" | "orgs" | "users" | "support" | "ai";
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
 export function AdminDashboard() {
   const { t } = useLanguage();
-  const [items, setItems] = useState<OrgRow[]>([]);
-  const [totalSpend, setTotalSpend] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const [topupFor, setTopupFor] = useState<OrgRow | null>(null);
-  const [topupAmount, setTopupAmount] = useState("10");
-  const [topupNote, setTopupNote] = useState("");
-
-  const [usageSummary, setUsageSummary] = useState<{ totalCost: number; totalRequests: number; byModel: Record<string, { count: number; cost: number }> } | null>(null);
-
   const { toasts, push, dismiss } = useToasts();
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await api.aiBilling.admin.orgs();
-      setItems(r.items as any);
-      setTotalSpend(r.totalSpend);
-      try {
-        const s = await api.aiBilling.admin.usageSummary();
-        setUsageSummary({ totalCost: s.totalCost, totalRequests: s.totalRequests, byModel: s.byModel });
-      } catch {}
-    } catch (e: any) {
-      if (e instanceof ApiError && e.status === 403) {
-        setForbidden(true);
-      } else {
-        push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
-      }
-    } finally { setLoading(false); }
+  const [tab, setTab] = useState<Tab>("overview");
+  const [forbidden, setForbidden] = useState(false);
+  const guard = useCallback((e: any) => {
+    if (e instanceof ApiError && e.status === 403) { setForbidden(true); return true; }
+    push("error", e instanceof ApiError ? e.message : t("فشل", "Failed"));
+    return false;
   }, [push, t]);
-
-  useEffect(() => { refresh(); }, [refresh]);
-
-  const handleTopup = async () => {
-    if (!topupFor) return;
-    const amt = Number(topupAmount);
-    if (!amt || amt <= 0) { push("error", t("أدخل مبلغاً صحيحاً", "Enter a valid amount")); return; }
-    setBusy(true);
-    try {
-      await api.aiBilling.admin.topup({ orgId: topupFor.orgId, amountUsd: amt, note: topupNote || undefined });
-      push("success", t(`تم شحن ${topupFor.org.name} بـ$${amt.toFixed(2)}`, `Topped up ${topupFor.org.name} with $${amt.toFixed(2)}`));
-      setTopupFor(null); setTopupAmount("10"); setTopupNote("");
-      refresh();
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل الشحن", "Top-up failed"));
-    } finally { setBusy(false); }
-  };
-
-  const handleToggleDisable = async (org: OrgRow) => {
-    setBusy(true);
-    try {
-      await api.aiBilling.admin.disable({
-        orgId: org.orgId,
-        disabled: !org.disabled,
-        reason: !org.disabled ? "Disabled from admin dashboard" : undefined,
-      });
-      push("success", org.disabled ? t("تم تفعيل الـAI", "AI enabled") : t("تم تعطيل الـAI", "AI disabled"));
-      refresh();
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل التحديث", "Update failed"));
-    } finally { setBusy(false); }
-  };
-
-  if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   if (forbidden) {
     return (
-      <div className="max-w-md mx-auto mt-20 text-center">
-        <ShieldCheck className="h-16 w-16 text-muted-foreground/60 mx-auto mb-4" />
-        <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{t("الصفحة مقيّدة للإدارة فقط", "This page is restricted to admins")}</h1>
-        <p className="text-muted-foreground mt-2">{t("حسابك غير مدرج كـadmin · إذا تحتاج وصول، اتصل بالدعم.", "Your account is not listed as an admin · contact support if you need access.")}</p>
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
+        <ShieldCheck className="h-10 w-10 text-muted-foreground/40" />
+        <h1 className="text-foreground" style={{ fontWeight: 700, fontSize: "1.2rem" }}>{t("هذه الصفحة للأدمن فقط", "Admins only")}</h1>
+        <p className="text-sm text-muted-foreground max-w-md">{t("حسابك غير مدرج في قائمة ADMIN_EMAILS على الخادم — سجّل بحساب الأدمن للمتابعة.", "Your account is not in the server's ADMIN_EMAILS list — sign in with the admin account to continue.")}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
-            <ShieldCheck className="h-6 w-6 text-primary" /> {t("لوحة الإدارة", "Admin dashboard")}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة الشركات · الفوترة · الاستهلاك العام", "Manage companies · billing · overall usage")}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground text-sm">{t("إجمالي الإنفاق هذا الشهر", "Total spend this month")}</span>
-            <DollarSign className="h-4 w-4 text-primary" />
-          </div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>${totalSpend.toFixed(2)}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground text-sm">{t("الشركات النشطة", "Active companies")}</span>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-muted-foreground text-sm">{t("آخر 30 يوم · طلبات", "Last 30 days · requests")}</span>
-            <Sparkle />
-          </div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{usageSummary?.totalRequests ?? "—"}</div>
-          <div className="text-xs text-muted-foreground mt-1 font-english">{t("إجمالي", "Total")} ${usageSummary?.totalCost.toFixed(2) ?? "0.00"}</div>
-        </CardContent></Card>
-      </div>
-
-      {topupFor && (
-        <Card className="border-primary/40 bg-primary/[0.02]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground text-base">{t(`شحن رصيد · ${topupFor.org.name}`, `Top up · ${topupFor.org.name}`)}</CardTitle>
-              <button onClick={() => setTopupFor(null)} className="text-xs text-muted-foreground hover:text-foreground">{t("إغلاق", "Close")}</button>
-            </div>
-            <p className="text-xs text-muted-foreground">{t("إضافة رصيد فوق المخصص الشهري", "Add credit on top of the monthly allocation")}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-              <div className="rounded-lg bg-white border border-border p-3 text-xs">
-                <p className="text-muted-foreground">{t("الرصيد الحالي:", "Current balance:")}</p>
-                <p className="text-foreground font-english mt-1" style={{ fontWeight: 600 }}>${Number(topupFor.creditBalance).toFixed(2)}</p>
-              </div>
-              <div className="space-y-2"><Label>{t("المبلغ بالدولار *", "Amount (USD) *")}</Label>
-                <Input type="number" min="0.01" step="0.01" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} dir="ltr" className="font-english" /></div>
-              <div className="space-y-2"><Label>{t("ملاحظة (اختياري)", "Note (optional)")}</Label>
-                <Input value={topupNote} onChange={(e) => setTopupNote(e.target.value)} placeholder={t("منحة · ترقية · تعويض ...", "Grant · upgrade · compensation ...")} /></div>
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" onClick={() => setTopupFor(null)} className="border-border">{t("إلغاء", "Cancel")}</Button>
-                <Button onClick={handleTopup} disabled={busy} className="bg-primary hover:bg-primary/90">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("شحن", "Top up")}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="border-border">
-        <CardHeader><CardTitle className="text-foreground">{t("الشركات", "Companies")} · {items.length}</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          {items.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">{t("لا توجد شركات بعد", "No companies yet")}</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الشركة", "Company")}</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الباقة", "Plan")}</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المخصص", "Allocation")}</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرصيد", "Balance")}</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المستهلك", "Spent")}</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>BYOK</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
-                  <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
-                </tr></thead>
-                <tbody>
-                  {items.map((row) => {
-                    const spent = Number(row.spentThisPeriod);
-                    const allowed = Number(row.monthlyAllocation) + Number(row.creditBalance);
-                    const pct = allowed > 0 ? spent / allowed : 0;
-                    return (
-                      <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
-                        <td className="py-3 px-4">
-                          <div className="text-sm text-foreground" style={{ fontWeight: 500 }}>{row.org.name}</div>
-                          <div className="text-xs text-muted-foreground/60 font-english">{row.org.slug} · {row.org.country}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`text-xs px-2 py-0.5 rounded ${MODE_BADGES[row.mode] || ""}`}>{row.mode}</span>
-                        </td>
-                        <td className="py-3 px-4 font-english text-sm">${Number(row.monthlyAllocation).toFixed(2)}</td>
-                        <td className="py-3 px-4 font-english text-sm text-green-600">${Number(row.creditBalance).toFixed(2)}</td>
-                        <td className="py-3 px-4">
-                          <div className="font-english text-sm" style={{ color: pct >= 1 ? "#dc2626" : pct >= 0.8 ? "#d97706" : "#0B1B49" }}>
-                            ${spent.toFixed(2)} <span className="text-xs text-muted-foreground/60">({(pct * 100).toFixed(0)}%)</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-english text-xs text-muted-foreground">{row.byokKeyHint || "—"}</td>
-                        <td className="py-3 px-4">
-                          {row.disabled ? (
-                            <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700">{t("معطّل", "Disabled")}</span>
-                          ) : (
-                            <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">{t("نشط", "Active")}</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => { setTopupFor(row); setTopupAmount("10"); setTopupNote(""); }}
-                              className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1"
-                              title={t("شحن رصيد", "Top up balance")}
-                              disabled={busy}
-                            >
-                              <DollarSign className="h-3.5 w-3.5" /> {t("شحن", "Top up")}
-                            </button>
-                            <button
-                              onClick={() => handleToggleDisable(row)}
-                              className={`rounded-md p-1.5 ${row.disabled ? "text-green-600 hover:bg-green-50" : "text-red-600 hover:bg-red-50"}`}
-                              disabled={busy}
-                              title={row.disabled ? t("تفعيل", "Enable") : t("تعطيل", "Disable")}
-                            >
-                              <Power className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {usageSummary && Object.keys(usageSummary.byModel).length > 0 && (
-        <Card className="border-border">
-          <CardHeader><CardTitle className="text-foreground">{t("توزيع الاستخدام · 30 يوم", "Usage distribution · 30 days")}</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {Object.entries(usageSummary.byModel)
-                .sort((a, b) => b[1].cost - a[1].cost)
-                .map(([model, stats]) => (
-                  <div key={model} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                    <span className="text-sm text-foreground/80 font-english">{model}</span>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground font-english">
-                      <span>{stats.count} {t("طلب", "requests")}</span>
-                      <span style={{ fontWeight: 600 }}>${stats.cost.toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-
-
+    <div className="space-y-5 max-w-6xl">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+      <div>
+        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{t("لوحة الأدمن", "Admin dashboard")}</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{t("المشتركون · المنشآت · المستخدمون · الدعم — كل فعل يُسجّل في سجل التدقيق", "Subscribers · orgs · users · support — every action is audit-logged")}</p>
+      </div>
+      <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
+        {([["overview", t("نظرة عامة", "Overview")], ["orgs", t("المنشآت", "Orgs")], ["users", t("المستخدمون", "Users")], ["support", t("الدعم", "Support")], ["ai", t("الذكاء", "AI usage")]] as [Tab, string][]).map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
+        ))}
+      </div>
+      {tab === "overview" && <OverviewTab guard={guard} />}
+      {tab === "orgs" && <OrgsTab guard={guard} push={push} t={t} />}
+      {tab === "users" && <UsersTab guard={guard} push={push} t={t} />}
+      {tab === "support" && <SupportTab guard={guard} push={push} t={t} />}
+      {tab === "ai" && <AiTab guard={guard} />}
     </div>
   );
 }
 
-function Sparkle() {
-  return <span className="text-amber-500">✨</span>;
+// ═══ Overview ═══
+function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
+  const { t } = useLanguage();
+  const [data, setData] = useState<any>(null);
+  const load = useCallback(async () => { try { setData(await api.admin.overview()); } catch (e) { guard(e); } }, [guard]);
+  useEffect(() => { load(); }, [load]);
+  if (!data) return <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-16" />;
+  const kpis: Array<[string, any, any]> = [
+    [t("المستخدمون", "Users"), data.users, Users], [t("المنشآت", "Orgs"), data.orgs, Building2],
+    [t("جدد (7 أيام)", "New (7d)"), `${data.newUsers7d} / ${data.newOrgs7d}`, Sparkles],
+    [t("اشتراكات نشطة", "Active subs"), data.subsByStatus?.ACTIVE ?? 0, BadgeCheck],
+    [t("تجريبي", "Trialing"), data.subsByStatus?.TRIALING ?? 0, CreditCard],
+  ];
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {kpis.map(([l, v, I]) => (
+          <Card key={l} className="border-border"><CardContent className="p-4"><I className="h-4 w-4 text-primary mb-2" /><div className="text-2xl text-foreground" style={{ fontWeight: 800 }}>{v}</div><div className="text-xs text-muted-foreground">{l}</div></CardContent></Card>
+        ))}
+      </div>
+      <Card className="border-border">
+        <CardHeader><CardTitle className="text-base text-foreground">{t("أحدث المنشآت", "Latest orgs")}</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-4 py-2 text-start font-medium">{t("المنشأة", "Org")}</th><th className="px-4 py-2 text-start font-medium">{t("المالك", "Owner")}</th><th className="px-4 py-2 text-start font-medium">{t("الباقة", "Plan")}</th><th className="px-4 py-2 text-start font-medium">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start font-medium">{t("أُنشئت", "Created")}</th></tr></thead>
+            <tbody>
+              {data.recentOrgs.map((o: any) => (
+                <tr key={o.id} className="border-b border-border/60">
+                  <td className="px-4 py-2.5 text-foreground" style={{ fontWeight: 600 }}>{o.name} <span className="text-xs text-muted-foreground font-normal">{o.country}</span></td>
+                  <td className="px-4 py-2.5 text-muted-foreground font-english text-xs">{o.ownerEmail || "—"}</td>
+                  <td className="px-4 py-2.5 text-foreground/80 text-xs">{o.plan || "—"}</td>
+                  <td className="px-4 py-2.5"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : o.status === "TRIALING" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>{o.status}</span></td>
+                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{fmtDate(o.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══ Orgs ═══
+function OrgsTab({ guard, push, t }: any) {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const load = useCallback(async (query?: string) => {
+    setLoading(true);
+    try { setItems((await api.admin.orgs(query || undefined)).items); } catch (e) { guard(e); } finally { setLoading(false); }
+  }, [guard]);
+  useEffect(() => { load(); }, [load]);
+  const act = async (orgId: string, action: "comp" | "trial" | "cancel", months?: number) => {
+    setBusyId(orgId + action);
+    try {
+      await api.admin.orgSubscription(orgId, { action, months });
+      push("success", t("تم", "Done"));
+      await load(q || undefined);
+    } catch (e) { guard(e); } finally { setBusyId(null); }
+  };
+  return (
+    <Card className="border-border">
+      <CardContent className="p-4 space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); load(q); }} className="flex gap-2">
+          <div className="relative flex-1"><Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("بحث بالاسم أو slug…", "Search name or slug…")} className="ps-9 border-border" /></div>
+          <Button type="submit" variant="outline">{t("بحث", "Search")}</Button>
+          <Button type="button" variant="outline" onClick={() => load()}><RefreshCw className="h-4 w-4" /></Button>
+        </form>
+        {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : (
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs">
+              <th className="px-3 py-2 text-start font-medium">{t("المنشأة", "Org")}</th><th className="px-3 py-2 text-start font-medium">{t("المالك", "Owner")}</th><th className="px-3 py-2 text-start font-medium">{t("الباقة", "Plan")}</th><th className="px-3 py-2 text-start font-medium">{t("أعضاء/فواتير", "Members/Inv")}</th><th className="px-3 py-2 text-start font-medium">{t("إجراءات", "Actions")}</th>
+            </tr></thead>
+            <tbody>
+              {items.map((o) => (
+                <tr key={o.id} className="border-b border-border/60 align-top">
+                  <td className="px-3 py-2.5"><div className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</div><div className="text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div></td>
+                  <td className="px-3 py-2.5 text-xs font-english text-muted-foreground">{o.owner?.email || "—"}</td>
+                  <td className="px-3 py-2.5 text-xs">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}</div></>) : "—"}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{o.members} / {o.invoices}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
+                      <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
+                      <button disabled={!!busyId} onClick={() => act(o.id, "cancel")} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ═══ Users ═══
+function UsersTab({ guard, push, t }: any) {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resetFor, setResetFor] = useState<any | null>(null);
+  const [newPass, setNewPass] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async (query?: string) => {
+    setLoading(true);
+    try { setItems((await api.admin.users(query || undefined)).items); } catch (e) { guard(e); } finally { setLoading(false); }
+  }, [guard]);
+  useEffect(() => { load(); }, [load]);
+  return (
+    <Card className="border-border">
+      <CardContent className="p-4 space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); load(q); }} className="flex gap-2">
+          <div className="relative flex-1"><Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("بحث بالإيميل أو الاسم…", "Search email or name…")} className="ps-9 border-border" /></div>
+          <Button type="submit" variant="outline">{t("بحث", "Search")}</Button>
+        </form>
+        {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : (
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-3 py-2 text-start font-medium">{t("المستخدم", "User")}</th><th className="px-3 py-2 text-start font-medium">{t("المنشآت", "Orgs")}</th><th className="px-3 py-2 text-start font-medium">{t("سجّل", "Joined")}</th><th className="px-3 py-2 text-start font-medium">{t("إجراءات", "Actions")}</th></tr></thead>
+            <tbody>
+              {items.map((u) => (
+                <tr key={u.id} className="border-b border-border/60 align-top">
+                  <td className="px-3 py-2.5"><div className="text-foreground font-english text-xs" style={{ fontWeight: 600 }}>{u.email}</div><div className="text-[11px] text-muted-foreground">{u.name || ""} {u.emailVerified ? "· ✓" : "· ⚠️ unverified"}</div></td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{u.orgs.map((o: any) => `${o.name} (${o.role})`).join(" · ") || "—"}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{fmtDate(u.createdAt)}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
+                      {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {resetFor && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+            <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("كلمة سر جديدة لـ", "New password for")} <span className="font-english">{resetFor.email}</span></div>
+            <div className="flex gap-2">
+              <Input type="text" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder={t("8+ أحرف", "8+ chars")} className="border-amber-300 font-english" dir="ltr" />
+              <Button disabled={busy || newPass.length < 8} onClick={async () => {
+                setBusy(true);
+                try { await api.admin.resetPassword(resetFor.email, newPass); push("success", t("عُيّنت كلمة السر", "Password set")); setResetFor(null); } catch (e) { guard(e); } finally { setBusy(false); }
+              }}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("تعيين", "Set")}</Button>
+              <Button variant="outline" onClick={() => setResetFor(null)}>{t("إلغاء", "Cancel")}</Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ═══ Support inbox ═══
+function SupportTab({ guard, push, t }: any) {
+  const [threads, setThreads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [thread, setThread] = useState<any | null>(null);
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setThreads((await api.admin.supportThreads()).items); } catch (e) { guard(e); } finally { setLoading(false); }
+  }, [guard]);
+  useEffect(() => { load(); }, [load]);
+  const openThread = async (id: string) => {
+    setOpenId(id); setThread(null);
+    try { setThread(await api.admin.supportThread(id)); } catch (e) { guard(e); }
+  };
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <Card className="border-border">
+        <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base text-foreground">{t("محادثات العملاء مع الوكيل", "Customer conversations")}</CardTitle><Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button></CardHeader>
+        <CardContent className="p-0 max-h-[520px] overflow-y-auto">
+          {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : threads.length === 0 ? <div className="text-center text-muted-foreground text-sm py-10">{t("لا محادثات بعد", "No conversations yet")}</div> : threads.map((th) => (
+            <button key={th.id} onClick={() => openThread(th.id)} className={`w-full text-start px-4 py-3 border-b border-border/60 hover:bg-muted/40 transition ${openId === th.id ? "bg-primary/5" : ""}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>{th.org.name}</span>
+                <span className="text-[10px] text-muted-foreground">{fmtDate(th.lastMessageAt)}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground font-english">{th.user.email} · {th.messageCount} {t("رسالة", "msgs")}</div>
+              {th.lastMessage && <div className="text-xs text-muted-foreground/80 truncate mt-1">{th.lastMessage.role === "user" ? "👤 " : "🤖 "}{th.lastMessage.content.slice(0, 90)}</div>}
+            </button>
+          ))}
+        </CardContent>
+      </Card>
+      <Card className="border-border">
+        <CardHeader><CardTitle className="text-base text-foreground">{thread ? `${thread.org.name} · ${thread.user.email}` : t("اختر محادثة", "Pick a conversation")}</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {!thread ? <div className="text-center text-muted-foreground text-sm py-10"><MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />{t("المحادثة والرد البشري يظهران هنا — يصل العميل إشعارًا ويرى ردك في شاته", "The thread and your human reply appear here — the customer gets a notification and sees your reply in their chat")}</div> : (
+            <>
+              <div className="max-h-[380px] overflow-y-auto space-y-2 pe-1">
+                {thread.messages.map((m: any) => (
+                  <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs whitespace-pre-wrap ${m.role === "user" ? "bg-muted/60 text-foreground" : m.metadata?.source === "admin-human" ? "bg-emerald-600 text-white" : "bg-primary/90 text-white"}`}>
+                      {m.metadata?.source === "admin-human" && <div className="text-[9px] opacity-80 mb-0.5">{t("فريق الدعم — رد بشري", "Support team — human reply")}</div>}
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!reply.trim() || busy) return;
+                setBusy(true);
+                try { await api.admin.supportReply(openId!, reply.trim()); setReply(""); await openThread(openId!); push("success", t("أُرسل الرد للعميل", "Reply sent to the customer")); } catch (err) { guard(err); } finally { setBusy(false); }
+              }} className="flex gap-2">
+                <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("ردك كإنسان من فريق الدعم…", "Your human reply as the support team…")} className="border-border" />
+                <Button type="submit" disabled={busy || !reply.trim()} className="bg-emerald-600 hover:bg-emerald-700">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button>
+              </form>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══ AI usage (kept from the previous dashboard) ═══
+function AiTab({ guard }: { guard: (e: any) => boolean }) {
+  const { t } = useLanguage();
+  const [items, setItems] = useState<any[]>([]);
+  const [totalSpend, setTotalSpend] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [topupFor, setTopupFor] = useState<any | null>(null);
+  const [topupAmount, setTopupAmount] = useState("10");
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.aiBilling.admin.orgs(); setItems(r.items as any); setTotalSpend(r.totalSpend); } catch (e) { guard(e); } finally { setLoading(false); }
+  }, [guard]);
+  useEffect(() => { load(); }, [load]);
+  return (
+    <Card className="border-border">
+      <CardHeader><CardTitle className="text-base text-foreground">{t("استهلاك الذكاء لكل منشأة", "AI spend per org")} · ${totalSpend.toFixed(2)}</CardTitle></CardHeader>
+      <CardContent className="p-0">
+        {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : (
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-4 py-2 text-start font-medium">{t("المنشأة", "Org")}</th><th className="px-4 py-2 text-start font-medium">{t("الرصيد", "Balance")}</th><th className="px-4 py-2 text-start font-medium">{t("الإنفاق", "Spend")}</th><th className="px-4 py-2 text-start font-medium">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start font-medium">{t("شحن", "Top up")}</th></tr></thead>
+            <tbody>
+              {items.map((o: any) => (
+                <tr key={o.orgId} className="border-b border-border/60">
+                  <td className="px-4 py-2.5 text-foreground">{o.orgName} <span className="text-xs text-muted-foreground">{o.country}</span></td>
+                  <td className="px-4 py-2.5 font-english text-xs">${Number(o.creditBalance || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2.5 font-english text-xs">${Number(o.spentThisPeriod || 0).toFixed(4)}</td>
+                  <td className="px-4 py-2.5 text-xs">{o.disabled ? "🔴" : "🟢"}</td>
+                  <td className="px-4 py-2.5">
+                    {topupFor?.orgId === o.orgId ? (
+                      <div className="flex gap-1.5">
+                        <Input value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} className="w-16 h-7 text-xs border-border" dir="ltr" />
+                        <button onClick={async () => { try { await api.aiBilling.admin.topup({ orgId: o.orgId, amountUsd: Number(topupAmount) || 10 }); setTopupFor(null); load(); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">✓</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setTopupFor(o)} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">+ $</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
