@@ -1,0 +1,8 @@
+# ENSIDEX IMPORT · Opening balances (أرصدة افتتاحية) · one line per bucket
+# المبالغ بعملة المنشأة · رأس المال المدفوع يُحسب تلقائيًا = (الصندوق+البنك+العملاء+المخزون) − الموردون
+bucket,amount
+cash,25000
+bank,180000
+receivables,45000
+payables,30000
+inventory,60000

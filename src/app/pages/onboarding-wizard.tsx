@@ -43,47 +43,58 @@ function parseCSV(text: string): string[][] {
 }
 
 function headerIndex(header: string[], keys: string[]): number {
-  const h = header.map((x) => x.trim().toLowerCase());
+  // Normalize: strip spaces/underscores/hyphens so "Unit Price" = "unit_price" = "unitprice"
+  const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+  const h = header.map(norm);
   for (const k of keys) {
-    const i = h.indexOf(k);
+    const i = h.indexOf(norm(k));
     if (i >= 0) return i;
   }
   return -1;
 }
 
-function csvToProducts(rows: string[][]): ProductRow[] {
+/** Drop instruction/comment rows (first cell starts with #) so the real header becomes row 0 */
+function dataRows(rows: string[][]): string[][] {
+  return rows.filter((r) => !(r[0] || "").trim().startsWith("#"));
+}
+
+function csvToProducts(allRows: string[][]): ProductRow[] {
+  const rows = dataRows(allRows);
   if (rows.length < 2) return [];
   const h = rows[0];
-  const iName = headerIndex(h, ["name", "الاسم", "الصنف", "اسم الصنف", "item"]);
-  const iSku = headerIndex(h, ["sku", "باركود", "الكود", "code"]);
-  const iPrice = headerIndex(h, ["price", "unitprice", "السعر", "سعر البيع"]);
-  const iCost = headerIndex(h, ["cost", "costprice", "التكلفة"]);
-  const iQty = headerIndex(h, ["qty", "quantity", "الكمية", "الرصيد"]);
+  const iName = headerIndex(h, ["name", "الاسم", "الصنف", "اسم الصنف", "item", "item name", "product or service name", "product name"]);
+  const iSku = headerIndex(h, ["sku", "باركود", "الكود", "code", "item code", "barcode"]);
+  const iPrice = headerIndex(h, ["price", "unit price", "unitprice", "unit_price", "السعر", "سعر البيع", "sales price", "selling price", "sale price"]);
+  const iCost = headerIndex(h, ["cost", "cost price", "costprice", "cost_price", "التكلفة", "purchase price"]);
+  const iQty = headerIndex(h, ["qty", "quantity", "الكمية", "الرصيد", "stock qty", "stock_qty", "opening qty", "on hand", "stock"]);
+  const iType = headerIndex(h, ["type", "النوع", "item type"]);
   const out: ProductRow[] = [];
   for (const r of rows.slice(1)) {
     const name = (iName >= 0 ? r[iName] : r[0])?.trim();
     if (!name) continue;
     const num = (i: number) => (i >= 0 && r[i] ? Number(String(r[i]).replace(/[^\d.\-]/g, "")) || 0 : 0);
+    const rawType = (iType >= 0 ? r[iType] : "")?.trim().toLowerCase() || "";
     out.push({
       name,
       sku: iSku >= 0 ? r[iSku]?.trim() || undefined : undefined,
       unitPrice: num(iPrice),
       costPrice: num(iCost),
       openingQty: num(iQty),
-      type: "GOOD",
+      type: rawType.includes("serv") || rawType.includes("خدمة") ? "SERVICE" : "GOOD",
     });
   }
   return out;
 }
 
-function csvToContacts(rows: string[][]): ContactRow[] {
+function csvToContacts(allRows: string[][]): ContactRow[] {
+  const rows = dataRows(allRows);
   if (rows.length < 2) return [];
   const h = rows[0];
-  const iName = headerIndex(h, ["name", "الاسم", "العميل", "المورد"]);
-  const iType = headerIndex(h, ["type", "النوع"]);
-  const iEmail = headerIndex(h, ["email", "البريد"]);
-  const iPhone = headerIndex(h, ["phone", "جوال", "الجوال", "هاتف"]);
-  const iTax = headerIndex(h, ["taxid", "vat", "الرقم الضريبي"]);
+  const iName = headerIndex(h, ["name", "الاسم", "العميل", "المورد", "customer name", "vendor name", "contact name", "display name", "customer", "vendor"]);
+  const iType = headerIndex(h, ["type", "النوع", "contact type"]);
+  const iEmail = headerIndex(h, ["email", "البريد", "البريد الإلكتروني", "e-mail", "email address"]);
+  const iPhone = headerIndex(h, ["phone", "جوال", "الجوال", "هاتف", "mobile", "phone number", "telephone"]);
+  const iTax = headerIndex(h, ["tax id", "taxid", "tax_id", "vat", "الرقم الضريبي", "vat number", "tax number"]);
   const out: ContactRow[] = [];
   for (const r of rows.slice(1)) {
     const name = (iName >= 0 ? r[iName] : r[0])?.trim();
@@ -189,6 +200,36 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
   const isAr = language === "ar";
   const [form, setForm] = useState({ cash: "", bank: "", inventory: "", receivables: "", payables: "" });
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // opening-balances.csv (bucket,amount) — fills the form from the master template or a trial-balance export
+  const BUCKET_ALIASES: Record<keyof typeof form, string[]> = {
+    cash: ["cash", "الصندوق", "نقد", "cash on hand", "cashbox"],
+    bank: ["bank", "البنك", "bank account", "bank balance", "البنك الرئيسي"],
+    inventory: ["inventory", "المخزون", "stock", "stock value", "قيمة المخزون"],
+    receivables: ["receivables", "ذمم العملاء", "accounts receivable", "ar", "عملاء", "customer balances"],
+    payables: ["payables", "ذمم الموردين", "accounts payable", "ap", "موردين", "supplier balances"],
+  };
+  const onCsv = async (f: File) => {
+    const rows = dataRows(parseCSV(await f.text()));
+    if (rows.length < 2) { setError(t("تعذّر قراءة الملف — تأكد من القالب", "Could not read the file — check the template")); return; }
+    const h = rows[0];
+    const iBucket = headerIndex(h, ["bucket", "الحساب", "البند", "account", "item"]);
+    const iAmount = headerIndex(h, ["amount", "المبلغ", "الرصيد", "balance", "value"]);
+    if (iBucket < 0 || iAmount < 0) { setError(t("الملف يحتاج عمودَي bucket و amount", "File needs bucket and amount columns")); return; }
+    const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+    const next = { ...form };
+    let filled = 0;
+    for (const r of rows.slice(1)) {
+      const bucket = norm(r[iBucket] || "");
+      const amt = Number(String(r[iAmount] || "").replace(/[^\d.\-]/g, "")) || 0;
+      for (const key of Object.keys(BUCKET_ALIASES) as (keyof typeof form)[]) {
+        if (BUCKET_ALIASES[key].some((a) => norm(a) === bucket)) { next[key] = String(amt); filled++; break; }
+      }
+    }
+    if (filled === 0) setError(t("لم تُطابق أي بنود معروفة — راجع القالب", "No known buckets matched — check the template"));
+    else { setError(null); setForm(next); }
+  };
 
   const fields: { key: keyof typeof form; ar: string; en: string; hintAr: string; hintEn: string }[] = [
     { key: "cash", ar: "الصندوق (النقد)", en: "Cash on hand", hintAr: "رصيد الكاش الحالي", hintEn: "Current cash balance" },
@@ -228,9 +269,28 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
   return (
     <Card>
       <h2 className="text-foreground mb-1" style={{ fontSize: "17px", fontWeight: 700 }}>{t("الأرصدة الافتتاحية", "Opening balances")}</h2>
-      <p className="text-muted-foreground mb-5" style={{ fontSize: "13px", lineHeight: 1.8 }}>
+      <p className="text-muted-foreground mb-3" style={{ fontSize: "13px", lineHeight: 1.8 }}>
         {t("أدخل أرصدة يوم الانتقال — سننشئ قيدًا واحدًا متوازنًا ونحسب رأس المال المدفوع تلقائيًا (الأصول − الالتزامات).", "Enter your migration-day balances — we create one balanced journal and compute paid-in capital automatically (assets − liabilities).")}
       </p>
+      <div className="flex flex-wrap items-center gap-2.5 mb-5">
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 text-primary px-3.5 py-2 cursor-pointer hover:bg-primary/10 transition-colors"
+          style={{ fontSize: "12.5px", fontWeight: 600 }}
+        >
+          <Upload className="w-3.5 h-3.5" />
+          {t("تعبئة من ملف (opening-balances.csv)", "Fill from file (opening-balances.csv)")}
+        </button>
+        <a
+          href="/import-templates/opening-balances.csv" download="ENSIDEX-opening-balances.csv"
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+          style={{ fontSize: "12px", fontWeight: 600 }}
+        >
+          <Download className="w-3.5 h-3.5" />
+          {t("تنزيل القالب", "Download template")}
+        </a>
+        <input ref={fileRef} type="file" className="hidden" accept=".csv,text/csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onCsv(f); e.target.value = ""; }} />
+      </div>
       <div className="grid sm:grid-cols-2 gap-3.5">
         {fields.map((f) => (
           <div key={f.key}>
@@ -272,11 +332,11 @@ function StepProducts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
   const [aiBusy, setAiBusy] = useState(false);
   const [result, setResult] = useState<{ created: number; skipped: number; stockApplied: number; errors: any[] } | null>(null);
 
-  const template = "name,sku,price,cost,qty\n" + (isAr ? "مثال صنف,SKU-001,25,15,100\n" : "Sample item,SKU-001,25,15,100\n");
+  // Master template lives in /public/import-templates — same file the user fills from Wave/Wafeq exports
   const downloadTemplate = () => {
     const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8,\ufeff" + encodeURIComponent(template);
-    a.download = "entix-items-template.csv";
+    a.href = "/import-templates/products.csv";
+    a.download = "ENSIDEX-products.csv";
     a.click();
   };
 
@@ -382,10 +442,9 @@ function StepContacts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
   const [result, setResult] = useState<{ created: number; skipped: number; errors: any[] } | null>(null);
 
   const downloadTemplate = () => {
-    const tpl = "name,type,email,phone,taxId\n" + (isAr ? "مثال عميل,customer,,\nمثال مورد,supplier,,\n" : "Sample customer,customer,,\nSample supplier,supplier,,\n");
     const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8,\ufeff" + encodeURIComponent(tpl);
-    a.download = "entix-contacts-template.csv";
+    a.href = "/import-templates/contacts.csv";
+    a.download = "ENSIDEX-contacts.csv";
     a.click();
   };
 

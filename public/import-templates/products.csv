@@ -1,0 +1,5 @@
+# ENSIDEX IMPORT · Products & Services (أصناف وخدمات) · Wave Items compatible
+# type: good (سلعة/مخزون) | service (خدمة)
+sku,name,name_ar,type,unit_price,cost_price,stock_qty,category,tax_rate
+MILK-1L,Almarai Milk 1L,حليب المراعي 1ل,good,7.50,5.25,120,dairy,0.15
+CONS-HR,Consulting Hour,استشارة بالساعة,service,500,0,0,consulting,0.15

@@ -121,6 +121,15 @@ class AuthStore {
         const serverMatch = serverOrgId
           ? sorted.find((m: any) => m?.org?.id === serverOrgId)
           : null
+        // STARRED default company (User.defaultOrgId) — the durable landing
+        // org pinned via the OrgSwitcher star. Beats the last-active
+        // selectedOrgId so sign-in always lands on the pinned company, even
+        // after browsing others. Only a FRESH explicit pick (<5 min) outranks
+        // it within a session.
+        const pinnedOrgId: string | null = me?.defaultOrgId || null
+        const pinnedMatch = pinnedOrgId
+          ? sorted.find((m: any) => m?.org?.id === pinnedOrgId)
+          : null
         const storedOrgId = typeof localStorage !== 'undefined'
           ? localStorage.getItem('entix_org_id') : null
         const storedMatch = storedOrgId
@@ -152,8 +161,9 @@ class AuthStore {
           ? (oldestReal || sorted.find((m: any) => m?.role === 'OWNER'))
           : null
         let activeMembership =
-          (serverWins ? serverMatch : null) ||
           freshLocalPick ||
+          pinnedMatch ||
+          (serverWins ? serverMatch : null) ||
           (storedIsDemo ? null : storedMatch) ||
           ownerMatch ||
           sorted[0]

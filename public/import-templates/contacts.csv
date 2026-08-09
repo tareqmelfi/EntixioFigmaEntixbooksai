@@ -1,0 +1,5 @@
+# ENSIDEX IMPORT · Contacts (عملاء وموردون) · Wave/Wafeq/QBO compatible
+# type: customer | supplier (عميل | مورد)
+name,type,email,phone,mobile,address,city,region,country,tax_id,notes
+شركة المثال للتجارة,customer,info@example.sa,+966500000000,,طريق الملك فهد,الرياض,الرياض,SA,300123456700003,
+Spike Bros Suppliers,supplier,po@spike.example,+13105550100,,30 N Gould St,Sheridan,WY,US,,

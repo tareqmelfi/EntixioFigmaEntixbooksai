@@ -1,0 +1,6 @@
+# ENSIDEX IMPORT · Bank statement (كشف حساب بنكي) · any bank CSV export
+# type: in (إيداع/وارد) | out (صرف/منصرف) · date: YYYY-MM-DD
+date,description,amount,type,reference,balance
+2026-08-01,Opening balance transfer,5000.00,in,TRF-0001,5000.00
+2026-08-03,POS daily settlement,1250.75,in,POS-0803,6250.75
+2026-08-04,Office rent August,3000.00,out,EXP-RENT-08,3250.75

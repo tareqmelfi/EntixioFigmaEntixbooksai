@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
-import { ChevronDown, Plus, Check, X } from "lucide-react";
+import { ChevronDown, Plus, Check, X, Star } from "lucide-react";
 import { api, Org, setOrgId, API_BASE_URL } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
@@ -42,6 +42,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [loading, setLoading] = useState(true);
   const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [demoConflict, setDemoConflict] = useState(false);
+  // Starred default company (User.defaultOrgId) — sign-in always lands on it.
+  const [defaultOrgId, setDefaultOrgId] = useState<string | null>(null);
+  const [starBusy, setStarBusy] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // The portaled dropdown content renders at document.body — OUTSIDE
   // dropdownRef. Without a second ref, the outside-close handler (mousedown)
@@ -75,6 +78,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       const active = (storedId ? list.find(o => o.id === storedId) : null) || list[0] || null;
       setActiveOrg(active);
       if (active) setOrgId(active.id);
+      // Load the starred default company alongside the org list.
+      try {
+        const meRes = await fetch(`${API_BASE_URL}/me`, { credentials: 'include' });
+        if (meRes.ok) {
+          const me = await meRes.json();
+          setDefaultOrgId(me?.defaultOrgId || null);
+        }
+      } catch {}
     } catch (e) {
       console.error("[orgs] load failed", e);
     } finally {
@@ -130,6 +141,26 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     setOpen(false);
     // Hard refresh so all pages re-fetch with the new org id
     window.location.reload();
+  };
+
+  // Star / un-star the DEFAULT company — durable landing org at sign-in.
+  // Deliberately does NOT switch or reload: starring is about future logins.
+  const toggleDefault = async (o: Org, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (starBusy) return;
+    const next = defaultOrgId === o.id ? null : o.id;
+    setStarBusy(o.id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/me/preferences`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaultOrgId: next }),
+      });
+      if (res.ok) setDefaultOrgId(next);
+    } catch {}
+    finally { setStarBusy(null); }
   };
 
   if (loading) {
@@ -201,7 +232,18 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                       <span className="text-xs text-muted-foreground font-english">{o.country} · {o.baseCurrency}</span>
                     </div>
                   </div>
-                  {activeOrg?.id === o.id && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    {activeOrg?.id === o.id && <Check className="h-4 w-4 text-primary" />}
+                    <span
+                      role="button"
+                      aria-label={defaultOrgId === o.id ? t("إلغاء الافتراضية", "Remove default") : t("اجعلها الافتراضية", "Make default")}
+                      title={defaultOrgId === o.id ? t("شركتك الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Your default company — sign-in always lands here") : t("اجعلها الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Make default — sign-in always lands here")}
+                      onClick={(e) => toggleDefault(o, e)}
+                      className={`p-1 rounded-md cursor-pointer transition-colors ${defaultOrgId === o.id ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-400"} ${starBusy === o.id ? "opacity-40 pointer-events-none" : ""}`}
+                    >
+                      <Star className="h-4 w-4" fill={defaultOrgId === o.id ? "currentColor" : "none"} />
+                    </span>
+                  </span>
                 </button>
               ))}
             </div>
@@ -388,6 +430,15 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                     {o.country} · {o.baseCurrency}
                   </span>
                 </div>
+                <span
+                  role="button"
+                  aria-label={defaultOrgId === o.id ? t("إلغاء الافتراضية", "Remove default") : t("اجعلها الافتراضية", "Make default")}
+                  title={defaultOrgId === o.id ? t("شركتك الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Your default company — sign-in always lands here") : t("اجعلها الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Make default — sign-in always lands here")}
+                  onClick={(e) => toggleDefault(o, e)}
+                  className={`shrink-0 p-1.5 rounded-md cursor-pointer transition-colors ${defaultOrgId === o.id ? "text-amber-500" : "text-muted-foreground/30 hover:text-amber-400"} ${starBusy === o.id ? "opacity-40 pointer-events-none" : ""}`}
+                >
+                  <Star className="h-4 w-4" fill={defaultOrgId === o.id ? "currentColor" : "none"} />
+                </span>
               </button>
             ))}
             {filteredOrgs.length === 0 && (
