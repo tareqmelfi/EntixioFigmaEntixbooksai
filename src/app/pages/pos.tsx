@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 // ── palette (from the approved mockup) ──
@@ -150,7 +151,7 @@ export function PosPage() {
         amountTendered: method === "CASH" ? (tendered ?? totals.grand) : totals.grand,
         shiftId: shift?.id ?? null,
       });
-      setReceipt({ ...r, lines: cart.map((l) => ({ name: l.product.nameAr || l.product.name, qty: l.qty, price: Number(l.product.unitPrice) })), vat: totals.vat, net: totals.net, at: new Date() });
+      setReceipt({ ...r, lines: cart.map((l) => ({ name: displayName(l.product), qty: l.qty, price: Number(l.product.unitPrice) })), vat: totals.vat, net: totals.net, at: new Date() });
       setCart([]); setTendered(null);
     } catch (e: any) {
       alert((e as any)?.messageAr || e?.message || t("فشل البيع", "Sale failed"));
@@ -280,7 +281,7 @@ export function PosPage() {
                   style={{ background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 16, padding: "12px 10px", textAlign: "center", cursor: "pointer", position: "relative" }}>
                   {inCart != null && <span style={{ position: "absolute", top: 8, insetInlineStart: 8, background: "#22C55E", color: "#fff", fontSize: 11, fontWeight: 800, minWidth: 22, height: 22, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{inCart}</span>}
                   <div style={{ fontSize: 34, lineHeight: 1.2 }}>{p.imageUrl ? <img src={p.imageUrl} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 8, margin: "0 auto" }} /> : emojiFor(p)}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, marginTop: 6, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>{isRtl ? (p.nameAr || p.name) : p.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, marginTop: 6, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>{displayName(p)}</div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: BLUE, marginTop: 2, direction: "ltr" }}>{fmt(Number(p.unitPrice))} <small style={{ fontSize: 10, color: MUTED }}>{currency}</small></div>
                 </button>
               );
@@ -302,7 +303,7 @@ export function PosPage() {
             {cart.map((l) => (
               <div key={l.product.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 4px", borderBottom: "1px solid #F1F4FA" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{isRtl ? (l.product.nameAr || l.product.name) : l.product.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName(l.product)}</div>
                   <div style={{ fontSize: 11, color: MUTED, direction: "ltr", textAlign: isRtl ? "right" : "left" }}>{fmt(Number(l.product.unitPrice))} × {l.qty}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 2, background: BG, borderRadius: 999, padding: 2 }}>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 type ProductRow = {
@@ -209,7 +210,7 @@ function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<
             return (
               <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-foreground">{product?.nameAr || product?.name || t("صنف غير معروف", "Unknown item")}</div>
+                  <div className="font-medium text-foreground">{displayName(product ?? {}) || t("صنف غير معروف", "Unknown item")}</div>
                   <div className="text-xs text-muted-foreground/60 font-english">{product?.sku || row.productId}</div>
                 </td>
                 <td className="px-4 py-3 text-sm text-foreground/80">{row.warehouse?.name || row.warehouseId}</td>
@@ -276,7 +277,7 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
                     {label ? t(label.ar, label.en) : row.type}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-foreground">{product?.nameAr || product?.name || row.productId}</td>
+                <td className="px-4 py-3 text-sm text-foreground">{displayName(product ?? {}) || row.productId}</td>
                 <td className="px-4 py-3 text-sm text-foreground/80">{warehouse?.name || row.warehouseId}</td>
                 <td className="px-4 py-3 text-sm font-semibold font-english">{qty(quantityValue)}</td>
                 <td className="px-4 py-3 text-sm font-english">{money(row.unitCost)}</td>

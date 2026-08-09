@@ -22,6 +22,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError, Account } from "../lib/api";
+import { displayName, secondaryName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 const EMPTY_FORM = {
@@ -84,8 +85,8 @@ export function AssetDetail() {
   }, [id, isNew, applyAsset, t]);
   useEffect(() => { load(); }, [load]);
 
-  const assetAccounts = accounts.filter(a => a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }));
-  const expenseAccounts = accounts.filter(a => a.type === "EXPENSE").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }));
+  const assetAccounts = accounts.filter(a => a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: secondaryName(a) || undefined }));
+  const expenseAccounts = accounts.filter(a => a.type === "EXPENSE").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: secondaryName(a) || undefined }));
   const accountLabel = (accountId?: string | null) => {
     if (!accountId) return "—";
     const a = accounts.find(x => x.id === accountId);

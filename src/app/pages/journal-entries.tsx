@@ -15,6 +15,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 type Line = { accountId: string; debit: string; credit: string; description: string };
@@ -574,7 +575,7 @@ export function JournalEntries() {
                               className="w-full text-sm rounded border border-border px-2 py-1.5 bg-white">
                               <option value="">— {t("اختر حساباً", "Select an account")} —</option>
                               {accounts.map(a => (
-                                <option key={a.id} value={a.id}>{a.code} · {a.nameAr || a.name}</option>
+                                <option key={a.id} value={a.id}>{a.code} · {displayName(a)}</option>
                               ))}
                             </select>
                           </td>

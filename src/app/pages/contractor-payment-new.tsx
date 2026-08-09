@@ -16,6 +16,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError, Account } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -61,7 +62,7 @@ export function ContractorPaymentNew() {
 
   const cashAccounts = useMemo(() => accounts
     .filter((a) => a.type === "ASSET" && /bank|cash/i.test(a.subtype || ""))
-    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined })), [accounts]);
+    .map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: a.subtype || undefined })), [accounts]);
 
   const projectItems = useMemo(() => (person?.stats?.engagements || [])
     .filter((e: any) => e.status === "ACTIVE")

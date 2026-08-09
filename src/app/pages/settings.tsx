@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLogItem } from "../lib/api";
+import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -34,7 +35,7 @@ export function Settings() {
   const [busy, setBusy] = useState(false);
   const [seedArmed, setSeedArmed] = useState(false);
   const [form, setForm] = useState({
-    name: "", legalName: "", legalType: "" as string, country: "SA", baseCurrency: "SAR",
+    name: "", legalName: "", legalType: "" as string, legalSubtype: "" as string, country: "SA", baseCurrency: "SAR",
     vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
     logoUrl: "", stampUrl: "", signatureUrl: "",
     email: "", phone: "", website: "",
@@ -85,6 +86,7 @@ export function Settings() {
       setForm({
         name: active.name, legalName: active.legalName || "",
         legalType: (active as any).legalType || "",
+        legalSubtype: (active as any).legalSubtype || "",
         country: active.country, baseCurrency: active.baseCurrency,
         vatNumber: active.vatNumber || "", crNumber: active.crNumber || "",
         fiscalYearEnd: (active as any).fiscalYearEnd || 12,
@@ -120,6 +122,7 @@ export function Settings() {
       const updated = await api.orgs.update(org.id, {
         name: form.name, legalName: form.legalName || null,
         legalType: form.legalType || null,
+        legalSubtype: form.legalSubtype || null,
         country: form.country, baseCurrency: form.baseCurrency,
         vatNumber: form.vatNumber || null, crNumber: form.crNumber || null,
         fiscalYearEnd: form.fiscalYearEnd,
@@ -130,7 +133,7 @@ export function Settings() {
         signatureUrl: form.signatureUrl || null,
         email: form.email || null,
         phone: form.phone || null,
-        website: form.website || null,
+        website: (() => { const w = (form.website || "").trim(); if (!w) return null; return /^https?:\/\//i.test(w) ? w : `https://${w}`; })(),
         industry: form.industry || null,
         defaultInvoiceLanguage: form.defaultInvoiceLanguage,
       } as any);
@@ -247,25 +250,37 @@ export function Settings() {
             <div className="space-y-2">
               <Label>{t("الكيان القانوني", "Legal entity type")}</Label>
               <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
-                {([
-                  ["LLC", t("ذات مسؤولية محدودة", "LLC")],
-                  ["JSC", t("مساهمة", "Joint-stock")],
-                  ["SOLE_PROP", t("مؤسسة فردية", "Sole prop.")],
-                  ["PARTNERSHIP", t("شراكة", "Partnership")],
-                  ["NONPROFIT", t("غير ربحية", "Non-profit")],
-                  ["OTHER", t("أخرى", "Other")],
-                ] as [string, string][]).map(([value, label]) => (
+                {(LEGAL_TYPES_BY_COUNTRY[(form.country || "SA").toUpperCase()] || LEGAL_TYPES_DEFAULT).map((lt) => (
                   <button
-                    key={value}
+                    key={lt.id}
                     type="button"
-                    onClick={() => setForm({ ...form, legalType: form.legalType === value ? "" : value })}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${form.legalType === value ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                    style={{ fontWeight: form.legalType === value ? 600 : 500 }}
+                    onClick={() => setForm({ ...form, legalType: form.legalType === lt.id ? "" : lt.id, legalSubtype: "" })}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${form.legalType === lt.id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    style={{ fontWeight: form.legalType === lt.id ? 600 : 500 }}
                   >
-                    {label}
+                    {t(lt.ar, lt.en)}
                   </button>
                 ))}
               </div>
+              {(() => {
+                const lt = (LEGAL_TYPES_BY_COUNTRY[(form.country || "SA").toUpperCase()] || LEGAL_TYPES_DEFAULT).find((x) => x.id === form.legalType);
+                if (!lt?.subtypes) return null;
+                return (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {lt.subtypes.map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, legalSubtype: form.legalSubtype === st.id ? "" : st.id })}
+                        className={`px-3 py-1 rounded-md text-xs border transition-colors ${form.legalSubtype === st.id ? "border-amber-500 bg-amber-50 text-amber-700" : "border-dashed border-border text-muted-foreground hover:border-amber-400"}`}
+                        style={{ fontWeight: form.legalSubtype === st.id ? 700 : 500 }}
+                      >
+                        {t(st.ar, st.en)}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
               <p className="text-[10px] text-muted-foreground/70 mt-1">
                 {t("«مساهمة» تفعّل سجل المساهمين وحركات الأسهم · باقي الأنواع تستخدم سجل الملاك المرتبط بجهات الاتصال", "“Joint-stock” enables the shareholders register & share transactions · other forms use the contact-linked owners registry")}
               </p>

@@ -16,6 +16,7 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
 
 // KSA banks · IBAN bank-code (positions 5-6) → name + SWIFT
 const KSA_BANKS: Record<string, { name: string; swift: string }> = {
@@ -77,22 +78,24 @@ function blankForm(country = "SA", currency = currencyForCountry(country)) {
 
 export function BankAccountNew() {
   const { t, language } = useLanguage();
+  const region = useOrgRegion();
   const navigate = useNavigate();
   const { toasts, push, dismiss } = useToasts();
   const [form, setForm] = useState(blankForm());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Default country/currency from the active org
+  // W30 · default country from the active org's ACTUAL country (useOrgRegion is
+  // the same module-cached resolver the whole app uses — the old local fetch
+  // raced/fell back to the first org, so a US company got Saudi+IBAN defaults).
   useEffect(() => {
-    api.orgs.list().then((orgs) => {
-      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-      const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
-      const country = active?.country || "SA";
-      const currency = active?.baseCurrency || currencyForCountry(country);
-      setForm((prev) => (!prev.name && !prev.bankName && !prev.iban && !prev.accountNumber ? blankForm(country, currency) : prev));
-    }).catch(() => {});
-  }, []);
+    if (region.loading) return;
+    const country = region.country || "SA";
+    setForm((prev) => {
+      const untouched = !prev.name && !prev.bankName && !prev.iban && !prev.accountNumber && !prev.routingNumber;
+      return untouched ? blankForm(country, currencyForCountry(country)) : prev;
+    });
+  }, [region.loading, region.country]);
 
   // Registry banks + the current free-typed value (so a non-registry bank still displays)
   const ksaBankItems = [
@@ -273,7 +276,10 @@ export function BankAccountNew() {
               <>
                 <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
                   <div className="font-semibold">{t("صيغة الحسابات الأمريكية", "US bank account format")}</div>
-                  <p className="mt-1 text-foreground/70">{t("استخدم Routing Number + Account Number.", "Use Routing Number + Account Number.")}</p>
+                  <p className="mt-1 text-foreground/70">{t("استخدم Routing Number + Account Number — لا يوجد IBAN في أمريكا.", "Use Routing Number + Account Number — US banks have no IBAN.")}</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  🔗 {t("الربط التلقائي بالبنك عبر Plaid يُفعّل من صفحة التكاملات — الحساب اليدوي يعمل الآن، والمزامنة التلقائية عند اكتمال الربط.", "Automatic bank connection via Plaid is enabled from the Integrations page — manual accounts work now, auto-sync once connected.")}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label className="text-foreground/80">Routing Number * <span className="text-muted-foreground/60 text-xs">(ABA)</span></Label>

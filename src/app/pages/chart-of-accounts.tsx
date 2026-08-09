@@ -20,6 +20,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
+import { displayName, secondaryName } from "../lib/display-name";
 import { api, ApiError, Account, AccountTransactions } from "../lib/api";
 
 type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
@@ -254,7 +255,7 @@ export function ChartOfAccounts() {
       const hint = [
         `Selected type: ${form.type}`,
         `Preserve selected type. Do not reclassify the account.`,
-        parent ? `Parent account: ${parent.code} · ${parent.nameAr || parent.name} · Parent type: ${parent.type}` : "",
+        parent ? `Parent account: ${parent.code} · ${displayName(parent)} · Parent type: ${parent.type}` : "",
       ].filter(Boolean).join("\n");
       const r = await api.accounts.translate(sourceText.trim(), hint);
       const nextName = r.name || form.name;
@@ -837,10 +838,10 @@ export function ChartOfAccounts() {
                               className="flex-1 min-w-0 text-start cursor-pointer"
                             >
                               <div className="text-sm text-foreground truncate hover:text-primary" style={{ fontWeight: node.depth === 0 ? 600 : 500 }}>
-                                {node.nameAr || node.name}
+                                {displayName(node)}
                               </div>
-                              {node.nameAr && node.name && (
-                                <div className="text-[10px] text-muted-foreground/60 font-english truncate">{node.name}</div>
+                              {secondaryName(node) && (
+                                <div className="text-[10px] text-muted-foreground/60 font-english truncate">{secondaryName(node)}</div>
                               )}
                             </button>
                             {/* Balance */}
@@ -900,7 +901,7 @@ export function ChartOfAccounts() {
               <div>
                 <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                   <History className="h-5 w-5 text-primary" />
-                  {txPanel.data ? `${txPanel.data.account.code} · ${txPanel.data.account.nameAr || txPanel.data.account.name}` : t("جارٍ التحميل...", "Loading...")}
+                  {txPanel.data ? `${txPanel.data.account.code} · ${displayName(txPanel.data.account)}` : t("جارٍ التحميل...", "Loading...")}
                 </h2>
                 {txPanel.data && (
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1068,7 +1069,7 @@ export function ChartOfAccounts() {
               </div>
               <div className="rounded-lg border border-border bg-muted/40 p-3">
                 <div className="text-xs text-muted-foreground/60 mb-1">{t("الحساب المراد دمجه", "Account to merge")}</div>
-                <div className="font-english text-sm text-foreground font-semibold">{mergeSource.code} · {mergeSource.nameAr || mergeSource.name}</div>
+                <div className="font-english text-sm text-foreground font-semibold">{mergeSource.code} · {displayName(mergeSource)}</div>
                 <div className="text-xs text-muted-foreground mt-1">{TYPE_LABELS[mergeSource.type as AccountType]} · الرصيد {formatAmount(mergeSource.balance)}</div>
               </div>
               <div>
@@ -1080,7 +1081,7 @@ export function ChartOfAccounts() {
                 >
                   <option value="">{t("اختر حساباً من نفس التصنيف", "Select an account of the same type")}</option>
                   {items.filter(a => a.id !== mergeSource.id && a.type === mergeSource.type).map(a => (
-                    <option key={a.id} value={a.id}>{a.code} · {a.nameAr || a.name} · {formatAmount(a.balance)}</option>
+                    <option key={a.id} value={a.id}>{a.code} · {displayName(a)} · {formatAmount(a.balance)}</option>
                   ))}
                 </select>
               </div>
@@ -1140,7 +1141,7 @@ export function ChartOfAccounts() {
                     className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english">
                     <option value="">{t("— لا يوجد · حساب رئيسي —", "— None · Parent account —")}</option>
                     {parentOptions.map(p => (
-                      <option key={p.id} value={p.id}>{p.code} · {p.nameAr || p.name}</option>
+                      <option key={p.id} value={p.id}>{p.code} · {displayName(p)}</option>
                     ))}
                   </select>
                   <p className="text-xs text-muted-foreground/60 mt-1">{t("اربطه بحساب رئيسي ليصبح فرعياً وتظهر شجرة هرمية", "Link to a parent to make it a sub-account and show hierarchy")}</p>
@@ -1259,7 +1260,7 @@ export function ChartOfAccounts() {
                   </div>
                   {form.parentId && (() => {
                     const p = items.find(a => a.id === form.parentId);
-                    return p ? <div className="text-xs text-muted-foreground/60 mt-1 font-english">↑ {t("تحت:", "Under:")} {p.code} · {p.nameAr || p.name}</div> : null;
+                    return p ? <div className="text-xs text-muted-foreground/60 mt-1 font-english">↑ {t("تحت:", "Under:")} {p.code} · {displayName(p)}</div> : null;
                   })()}
                 </div>
               </div>

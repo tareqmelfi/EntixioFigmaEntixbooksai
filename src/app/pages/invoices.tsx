@@ -22,6 +22,7 @@ import { QuickContactDialog } from "../components/quick-contact-dialog";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { api, Invoice, Contact } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
@@ -721,7 +722,7 @@ export function Invoices() {
               invalidIds={invalidLineIds}
               products={products.map((p: any) => ({
                 id: p.id,
-                name: p.nameAr || p.name,
+                name: displayName(p),
                 sku: p.sku,
                 unitPrice: Number(p.unitPrice) || 0,
                 accountId: p.incomeAccountId,
@@ -729,7 +730,7 @@ export function Invoices() {
               accounts={accounts.map((a: any) => ({
                 id: a.id,
                 code: a.code,
-                name: a.nameAr || a.name,
+                name: displayName(a),
                 type: a.type,
                 subtype: a.subtype,
               }))}
@@ -846,13 +847,13 @@ export function Invoices() {
         {quickProductReq && (
           <QuickCreateProduct
             initialName={quickProductReq.name}
-            accounts={accounts.map((a: any) => ({ id: a.id, name: a.nameAr || a.name, code: a.code, type: a.type, subtype: a.subtype }))}
+            accounts={accounts.map((a: any) => ({ id: a.id, name: displayName(a), code: a.code, type: a.type, subtype: a.subtype }))}
             onCreate={async (input) => {
               const p = await (api as any).products.create(input);
               setProducts((prev) => [p, ...prev]);
               return {
                 id: p.id,
-                name: p.nameAr || p.name,
+                name: displayName(p),
                 sku: p.sku,
                 unitPrice: Number(p.unitPrice) || 0,
                 taxRate: Number(p.taxRate) || 0.15,
@@ -883,7 +884,7 @@ export function Invoices() {
             onCreate={async (input) => {
               const a = await (api as any).accounts.create({ ...input, type: input.type === 'INCOME' ? 'REVENUE' : input.type });
               setAccounts((prev) => [a, ...prev]);
-              return { id: a.id, name: a.nameAr || a.name, code: a.code, type: a.type };
+              return { id: a.id, name: displayName(a), code: a.code, type: a.type };
             }}
             onClose={() => { quickAccountReq.reject(); setQuickAccountReq(null); }}
             onCreated={(a) => {

@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 type Mode = "receipt" | "issue" | "transfer";
@@ -54,7 +55,7 @@ export function StockMovementNew() {
   const createProductInline = async (name: string) => {
     const created = await api.products.create({ sku: null, name: name.trim(), nameAr: name.trim(), type: "INVENTORY", unitPrice: 0, costPrice: 0 });
     setProducts((prev) => [created, ...prev]);
-    push("success", t(`تم إنشاء الصنف ${created.nameAr || created.name}`, `Item ${created.name} created`));
+    push("success", t(`تم إنشاء الصنف ${displayName(created)}`, `Item ${created.name} created`));
     return created.id;
   };
 

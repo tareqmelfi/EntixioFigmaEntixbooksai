@@ -9,6 +9,7 @@ import { ChevronDown, Plus, Check, X } from "lucide-react";
 import { api, Org, setOrgId, API_BASE_URL } from "../lib/api";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
+import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { useLanguage } from "./LanguageContext";
 
 function orgInitials(name?: string | null) {
@@ -450,13 +451,15 @@ const COUNTRY_SPECS: Record<string, CountrySpec> = {
   EG: { defaultCurrency: "EGP", fields: [{ key: "crNumber", label: { ar: "السجل التجاري", en: "Commercial registration" }, placeholder: "xxxxx", ltr: true }, { key: "vatNumber", label: { ar: "البطاقة الضريبية", en: "Tax card" }, placeholder: "xxx-xxx-xxx", ltr: true }] },
   US: {
     defaultCurrency: "USD",
+    // W30 · state is its OWN field rendered before the filing number (some
+    // companies have only the state — e.g. Wyoming LLC before the filing arrives)
     fields: [
       { key: "vatNumber", label: { ar: "EIN (Federal Tax ID)", en: "EIN (Federal Tax ID)" }, placeholder: "XX-XXXXXXX", ltr: true, help: { ar: "9 digits from IRS · format XX-XXXXXXX", en: "9 digits from IRS · format XX-XXXXXXX" } },
-      { key: "crNumber", label: { ar: "State / Filing Number", en: "State / Filing Number" }, placeholder: "WY · 2026-001234567", ltr: true, help: { ar: "ولاية + رقم الـfiling من Secretary of State", en: "State + filing number from Secretary of State" } },
     ],
   },
   GB: { defaultCurrency: "GBP", fields: [{ key: "crNumber", label: { ar: "Companies House Number", en: "Companies House Number" }, placeholder: "12345678", ltr: true }, { key: "vatNumber", label: { ar: "VAT Number", en: "VAT Number" }, placeholder: "GB123456789", ltr: true }] },
 };
+
 
 const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -490,6 +493,8 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
     firstVatPeriodStart: "",
     vatPeriod: "monthly",
     usFilingClass: "",
+    legalType: "",
+    legalSubtype: "",
     logoUrl: "",
     stampUrl: "",
   });
@@ -558,6 +563,10 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
         "vatPeriod","taxRegistrationDate","firstVatPeriodStart",
       ].forEach(optStr);
       if (form.country === "US" && form.usFilingClass) payload.usFilingClass = form.usFilingClass;
+      if (form.legalType) payload.legalType = form.legalType;
+      if (form.legalSubtype) payload.legalSubtype = form.legalSubtype;
+      // Bare domains are fine — normalize to https:// so links/prints never break.
+      if (payload.website && !/^https?:\/\//i.test(payload.website)) payload.website = `https://${payload.website}`;
       const org = await api.orgs.create(payload);
       onCreated(org);
     } catch (e: any) {
@@ -788,7 +797,50 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
           {/* Section: Tax & registration */}
           <div className="rounded-lg border border-border p-5">
             <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("التسجيل الضريبي والقانوني", "Tax & legal registration")}</h2>
+
+            {/* W30 · legal entity type — country-specific list (drives IRS/ZATCA report shapes) */}
+            <div className="mb-4">
+              <label className="text-sm text-foreground/80 block mb-1.5">{t("الكيان القانوني", "Legal entity type")}</label>
+              <div className="flex flex-wrap gap-2">
+                {(LEGAL_TYPES_BY_COUNTRY[form.country] || LEGAL_TYPES_DEFAULT).map((lt) => (
+                  <button key={lt.id} type="button"
+                    onClick={() => setForm({ ...form, legalType: form.legalType === lt.id ? "" : lt.id, legalSubtype: "" })}
+                    className={`rounded-full border px-3 py-1.5 text-xs transition ${form.legalType === lt.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                    style={{ fontWeight: form.legalType === lt.id ? 700 : 500 }}>
+                    {t(lt.ar, lt.en)}
+                  </button>
+                ))}
+              </div>
+              {(() => {
+                const lt = (LEGAL_TYPES_BY_COUNTRY[form.country] || LEGAL_TYPES_DEFAULT).find((x) => x.id === form.legalType);
+                if (!lt?.subtypes) return null;
+                return (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {lt.subtypes.map((st) => (
+                      <button key={st.id} type="button"
+                        onClick={() => setForm({ ...form, legalSubtype: form.legalSubtype === st.id ? "" : st.id })}
+                        className={`rounded-full border px-3 py-1 text-[11px] transition ${form.legalSubtype === st.id ? "border-amber-500 bg-amber-50 text-amber-700" : "border-dashed border-border text-muted-foreground hover:border-amber-400"}`}
+                        style={{ fontWeight: form.legalSubtype === st.id ? 700 : 500 }}>
+                        {t(st.ar, st.en)}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* W30 · US: state is its OWN field, BEFORE the EIN/filing numbers */}
+              {form.country === "US" && (
+                <div>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("الولاية", "State")}</label>
+                  <select value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={inp + " bg-white font-english"} dir="ltr">
+                    <option value="">{t("اختر الولاية…", "Choose a state…")}</option>
+                    {["WY","DE","NM","FL","TX","NV","CA","NY","WA","SD","TN","AK","AZ","CO","GA","IL","MA","NJ","OH","OR","UT","VA"].map((st) => <option key={st} value={st}>{st}</option>)}
+                  </select>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{t("وايومنغ الأشهر والأسهل للشركات الصغيرة", "Wyoming is the easiest, most common for small companies")}</p>
+                </div>
+              )}
               {spec.fields.map((f) => (
                 <div key={f.key}>
                   <label className="text-sm text-foreground/80 block mb-1">{t(f.label.ar, f.label.en)}</label>
@@ -798,6 +850,14 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                   {f.help && <p className="text-xs text-muted-foreground/60 mt-1">{t(f.help.ar, f.help.en)}</p>}
                 </div>
               ))}
+              {form.country === "US" && (
+                <div>
+                  <label className="text-sm text-foreground/80 block mb-1">{t("رقم الـFiling (اختياري)", "Filing number (optional)")}</label>
+                  <input type="text" value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })}
+                    placeholder="2026-001234567" className={inp + " font-english"} dir="ltr" />
+                  <p className="text-xs text-muted-foreground/60 mt-1">{t("من Secretary of State — بعض الشركات تكفيها الولاية فقط الآن", "From the Secretary of State — some companies only need the state for now")}</p>
+                </div>
+              )}
               {form.country === "SA" && (
                 <>
                   <div>
@@ -831,8 +891,8 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1">{t("الموقع الإلكتروني", "Website")}</label>
-                <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  placeholder="https://ensidex.com" className={inp + " font-english"} dir="ltr" />
+                <input type="text" inputMode="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  placeholder="ensidex.com" className={inp + " font-english"} dir="ltr" />
               </div>
             </div>
           </div>

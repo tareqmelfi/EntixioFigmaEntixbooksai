@@ -20,6 +20,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError, Account } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 type ShareKind = "ISSUE" | "BUYBACK" | "SELL_TREASURY" | "TRANSFER" | "CANCEL";
@@ -64,7 +65,7 @@ export function ShareTransactionNew() {
 
   const cashAccounts = useMemo(() => accounts
     .filter((a) => a.type === "ASSET" && /bank|cash/i.test(a.subtype || ""))
-    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined })), [accounts]);
+    .map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: a.subtype || undefined })), [accounts]);
 
   const amount = (Number(form.shares || 0) * Number(form.pricePerShare || 0));
   const fromHolder = shareholders.find((s) => s.id === form.fromShareholderId);

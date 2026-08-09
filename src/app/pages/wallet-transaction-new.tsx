@@ -16,6 +16,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError, Account } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 type TxnKind = "DEPOSIT" | "WITHDRAWAL" | "TRADE_BUY" | "TRADE_SELL" | "FEE" | "SUBSCRIPTION" | "PROFIT_PAYOUT" | "PROFIT_SHARE_COST" | "ADJUSTMENT";
@@ -56,13 +57,13 @@ export function WalletTransactionNew() {
 
   const cashAccounts = useMemo(() => accounts
     .filter((a) => a.type === "ASSET" && /bank|cash/i.test(a.subtype || ""))
-    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined })), [accounts]);
+    .map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: a.subtype || undefined })), [accounts]);
   const expenseAccounts = useMemo(() => accounts
     .filter((a) => a.type === "EXPENSE")
-    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}` })), [accounts]);
+    .map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a)}` })), [accounts]);
   const revenueAccounts = useMemo(() => accounts
     .filter((a) => a.type === "REVENUE")
-    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}` })), [accounts]);
+    .map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a)}` })), [accounts]);
 
   const isTrade = form.kind === "TRADE_BUY" || form.kind === "TRADE_SELL";
   const needsOffset = form.kind !== "ADJUSTMENT";

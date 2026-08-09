@@ -20,6 +20,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError, Account } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -89,7 +90,7 @@ export function InvestmentWalletDetail() {
   }, [id, isNew, applyWallet, t]);
   useEffect(() => { load(); }, [load]);
 
-  const assetAccounts = accounts.filter((a) => a.type === "ASSET").map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined }));
+  const assetAccounts = accounts.filter((a) => a.type === "ASSET").map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: a.subtype || undefined }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

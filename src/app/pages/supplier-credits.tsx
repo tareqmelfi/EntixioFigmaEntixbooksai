@@ -11,6 +11,7 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
 import { api, Contact } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 
@@ -257,7 +258,7 @@ export function SupplierCredits() {
               minRows={Math.max(5, lines.length)}
               products={products.map((product: any) => ({
                 id: product.id,
-                name: product.nameAr || product.name,
+                name: displayName(product),
                 sku: product.sku,
                 unitPrice: Number(product.costPrice || product.unitPrice) || 0,
                 taxRate: 0.15,

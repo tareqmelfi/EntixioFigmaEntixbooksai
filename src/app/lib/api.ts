@@ -365,6 +365,10 @@ export const api = {
   taxReturn: {
     saVat: (params?: { from?: string; to?: string }) =>
       request<TaxReturnPayload>('/api/tax-return/sa-vat', { query: params }),
+    usSalesTax: (params?: { from?: string; to?: string }) =>
+      request<UsSalesTaxPayload>('/api/tax-return/us-sales-tax', { query: params }),
+    vatSummary: (params?: { from?: string; to?: string }) =>
+      request<VatSummaryPayload>('/api/tax-return/vat-summary', { query: params }),
     updateWithholding: (
       voucherId: string,
       data: { rate: number; transferType: 'SERVICE' | 'ROYALTY' | 'INTEREST' | 'OTHER'; note?: string | null },
@@ -1703,6 +1707,31 @@ export interface TaxReturnWithholdingRow {
   currency: string
   paymentMethod: string
   hasOverride: boolean
+}
+
+
+export interface UsSalesTaxPayload {
+  type: 'us-sales-tax'
+  org: { name: string; legalName: string | null; state: string | null; ein: string | null; usFilingClass: string | null }
+  period: { from: string; to: string }
+  currency: string
+  sales: {
+    grossSales: number; taxCollected: number; exemptSales: number; taxableSales: number
+    byState: Array<{ state: string; base: number; tax: number }>
+    byRate: Array<{ rate: number; base: number; tax: number }>
+  }
+  irsGuide: { form: string; title: string; titleAr: string; notes: string[] } | null
+  hint: string | null
+}
+export interface VatSummaryPayload {
+  type: 'vat-summary'
+  org: { name: string; country: string; vatNumber: string | null; vatPeriod: string | null }
+  period: { from: string; to: string }
+  currency: string
+  standardRate: number | null
+  sales: { standardBase: number; standardVat: number; zeroBase: number; exportsBase: number; exemptBase: number; nonTaxBase: number }
+  purchases: { standardBase: number; standardVat: number; zeroExemptBase: number }
+  net: { due: number }
 }
 
 export interface TaxReturnPayload {

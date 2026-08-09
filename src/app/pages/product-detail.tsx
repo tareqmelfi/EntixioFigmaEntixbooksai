@@ -16,6 +16,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Account } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -276,8 +277,8 @@ export function ProductDetail() {
                 </div>
                 {(incomeAccount || expenseAccount) && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800 space-y-0.5">
-                    {incomeAccount && <div>{t("البيع →", "Sale →")} <span className="font-english font-semibold" dir="ltr">{incomeAccount.code} · {incomeAccount.nameAr || incomeAccount.name}</span></div>}
-                    {expenseAccount && <div>{t("الشراء →", "Purchase →")} <span className="font-english font-semibold" dir="ltr">{expenseAccount.code} · {expenseAccount.nameAr || expenseAccount.name}</span></div>}
+                    {incomeAccount && <div>{t("البيع →", "Sale →")} <span className="font-english font-semibold" dir="ltr">{incomeAccount.code} · {displayName(incomeAccount)}</span></div>}
+                    {expenseAccount && <div>{t("الشراء →", "Purchase →")} <span className="font-english font-semibold" dir="ltr">{expenseAccount.code} · {displayName(expenseAccount)}</span></div>}
                   </div>
                 )}
               </CardContent>

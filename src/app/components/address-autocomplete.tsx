@@ -49,13 +49,25 @@ interface NominatimResult {
   };
 }
 
+// US state name → 2-letter code (IRS/state filing needs the code, and an
+// English UI must never carry a localized Arabic name into the State field).
+const US_STATE_CODES: Record<string, string> = {
+  "alabama":"AL","alaska":"AK","arizona":"AZ","arkansas":"AR","california":"CA","colorado":"CO","connecticut":"CT","delaware":"DE","district of columbia":"DC","florida":"FL","georgia":"GA","hawaii":"HI","idaho":"ID","illinois":"IL","indiana":"IN","iowa":"IA","kansas":"KS","kentucky":"KY","louisiana":"LA","maine":"ME","maryland":"MD","massachusetts":"MA","michigan":"MI","minnesota":"MN","mississippi":"MS","missouri":"MO","montana":"MT","nebraska":"NE","nevada":"NV","new hampshire":"NH","new jersey":"NJ","new mexico":"NM","new york":"NY","north carolina":"NC","north dakota":"ND","ohio":"OH","oklahoma":"OK","oregon":"OR","pennsylvania":"PA","rhode island":"RI","south carolina":"SC","south dakota":"SD","tennessee":"TN","texas":"TX","utah":"UT","vermont":"VT","virginia":"VA","washington":"WA","west virginia":"WV","wisconsin":"WI","wyoming":"WY",
+};
+
+function usStateCode(name: string): string {
+  const n = (name || "").trim();
+  if (/^[A-Z]{2}$/.test(n)) return n;
+  return US_STATE_CODES[n.toLowerCase()] || n;
+}
+
 function nominatimToPlace(r: NominatimResult): PlaceResult {
   const a = r.address || {};
   const line1 = [a.house_number, a.road, a.neighbourhood || a.suburb].filter(Boolean).join(" ");
   return {
     line1: line1 || r.display_name.split(",")[0] || "",
     city: a.city || a.town || a.village || a.municipality || "",
-    region: a.state || a.region || a.province || "",
+    region: (a.country_code || "").toUpperCase() === "US" ? usStateCode(a.state || a.region || a.province || "") : (a.state || a.region || a.province || ""),
     postalCode: a.postcode || "",
     country: (a.country_code || "").toUpperCase(),
     lat: Number(r.lat),
@@ -101,7 +113,7 @@ export function AddressAutocomplete({
           format: "jsonv2",
           addressdetails: "1",
           limit: "6",
-          "accept-language": "ar,en",
+          "accept-language": (typeof localStorage !== "undefined" && localStorage.getItem("entix-language") === "en") ? "en" : "ar,en",
         });
         if (country) params.set("countrycodes", country.toLowerCase());
         const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {

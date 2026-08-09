@@ -21,6 +21,7 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Contact, Invoice } from "../lib/api";
+import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
@@ -375,7 +376,7 @@ export function CreditNotes() {
                 onCreateProduct={async (name) => {
                   const p = await (api as any).products.create({ name, type: "GOOD", unitPrice: 0, isActive: true });
                   setProducts((prev) => [p, ...prev]);
-                  push("success", t(`تم إنشاء الصنف ${p.nameAr || p.name}`, `Created item ${p.nameAr || p.name}`));
+                  push("success", t(`تم إنشاء الصنف ${displayName(p)}`, `Created item ${displayName(p)}`));
                   return { id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, taxRate: 0.15, accountId: p.incomeAccountId };
                 }}
                 minRows={Math.max(5, lines.length)}

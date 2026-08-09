@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
-import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow } from "../lib/api";
+import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow, type UsSalesTaxPayload, type VatSummaryPayload } from "../lib/api";
 import { useOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -29,12 +29,16 @@ const transferTypeLabel: Record<TaxReturnWithholdingRow["transferType"], { ar: s
 
 export function Taxes() {
   const { t } = useLanguage();
-  const { isSA } = useOrgRegion();
+  // W30 · the return's SHAPE follows the org's country — a Wyoming company never
+  // sees a Saudi VAT return, and a Saudi company never sees US sales tax.
+  const { isSA, isUS, country } = useOrgRegion();
   const [searchParams, setSearchParams] = useSearchParams();
   const [from, setFrom] = useState(searchParams.get("from") || monthStartIso());
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
 
   const [payload, setPayload] = useState<TaxReturnPayload | null>(null);
+  const [usPayload, setUsPayload] = useState<UsSalesTaxPayload | null>(null);
+  const [vatPayload, setVatPayload] = useState<VatSummaryPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingVoucherId, setSavingVoucherId] = useState<string | null>(null);
@@ -49,6 +53,14 @@ export function Taxes() {
     setLoading(true);
     setError(null);
     try {
+      if (isUS) {
+        setUsPayload(await api.taxReturn.usSalesTax({ from, to }));
+        return;
+      }
+      if (!isSA) {
+        setVatPayload(await api.taxReturn.vatSummary({ from, to }));
+        return;
+      }
       const data = await api.taxReturn.saVat({ from, to });
       setPayload(data);
       const seed: Record<string, { rate: number; transferType: TaxReturnWithholdingRow["transferType"] }> = {};
@@ -145,6 +157,24 @@ export function Taxes() {
 
   // Print-friendly view (browser print-to-PDF, consistent with the rest of the app).
   const printZatca = () => window.print();
+
+  // ── W30 · country-routed views (US sales tax · generic VAT) ──
+  if (isUS) {
+    return (
+      <UsTaxView
+        payload={usPayload} loading={loading} error={error}
+        from={from} to={to} setFrom={setFrom} setTo={setTo} reload={load}
+      />
+    );
+  }
+  if (!isSA) {
+    return (
+      <GenericVatView
+        payload={vatPayload} loading={loading} error={error} country={country}
+        from={from} to={to} setFrom={setFrom} setTo={setTo} reload={load}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -369,5 +399,137 @@ function VatRow({ label, base, tax, currency, strong = false }: { label: string;
       <td className="px-4 py-2.5 text-end"><span dir="ltr" className={`font-english inline-block ${strong ? "font-semibold" : ""}`}>{money(base, currency)}</span></td>
       <td className="px-4 py-2.5 text-end"><span dir="ltr" className={`font-english inline-block ${strong ? "font-semibold" : ""}`}>{money(tax, currency)}</span></td>
     </tr>
+  );
+}
+
+
+// ═══ W30 · US Sales Tax Summary + IRS filing guide ═══
+function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }: {
+  payload: UsSalesTaxPayload | null; loading: boolean; error: string | null;
+  from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; reload: () => void;
+}) {
+  const { t } = useLanguage();
+  const cur = payload?.currency || "USD";
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("ملخص ضريبة المبيعات الأمريكية", "US Sales Tax Summary")}</h1>
+        <p className="text-muted-foreground mt-1">{t("المبيعات والضريبة المحصلة حسب الولاية + النموذج الفيدرالي المناسب لنوع شركتك — اطبعه أو عبّ منه إقرارك.", "Sales & collected tax by state, plus the federal form that fits your entity type — print it or fill your return from it.")}</p>
+      </div>
+      <Card className="border-border">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+          <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("من تاريخ", "From date")}</span><DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" /></label>
+          <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("إلى تاريخ", "To date")}</span><DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" /></label>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={reload}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
+            <Button variant="outline" onClick={() => window.print()} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
+          </div>
+        </CardContent>
+      </Card>
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {loading ? (
+        <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
+      ) : payload ? (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              [t("إجمالي المبيعات", "Gross sales"), money(payload.sales.grossSales, cur)],
+              [t("معفاة / بدون ضريبة", "Exempt / untaxed"), money(payload.sales.exemptSales, cur)],
+              [t("مبيعات خاضعة", "Taxable sales"), money(payload.sales.taxableSales, cur)],
+              [t("الضريبة المحصلة", "Tax collected"), money(payload.sales.taxCollected, cur)],
+            ].map(([l, v]) => (
+              <Card key={l as string} className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">{l}</div><div className="text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.15rem" }} dir="ltr">{v}</div></CardContent></Card>
+            ))}
+          </div>
+
+          {payload.irsGuide && (
+            <Card className="border-blue-200 bg-blue-50/60">
+              <CardHeader><CardTitle className="text-foreground text-base">{t("نموذجك الفيدرالي (IRS)", "Your federal (IRS) form")}: {payload.irsGuide.form}</CardTitle></CardHeader>
+              <CardContent className="space-y-1.5 text-sm text-foreground/80">
+                <div>{t(payload.irsGuide.titleAr, payload.irsGuide.title)}</div>
+                {payload.irsGuide.notes.map((n, i) => <div key={i} className="flex gap-2"><span className="text-blue-600">•</span><span>{n}</span></div>)}
+                {payload.hint && <div className="mt-2 rounded-lg bg-white/70 border border-blue-100 px-3 py-2 text-xs text-blue-900">💡 {payload.hint}</div>}
+                {payload.org.ein && <div className="text-xs text-muted-foreground mt-1">EIN: <span className="font-english">{payload.org.ein}</span>{payload.org.state ? ` · ${t("الولاية", "State")}: ${payload.org.state}` : ""}</div>}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="border-border">
+            <CardHeader><CardTitle className="text-foreground text-base">{t("حسب الولاية", "By state")}</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground"><th className="px-4 py-2 text-start font-medium">{t("الولاية", "State")}</th><th className="px-4 py-2 text-end font-medium">{t("الأساس", "Base")}</th><th className="px-4 py-2 text-end font-medium">{t("الضريبة", "Tax")}</th></tr></thead>
+                <tbody>
+                  {payload.sales.byState.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">{t("لا مبيعات في الفترة", "No sales in this period")}</td></tr>}
+                  {payload.sales.byState.map((r) => (
+                    <tr key={r.state} className="border-b border-border/60">
+                      <td className="px-4 py-2.5 text-foreground">{r.state}</td>
+                      <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block">{money(r.base, cur)}</span></td>
+                      <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block">{money(r.tax, cur)}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ═══ W30 · Generic VAT return (AE/GCC/…) at the org's own rate ═══
+function GenericVatView({ payload, loading, error, country, from, to, setFrom, setTo, reload }: {
+  payload: VatSummaryPayload | null; loading: boolean; error: string | null; country: string;
+  from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; reload: () => void;
+}) {
+  const { t } = useLanguage();
+  const cur = payload?.currency || "SAR";
+  const ratePct = payload?.standardRate != null ? Math.round(payload.standardRate * 100) : null;
+  const Row = ({ label, base, tax, strong }: { label: string; base: number; tax: number; strong?: boolean }) => (
+    <tr className="border-b border-border/60">
+      <td className={`px-4 py-2.5 text-foreground ${strong ? "font-semibold" : ""}`}>{label}</td>
+      <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block">{money(base, cur)}</span></td>
+      <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block">{money(tax, cur)}</span></td>
+    </tr>
+  );
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإقرار الضريبي", "VAT Return")} · {country}</h1>
+        <p className="text-muted-foreground mt-1">{t(`بنود VAT بمعدل بلدك${ratePct != null ? ` (${ratePct}%)` : ""} — اطبعها أو عبّ منها إقرارك الرسمي.`, `VAT lines at your country's rate${ratePct != null ? ` (${ratePct}%)` : ""} — print or fill your official return from them.`)}</p>
+      </div>
+      <Card className="border-border">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+          <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("من تاريخ", "From date")}</span><DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" /></label>
+          <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("إلى تاريخ", "To date")}</span><DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" /></label>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={reload}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
+            <Button variant="outline" onClick={() => window.print()} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
+          </div>
+        </CardContent>
+      </Card>
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {loading ? (
+        <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
+      ) : payload ? (
+        <Card className="border-border">
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground"><th className="px-4 py-2 text-start font-medium">{t("البند", "Line item")}</th><th className="px-4 py-2 text-end font-medium">{t("الأساس الضريبي", "Taxable base")}</th><th className="px-4 py-2 text-end font-medium">{t("الضريبة", "Tax")}</th></tr></thead>
+              <tbody>
+                <Row label={t(`مبيعات بالنسبة الأساسية${ratePct != null ? ` (${ratePct}%)` : ""}`, `Standard-rated sales${ratePct != null ? ` (${ratePct}%)` : ""}`)} base={payload.sales.standardBase} tax={payload.sales.standardVat} />
+                <Row label={t("مبيعات صفرية (محلية)", "Zero-rated sales (domestic)")} base={payload.sales.zeroBase} tax={0} />
+                <Row label={t("الصادرات", "Exports")} base={payload.sales.exportsBase} tax={0} />
+                <Row label={t("مبيعات معفاة", "Exempt sales")} base={payload.sales.exemptBase} tax={0} />
+                <Row label={t(`مشتريات بالنسبة الأساسية${ratePct != null ? ` (${ratePct}%)` : ""}`, `Standard-rated purchases${ratePct != null ? ` (${ratePct}%)` : ""}`)} base={payload.purchases.standardBase} tax={payload.purchases.standardVat} />
+                <Row label={t("مشتريات صفرية ومعفاة", "Zero-rated & exempt purchases")} base={payload.purchases.zeroExemptBase} tax={0} />
+                <Row label={t("صافي الضريبة المستحقة / المستردة", "Net VAT due / refundable")} base={0} tax={payload.net.due} strong />
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      ) : null}
+    </div>
   );
 }
