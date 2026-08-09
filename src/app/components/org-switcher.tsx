@@ -183,7 +183,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
             title={activeOrg?.name ? activeOrg.name + " · " + t("لوحة التحكم","Dashboard") : t("الرئيسية","Home")}
           >
             {activeOrg?.logoUrl ? (
-              <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-cover bg-white border border-border/50 shrink-0" />
+              <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-contain p-0.5 bg-white border border-border/50 shrink-0" />
             ) : (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
                 {orgInitials(activeOrg?.name)}
@@ -221,7 +221,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 >
                   <div className={`flex min-w-0 ${rowDirClass} items-center gap-2`}>
                     {o.logoUrl ? (
-                      <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-cover bg-white border border-border/50 shrink-0" />
+                      <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-contain p-0.5 bg-white border border-border/50 shrink-0" />
                     ) : (
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary text-white text-xs font-english" style={{ fontWeight: 700 }}>
                         {orgInitials(o.name)}
@@ -287,7 +287,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       >
         <div className="flex items-center gap-2.5 min-w-0">
           {activeOrg?.logoUrl ? (
-            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-cover bg-white border border-border/50 shrink-0" />
+            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-contain p-0.5 bg-white border border-border/50 shrink-0" />
           ) : (
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
               {orgInitials(activeOrg?.name)}
@@ -411,7 +411,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 className={`flex w-full ${rowDirClass} items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-primary/5 border-b border-border/50 last:border-b-0`}
               >
                 {o.logoUrl ? (
-                  <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-cover bg-white border border-border/50 shrink-0" />
+                  <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-contain p-0.5 bg-white border border-border/50 shrink-0" />
                 ) : (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-xs font-english" style={{ fontWeight: 700 }}>
                     {orgInitials(o.name)}

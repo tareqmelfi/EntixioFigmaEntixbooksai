@@ -550,7 +550,7 @@ export function Dashboard() {
                           {/* Right side · name + logo placeholder */}
                           <div className="flex items-center gap-2 min-w-0">
                             {(b as any).logoUrl ? (
-                              <img src={(b as any).logoUrl} alt="" className="w-7 h-7 rounded-md object-cover border border-border/50" />
+                              <img src={(b as any).logoUrl} alt="" className="w-7 h-7 rounded-md object-contain p-0.5 border border-border/50" />
                             ) : (
                               <div className="w-7 h-7 rounded-md bg-primary/5 border border-border flex items-center justify-center">
                                 <Wallet className="h-3.5 w-3.5" style={{ color: chartColors.navy }} />
