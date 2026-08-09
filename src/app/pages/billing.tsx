@@ -180,7 +180,10 @@ export function Billing() {
               </div>
               <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
                 <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
-                <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "year" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>{t("سنوي · وفّر", "Yearly · save")}</button>
+                <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "year" ? "bg-emerald-500 text-white shadow-sm" : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300/60"}`} style={{ fontWeight: 700 }}>
+                  {t("سنوي · وفّر", "Yearly · save")}
+                  {cycle === "year" && <span className="ms-1 text-[10px] opacity-90">{planCurrency === "usd" ? t("حتى $118", "up to $118") : t("حتى 598 ر.س", "up to 598 SAR")}</span>}
+                </button>
               </div>
             </div>
           </div>

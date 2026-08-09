@@ -1,6 +1,6 @@
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
-import { FileText, Users, CreditCard, AlertTriangle, Scale, RefreshCw } from "lucide-react";
+import { FileText, Users, CreditCard, AlertTriangle, Scale, RefreshCw, Database, ShieldAlert, CloudOff, HandCoins, Ban, Gavel } from "lucide-react";
 import { useLanguage } from "../components/LanguageContext";
 
 const enSections = [
@@ -63,6 +63,66 @@ const enSections = [
       "Support questions: support@entix.io.",
     ],
   },
+  {
+    icon: Database,
+    title: "7. Your data, retention, and backups",
+    body: "You own your business data. We process it to provide the service, keep daily encrypted backups, and never sell it to anyone.",
+    items: [
+      "You can export your data at any time from Settings before closing an account.",
+      "After account deletion, data is purged after a 30-day grace period, except records we must keep for legal, tax, accounting, security, or dispute reasons (kept isolated, minimum necessary).",
+      "Backups run daily with a 14-day retention window; they exist for disaster recovery, not as a substitute for your own exports.",
+    ],
+  },
+  {
+    icon: CloudOff,
+    title: "8. Availability, maintenance, and errors",
+    body: "We target high availability for a cloud accounting service, but the service is provided as-is and as-available, and uninterrupted or error-free operation is not guaranteed.",
+    items: [
+      "Planned maintenance is announced in-app whenever reasonably possible.",
+      "Third-party dependencies (Stripe, Plaid, ZATCA portals, email delivery, AI providers, Cloudflare) may fail independently of us.",
+      "Known defects are fixed on a commercially reasonable effort basis; critical data-integrity issues take priority.",
+    ],
+  },
+  {
+    icon: ShieldAlert,
+    title: "9. Security incidents and breach notification",
+    body: "We run layered security (encryption in transit and at rest, hashed passwords, role isolation, activity logs). If a confirmed breach affects your data, we tell you.",
+    items: [
+      "We will notify affected customers by email without undue delay after confirming a personal-data breach, describing what happened, what data was affected, and what we are doing about it.",
+      "You are responsible for securing your own devices, sessions, invited users, and API keys.",
+      "Report vulnerabilities to security@entix.io — good-faith security research is welcomed, not prosecuted.",
+    ],
+  },
+  {
+    icon: HandCoins,
+    title: "10. Limitation of liability",
+    body: "To the maximum extent permitted by law, ENTIX.IO, its owners, and its operators are not liable for indirect, incidental, special, consequential, or punitive damages, lost profits, lost data, lost filings, penalties, or business interruption.",
+    items: [
+      "Our total aggregate liability for any claim is capped at the amounts you paid us for the service in the 12 months before the event giving rise to the claim (or USD 100 if you paid nothing).",
+      "Nothing limits liability that cannot legally be limited (willful misconduct, gross negligence, or non-waivable consumer rights).",
+      "You remain responsible for reviewing AI outputs, tax filings, payroll runs, and financial statements before relying on them.",
+    ],
+  },
+  {
+    icon: Ban,
+    title: "11. Suspension and termination",
+    body: "We may suspend or terminate access for non-payment, abuse, security risk, unlawful use, or repeated terms violations — with notice when reasonably possible.",
+    items: [
+      "You may terminate at any time from the billing portal; access continues until the end of the paid period.",
+      "On termination we stop charging; already-incurred fees are non-refundable except where required by law or expressly stated.",
+      "We may retain and use anonymized, aggregated data that no longer identifies you or your customers.",
+    ],
+  },
+  {
+    icon: Gavel,
+    title: "12. Governing law and disputes",
+    body: "These terms are governed by the laws of the State of Wyoming, USA, without regard to conflict-of-law rules, except where mandatory local law applies (including Saudi regulations for Saudi-established entities and ZATCA data requirements).",
+    items: [
+      "The parties first attempt to resolve disputes amicably within 30 days of written notice.",
+      "For US customers: exclusive venue is the state and federal courts of Wyoming. For Saudi establishments: the competent courts of Saudi Arabia, unless the parties agree otherwise in writing.",
+      "If any provision is held unenforceable, the rest of these terms stays in force.",
+    ],
+  },
 ];
 
 const arSections = [
@@ -123,6 +183,66 @@ const arSections = [
       "الأسئلة القانونية: legal@entix.io.",
       "أسئلة الخصوصية: privacy@entix.io.",
       "الدعم: support@entix.io.",
+    ],
+  },
+  {
+    icon: Database,
+    title: "٧. بياناتك والاحتفاظ والنسخ الاحتياطي",
+    body: "بيانات منشأتك ملك لك. نعالجها لتقديم الخدمة، ونحتفظ بنسخ احتياطية يومية مشفرة، ولا نبيعها لأي طرف.",
+    items: [
+      "يمكنك تصدير بياناتك في أي وقت من الإعدادات قبل إغلاق الحساب.",
+      "بعد حذف الحساب تُمحى البيانات بعد فترة سماح 30 يومًا، باستثناء ما يلزم الاحتفاظ به نظامًا للأغراض القانونية أو الضريبية أو المحاسبية أو الأمنية أو النزاعات (يُحفظ معزولًا وبأقل قدر).",
+      "النسخ الاحتياطي يومي بنافذة استرجاع 14 يومًا — وهو للطوارئ ولا يغني عن تصديرك الدوري.",
+    ],
+  },
+  {
+    icon: CloudOff,
+    title: "٨. التوفر والصيانة والأخطاء",
+    body: "نستهدف توفرًا عاليًا لخدمة محاسبة سحابية، لكن الخدمة تُقدَّم «كما هي» و«حسب التوفر»، ولا نضمن عملًا متواصلًا أو خاليًا من الأخطاء.",
+    items: [
+      "الصيانة المجدولة تُعلن داخل التطبيق متى أمكن ذلك.",
+      "الأطراف الخارجية (Stripe وPlaid وبوابات ZATCA والبريد ومزودو الذكاء وCloudflare) قد تتعطل مستقلًا عنا.",
+      "الأخطاء المعروفة تُعالج بجهد تجاري معقول، وقضايا سلامة البيانات الحرجة لها الأولوية.",
+    ],
+  },
+  {
+    icon: ShieldAlert,
+    title: "٩. الحوادث الأمنية والإبلاغ عن الاختراق",
+    body: "نشغّل أمنًا متعدد الطبقات (تشفير أثناء النقل وفي التخزين، كلمات سر مخزّنة مشفرة، عزل صلاحيات، سجلات نشاط). وإن وقع اختراق مؤكد يمس بياناتك نُعلمك.",
+    items: [
+      "سنخطر العملاء المتأثرين بالبريد دون تأخير غير مبرر بعد تأكيد اختراق بيانات شخصية، موضحين ماذا حدث وأي بيانات تأثرت وما نفعله حياله.",
+      "أنت مسؤول عن تأمين أجهزتك وجلساتك والمستخدمين الذين تدعوهم ومفاتيح API الخاصة بك.",
+      "بلّغ الثغرات إلى security@entix.io — البحث الأمني بحسن نية مرحّب به ولا يُلاحق.",
+    ],
+  },
+  {
+    icon: HandCoins,
+    title: "١٠. حدود المسؤولية",
+    body: "بالقدر الذي يسمح به النظام، لا تتحمل ENTIX.IO ومالكوها ومشغلوها أي أضرار غير مباشرة أو عرضية أو خاصة أو تبعية أو عقابية، أو فقدان أرباح أو بيانات أو إقرارات، أو غرامات، أو توقف أعمال.",
+    items: [
+      "سقف مسؤوليتنا الإجمالية عن أي مطالبة هو ما دفعته لنا عن الخدمة خلال الاثني عشر شهرًا السابقة للحدث محل المطالبة (أو 100 دولار أمريكي إن لم تدفع شيئًا).",
+      "لا تحد هذه الشروط مسؤولية لا يجوز تحديدها نظامًا (سوء النية المتعمد، الإهمال الجسيم، حقوق مستهلك غير قابلة للتنازل).",
+      "تبقى مسؤولًا عن مراجعة مخرجات الذكاء والإقرارات الضريبية ومسيرات الرواتب والقوائم المالية قبل الاعتماد عليها.",
+    ],
+  },
+  {
+    icon: Ban,
+    title: "١١. التعليق والإنهاء",
+    body: "يجوز لنا تعليق أو إنهاء الوصول لعدم السداد أو إساءة الاستخدام أو خطر أمني أو استخدام غير نظامي أو مخالفات متكررة — مع إشعار متى أمكن.",
+    items: [
+      "يمكنك الإنهاء في أي وقت من بوابة الفوترة؛ ويستمر الوصول حتى نهاية الفترة المدفوعة.",
+      "عند الإنهاء نوقف التحصيل؛ والرسوم المستحقة سابقًا غير قابلة للاسترداد إلا إذا أوجب النظام أو نُصّ صراحة.",
+      "يجوز لنا الاحتفاظ ببيانات مجمعة مجهولة الهوية لا تُعرّف بك أو بعملائك واستخدامها.",
+    ],
+  },
+  {
+    icon: Gavel,
+    title: "١٢. القانون الحاكم والنزاعات",
+    body: "تخضع هذه الشروط لقوانين ولاية وايومنغ بالولايات المتحدة دون إعمال قواعد تنازع القوانين، باستثناء ما توجبه الأنظمة المحلية الإلزامية (ومنها الأنظمة السعودية للمنشآت السعودية ومتطلبات بيانات ZATCA).",
+    items: [
+      "يحاول الطرفان حل أي نزاع وديًا خلال 30 يومًا من إشعار كتابي.",
+      "لعملاء أمريكا: الاختصاص الحصري لمحاكم وايومنغ. للمنشآت السعودية: المحاكم المختصة في السعودية، ما لم يتفق كتابيًا على غير ذلك.",
+      "إن بُطل حكم من هذه الشروط، يبقى الباقي نافذًا.",
     ],
   },
 ];

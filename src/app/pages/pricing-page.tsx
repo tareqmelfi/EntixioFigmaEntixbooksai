@@ -39,7 +39,7 @@ const PLANS: PlanDef[] = [
     desc: { ar: "للشركات الصغيرة والمتوسطة", en: "For small & medium businesses" },
     color: "#1276E3",
     popular: true,
-    price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 29, yearly: 290 } },
+    price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 19, yearly: 190 } },
     features: {
       ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
       en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
@@ -50,7 +50,7 @@ const PLANS: PlanDef[] = [
     name: { ar: "مؤسسي", en: "Enterprise" },
     desc: { ar: "للمؤسسات الكبيرة", en: "For large organizations" },
     color: "#0B1B49",
-    price: { SAR: { monthly: 299, yearly: 2990 }, USD: { monthly: 79, yearly: 790 } },
+    price: { SAR: { monthly: 299, yearly: 2990 }, USD: { monthly: 59, yearly: 590 } },
     features: {
       ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
       en: ["Everything in Pro", "Unlimited users", "Advanced unlimited AI", "Full multi-currency", "Audit log", "Priority support"],
@@ -220,13 +220,13 @@ export function PricingPage() {
               <button
                 onClick={() => setBillingCycle("yearly")}
                 className={`px-6 py-2.5 rounded-xl transition-all cursor-pointer relative ${
-                  billingCycle === "yearly" ? "bg-white text-foreground shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
+                  billingCycle === "yearly" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-400/40"
                 }`}
-                style={{ fontSize: "15px", fontWeight: 600 }}
+                style={{ fontSize: "15px", fontWeight: 700 }}
               >
-                {t("سنوي", "Yearly")}
-                <span className="absolute -top-2 -end-2 bg-green-500 text-white px-2 py-0.5 rounded-full text-xs">
-                  {t("شهران مجانًا", "2 months free")}
+                {t("سنوي · وفّر", "Yearly · save")}
+                <span className="absolute -top-2 -end-2 bg-emerald-400 text-emerald-950 px-2 py-0.5 rounded-full text-xs" style={{ fontWeight: 800 }}>
+                  {currency === "SAR" ? t("وفّر 238 ر.س+", "Save 238+ SAR") : t("وفّر $38+", "Save $38+")}
                 </span>
               </button>
               <span className="inline-flex rounded-xl overflow-hidden border border-white/25">
@@ -360,7 +360,7 @@ export function PricingPage() {
                 {t("جديد · للبقالات والمشاريع الصغيرة جدًا", "New · for groceries & very small businesses")}
               </span>
               <h3 className="text-foreground mb-1" style={{ fontSize: "19px", fontWeight: 800 }}>
-                {t("باقة لايت — 375 ر.س", "Lite plan — SAR 375")} <span className="text-muted-foreground" style={{ fontSize: "14px", fontWeight: 600 }}>{t("سنويًا فقط", "per year, yearly only")}</span>
+                {currency === "USD" ? t("باقة لايت — $99", "Lite plan — $99") : t("باقة لايت — 375 ر.س", "Lite plan — SAR 375")} <span className="text-muted-foreground" style={{ fontSize: "14px", fontWeight: 600 }}>{t("سنويًا فقط", "per year, yearly only")}</span>
               </h3>
               <p className="text-muted-foreground" style={{ fontSize: "13px", lineHeight: 1.8 }}>
                 {t(
