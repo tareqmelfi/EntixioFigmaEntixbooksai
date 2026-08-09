@@ -22,6 +22,13 @@ import {
   ArrowDownRight,
   Clock,
   Banknote,
+  ShoppingCart,
+  FolderKanban,
+  Building2,
+  HardHat,
+  Scale,
+  Stethoscope,
+  Clapperboard,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -37,6 +44,89 @@ import { useLanguage } from "../components/LanguageContext";
 
 // Unified palette (user directive): navy/blue family only — no rainbow scatter
 const DONUT_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
+
+// ── Industry strip · per-category landing row (P2) ──────────────────────────
+// The org's industry (picked at company creation) tailors one dashboard row:
+// quick KPI chips + shortcuts that matter for THAT business type. All values
+// are real (kpi payload / products fetch) — zero mock data.
+interface StripChip { ar: string; en: string; value: (k: any, lowStock: number | null) => string | number; href: string }
+interface IndustryStrip { icon: any; ar: string; en: string; chips: StripChip[]; stock?: boolean }
+const fmtV = (n: number) => (Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(Math.round(n)));
+const INDUSTRY_STRIP: Record<string, IndustryStrip> = {
+  trade: {
+    icon: ShoppingCart, ar: "التجارة والبيع بالتجزئة", en: "Trade & retail", stock: true,
+    chips: [
+      { ar: "أصناف قاربت تخلص", en: "low-stock items", value: (_k, ls) => (ls === null ? "…" : ls), href: "/app/products" },
+      { ar: "كاشير نقاط البيع", en: "POS cashier", value: () => "›", href: "/app/pos" },
+      { ar: "ذمم عملاء", en: "receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+      { ar: "تقادم الذمم", en: "AR aging", value: () => "›", href: "/app/reports/ar-aging" },
+    ],
+  },
+  ecommerce: {
+    icon: ShoppingCart, ar: "التجارة الإلكترونية", en: "E-commerce", stock: true,
+    chips: [
+      { ar: "أصناف قاربت تخلص", en: "low-stock items", value: (_k, ls) => (ls === null ? "…" : ls), href: "/app/products" },
+      { ar: "كاشير نقاط البيع", en: "POS cashier", value: () => "›", href: "/app/pos" },
+      { ar: "ذمم عملاء", en: "receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+    ],
+  },
+  restaurant: {
+    icon: ShoppingCart, ar: "المطاعم والكافيهات", en: "Restaurants & cafes", stock: true,
+    chips: [
+      { ar: "كاشير اليوم", en: "today's cashier", value: () => "›", href: "/app/pos" },
+      { ar: "أصناف قاربت تخلص", en: "low-stock items", value: (_k, ls) => (ls === null ? "…" : ls), href: "/app/products" },
+      { ar: "فواتير متأخرة", en: "overdue invoices", value: (k) => k.overdueCount, href: "/app/invoices?status=OVERDUE" },
+    ],
+  },
+  manufacturing: {
+    icon: HardHat, ar: "التصنيع", en: "Manufacturing", stock: true,
+    chips: [
+      { ar: "المشاريع", en: "projects", value: () => "›", href: "/app/projects" },
+      { ar: "الأصول الثابتة", en: "fixed assets", value: () => "›", href: "/app/assets" },
+      { ar: "أصناف قاربت تخلص", en: "low-stock items", value: (_k, ls) => (ls === null ? "…" : ls), href: "/app/products" },
+    ],
+  },
+  "real-estate": {
+    icon: Building2, ar: "العقار والمقاولات", en: "Real estate & contracting",
+    chips: [
+      { ar: "المشاريع", en: "projects", value: () => "›", href: "/app/projects" },
+      { ar: "الأصول الثابتة", en: "fixed assets", value: () => "›", href: "/app/assets" },
+      { ar: "ذمم عملاء", en: "receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+    ],
+  },
+  services: {
+    icon: FolderKanban, ar: "الخدمات", en: "Services",
+    chips: [
+      { ar: "ذمم غير محصلة", en: "unbilled receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+      { ar: "فواتير متأخرة", en: "overdue invoices", value: (k) => k.overdueCount, href: "/app/invoices?status=OVERDUE" },
+      { ar: "المشاريع", en: "projects", value: () => "›", href: "/app/projects" },
+    ],
+  },
+  "law-firm": {
+    icon: Scale, ar: "المحاماة والاستشارات", en: "Law firm & consulting",
+    chips: [
+      { ar: "ذمم غير محصلة", en: "unbilled receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+      { ar: "تقادم الذمم", en: "AR aging", value: () => "›", href: "/app/reports/ar-aging" },
+      { ar: "المشاريع", en: "projects", value: () => "›", href: "/app/projects" },
+    ],
+  },
+  "production-studio": {
+    icon: Clapperboard, ar: "استوديو الإنتاج", en: "Production studio",
+    chips: [
+      { ar: "المشاريع", en: "projects", value: () => "›", href: "/app/projects" },
+      { ar: "ذمم غير محصلة", en: "unbilled receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+      { ar: "فواتير متأخرة", en: "overdue invoices", value: (k) => k.overdueCount, href: "/app/invoices?status=OVERDUE" },
+    ],
+  },
+  clinic: {
+    icon: Stethoscope, ar: "العيادات", en: "Clinics",
+    chips: [
+      { ar: "ذمم غير محصلة", en: "unbilled receivables", value: (k) => fmtV(k.accountsReceivable), href: "/app/invoices" },
+      { ar: "فواتير متأخرة", en: "overdue invoices", value: (k) => k.overdueCount, href: "/app/invoices?status=OVERDUE" },
+      { ar: "تقادم الذمم", en: "AR aging", value: () => "›", href: "/app/reports/ar-aging" },
+    ],
+  },
+};
 
 // UX-205 · Locked chart-styles per Figma spec ("Data is the Hero")
 const chartColors = {
@@ -124,7 +214,21 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [seedArmed, setSeedArmed] = useState(false);
   const [onb, setOnb] = useState<{ openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
-  const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStorage.getItem("entix_onb_dismissed") === "1"; } catch { return false; } });
+  const [lowStock, setLowStock] = useState<number | null>(null);
+const industryIdTop = (data?.org as any)?.industry as string | undefined;
+useEffect(() => {
+  if (!industryIdTop || !INDUSTRY_STRIP[industryIdTop]?.stock) return;
+  let alive = true;
+  api.products.list()
+    .then((r) => {
+      if (!alive) return;
+      const items = (r as any).items || [];
+      setLowStock(items.filter((p: any) => Number(p.stockQty) > 0 && Number(p.stockQty) <= 5).length);
+    })
+    .catch(() => {});
+  return () => { alive = false; };
+}, [industryIdTop]);
+const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStorage.getItem("entix_onb_dismissed") === "1"; } catch { return false; } });
   const { toasts, push, dismiss } = useToasts();
   const navigate = useNavigate();
 
@@ -174,6 +278,10 @@ export function Dashboard() {
   const revCompare = pct(data.periodCompare.thisMonth.revenue, data.periodCompare.lastMonth.revenue);
   const expCompare = pct(data.periodCompare.thisMonth.expenses, data.periodCompare.lastMonth.expenses);
   const yearAgo = (data.periodCompare as any).yearAgo || { revenue: 0, expenses: 0, net: 0 };
+
+  // Industry strip (per-category landing row) — driven by org.industry
+  const industryId = (data.org as any).industry as string | undefined;
+  const strip = industryId ? INDUSTRY_STRIP[industryId] : undefined;
 
   return (
     <div className="space-y-3">
@@ -261,6 +369,32 @@ export function Dashboard() {
             </div>
           </div>
           <Link to="/app/invoices?status=OVERDUE" className="text-sm text-red-700 hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
+        </div>
+      )}
+
+      {/* Industry strip · per-category landing row (P2) */}
+      {strip && (
+        <div className="rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3">
+          <div className="flex items-center gap-2 mb-2.5">
+            <strip.icon className="h-4 w-4 text-secondary" />
+            <span className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t(strip.ar, strip.en)}</span>
+            <span className="text-[11px] text-muted-foreground">{t("· لوحة مخصصة لنشاط شركتك", "· tailored to your industry")}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {strip.chips.map((chip) => {
+              const v = chip.value(k, lowStock);
+              return (
+                <Link
+                  key={chip.href + chip.en}
+                  to={chip.href}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-sm hover:border-primary/40 hover:shadow-sm transition"
+                >
+                  <span className="text-muted-foreground">{t(chip.ar, chip.en)}</span>
+                  <span className="font-english text-foreground" style={{ fontWeight: 700 }}>{v}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 
