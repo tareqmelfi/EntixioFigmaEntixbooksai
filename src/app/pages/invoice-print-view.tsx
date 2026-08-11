@@ -141,7 +141,8 @@ export function InvoicePrintView() {
         justifyContent: "center",
         background: "#F4F7FB",
         color: "#0B1B49",
-        fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+        // Arabic-first typography baseline for all invoice error/loading states.
+        fontFamily: "'Noto Sans Arabic','Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
         padding: 24,
       }}>
         <div style={{
@@ -251,7 +252,7 @@ export function InvoicePrintView() {
     <>
       <style>{`
         /* Reset · standalone route · no app chrome */
-        body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Tajawal','Noto Sans Arabic',system-ui,sans-serif; }
+        body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Noto Sans Arabic','Plus Jakarta Sans',system-ui,sans-serif; }
         .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
         .print-wrap-any { overflow-wrap: anywhere; word-break: break-word; }
         .print-table th, .print-table td { white-space: normal !important; vertical-align: top; }

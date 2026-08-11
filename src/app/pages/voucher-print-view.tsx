@@ -216,7 +216,7 @@ export function VoucherPrintView() {
         body {
           margin: 0;
           background: #F4F5F7;
-          font-family: 'Tajawal','Noto Sans Arabic',system-ui,sans-serif;
+          font-family: 'Noto Sans Arabic','Plus Jakarta Sans',system-ui,sans-serif;
         }
         .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
         @media print {
