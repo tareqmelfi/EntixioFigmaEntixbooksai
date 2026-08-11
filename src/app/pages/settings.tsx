@@ -1861,7 +1861,8 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
 function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
   const [primaryColor, setPrimaryColor] = useState(((org as any).brandingSettings || {}).primaryColor || "#1276E3");
   const [accentColor, setAccentColor] = useState(((org as any).brandingSettings || {}).accentColor || "#0B1B49");
-  const [fontFamily, setFontFamily] = useState(((org as any).brandingSettings || {}).fontFamily || "Tajawal");
+  const initialFont = ((org as any).brandingSettings || {}).fontFamily || "Noto Sans Arabic";
+  const [fontFamily, setFontFamily] = useState(initialFont === "Tajawal" ? "Noto Sans Arabic" : initialFont);
   const [logoUrl, setLogoUrl] = useState((org as any).logoUrl || "");
   const [printLogoUrl, setPrintLogoUrl] = useState((org as any).printLogoUrl || "");
   const [stampUrl, setStampUrl] = useState((org as any).stampUrl || "");
@@ -1988,7 +1989,6 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
           <div>
             <Label className="text-xs mb-2 block">{t("الخط", "Font")}</Label>
             <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-              <option value="Tajawal">Tajawal</option>
               <option value="Noto Sans Arabic">Noto Sans Arabic</option>
               <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
             </select>
