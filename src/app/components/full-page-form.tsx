@@ -60,10 +60,7 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
               {subtitle && <p className="text-muted-foreground text-xs mt-0.5 truncate">{subtitle}</p>}
             </div>
           </div>
-          {/* Footer actions duplicated in header for fast access */}
-          <div className="flex items-center gap-2 shrink-0">
-            {footer}
-          </div>
+          {/* Header must stay clean: actions are ONLY in the bottom bar */}
         </div>
         {toolbar && (
           <div className="px-4 sm:px-6 lg:px-8 py-2 border-t border-border/50 bg-muted">

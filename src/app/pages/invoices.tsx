@@ -26,6 +26,7 @@ import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
+import { useOrgRegion } from "../lib/use-org-region";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, APPROVED: { ar: "معتمدة", en: "Approved" }, SENT: { ar: "مرسلة", en: "Sent" }, VIEWED: { ar: "مُشاهَدة", en: "Viewed" }, PAID: { ar: "مدفوعة", en: "Paid" },
@@ -89,6 +90,8 @@ export function Invoices() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const { language } = useLanguage();
+  const { isUS } = useOrgRegion();
+  const defaultTaxRate = isUS ? 0 : 0.15; // US orgs default to 0% sales tax
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
 
@@ -98,7 +101,7 @@ export function Invoices() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   // Multi-line items · UX-5 · Excel paste + bulk tax mode
-  const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
+  const [lines, setLines] = useState<InvoiceLine[]>([newLine(defaultTaxRate)]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
   // PR5-B · prefilled invoice number is only sent when the USER edited it;
   // otherwise the server allocates a collision-proof number (kills duplicate_invoice_number)
@@ -178,7 +181,7 @@ export function Invoices() {
     if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
       const prefillContact = searchParams.get("contactId") || "";
       setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
-      setLines([newLine()]);
+      setLines([newLine(defaultTaxRate)]);
       setTaxMode("all-exclusive");
       setCreateError(null);
       setNumberEdited(false);
@@ -226,7 +229,7 @@ export function Invoices() {
   const openCreate = () => {
     const prefillContact = searchParams.get("contactId") || "";
     setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
-    setLines([newLine()]);
+    setLines([newLine(defaultTaxRate)]);
     setTaxMode("all-exclusive");
     setCreateError(null);
     setNumberEdited(false);
@@ -321,7 +324,7 @@ export function Invoices() {
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
           accountId: l.accountId || null, // revenue account · server resolves fallback when null
-          taxRate: typeof l.taxRate === "number" ? l.taxRate : 0.15, // send numeric rate · server recomputes (B1 fix)
+          taxRate: typeof l.taxRate === "number" ? l.taxRate : defaultTaxRate, // numeric rate · jurisdiction default
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
           unitPrice: l.taxInclusive
@@ -498,7 +501,7 @@ export function Invoices() {
       description: l.description || "",
       quantity: String(l.quantity || 1),
       unitPrice: String(l.unitPrice || 0),
-      taxRate: 0.15,
+      taxRate: typeof l.taxRate === "number" ? l.taxRate : defaultTaxRate,
       taxInclusive: false,
       productId: l.productId || null,
       accountId: l.accountId || null,
@@ -716,7 +719,7 @@ export function Invoices() {
               setLines={setLines}
               mode={taxMode}
               onModeChange={setTaxMode}
-              defaultTaxRate={0.15}
+              defaultTaxRate={defaultTaxRate}
               currency={form.currency}
               direction="sales"
               invalidIds={invalidLineIds}
@@ -748,7 +751,7 @@ export function Invoices() {
               compact
               target="invoice-lines"
               hint={t("استخرج بنود الفاتورة من هذا المستند", "Extract invoice line items from this document")}
-              defaultTaxRate={0.15}
+              defaultTaxRate={defaultTaxRate}
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
@@ -760,7 +763,7 @@ export function Invoices() {
                   description: l.description || "",
                   quantity: String(l.quantity || 1),
                   unitPrice: String(l.unitPrice || 0),
-                  taxRate: l.taxRate ?? 0.15,
+                  taxRate: l.taxRate ?? defaultTaxRate,
                   taxInclusive: l.taxInclusive ?? false,
                   notes: l.notes || undefined,
                 }));
@@ -801,7 +804,7 @@ export function Invoices() {
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">{t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
+                          <span className="text-muted-foreground min-w-0 break-words">{isUS ? t("ضريبة المبيعات", "Sales tax") : t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
@@ -856,7 +859,7 @@ export function Invoices() {
                 name: displayName(p),
                 sku: p.sku,
                 unitPrice: Number(p.unitPrice) || 0,
-                taxRate: Number(p.taxRate) || 0.15,
+                taxRate: Number(p.taxRate) || defaultTaxRate,
                 incomeAccountId: p.incomeAccountId,
               };
             }}
@@ -872,6 +875,22 @@ export function Invoices() {
               });
               setQuickProductReq(null);
               push("success", t(`تم إنشاء المنتج · ${p.name}`, `Product created · ${p.name}`));
+            }}
+          />
+        )}
+
+        {/* Quick-create Contact dialog · MUST render inside create mode too,
+            otherwise SearchableCombobox stays on "creating" forever. */}
+        {pendingContact && (
+          <QuickContactDialog
+            initialName={pendingContact.name}
+            defaultRole="customer"
+            onCancel={() => { pendingContact.reject(); setPendingContact(null); }}
+            onCreated={(c) => {
+              setCustomers((prev) => [c, ...prev]);
+              push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
+              pendingContact.resolve(c.id);
+              setPendingContact(null);
             }}
           />
         )}
@@ -1137,19 +1156,6 @@ export function Invoices() {
       </div>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      {pendingContact && (
-        <QuickContactDialog
-          initialName={pendingContact.name}
-          defaultRole="customer"
-          onCancel={() => { pendingContact.reject(); setPendingContact(null); }}
-          onCreated={(c) => {
-            setCustomers((prev) => [c, ...prev]);
-            push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
-            pendingContact.resolve(c.id);
-            setPendingContact(null);
-          }}
-        />
-      )}
     </div>
   );
 }
