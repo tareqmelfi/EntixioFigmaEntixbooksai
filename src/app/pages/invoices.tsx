@@ -610,24 +610,38 @@ export function Invoices() {
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">{t("جهة الاتصال", "Contact")} *</Label>
-                <SearchableCombobox
-                  value={form.contactId}
-                  onChange={(id) => {
-                    setForm({ ...form, contactId: id });
-                    // Auto-fill reference: contactCode + invoice sequence (editable)
-                    const c = customers.find((x) => x.id === id);
-                    if (c?.customCode) {
-                      const seq = items.filter((iv: any) => iv.contactId === id).length + 1;
-                      setForm((prev: any) => ({ ...prev, contactId: id, reference: prev.reference || `${c.customCode}-${String(seq).padStart(2, '0')}` }));
-                    }
-                  }}
-                  onCreate={(name) => new Promise<string>((resolve, reject) => {
-                    setPendingContact({ name, resolve, reject });
-                  })}
-                  items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
-                  placeholder={t("ابحث عن عميل...", "Search for a customer...")}
-                  createLabel={(q) => t(`+ إنشاء "${q}"`, `+ Create "${q}"`)}
-                />
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 min-w-0">
+                    <SearchableCombobox
+                      value={form.contactId}
+                      onChange={(id) => {
+                        setForm({ ...form, contactId: id });
+                        // Auto-fill reference: contactCode + invoice sequence (editable)
+                        const c = customers.find((x) => x.id === id);
+                        if (c?.customCode) {
+                          const seq = items.filter((iv: any) => iv.contactId === id).length + 1;
+                          setForm((prev: any) => ({ ...prev, contactId: id, reference: prev.reference || `${c.customCode}-${String(seq).padStart(2, '0')}` }));
+                        }
+                      }}
+                      onCreate={(name) => new Promise<string>((resolve, reject) => {
+                        setPendingContact({ name, resolve, reject });
+                      })}
+                      items={customers.map((c) => ({ id: c.id, label: c.displayName, sublabel: c.email || undefined }))}
+                      placeholder={t("ابحث عن عميل...", "Search for a customer...")}
+                      createLabel={(q) => t(`+ إنشاء "${q}"`, `+ Create "${q}"`)}
+                    />
+                  </div>
+                  {!!form.contactId && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/app/contacts/${form.contactId}`)}
+                      className="h-8 px-2 rounded-md border border-border text-xs text-primary hover:bg-blue-50 shrink-0"
+                      title={t("فتح ملف العميل", "Open contact profile")}
+                    >
+                      ↗
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">{t("تاريخ الإصدار", "Issue date")} *</Label>
@@ -1058,7 +1072,23 @@ export function Invoices() {
                         <span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span>
                       </button>
                     </td>
-                    <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}><span className="block whitespace-normal break-words">{i.contact?.displayName || "—"}</span></td>
+                    <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}>
+                      {i.contactId ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/app/contacts/${i.contactId}`);
+                          }}
+                          className="block text-start whitespace-normal break-words text-primary hover:underline underline-offset-4 decoration-primary/40"
+                          title={t("فتح ملف العميل", "Open contact profile")}
+                        >
+                          {i.contact?.displayName || "—"}
+                        </button>
+                      ) : (
+                        <span className="block whitespace-normal break-words">{i.contact?.displayName || "—"}</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
