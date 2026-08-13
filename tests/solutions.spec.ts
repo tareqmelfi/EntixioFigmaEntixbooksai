@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { createServer } from 'node:http'
 import path from 'node:path'
 
 const solutionRoutes = [
@@ -146,7 +148,9 @@ test('solution source and production route gates reject placeholder implementati
   expect(audit).toMatch(/data-page|content density|substantive/i)
   expect(audit).toMatch(/PlaceholderPage|قريباً|قريبًا|Coming soon/i)
   expect(audit).not.toContain('slug === "accountants"')
-  expect(audit).toMatch(/target\.solutionSlug[\s\S]{0,120}429/)
+  expect(audit).toMatch(/\/api\/auth\/get-session/)
+  expect(audit).toMatch(/\/me/)
+  expect(audit).not.toMatch(/target\.solutionSlug[\s\S]{0,120}429/)
   expect(worker).not.toMatch(/MARKETING_PREFIXES\s*=\s*\[[^\]]*['"]\/solutions\//s)
 
   expect(dockerignore).toMatch(/^\.env\.local$/m)
@@ -160,4 +164,54 @@ test('solution source and production route gates reject placeholder implementati
   expect(workflow.match(/playwright test/g) ?? []).toHaveLength(1)
   expect(workflow).toContain('npm run qa:routes')
   expect(workflow).toContain("QA_ROUTE_SCOPE: 'solutions'")
+})
+
+test('scoped route audit starts and stops its Vite server promptly', async () => {
+  test.setTimeout(70_000)
+  const root = path.resolve(process.cwd())
+  const port = '5198'
+  const api = createServer((request, response) => {
+    const cors = {
+      'access-control-allow-origin': 'http://127.0.0.1:5198',
+      'access-control-allow-credentials': 'true',
+    }
+    if (request.url === '/api/auth/get-session') {
+      response.writeHead(429, { ...cors, 'content-type': 'application/json' }).end('{}')
+      return
+    }
+    response.writeHead(404, cors).end('{}')
+  })
+  await new Promise<void>((resolve) => api.listen(5197, '127.0.0.1', resolve))
+  const startedAt = Date.now()
+  const child = spawn(process.execPath, [path.join(root, 'scripts/qa-route-audit.mjs')], {
+    cwd: root,
+    env: {
+      ...process.env,
+      VITE_API_URL: 'http://127.0.0.1:5197',
+      QA_BASE_URL: `http://127.0.0.1:${port}`,
+      QA_AUTO_START: '1',
+      QA_BROWSER: '1',
+      QA_ROUTE_SCOPE: 'solutions',
+      QA_REPORT_DIR: path.join(root, 'test-results', 'route-audit-lifecycle'),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+
+  let output = ''
+  child.stdout.on('data', (chunk) => { output += chunk.toString() })
+  child.stderr.on('data', (chunk) => { output += chunk.toString() })
+  const exit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL')
+      reject(new Error(`route audit did not exit within 60s\n${output}`))
+    }, 60_000)
+    child.once('exit', (code, signal) => {
+      clearTimeout(timer)
+      resolve({ code, signal })
+    })
+  }).finally(() => new Promise<void>((resolve) => api.close(() => resolve())))
+
+  expect(exit, output).toEqual({ code: 0, signal: null })
+  expect(output).toContain('Routes: 5/5 passed')
+  expect(Date.now() - startedAt).toBeLessThan(60_000)
 })

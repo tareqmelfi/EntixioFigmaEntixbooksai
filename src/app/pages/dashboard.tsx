@@ -228,7 +228,7 @@ useEffect(() => {
   return () => { alive = false; };
 }, [industryIdTop]);
 const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStorage.getItem("entix_onb_dismissed") === "1"; } catch { return false; } });
-  const { toasts, push, dismiss } = useToasts();
+  const { toasts, dismiss } = useToasts();
   const navigate = useNavigate();
 
   useEffect(() => { api.onboarding.status().then(setOnb).catch(() => {}); }, []);

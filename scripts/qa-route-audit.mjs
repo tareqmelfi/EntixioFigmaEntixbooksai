@@ -182,7 +182,7 @@ try {
   printConsoleSummary(report, jsonPath, markdownPath);
   process.exitCode = summary.failed === 0 ? 0 : 1;
 } finally {
-  if (devServer) devServer.kill("SIGTERM");
+  if (devServer) await stopDevServer(devServer);
 }
 
 function group(name, items) {
@@ -315,12 +315,20 @@ async function auditRouteInBrowser(target, result, playwright) {
     const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
     const consoleErrors = [];
-    page.on("console", (message) => {
-      if (["error", "warning"].includes(message.type())) {
-        consoleErrors.push(`${message.type()}: ${message.text()}`);
+    const expectedAuthRateLimitUrls = new Set();
+    page.on("response", (response) => {
+      if (response.status() !== 429) return;
+      const pathname = new URL(response.url()).pathname;
+      if (pathname === "/api/auth/get-session" || pathname === "/me") {
+        expectedAuthRateLimitUrls.add(response.url());
       }
     });
-    page.on("pageerror", (error) => consoleErrors.push(`pageerror: ${error.message}`));
+    page.on("console", (message) => {
+      if (["error", "warning"].includes(message.type())) {
+        consoleErrors.push({ text: `${message.type()}: ${message.text()}`, locationUrl: message.location().url || "" });
+      }
+    });
+    page.on("pageerror", (error) => consoleErrors.push({ text: `pageerror: ${error.message}`, locationUrl: "" }));
     await page.goto(routeUrl(target), { waitUntil: "networkidle", timeout: 15_000 });
     const bodyText = await page.locator("body").innerText({ timeout: 5_000 }).catch(() => "");
     const screenshotPath = path.join(screenshotDir, `${safeRouteName(target.pathname)}.png`);
@@ -339,13 +347,13 @@ async function auditRouteInBrowser(target, result, playwright) {
     } else {
       await auditInteractions(page, target, result);
     }
-    const relevantConsoleErrors = consoleErrors.filter((message) => !isExpectedLocalQaAuthNoise(target, message) && !isExpectedSolutionApiNoise(target, message));
+    const relevantConsoleErrors = consoleErrors.filter((message) => !isExpectedLocalQaAuthNoise(target, message.text) && !isExpectedSolutionAuthRateLimit(message, expectedAuthRateLimitUrls));
     const ignoredConsoleErrors = consoleErrors.length - relevantConsoleErrors.length;
     addCheck(
       result,
       "Browser console",
       relevantConsoleErrors.length === 0,
-      relevantConsoleErrors.slice(0, 5).join(" | ")
+      relevantConsoleErrors.slice(0, 5).map((message) => message.text).join(" | ")
         || (ignoredConsoleErrors > 0 ? `clean after ignoring ${ignoredConsoleErrors} expected local auth/API messages` : "clean"),
     );
     if (ignoredConsoleErrors > 0) {
@@ -639,8 +647,9 @@ function safeRouteName(pathname) {
   return (pathname === "/" ? "root" : pathname.replace(/^\/+/, "").replace(/[^a-z0-9]+/gi, "-")).replace(/-+$/g, "") || "route";
 }
 
-function isExpectedSolutionApiNoise(target, message) {
-  return Boolean(target.solutionSlug) && /429 \(Too Many Requests\)/.test(message);
+function isExpectedSolutionAuthRateLimit(message, expectedUrls) {
+  if (!/429 \(Too Many Requests\)/.test(message.text)) return false;
+  return expectedUrls.has(message.locationUrl);
 }
 
 function isExpectedLocalQaAuthNoise(target, message) {
@@ -769,7 +778,8 @@ function printConsoleSummary(report, jsonPath, markdownPath) {
 }
 
 function startDevServer() {
-  const child = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", new URL(baseUrl).port || "5173"], {
+  const viteBin = path.join(projectRoot, "node_modules", "vite", "bin", "vite.js");
+  const child = spawn(process.execPath, [viteBin, "--host", "127.0.0.1", "--port", new URL(baseUrl).port || "5173"], {
     cwd: projectRoot,
     stdio: ["ignore", "pipe", "pipe"],
     env: {
@@ -784,6 +794,23 @@ function startDevServer() {
     if (process.env.QA_VERBOSE === "1") process.stderr.write(data);
   });
   return child;
+}
+
+async function stopDevServer(child, timeoutMs = 5_000) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise((resolve) => child.once("exit", resolve));
+  child.kill("SIGTERM");
+  const stoppedGracefully = await Promise.race([
+    exited.then(() => true),
+    sleep(timeoutMs).then(() => false),
+  ]);
+  if (stoppedGracefully || child.exitCode !== null || child.signalCode !== null) return;
+  child.kill("SIGKILL");
+  const stoppedAfterEscalation = await Promise.race([
+    exited.then(() => true),
+    sleep(2_000).then(() => false),
+  ]);
+  if (!stoppedAfterEscalation) throw new Error(`Vite dev server ${child.pid} did not exit after SIGKILL`);
 }
 
 async function waitForServer(targetBaseUrl, timeoutMs, throwOnTimeout = false) {
