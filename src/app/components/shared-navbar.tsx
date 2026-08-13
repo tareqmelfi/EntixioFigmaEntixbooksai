@@ -82,6 +82,7 @@ export function SharedNavbar() {
         { label: "مركز المساعدة", labelEn: "Help Center", desc: "إجابات لجميع أسئلتك", descEn: "Answers to all your questions", href: "/help" },
         { label: "التوثيق", labelEn: "Documentation", desc: "دليل استخدام شامل", descEn: "Comprehensive user guide", href: "/docs" },
         { label: "الفيديوهات", labelEn: "Videos", desc: "شروحات مرئية تفاعلية", descEn: "Interactive visual tutorials", href: "/videos" },
+        { label: "برنامج الإحالة", labelEn: "Referral Program", desc: "اكسب عمولة 50% مع كل إحالة", descEn: "Earn 50% commission per referral", href: "/referrals" },
       ]
     },
     { label: "الأسعار", labelEn: "Pricing", href: "/pricing" },

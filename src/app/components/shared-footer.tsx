@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
+import { MarketingChat } from "./marketing-chat";
 
 export function SharedFooter() {
   const { language, t } = useLanguage();
@@ -15,6 +16,7 @@ export function SharedFooter() {
       { label: "المميزات", labelEn: "Features", href: "/features" },
       { label: "التكامل والأمان", labelEn: "Integration & security", href: "/integration" },
       { label: "التسعير", labelEn: "Pricing", href: "/pricing" },
+      { label: "برنامج الإحالة", labelEn: "Referral program", href: "/referrals" },
       { label: "التحديثات", labelEn: "Changelog", href: "/changelog" },
       { label: "خارطة الطريق", labelEn: "Roadmap", href: "/roadmap" },
     ],
@@ -263,6 +265,8 @@ export function SharedFooter() {
           </div>
         </div>
       </div>
+      {/* Marketing assistant bubble (Azure agent wired later via VITE_MARKETING_CHAT_URL) */}
+      <MarketingChat />
     </footer>
   );
 }

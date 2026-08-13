@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import {
-  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket
+  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
@@ -67,12 +67,14 @@ const FEATURES_US = [
   { icon: TrendingUp, title: "تحليلات ذكية", titleEn: "Smart analytics", desc: "تنبؤات مالية مدعومة بالذكاء الاصطناعي مع توصيات لتحسين الأداء", descEn: "AI-assisted financial signals and recommendations for better decisions." },
 ];
 
-// Pricing · matches the live plan catalog (api/stripe/plans)
+// Pricing · charge prices match the live plan catalog (api/stripe/plans)
+// standard = anchor list price (strikethrough) · price = today's launch price
 const PRICING_SA = [
   {
     name: "أساسي",
     nameEn: "Starter",
     price: "0",
+    standard: null as string | null,
     period: "مجاني للأبد",
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
@@ -85,6 +87,7 @@ const PRICING_SA = [
     name: "احترافي",
     nameEn: "Professional",
     price: "99",
+    standard: "149",
     period: "ريال / شهرياً",
     periodEn: "SAR / month",
     desc: "للشركات الصغيرة والمتوسطة",
@@ -97,6 +100,7 @@ const PRICING_SA = [
     name: "مؤسسي",
     nameEn: "Enterprise",
     price: "299",
+    standard: "449",
     period: "ريال / شهرياً",
     periodEn: "SAR / month",
     desc: "للمؤسسات الكبيرة",
@@ -112,30 +116,33 @@ const PRICING_US = [
     name: "أساسي",
     nameEn: "Starter",
     price: "0",
+    standard: null as string | null,
     period: "مجاني للأبد",
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
     descEn: "For solo operators and small projects",
-    features: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
-    featuresEn: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
+    features: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ضريبة مبيعات أمريكية", "شهر مجاني على أي باقة مدفوعة"],
+    featuresEn: ["5 invoices / month", "1 user", "Basic reports", "US sales tax", "Free month on any paid plan"],
     highlighted: false
   },
   {
     name: "احترافي",
     nameEn: "Professional",
-    price: "29",
+    price: "19",
+    standard: "29",
     period: "دولار / شهرياً",
     periodEn: "USD / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
-    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "مدفوعات Stripe", "تكاملات بنكية (Plaid)", "API كامل"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Stripe payments", "Bank feeds (Plaid)", "Full API access"],
     highlighted: true
   },
   {
     name: "مؤسسي",
     nameEn: "Enterprise",
-    price: "79",
+    price: "59",
+    standard: "89",
     period: "دولار / شهرياً",
     periodEn: "USD / month",
     desc: "للمؤسسات الكبيرة",
@@ -145,6 +152,58 @@ const PRICING_US = [
     highlighted: false
   },
 ];
+
+// ─── Product showcase · tabbed real screenshots in a browser frame ───
+function ShowcaseTabs({ t }: { t: (ar: string, en?: string) => string }) {
+  const [active, setActive] = useState(0);
+  const shots = [
+    { src: "/marketing/dashboard.webp", label: t("لوحة التحكم", "Dashboard"), desc: t("نظرة لحظية على الإيرادات والمصروفات والضريبة", "A live view of revenue, expenses, and tax") },
+    { src: "/marketing/invoices.webp", label: t("الفواتير", "Invoices"), desc: t("إدارة فواتير العملاء مع الحالات والتحصيل", "Manage customer invoices, statuses, and collection") },
+    { src: "/marketing/ai-agent.webp", label: t("المساعد الذكي", "AI assistant"), desc: t("أنشئ فواتير ومصروفات وتقارير بمحادثة واحدة", "Create invoices, expenses, and reports in one chat") },
+  ];
+  return (
+    <div>
+      <div className="flex justify-center gap-2 mb-8 flex-wrap">
+        {shots.map((s, i) => (
+          <button
+            key={s.src}
+            onClick={() => setActive(i)}
+            className={`px-5 py-2.5 rounded-xl transition-all cursor-pointer ${i === active ? "bg-primary text-white shadow-lg shadow-primary/25" : "bg-muted/60 text-foreground/70 hover:bg-muted"}`}
+            style={{ fontSize: "14px", fontWeight: 600 }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <motion.div
+        key={active}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="rounded-2xl border border-gray-200 shadow-2xl shadow-foreground/10 overflow-hidden bg-white"
+      >
+        {/* Browser chrome */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-muted/60 border-b border-gray-100" dir="ltr">
+          <span className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+          <span className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
+          <span className="w-3 h-3 rounded-full bg-[#28C840]" />
+          <div className="flex-1 mx-4 bg-white rounded-md px-3 py-1 text-muted-foreground text-center" style={{ fontSize: "11px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+            app.entix.io
+          </div>
+        </div>
+        <img
+          src={shots[active].src}
+          alt={shots[active].label}
+          loading="lazy"
+          className="w-full block"
+          width={1440}
+          height={900}
+        />
+      </motion.div>
+      <p className="text-center text-muted-foreground mt-4" style={{ fontSize: "13px" }}>{shots[active].desc}</p>
+    </div>
+  );
+}
 
 const STATS = [
   { value: 30, suffix: "", label: "يومًا تجربة مجانية", labelEn: "days of free trial" },
@@ -197,7 +256,9 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-full" style={{ fontSize: "13px", fontWeight: 600 }}>
                 <Zap className="w-4 h-4" />
-                <span>{t("نظام محاسبة سحابي متكامل للسوقين السعودي والأمريكي", "Cloud accounting for Saudi & US businesses")}</span>
+                <span>{isSA
+                  ? t("نظام محاسبة سحابي متكامل للسوق السعودي", "Cloud accounting for Saudi businesses")
+                  : t("نظام محاسبة سحابي متكامل للسوق الأمريكي", "Cloud accounting for US businesses")}</span>
               </div>
               <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-500/30 px-3.5 py-2 rounded-full" style={{ fontSize: "12px", fontWeight: 700 }}>
                 <Rocket className="w-3.5 h-3.5" />
@@ -210,10 +271,15 @@ export function Landing() {
               <span className="bg-gradient-to-l from-primary to-secondary bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>{t("بذكاء وسهولة", "with clarity and control")}</span>
             </h1>
             <p className="text-muted-foreground mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
-              {t(
-                "ENTIX.IO نظام محاسبة سحابي متكامل. جاهز للفوترة الإلكترونية ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
-                "ENTIX.IO is a cloud accounting platform with ZATCA-ready e-invoicing, full Arabic RTL and English LTR, built for the daily financial operations of growing businesses."
-              )}
+              {isSA
+                ? t(
+                    "ENTIX.IO نظام محاسبة سحابي متكامل. جاهز للفوترة الإلكترونية ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
+                    "ENTIX.IO is a cloud accounting platform with ZATCA-ready e-invoicing, full Arabic RTL and English LTR, built for the daily financial operations of growing businesses."
+                  )
+                : t(
+                    "ENTIX.IO نظام محاسبة سحابي متكامل. ضريبة مبيعات أمريكية، مدفوعات Stripe، ربط بنكي عبر Plaid — وبواجهة عربية أو إنجليزية كاملة.",
+                    "ENTIX.IO is a cloud accounting platform with US sales tax, Stripe payments, and Plaid bank feeds — in a full Arabic or English interface."
+                  )}
             </p>
             <div className="flex flex-wrap gap-3">
               <button 
@@ -234,7 +300,9 @@ export function Landing() {
             </div>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8">
               {[
-                { icon: CheckCircle2, text: t("جاهز لـ ZATCA", "ZATCA-ready") },
+                isSA
+                  ? { icon: CheckCircle2, text: t("جاهز لـ ZATCA", "ZATCA-ready") }
+                  : { icon: CreditCard, text: t("مدفوعات Stripe + Plaid", "Stripe + Plaid") },
                 { icon: Database, text: t("نسخ احتياطي يومي", "Daily backups") },
                 { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
               ].map(t => (
@@ -335,6 +403,18 @@ export function Landing() {
         </div>
       </section>
 
+      {/* ─── Product showcase · real app screenshots ─── */}
+      <section id="showcase" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="inline-block bg-primary/5 text-primary px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("من داخل المنصة", "Inside the product")}</span>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("شاهد ENTIX.IO أثناء العمل", "See ENTIX.IO at work")}</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>{t("لقطات حقيقية من المنصة — لوحة التحكم، الفواتير، والمساعد الذكي", "Real product screens — the dashboard, invoices, and the AI assistant")}</p>
+          </div>
+          <ShowcaseTabs t={t} />
+        </div>
+      </section>
+
       {/* ─── Sync Architecture ─── */}
       <section id="sync" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
@@ -407,11 +487,40 @@ export function Landing() {
       {/* ─── Pricing ─── */}
       <section id="pricing" className="py-20 sm:py-24 bg-muted/40 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <span className="inline-block bg-orange-50 text-amber-700 px-4 py-1.5 rounded-full mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الأسعار", "Pricing")}</span>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 700 }}>{t("خطط أسعار مرنة", "Flexible pricing plans")}</h2>
             <p className="text-muted-foreground" style={{ fontSize: "16px" }}>{t("اختر الخطة المناسبة لحجم أعمالك — يمكنك الترقية في أي وقت", "Choose the plan that fits your business size. You can upgrade at any time.")}</p>
           </div>
+
+          {/* 2 years + 1 year free offer */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="max-w-4xl mx-auto mb-10 rounded-2xl bg-gradient-to-l from-primary to-secondary p-[1.5px]"
+          >
+            <div className="rounded-2xl bg-white px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-center sm:text-start">
+                <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                  <Gift className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <div className="text-foreground" style={{ fontSize: "16px", fontWeight: 700 }}>
+                    {t("عرض سنتين + سنة مجاناً", "2 years + 1 year free")}
+                  </div>
+                  <div className="text-muted-foreground" style={{ fontSize: "13px" }}>
+                    {t("ادفع 24 شهراً واحصل على 36 شهراً كاملة — يُفعَّل عبر فريق المبيعات", "Pay for 24 months, get a full 36 — activated via our sales team")}
+                  </div>
+                </div>
+              </div>
+              <a
+                href="mailto:support@entix.io?subject=2Y%2B1Y%20Offer"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/80 text-white px-6 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                style={{ fontSize: "14px", fontWeight: 600 }}
+              >
+                {t("فعّل العرض", "Activate offer")}
+              </a>
+            </div>
+          </motion.div>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {PRICING.map((plan, i) => (
               <motion.div
@@ -433,10 +542,24 @@ export function Landing() {
                 )}
                 <h3 style={{ fontSize: "20px", fontWeight: 600 }} className={plan.highlighted ? "text-white mt-2" : "text-foreground"}>{t(plan.name, plan.nameEn)}</h3>
                 <p style={{ fontSize: "13px" }} className={`mt-1 ${plan.highlighted ? "text-muted-foreground" : "text-muted-foreground/60"}`}>{t(plan.desc, plan.descEn)}</p>
-                <div className="flex items-baseline gap-1 mt-4 mb-1" dir="ltr">
+                {plan.standard && (
+                  <div className="flex items-center gap-2 mt-4" dir="ltr">
+                    <span
+                      style={{ fontSize: "15px", fontWeight: 500, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", textDecoration: "line-through" }}
+                      className={plan.highlighted ? "text-muted-foreground" : "text-muted-foreground/60"}
+                    >{plan.standard}</span>
+                    <span className="bg-green-50 text-green-700 border border-green-500/30 px-2 py-0.5 rounded-full" style={{ fontSize: "11px", fontWeight: 700 }}>
+                      {t("سعر الإطلاق", "Launch price")} −{Math.round((1 - Number(plan.price) / Number(plan.standard)) * 100)}%
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-baseline gap-1 mt-1 mb-1" dir="ltr">
                   <span style={{ fontSize: "40px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }} className={plan.highlighted ? "text-white" : "text-foreground"}>{plan.price}</span>
                 </div>
                 <p style={{ fontSize: "13px" }} className={plan.highlighted ? "text-muted-foreground" : "text-muted-foreground"}>{t(plan.period, plan.periodEn)}</p>
+                {plan.standard && (
+                  <p className="text-green-600 mt-1" style={{ fontSize: "12px", fontWeight: 600 }}>{t("+ شهرك الأول مجاناً", "+ your first month free")}</p>
+                )}
                 <hr className={`my-6 ${plan.highlighted ? "border-white/10" : "border-gray-100"}`} />
                 <ul className="space-y-3">
                   {plan.features.map((f, fi) => (
@@ -466,6 +589,33 @@ export function Landing() {
               </motion.div>
             ))}
           </div>
+
+          {/* Referral program strip */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="max-w-4xl mx-auto mt-10 rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3 text-center sm:text-start">
+              <div className="w-11 h-11 rounded-xl bg-white border border-primary/20 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <div className="text-foreground" style={{ fontSize: "15px", fontWeight: 700 }}>
+                  {t("برنامج الإحالة: صديقك يحصل على خصم، وأنت على عمولة 50%", "Referral program: your friend gets a discount, you earn 50% commission")}
+                </div>
+                <div className="text-muted-foreground" style={{ fontSize: "13px" }}>
+                  {t("شارك كودك — يحصل المشترك الجديد على خصم، وتُحوَّل لك عمولتك كمسوّق معتمد", "Share your code — new subscribers get a discount, and you earn as an approved marketer")}
+                </div>
+              </div>
+            </div>
+            <Link
+              to="/referrals"
+              className="inline-flex items-center gap-2 border-2 border-primary text-primary hover:bg-primary hover:text-white px-6 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+              style={{ fontSize: "14px", fontWeight: 600 }}
+            >
+              {t("صفحة الإحالات", "Referrals page")}
+            </Link>
+          </motion.div>
         </div>
       </section>
 

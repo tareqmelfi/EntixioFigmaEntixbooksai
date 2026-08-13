@@ -3,7 +3,7 @@ import { CheckCircle2, X, Sparkles, ArrowLeft, ArrowRight, HelpCircle, Rocket, A
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { api } from "../lib/api";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
@@ -18,6 +18,8 @@ interface PlanDef {
   color: string;
   popular?: boolean;
   price: Record<"SAR" | "USD", { monthly: number; yearly: number }>;
+  /** anchor list price (monthly, strikethrough) — charge price stays `price` */
+  standard?: Record<"SAR" | "USD", number>;
   features: { ar: string[]; en: string[] };
 }
 
@@ -40,6 +42,7 @@ const PLANS: PlanDef[] = [
     color: "#1276E3",
     popular: true,
     price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 19, yearly: 190 } },
+    standard: { SAR: 149, USD: 29 },
     features: {
       ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
       en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
@@ -51,6 +54,7 @@ const PLANS: PlanDef[] = [
     desc: { ar: "للمؤسسات الكبيرة", en: "For large organizations" },
     color: "#0B1B49",
     price: { SAR: { monthly: 299, yearly: 2990 }, USD: { monthly: 59, yearly: 590 } },
+    standard: { SAR: 449, USD: 89 },
     features: {
       ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
       en: ["Everything in Pro", "Unlimited users", "Advanced unlimited AI", "Full multi-currency", "Audit log", "Priority support"],
@@ -293,6 +297,16 @@ export function PricingPage() {
                 </div>
 
                 <div className="mb-8">
+                  {billingCycle === "monthly" && plan.standard && plan.price[currency].monthly > 0 && (
+                    <div className="flex items-center gap-2 mb-1" dir="ltr">
+                      <span className="text-muted-foreground/60" style={{ fontSize: "15px", fontWeight: 500, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", textDecoration: "line-through" }}>
+                        {currencySymbol}{plan.standard[currency]}
+                      </span>
+                      <span className="bg-green-50 text-green-700 border border-green-500/30 px-2 py-0.5 rounded-full" style={{ fontSize: "11px", fontWeight: 700 }}>
+                        {t("سعر الإطلاق", "Launch price")} −{Math.round((1 - plan.price[currency].monthly / plan.standard[currency]) * 100)}%
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-baseline gap-2 mb-2" dir="ltr">
                     <span className="text-foreground" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {plan.price[currency][billingCycle] === 0
@@ -380,6 +394,43 @@ export function PricingPage() {
         </div>
       </section>
 
+      {/* 2 years + 1 year free offer */}
+      <section className="pb-14 px-4 sm:px-6 lg:px-8 -mt-2 relative z-10">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-3xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-50 to-orange-50 p-8 sm:p-10 relative overflow-hidden"
+          >
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <span className="w-11 h-11 rounded-2xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                <Gift className="w-5 h-5 text-amber-600" />
+              </span>
+              <h2 className="text-foreground" style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 800 }}>
+                {t("عرض سنتين + سنة مجاناً", "2 years + 1 year FREE")}
+              </h2>
+              <span className="bg-amber-500 text-white px-3 py-1 rounded-full" style={{ fontSize: "12px", fontWeight: 800 }}>
+                {t("وفّر 33%", "Save 33%")}
+              </span>
+            </div>
+            <p className="text-muted-foreground mb-6" style={{ fontSize: "15px", lineHeight: 1.9 }}>
+              {t(
+                "ادفع 24 شهراً واحصل على 36 شهراً كاملة على أي باقة مدفوعة — السنة الثالثة علينا. العرض يُفعَّل يدوياً عبر فريق المبيعات بعد اشتراكك السنوي.",
+                "Pay for 24 months and get a full 36 on any paid plan — the third year is on us. The offer is activated manually by our sales team after your annual subscription."
+              )}
+            </p>
+            <a
+              href="mailto:support@entix.io?subject=2Y%2B1Y%20Offer"
+              className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-7 py-3 rounded-xl transition-all cursor-pointer"
+              style={{ fontSize: "15px", fontWeight: 700 }}
+            >
+              {t("فعّل العرض عبر الدعم", "Activate via support")}
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Switcher Offer — free migration + remaining time credited FREE */}
       <section className="py-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -458,6 +509,13 @@ export function PricingPage() {
                 "Refer companies to ENTIX.IO and earn a 50% rebate, paid out as approved-marketer commissions — under a clear agreement and a documented payout process. The program is in its final stages and launches fully soon."
               )}
             </p>
+            <Link
+              to="/referrals"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary/80 text-white px-7 py-3 rounded-xl transition-all cursor-pointer mt-6"
+              style={{ fontSize: "14px", fontWeight: 700 }}
+            >
+              {t("افتح صفحة الإحالات وأنشئ كودك", "Open the referrals page and generate your code")}
+            </Link>
           </div>
         </div>
       </section>

@@ -256,9 +256,11 @@ class AuthStore {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('entix_auth_hint')
-        // Clear org-scoped data caches
+        // Clear org-scoped data caches — but keep device-level preferences
+        // (consent choice, language, marketing region are per-device, not per-user)
+        const DEVICE_KEYS = new Set(['entix_token', 'entix-language', 'entix-marketing-region', 'entix_cookie_consent_v1'])
         for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('entix_') && key !== 'entix_token') {
+          if (key.startsWith('entix_') && !DEVICE_KEYS.has(key)) {
             localStorage.removeItem(key)
           }
         }
