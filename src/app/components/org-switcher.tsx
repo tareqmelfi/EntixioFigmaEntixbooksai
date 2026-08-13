@@ -551,6 +551,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   // W27 · simplified creation: only the essentials are visible by default;
   // everything else lives behind the advanced toggle ("complete later").
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -588,17 +589,15 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError(t("الاسم مطلوب", "Name is required")); return; }
+    if (!form.name.trim()) {
+      setFieldErrors({ name: [t("الاسم مطلوب", "Name is required")] });
+      return;
+    }
     setBusy(true);
     setError(null);
+    setFieldErrors({});
     try {
-      const slug = form.name
-        .toLowerCase()
-        .replace(/[^a-z0-9؀-ۿ]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 30) || `co-${Math.random().toString(36).slice(2, 8)}`;
       const payload: any = {
-        slug: slug + "-" + Math.random().toString(36).slice(2, 6),
         name: form.name.trim(),
         country: form.country,
         baseCurrency: form.baseCurrency,
@@ -621,6 +620,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
       const org = await api.orgs.create(payload);
       onCreated(org);
     } catch (e: any) {
+      setFieldErrors(e?.fieldErrors || {});
       // Defensive: ApiError.message is always a string after our normalization
       const msg =
         typeof e?.message === "string" ? e.message :
@@ -702,8 +702,11 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة", "Company name")} <span className="text-red-500">*</span></label>
-                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder={t("مثال: شركة الأفق للتجارة", "e.g. Horizon Trading Co.")} className={inp} />
+                <input type="text" required value={form.name} aria-invalid={!!fieldErrors.name?.length}
+                  onChange={(e) => { setForm({ ...form, name: e.target.value }); setFieldErrors((current) => ({ ...current, name: [] })); }}
+                  placeholder={t("مثال: شركة الأفق للتجارة", "e.g. Horizon Trading Co.")}
+                  className={`${inp} ${fieldErrors.name?.length ? "border-red-500 focus:border-red-500" : ""}`} />
+                {fieldErrors.name?.map((message) => <p key={message} className="mt-1 text-xs text-red-600">{message}</p>)}
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1.5">{t("الشعار", "Logo")}</label>

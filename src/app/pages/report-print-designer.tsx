@@ -27,7 +27,6 @@ export function ReportPrintDesigner() {
 
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
-  const demo = searchParams.get("demo") === "1";
 
   useEffect(() => {
     let alive = true;
@@ -35,7 +34,7 @@ export function ReportPrintDesigner() {
       setLoading(true);
       setError(null);
       try {
-        const payload = await api.reports.get(id, { from, to, demo: demo ? 1 : undefined });
+        const payload = await api.reports.get(id, { from, to });
         const fullOrg = await api.orgs.get(payload.org.id);
         const nextSettings = normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports);
         if (alive) {
@@ -52,7 +51,7 @@ export function ReportPrintDesigner() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, demo]);
+  }, [id, from, to]);
 
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
   const selectClass = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary";

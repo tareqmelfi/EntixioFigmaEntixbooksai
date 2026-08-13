@@ -37,6 +37,10 @@ export interface AuthState {
   loading: boolean
 }
 
+export function isDemoMembership(membership: { org?: { demoExpiresAt?: string | null } | null } | null | undefined): boolean {
+  return membership?.org?.demoExpiresAt != null
+}
+
 const USER_CACHE_KEY = 'entix_user_cache'
 
 function writeCachedUser(user: User | null) {
@@ -109,10 +113,8 @@ class AuthStore {
         const sorted = [...memberships].sort((a: any, b: any) =>
           new Date(a?.createdAt || 0).getTime() - new Date(b?.createdAt || 0).getTime()
         )
-        // Prefer non-demo orgs (slug doesn't start with "demo-") over demo orgs.
-        // Demo orgs are created by the "seed demo data" feature and have slugs
-        // like "demo-sa-fova" or "demo-us-9sou".
-        const isDemo = (m: any) => (m?.org?.slug || '').startsWith('demo-')
+        // Demo identity is explicit server state; names and slugs are ordinary labels.
+        const isDemo = isDemoMembership
         // Cross-platform truth: the server-side selection (User.selectedOrgId)
         // is written by ANY platform on an explicit pick (validated against
         // membership server-side). It always wins over the local copy so web

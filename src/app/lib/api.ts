@@ -72,11 +72,13 @@ export class ApiError extends Error {
   messageAr?: string
   /** correlation id logged server-side · quote it to support */
   requestId?: string
+  /** structured validation messages keyed by request field */
+  fieldErrors?: Record<string, string[]>
   constructor(
     status: number,
     message: string,
     detail?: string,
-    extras?: { code?: string; messageAr?: string; requestId?: string },
+    extras?: { code?: string; messageAr?: string; requestId?: string; fieldErrors?: Record<string, string[]> },
   ) {
     super(message)
     this.status = status
@@ -84,6 +86,7 @@ export class ApiError extends Error {
     this.code = extras?.code
     this.messageAr = extras?.messageAr
     this.requestId = extras?.requestId
+    this.fieldErrors = extras?.fieldErrors
   }
 }
 
@@ -156,6 +159,7 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     let code: string | undefined
     let messageAr: string | undefined
     let requestId: string | undefined
+    let fieldErrors: Record<string, string[]> | undefined
     if (data && typeof data === 'object') {
       const d = data as any
       if (typeof d.error === 'string') { message = d.error; code = d.error }
@@ -175,6 +179,7 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
       }
       if (typeof d.messageAr === 'string') messageAr = d.messageAr
       if (typeof d.requestId === 'string') requestId = d.requestId
+      if (d.fieldErrors && typeof d.fieldErrors === 'object') fieldErrors = d.fieldErrors
       detail = typeof d.detail === 'string' ? d.detail : (d.detail ? JSON.stringify(d.detail) : undefined)
     } else if (typeof data === 'string' && data.trim()) {
       message = data.slice(0, 500)
@@ -183,7 +188,7 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
       requestId = clientErrorRef()
       console.error(`[api] ${requestId} ${opts.method || 'GET'} ${path} → ${res.status}`, { code, message })
     }
-    throw new ApiError(res.status, message, detail, { code, messageAr, requestId })
+    throw new ApiError(res.status, message, detail, { code, messageAr, requestId, fieldErrors })
   }
 
   return data as T
@@ -225,7 +230,7 @@ export const api = {
       request<NumberingSettings>(`/orgs/${id}/numbering`, { skipOrg: true }),
     saveNumbering: (id: string, data: NumberingSettings) =>
       request<NumberingSettings>(`/orgs/${id}/numbering`, { method: 'PATCH', body: data, skipOrg: true }),
-    resetData: (id: string, data: { mode: 'blank' | 'demo' | 'clean_company'; confirmName: string }) =>
+    resetData: (id: string, data: { mode: 'blank' | 'clean_company'; confirmName: string }) =>
       request<{ ok: true; mode: string; counts?: Record<string, number>; org?: Org }>(`/orgs/${id}/reset-data`, { method: 'POST', body: data, skipOrg: true }),
     auditLog: (id: string, limit = 50) =>
       request<{ items: AuditLogItem[] }>(`/orgs/${id}/audit-log`, { query: { limit }, skipOrg: true }),
@@ -377,7 +382,7 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; demo?: number }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
@@ -965,11 +970,6 @@ export const api = {
       request<{ ok: true; to: string }>(`/api/invoices/${id}/email`, { method: 'POST', body: body || {} }),
   },
 
-  // Demo data · seed two orgs (SA + US) for the current user · UX-179 + UX-199 fix
-  seedDemoData: (orgId: string) =>
-    request<{ ok: true; seeded: any }>(
-      `/orgs/${orgId}/seed-demo-data`, { method: 'POST', body: {}, skipOrg: true },
-    ),
   // W27 · single demo policy — one demo per user, auto-expires after 30 days.
   // 409 demo_exists unless replace=true (the server deletes the old demo first).
   // ── POS · cashier (W27-next) ──
@@ -1094,7 +1094,7 @@ export interface MeResponse extends User {
   memberships: Array<{
     id: string
     role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER'
-    org: { id: string; slug: string; name: string; baseCurrency: string; country: string }
+    org: { id: string; slug: string; name: string; baseCurrency: string; country: string; demoExpiresAt?: string | null }
   }>
 }
 
@@ -1133,6 +1133,7 @@ export interface Org {
   suiteUnit?: string | null
   state?: string | null
   industry?: string | null
+  demoExpiresAt?: string | null
   taxRegistrationDate?: string | null
   firstVatPeriodStart?: string | null
   vatPeriod?: 'monthly' | 'quarterly' | null
@@ -1155,7 +1156,6 @@ export interface AuditLogItem {
 }
 
 export interface CreateOrgInput {
-  slug: string
   name: string
   legalName?: string
   country?: string
@@ -1216,7 +1216,7 @@ export interface ReportPayload {
   englishTitle: string
   description: string
   category: string
-  status: 'live' | 'demo' | 'empty'
+  status: 'live' | 'empty'
   generatedAt: string
   period: { from: string; to: string }
   currency: string
@@ -1962,7 +1962,6 @@ export async function bootstrap() {
     const orgs = await api.orgs.list()
     if (orgs.length === 0) {
       const newOrg = await api.orgs.create({
-        slug: `demo-${Math.random().toString(36).slice(2, 8)}`,
         name: 'My Company',
         country: 'SA',
         baseCurrency: 'SAR',

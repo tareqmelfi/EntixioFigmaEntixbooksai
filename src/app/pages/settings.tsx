@@ -33,7 +33,6 @@ export function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [seedArmed, setSeedArmed] = useState(false);
   const [form, setForm] = useState({
     name: "", legalName: "", legalType: "" as string, legalSubtype: "" as string, country: "SA", baseCurrency: "SAR",
     vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
@@ -480,46 +479,7 @@ export function Settings() {
             )}
 
             <div className="flex items-center justify-between pt-2 gap-2">
-              {seedArmed ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!org) return;
-                      setSeedArmed(false);
-                      try {
-                        const r = await (api as any).seedDemoData(org.id);
-                        if (r?.ok) {
-                          push("success", t("تمت إضافة البيانات التجريبية", "Demo data added"));
-                          setSaved(true);
-                          setTimeout(() => window.location.reload(), 800);
-                        }
-                      } catch (e: any) {
-                        setError(e?.message || t("فشل التعبئة", "Seeding failed"));
-                      }
-                    }}
-                    className="px-3 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700"
-                  >
-                    {t("تأكيد التعبئة", "Confirm seeding")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSeedArmed(false)}
-                    className="px-3 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted"
-                  >
-                    {t("إلغاء", "Cancel")}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setSeedArmed(true)}
-                  className="px-3 py-2 text-sm rounded-md border border-green-200 text-green-700 hover:bg-green-50 flex items-center gap-2"
-                >
-                  ✨ {t("تعبئة بيانات تجريبية كاملة", "Seed full demo data")}
-                </button>
-              )}
-              <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90">
+                            <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 me-2" /> {t("حفظ التغييرات", "Save changes")}</>}
               </Button>
             </div>
@@ -734,7 +694,7 @@ function DataResetTab({
   const [accountConfirm, setAccountConfirm] = useState("");
   const [accountDeleting, setAccountDeleting] = useState(false);
   const [accountScheduled, setAccountScheduled] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"blank" | "demo" | "clean_company" | null>(null);
+  const [busy, setBusy] = useState<"blank" | "clean_company" | null>(null);
   const [deleting, setDeleting] = useState(false);
   // W27 · transfer ownership (e.g. I created it but it belongs to a client)
   const [transferEmail, setTransferEmail] = useState("");
@@ -758,7 +718,7 @@ function DataResetTab({
 
   useEffect(() => { loadAudit(); }, [loadAudit]);
 
-  const runReset = async (mode: "blank" | "demo" | "clean_company") => {
+  const runReset = async (mode: "blank" | "clean_company") => {
     if (confirmName.trim() !== org.name && confirmName.trim() !== org.slug) {
       push("error", t("اكتب اسم الشركة أو slug كما هو للتأكيد", "Type the company name or slug as-is to confirm"));
       return;
@@ -773,7 +733,7 @@ function DataResetTab({
         setTimeout(() => window.location.reload(), 500);
         return;
       }
-      push("success", mode === "demo" ? t("تمت إعادة ضبط البيانات وتحميل بيانات تجريبية", "Data reset and demo data loaded") : t("تمت إعادة ضبط بيانات الشركة", "Company data has been reset"));
+      push("success", t("تمت إعادة ضبط بيانات الشركة", "Company data has been reset"));
       setConfirmName("");
       await refresh();
       await loadAudit();
@@ -842,7 +802,7 @@ function DataResetTab({
           </div>
           <Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={org.name} className="border-border" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <ResetOption
               title={t("شركة فاضية", "Blank company")}
               description={t("يمسح المستندات والجهات والمنتجات ويعيد دليل الحسابات والضريبة والمستودع الرئيسي.", "Erases documents, contacts, and products, and resets the chart of accounts, taxes, and the main warehouse.")}
@@ -851,15 +811,6 @@ function DataResetTab({
               busy={busy === "blank"}
               onClick={() => runReset("blank")}
               action={t("إعادة ضبط", "Reset")}
-            />
-            <ResetOption
-              title={t("بيانات تجريبية", "Demo data")}
-              description={t("يمسح البيانات ثم يضيف عميل ومورد وموظف ومنتج وفاتورة ومشتريات جاهزة للفحص.", "Erases data then adds a customer, supplier, employee, product, invoice, and purchases ready for inspection.")}
-              icon={Sparkles}
-              disabled={disabled}
-              busy={busy === "demo"}
-              onClick={() => runReset("demo")}
-              action={t("تحميل ديمو", "Load demo")}
             />
             <ResetOption
               title={t("شركة نظيفة جديدة", "New clean company")}
