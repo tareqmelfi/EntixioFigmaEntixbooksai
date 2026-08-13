@@ -12,6 +12,15 @@ import puppeteer from 'puppeteer'
 
 const DIST = path.resolve('dist')
 const PORT = 4319
+const SITE_ORIGIN = 'https://entix.io'
+const SOLUTION_ROUTES = new Set([
+  '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
+  '/solutions/restaurants', '/solutions/ecommerce',
+])
+const PLACEHOLDER_SIGNATURES = [/قريباً/i, /قريبًا/i, /coming soon/i]
+
+// Prerender is deliberately deterministic: LanguageContext and MarketingRegion
+// default to English + Saudi Arabia when storage is empty.
 
 const META = {
   '/': ['Entix Books · محاسبة سحابية عربية — فواتير، زاتكا، مدفوعات', 'محاسبة سحابية عربية/إنجليزية: فواتير إلكترونية متوافقة مع زاتكا، عروض أسعار، سندات قبض وصرف، مشتريات، مصروفات بـ OCR، بوابة عملاء، تقارير، ومساعد ذكاء اصطناعي.'],
@@ -36,11 +45,11 @@ const META = {
   '/terms': ['الشروط والأحكام · Entix Books', 'شروط استخدام منصة Entix Books.'],
   '/refund': ['سياسة الاسترداد · Entix Books', 'سياسة استرداد اشتراكات Entix Books.'],
   '/sla': ['اتفاقية مستوى الخدمة · Entix Books', 'التزامات التوافر والدعم في Entix Books.'],
-  '/solutions/small-business': ['للشركات الصغيرة · Entix Books', 'محاسبة بسيطة وقوية للشركات الصغيرة والناشئة.'],
-  '/solutions/accountants': ['للمحاسبين · Entix Books', 'أدوات المحاسب المحترف: قيود، ميزان مراجعة، تقارير، وعملاء متعددون.'],
-  '/solutions/enterprises': ['للمؤسسات · Entix Books', 'حوكمة، فروع، مراكز تكلفة، وصلاحيات دقيقة للمؤسسات.'],
-  '/solutions/restaurants': ['للمطاعم · Entix Books', 'فوترة وتكاليف ورواتب للمطاعم والمقاهي.'],
-  '/solutions/ecommerce': ['للتجارة الإلكترونية · Entix Books', 'محاسبة متكاملة لمتاجر التجارة الإلكترونية.'],
+  '/solutions/small-business': ['Accounting for Small Businesses · Entix Books', 'Run invoices, expenses, banking, and reports in one bilingual workspace, with Saudi and US market guidance.'],
+  '/solutions/accountants': ['Accounting Workspace for Accountants · Entix Books', 'Review client documents, entries, controls, and reports with independent Saudi VAT/ZATCA and US sales tax/1099 guidance.'],
+  '/solutions/enterprises': ['Enterprise Accounting Controls · Entix Books', 'Organize branches, cost centers, user access, and exportable financial reports in a bilingual workspace.'],
+  '/solutions/restaurants': ['Accounting for Restaurants and Cafés · Entix Books', 'Review restaurant sales, purchases, operating expenses, inventory movements, and financial reports.'],
+  '/solutions/ecommerce': ['Accounting for Ecommerce · Entix Books', 'Organize store sales, payment fees, inventory, bank reconciliation, and profitability reporting.'],
   '/marketplace/accountants': ['سوق المحاسبين · Entix', 'اعثر على محاسب معتمد يعمل على Entix Books.'],
   '/login': ['تسجيل الدخول · Entix Books', 'ادخل إلى حسابك في Entix Books.'],
   '/register': ['إنشاء حساب · Entix Books', 'ابدأ تجربتك المجانية في Entix Books.'],
@@ -73,6 +82,10 @@ const browser = await puppeteer.launch({
 })
 const page = await browser.newPage()
 await page.setViewport({ width: 1440, height: 900 })
+await page.evaluateOnNewDocument(() => {
+  localStorage.setItem('entix-language', 'en')
+  localStorage.setItem('entix-marketing-region', 'SA')
+})
 
 let ok = 0, failed = []
 for (const [route, [title, description]] of Object.entries(META)) {
@@ -86,13 +99,36 @@ for (const [route, [title, description]] of Object.entries(META)) {
     }
     await new Promise((r) => setTimeout(r, 1800))
     let html = await page.content()
-    // per-route SEO truth (REND-02)
-    html = html
-      .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
-      .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${description}" />`)
-    // sanity: the render must contain real content, not an empty root
-    const bodyLen = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, '').trim().length
-    if (bodyLen < 50) { failed.push(`${route} (empty render)`); continue }
+    const canonical = `${SITE_ORIGIN}${route === '/' ? '' : route}`
+    // Per-route SEO truth (REND-02). Match both self-closing and HTML-style tags,
+    // fail loudly if a required tag disappeared, and keep canonical/social fields aligned.
+    html = replaceRequired(html, /<title\b[^>]*>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`, route, 'title')
+    html = replaceRequiredMeta(html, 'name', 'description', description, route)
+    html = replaceRequiredMeta(html, 'property', 'og:title', title, route)
+    html = replaceRequiredMeta(html, 'property', 'og:description', description, route)
+    html = replaceRequiredMeta(html, 'name', 'twitter:title', title, route)
+    html = replaceRequiredMeta(html, 'name', 'twitter:description', description, route)
+    html = upsertCanonical(html, canonical, route)
+    html = upsertRequiredMeta(html, 'property', 'og:url', canonical, route)
+
+    // Validate route content inside main, not footer/legal copy shared by every page.
+    const mainContent = await page.$eval('main', (main) => ({
+      text: main.innerText.trim(),
+      marker: main.getAttribute('data-page'),
+      sections: main.querySelectorAll('section[data-section]').length,
+    })).catch(async () => {
+      const rootText = await page.$eval('#root', (root) => root.textContent?.trim() || '').catch(() => '')
+      return rootText ? { text: rootText, marker: null, sections: 0 } : null
+    })
+    if (!mainContent || mainContent.text.length < 50) { failed.push(`${route} (missing or empty primary content)`); continue }
+    if (SOLUTION_ROUTES.has(route)) {
+      const expectedMarker = `solutions-${route.split('/').pop()}`
+      const placeholder = PLACEHOLDER_SIGNATURES.find((signature) => signature.test(mainContent.text))
+      if (mainContent.marker !== expectedMarker) { failed.push(`${route} (missing marker ${expectedMarker})`); continue }
+      if (mainContent.sections < 5) { failed.push(`${route} (${mainContent.sections} substantive sections; need 5)`); continue }
+      if (mainContent.text.length < 500) { failed.push(`${route} (insufficient main content density)`); continue }
+      if (placeholder) { failed.push(`${route} (placeholder signature in main content)`); continue }
+    }
     const dir = route === '/' ? DIST : path.join(DIST, route.slice(1))
     fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(path.join(dir, 'index.html'), html)
@@ -107,3 +143,35 @@ await browser.close()
 server.close()
 console.log(`prerender: ${ok}/${Object.keys(META).length} routes rendered`)
 if (failed.length) { console.log('FAILED:', failed); process.exit(1) }
+
+function escapeHtml(value) {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
+
+function replaceRequired(html, pattern, replacement, route, label) {
+  if (!pattern.test(html)) throw new Error(`${route}: missing required metadata ${label}`)
+  return html.replace(pattern, replacement)
+}
+
+function metaPattern(attribute, key) {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`<meta\\b(?=[^>]*\\b${attribute}=["']${escaped}["'])[^>]*\\/?\\s*>`, 'i')
+}
+
+function replaceRequiredMeta(html, attribute, key, content, route) {
+  return replaceRequired(html, metaPattern(attribute, key), `<meta ${attribute}="${key}" content="${escapeHtml(content)}">`, route, key)
+}
+
+function upsertRequiredMeta(html, attribute, key, content, route) {
+  const pattern = metaPattern(attribute, key)
+  if (pattern.test(html)) return html.replace(pattern, `<meta ${attribute}="${key}" content="${escapeHtml(content)}">`)
+  if (!/<\/head>/i.test(html)) throw new Error(`${route}: missing head while inserting ${key}`)
+  return html.replace(/<\/head>/i, `  <meta ${attribute}="${key}" content="${escapeHtml(content)}">\n</head>`)
+}
+
+function upsertCanonical(html, href, route) {
+  const canonicalPattern = /<link\b(?=[^>]*\brel=["']canonical["'])[^>]*\/?\s*>/i
+  if (canonicalPattern.test(html)) return html.replace(canonicalPattern, `<link rel="canonical" href="${escapeHtml(href)}">`)
+  if (!/<\/head>/i.test(html)) throw new Error(`${route}: missing head while inserting canonical`)
+  return html.replace(/<\/head>/i, `  <link rel="canonical" href="${escapeHtml(href)}">\n</head>`)
+}
