@@ -22,8 +22,10 @@ const MARKETING_ROUTES = new Set([
   '/help', '/docs', '/videos', '/about', '/team', '/careers', '/contact',
   '/partners', '/changelog', '/roadmap', '/case-studies', '/glossary',
   '/refund', '/sla',
+  '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
+  '/solutions/restaurants', '/solutions/ecommerce',
 ])
-const MARKETING_PREFIXES = ['/solutions/', '/marketplace/']
+const MARKETING_PREFIXES = ['/marketplace/']
 
 // /print/* is embedded as the editor's side preview iframe. The primary blocker
 // was frame-src omitting 'self' (fixed above). This frame-ancestors relaxation

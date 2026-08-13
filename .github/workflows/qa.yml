@@ -41,6 +41,12 @@ jobs:
       - run: npx playwright test --reporter=list
         env:
           CI: 'true'
+      - run: npm run qa:routes
+        env:
+          CI: 'true'
+          QA_BROWSER: '1'
+          QA_AUTO_START: '1'
+          QA_ROUTE_SCOPE: 'solutions'
 
   protect:
     name: Protect Critical Files

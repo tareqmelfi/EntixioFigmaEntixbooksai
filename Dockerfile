@@ -2,23 +2,30 @@
 # Multi-stage build for Entix Books frontend (Vite + React)
 
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:22.6.0-alpine AS build
+FROM node:22.6.0-bookworm-slim AS build
 # Force rebuild - security + nginx fix 2026-08-03
 WORKDIR /app
 ARG CACHE_BUST=1
-RUN echo "Cache bust: $CACHE_BUST" 
+RUN echo "Cache bust: $CACHE_BUST"
+
+# Puppeteer runs only in the builder. The final nginx image receives static,
+# prerendered HTML and does not contain Node or Chromium.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation \
+  && rm -rf /var/lib/apt/lists/*
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Install deps · cache layer for npm
 COPY package*.json ./
 RUN npm ci --no-audit --no-fund
 
-# Build (vite only — skip puppeteer prerender to avoid Docker chromium issues)
 COPY . .
 # Vite bakes VITE_* vars at build time — Coolify passes build-time env as
 # Docker build args, so declare + export it before the vite build runs.
 ARG VITE_TURNSTILE_SITEKEY=""
 ENV VITE_TURNSTILE_SITEKEY=$VITE_TURNSTILE_SITEKEY
-RUN npm run build:vite-only
+RUN npm run build
 
 # ── Serve stage ──────────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS serve
@@ -60,8 +67,8 @@ server {
     add_header Pragma "no-cache";
   }
 
-  # index.html must never cache
-  location = /index.html {
+  # Every HTML document, including prerendered nested route files, must revalidate.
+  location ~* \.html$ {
     add_header Cache-Control "no-cache, no-store, must-revalidate";
     add_header Pragma "no-cache";
   }

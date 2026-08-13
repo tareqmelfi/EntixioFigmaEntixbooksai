@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,7 +18,8 @@ const useBrowser = process.env.QA_BROWSER === "1";
 const storageStatePath = process.env.QA_STORAGE_STATE ? path.resolve(process.env.QA_STORAGE_STATE) : null;
 const routeDelayMs = Number.parseInt(process.env.QA_ROUTE_DELAY_MS || (isLocalQaBase() ? "0" : "400"), 10);
 
-const routes = [
+const routeScope = process.env.QA_ROUTE_SCOPE || "all";
+const allRoutes = [
   group("Public website", [
     route("/", "Landing page shows ENTIX.IO brand and public CTA."),
     route("/login", "Login page renders auth choices and email/password entry."),
@@ -26,6 +27,11 @@ const routes = [
     route("/forgot-password", "Password recovery flow renders without crash."),
     route("/features", "Feature overview renders public product positioning."),
     route("/pricing", "Pricing page renders plan comparison."),
+    solutionRoute("accountants"),
+    solutionRoute("small-business"),
+    solutionRoute("enterprises"),
+    solutionRoute("restaurants"),
+    solutionRoute("ecommerce"),
     route("/privacy", "Privacy policy is available for launch readiness."),
     route("/terms", "Terms of service is available for launch readiness."),
     route("/help", "Help center route renders customer support entry."),
@@ -97,7 +103,16 @@ const routes = [
     route("/portal", "Client portal home renders or redirects cleanly."),
   ]),
 ].flatMap((section) => section.items.map((item) => ({ ...item, section: section.name })));
+const routes = routeScope === "solutions"
+  ? allRoutes.filter((item) => item.solutionSlug)
+  : allRoutes;
 
+const solutionSlugs = ["accountants", "small-business", "enterprises", "restaurants", "ecommerce"];
+const solutionPaths = [
+  "/solutions/accountants", "/solutions/small-business", "/solutions/enterprises",
+  "/solutions/restaurants", "/solutions/ecommerce",
+];
+const placeholderSignatures = ["PlaceholderPage", "قريباً", "قريبًا", "Coming soon"];
 const fatalSignatures = [
   "Label is not defined",
   "ReferenceError",
@@ -115,6 +130,7 @@ const browserFindings = [];
 let devServer = null;
 
 try {
+  await auditSolutionSource();
   const serverWasRunning = await waitForServer(baseUrl, 800);
   if (!serverWasRunning) {
     if (!autoStart) {
@@ -166,7 +182,7 @@ try {
   printConsoleSummary(report, jsonPath, markdownPath);
   process.exitCode = summary.failed === 0 ? 0 : 1;
 } finally {
-  if (devServer) devServer.kill("SIGTERM");
+  if (devServer) await stopDevServer(devServer);
 }
 
 function group(name, items) {
@@ -175,6 +191,28 @@ function group(name, items) {
 
 function route(pathname, expected) {
   return { pathname, expected, auth: "public" };
+}
+
+function solutionRoute(slug) {
+  return {
+    pathname: `/solutions/${slug}`,
+    expected: "Substantive bilingual, market-aware solution content with at least five sections and no placeholder copy.",
+    auth: "public",
+    solutionSlug: slug,
+  };
+}
+
+async function auditSolutionSource() {
+  const sourcePath = path.join(projectRoot, "src", "app", "pages", "solutions.tsx");
+  const source = await readFile(sourcePath, "utf8");
+  const signature = placeholderSignatures.find((item) => source.toLowerCase().includes(item.toLowerCase()));
+  if (signature) throw new Error(`Solutions source contains forbidden placeholder signature: ${signature}`);
+  for (const slug of solutionSlugs) {
+    if (!source.includes(`solutions-${slug}`)) {
+      throw new Error(`Solutions source is missing explicit page marker for ${slug}`);
+    }
+  }
+  if (solutionPaths.length !== solutionSlugs.length) throw new Error("Solution route audit path list is incomplete");
 }
 
 function appRoute(pathname, expected) {
@@ -223,6 +261,25 @@ async function auditRoute(target, browserRuntime) {
     addCheck(result, "SPA shell", text.includes('id="root"'), text.includes('id="root"') ? "root mounted in HTML" : "missing root mount");
     const fatal = fatalSignatures.find((signature) => text.includes(signature));
     addCheck(result, "Static fatal signature", !fatal, fatal ? `matched: ${fatal}` : "none in HTML response");
+    if (target.solutionSlug && !browserRuntime) {
+      let solutionHtml = text;
+      let staticCheck = inspectPrerenderedSolution(solutionHtml, target.solutionSlug);
+      // Vite preview applies its SPA fallback before resolving nested index files.
+      // Probe the explicit prerender artifact when the clean route response is the shell.
+      if (!staticCheck.marker) {
+        const artifactUrl = new URL(`${target.pathname}/index.html`, `${baseUrl}/`).toString();
+        const artifactResponse = await fetch(artifactUrl, { redirect: "manual" });
+        if (artifactResponse.ok) {
+          solutionHtml = await artifactResponse.text();
+          staticCheck = inspectPrerenderedSolution(solutionHtml, target.solutionSlug);
+          result.evidence.prerenderArtifactUrl = artifactUrl;
+        }
+      }
+      addCheck(result, "Solution prerender marker", staticCheck.marker, staticCheck.marker ? staticCheck.expectedMarker : `missing ${staticCheck.expectedMarker}`);
+      addCheck(result, "Solution prerender placeholder signatures", !staticCheck.signature, staticCheck.signature ? `matched: ${staticCheck.signature}` : "none in main content");
+      addCheck(result, "Solution prerender substantive sections", staticCheck.sections >= 5, `${staticCheck.sections} sections (minimum 5)`);
+      addCheck(result, "Solution prerender content density", staticCheck.textLength >= 500, `${staticCheck.textLength} visible characters (minimum 500)`);
+    }
 
     if (browserRuntime) {
       await auditRouteInBrowser(target, result, browserRuntime);
@@ -258,12 +315,20 @@ async function auditRouteInBrowser(target, result, playwright) {
     const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
     const consoleErrors = [];
-    page.on("console", (message) => {
-      if (["error", "warning"].includes(message.type())) {
-        consoleErrors.push(`${message.type()}: ${message.text()}`);
+    const expectedAuthRateLimitUrls = new Set();
+    page.on("response", (response) => {
+      if (response.status() !== 429) return;
+      const pathname = new URL(response.url()).pathname;
+      if (pathname === "/api/auth/get-session" || pathname === "/me") {
+        expectedAuthRateLimitUrls.add(response.url());
       }
     });
-    page.on("pageerror", (error) => consoleErrors.push(`pageerror: ${error.message}`));
+    page.on("console", (message) => {
+      if (["error", "warning"].includes(message.type())) {
+        consoleErrors.push({ text: `${message.type()}: ${message.text()}`, locationUrl: message.location().url || "" });
+      }
+    });
+    page.on("pageerror", (error) => consoleErrors.push({ text: `pageerror: ${error.message}`, locationUrl: "" }));
     await page.goto(routeUrl(target), { waitUntil: "networkidle", timeout: 15_000 });
     const bodyText = await page.locator("body").innerText({ timeout: 5_000 }).catch(() => "");
     const screenshotPath = path.join(screenshotDir, `${safeRouteName(target.pathname)}.png`);
@@ -272,6 +337,7 @@ async function auditRouteInBrowser(target, result, playwright) {
     const hasErrorBoundary = fatalSignatures.some((signature) => bodyText.includes(signature));
     addCheck(result, "Browser body content", bodyText.trim().length > 20, bodyText.trim().slice(0, 120));
     addCheck(result, "Browser fatal signature", !hasErrorBoundary, hasErrorBoundary ? "error boundary/fatal text visible" : "none visible");
+    if (target.solutionSlug) await auditSolutionContent(page, target, result);
     addCheck(result, "Browser screenshot", true, screenshotPath);
     if (isProductionAuthRedirect(target, page.url(), bodyText)) {
       result.status = "blocked-auth";
@@ -281,13 +347,13 @@ async function auditRouteInBrowser(target, result, playwright) {
     } else {
       await auditInteractions(page, target, result);
     }
-    const relevantConsoleErrors = consoleErrors.filter((message) => !isExpectedLocalQaAuthNoise(target, message));
+    const relevantConsoleErrors = consoleErrors.filter((message) => !isExpectedLocalQaAuthNoise(target, message.text) && !isExpectedSolutionAuthRateLimit(message, expectedAuthRateLimitUrls));
     const ignoredConsoleErrors = consoleErrors.length - relevantConsoleErrors.length;
     addCheck(
       result,
       "Browser console",
       relevantConsoleErrors.length === 0,
-      relevantConsoleErrors.slice(0, 5).join(" | ")
+      relevantConsoleErrors.slice(0, 5).map((message) => message.text).join(" | ")
         || (ignoredConsoleErrors > 0 ? `clean after ignoring ${ignoredConsoleErrors} expected local auth/API messages` : "clean"),
     );
     if (ignoredConsoleErrors > 0) {
@@ -300,6 +366,38 @@ async function auditRouteInBrowser(target, result, playwright) {
   } finally {
     if (browser) await browser.close();
   }
+}
+
+function inspectPrerenderedSolution(html, slug) {
+  const expectedMarker = `data-page="solutions-${slug}"`;
+  const main = html.match(/<main\b[\s\S]*?<\/main>/i)?.[0] || "";
+  const text = main
+    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return {
+    expectedMarker,
+    marker: main.includes(expectedMarker),
+    signature: placeholderSignatures.find((item) => text.toLowerCase().includes(item.toLowerCase())),
+    sections: (main.match(/<section\b[^>]*\bdata-section=/gi) || []).length,
+    textLength: text.length,
+  };
+}
+
+async function auditSolutionContent(page, target, result) {
+  const main = page.locator(`main[data-page="solutions-${target.solutionSlug}"]`);
+  const mainCount = await main.count();
+  addCheck(result, "Solution page marker", mainCount === 1, mainCount === 1 ? `data-page=solutions-${target.solutionSlug}` : "missing or duplicate marker");
+  if (mainCount !== 1) return;
+  const text = await main.innerText();
+  const sections = await main.locator("section[data-section]").count();
+  const signature = placeholderSignatures.find((item) => text.toLowerCase().includes(item.toLowerCase()));
+  addCheck(result, "Solution placeholder signatures", !signature, signature ? `matched: ${signature}` : "none in main content");
+  addCheck(result, "Solution substantive sections", sections >= 5, `${sections} sections (minimum 5)`);
+  addCheck(result, "Solution content density", text.trim().length >= 500, `${text.trim().length} visible characters (minimum 500)`);
 }
 
 async function auditInteractions(page, target, result) {
@@ -549,6 +647,11 @@ function safeRouteName(pathname) {
   return (pathname === "/" ? "root" : pathname.replace(/^\/+/, "").replace(/[^a-z0-9]+/gi, "-")).replace(/-+$/g, "") || "route";
 }
 
+function isExpectedSolutionAuthRateLimit(message, expectedUrls) {
+  if (!/429 \(Too Many Requests\)/.test(message.text)) return false;
+  return expectedUrls.has(message.locationUrl);
+}
+
 function isExpectedLocalQaAuthNoise(target, message) {
   if (target.auth !== "local-qa-bypass") return false;
   const host = new URL(baseUrl).hostname;
@@ -675,7 +778,8 @@ function printConsoleSummary(report, jsonPath, markdownPath) {
 }
 
 function startDevServer() {
-  const child = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", new URL(baseUrl).port || "5173"], {
+  const viteBin = path.join(projectRoot, "node_modules", "vite", "bin", "vite.js");
+  const child = spawn(process.execPath, [viteBin, "--host", "127.0.0.1", "--port", new URL(baseUrl).port || "5173"], {
     cwd: projectRoot,
     stdio: ["ignore", "pipe", "pipe"],
     env: {
@@ -690,6 +794,23 @@ function startDevServer() {
     if (process.env.QA_VERBOSE === "1") process.stderr.write(data);
   });
   return child;
+}
+
+async function stopDevServer(child, timeoutMs = 5_000) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise((resolve) => child.once("exit", resolve));
+  child.kill("SIGTERM");
+  const stoppedGracefully = await Promise.race([
+    exited.then(() => true),
+    sleep(timeoutMs).then(() => false),
+  ]);
+  if (stoppedGracefully || child.exitCode !== null || child.signalCode !== null) return;
+  child.kill("SIGKILL");
+  const stoppedAfterEscalation = await Promise.race([
+    exited.then(() => true),
+    sleep(2_000).then(() => false),
+  ]);
+  if (!stoppedAfterEscalation) throw new Error(`Vite dev server ${child.pid} did not exit after SIGKILL`);
 }
 
 async function waitForServer(targetBaseUrl, timeoutMs, throwOnTimeout = false) {
