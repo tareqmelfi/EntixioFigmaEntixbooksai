@@ -69,7 +69,7 @@ export function ReportDocument({
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0">
             <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-              {report.status === "demo" ? t("معاينة ديمو", "Demo Preview") : t("تقرير مباشر", "Live Report")}
+              {t("تقرير مباشر", "Live Report")}
             </div>
             <h1 className="mt-2 text-3xl font-bold leading-tight" style={{ color: "var(--report-primary)" }}>
               {resolved.language === "en" ? report.englishTitle : report.title}

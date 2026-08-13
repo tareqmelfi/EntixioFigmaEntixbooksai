@@ -212,7 +212,6 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [seedArmed, setSeedArmed] = useState(false);
   const [onb, setOnb] = useState<{ openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
   const [lowStock, setLowStock] = useState<number | null>(null);
 const industryIdTop = (data?.org as any)?.industry as string | undefined;
@@ -273,7 +272,6 @@ const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStora
     return n.toFixed(0);
   };
   const k = data.kpi;
-  const isEmpty = k.revenue === 0 && k.expenses === 0 && k.invoiceCount === 0;
   const netCompare = pct(data.periodCompare.thisMonth.net, data.periodCompare.lastMonth.net);
   const revCompare = pct(data.periodCompare.thisMonth.revenue, data.periodCompare.lastMonth.revenue);
   const expCompare = pct(data.periodCompare.thisMonth.expenses, data.periodCompare.lastMonth.expenses);
@@ -309,50 +307,7 @@ const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStora
         </div>
       )}
 
-      {isEmpty && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <div className="text-sm text-primary">
-            {t("مرحباً بك في ", "Welcome to ")}<strong>{data.org.name}</strong>{t(" · لا توجد بيانات بعد · جرّب البيانات التجريبية لتشوف كل شي شغّال", " · no data yet · try the demo data to see everything working")}
-          </div>
-          {seedArmed ? (
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={async () => {
-                  setSeedArmed(false);
-                  try {
-                    const orgId = (data.org as any).id;
-                    if (!orgId) { push("error", t("لم يتم تحديد الشركة", "Company not specified")); return; }
-                    const r = await (api as any).seedDemoData(orgId);
-                    if (r?.ok) {
-                      const s = r.seeded || {};
-                      push("success", `${t("تمت التعبئة", "Seeded")} · ${s.contacts || 0} ${t("عميل/مورّد", "customer/vendor")} · ${s.products || 0} ${t("منتج", "product(s)")} · ${s.invoices || 0} ${t("فاتورة", "invoice(s)")}`);
-                      window.setTimeout(() => window.location.reload(), 800);
-                    }
-                  } catch (e: any) {
-                    push("error", `${t("فشل", "Failed")}: ${e?.message || t("خطأ غير معروف", "unknown error")}`);
-                  }
-                }}
-                className="bg-primary hover:bg-primary text-white text-sm px-4 py-2 rounded-lg"
-              >
-                {t("تأكيد التعبئة", "Confirm")}
-              </button>
-              <button
-                onClick={() => setSeedArmed(false)}
-                className="border border-border text-muted-foreground hover:bg-white text-sm px-3 py-2 rounded-lg"
-              >
-                {t("إلغاء", "Cancel")}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setSeedArmed(true)}
-              className="bg-primary hover:bg-primary text-white text-sm px-4 py-2 rounded-lg shrink-0"
-            >
-              {t("عبّ هذه الشركة ببيانات تجريبية كاملة", "Seed with demo data")}
-            </button>
-          )}
-        </div>
-      )}
+
 
       {/* Overdue alert banner */}
       {data.overdueInvoices.length > 0 && (

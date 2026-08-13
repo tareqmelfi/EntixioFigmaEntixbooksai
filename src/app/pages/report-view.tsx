@@ -24,17 +24,14 @@ export function ReportView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [from, setFrom] = useState(searchParams.get("from") || yearStartIso());
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
-  const [demo, setDemo] = useState(searchParams.get("demo") === "1");
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [selectedRow, setSelectedRow] = useState<ReportRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const params: Record<string, string> = { from, to };
-    if (demo) params.demo = "1";
-    setSearchParams(params, { replace: true });
-  }, [from, to, demo, setSearchParams]);
+    setSearchParams({ from, to }, { replace: true });
+  }, [from, to, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -42,7 +39,7 @@ export function ReportView() {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.reports.get(id, { from, to, demo: demo ? 1 : undefined });
+        const data = await api.reports.get(id, { from, to });
         if (alive) {
           setReport(data);
           setSelectedRow(null);
@@ -56,11 +53,11 @@ export function ReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, demo]);
+  }, [id, from, to]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
-  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${demo ? "&demo=1" : ""}`;
+  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
   const exportCsv = () => {
     if (!report) return;
@@ -96,13 +93,10 @@ export function ReportView() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setDemo((value) => !value)}>
-            {demo ? t("إيقاف الديمو", "Stop demo") : t("معاينة ديمو", "Demo preview")}
-          </Button>
           <Button variant="outline" onClick={exportCsv} disabled={!report}>
             <Download className="me-2 h-4 w-4" />CSV
           </Button>
-          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, demo: demo ? 1 : undefined }).then(setReport)}>
+          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to }).then(setReport)}>
             <RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}
           </Button>
           <Button onClick={() => navigate(printHref)}>
@@ -122,7 +116,7 @@ export function ReportView() {
             <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
           </label>
           <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
-            {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{report?.status === "demo" ? t("ديمو", "Demo") : report?.status === "live" ? t("لايف", "Live") : t("فارغ", "Empty")}</span>
+            {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{report?.status === "live" ? t("مباشر", "Live") : t("فارغ", "Empty")}</span>
           </div>
         </CardContent>
       </Card>
