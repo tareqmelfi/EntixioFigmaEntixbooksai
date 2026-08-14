@@ -122,6 +122,7 @@ export const router = createBrowserRouter([
   { path: "/pricing", element: lazyElement(() => import("./pages/pricing-page"), "PricingPage"), errorElement: <ErrorBoundary /> },
   { path: "/referrals", element: lazyElement(() => import("./pages/referrals"), "Referrals"), errorElement: <ErrorBoundary /> },
   { path: "/privacy", element: lazyElement(() => import("./pages/privacy"), "Privacy"), errorElement: <ErrorBoundary /> },
+  { path: "/support/ios", element: lazyElement(() => import("./pages/ios-support"), "IosSupport"), errorElement: <ErrorBoundary /> },
   { path: "/terms", element: lazyElement(() => import("./pages/terms"), "Terms"), errorElement: <ErrorBoundary /> },
   { path: "/blog", element: lazyElement(() => import("./pages/blog"), "Blog"), errorElement: <ErrorBoundary /> },
   { path: "/help", element: lazyElement(() => import("./pages/help"), "Help"), errorElement: <ErrorBoundary /> },

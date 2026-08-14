@@ -30,6 +30,7 @@ export function SharedFooter() {
     resources: [
       { label: "المدونة", labelEn: "Blog", href: "/blog" },
       { label: "مركز المساعدة", labelEn: "Help center", href: "/help" },
+      { label: "دعم تطبيق iOS", labelEn: "iOS app support", href: "/support/ios" },
       { label: "التوثيق", labelEn: "Docs", href: "/docs" },
       { label: "الفيديوهات التعليمية", labelEn: "Videos", href: "/videos" },
       { label: "دراسات الحالة", labelEn: "Case studies", href: "/case-studies" },
@@ -160,7 +161,12 @@ export function SharedFooter() {
 
         {/* Download apps section */}
         <div className="bg-white/5 rounded-2xl p-6 mb-12 border border-white/10">
-          <h2 className="text-white mb-4" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-white" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h2>
+            <Link to="/support/ios" className="text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200">
+              {t("دعم تطبيق iOS", "iOS app support")}
+            </Link>
+          </div>
           <div className="flex flex-wrap gap-3">
             {appStores.map((app) => (
               <button
@@ -190,8 +196,8 @@ export function SharedFooter() {
           </div>
           <p className="mt-3 text-muted-foreground" style={{ fontSize: "12px", lineHeight: 1.7 }}>
             {t(
-              "تطبيقات iPhone وAndroid ما زالت في QA خاص ولم تُنشر بعد على المتاجر.",
-              "iPhone and Android companion apps are still in private QA and are not yet live on app stores."
+              "للمساعدة في تطبيق ENTIX.IO على iPhone وiPad، راجع صفحة دعم iOS الرسمية.",
+              "For help with ENTIX.IO on iPhone and iPad, visit the official iOS support page."
             )}
           </p>
         </div>
