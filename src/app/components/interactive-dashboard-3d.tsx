@@ -252,7 +252,7 @@ export function InteractiveDashboard3D() {
               height={1800}
               alt="ENTIX.IO Dashboard"
               className="rounded-xl w-full h-auto relative z-10"
-              fetchPriority="high"
+              {...{ fetchpriority: "high" } as any}
             />
             
             {/* Animated gradient overlay */}

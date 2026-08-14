@@ -65,8 +65,9 @@ const enSections = [
     title: "6. Deletion, recovery, and your rights",
     body: "You may request access, correction, export, or deletion of personal information, subject to applicable legal, accounting, security, ownership, and contractual limits.",
     items: [
-      "In the iOS app, initiate account deletion from More > Account > Delete account and confirm the request.",
-      "Account deletion is scheduled with a 30-day recovery period. During that period, sign in and cancel deletion to restore the account.",
+      "In iOS build 22 or later, initiate account deletion from More > Account > Delete account. If the option is not present, update to the latest available build or contact support.",
+      "To confirm the request, type the exact account email address. The service schedules deletion through the same account endpoint used by the web app and returns a 30-day recovery period and purge date.",
+      "An accepted request ends active sessions and signs the account out on all devices. During the recovery period, sign in and cancel deletion to restore the account.",
       "After the recovery period, deletion proceeds for the account and eligible solely owned workspaces. Shared organization access and ownership are handled according to the service's organization rules.",
       "We may retain the minimum records required for legal, tax, accounting, security, or dispute purposes, including fraud prevention, even after a deletion request.",
       "You can disconnect integrations through available organization settings or the relevant provider.",
@@ -146,8 +147,9 @@ const arSections = [
     title: "٦. الحذف والاسترداد وحقوقك",
     body: "يمكنك طلب الوصول أو التصحيح أو التصدير أو حذف البيانات الشخصية، ضمن الحدود القانونية والمحاسبية والأمنية والتعاقدية وحدود الملكية المنطبقة.",
     items: [
-      "في تطبيق iOS، ابدأ حذف الحساب من «المزيد > الحساب > حذف الحساب» ثم أكّد الطلب.",
-      "يُجدول حذف الحساب مع فترة استرداد مدتها 30 يوماً. خلال هذه الفترة، سجّل الدخول وألغِ الحذف لاستعادة الحساب.",
+      "في إصدار iOS رقم 22 أو أحدث، ابدأ حذف الحساب من «المزيد > الحساب > حذف الحساب». إذا لم يظهر الخيار، فحدّث إلى أحدث إصدار متاح أو تواصل مع الدعم.",
+      "لتأكيد الطلب، اكتب البريد الإلكتروني المطابق تماماً للحساب. تجدول الخدمة الحذف عبر نقطة الحساب نفسها المستخدمة في الويب، وتعيد فترة استرداد مدتها 30 يوماً وتاريخ الحذف.",
+      "عند قبول الطلب، تنتهي الجلسات النشطة ويُسجّل خروج الحساب من جميع الأجهزة. وخلال فترة الاسترداد، سجّل الدخول وألغِ الحذف لاستعادة الحساب.",
       "بعد فترة الاسترداد، يستمر حذف الحساب ومساحات العمل المؤهلة التي يملكها منفرداً. وتُعالج صلاحيات وملكية المنشآت المشتركة وفق قواعد المنشآت في الخدمة.",
       "قد نحتفظ بالحد الأدنى من السجلات المطلوبة لأغراض قانونية أو ضريبية أو محاسبية أو أمنية أو لمنع الاحتيال أو معالجة النزاعات حتى بعد طلب الحذف.",
       "يمكنك فصل عمليات الربط عبر إعدادات المنشأة المتاحة أو من خلال المزود المعني.",
@@ -194,8 +196,8 @@ export function Privacy() {
               </h2>
               <p className="m-0 text-foreground/80" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
                 {isAr
-                  ? "ENTIX.IO هو منتج محاسبة وفوترة وذكاء اصطناعي مملوك لشركة سبيك بروز للاستثمار، سجل تجاري 3400010090، وتتم إدارته وتشغيله بواسطة ENSIDEX LLC. تشرح هذه السياسة كيف نتعامل مع بيانات مستخدمي المنصة وتطبيق iOS."
-                  : "ENTIX.IO is an accounting, invoicing, and AI workflow product owned by شركة سبيك بروز للاستثمار, CR 3400010090, and operated and powered by ENSIDEX LLC. This policy explains how we handle information for platform and iOS app users and their organizations."}
+                  ? "ENTIX.IO منتج محاسبة وفوترة وسير عمل بالذكاء الاصطناعي مملوك ومدار ومشغّل بواسطة ENSIDEX LLC في وايومنغ، الولايات المتحدة الأمريكية. تشرح هذه السياسة كيف نتعامل مع بيانات مستخدمي المنصة وتطبيق iOS ومنشآتهم."
+                  : "ENTIX.IO is an accounting, invoicing, and AI workflow product owned, operated, and powered by ENSIDEX LLC in Wyoming, USA. This policy explains how we handle information for platform and iOS app users and their organizations."}
               </p>
             </div>
 

@@ -53,10 +53,11 @@ const enSections = [
     id: "deletion",
     icon: Trash2,
     title: "Account deletion and recovery",
-    body: "You can initiate account deletion in the app from More > Account > Delete account. The app explains the effect of deletion and asks you to confirm before sending the request.",
+    body: "In iOS build 22 or later, initiate account deletion in the app from More > Account > Delete account. If your installed build does not show this option, update ENTIX.IO to the latest available version or contact support@entix.io.",
     items: [
-      "The request signs you out and schedules deletion with a 30-day recovery period.",
-      "During that period, sign in again and choose Cancel deletion and restore account to recover access.",
+      "To confirm, type the exact email address for the signed-in account. The app sends that value to the account deletion endpoint for verification.",
+      "An accepted request schedules deletion, ends active sessions, clears private data stored by the app on that device, and leaves you signed out on all devices.",
+      "The endpoint returns a 30-day recovery period and purge date. During that period, sign in again and choose Cancel deletion and restore account to recover access.",
       "After the recovery period, deletion proceeds. A legal retention caveat applies: some minimum records may be retained for legal, tax, accounting, security, or dispute obligations.",
       "Shared organizations are not deleted solely because one member deletes an account; access and ownership rules are applied by the service.",
     ],
@@ -68,7 +69,7 @@ const enSections = [
     body: "ENTIX.IO for iOS supports iPhone and iPad running iOS 17 or later. Keep iOS and the app updated, then retry the action after checking your internet connection.",
     items: [
       "If an upload fails, confirm the file is accessible and try a clear image or a supported business document.",
-      "If a service appears unavailable, review System status before retrying.",
+      "If a service appears unavailable, check your connection, retry after a short interval, and email support@entix.io if the issue continues.",
       "When contacting support, include your device model, iOS version, app version, and the steps that led to the issue. Do not include passwords or full sensitive financial records.",
     ],
   },
@@ -79,7 +80,7 @@ const enSections = [
     body: "Email support@entix.io for help with the ENTIX.IO iOS app. We respond by email and may ask for non-sensitive diagnostic details needed to investigate your request.",
     items: [
       "Read the Privacy Policy for details about collection, processing, retention, and your choices.",
-      "Review System status for current service checks.",
+      "For an ongoing service issue, email support with the time of the issue and the affected action.",
       "This support page does not request payment or link to purchasing.",
     ],
   },
@@ -124,10 +125,11 @@ const arSections = [
     id: "deletion",
     icon: Trash2,
     title: "حذف الحساب واسترداده",
-    body: "يمكنك بدء حذف الحساب من داخل التطبيق عبر «المزيد > الحساب > حذف الحساب». يوضح التطبيق أثر الحذف ويطلب التأكيد قبل إرسال الطلب.",
+    body: "في إصدار iOS رقم 22 أو أحدث، ابدأ حذف الحساب من داخل التطبيق عبر «المزيد > الحساب > حذف الحساب». إذا لم يظهر هذا الخيار في الإصدار المثبّت، فحدّث ENTIX.IO إلى أحدث إصدار متاح أو راسل support@entix.io.",
     items: [
-      "يسجّل الطلب خروجك ويجدول الحذف مع فترة استرداد مدتها 30 يوماً.",
-      "خلال هذه المدة، سجّل الدخول مجدداً واختر «إلغاء الحذف واستعادة الحساب» لاسترداد الوصول.",
+      "للتأكيد، اكتب البريد الإلكتروني المطابق تماماً للحساب المسجّل دخوله. يرسل التطبيق هذه القيمة إلى نقطة حذف الحساب للتحقق.",
+      "عند قبول الطلب، يُجدول الحذف وتنتهي الجلسات النشطة وتُمسح بيانات التطبيق الخاصة المحفوظة على الجهاز، ويُسجّل خروجك من جميع الأجهزة.",
+      "تعيد نقطة الخدمة فترة استرداد مدتها 30 يوماً وتاريخ الحذف. خلال هذه المدة، سجّل الدخول مجدداً واختر «إلغاء الحذف واستعادة الحساب» لاسترداد الوصول.",
       "بعد انتهاء مدة الاسترداد، يستمر الحذف. وقد نحتفظ بالحد الأدنى من السجلات عندما تفرض ذلك التزامات قانونية أو ضريبية أو محاسبية أو أمنية أو متعلقة بالنزاعات.",
       "لا تُحذف المنشآت المشتركة لمجرد حذف عضو واحد لحسابه؛ تطبق الخدمة قواعد الوصول والملكية.",
     ],
@@ -139,7 +141,7 @@ const arSections = [
     body: "يدعم ENTIX.IO لنظام iOS أجهزة iPhone وiPad التي تعمل بنظام iOS 17 أو أحدث. حدّث النظام والتطبيق، وتحقق من الاتصال بالإنترنت، ثم أعد المحاولة.",
     items: [
       "إذا فشل الرفع، فتحقق من إمكانية الوصول إلى الملف وجرب صورة واضحة أو مستند أعمال مدعوماً.",
-      "إذا بدت إحدى الخدمات غير متاحة، راجع حالة النظام قبل إعادة المحاولة.",
+      "إذا بدت إحدى الخدمات غير متاحة، فتحقق من الاتصال وأعد المحاولة بعد فترة قصيرة، ثم راسل support@entix.io إذا استمرت المشكلة.",
       "عند التواصل مع الدعم، أرفق طراز الجهاز وإصدار iOS وإصدار التطبيق والخطوات التي أدت للمشكلة، ولا ترسل كلمات المرور أو السجلات المالية الحساسة كاملة.",
     ],
   },
@@ -150,7 +152,7 @@ const arSections = [
     body: "راسل support@entix.io للمساعدة في تطبيق ENTIX.IO لنظام iOS. نرد عبر البريد وقد نطلب معلومات تشخيصية غير حساسة وضرورية للتحقيق في طلبك.",
     items: [
       "اقرأ سياسة الخصوصية لمعرفة تفاصيل الجمع والمعالجة والاحتفاظ واختياراتك.",
-      "راجع حالة النظام للاطلاع على فحوصات الخدمة الحالية.",
+      "عند استمرار مشكلة في الخدمة، راسل الدعم مع وقت المشكلة والإجراء المتأثر.",
       "لا تطلب صفحة الدعم هذه أي دفع ولا تحتوي على روابط إتمام شراء.",
     ],
   },
@@ -229,11 +231,6 @@ export function IosSupport() {
                     </li>
                   ))}
                 </ul>
-                {section.id === "troubleshooting" && (
-                  <Link to="/app/system-status" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-200">
-                    {isAr ? "عرض حالة النظام" : "View System status"}
-                  </Link>
-                )}
                 {section.id === "contact" && (
                   <div className="mt-6 flex flex-wrap gap-3">
                     <a href="mailto:support@entix.io" className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">

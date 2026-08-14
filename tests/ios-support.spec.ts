@@ -36,7 +36,7 @@ test.describe('/support/ios', () => {
     await expect(main.locator('a[href*="checkout"], a[href*="pricing"], a[href*="subscribe"]')).toHaveCount(0)
   })
 
-  test('covers login recovery, permissions, AI/OCR, deletion, privacy, and status help', async ({ page }) => {
+  test('covers login recovery, permissions, AI/OCR, current-build deletion, and privacy help', async ({ page }) => {
     await setLanguage(page, 'en')
     await page.goto('/support/ios')
     const main = page.locator('main[data-page="support-ios"]')
@@ -48,11 +48,14 @@ test.describe('/support/ios', () => {
     await expect(main).toContainText('Files')
     await expect(main).toContainText('AI and OCR')
     await expect(main).toContainText('review before saving')
-    await expect(main).toContainText('initiate account deletion in the app')
+    await expect(main).toContainText('iOS build 22 or later')
+    await expect(main).toContainText('type the exact email address')
+    await expect(main).toContainText('signed out on all devices')
     await expect(main).toContainText('30-day recovery period')
     await expect(main).toContainText('legal retention')
     await expect(main.locator('a[href="/privacy"]').first()).toBeVisible()
-    await expect(main.locator('a[href="/app/system-status"]')).toBeVisible()
+    await expect(main.locator('a[href="/app/system-status"], a[href="/status"]')).toHaveCount(0)
+    await expect(main).not.toContainText('System status')
     await expect(main.locator('a[href="mailto:support@entix.io"]').first()).toBeVisible()
   })
 
@@ -86,11 +89,16 @@ test.describe('/support/ios', () => {
   })
 })
 
-test('privacy policy includes accurate iOS collection, processing, deletion, and no-sale disclosures', async ({ page }) => {
+test('privacy policy preserves ENSIDEX ownership and accurate iOS disclosures', async ({ page }) => {
   await setLanguage(page, 'en')
   await page.goto('/privacy')
   const main = page.locator('main[data-page="privacy"]')
   await expect(main).toBeVisible()
+  await expect(main).toContainText('owned, operated, and powered by ENSIDEX LLC')
+  await expect(main).toContainText('Wyoming, USA')
+  await expect(main).not.toContainText('Spec Pros')
+  await expect(main).not.toContainText('سبيك بروز')
+  await expect(main).not.toContainText('3400010090')
   await expect(main).toContainText('iOS app')
   await expect(main).toContainText('camera')
   await expect(main).toContainText('photo library')
@@ -99,6 +107,8 @@ test('privacy policy includes accurate iOS collection, processing, deletion, and
   await expect(main).toContainText('organization financial records')
   await expect(main).toContainText('AI prompts')
   await expect(main).toContainText('OpenRouter and model providers')
+  await expect(main).toContainText('iOS build 22 or later')
+  await expect(main).toContainText('type the exact account email address')
   await expect(main).toContainText('30-day recovery period')
   await expect(main).toContainText('legal, tax, accounting, security, or dispute')
   await expect(main).toContainText('do not sell personal information')
