@@ -324,8 +324,8 @@ export function VoucherPrintView() {
                   <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
                   <div style={{ fontSize: 8, color: "#9CA3AF", marginTop: 4, maxWidth: 150, marginInline: "auto", lineHeight: 1.4 }}>
                     {isKsa
-                      ? "تم توليد هذا الرمز الرقمي وفق المعايير الفنية المعتمدة للفوترة الإلكترونية من هيئة الزكاة والضريبة والجمارك."
-                      : "This QR code is generated in compliance with ZATCA technical standards for e-invoicing."}
+                      ? "يحتوي رمز QR على بيانات الفاتورة الأساسية. المستند غير مختوم من ZATCA وغير مفعّل للاعتماد الإنتاجي."
+                      : "QR contains core invoice data. This document is not ZATCA-stamped and is not enabled for production reliance."}
                   </div>
                 </>
               ) : (

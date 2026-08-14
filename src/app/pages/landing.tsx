@@ -1,6 +1,6 @@
 import { useNavigate, Link } from "react-router";
 import {
-  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users
+  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users, AlertCircle
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
@@ -44,7 +44,7 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
 }
 
 const FEATURES_SA = [
-  { icon: FileText, title: "فواتير احترافية", titleEn: "Professional invoices", desc: "إنشاء وإدارة الفواتير بمعايير ZATCA مع QR Code وتوقيع رقمي", descEn: "Create and manage ZATCA-ready invoices with QR codes and digital signatures." },
+  { icon: FileText, title: "فواتير احترافية", titleEn: "Professional invoices", desc: "إنشاء وإدارة الفواتير مع QR يحتوي بيانات الفاتورة الأساسية. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", descEn: "Create and manage invoices with a QR containing core invoice data. ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance." },
   { icon: BarChart3, title: "تقارير مالية متقدمة", titleEn: "Advanced financial reports", desc: "لوحة تحكم شاملة مع رسوم بيانية تفاعلية ومؤشرات أداء رئيسية", descEn: "A clear dashboard with interactive charts and key financial indicators." },
   { icon: Shield, title: "أمان وموثوقية", titleEn: "Secure and reliable", desc: "تشفير AES-256 وحماية متعددة الطبقات مع نسخ احتياطي تلقائي", descEn: "Layered protection, encrypted storage, and automated backups." },
   { icon: Globe, title: "دعم متعدد اللغات", titleEn: "Arabic and English", desc: "واجهة عربية كاملة RTL مع دعم اللغة الإنجليزية والعملات المتعددة", descEn: "Native Arabic RTL with English LTR support and multi-currency workflows." },
@@ -79,8 +79,8 @@ const PRICING_SA = [
     periodEn: "free forever",
     desc: "للمشاريع الصغيرة والفردية",
     descEn: "For solo operators and small projects",
-    features: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
-    featuresEn: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
+    features: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA Phase 2 — قيد التحقق", "شهر مجاني على أي باقة مدفوعة"],
+    featuresEn: ["5 invoices / month", "1 user", "Basic reports", "ZATCA Phase 2 — Under validation", "Free month on any paid plan"],
     highlighted: false
   },
   {
@@ -92,8 +92,8 @@ const PRICING_SA = [
     periodEn: "SAR / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
-    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "API كامل"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "Full API access"],
     highlighted: true
   },
   {
@@ -236,7 +236,7 @@ export function Landing() {
 
   const faqs = [
     isSA
-      ? { q: t("هل ENTIX.IO جاهز للفوترة الإلكترونية في السعودية؟", "Is ENTIX.IO ready for Saudi e-invoicing?"), a: t("نعم، ENTIX.IO مصمم لدعم المرحلة الثانية من الفوترة الإلكترونية (ZATCA) — إصدار الفواتير بصيغة XML وQR Code مع التوقيع الرقمي، ويُفعَّل عبر شهادة CSID الخاصة بمنشأتك من بوابة فاتورة.", "Yes. ENTIX.IO is built for ZATCA Phase 2 workflows, including XML, QR code, and digital-signature requirements.") }
+      ? { q: t("ما حالة تكامل الفوترة الإلكترونية في السعودية؟", "What is the status of Saudi e-invoicing integration?"), a: t("تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", "ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance.") }
       : { q: t("هل يدعم ENTIX.IO ضريبة المبيعات والمدفوعات الأمريكية؟", "Does ENTIX.IO support US sales tax and payments?"), a: t("نعم، يدعم ضريبة المبيعات الأمريكية وتتبع الموردين 1099، مع قبول المدفوعات عبر Stripe وربط الحسابات البنكية عبر Plaid.", "Yes. ENTIX.IO handles US sales tax and 1099 vendor tracking, accepts payments via Stripe, and connects bank feeds via Plaid.") },
     { q: t("هل بياناتي محفوظة ويمكنني تصديرها؟", "Is my data safe and exportable?"), a: t("نعم — نسخ احتياطي يومي تلقائي مع احتفاظ بالنسخ 14 يومًا، وتصدّر بياناتك كاملة في أي وقت. بياناتك ملكك دائمًا.", "Yes — automatic daily backups with 14-day retention, and you can export all of your data anytime. Your data is always yours.") },
     { q: t("هل تتوفر خيارات نشر مخصصة للمؤسسات؟", "Do you offer custom deployments for enterprises?"), a: t("للمؤسسات ذات المتطلبات الخاصة، تواصل معنا على support@entix.io لبحث الخيارات المناسبة.", "For organizations with special requirements, contact us at support@entix.io to discuss the right options.") },
@@ -273,8 +273,8 @@ export function Landing() {
             <p className="text-muted-foreground mb-8 max-w-lg" style={{ fontSize: "17px", lineHeight: 1.9 }}>
               {isSA
                 ? t(
-                    "ENTIX.IO نظام محاسبة سحابي متكامل. جاهز للفوترة الإلكترونية ZATCA، يدعم العربية بالكامل، ومصمم لتبسيط عملياتك المالية.",
-                    "ENTIX.IO is a cloud accounting platform with ZATCA-ready e-invoicing, full Arabic RTL and English LTR, built for the daily financial operations of growing businesses."
+                    "ENTIX.IO نظام محاسبة سحابي متكامل يدعم العربية بالكامل. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
+                    "ENTIX.IO is a cloud accounting platform with full Arabic RTL and English LTR. ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."
                   )
                 : t(
                     "ENTIX.IO نظام محاسبة سحابي متكامل. ضريبة مبيعات أمريكية، مدفوعات Stripe، ربط بنكي عبر Plaid — وبواجهة عربية أو إنجليزية كاملة.",
@@ -301,14 +301,14 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8">
               {[
                 isSA
-                  ? { icon: CheckCircle2, text: t("جاهز لـ ZATCA", "ZATCA-ready") }
+                  ? { icon: AlertCircle, text: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation"), zatcaState: true }
                   : { icon: CreditCard, text: t("مدفوعات Stripe + Plaid", "Stripe + Plaid") },
                 { icon: Database, text: t("نسخ احتياطي يومي", "Daily backups") },
                 { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
-              ].map(t => (
-                <div key={t.text} className="flex items-center gap-1.5 text-muted-foreground" style={{ fontSize: "13px", fontWeight: 500 }}>
-                  <t.icon className="w-4 h-4 text-green-500" />
-                  {t.text}
+              ].map(item => (
+                <div key={item.text} data-plan-zatca-state={item.zatcaState ? "under-validation" : undefined} className={`flex items-center gap-1.5 ${item.zatcaState ? "text-amber-800" : "text-muted-foreground"}`} style={{ fontSize: "13px", fontWeight: 500 }}>
+                  <item.icon className={`h-4 w-4 ${item.zatcaState ? "text-amber-600" : "text-green-500"}`} />
+                  {item.text}
                 </div>
               ))}
             </div>
@@ -562,18 +562,19 @@ export function Landing() {
                 )}
                 <hr className={`my-6 ${plan.highlighted ? "border-white/10" : "border-gray-100"}`} />
                 <ul className="space-y-3">
-                  {plan.features.map((f, fi) => (
-                    <li key={f} className="flex items-center gap-2.5" style={{ fontSize: "14px" }}>
-                      <CheckCircle2 
-                        className={
-                          plan.highlighted 
-                            ? "w-4 h-4 flex-shrink-0 text-secondary"
-                            : "w-4 h-4 flex-shrink-0 text-green-500"
-                        } 
-                      />
-                      <span className={plan.highlighted ? "text-gray-300" : "text-muted-foreground"}>{t(f, plan.featuresEn[fi])}</span>
-                    </li>
-                  ))}
+                  {plan.features.map((f, fi) => {
+                    const isZatcaValidation = /ZATCA Phase 2/i.test(f);
+                    return (
+                      <li key={f} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className="flex items-center gap-2.5" style={{ fontSize: "14px" }}>
+                        {isZatcaValidation ? (
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-500" />
+                        ) : (
+                          <CheckCircle2 className={plan.highlighted ? "h-4 w-4 flex-shrink-0 text-secondary" : "h-4 w-4 flex-shrink-0 text-green-500"} />
+                        )}
+                        <span className={isZatcaValidation ? "text-amber-300" : plan.highlighted ? "text-gray-300" : "text-muted-foreground"}>{t(f, plan.featuresEn[fi])}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <button
                   onClick={() => navigate("/register")}

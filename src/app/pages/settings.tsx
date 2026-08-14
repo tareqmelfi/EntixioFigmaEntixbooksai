@@ -126,7 +126,8 @@ export function Settings() {
         vatNumber: form.vatNumber || null, crNumber: form.crNumber || null,
         fiscalYearEnd: form.fiscalYearEnd,
         fiscalYearStart: yearStart,
-        zatcaEnabled: form.zatcaEnabled,
+        // Gate 0 · country and legacy local state must never enable the unverified pipeline.
+        zatcaEnabled: false,
         logoUrl: form.logoUrl || null,
         stampUrl: form.stampUrl || null,
         signatureUrl: form.signatureUrl || null,
@@ -430,9 +431,9 @@ export function Settings() {
               </div>
             </div>
             {form.country !== "US" && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-blue-100">
-                <input type="checkbox" id="zatca" checked={form.zatcaEnabled} onChange={(e) => setForm({ ...form, zatcaEnabled: e.target.checked })} className="h-4 w-4" />
-                <label htmlFor="zatca" className="text-sm text-foreground cursor-pointer">{t("تفعيل ZATCA Phase 2 e-invoicing (السوق السعودي · UUID + QR + XML)", "Enable ZATCA Phase 2 e-invoicing (Saudi market · UUID + QR + XML)")}</label>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <input type="checkbox" id="zatca" checked={false} disabled className="h-4 w-4" />
+                <label htmlFor="zatca" className="text-sm text-amber-900">{t("ZATCA Phase 2 — قيد التحقق · التفعيل الإنتاجي معطّل", "ZATCA Phase 2 — Under validation · production enablement disabled")}</label>
               </div>
             )}
             {form.country === "US" && (
@@ -1722,11 +1723,12 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
 
 // ── ZATCA TAB ───────────────────────────────────────────────────────────────
 function ZatcaTab({ org, push }: { org: Org; push: any }) {
+  const zatcaState = "LOCAL_UNVERIFIED";
+  const zatcaReason = "zatca_pipeline_not_ready";
   const [csid, setCsid] = useState((org as any).zatcaCsid || "");
   const [csidSecret, setCsidSecret] = useState((org as any).zatcaCsidSecret || "");
   const [mode, setMode] = useState<"sandbox" | "simulation" | "production">((org as any).zatcaMode || "sandbox");
   const [status, setStatus] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -1735,60 +1737,42 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
 
   const handleOnboard = async () => {
     if (!csid.trim() || !csidSecret.trim()) { push("error", t("أدخل CSID والمفتاح السري", "Enter CSID and the secret key")); return; }
-    setBusy(true);
     try {
       await api.zatca.onboard({ csid: csid.trim(), csidSecret: csidSecret.trim(), mode });
-      push("success", t("تم الحفظ · ZATCA Phase 2 مفعّل", "Saved · ZATCA Phase 2 enabled"));
+      push("success", t("تم حفظ بيانات الاعتماد · التخليص غير مفعّل", "Credentials saved · clearance not enabled"));
       const s = await api.zatca.status();
       setStatus(s);
     } catch (e: any) {
       push("error", e?.message || t("فشل", "Failed"));
-    } finally { setBusy(false); }
+    }
   };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">📋 {t("ZATCA Phase 2 · الفوترة الإلكترونية", "ZATCA Phase 2 · e-invoicing")}</CardTitle>
-        <CardDescription>{t("تكامل مع هيئة الزكاة والضريبة والجمارك (السعودية) · UUID + QR + XML + CSID", "Integration with the Zakat, Tax and Customs Authority (Saudi Arabia) · UUID + QR + XML + CSID")}</CardDescription>
+        <CardTitle className="text-foreground flex items-center gap-2">📋 {t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation")}</CardTitle>
+        <CardDescription>{t("التكامل قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", "The integration is under technical and regulatory validation and is not enabled for production reliance.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {status && (
-          <div className={`rounded-lg border p-4 ${status.ready ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`font-medium ${status.ready ? "text-green-700" : "text-amber-700"}`}>
-                  {status.ready ? t("✅ جاهز للترحيل", "✅ Ready to clear") : t("⚠️ يحتاج إعداد", "⚠️ Needs setup")}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">{status.nextActions}</div>
-              </div>
-              <div className="text-end text-xs text-muted-foreground">
-                <div>{t("الفواتير المُرحَّلة", "Cleared invoices")}: <span className="font-english font-bold" dir="ltr">{status.invoicesProcessed || 0}</span></div>
-                <div>ICV: <span className="font-english" dir="ltr">{status.icv || 0}</span></div>
-                <div>{t("الوضع", "Mode")}: {status.mode}</div>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="font-medium text-amber-900">{t("إعداد محلي غير متحقق منه · التخليص غير مفعّل", "Local setup unverified · clearance not enabled")}</div>
+          <div className="mt-1 text-xs text-amber-800" dir="ltr">{zatcaState} · {zatcaReason}</div>
+          {status?.nextActions && <div className="mt-2 text-xs text-muted-foreground">{status.nextActions}</div>}
+        </div>
 
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs">
-          <div className="font-medium text-foreground mb-2">{t("📚 خطوات الحصول على CSID:", "📚 Steps to obtain CSID:")}</div>
-          <ol className="space-y-1 text-foreground/80 list-decimal list-inside">
-            <li>{t("سجّل دخول في", "Sign in at")} <a href="https://fatoora.zatca.gov.sa" target="_blank" rel="noreferrer" className="text-primary hover:underline">fatoora.zatca.gov.sa</a> {t("بهوية المنشأة", "with your establishment ID")}</li>
-            <li>{t("اختر \"إصدار CSID\" (Compliance / Cryptographic Stamp ID)", "Choose \"Issue CSID\" (Compliance / Cryptographic Stamp ID)")}</li>
-            <li>{t("سيُصدر لك ملفان:", "It will issue two files:")} <code className="bg-white px-1 rounded">CSID Token</code> + <code className="bg-white px-1 rounded">Secret</code></li>
-            <li>{t("الصقهما هنا واحفظ", "Paste them here and save")}</li>
-          </ol>
+          <div className="font-medium text-foreground">{t("نموذج اعتماد قديم · متقدم ومعطّل بانتظار مسار التهيئة الجديد", "Legacy credential form · advanced and disabled pending the new onboarding flow")}</div>
+          <div className="mt-1 text-foreground/70">{t("الحفظ محلي فقط ولا يثبت الاتصال أو التحقق أو جاهزية الإنتاج.", "Saving is local only and does not prove connectivity, validation, or production readiness.")}</div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
             <Label className="text-xs">CSID Token</Label>
-            <Input value={csid} onChange={(e) => setCsid(e.target.value)} dir="ltr" className="font-english" placeholder={t("base64 token من ZATCA", "base64 token from ZATCA")} />
+            <Input value={csid} onChange={(e) => setCsid(e.target.value)} disabled dir="ltr" className="font-english" placeholder={t("نموذج قديم معطّل", "Disabled legacy field")} />
           </div>
           <div>
             <Label className="text-xs">{t("الوضع", "Mode")}</Label>
-            <select value={mode} onChange={(e) => setMode(e.target.value as any)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+            <select value={mode} onChange={(e) => setMode(e.target.value as any)} disabled className="w-full text-sm rounded border border-border px-3 py-2 bg-muted/40">
               <option value="sandbox">{t("Sandbox (تجريبي)", "Sandbox (test)")}</option>
               <option value="simulation">Simulation</option>
               <option value="production">{t("Production (إنتاج)", "Production (live)")}</option>
@@ -1796,12 +1780,12 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
           </div>
           <div className="md:col-span-3">
             <Label className="text-xs">CSID Secret</Label>
-            <Input type="password" value={csidSecret} onChange={(e) => setCsidSecret(e.target.value)} dir="ltr" className="font-english" placeholder="secret token من ZATCA" />
+            <Input type="password" value={csidSecret} onChange={(e) => setCsidSecret(e.target.value)} disabled dir="ltr" className="font-english" placeholder={t("نموذج قديم معطّل", "Disabled legacy field")} />
           </div>
         </div>
 
-        <Button onClick={handleOnboard} disabled={busy} className="bg-primary">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ وتفعيل", "Save and activate")}
+        <Button onClick={handleOnboard} disabled className="bg-muted text-muted-foreground">
+          {t("معطّل بانتظار مسار التهيئة الجديد", "Disabled pending new onboarding")}
         </Button>
       </CardContent>
     </Card>
@@ -2055,16 +2039,16 @@ function PlansTab({ org }: { org: Org }) {
 
   const tierFeatures: Record<string, { ar: string[]; en: string[] }> = {
     lite: {
-      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "جاهزية ZATCA + QR", "نقل بيانات مجاني أول مرة", "مستخدم واحد"],
-      en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Basic & tax reports", "ZATCA-ready + QR", "Free first-time data migration", "1 user"],
+      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "ZATCA Phase 2 — قيد التحقق", "نقل بيانات مجاني أول مرة", "مستخدم واحد"],
+      en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Basic & tax reports", "ZATCA Phase 2 — Under validation", "Free first-time data migration", "1 user"],
     },
     starter: {
-      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
-      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA Phase 2 — قيد التحقق", "شهر مجاني على أي باقة مدفوعة"],
+      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA Phase 2 — Under validation", "Free month on any paid plan"],
     },
     professional: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "Full API access"],
     },
     enterprise: {
       ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
@@ -2172,9 +2156,15 @@ function PlansTab({ org }: { org: Org }) {
                   )}
 
                   <ul className="text-xs text-foreground/80 mt-3 space-y-1 flex-1">
-                    {feats.ar.map((f, i) => (
-                      <li key={i} className="flex items-start gap-1"><span className="text-green-600 mt-0.5">✓</span><span>{t(f, (feats.en[i] || f))}</span></li>
-                    ))}
+                    {feats.ar.map((f, i) => {
+                      const isZatcaValidation = /ZATCA Phase 2/i.test(f);
+                      return (
+                        <li key={i} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className={`flex items-start gap-1 ${isZatcaValidation ? "text-amber-800" : ""}`}>
+                          <span className={isZatcaValidation ? "mt-0.5 text-amber-600" : "mt-0.5 text-green-600"}>{isZatcaValidation ? "⚠" : "✓"}</span>
+                          <span>{t(f, (feats.en[i] || f))}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
 
                   {isCurrent ? (
@@ -2224,7 +2214,7 @@ function PlansTab({ org }: { org: Org }) {
                 { ar: "تجربة الباقات المدفوعة", en: "Paid-plan trial", us: t("30 يومًا كاملة", "Full 30 days"), wafeq: t("14 يومًا", "14 days"), wave: t("—", "—") },
                 { ar: "المستخدمون في باقة البداية", en: "Users at entry", us: t("حتى 5", "Up to 5"), wafeq: "2", wave: "—" },
                 { ar: "وكيل ذكاء اصطناعي كامل", en: "Full AI agent", us: "✓", wafeq: t("مسح فقط (20/شهر في Plus)", "Scan only (20/mo on Plus)"), wave: t("✗ — الإيصالات بإضافة $8+", "✗ — receipts $8+ add-on") },
-                { ar: "عربي كامل + جاهزية ZATCA", en: "Full Arabic + ZATCA-ready", us: "✓", wafeq: "✓", wave: "✗" },
+                { ar: "عربي كامل + ZATCA Phase 2 قيد التحقق", en: "Full Arabic + ZATCA Phase 2 under validation", us: t("قيد التحقق", "Under validation"), wafeq: t("راجع المورّد", "Check vendor"), wave: "✗" },
                 { ar: "ربط بنكي أمريكي", en: "US bank feeds", us: "✓ Plaid", wafeq: "✗", wave: "✓ Plaid" },
                 { ar: "الفوترة لكل شركة", en: "Per-company billing", us: t("✓ + خصم 30% للشركات الإضافية", "✓ + 30% off additional companies"), wafeq: t("كيانات متعددة في الباقات الكبرى", "Multi-entity on higher tiers"), wave: "✓ per business" },
               ] as const).map((row, i) => (

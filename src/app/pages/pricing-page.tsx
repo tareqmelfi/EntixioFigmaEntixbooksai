@@ -9,7 +9,7 @@ import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 
 type Tier = "starter" | "professional" | "enterprise";
-type Cell = { ar: string; en: string } | boolean;
+type Cell = { ar: string; en: string; state?: "under-validation" } | boolean;
 
 interface PlanDef {
   tier: Tier;
@@ -31,8 +31,8 @@ const PLANS: PlanDef[] = [
     color: "#6B7280",
     price: { SAR: { monthly: 0, yearly: 0 }, USD: { monthly: 0, yearly: 0 } },
     features: {
-      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "جاهزية ZATCA", "شهر مجاني على أي باقة مدفوعة"],
-      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA-ready", "Free month on any paid plan"],
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA Phase 2 — قيد التحقق", "شهر مجاني على أي باقة مدفوعة"],
+      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA Phase 2 — Under validation", "Free month on any paid plan"],
     },
   },
   {
@@ -44,8 +44,8 @@ const PLANS: PlanDef[] = [
     price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 19, yearly: 190 } },
     standard: { SAR: 149, USD: 29 },
     features: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "جاهزية ZATCA + QR", "تكاملات بنكية (Plaid)", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA-ready + QR", "Bank feeds (Plaid)", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "Full API access"],
     },
   },
   {
@@ -69,7 +69,7 @@ const COMPARISON: ComparisonCategory[] = [
   { category: { ar: "الفواتير والمبيعات", en: "Invoicing & sales" }, features: [
     { name: { ar: "الفواتير شهريًا", en: "Monthly invoices" }, free: { ar: "5", en: "5" }, pro: { ar: "غير محدود", en: "Unlimited" }, enterprise: { ar: "غير محدود", en: "Unlimited" } },
     { name: { ar: "عروض الأسعار", en: "Quotes" }, free: true, pro: true, enterprise: true },
-    { name: { ar: "جاهزية ZATCA + QR", en: "ZATCA-ready + QR" }, free: true, pro: true, enterprise: true },
+    { name: { ar: "ZATCA Phase 2 — قيد التحقق", en: "ZATCA Phase 2 — Under validation" }, free: { ar: "قيد التحقق", en: "Under validation", state: "under-validation" }, pro: { ar: "قيد التحقق", en: "Under validation", state: "under-validation" }, enterprise: { ar: "قيد التحقق", en: "Under validation", state: "under-validation" } },
     { name: { ar: "التقارير", en: "Reports" }, free: { ar: "أساسية", en: "Basic" }, pro: { ar: "متقدمة", en: "Advanced" }, enterprise: { ar: "مخصصة", en: "Custom" } },
   ]},
   { category: { ar: "المستخدمون والذكاء الاصطناعي", en: "Users & AI" }, features: [
@@ -352,12 +352,19 @@ export function PricingPage() {
                   <h4 className="text-foreground/80 mb-4" style={{ fontSize: "14px", fontWeight: 600 }}>
                     {t("ما ستحصل عليه:", "What you get:")}
                   </h4>
-                  {(isAr ? plan.features.ar : plan.features.en).map((f) => (
-                    <div key={f} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-foreground/80" style={{ fontSize: "14px" }}>{f}</span>
-                    </div>
-                  ))}
+                  {(isAr ? plan.features.ar : plan.features.en).map((f) => {
+                    const isZatcaValidation = /ZATCA Phase 2/i.test(f);
+                    return (
+                      <div key={f} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className="flex items-start gap-3">
+                        {isZatcaValidation ? (
+                          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        )}
+                        <span className={isZatcaValidation ? "text-amber-800" : "text-foreground/80"} style={{ fontSize: "14px" }}>{f}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </motion.div>
             ))}
@@ -378,8 +385,8 @@ export function PricingPage() {
               </h3>
               <p className="text-muted-foreground" style={{ fontSize: "13px", lineHeight: 1.8 }}>
                 {t(
-                  "محاسبة كاملة بدون ذكاء اصطناعي: فواتير ومصروفات غير محدودة، عملاء وموردون وأصناف، تقارير ضريبية، وجاهزية ZATCA — وننقل بياناتك من برنامجك القديم مجانًا أول مرة.",
-                  "Full accounting without AI: unlimited invoices & expenses, customers, suppliers & items, tax reports, ZATCA-ready — and we migrate your data from your old software free, first time."
+                  "محاسبة كاملة بدون ذكاء اصطناعي: فواتير ومصروفات غير محدودة، عملاء وموردون وأصناف، وتقارير ضريبية. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
+                  "Full accounting without AI: unlimited invoices and expenses, customers, suppliers, items, and tax reports. ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."
                 )}
               </p>
             </div>
@@ -584,6 +591,11 @@ export function PricingPage() {
                                 ) : (
                                   <X className="w-5 h-5 text-muted mx-auto" />
                                 )
+                              ) : v.state === "under-validation" ? (
+                                <span data-zatca-state="under-validation" className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-amber-800" style={{ fontSize: "12px", fontWeight: 600 }}>
+                                  <AlertCircle className="h-3.5 w-3.5" />
+                                  {cell(v)}
+                                </span>
                               ) : (
                                 <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{cell(v)}</span>
                               )}
@@ -641,7 +653,7 @@ export function PricingPage() {
                   { ar: "تجربة الباقات المدفوعة", en: "Paid-plan trial", us: t("30 يومًا كاملة", "Full 30 days"), wafeq: t("14 يومًا", "14 days"), wave: "—" },
                   { ar: "المستخدمون في باقة البداية", en: "Users at entry", us: t("حتى 5", "Up to 5"), wafeq: "2", wave: "—" },
                   { ar: "وكيل ذكاء اصطناعي كامل", en: "Full AI agent", us: "✓", wafeq: t("مسح فقط (20/شهر في Plus)", "Scan only (20/mo on Plus)"), wave: t("✗ — الإيصالات بإضافة $8+", "✗ — receipts $8+ add-on") },
-                  { ar: "عربي كامل + جاهزية ZATCA", en: "Full Arabic + ZATCA-ready", us: "✓", wafeq: "✓", wave: "✗" },
+                  { ar: "عربي كامل + ZATCA Phase 2 قيد التحقق", en: "Full Arabic + ZATCA Phase 2 under validation", us: t("قيد التحقق", "Under validation"), wafeq: t("راجع المورّد", "Check vendor"), wave: "✗" },
                   { ar: "ربط بنكي أمريكي", en: "US bank feeds", us: "✓ Plaid", wafeq: "✗", wave: "✓ Plaid" },
                   { ar: "الفوترة لكل شركة", en: "Per-company billing", us: t("✓ + خصم 30% للشركات الإضافية", "✓ + 30% off additional companies"), wafeq: t("كيانات متعددة في الباقات الكبرى", "Multi-entity on higher tiers"), wave: "✓ per business" },
                 ] as const).map((row, i) => (
