@@ -35,7 +35,7 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-secondary" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>تقنية متقدمة • أمان عالي • جاهزية نظامية</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>ZATCA Phase 2 • قيد التحقق الفني والتنظيمي</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               تكامل سلس وأمان
@@ -45,8 +45,8 @@ export function Integration() {
               </span>
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              نظام متكامل مصمم لدعم المتطلبات النظامية للفوترة الإلكترونية،
-              ومحمي بممارسات أمان قياسية
+              تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي،
+              مع بنية سحابية محمية بممارسات أمان قياسية
             </p>
           </motion.div>
         </div>
@@ -272,8 +272,7 @@ export function Integration() {
               مصمم لدعم المتطلبات النظامية
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              نظام مصمم بعناية لدعم متطلبات هيئة الزكاة والضريبة والجمارك ZATCA للفوترة الإلكترونية —
-              والتفعيل يتم عبر شهادة CSID الخاصة بمنشأتك من بوابة فاتورة
+              تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.
             </p>
           </motion.div>
 
@@ -282,18 +281,14 @@ export function Integration() {
             {[
               {
                 icon: Award,
-                title: "جاهز لـ ZATCA",
-                subtitle: "المرحلة الثانية من الفوترة الإلكترونية",
-                color: "#22C55E",
+                title: "ZATCA Phase 2 — قيد التحقق",
+                subtitle: "غير مفعّل للاعتماد الإنتاجي",
+                color: "#F59E0B",
                 features: [
-                  "فواتير بصيغة XML القياسية",
-                  "توليد QR Code وفق المواصفات",
-                  "توقيع رقمي مشفر (Cryptographic Stamp)",
-                  "ختم زمني موثوق (Timestamp)",
-                  "معرف فريد عالمي UUID",
-                  "تشفير بـ ECDSA / SHA-256",
-                  "ربط مع منصة فاتورة عبر شهادة CSID الخاصة بمنشأتك",
-                  "سجل كامل غير قابل للتعديل",
+                  "التحقق الفني والتنظيمي مستمر",
+                  "QR محلي يحتوي بيانات الفاتورة الأساسية",
+                  "إعداد محلي غير متحقق منه (LOCAL_UNVERIFIED)",
+                  "خط الإنتاج غير جاهز (zatca_pipeline_not_ready)",
                 ]
               },
               {
@@ -352,8 +347,8 @@ export function Integration() {
           {/* Compliance Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { value: "Phase 2", label: "جاهزية ZATCA", icon: Award },
-              { value: "ECDSA", label: "توقيع رقمي مشفر", icon: Lock },
+              { value: "Phase 2", label: "قيد التحقق الفني والتنظيمي", icon: Award },
+              { value: "محلي", label: "إعداد غير متحقق منه", icon: Lock },
               { value: "يوميًا", label: "نسخ احتياطي تلقائي", icon: Eye },
               { value: "AR + EN", label: "واجهة ثنائية اللغة", icon: Zap },
             ].map((stat) => (
@@ -509,7 +504,7 @@ export function Integration() {
               ممارسات الأمان لدينا
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {["تشفير TLS أثناء النقل", "نسخ احتياطي يومي تلقائي", "جلسات HttpOnly مشفّرة", "ECDSA / SHA-256 للفواتير"].map((cert) => (
+              {["تشفير TLS أثناء النقل", "نسخ احتياطي يومي تلقائي", "جلسات HttpOnly مشفّرة"].map((cert) => (
                 <div key={cert} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-colors">
                   <Award className="w-10 h-10 mx-auto mb-3 text-sky-400" />
                   <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>

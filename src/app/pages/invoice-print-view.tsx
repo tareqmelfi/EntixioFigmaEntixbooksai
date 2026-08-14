@@ -213,7 +213,7 @@ export function InvoicePrintView() {
   // Show QR for all countries (not just KSA · UX-186)
   const showQr = true;
 
-  // Real ZATCA Phase-1 QR · TLV tags 1-5 (seller · VAT no · timestamp · total · VAT) → base64 → QR
+  // Local TLV QR · tags 1-5 (seller · VAT no · timestamp · total · VAT) → base64 → QR
   const tlvBase64 = (fields: Array<[number, string]>): string => {
     const enc = new TextEncoder();
     const bytes: number[] = [];
@@ -229,9 +229,9 @@ export function InvoicePrintView() {
   const sellerVat = (org as any).vatNumber || "";
   const issuedAt = (() => { try { return new Date(invoice.issueDate as any).toISOString(); } catch { return new Date().toISOString(); } })();
   const vatAmount = safeNum((invoice as any).taxTotal);
-  // Prefer the backend's stored, signed Phase-2 QR (invoice.zatcaQr) when present;
-  // fall back to client-side TLV (tags 1-5) only when not yet ZATCA-processed.
-  // A ZATCA QR requires a real VAT number — omit it entirely when sellerVat is empty.
+  // Prefer any stored QR payload; otherwise generate a local TLV payload with core invoice data.
+  // This local QR is not a ZATCA stamp and is not enabled for production reliance.
+  // A tax-data QR requires a real VAT number — omit it when sellerVat is empty.
   const qrPayload = (invoice as any).zatcaQr
     || (sellerVat
       ? tlvBase64([[1, sellerName], [2, sellerVat], [3, issuedAt], [4, total.toFixed(2)], [5, vatAmount.toFixed(2)]])
@@ -408,8 +408,8 @@ export function InvoicePrintView() {
                   {qrSvg}
                   <div style={{ fontSize: 8, color: "#9CA3AF", maxWidth: 140, textAlign: "center", lineHeight: 1.4 }}>
                     {isKsa
-                      ? "تم توليد هذا الرمز الرقمي وفق المعايير الفنية المعتمدة للفوترة الإلكترونية من هيئة الزكاة والضريبة والجمارك."
-                      : "This QR code is generated in compliance with ZATCA technical standards for e-invoicing."}
+                      ? "يحتوي رمز QR على بيانات الفاتورة الأساسية. المستند غير مختوم من ZATCA وغير مفعّل للاعتماد الإنتاجي."
+                      : "QR contains core invoice data. This document is not ZATCA-stamped and is not enabled for production reliance."}
                   </div>
                 </div>
               )}
@@ -476,8 +476,8 @@ export function InvoicePrintView() {
             const raw = String((invoice as any).termsConditions || "").trim();
             const custom = (raw && !/^Ref:\s*\S+$/.test(raw) ? raw : null) || (docTpl?.showTerms !== false && docTpl?.terms ? String(docTpl.terms) : null);
             const defaultTerms = isKsa
-              ? "1. تعتبر هذه الفاتورة مستنداً رسمياً صادراً وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك للفوترة الإلكترونية.\n2. يستحق السداد وفق شروط الدفع الموضحة أعلاه، ولا تعتبر هذه الفاتورة سند قبض وإبراء ذمة إلا بعد سداد كامل المبلغ المستحق.\n3. يرجى إبلاغنا بأي ملاحظة على هذه الفاتورة خلال 7 أيام من تاريخ الإصدار، وبعدها تعتبر نهائية ومقبولة.\n4. تتم أي إرجاعات أو استبدالات وفق السياسة المتفق عليها وبالحالة الأصلية للأصناف."
-              : "1. This invoice is an official document issued per ZATCA e-invoicing requirements.\n2. Payment is due per the terms stated above; this invoice is not a receipt until fully settled.\n3. Any objection must be raised within 7 days of the issue date, after which the invoice is final.\n4. Returns and exchanges follow the agreed policy and require items in original condition.";
+              ? "1. يحتوي رمز QR على بيانات الفاتورة الأساسية؛ هذا المستند غير مختوم من ZATCA وغير مفعّل للاعتماد الإنتاجي.\n2. يستحق السداد وفق شروط الدفع الموضحة أعلاه، ولا تعتبر هذه الفاتورة سند قبض وإبراء ذمة إلا بعد سداد كامل المبلغ المستحق.\n3. يرجى إبلاغنا بأي ملاحظة على هذه الفاتورة خلال 7 أيام من تاريخ الإصدار، وبعدها تعتبر نهائية ومقبولة.\n4. تتم أي إرجاعات أو استبدالات وفق السياسة المتفق عليها وبالحالة الأصلية للأصناف."
+              : "1. QR contains core invoice data; this document is not ZATCA-stamped and is not enabled for production reliance.\n2. Payment is due per the terms stated above; this invoice is not a receipt until fully settled.\n3. Any objection must be raised within 7 days of the issue date, after which the invoice is final.\n4. Returns and exchanges follow the agreed policy and require items in original condition.";
             const terms = custom || defaultTerms;
             return (
               <div style={{ marginTop: 18 }}>

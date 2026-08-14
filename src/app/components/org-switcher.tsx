@@ -666,7 +666,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <p className="text-xs text-muted-foreground mb-4">{t("كل شيء بعدها (الضريبة · العنوان · التقارير) يتكيّف حسب الدولة", "Everything after this (tax · address · reports) adapts to the country")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {([
-                { c: "SA", flag: "🇸🇦", ar: "السعودية", en: "Saudi Arabia", subAr: "ض.ق.م 15% · ZATCA جاهز · العنوان الوطني", subEn: "VAT 15% · ZATCA ready · national address" },
+                { c: "SA", flag: "🇸🇦", ar: "السعودية", en: "Saudi Arabia", subAr: "ض.ق.م 15% · ZATCA Phase 2 قيد التحقق · العنوان الوطني", subEn: "VAT 15% · ZATCA Phase 2 under validation · national address" },
                 { c: "US", flag: "🇺🇸", ar: "أمريكا", en: "United States", subAr: "Sales Tax · filing حسب الولاية", subEn: "Sales tax · state filing" },
               ] as const).map((o) => (
                 <button key={o.c} type="button" onClick={() => setCountry(o.c)}

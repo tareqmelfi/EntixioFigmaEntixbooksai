@@ -93,19 +93,16 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      {/* ZATCA integration banner · Saudi orgs only (US orgs get Plaid/Stripe instead) */}
+      {/* Gate 0 · country selects relevance only; it never proves a verified server connection. */}
       {isSA && (
-      <div className="bg-foreground text-primary-foreground px-4 sm:px-6 py-2">
+      <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-amber-950 sm:px-6">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Shield className="h-4 w-4 shrink-0 text-emerald-500" />
-            <span className="text-sm truncate">{t("ربط ZATCA — الفاتورة الإلكترونية", "ZATCA e-invoicing connection")}</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-500 font-english" style={{ fontWeight: 600 }}>
-              {t("متصل", "Connected")}
-            </span>
+          <div className="flex min-w-0 items-center gap-2">
+            <Shield className="h-4 w-4 shrink-0 text-amber-600" />
+            <span className="truncate text-sm">{t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation")}</span>
           </div>
-          <Link to="/app/integrations/zatca" className="shrink-0 text-xs text-primary hover:underline">
-            {t("إدارة الربط", "Manage connection")}
+          <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold text-amber-800 hover:underline">
+            {t("مراجعة التفاصيل", "Review details")}
           </Link>
         </div>
       </div>

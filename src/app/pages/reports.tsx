@@ -477,7 +477,7 @@ const reportCatalog: ReportDefinition[] = [
     status: "live",
     formats: ["PDF", "CSV", "Excel"],
     dataSources: ["Tax Rates", "Sales", "Purchases", "Expenses"],
-    ksaTerm: "VAT / ZATCA-ready",
+    ksaTerm: "VAT / accounting review required",
     usTerm: "Sales Tax / State-ready",
   },
   {
@@ -1141,7 +1141,7 @@ function getCompanyProfile(summary: DashboardSummary | null, t: TFunc) {
     currency: isUs ? "USD" : "SAR",
     taxLabel: isUs ? t("Sales Tax الصافي", "Sales Tax Net") : t("VAT الصافي", "VAT Net"),
     taxSystem: isUs ? "Sales Tax / State Tax" : "VAT / ZATCA",
-    standardLabel: isUs ? "US GAAP-ready naming" : "IFRS + ZATCA-ready naming",
+    standardLabel: isUs ? "US GAAP-ready naming" : "IFRS-oriented naming · accounting review required",
   };
 }
 

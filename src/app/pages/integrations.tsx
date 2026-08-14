@@ -54,7 +54,6 @@ export function Integrations() {
   const { isSA } = useOrgRegion();
 
   // ── Live connection state (replaces the old static list) ──────────────
-  const [activeOrg, setActiveOrg] = useState<{ id: string; zatcaEnabled?: boolean } | null>(null);
   const [oauth, setOauth] = useState<any>(null);
   useEffect(() => {
     let alive = true;
@@ -63,7 +62,6 @@ export function Integrations() {
       const storedId = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
       const active = (storedId ? list.find((o) => o.id === storedId) : null) || list[0];
       if (!active) return;
-      setActiveOrg(active as any);
       try {
         const status = await (api as any).oauth.status(active.id);
         if (alive) setOauth(status);
@@ -74,10 +72,8 @@ export function Integrations() {
 
   const stripeConnected = !!oauth?.stripe?.connected;
   const moyasarConnected = !!oauth?.moyasar?.connected;
-  const zatcaConnected = !!activeOrg?.zatcaEnabled;
-
   const integrations: Integration[] = [
-    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "فوترة إلكترونية متوافقة مع المرحلة 2", en: "Phase 2 compliant e-invoicing" }, category: "government", icon: Shield, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: zatcaConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=zatca" } },
+    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "ZATCA Phase 2 — قيد التحقق · غير مفعّل للاعتماد الإنتاجي", en: "ZATCA Phase 2 — Under validation · not enabled for production reliance" }, category: "government", icon: Shield, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "coming", action: { kind: "route", to: "/app/settings?tab=zatca" } },
     { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "coming" },
     { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "available", action: { kind: "route", to: "/app/integrations/plaid" } },
     { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "coming" },
