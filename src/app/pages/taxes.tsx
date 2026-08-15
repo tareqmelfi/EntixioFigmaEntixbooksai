@@ -211,7 +211,8 @@ export function Taxes() {
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
         <>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
+            <Metric label={t("الرقم الوطني الموحد للمنشأة", "Unified National Number")} value={payload.org.unifiedNationalNumber || "—"} mono />
             <Metric label={t("رقم التسجيل الضريبي", "VAT registration number")} value={payload.org.vatNumber || "—"} mono />
             <Metric label={t("الفترة", "Period")} value={`${payload.period.from} → ${payload.period.to}`} mono />
             <Metric label={t("صافي VAT", "Net VAT")} value={money(payload.vatDeclaration.netVat, currency)} tone={payload.vatDeclaration.netVat >= 0 ? "warn" : "good"} />

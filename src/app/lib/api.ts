@@ -214,7 +214,7 @@ export const api = {
     create: (data: CreateOrgInput) =>
       request<Org>('/orgs', { method: 'POST', body: data, skipOrg: true }),
     get: (id: string) => request<Org>(`/orgs/${id}`, { skipOrg: true }),
-    update: (id: string, data: Partial<Org>) =>
+    update: (id: string, data: UpdateOrgInput) =>
       request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
     remove: (id: string, data: { confirmName: string }) =>
       request<{ ok: true; deletedOrgId: string; nextOrgId: string | null }>(`/orgs/${id}`, { method: 'DELETE', body: data, skipOrg: true }),
@@ -1110,6 +1110,7 @@ export interface Org {
   baseCurrency: string
   fiscalYearStart: number
   fiscalYearEnd?: number | null
+  unifiedNationalNumber?: string | null
   vatNumber?: string | null
   crNumber?: string | null
   zatcaEnabled: boolean
@@ -1162,6 +1163,7 @@ export interface CreateOrgInput {
   baseCurrency?: string
   fiscalYearStart?: number
   fiscalYearEnd?: number
+  unifiedNationalNumber?: string | null
   vatNumber?: string
   crNumber?: string
   logoUrl?: string
@@ -1184,6 +1186,10 @@ export interface CreateOrgInput {
   taxRegistrationDate?: string
   firstVatPeriodStart?: string
   vatPeriod?: string
+}
+
+export type UpdateOrgInput = Partial<Org> & {
+  unifiedNationalNumber?: string | null
 }
 
 export interface ReportColumn {
@@ -1754,6 +1760,7 @@ export interface TaxReturnPayload {
     legalName?: string | null
     country: string
     baseCurrency: string
+    unifiedNationalNumber?: string | null
     vatNumber?: string | null
     vatPeriod?: 'monthly' | 'quarterly' | null
   }

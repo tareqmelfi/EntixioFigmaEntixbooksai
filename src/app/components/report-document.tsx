@@ -101,7 +101,10 @@ export function ReportDocument({
         </div>
 
         {resolved.showTaxInfo && (
-          <div className="mt-6 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+          <div className="mt-6 grid gap-2 text-xs text-slate-600 sm:grid-cols-4">
+            {report.org.country === "SA" && report.org.unifiedNationalNumber && (
+              <Info label={t("الرقم الوطني الموحد للمنشأة", "Unified National Number")} value={report.org.unifiedNationalNumber} />
+            )}
             <Info label={t("الرقم الضريبي", "VAT number")} value={report.org.vatNumber || "—"} />
             <Info label={t("السجل التجاري", "Commercial registration")} value={report.org.crNumber || "—"} />
             <Info label={t("تاريخ الإصدار", "Issue date")} value={new Date(report.generatedAt).toLocaleString(isEn ? "en-GB" : "ar-SA")} />

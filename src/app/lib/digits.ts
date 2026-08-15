@@ -32,6 +32,26 @@ export function normalizeDigits(input: string): string {
   return out;
 }
 
+/** Normalize a Saudi unified national number while typing and cap it at 10 digits. */
+export function normalizeUnifiedNationalNumber(input: string): string {
+  return normalizeDigits(input).replace(/\D/g, "").slice(0, 10);
+}
+
+function normalizedUnifiedNationalNumberValue(input: string): string {
+  return normalizeDigits(input).replace(/\D/g, "");
+}
+
+/** The field is optional; when supplied its full value must contain exactly 10 digits. */
+export function isValidUnifiedNationalNumber(input: string): boolean {
+  const normalized = normalizedUnifiedNationalNumberValue(input);
+  return normalized === "" || /^\d{10}$/.test(normalized);
+}
+
+/** Serialize without truncation so invalid persisted values fail closed at the API boundary. */
+export function nullableUnifiedNationalNumber(input: string): string | null {
+  return normalizedUnifiedNationalNumberValue(input) || null;
+}
+
 /** Western → Arabic-Indic · for display only when explicitly needed (e.g. legal docs). */
 export function toArabicDigits(input: string): string {
   if (!input) return input;
