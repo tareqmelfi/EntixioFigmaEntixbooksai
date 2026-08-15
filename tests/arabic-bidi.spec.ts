@@ -95,9 +95,9 @@ test('print identifiers are isolated LTR while arbitrary names and prose use aut
 
 test('prerender isolates every route in a fresh page and closes it after use', async () => {
   const prerender = await source('scripts/prerender.mjs')
-  expect(prerender).toContain('async function createRendererPage()')
   expect(prerender).toContain('const REQUESTED_PORT = Number(process.env.PRERENDER_PORT || 0)')
   expect(prerender).toContain("server.listen(REQUESTED_PORT, '127.0.0.1', resolve)")
-  expect(prerender).toMatch(/for \(const \[route,[\s\S]*?page = await createRendererPage\(\)/)
+  expect(prerender).toMatch(/async function (?:createRendererPage|withRendererPage)/)
+  expect(prerender).toContain('const page = await browser.newPage()')
   expect(prerender).toMatch(/finally \{[\s\S]*?!page\.isClosed\(\)[\s\S]*?page\.close\(\)/)
 })

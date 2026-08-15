@@ -40,10 +40,45 @@ server {
   root /usr/share/nginx/html;
   index index.html;
 
-  # SPA fallback · all routes serve index.html
-  location / {
-    try_files $uri $uri/ /index.html;
+  # Coolify terminates TLS before this container. Redirect only when the trusted
+  # forwarded protocol explicitly says HTTP; an absent header keeps local health
+  # checks working and avoids HTTPS redirect loops behind the proxy.
+  if ($http_x_forwarded_proto = "http") {
+    return 308 https://$host$request_uri;
   }
+
+  # Neutral chooser and the exact localized manifest artifacts.
+  location = / { try_files /index.html =404; }
+  location = /sa/ar { try_files /sa/ar/index.html =404; }
+  location = /sa/en { try_files /sa/en/index.html =404; }
+  location = /us/ar { try_files /us/ar/index.html =404; }
+  location = /us/en { try_files /us/en/index.html =404; }
+
+  # Canonical localized URLs have no trailing slash. Relative redirects retain
+  # the browser's external HTTPS origin even though Nginx receives proxy HTTP.
+  location = /sa/ar/ { return 308 /sa/ar$is_args$args; }
+  location = /sa/en/ { return 308 /sa/en$is_args$args; }
+  location = /us/ar/ { return 308 /us/ar$is_args$args; }
+  location = /us/en/ { return 308 /us/en$is_args$args; }
+
+  # Any other market/locale path is outside the constrained manifest.
+  location ~ ^/(?:sa|us)/(?:ar|en)(?:/|$) { return 404; }
+
+  # Established public routes are real prerendered documents. Exact matching and
+  # $uri/index.html prevent neutral-root shell substitution if an artifact is absent.
+  location ~ ^/(?:features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)$ {
+    try_files $uri/index.html =404;
+  }
+  location ~ ^/solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce)$ {
+    try_files $uri/index.html =404;
+  }
+  location = /support/ios { try_files $uri/index.html =404; }
+
+  # Controlled application surfaces remain client-rendered.
+  location ~ ^/(?:app|portal|print)(?:/|$) { try_files $uri /index.html; }
+
+  # Unknown extensionless paths are honest 404s rather than SPA fake-200s.
+  location / { try_files $uri =404; }
 
   # Serve .well-known as static files with correct content type
   # (Microsoft identity verification requires application/json)

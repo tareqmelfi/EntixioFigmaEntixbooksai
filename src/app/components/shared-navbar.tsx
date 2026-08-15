@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
 import { useMarketingRegion, MarketingRegion } from "./marketing-region";
 import { EntixWordmark } from "./entix-brand";
+import { usePublicRoute } from "../lib/public-route";
 
 interface DropdownItem {
   label: string;
@@ -26,6 +27,8 @@ export function SharedNavbar() {
   const navigate = useNavigate();
   const { language, toggleLanguage, t } = useLanguage();
   const { region, setRegion } = useMarketingRegion();
+  const publicRoute = usePublicRoute();
+  const publicHref = publicRoute.href;
   const [mobileNav, setMobileNav] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -91,7 +94,17 @@ export function SharedNavbar() {
   const handleNavigate = (path: string) => {
     setMobileNav(false);
     setOpenDropdown(null);
-    navigate(path);
+    navigate(publicHref(path));
+  };
+
+  const handleRegion = (next: MarketingRegion) => {
+    setRegion(next);
+    if (publicRoute.route) publicRoute.changeMarket(next === "SA" ? "sa" : "us");
+  };
+
+  const handleLanguage = () => {
+    if (publicRoute.route) publicRoute.changeLocale(language === "ar" ? "en" : "ar");
+    toggleLanguage();
   };
 
   return (
@@ -106,7 +119,7 @@ export function SharedNavbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center hover:opacity-90 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
+        <Link to={publicHref("")} className="flex items-center hover:opacity-90 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
           <EntixWordmark size={34} />
         </Link>
 
@@ -161,7 +174,7 @@ export function SharedNavbar() {
                 </>
               ) : (
                 <Link
-                  to={item.href!}
+                  to={publicHref(item.href!)}
                   className="block px-4 py-2 text-foreground/80 hover:text-foreground hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 500 }}
                 >
@@ -201,7 +214,7 @@ export function SharedNavbar() {
                   {REGIONS.map((r) => (
                     <button
                       key={r.id}
-                      onClick={() => { setRegion(r.id); setOpenDropdown(null); }}
+                      onClick={() => { handleRegion(r.id); setOpenDropdown(null); }}
                       className={`w-full text-start px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-2.5 ${
                         r.id === region ? "bg-primary/5" : ""
                       }`}
@@ -218,23 +231,23 @@ export function SharedNavbar() {
             </AnimatePresence>
           </div>
           <button
-            onClick={toggleLanguage}
+            onClick={handleLanguage}
             className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-colors"
             style={{ fontSize: "13px", fontWeight: 600 }}
             aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
           >
             <Globe className="h-4 w-4" />
-            <span>{language === "ar" ? "English" : "العربية"}</span>
+            <span>{language === "ar" ? "English" : "Arabic"}</span>
           </button>
           <button 
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(publicHref("/login"))}
             className="text-foreground hover:text-primary transition-colors cursor-pointer px-4 py-2.5" 
             style={{ fontSize: "14px", fontWeight: 500 }}
           >
             {t("تسجيل الدخول", "Sign in")}
           </button>
           <button
-            onClick={() => navigate("/register")}
+            onClick={() => navigate(publicHref("/register"))}
             className="bg-primary hover:bg-primary text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
@@ -302,7 +315,7 @@ export function SharedNavbar() {
                   {REGIONS.map((r) => (
                     <button
                       key={r.id}
-                      onClick={() => setRegion(r.id)}
+                      onClick={() => handleRegion(r.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer ${
                         r.id === region ? "border-primary bg-primary/5 text-foreground" : "border-gray-200 text-foreground/70 hover:bg-gray-50"
                       }`}
@@ -314,7 +327,7 @@ export function SharedNavbar() {
                 </div>
               </div>
               <button
-                onClick={toggleLanguage}
+                onClick={handleLanguage}
                 className="w-full flex items-center justify-between px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
@@ -348,7 +361,7 @@ export function SharedNavbar() {
     {!mobileNav && (
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
         <button
-          onClick={() => navigate("/register")}
+          onClick={() => navigate(publicHref("/register"))}
           className="w-full bg-primary text-white py-3 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary transition-colors cursor-pointer"
           style={{ fontSize: "15px", fontWeight: 600 }}
         >

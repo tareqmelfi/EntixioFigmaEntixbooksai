@@ -5,6 +5,8 @@
  * Persisted in localStorage("entix-marketing-region") · default "SA".
  */
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { marketRegion } from "../public-site-manifest";
+import { publicRouteFromWindow } from "../lib/public-route";
 
 export type MarketingRegion = "SA" | "US";
 
@@ -21,6 +23,8 @@ const STORAGE_KEY = "entix-marketing-region";
 
 export function MarketingRegionProvider({ children }: { children: ReactNode }) {
   const [region, setRegionState] = useState<MarketingRegion>(() => {
+    const urlMarket = publicRouteFromWindow()?.market;
+    if (urlMarket) return marketRegion(urlMarket);
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       return saved === "US" ? "US" : "SA";
@@ -28,6 +32,15 @@ export function MarketingRegionProvider({ children }: { children: ReactNode }) {
       return "SA";
     }
   });
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const urlMarket = publicRouteFromWindow()?.market;
+      if (urlMarket) setRegionState(marketRegion(urlMarket));
+    };
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, region); } catch { /* private mode */ }

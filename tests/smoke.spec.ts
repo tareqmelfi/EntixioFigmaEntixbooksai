@@ -5,11 +5,16 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Public Pages', () => {
-  test('landing page loads', async ({ page }) => {
+  test('neutral chooser and explicit market landing load', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveTitle(/entix/i)
-    // Landing nav uses buttons with navigate() (not <a href>) · accept either
-    await expect(page.locator('a[href="/login"], button:has-text("تسجيل الدخول"), button:has-text("Sign in")').first()).toBeVisible()
+    await expect(page.locator('main[data-page="market-locale-chooser"]')).toBeVisible()
+    await expect(page.locator('a[href="/us/en"]')).toBeVisible()
+
+    await page.goto('/us/en')
+    await expect(page.locator('main')).toBeVisible()
+    await expect(page.getByText('Cloud accounting for US businesses')).toBeVisible()
+    await expect(page.locator('a[href="/login"], button:has-text("Sign in")').first()).toBeVisible()
   })
 
   test('login page renders', async ({ page }) => {
