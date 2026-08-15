@@ -27,6 +27,7 @@ import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 import { useOrgRegion } from "../lib/use-org-region";
+import { BidiText } from "../components/bidi-text";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, APPROVED: { ar: "معتمدة", en: "Approved" }, SENT: { ar: "مرسلة", en: "Sent" }, VIEWED: { ar: "مُشاهَدة", en: "Viewed" }, PAID: { ar: "مدفوعة", en: "Paid" },
@@ -1034,16 +1035,16 @@ export function Invoices() {
             <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد فواتير", "No invoices")}</p></div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] table-auto">
+            <table className="w-full min-w-[1120px] table-fixed">
               <colgroup>
-                <col style={{ width: "12%" }} />{/* الرقم */}
-                <col style={{ width: "auto" }} />{/* العميل */}
-                <col style={{ width: "11%" }} />{/* التاريخ */}
-                <col style={{ width: "11%" }} />{/* الاستحقاق */}
-                <col style={{ width: "13%" }} />{/* الحالة */}
-                <col style={{ width: "13%" }} />{/* الإجمالي */}
-                <col style={{ width: "11%" }} />{/* المتبقي */}
-                <col style={{ width: "12%" }} />{/* إجراءات */}
+                <col style={{ width: "11%" }} />{/* الرقم */}
+                <col style={{ width: "24%", minWidth: "220px" }} />{/* العميل */}
+                <col style={{ width: "10%" }} />{/* التاريخ */}
+                <col style={{ width: "10%" }} />{/* الاستحقاق */}
+                <col style={{ width: "11%" }} />{/* الحالة */}
+                <col style={{ width: "11%" }} />{/* الإجمالي */}
+                <col style={{ width: "10%" }} />{/* المتبقي */}
+                <col style={{ width: "13%" }} />{/* إجراءات */}
               </colgroup>
               <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
                 <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
@@ -1080,13 +1081,17 @@ export function Invoices() {
                             e.stopPropagation();
                             navigate(`/app/contacts/${i.contactId}`);
                           }}
-                          className="block text-start whitespace-normal break-words text-primary hover:underline underline-offset-4 decoration-primary/40"
+                          className="block w-full min-w-0 text-start text-primary hover:underline underline-offset-4 decoration-primary/40"
                           title={t("فتح ملف العميل", "Open contact profile")}
                         >
-                          {i.contact?.displayName || "—"}
+                          <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
+                            {i.contact?.displayName || "—"}
+                          </BidiText>
                         </button>
                       ) : (
-                        <span className="block whitespace-normal break-words">{i.contact?.displayName || "—"}</span>
+                        <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
+                          {i.contact?.displayName || "—"}
+                        </BidiText>
                       )}
                     </td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>

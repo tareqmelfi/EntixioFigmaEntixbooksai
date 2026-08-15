@@ -20,6 +20,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Search, Check, ChevronDown } from "lucide-react";
 import { normalizeDigits } from "../lib/digits";
+import { BidiText, NumericText } from "./bidi-text";
 
 export interface ComboboxItem {
   id: string;
@@ -227,12 +228,12 @@ export function SearchableCombobox({
         }>
           {selected ? (
             <>
-              {selected.label}
+              <BidiText compact={wrap} className="max-w-full leading-5" title={selected.label}>{selected.label}</BidiText>
               {wrap && selected.sublabel && (
-                <span className="text-muted-foreground/60 text-[11px] font-english"> · {selected.sublabel.split("·")[0].trim()}</span>
+                <NumericText className="ms-1 text-[11px] text-muted-foreground/60">· {selected.sublabel.split("·")[0].trim()}</NumericText>
               )}
             </>
-          ) : placeholder}
+          ) : <BidiText>{placeholder}</BidiText>}
         </span>
         <ChevronDown className={`h-4 w-4 text-muted-foreground/60 shrink-0 ms-2 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -256,7 +257,8 @@ export function SearchableCombobox({
               onChange={(e) => setQuery(normalizeDigits(e.target.value))}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/60"
+              dir="auto"
+              className="flex-1 bg-transparent text-start outline-none text-sm placeholder:text-muted-foreground/60"
             />
           </div>
 
@@ -290,9 +292,9 @@ export function SearchableCombobox({
                 title={`${item.label}${item.sublabel ? ` · ${item.sublabel}` : ""}`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-foreground break-words leading-5 line-clamp-2">{item.label}</div>
+                  <BidiText compact className="block text-foreground leading-5" title={item.label}>{item.label}</BidiText>
                   {item.sublabel && (
-                    <div className="text-xs text-muted-foreground break-all font-english">{item.sublabel}</div>
+                    <NumericText className="block max-w-full overflow-hidden text-ellipsis text-xs text-muted-foreground">{item.sublabel}</NumericText>
                   )}
                 </div>
                 {item.id === value && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
