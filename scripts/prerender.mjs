@@ -118,6 +118,11 @@ async function withRendererPage(storage, render) {
     await page.evaluateOnNewDocument((values) => {
       localStorage.setItem('entix-language', values.locale)
       localStorage.setItem('entix-marketing-region', values.region)
+      window.turnstile = {
+        render: () => 'prerender-turnstile',
+        reset: () => {},
+        remove: () => {},
+      }
     }, storage)
     return await render(page)
   } finally {

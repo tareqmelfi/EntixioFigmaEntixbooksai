@@ -43,8 +43,11 @@ async function solveCaptcha(page: Page, token = captchaToken) {
   await page.evaluate(value => (window as any).__turnstileTest.options.callback(value), token)
 }
 
-async function triggerCaptcha(page: Page, callback: string) {
-  await page.evaluate(name => (window as any).__turnstileTest.options[name](), callback)
+async function triggerCaptcha(page: Page, callback: string, ...args: unknown[]) {
+  await page.evaluate(
+    ({ name, callbackArgs }) => (window as any).__turnstileTest.options[name](...callbackArgs),
+    { name: callback, callbackArgs: args },
+  )
 }
 
 test.describe('public auth CAPTCHA lifecycle', () => {
@@ -124,6 +127,61 @@ test.describe('public auth CAPTCHA lifecycle', () => {
     expect(headers).toEqual([captchaToken, captchaToken])
   })
 
+  test('slow existing Turnstile script is awaited without appending a duplicate', async ({ page }) => {
+    await page.addInitScript(() => {
+      delete (window as any).turnstile
+      delete (window as any).__turnstileScriptPromise
+      document.addEventListener('DOMContentLoaded', () => {
+        const script = document.createElement('script')
+        script.dataset.entixTurnstile = 'true'
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+        script.onload = () => { (window as any).__existingScriptOnloadCount = 1 }
+        document.head.appendChild(script)
+      }, { once: true })
+    })
+    await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', async route => {
+      await new Promise(resolve => setTimeout(resolve, 300))
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: `window.turnstile = {
+          render: function (element, options) {
+            window.__slowTurnstileRenderCount = (window.__slowTurnstileRenderCount || 0) + 1;
+            window.__slowTurnstileOptions = options;
+            element.textContent = 'Slow Turnstile widget';
+            return 'slow-widget';
+          },
+          reset: function () {},
+          remove: function () {}
+        };`,
+      })
+    })
+
+    await page.goto('/login')
+    await expect(page.getByText('Slow Turnstile widget')).toBeVisible()
+    expect(await page.locator('script[data-entix-turnstile="true"]').count()).toBe(1)
+    expect(await page.evaluate(() => (window as any).__slowTurnstileRenderCount)).toBe(1)
+    expect(await page.evaluate(() => (window as any).__existingScriptOnloadCount)).toBe(1)
+  })
+
+  test('finished existing script without SDK times out to a visible recoverable error', async ({ page }) => {
+    await page.addInitScript(() => {
+      delete (window as any).turnstile
+      delete (window as any).__turnstileScriptPromise
+      document.addEventListener('DOMContentLoaded', () => {
+        const script = document.createElement('script')
+        script.dataset.entixTurnstile = 'true'
+        script.src = 'data:text/javascript,void 0'
+        document.head.appendChild(script)
+      }, { once: true })
+    })
+
+    await page.goto('/login')
+    await expect(page.locator('[data-testid="captcha-error"]')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
+    await expect(page.locator('button[type="submit"]')).toBeDisabled()
+    await expect.poll(() => page.evaluate(() => Boolean((window as any).__turnstileScriptPromise))).toBe(false)
+  })
+
   test('script load failure stays failed and Retry loads a fresh solvable widget', async ({ page }) => {
     await page.addInitScript(() => {
       delete (window as any).turnstile
@@ -166,6 +224,93 @@ test.describe('public auth CAPTCHA lifecycle', () => {
 
     await triggerCaptcha(page, 'expired-callback')
     await expect(submit).toBeDisabled()
+  })
+
+  test('retryable widget error shows its code and automatically resets only once', async ({ page }) => {
+    await page.goto('/login')
+    const submit = page.locator('button[type="submit"]')
+
+    await solveCaptcha(page, 'token-that-must-be-invalidated')
+    await expect(submit).toBeEnabled()
+    await triggerCaptcha(page, 'error-callback', '300030')
+
+    const failure = page.locator('[data-testid="captcha-error"]')
+    await expect(failure).toContainText('Security verification failed. Please try again.')
+    await expect(failure).toContainText('300030')
+    await expect(submit).toBeDisabled()
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(1)
+
+    await triggerCaptcha(page, 'error-callback', '300030')
+    await page.waitForTimeout(100)
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(1)
+
+    await page.getByRole('button', { name: 'Retry' }).click()
+    await expect(failure).toBeHidden()
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(2)
+    await expect(submit).toBeDisabled()
+  })
+
+  test('stale error callback cannot reset the replacement widget', async ({ page }) => {
+    await page.goto('/login')
+    const staleErrorCallback = await page.evaluateHandle(() => (window as any).__turnstileTest.options['error-callback'])
+
+    await page.getByRole('button', { name: 'العربية' }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.options.language)).toBe('ar')
+    await page.evaluate(() => { (window as any).__turnstileTest.resetCount = 0 })
+    await staleErrorCallback.evaluate((callback: (code: string) => void) => callback('300030'))
+
+    await page.waitForTimeout(100)
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(0)
+    await expect(page.locator('[data-testid="captcha-error"]')).toBeHidden()
+  })
+
+  test('retry classifications reset exact recoverable codes and reject non-retryable codes', async ({ page }) => {
+    await page.goto('/login')
+
+    for (const code of ['110600', '110620', '200500', '300030', '600010']) {
+      await page.evaluate(() => { (window as any).__turnstileTest.resetCount = 0 })
+      await triggerCaptcha(page, 'error-callback', code)
+      await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount), { message: code }).toBe(1)
+      await solveCaptcha(page, `recovered-${code}`)
+    }
+
+    await page.evaluate(() => { (window as any).__turnstileTest.resetCount = 0 })
+    await triggerCaptcha(page, 'error-callback', '110200')
+    await page.waitForTimeout(100)
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(0)
+  })
+
+  test('non-retryable hostname error shows bilingual configuration guidance without automatic reset', async ({ page }) => {
+    await page.goto('/login')
+
+    await triggerCaptcha(page, 'error-callback', '110200')
+
+    const failure = page.locator('[data-testid="captcha-error"]')
+    await expect(failure).toContainText('110200')
+    await expect(failure).toContainText('hostname')
+    await expect(failure).toContainText('اسم النطاق')
+    await page.waitForTimeout(100)
+    await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(0)
+    await expect(page.locator('button[type="submit"]')).toBeDisabled()
+  })
+
+  test('widget options explicitly configure recovery and status callback may receive an error code', async ({ page }) => {
+    await page.goto('/login')
+
+    const options = await page.evaluate(() => {
+      const { retry, 'retry-interval': retryInterval, 'refresh-expired': refreshExpired, 'refresh-timeout': refreshTimeout } =
+        (window as any).__turnstileTest.options
+      return { retry, retryInterval, refreshExpired, refreshTimeout }
+    })
+    expect(options).toEqual({
+      retry: 'never',
+      retryInterval: 8000,
+      refreshExpired: 'auto',
+      refreshTimeout: 'auto',
+    })
+
+    await triggerCaptcha(page, 'error-callback', '600010')
+    await expect(page.locator('[data-testid="captcha-error"]')).toContainText('600010')
   })
 
   test('widget error, timeout, and unsupported callbacks stay visible with localized retry', async ({ page }) => {
