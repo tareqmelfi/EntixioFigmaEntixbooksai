@@ -50,6 +50,20 @@ test('all supported legacy routes keep real prerendered artifacts instead of neu
   expect(await readFile(artifact('/privacy'), 'utf8')).toContain('Privacy Policy · ENTIX.IO')
 })
 
+test('auth raw artifacts contain no prerendered Turnstile runtime state', async () => {
+  const forbidden = [
+    'challenges.cloudflare.com/turnstile',
+    'data-entix-turnstile',
+    'cf-turnstile-response',
+    'data-testid="captcha-error"',
+  ]
+
+  for (const route of ['/login', '/register', '/forgot-password']) {
+    const html = await readFile(artifact(route), 'utf8')
+    for (const marker of forbidden) expect(html, route).not.toContain(marker)
+  }
+})
+
 test('neutral root raw document has neutral metadata and x-default', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8')
   expect(html).toContain('<html lang="en" dir="ltr">')
