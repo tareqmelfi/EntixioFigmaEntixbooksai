@@ -19,7 +19,7 @@ const SHELL_PREFIXES = ['/app', '/portal', '/print']
 const MARKETING_ROUTES = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password',
   '/features', '/integration', '/pricing', '/privacy', '/terms', '/blog',
-  '/help', '/docs', '/videos', '/about', '/team', '/careers', '/contact',
+  '/help', '/support/ios', '/docs', '/videos', '/about', '/team', '/careers', '/contact',
   '/partners', '/changelog', '/roadmap', '/case-studies', '/glossary',
   '/refund', '/sla',
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
@@ -118,7 +118,12 @@ export default {
     if (hasExtension) {
       const res = await env.ASSETS.fetch(request)
       if (res.status === 404) return withSecurityHeaders(notFound())
-      return withSecurityHeaders(res)
+      const secured = withSecurityHeaders(res)
+      if (pathname.startsWith('/app-review-samples/')) {
+        secured.headers.set('content-disposition', `attachment; filename="${pathname.split('/').pop()}"`)
+        secured.headers.set('x-robots-tag', 'noindex, nofollow, noarchive')
+      }
+      return secured
     }
 
     // Extensionless path:
