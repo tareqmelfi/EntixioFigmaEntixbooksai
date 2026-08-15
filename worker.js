@@ -20,7 +20,7 @@ const API_PATHS = (p) =>
 const SHELL_PREFIXES = ['/app', '/portal', '/print']
 const LOCALIZED_ROUTES = new Set(['/sa/ar', '/sa/en', '/us/ar', '/us/en'])
 const LOCALIZED_PREFIX = /^\/(?:sa|us)\/(?:ar|en)(?:\/|$)/
-const PRERENDERED_ROUTES = new Set([
+const MARKETING_ROUTES = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password',
   '/features', '/integration', '/pricing', '/privacy', '/terms', '/blog',
   '/help', '/support/ios', '/docs', '/videos', '/about', '/team', '/careers', '/contact',
@@ -138,7 +138,7 @@ export default {
     //    address the file explicitly.
     // 2) app shells (/app /portal /print) → SPA index.html fallback (ARC-04)
     // 3) anything else → honest 404 (REND-07)
-    if (LOCALIZED_ROUTES.has(pathname) || PRERENDERED_ROUTES.has(pathname)) {
+    if (LOCALIZED_ROUTES.has(pathname) || MARKETING_ROUTES.has(pathname)) {
       const target = pathname === '/' ? '/index.html' : `${pathname}/index.html`
       const real = await env.ASSETS.fetch(new Request(new URL(target, url), request))
       return real.status === 404
