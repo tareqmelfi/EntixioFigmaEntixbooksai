@@ -4,6 +4,9 @@ import {
   Bot,
   Camera,
   CircleHelp,
+  Download,
+  FileImage,
+  FileText,
   KeyRound,
   LifeBuoy,
   Mail,
@@ -83,6 +86,27 @@ const enSections = [
       "For an ongoing service issue, email support with the time of the issue and the affected action.",
       "This support page does not request payment or link to purchasing.",
     ],
+  },
+];
+
+const appReviewSamples = [
+  {
+    href: "/app-review-samples/entix-synthetic-app-review-receipt.png",
+    filename: "entix-synthetic-app-review-receipt.png",
+    format: "PNG",
+    icon: FileImage,
+  },
+  {
+    href: "/app-review-samples/entix-synthetic-app-review-receipt.jpg",
+    filename: "entix-synthetic-app-review-receipt.jpg",
+    format: "JPG",
+    icon: FileImage,
+  },
+  {
+    href: "/app-review-samples/entix-synthetic-app-review-receipt-searchable.pdf",
+    filename: "entix-synthetic-app-review-receipt-searchable.pdf",
+    format: "PDF",
+    icon: FileText,
   },
 ];
 
@@ -206,6 +230,56 @@ export function IosSupport() {
                   <ShieldCheck className="h-5 w-5 shrink-0" />
                   <span>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</span>
                 </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="app-review-samples" aria-labelledby="app-review-samples-title" className="mx-auto max-w-6xl px-4 pb-6 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-sm font-bold text-amber-950">
+                  <Download className="h-4 w-4" />
+                  <span>{isAr ? "ملفات عامة لمراجعة التطبيق" : "Public App Review files"}</span>
+                </div>
+                <h2 id="app-review-samples-title" className="text-2xl font-extrabold leading-9 text-slate-950">
+                  {isAr ? "عينات إيصال اصطناعية" : "Synthetic receipt samples"}
+                </h2>
+                <p className="mt-3 text-base font-extrabold leading-8 text-red-800">
+                  {isAr
+                    ? "عينة اصطناعية لمراجعة التطبيق — ليست معاملة حقيقية"
+                    : "SYNTHETIC APP REVIEW SAMPLE — NOT A REAL TRANSACTION"}
+                </p>
+                <p className="mt-2 text-[0.95rem] leading-7 text-slate-700">
+                  {isAr
+                    ? "استخدم هذه الملفات فقط لاختبار استيراد الإيصالات واستخراج OCR وشاشات المراجعة. جميع الأسماء والمعرّفات والتواريخ والبنود ومبالغ الضريبة والإجماليات مختلقة، ولا تتضمن بيانات شخصية أو حسابات أو أرقام ضريبة/سجل تجاري أو بيانات بنكية حقيقية."
+                    : "Use these files only to test receipt import, OCR extraction, and review screens. Every name, identifier, date, line item, tax amount, and total is fabricated; no real PII, account details, VAT/CR identifiers, or bank data are included."}
+                </p>
+              </div>
+              <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 lg:w-auto lg:min-w-[22rem] lg:grid-cols-1">
+                {appReviewSamples.map((sample) => {
+                  const Icon = sample.icon;
+                  const label = isAr
+                    ? sample.format === "PDF"
+                      ? "تنزيل الإيصال الاصطناعي القابل للبحث (PDF)"
+                      : `تنزيل الإيصال الاصطناعي (${sample.format})`
+                    : sample.format === "PDF"
+                      ? "Download searchable synthetic receipt (PDF)"
+                      : `Download synthetic receipt (${sample.format})`;
+                  return (
+                    <a
+                      key={sample.format}
+                      href={sample.href}
+                      download={sample.filename}
+                      aria-label={label}
+                      className="inline-flex min-w-0 items-center gap-3 rounded-2xl border border-amber-300 bg-white px-4 py-3 font-bold text-slate-950 transition hover:border-amber-500 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+                    >
+                      <Icon className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+                      <span className="min-w-0 break-words">{label}</span>
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>
