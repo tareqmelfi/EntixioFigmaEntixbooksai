@@ -8,6 +8,8 @@ import { Login } from "./pages/login";
 import { Register } from "./pages/register";
 import { ForgotPassword } from "./pages/forgot-password";
 import { ResetPassword } from "./pages/reset-password";
+import { MarketLocaleChooser } from "./pages/market-locale-chooser";
+import { PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, localizedPath, type PublicPageKind } from "./public-site-manifest";
 
 // Route-level code splitting · every app/marketing page loads its own chunk on
 // first visit instead of shipping one 2MB bundle (PERF rescue · original Bible §3.4)
@@ -35,6 +37,18 @@ function lazyElement(
     </Suspense>
   );
 }
+
+const publicElements: Record<PublicPageKind, React.ReactElement> = {
+  landing: <Landing />,
+};
+
+const localizedPublicRoutes = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.flatMap((locale) =>
+  PUBLIC_PAGES.map((page) => ({
+    path: localizedPath(market, locale, page.path),
+    element: publicElements[page.kind],
+    errorElement: <ErrorBoundary />,
+  })),
+));
 
 // Wrap app routes with auth guard
 function ProtectedRoot() {
@@ -111,8 +125,10 @@ function ProtectedRoot() {
 
 
 export const router = createBrowserRouter([
-  // Public routes - Landing as main page
-  { path: "/", element: <Landing />, errorElement: <ErrorBoundary /> },
+  // Neutral entry point. Localized public URLs are generated from one manifest.
+  { path: "/", element: <MarketLocaleChooser />, errorElement: <ErrorBoundary /> },
+  ...localizedPublicRoutes,
+  // Legacy public subpages remain available without localized canonical claims.
   { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },
   { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
   { path: "/forgot-password", element: <ForgotPassword />, errorElement: <ErrorBoundary /> },

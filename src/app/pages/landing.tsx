@@ -10,6 +10,7 @@ import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useLanguage } from "../components/LanguageContext";
 import { useMarketingRegion } from "../components/marketing-region";
+import { usePublicRoute } from "../lib/public-route";
 
 // ─── Animated counter ───
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -63,7 +64,7 @@ const FEATURES_US = [
   { icon: Cloud, title: "سحابي بالكامل", titleEn: "Fully cloud", desc: "بياناتك متاحة من أي جهاز ومتصفح مع نسخ احتياطي يومي تلقائي", descEn: "Access from any device or browser with automatic daily backups." },
   { icon: CreditCard, title: "مدفوعات Stripe", titleEn: "Stripe payments", desc: "اقبل البطاقات والمدفوعات الإلكترونية مباشرة على فواتيرك عبر Stripe", descEn: "Accept cards and online payments directly on your invoices via Stripe." },
   { icon: Receipt, title: "إدارة المصروفات", titleEn: "Expense management", desc: "تتبع المصروفات والمشتريات مع تصنيف تلقائي ومراكز تكلفة", descEn: "Track expenses, purchases, categories, and cost centers." },
-  { icon: Landmark, title: "ربط البنوك Plaid", titleEn: "Plaid bank feeds", desc: "اربط حساباتك البنكية الأمريكية عبر Plaid لمطابقة المعاملات تلقائياً", descEn: "Connect US bank accounts via Plaid for automatic transaction matching." },
+  { icon: Landmark, title: "ربط البنوك Plaid — تجريبي", titleEn: "Plaid bank feeds — Beta", desc: "اربط حساباتك البنكية الأمريكية عبر Plaid التجريبي لمطابقة المعاملات تلقائياً", descEn: "Connect US bank accounts through the Plaid Beta for automatic transaction matching." },
   { icon: TrendingUp, title: "تحليلات ذكية", titleEn: "Smart analytics", desc: "تنبؤات مالية مدعومة بالذكاء الاصطناعي مع توصيات لتحسين الأداء", descEn: "AI-assisted financial signals and recommendations for better decisions." },
 ];
 
@@ -134,8 +135,8 @@ const PRICING_US = [
     periodEn: "USD / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "مدفوعات Stripe", "تكاملات بنكية (Plaid)", "API كامل"],
-    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Stripe payments", "Bank feeds (Plaid)", "Full API access"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "مدفوعات Stripe", "تكاملات بنكية (Plaid تجريبي)", "API كامل"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Stripe payments", "Bank feeds (Plaid Beta)", "Full API access"],
     highlighted: true
   },
   {
@@ -216,6 +217,7 @@ export function Landing() {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { isSA } = useMarketingRegion();
+  const { href } = usePublicRoute();
   const FEATURES = isSA ? FEATURES_SA : FEATURES_US;
   const PRICING = isSA ? PRICING_SA : PRICING_US;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -241,7 +243,9 @@ export function Landing() {
     { q: t("هل بياناتي محفوظة ويمكنني تصديرها؟", "Is my data safe and exportable?"), a: t("نعم — نسخ احتياطي يومي تلقائي مع احتفاظ بالنسخ 14 يومًا، وتصدّر بياناتك كاملة في أي وقت. بياناتك ملكك دائمًا.", "Yes — automatic daily backups with 14-day retention, and you can export all of your data anytime. Your data is always yours.") },
     { q: t("هل تتوفر خيارات نشر مخصصة للمؤسسات؟", "Do you offer custom deployments for enterprises?"), a: t("للمؤسسات ذات المتطلبات الخاصة، تواصل معنا على support@entix.io لبحث الخيارات المناسبة.", "For organizations with special requirements, contact us at support@entix.io to discuss the right options.") },
     { q: t("كيف يتم تأمين البيانات؟", "How is data secured?"), a: t("نستخدم تشفير AES-256 للبيانات المخزنة وTLS 1.3 للاتصالات. مع نسخ احتياطي يومي تلقائي وإمكانية تصدير البيانات في أي وقت بصيغة JSON.", "Data is protected with encrypted storage, secure transport, automated backups, and export options.") },
-    { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً.", "Yes. ENTIX.IO supports SAR, USD, and additional currencies with exchange-rate workflows.") },
+    isSA
+      ? { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الريال السعودي والدولار الأمريكي وأكثر من 50 عملة أخرى مع أسعار صرف محدثة تلقائياً.", "Yes. ENTIX.IO supports Saudi riyals, US dollars, and additional currencies with exchange-rate workflows.") }
+      : { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الدولار الأمريكي وعملات إضافية مع إجراءات عمل لأسعار الصرف.", "Yes. ENTIX.IO supports US dollars and additional currencies with exchange-rate workflows.") },
   ];
 
   return (
@@ -277,13 +281,13 @@ export function Landing() {
                     "ENTIX.IO is a cloud accounting platform with full Arabic RTL and English LTR. ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."
                   )
                 : t(
-                    "ENTIX.IO نظام محاسبة سحابي متكامل. ضريبة مبيعات أمريكية، مدفوعات Stripe، ربط بنكي عبر Plaid — وبواجهة عربية أو إنجليزية كاملة.",
-                    "ENTIX.IO is a cloud accounting platform with US sales tax, Stripe payments, and Plaid bank feeds — in a full Arabic or English interface."
+                    "ENTIX.IO نظام محاسبة سحابي متكامل. ضريبة مبيعات أمريكية، مدفوعات Stripe، وربط بنكي تجريبي عبر Plaid — وبواجهة عربية أو إنجليزية كاملة.",
+                    "ENTIX.IO is a cloud accounting platform with US sales tax, Stripe payments, and Plaid bank feeds in Beta — in a full Arabic or English interface."
                   )}
             </p>
             <div className="flex flex-wrap gap-3">
               <button 
-                onClick={() => navigate("/register")}
+                onClick={() => navigate(href("/register"))}
                 className="bg-primary hover:bg-primary/80 text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-primary/25 flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
@@ -291,7 +295,7 @@ export function Landing() {
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => navigate("/login")}
+                onClick={() => navigate(href("/login"))}
                 className="border-2 border-border hover:border-primary text-foreground px-8 py-3.5 rounded-xl transition-all cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
@@ -302,7 +306,7 @@ export function Landing() {
               {[
                 isSA
                   ? { icon: AlertCircle, text: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation"), zatcaState: true }
-                  : { icon: CreditCard, text: t("مدفوعات Stripe + Plaid", "Stripe + Plaid") },
+                  : { icon: CreditCard, text: t("مدفوعات Stripe + Plaid تجريبي", "Stripe + Plaid Beta") },
                 { icon: Database, text: t("نسخ احتياطي يومي", "Daily backups") },
                 { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
               ].map(item => (
@@ -577,7 +581,7 @@ export function Landing() {
                   })}
                 </ul>
                 <button
-                  onClick={() => navigate("/register")}
+                  onClick={() => navigate(href("/register"))}
                   className={
                     plan.highlighted
                       ? "w-full mt-7 py-3 rounded-xl transition-all cursor-pointer bg-primary hover:bg-primary/80 text-white hover:shadow-lg"
@@ -610,7 +614,7 @@ export function Landing() {
               </div>
             </div>
             <Link
-              to="/referrals"
+              to={href("/referrals")}
               className="inline-flex items-center gap-2 border-2 border-primary text-primary hover:bg-primary hover:text-white px-6 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
               style={{ fontSize: "14px", fontWeight: 600 }}
             >
@@ -643,7 +647,7 @@ export function Landing() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button 
-                  onClick={() => navigate("/register")}
+                  onClick={() => navigate(href("/register"))}
                   className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >

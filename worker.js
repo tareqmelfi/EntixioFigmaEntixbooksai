@@ -1,5 +1,7 @@
 /**
- * entix-books-web · Cloudflare Worker front door (PLT-01/03 · SEC-01/04 · REND-07)
+ * entix-books-web · Cloudflare Worker front door (inactive in production).
+ * Production currently runs Cloudflare proxy → Coolify Docker → Nginx. Keep
+ * this implementation semantically aligned for a future explicit activation.
  *
  * - /api/*, /me, /orgs*  → proxied to api.entix.io (same-origin convenience)
  * - static assets        → ASSETS binding (immutable, content-hashed)
@@ -16,7 +18,9 @@ const API_PATHS = (p) =>
 // SPA shell prefixes (app + auth + portal + print) and public marketing routes.
 // Must stay in sync with src/app/routes.tsx public paths.
 const SHELL_PREFIXES = ['/app', '/portal', '/print']
-const MARKETING_ROUTES = new Set([
+const LOCALIZED_ROUTES = new Set(['/sa/ar', '/sa/en', '/us/ar', '/us/en'])
+const LOCALIZED_PREFIX = /^\/(?:sa|us)\/(?:ar|en)(?:\/|$)/
+const PRERENDERED_ROUTES = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password',
   '/features', '/integration', '/pricing', '/privacy', '/terms', '/blog',
   '/help', '/support/ios', '/docs', '/videos', '/about', '/team', '/careers', '/contact',
@@ -25,7 +29,6 @@ const MARKETING_ROUTES = new Set([
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
   '/solutions/restaurants', '/solutions/ecommerce',
 ])
-const MARKETING_PREFIXES = ['/marketplace/']
 
 // /print/* is embedded as the editor's side preview iframe. The primary blocker
 // was frame-src omitting 'self' (fixed above). This frame-ancestors relaxation
@@ -78,11 +81,8 @@ function withSecurityHeaders(response, { isHtml = false, allowFraming = false } 
   return res
 }
 
-function isShellOrMarketing(pathname) {
-  if (MARKETING_ROUTES.has(pathname)) return true
-  if (SHELL_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return true
-  if (MARKETING_PREFIXES.some((p) => pathname.startsWith(p))) return true
-  return false
+function isShellPath(pathname) {
+  return SHELL_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))
 }
 
 function notFound() {
@@ -126,6 +126,11 @@ export default {
       return secured
     }
 
+    // Reject localized lookalikes not present in the constrained manifest.
+    if (LOCALIZED_PREFIX.test(pathname) && !LOCALIZED_ROUTES.has(pathname)) {
+      return withSecurityHeaders(notFound())
+    }
+
     // Extensionless path:
     // 1) prerendered marketing/auth HTML is a REAL file (dist/<route>/index.html)
     //    → serve it directly (REND-01: content without executing JS).
@@ -133,11 +138,16 @@ export default {
     //    address the file explicitly.
     // 2) app shells (/app /portal /print) → SPA index.html fallback (ARC-04)
     // 3) anything else → honest 404 (REND-07)
-    if (isShellOrMarketing(pathname)) {
-      const isPrint = pathname.startsWith('/print')
+    if (LOCALIZED_ROUTES.has(pathname) || PRERENDERED_ROUTES.has(pathname)) {
       const target = pathname === '/' ? '/index.html' : `${pathname}/index.html`
       const real = await env.ASSETS.fetch(new Request(new URL(target, url), request))
-      if (real.status !== 404) return withSecurityHeaders(real, { isHtml: true, allowFraming: isPrint })
+      return real.status === 404
+        ? withSecurityHeaders(notFound())
+        : withSecurityHeaders(real, { isHtml: true })
+    }
+
+    if (isShellPath(pathname)) {
+      const isPrint = pathname.startsWith('/print')
       const shell = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
       return withSecurityHeaders(shell, { isHtml: true, allowFraming: isPrint })
     }

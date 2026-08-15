@@ -3,9 +3,13 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
 import { MarketingChat } from "./marketing-chat";
+import { useMarketingRegion } from "./marketing-region";
+import { usePublicRoute } from "../lib/public-route";
 
 export function SharedFooter() {
   const { language, t } = useLanguage();
+  const { isSA } = useMarketingRegion();
+  const { href } = usePublicRoute();
   const appStores = [
     { name: "App Store", store: "Apple", available: false },
     { name: "Google Play", store: "Google", available: false },
@@ -62,10 +66,15 @@ export function SharedFooter() {
               <EntixWordmark size={30} light />
             </div>
             <p className="text-muted-foreground max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
-              {t(
-                "نظام محاسبة سحابي للسوقين السعودي والأمريكي مع نسخ احتياطي يومي. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
-                "A cloud accounting platform for Saudi and US operations with automatic daily backups. ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."
-              )}
+              {isSA
+                ? t(
+                    "نظام محاسبة سحابي للسوق السعودي مع نسخ احتياطي يومي. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
+                    "A cloud accounting platform for Saudi operations with automatic daily backups. ZATCA Phase 2 integration is under validation and is not enabled for production reliance.",
+                  )
+                : t(
+                    "نظام محاسبة سحابي للسوق الأمريكي مع نسخ احتياطي يومي، ومدفوعات Stripe، وربط Plaid التجريبي.",
+                    "A cloud accounting platform for US operations with automatic daily backups, Stripe payments, and Plaid bank feeds in Beta.",
+                  )}
             </p>
             
             {/* Contact info */}
@@ -93,7 +102,7 @@ export function SharedFooter() {
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
                   <Link 
-                    to={link.href} 
+                    to={href(link.href)}
                     className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
@@ -111,7 +120,7 @@ export function SharedFooter() {
               {footerLinks.solutions.map((link) => (
                 <li key={link.label}>
                   <Link 
-                    to={link.href} 
+                    to={href(link.href)}
                     className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
@@ -129,7 +138,7 @@ export function SharedFooter() {
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
                   <Link 
-                    to={link.href} 
+                    to={href(link.href)}
                     className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
@@ -147,7 +156,7 @@ export function SharedFooter() {
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
                   <Link 
-                    to={link.href} 
+                    to={href(link.href)}
                     className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                     style={{ fontSize: "14px" }}
                   >
@@ -163,7 +172,7 @@ export function SharedFooter() {
         <div className="bg-white/5 rounded-2xl p-6 mb-12 border border-white/10">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-white" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h2>
-            <Link to="/support/ios" className="text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200">
+            <Link to={href("/support/ios")} className="text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200">
               {t("دعم تطبيق iOS", "iOS app support")}
             </Link>
           </div>
@@ -218,11 +227,12 @@ export function SharedFooter() {
             <span className="inline-flex items-center justify-center rounded-md bg-white px-2.5 h-7" title="Mastercard">
               <svg width="30" height="18" viewBox="0 0 30 18"><circle cx="11" cy="9" r="7" fill="#EB001B"/><circle cx="19" cy="9" r="7" fill="#F79E1B" fillOpacity="0.9"/><path d="M15 3.8a7 7 0 0 1 0 10.4 7 7 0 0 1 0-10.4z" fill="#FF5F00"/></svg>
             </span>
-            {/* mada */}
-            <span className="inline-flex items-center justify-center gap-1 rounded-md bg-white px-2.5 h-7" title="mada">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z" fill="#00A19A"/><path d="M12 6.5l4.5 2.5v5L12 16.5 7.5 14v-5L12 6.5z" fill="#fff"/></svg>
-              <span style={{ color: "#00205B", fontSize: "12px", fontWeight: 800 }}>mada</span>
-            </span>
+            {isSA && (
+              <span className="inline-flex items-center justify-center gap-1 rounded-md bg-white px-2.5 h-7" title="mada">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z" fill="#00A19A"/><path d="M12 6.5l4.5 2.5v5L12 16.5 7.5 14v-5L12 6.5z" fill="#fff"/></svg>
+                <span style={{ color: "#00205B", fontSize: "12px", fontWeight: 800 }}>mada</span>
+              </span>
+            )}
             {/* Apple Pay */}
             <span className="inline-flex items-center justify-center rounded-md bg-white px-2.5 h-7" title="Apple Pay">
               <span style={{ color: "#000", fontSize: "12px", fontWeight: 600, fontFamily: "-apple-system, system-ui, sans-serif" }}>Apple&nbsp;Pay</span>
@@ -246,7 +256,7 @@ export function SharedFooter() {
               {footerLinks.legal.map((link) => (
                 <Link 
                   key={link.label}
-                  to={link.href} 
+                  to={href(link.href)}
                   className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
                   style={{ fontSize: "13px" }}
                 >

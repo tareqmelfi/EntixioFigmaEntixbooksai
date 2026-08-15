@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && node scripts/prerender.mjs",
+    "build": "vite build && tsx scripts/prerender.mjs",
     "dev": "vite",
     "qa:routes": "node scripts/qa-route-audit.mjs",
     "qa:solutions": "playwright test tests/solutions.spec.ts --project=chromium",
@@ -92,6 +92,7 @@
     "playwright": "^1.60.0",
     "puppeteer": "^25.4.0",
     "tailwindcss": "4.1.12",
+    "tsx": "^4.23.12",
     "typescript": "^5.5.0",
     "vite": "6.4.3"
   },

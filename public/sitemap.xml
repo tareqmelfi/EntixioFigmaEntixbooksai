@@ -23,7 +23,6 @@
   <url><loc>https://entix.io/team</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
   <url><loc>https://entix.io/changelog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://entix.io/roadmap</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://entix.io/marketplace/accountants</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://entix.io/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://entix.io/support/ios</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://entix.io/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>

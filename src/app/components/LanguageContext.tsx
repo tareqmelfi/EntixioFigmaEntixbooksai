@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { publicRouteFromWindow } from "../lib/public-route";
 
-type Language = "ar" | "en";
+export type Language = "ar" | "en";
 
 interface LanguageContextType {
   language: Language;
@@ -13,9 +14,21 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
+    const publicRoute = publicRouteFromWindow();
+    if (publicRoute) return publicRoute.locale;
+    if (window.location.pathname === "/") return "en";
     const saved = localStorage.getItem("entix-language");
-    return (saved === "ar" ? "ar" : "en") as Language;
+    return saved === "ar" ? "ar" : "en";
   });
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const urlLocale = publicRouteFromWindow()?.locale;
+      if (urlLocale) setLanguage(urlLocale);
+    };
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("entix-language", language);
