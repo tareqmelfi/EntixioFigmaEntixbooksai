@@ -39,12 +39,15 @@ server {
   server_name _;
   root /usr/share/nginx/html;
   index index.html;
+  absolute_redirect off;
 
-  # Coolify terminates TLS before this container. Redirect only when the trusted
-  # forwarded protocol explicitly says HTTP; an absent header keeps local health
-  # checks working and avoids HTTPS redirect loops behind the proxy.
+  # Canonical host and HTTPS are fixed rather than derived from an untrusted Host
+  # header or the container's internal HTTP scheme behind Cloudflare/Coolify.
+  if ($host = "www.entix.io") {
+    return 308 https://entix.io$request_uri;
+  }
   if ($http_x_forwarded_proto = "http") {
-    return 308 https://$host$request_uri;
+    return 308 https://entix.io$request_uri;
   }
 
   # Neutral chooser and the exact localized manifest artifacts.
@@ -63,6 +66,15 @@ server {
 
   # Any other market/locale path is outside the constrained manifest.
   location ~ ^/(?:sa|us)/(?:ar|en)(?:/|$) { return 404; }
+
+  # Canonicalize established public documents to no trailing slash. With
+  # absolute_redirect disabled these remain same-origin HTTPS at the edge.
+  location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)/$ {
+    return 308 /$1$is_args$args;
+  }
+  location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce)|support/ios)/$ {
+    return 308 /$1$is_args$args;
+  }
 
   # Established public routes are real prerendered documents. Exact matching and
   # $uri/index.html prevent neutral-root shell substitution if an artifact is absent.

@@ -84,6 +84,12 @@ test('production routing serves exact artifacts and rejects unsupported localize
     readFile(path.resolve('scripts/prerender.mjs'), 'utf8'),
   ])
   expect(dockerfile).toContain('location = /us/en { try_files /us/en/index.html =404; }')
+  expect(dockerfile).toContain('absolute_redirect off;')
+  expect(dockerfile).toContain('if ($host = "www.entix.io")')
+  expect(dockerfile).toContain('return 308 https://entix.io$request_uri;')
+  expect(dockerfile).toContain('location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)/$')
+  expect(dockerfile).toContain('return 308 /$1$is_args$args;')
+  expect(dockerfile).toContain('location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce)|support/ios)/$')
   expect(dockerfile).toContain('location ~ ^/(?:sa|us)/(?:ar|en)(?:/|$) { return 404; }')
   expect(dockerfile).toContain('try_files $uri/index.html =404;')
   expect(dockerfile).toContain('location / { try_files $uri =404; }')
