@@ -38,6 +38,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { useEffect, useState, useCallback } from "react";
+import { BidiText } from "../components/bidi-text";
 import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
@@ -286,7 +287,7 @@ const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStora
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("لوحة التحكم", "Dashboard")}</h1>
-          <p className="text-muted-foreground mt-1">{data.org.name} · <span className="font-english">{cur}</span></p>
+          <p className="text-muted-foreground mt-1"><BidiText>{data.org.name}</BidiText> · <span className="font-english">{cur}</span></p>
         </div>
         <div className="flex gap-2">
           <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-primary transition">{t("+ فاتورة", "+ Invoice")}</Link>

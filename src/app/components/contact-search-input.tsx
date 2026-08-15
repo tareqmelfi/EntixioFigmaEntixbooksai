@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useContacts, type Party, type RoleType, type EntityLocation, ROLE_LABELS } from "./contacts-store";
 import { useLanguage } from "./LanguageContext";
+import { BidiText } from "./bidi-text";
 
 // ── Countries ──
 const countries = [
@@ -245,7 +246,8 @@ export function ContactSearchInput({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={resolvedPlaceholder}
-          className="w-full rounded-lg border border-border bg-white py-2.5 ps-10 pe-10 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 transition-colors"
+          dir="auto"
+          className="w-full rounded-lg border border-border bg-white py-2.5 ps-10 pe-10 text-start text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 transition-colors"
         />
         {query && (
           <button
@@ -316,9 +318,9 @@ export function ContactSearchInput({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-foreground truncate" style={{ fontWeight: 500 }}>{party.name}</span>
-                      {party.nameEn && <span className="text-xs text-muted-foreground/60 font-english truncate">{party.nameEn}</span>}
+                    <div className="flex min-w-0 items-start gap-2">
+                      <BidiText compact className="min-w-0 flex-1 text-sm font-medium leading-5 text-foreground" title={party.name}>{party.name}</BidiText>
+                      {party.nameEn && <BidiText compact className="max-w-[45%] text-xs leading-5 text-muted-foreground/60" title={party.nameEn}>{party.nameEn}</BidiText>}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {party.entityLocation === "foreign" ? (

@@ -25,6 +25,7 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact } from "../lib/api";
 import { ContactWizard, ROLES, RoleKey } from "../components/contact-wizard";
 import { useLanguage } from "../components/LanguageContext";
+import { BidiText } from "../components/bidi-text";
 
 // ── Roles filter ───────────────────────────────────────────────────────────
 type RoleFilter = "ALL" | RoleKey;
@@ -232,8 +233,8 @@ export function Contacts() {
                               <Avatar className="h-4 w-4 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1 overflow-hidden">
-                              <div dir="auto" className="block w-full truncate text-foreground font-semibold hover:underline" title={c.displayName} style={{ unicodeBidi: "plaintext" }}>{c.displayName}</div>
-                              {c.legalName && c.legalName !== c.displayName && <div dir="auto" className="w-full truncate text-xs text-muted-foreground/60" style={{ unicodeBidi: "plaintext" }}>{c.legalName}</div>}
+                              <BidiText compact className="block w-full font-semibold leading-5 text-foreground hover:underline" title={c.displayName}>{c.displayName}</BidiText>
+                              {c.legalName && c.legalName !== c.displayName && <BidiText compact className="block w-full text-xs leading-5 text-muted-foreground/60" title={c.legalName}>{c.legalName}</BidiText>}
                               {(c.customCode || c.shortCode) && (
                                 <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground/60">
                                   {c.customCode && <span dir="ltr" className="font-english">{c.customCode}</span>}

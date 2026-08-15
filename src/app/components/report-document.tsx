@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
+import { BidiText, NumericText } from "./bidi-text";
 
 const defaultSettings: Required<ReportPrintSettings> = {
   logoSource: "print",
@@ -61,7 +62,7 @@ export function ReportDocument({
 
   return (
     <article
-      className="entix-report-paper overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none"
+      className="entix-report-paper document-paper overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none"
       dir={dir}
       style={style}
     >
@@ -71,14 +72,14 @@ export function ReportDocument({
             <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               {t("تقرير مباشر", "Live Report")}
             </div>
-            <h1 className="mt-2 text-3xl font-bold leading-tight" style={{ color: "var(--report-primary)" }}>
-              {resolved.language === "en" ? report.englishTitle : report.title}
+            <h1 className="document-title mt-2" style={{ color: "var(--report-primary)" }}>
+              <BidiText mode="plaintext">{resolved.language === "en" ? report.englishTitle : report.title}</BidiText>
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{report.description}</p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{t("من", "From")} {report.period.from}</span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{t("إلى", "To")} {report.period.to}</span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{report.currency}</span>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600"><BidiText mode="plaintext">{report.description}</BidiText></p>
+            <div className="document-data mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{t("من", "From")} <NumericText>{report.period.from}</NumericText></span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{t("إلى", "To")} <NumericText>{report.period.to}</NumericText></span>
+              <NumericText className="rounded-full border border-slate-200 bg-white px-3 py-1">{report.currency}</NumericText>
             </div>
           </div>
           <div className="shrink-0 text-end">
@@ -91,8 +92,8 @@ export function ReportDocument({
             )}
             {resolved.showCompanyInfo && (
               <div className="mt-4 text-xs leading-5 text-slate-600">
-                <div className="font-semibold" style={{ color: "var(--report-primary)" }}>{report.org.legalName || report.org.name}</div>
-                <div>{[report.org.addressLine, report.org.city, report.org.region, report.org.postalCode].filter(Boolean).join(" · ") || report.org.country}</div>
+                <div className="font-semibold" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{report.org.legalName || report.org.name}</BidiText></div>
+                <div><BidiText mode="plaintext">{[report.org.addressLine, report.org.city, report.org.region, report.org.postalCode].filter(Boolean).join(" · ") || report.org.country}</BidiText></div>
                 <div>{[report.org.email, report.org.phone, report.org.website].filter(Boolean).join(" · ")}</div>
               </div>
             )}
@@ -116,18 +117,18 @@ export function ReportDocument({
         ) : null}
 
         {report.sections.map((section) => (
-          <section key={section.id} className="break-inside-avoid">
+          <section key={section.id} className="document-keep-together break-inside-avoid">
             <div className="mb-3 flex items-end justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold" style={{ color: "var(--report-primary)" }}>{section.title}</h2>
-                {section.description && <p className="mt-1 text-xs text-slate-500">{section.description}</p>}
+                <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{section.title}</BidiText></h2>
+                {section.description && <p className="mt-1 text-xs text-slate-500"><BidiText mode="plaintext">{section.description}</BidiText></p>}
               </div>
               <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--report-accent) 12%, white)", color: "var(--report-accent)" }}>
                 {section.rows.length} {t("صف", "rows")}
               </span>
             </div>
             <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="w-full border-collapse">
+              <table className="document-table w-full border-collapse">
                 <thead>
                   <tr style={{ background: "color-mix(in srgb, var(--report-primary) 7%, white)" }}>
                     {section.columns.map((column) => (
@@ -174,8 +175,8 @@ export function ReportDocument({
 
       {resolved.showFooter && (
         <footer className="flex items-center justify-between border-t border-slate-200 px-8 py-4 text-xs text-slate-500">
-          <span>ENTIX.IO · {report.id}</span>
-          {resolved.showPreparedBy && <span>Prepared for {report.org.name}</span>}
+          <span>ENTIX.IO · <NumericText>{report.id}</NumericText></span>
+          {resolved.showPreparedBy && <span>Prepared for <BidiText>{report.org.name}</BidiText></span>}
           <span className="print-page-number">Page 1</span>
         </footer>
       )}
@@ -187,7 +188,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
       <div className="text-[11px] text-slate-500">{label}</div>
-      <div className="mt-1 font-semibold text-slate-800">{value}</div>
+      <div className="mt-1 font-semibold text-slate-800"><BidiText mode="plaintext">{value}</BidiText></div>
     </div>
   );
 }
@@ -202,9 +203,9 @@ function CellValue({ value, keyName, kind, currency }: { value: string | number 
   if (value === null || value === undefined || value === "") return <span className="text-slate-400">—</span>;
   if (kind === "money" || moneyKeys.has(keyName)) {
     const amount = Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return <span className={Number(value) < 0 ? "font-semibold text-red-700" : "font-semibold text-slate-900"}>{amount} {currency}</span>;
+    return <NumericText className={Number(value) < 0 ? "font-semibold text-red-700" : "font-semibold text-slate-900"}>{amount} {currency}</NumericText>;
   }
-  if (kind === "number" && typeof value === "number") return <span>{value.toLocaleString("en-US")}</span>;
-  if (kind === "status") return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{String(value)}</span>;
-  return <span>{String(value)}</span>;
+  if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString("en-US")}</NumericText>;
+  if (kind === "status") return <BidiText className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{String(value)}</BidiText>;
+  return <BidiText mode="plaintext">{String(value)}</BidiText>;
 }

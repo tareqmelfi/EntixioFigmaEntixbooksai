@@ -11,6 +11,7 @@ import { AddressAutocomplete } from "./address-autocomplete";
 import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { useLanguage } from "./LanguageContext";
+import { BidiText, NumericText } from "./bidi-text";
 
 function orgInitials(name?: string | null) {
   const cleaned = (name || "").trim();
@@ -189,14 +190,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 {orgInitials(activeOrg?.name)}
               </div>
             )}
-            <div className="hidden sm:flex flex-col items-start gap-0 min-w-0 max-w-[260px]">
-              <span className="line-clamp-2 break-words text-sm text-foreground leading-tight" style={{ fontWeight: 600 }}>
+            <div className="hidden sm:flex min-w-[10rem] max-w-[260px] flex-col items-start gap-0.5">
+              <BidiText compact className="w-full text-sm font-semibold leading-5 text-foreground">
                 {activeOrg ? activeOrg.name : t("اختر شركة", "Select company")}
-              </span>
+              </BidiText>
               {activeOrg && (
-                <span className="text-[10px] text-muted-foreground font-english leading-tight">
+                <NumericText className="block text-[10px] leading-4 text-muted-foreground">
                   {activeOrg.country} · {activeOrg.baseCurrency}
-                </span>
+                </NumericText>
               )}
             </div>
           </Link>
@@ -227,9 +228,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                         {orgInitials(o.name)}
                       </div>
                     )}
-                    <div className={`flex min-w-0 flex-col gap-0.5 ${alignItemsClass}`}>
-                      <span className="max-w-[16.5rem] truncate font-medium">{o.name}</span>
-                      <span className="text-xs text-muted-foreground font-english">{o.country} · {o.baseCurrency}</span>
+                    <div className={`flex min-w-0 flex-1 flex-col gap-0.5 ${alignItemsClass}`}>
+                      <BidiText compact className="w-full text-sm font-medium leading-5" title={o.name}>{o.name}</BidiText>
+                      <NumericText className="block text-xs leading-4 text-muted-foreground">{o.country} · {o.baseCurrency}</NumericText>
                     </div>
                   </div>
                   <span className="flex items-center gap-1.5 shrink-0">
@@ -293,14 +294,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               {orgInitials(activeOrg?.name)}
             </div>
           )}
-          <div className="flex flex-col items-start gap-0 min-w-0">
-            <span className="line-clamp-2 break-words text-sm text-foreground leading-tight max-w-[220px]" style={{ fontWeight: 600 }}>
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+            <BidiText compact className="w-full max-w-[220px] text-sm font-semibold leading-5 text-foreground">
               {activeOrg ? activeOrg.name : t("اختر شركة", "Select company")}
-            </span>
+            </BidiText>
             {activeOrg && (
-              <span className="text-[10px] text-muted-foreground font-english leading-tight">
+              <NumericText className="block text-[10px] leading-4 text-muted-foreground">
                 {activeOrg.country} · {activeOrg.baseCurrency}
-              </span>
+              </NumericText>
             )}
           </div>
         </div>
@@ -419,16 +420,16 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 )}
                 <div className={`flex min-w-0 flex-1 flex-col gap-0 ${alignItemsClass}`}>
                   <div className={`flex w-full ${rowDirClass} items-start gap-1.5`}>
-                    <span className={`line-clamp-2 text-[12px] font-medium leading-5 ${isRtl ? "text-end" : "text-start"}`}>{o.name}</span>
+                    <BidiText compact className="min-w-0 flex-1 text-[12px] font-medium leading-5" title={o.name}>{o.name}</BidiText>
                     {activeOrg?.id === o.id && (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
                         {t("مختارة حالياً", "Active")}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground font-english leading-4">
+                  <NumericText className="block text-[10px] leading-4 text-muted-foreground">
                     {o.country} · {o.baseCurrency}
-                  </span>
+                  </NumericText>
                 </div>
                 <span
                   role="button"

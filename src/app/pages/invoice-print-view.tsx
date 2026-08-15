@@ -14,6 +14,7 @@ import { api, ApiError, Invoice, Org, Contact, bootstrapOrgIdFromStorage, setOrg
 import { Loader2, Printer, X } from "lucide-react";
 import qrcode from "qrcode-generator";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
+import { BidiText, NumericText } from "../components/bidi-text";
 
 function safeNum(v: any, d = 0): number {
   const n = Number(v);
@@ -287,11 +288,11 @@ export function InvoicePrintView() {
           </button>
         </div>
 
-        <div className="invoice-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+        <article className="invoice-page document-paper" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           {/* Header · logo + Tax Invoice title */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px 0", color: primary }}>{isKsa ? "فاتورة ضريبية" : "Invoice"}</h1>
+              <h1 className="document-title" style={{ margin: "0 0 4px 0", color: primary }}>{isKsa ? "فاتورة ضريبية" : "Invoice"}</h1>
               <div style={{ fontSize: 13, color: "#6B7280" }}>{isKsa ? "Tax Invoice" : "Sales Invoice"}</div>
               <div style={{ marginTop: 8 }}>
                 <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 9999, fontSize: 11, fontWeight: 600, background: "#F4FCFF", color: primary, border: `1px solid ${primary}33` }}>
@@ -328,10 +329,10 @@ export function InvoicePrintView() {
           </div>
 
           {/* Bill-to + invoice details · compact (no box · saves vertical space) */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 8, paddingBottom: 10, borderBottom: "1px solid #F3F4F6" }}>
+          <div className="document-data" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 8, paddingBottom: 10, borderBottom: "1px solid #F3F4F6" }}>
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "عميل · Bill To" : "Bill To"}</h2>
-              <strong className="print-wrap-any" style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}>{contact?.displayName || contact?.legalName || "—"}</strong>
+              <strong className="print-wrap-any" style={{ display: "block", color: accent, marginBottom: 2, fontSize: 11.5, lineHeight: 1.4 }}><BidiText>{contact?.displayName || contact?.legalName || "—"}</BidiText></strong>
 
               {contact?.legalName && contact?.legalName !== contact?.displayName && (<div className="print-wrap-any" style={{ color: "#6B7280", fontSize: 9.5 }}>{contact.legalName}</div>)}
               {contactAddress && <div className="print-wrap-any" style={{ color: "#6B7280", fontSize: 9.5 }}>{contactAddress}</div>}
@@ -342,7 +343,7 @@ export function InvoicePrintView() {
             <div>
               <h2 style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px 0" }}>{isKsa ? "تفاصيل الفاتورة" : "Invoice Details"}</h2>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 12px", fontSize: 11 }}>
-                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><span className="num print-wrap-any" style={{ textAlign: "end", color: accent, fontWeight: 600 }}>{invoice.invoiceNumber}</span>
+                <span style={{ color: "#6B7280" }}>{isKsa ? "رقم الفاتورة" : "Invoice #"}</span><NumericText className="num print-wrap-any" style={{ textAlign: "end", color: accent, fontWeight: 600 }}>{invoice.invoiceNumber}</NumericText>
                 <span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الإصدار" : "Issue Date"}</span><span className="num print-wrap-any" style={{ textAlign: "end" }}>{String(invoice.issueDate).slice(0, 10)}</span>
                 {invoice.dueDate && <><span style={{ color: "#6B7280" }}>{isKsa ? "تاريخ الاستحقاق" : "Due Date"}</span><span className="num print-wrap-any" style={{ textAlign: "end" }}>{String(invoice.dueDate).slice(0, 10)}</span></>}
                 {(() => { const ref = (invoice as any).reference || (String((invoice as any).termsConditions || "").match(/^Ref:\s*(.+)/)?.[1] ?? null); return ref ? <><span style={{ color: "#6B7280" }}>{isKsa ? "المرجع" : "Reference"}</span><span className="num print-wrap-any" style={{ textAlign: "end" }}>{ref}</span></> : null; })()}
@@ -352,7 +353,7 @@ export function InvoicePrintView() {
           </div>
 
           {/* Lines table */}
-          <table className="print-table" style={{ width: "100%", borderCollapse: "collapse", marginTop: 24, tableLayout: "fixed" }}>
+          <table className="print-table document-table" style={{ width: "100%", borderCollapse: "collapse", marginTop: 24, tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "5%" }} />
               <col style={{ width: "40%" }} />
@@ -400,7 +401,7 @@ export function InvoicePrintView() {
           </table>
 
           {/* Totals + QR + Stamp · all in one row */}
-          <div className="totals-section" style={{ marginTop: 16 }}>
+          <div className="totals-section document-keep-together" style={{ marginTop: 16 }}>
             {/* QR + Stamp · side-by-side on the END side (left in RTL) */}
             <div className="totals-media">
               {qrSvg && (
@@ -500,7 +501,7 @@ export function InvoicePrintView() {
             )}
             <div>{isKsa ? "شكراً لتعاملكم معنا · Thank you for your business" : "Thank you for your business"}</div>
           </div>
-        </div>
+        </article>
       </div>
     </>
   );

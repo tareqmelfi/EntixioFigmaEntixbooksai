@@ -14,6 +14,7 @@ import qrcode from "qrcode-generator";
 import { authStore } from "../components/auth-store";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
+import { BidiText, NumericText } from "../components/bidi-text";
 
 const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
   CASH: "نقداً",
@@ -254,10 +255,10 @@ export function VoucherPrintView() {
           </button>
         </div>
 
-        <div className="voucher-page" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+        <article className="voucher-page document-paper" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px 0", color: "#1276E3" }}>{titleAr}</h1>
+              <h1 className="document-title" style={{ margin: "0 0 4px 0" }}>{titleAr}</h1>
               <div style={{ fontSize: 13, color: "#6B7280" }}>{titleEn}</div>
             </div>
 
@@ -283,11 +284,11 @@ export function VoucherPrintView() {
             </div>
           </div>
 
-          <div style={{ marginTop: 12, borderTop: "1px solid #F3F4F6", borderBottom: "1px solid #F3F4F6", padding: "10px 0" }}>
+          <div className="document-data document-table document-keep-together" style={{ marginTop: 12, borderTop: "1px solid #D1D5DB", borderBottom: "1px solid #D1D5DB", padding: "10px 0" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, fontSize: 12 }}>
-              <div><span style={{ color: "#6B7280" }}>رقم السند:</span> <strong className="num">{voucher.number}</strong></div>
+              <div><span style={{ color: "#6B7280" }}>رقم السند:</span> <strong><NumericText className="num">{voucher.number}</NumericText></strong></div>
               <div><span style={{ color: "#6B7280" }}>التاريخ:</span> <strong className="num">{String(voucher.date).slice(0, 10)}</strong></div>
-              <div><span style={{ color: "#6B7280" }}>{partyLabelAr}:</span> <strong>{contact?.displayName || voucher.contact?.displayName || "—"}</strong></div>
+              <div><span style={{ color: "#6B7280" }}>{partyLabelAr}:</span> <strong><BidiText>{contact?.displayName || voucher.contact?.displayName || "—"}</BidiText></strong></div>
               <div><span style={{ color: "#6B7280" }}>طريقة الدفع:</span> <strong>{METHOD_LABELS[voucher.paymentMethod]}</strong></div>
               {voucher.reference && <div><span style={{ color: "#6B7280" }}>المرجع:</span> <strong className="num">{voucher.reference}</strong></div>}
               {voucher.invoiceId && <div><span style={{ color: "#6B7280" }}>الفاتورة المرتبطة:</span> <strong className="num">{linkedInvoiceNumber || voucher.invoiceId}</strong></div>}
@@ -343,7 +344,7 @@ export function VoucherPrintView() {
               توقيع المستلم
             </div>
           </div>
-        </div>
+        </article>
       </div>
     </>
   );

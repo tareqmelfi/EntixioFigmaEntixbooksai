@@ -11,7 +11,7 @@ import path from 'node:path'
 import puppeteer from 'puppeteer'
 
 const DIST = path.resolve('dist')
-const PORT = 4319
+const REQUESTED_PORT = Number(process.env.PRERENDER_PORT || 0)
 const SITE_ORIGIN = 'https://entix.io'
 const SOLUTION_ROUTES = new Set([
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
@@ -73,30 +73,41 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res)
 })
 
-await new Promise((r) => server.listen(PORT, r))
-console.log(`prerender: serving dist/ on :${PORT}`)
+await new Promise((resolve, reject) => {
+  server.once('error', reject)
+  server.listen(REQUESTED_PORT, '127.0.0.1', resolve)
+})
+const address = server.address()
+if (!address || typeof address === 'string') throw new Error('prerender server did not expose a TCP port')
+const rendererOrigin = `http://127.0.0.1:${address.port}`
+console.log(`prerender: serving dist/ on ${rendererOrigin}`)
 
 const browser = await puppeteer.launch({
   headless: true,
   executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
 })
-const page = await browser.newPage()
-await page.setViewport({ width: 1440, height: 900 })
-await page.evaluateOnNewDocument(() => {
-  localStorage.setItem('entix-language', 'en')
-  localStorage.setItem('entix-marketing-region', 'SA')
-})
+async function createRendererPage() {
+  const page = await browser.newPage()
+  await page.setViewport({ width: 1440, height: 900 })
+  await page.evaluateOnNewDocument(() => {
+    localStorage.setItem('entix-language', 'en')
+    localStorage.setItem('entix-marketing-region', 'SA')
+  })
+  return page
+}
 
 let ok = 0, failed = []
 for (const [route, [title, description]] of Object.entries(META)) {
+  let page
   try {
+    page = await createRendererPage()
     try {
-      await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'networkidle0', timeout: 45000 })
+      await page.goto(`${rendererOrigin}${route}`, { waitUntil: 'networkidle0', timeout: 45000 })
     } catch {
       // Pages with long-polling widgets (Turnstile on /login) never reach
       // networkidle0 — fall back to load + settle instead of failing the route.
-      await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'load', timeout: 45000 })
+      await page.goto(`${rendererOrigin}${route}`, { waitUntil: 'load', timeout: 45000 })
     }
     await new Promise((r) => setTimeout(r, 1800))
     let html = await page.content()
@@ -137,6 +148,8 @@ for (const [route, [title, description]] of Object.entries(META)) {
     console.log(`  ✓ ${route} (${Math.round(html.length / 1024)}KB html)`)
   } catch (e) {
     failed.push(`${route} (${String(e).slice(0, 80)})`)
+  } finally {
+    if (page && !page.isClosed()) await page.close().catch(() => {})
   }
 }
 

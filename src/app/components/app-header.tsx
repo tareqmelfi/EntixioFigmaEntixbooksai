@@ -10,6 +10,7 @@ import { authStore } from "./auth-store";
 import { useOrgRegion } from "../lib/use-org-region";
 import { api, NotificationItem } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
+import { BidiText } from "./bidi-text";
 
 function timeAgo(iso: string, language: "ar" | "en"): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -198,7 +199,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                 className="flex items-center gap-3 rounded-md border border-transparent px-2 py-1 hover:bg-accent transition-colors"
               >
                 <div className="text-end">
-                  <div className="text-sm text-foreground" style={{ fontWeight: 500 }}>{authState.user?.name || t("مستخدم", "User")}</div>
+                  <BidiText compact className="block max-w-48 text-sm font-medium leading-5 text-foreground">{authState.user?.name || t("مستخدم", "User")}</BidiText>
                   <div className="text-xs text-muted-foreground font-english">{authState.user?.email || "user@entix.io"}</div>
                 </div>
                 <Avatar>
@@ -217,7 +218,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                       </Avatar>
                       <div>
                         <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("حسابي", "My account")}</div>
-                        <div className="text-xs text-muted-foreground">{authState.user?.name || t("مستخدم", "User")}</div>
+                        <BidiText compact className="block max-w-56 text-xs leading-5 text-muted-foreground">{authState.user?.name || t("مستخدم", "User")}</BidiText>
                         <div className="text-xs text-muted-foreground font-english">{authState.user?.email || "user@entix.io"}</div>
                       </div>
                     </div>
@@ -230,7 +231,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary">
                           <span className="font-english text-xs text-primary-foreground" style={{ fontWeight: 700 }}>{currentCompanyInitials}</span>
                         </div>
-                        <span className="line-clamp-2 min-w-0 text-sm leading-5 text-foreground">{currentCompanyName}</span>
+                        <BidiText compact className="min-w-0 flex-1 text-sm leading-5 text-foreground" title={currentCompanyName}>{currentCompanyName}</BidiText>
                       </div>
                       <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)} className="shrink-0 text-xs text-primary hover:underline" style={{ fontWeight: 500 }}>
                         {t("تغيير", "Change")}

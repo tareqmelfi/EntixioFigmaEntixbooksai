@@ -230,20 +230,11 @@
     stroke: #ECEEF1 !important;
   }
 
-  /* ── RTL-safe tables: prevent text overlap ── */
-  th, td {
-    white-space: nowrap;
-  }
+  /* Tables may opt individual identifiers into nowrap; entity and description
+     cells must retain normal language-aware wrapping. */
   td.truncate {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  /* ── English numbers font helper ── */
-  .font-english {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    direction: ltr;
-    display: inline-block;
   }
 }
