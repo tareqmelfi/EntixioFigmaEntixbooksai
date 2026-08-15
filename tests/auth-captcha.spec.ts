@@ -167,16 +167,23 @@ test.describe('public auth CAPTCHA lifecycle', () => {
     await page.addInitScript(() => {
       delete (window as any).turnstile
       delete (window as any).__turnstileScriptPromise
-      document.addEventListener('DOMContentLoaded', () => {
-        const script = document.createElement('script')
-        script.dataset.entixTurnstile = 'true'
-        script.src = 'data:text/javascript,void 0'
-        document.head.appendChild(script)
-      }, { once: true })
+    })
+    await page.route('http://localhost:5173/login', async route => {
+      const response = await route.fetch()
+      const html = await response.text()
+      await route.fulfill({
+        response,
+        body: html.replace(
+          '<head>',
+          '<head><script data-entix-turnstile="true" src="data:text/javascript,void 0"></script>',
+        ),
+      })
     })
 
+    const startedAt = Date.now()
     await page.goto('/login')
     await expect(page.locator('[data-testid="captcha-error"]')).toBeVisible({ timeout: 5000 })
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(2500)
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
     await expect(page.locator('button[type="submit"]')).toBeDisabled()
     await expect.poll(() => page.evaluate(() => Boolean((window as any).__turnstileScriptPromise))).toBe(false)
