@@ -25,13 +25,13 @@ export default defineConfig({
 
   webServer: process.env.CI
     ? {
-        command: 'npm run dev',
+        command: 'VITE_TURNSTILE_SITEKEY=1x00000000000000000000AA npm run dev',
         port: 5173,
         reuseExistingServer: false,
         timeout: 120000,
       }
     : {
-        command: 'npm run dev',
+        command: 'VITE_TURNSTILE_SITEKEY=1x00000000000000000000AA npm run dev',
         port: 5173,
         reuseExistingServer: true,
       },

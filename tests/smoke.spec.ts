@@ -34,10 +34,26 @@ test.describe('Public Pages', () => {
 
 test.describe('Auth Flow', () => {
   test('invalid login shows error', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('entix_cookie_consent_v1', JSON.stringify({
+        v: 1, choice: 'essential', analytics: false, marketing: false, at: new Date().toISOString(),
+      }))
+      ;(window as any).turnstile = {
+        render(_element: HTMLElement, options: Record<string, (...args: unknown[]) => void>) {
+          ;(window as any).__turnstileOptions = options
+          return 'smoke-widget'
+        },
+        reset() {},
+        remove() {},
+      }
+    })
+    await page.route('https://api.entix.io/api/auth/sign-in/email', route =>
+      route.fulfill({ status: 401, json: { message: 'Invalid credentials' } }),
+    )
     await page.goto('/login')
+    await page.evaluate(() => (window as any).__turnstileOptions.callback('smoke-token'))
     await page.fill('input[type="email"]', 'test@nonexistent.com')
     await page.fill('input[type="password"]', 'wrongpassword123')
-    // Submit via Enter · the Turnstile iframe can overlay the button and block page.click
     await page.press('input[type="password"]', 'Enter')
     await expect(page.locator('.text-red-700, .bg-red-50').first()).toBeVisible({ timeout: 30000 })
   })

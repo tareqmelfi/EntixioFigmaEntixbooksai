@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, CheckCircle2, Users, Globe, BarChart3 } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
-import { Turnstile } from "../components/turnstile";
+import { isTurnstileRequired, Turnstile } from "../components/turnstile";
 import { useLanguage } from "../components/LanguageContext";
 import { EntixWordmark } from "../components/entix-brand";
 
@@ -18,6 +18,7 @@ export function Register() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
 
@@ -32,6 +33,7 @@ export function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isTurnstileRequired && !captchaToken) return;
     setError(null);
     if (password.length < 8) {
       setError(t("كلمة المرور يجب أن تكون 8 أحرف على الأقل", "Password must be at least 8 characters"));
@@ -41,11 +43,17 @@ export function Register() {
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const result = await authStore.register(email, password, fullName, "", captchaToken);
     setLoading(false);
-    if (result.success) navigate("/app");
-    else if (result.error?.includes('registration_disabled') || result.error?.includes('sign_up_disabled')) {
-      setError(t("التسجيل مغلق حالياً — يرجى التواصل مع الدعم", "Registration is currently closed — please contact support"));
+    if (result.success) {
+      navigate("/app");
+      return;
     }
-    else setError(result.error || t("حدث خطأ", "Something went wrong"));
+    setCaptchaToken(null);
+    setCaptchaResetKey(key => key + 1);
+    if (result.error?.includes('registration_disabled') || result.error?.includes('sign_up_disabled')) {
+      setError(t("التسجيل مغلق حالياً — يرجى التواصل مع الدعم", "Registration is currently closed — please contact support"));
+    } else {
+      setError(result.error || t("حدث خطأ", "Something went wrong"));
+    }
   };
 
   const handleGoogle = async () => {
@@ -198,11 +206,15 @@ export function Register() {
               </label>
             </div>
 
-            <Turnstile onVerify={setCaptchaToken} />
+            <Turnstile
+              onVerify={setCaptchaToken}
+              resetKey={captchaResetKey}
+              language={language}
+            />
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (isTurnstileRequired && !captchaToken)}
               className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
