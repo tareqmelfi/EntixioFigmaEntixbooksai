@@ -1,12 +1,3 @@
-/**
- * Cloudflare Turnstile widget (SEC-03 spam protection on public auth forms).
- *
- * - Loads https://challenges.cloudflare.com/turnstile/v0/api.js lazily.
- * - Sitekey from VITE_TURNSTILE_SITEKEY; when unset (local dev) renders nothing
- *   and calls onVerify(null) so forms stay usable.
- * - Token is sent to the API in the `x-captcha-response` header; better-auth's
- *   captcha plugin verifies it server-side (env-gated on TURNSTILE_SECRET_KEY).
- */
 import { useEffect, useRef, useState } from "react";
 
 declare global {
@@ -21,58 +12,129 @@ declare global {
 }
 
 const SITEKEY = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_TURNSTILE_SITEKEY) || "";
+const SCRIPT_SELECTOR = 'script[data-entix-turnstile="true"]';
+export const isTurnstileRequired = Boolean(SITEKEY);
 
 function loadScript(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
   if (window.__turnstileScriptPromise) return window.__turnstileScriptPromise;
-  window.__turnstileScriptPromise = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    s.async = true;
-    s.defer = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("turnstile_script_failed"));
-    document.head.appendChild(s);
+  const script = document.createElement("script");
+  script.dataset.entixTurnstile = "true";
+  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  script.async = true;
+  script.defer = true;
+  const promise = new Promise<void>((resolve, reject) => {
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("turnstile_script_failed"));
+    document.head.appendChild(script);
+  }).catch(error => {
+    if (window.__turnstileScriptPromise === promise) delete window.__turnstileScriptPromise;
+    script.remove();
+    throw error;
   });
-  return window.__turnstileScriptPromise;
+  window.__turnstileScriptPromise = promise;
+  return promise;
 }
 
-export function Turnstile({ onVerify }: { onVerify: (token: string | null) => void }) {
+export type TurnstileStatus = "ready" | "expired" | "error";
+
+interface TurnstileProps {
+  onVerify: (token: string | null) => void;
+  onStatusChange?: (status: TurnstileStatus) => void;
+  resetKey?: number;
+  language?: "ar" | "en";
+}
+
+export function Turnstile({ onVerify, onStatusChange, resetKey = 0, language = "ar" }: TurnstileProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const generationRef = useRef(0);
   const [failed, setFailed] = useState(false);
+  const [renderKey, setRenderKey] = useState(0);
 
   useEffect(() => {
     if (!SITEKEY) {
       onVerify(null);
       return;
     }
-    let cancelled = false;
+    const generation = ++generationRef.current;
+    const isCurrent = () => generationRef.current === generation;
+    const invalidate = (status: Exclude<TurnstileStatus, "ready">) => {
+      if (!isCurrent()) return;
+      onVerify(null);
+      onStatusChange?.(status);
+      if (status === "error") setFailed(true);
+    };
+
     loadScript()
       .then(() => {
-        if (cancelled || !hostRef.current || !window.turnstile) return;
+        if (!isCurrent() || !hostRef.current || !window.turnstile) return;
         widgetIdRef.current = window.turnstile.render(hostRef.current, {
           sitekey: SITEKEY,
-          callback: (token: string) => onVerify(token),
-          "expired-callback": () => onVerify(null),
-          // On error (iOS Safari ITP, content blockers, etc.) hide the widget
-          // and let the user proceed — the server-side captcha plugin is
-          // env-gated on TURNSTILE_SECRET_KEY and currently not enforced.
-          "error-callback": () => { onVerify(null); setFailed(true); },
-          "timeout-callback": () => { onVerify(null); setFailed(true); },
-          "unsupported-callback": () => { onVerify(null); setFailed(true); },
+          language,
+          callback: (token: string) => {
+            if (!isCurrent()) return;
+            setFailed(false);
+            onVerify(token);
+            onStatusChange?.("ready");
+          },
+          "expired-callback": () => {
+            if (!isCurrent()) return;
+            invalidate("expired");
+            if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+          },
+          "error-callback": () => invalidate("error"),
+          "timeout-callback": () => invalidate("error"),
+          "unsupported-callback": () => invalidate("error"),
         });
       })
-      .catch(() => { onVerify(null); setFailed(true); });
+      .catch(() => invalidate("error"));
+
     return () => {
-      cancelled = true;
-      if (widgetIdRef.current && window.turnstile) {
-        try { window.turnstile.remove(widgetIdRef.current); } catch { /* noop */ }
+      generationRef.current += 1;
+      const widgetId = widgetIdRef.current;
+      widgetIdRef.current = null;
+      if (widgetId && window.turnstile) {
+        try { window.turnstile.remove(widgetId); } catch { /* noop */ }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [language, renderKey]);
 
-  if (!SITEKEY || failed) return null;
-  return <div ref={hostRef} className="flex justify-center my-3" />;
+  useEffect(() => {
+    if (!SITEKEY || resetKey === 0) return;
+    onVerify(null);
+    setFailed(false);
+    if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+    else setRenderKey(key => key + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
+
+  if (!SITEKEY) return null;
+
+  return (
+    <div className="my-3">
+      <div ref={hostRef} className="flex justify-center" />
+      {failed && (
+        <div data-testid="captcha-error" role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700">
+          <p>{language === "ar" ? "تعذر التحقق الأمني. يرجى المحاولة مرة أخرى." : "Security verification failed. Please try again."}</p>
+          <button
+            type="button"
+            onClick={() => {
+              onVerify(null);
+              setFailed(false);
+              if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+              else {
+                document.querySelector(SCRIPT_SELECTOR)?.remove();
+                delete window.__turnstileScriptPromise;
+                setRenderKey(key => key + 1);
+              }
+            }}
+            className="mt-2 font-semibold text-primary hover:underline"
+          >
+            {language === "ar" ? "إعادة المحاولة" : "Retry"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }

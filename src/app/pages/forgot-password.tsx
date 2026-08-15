@@ -7,7 +7,7 @@ import { Link } from "react-router";
 import { ArrowLeft, ArrowRight, CheckCircle2, Mail } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
-import { Turnstile } from "../components/turnstile";
+import { isTurnstileRequired, Turnstile } from "../components/turnstile";
 import { EntixWordmark } from "../components/entix-brand";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -20,10 +20,12 @@ export function ForgotPassword() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isTurnstileRequired && !captchaToken) return;
     setError(null);
     if (!email.trim()) {
       setError(t("الرجاء إدخال البريد الإلكتروني", "Enter your email address"));
@@ -39,6 +41,8 @@ export function ForgotPassword() {
       return;
     }
 
+    setCaptchaToken(null);
+    setCaptchaResetKey(key => key + 1);
     const resultError = result.error || "";
     const status = result.status || 0;
     const looksLikeConnectionIssue =
@@ -157,11 +161,15 @@ export function ForgotPassword() {
                 </div>
               </div>
 
-              <Turnstile onVerify={setCaptchaToken} />
+              <Turnstile
+                onVerify={setCaptchaToken}
+                resetKey={captchaResetKey}
+                language={language}
+              />
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (isTurnstileRequired && !captchaToken)}
                 className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >

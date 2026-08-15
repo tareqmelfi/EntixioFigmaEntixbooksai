@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, Shield, Zap, Cloud, Globe } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
-import { Turnstile } from "../components/turnstile";
+import { isTurnstileRequired, Turnstile } from "../components/turnstile";
 import { useLanguage } from "../components/LanguageContext";
 import { EntixWordmark } from "../components/entix-brand";
 
@@ -23,6 +23,7 @@ export function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   // Redirect if already logged in · respect fromPath
   useEffect(() => {
@@ -36,6 +37,7 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isTurnstileRequired && !captchaToken) return;
     setError(null);
     setVerifyNotice(null);
     setUnverifiedEmail(null);
@@ -46,6 +48,9 @@ export function Login() {
       navigate(fromPath, { replace: true });
       return;
     }
+
+    setCaptchaToken(null);
+    setCaptchaResetKey(key => key + 1);
 
     if (result.code === "EMAIL_NOT_VERIFIED") {
       setUnverifiedEmail(email.trim());
@@ -220,10 +225,14 @@ export function Login() {
               </div>
             </div>
 
-            <Turnstile onVerify={setCaptchaToken} />
+            <Turnstile
+              onVerify={setCaptchaToken}
+              resetKey={captchaResetKey}
+              language={language}
+            />
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (isTurnstileRequired && !captchaToken)}
               className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
