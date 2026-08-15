@@ -213,8 +213,10 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [onb, setOnb] = useState<{ openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
+  const [onb, setOnb] = useState<{ completed: boolean; completedAt: string | null; openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
+  const [onbDismissed, setOnbDismissed] = useState(false);
   const [lowStock, setLowStock] = useState<number | null>(null);
+  const orgId = data?.org.id;
 const industryIdTop = (data?.org as any)?.industry as string | undefined;
 useEffect(() => {
   if (!industryIdTop || !INDUSTRY_STRIP[industryIdTop]?.stock) return;
@@ -228,11 +230,23 @@ useEffect(() => {
     .catch(() => {});
   return () => { alive = false; };
 }, [industryIdTop]);
-const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStorage.getItem("entix_onb_dismissed") === "1"; } catch { return false; } });
   const { toasts, dismiss } = useToasts();
   const navigate = useNavigate();
 
-  useEffect(() => { api.onboarding.status().then(setOnb).catch(() => {}); }, []);
+  useEffect(() => {
+    setOnb(null);
+    if (!orgId) {
+      setOnbDismissed(false);
+      return;
+    }
+    try { setOnbDismissed(localStorage.getItem(`entix_onb_dismissed:${orgId}`) === "1"); }
+    catch { setOnbDismissed(false); }
+    let alive = true;
+    api.onboarding.status()
+      .then((next) => { if (alive) setOnb(next); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [orgId]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -296,14 +310,14 @@ const [onbDismissed, setOnbDismissed] = useState(() => { try { return localStora
         </div>
       </div>
 
-      {onb && !onbDismissed && (!onb.openingBalancesDone || onb.productsCount === 0) && (
+      {onb && !onbDismissed && !onb.completed && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="text-sm text-primary" style={{ lineHeight: 1.7 }}>
             <strong>{t("أكمل إعداد شركتك", "Finish setting up your company")}</strong> — {t("انقل أرصدتك الافتتاحية وأصنافك وعملاءك من برنامجك السابق في دقائق، بدون إدخال يدوي.", "Move your opening balances, items and contacts from your previous software in minutes — no manual entry.")}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link to="/app/onboarding" className="px-3.5 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition" style={{ fontWeight: 600 }}>{t("ابدأ النقل ←", "Start migration →")}</Link>
-            <button onClick={() => { try { localStorage.setItem("entix_onb_dismissed", "1"); } catch {} setOnbDismissed(true); }} className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 cursor-pointer">{t("لاحقًا", "Later")}</button>
+            <button onClick={() => { if (orgId) { try { localStorage.setItem(`entix_onb_dismissed:${orgId}`, "1"); } catch {} } setOnbDismissed(true); }} className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 cursor-pointer">{t("لاحقًا", "Later")}</button>
           </div>
         </div>
       )}

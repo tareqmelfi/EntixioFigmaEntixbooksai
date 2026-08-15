@@ -812,7 +812,8 @@ export const api = {
 
   // Onboarding · first-run migration wizard (per-company)
   onboarding: {
-    status: () => request<{ openingBalancesDone: boolean; openingAt: string | null; productsCount: number; contactsCount: number }>('/api/onboarding/status'),
+    status: () => request<{ completed: boolean; completedAt: string | null; openingBalancesDone: boolean; openingAt: string | null; productsCount: number; contactsCount: number }>('/api/onboarding/status'),
+    complete: () => request<{ completed: boolean; completedAt: string | null }>('/api/onboarding/complete', { method: 'POST' }),
     openingBalances: (data: { date?: string; cash?: number; bank?: number; inventory?: number; receivables?: number; payables?: number; notes?: string }) =>
       request<{ ok: true; entryId: string; entryNumber: string; lines: number; equityAmount: number }>('/api/onboarding/opening-balances', { method: 'POST', body: data }),
     importProducts: (data: { rows: Array<{ name: string; nameAr?: string; sku?: string; type?: 'GOOD' | 'SERVICE' | 'INVENTORY'; category?: string; unitPrice?: number; costPrice?: number; openingQty?: number }>; openingStock?: boolean }) =>

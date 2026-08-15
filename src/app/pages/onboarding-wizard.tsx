@@ -17,6 +17,7 @@ import { useLanguage } from "../components/LanguageContext";
 
 type ProductRow = { name: string; nameAr?: string; sku?: string; type?: "GOOD" | "SERVICE" | "INVENTORY"; unitPrice?: number; costPrice?: number; openingQty?: number };
 type ContactRow = { name: string; type?: "CUSTOMER" | "SUPPLIER" | "BOTH"; email?: string; phone?: string; taxId?: string };
+type OnboardingStatus = { completed: boolean; completedAt: string | null; openingBalancesDone: boolean; productsCount: number; contactsCount: number };
 
 // ── tiny CSV parser (handles quoted cells + commas) ─────────────────────────
 function parseCSV(text: string): string[][] {
@@ -126,7 +127,7 @@ export function OnboardingWizard() {
   const { t, language } = useLanguage();
   const isAr = language === "ar";
   const [step, setStep] = useState(1);
-  const [status, setStatus] = useState<{ openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
+  const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -182,7 +183,7 @@ export function OnboardingWizard() {
       )}
       {step === 2 && <StepProducts onDone={() => { refresh(); setStep(3); }} onSkip={() => setStep(3)} setError={setError} />}
       {step === 3 && <StepContacts onDone={() => { refresh(); setStep(4); }} onSkip={() => setStep(4)} setError={setError} />}
-      {step === 4 && <StepDone status={status} onGo={(to) => navigate(to)} />}
+      {step === 4 && <StepDone status={status} onCompleted={setStatus} onGo={(to) => navigate(to)} setError={setError} />}
 
       {step > 1 && step < 4 && (
         <button onClick={() => setStep(step - 1)} className="mt-5 inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" style={{ fontSize: "13px" }}>
@@ -508,8 +509,53 @@ function StepContacts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
 }
 
 // ── Step 4 · Done ────────────────────────────────────────────────────────────
-function StepDone({ status, onGo }: { status: { openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null; onGo: (to: string) => void }) {
+function StepDone({ status, onCompleted, onGo, setError }: {
+  status: OnboardingStatus | null;
+  onCompleted: (status: OnboardingStatus) => void;
+  onGo: (to: string) => void;
+  setError: (error: string | null) => void;
+}) {
   const { t } = useLanguage();
+  const [busy, setBusy] = useState(!status?.completed);
+  const completion = useRef<Promise<boolean> | null>(null);
+  const navigating = useRef(false);
+
+  const saveCompletion = () => {
+    if (status?.completed) return Promise.resolve(true);
+    if (completion.current) return completion.current;
+    setBusy(true);
+    setError(null);
+    completion.current = api.onboarding.complete()
+      .then((saved) => {
+        onCompleted({
+          completed: saved.completed,
+          completedAt: saved.completedAt,
+          openingBalancesDone: status?.openingBalancesDone ?? false,
+          productsCount: status?.productsCount ?? 0,
+          contactsCount: status?.contactsCount ?? 0,
+        });
+        return true;
+      })
+      .catch((e: any) => {
+        setError(e?.message || t("فشل حفظ اكتمال الإعداد", "Failed to save onboarding completion"));
+        return false;
+      })
+      .finally(() => {
+        completion.current = null;
+        setBusy(false);
+      });
+    return completion.current;
+  };
+
+  useEffect(() => { void saveCompletion(); }, []);
+
+  const go = async (to: string) => {
+    if (busy || navigating.current) return;
+    navigating.current = true;
+    if (await saveCompletion()) onGo(to);
+    else navigating.current = false;
+  };
+
   return (
     <Card>
       <div className="text-center py-4">
@@ -522,10 +568,10 @@ function StepDone({ status, onGo }: { status: { openingBalancesDone: boolean; pr
           {t("الأصناف:", "Items:")} <b className="font-english">{status?.productsCount ?? 0}</b> · {t("جهات الاتصال:", "Contacts:")} <b className="font-english">{status?.contactsCount ?? 0}</b>
         </p>
         <div className="flex flex-wrap justify-center gap-2.5">
-          <button onClick={() => onGo("/app/invoices/new")} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl cursor-pointer" style={{ fontSize: "14px", fontWeight: 700 }}>
+          <button onClick={() => go("/app/invoices/new")} disabled={busy} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontSize: "14px", fontWeight: 700 }}>
             <FileText className="w-4 h-4" /> {t("أنشئ أول فاتورة", "Create your first invoice")}
           </button>
-          <button onClick={() => onGo("/app")} className="bg-gray-100 hover:bg-gray-200 text-foreground px-5 py-3 rounded-xl cursor-pointer" style={{ fontSize: "14px", fontWeight: 600 }}>
+          <button onClick={() => go("/app")} disabled={busy} className="bg-gray-100 hover:bg-gray-200 text-foreground px-5 py-3 rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontSize: "14px", fontWeight: 600 }}>
             {t("لوحة التحكم", "Dashboard")}
           </button>
         </div>
