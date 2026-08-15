@@ -13,7 +13,7 @@ declare global {
 
 const SITEKEY = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_TURNSTILE_SITEKEY) || "";
 const SCRIPT_SELECTOR = 'script[data-entix-turnstile="true"]';
-const SCRIPT_LOAD_TIMEOUT_MS = 3000;
+const SCRIPT_LOAD_TIMEOUT_MS = 15000;
 const EXACT_RETRYABLE_ERROR_CODES = new Set(["110600", "110620", "200500"]);
 export const isTurnstileRequired = Boolean(SITEKEY);
 

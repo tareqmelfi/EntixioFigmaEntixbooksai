@@ -140,7 +140,7 @@ test.describe('public auth CAPTCHA lifecycle', () => {
       }, { once: true })
     })
     await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', async route => {
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 5000))
       await route.fulfill({
         contentType: 'application/javascript',
         body: `window.turnstile = {
@@ -182,8 +182,8 @@ test.describe('public auth CAPTCHA lifecycle', () => {
 
     const startedAt = Date.now()
     await page.goto('/login')
-    await expect(page.locator('[data-testid="captcha-error"]')).toBeVisible({ timeout: 5000 })
-    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(2500)
+    await expect(page.locator('[data-testid="captcha-error"]')).toBeVisible({ timeout: 20000 })
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(14000)
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
     await expect(page.locator('button[type="submit"]')).toBeDisabled()
     await expect.poll(() => page.evaluate(() => Boolean((window as any).__turnstileScriptPromise))).toBe(false)
