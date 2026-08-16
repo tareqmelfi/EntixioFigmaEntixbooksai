@@ -21,6 +21,8 @@ import { DocumentDropZone, type ExtractedDocument } from "../components/document
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
 import { api, Contact } from "../lib/api";
+import { buildDuplicateDecision, getSimilarityReview, type SimilarityReview } from "../lib/similarity-review";
+import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
@@ -90,6 +92,7 @@ export function PurchaseBills() {
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
   const [showPaymentSplits, setShowPaymentSplits] = useState(false);
   const [duplicate, setDuplicate] = useState<{ open: boolean; matches: any[]; pendingSubmit: ("draft" | "approve") | null }>({ open: false, matches: [], pendingSubmit: null });
+  const [pendingSimilarity, setPendingSimilarity] = useState<{ review: SimilarityReview; payload: any; action: "draft" | "approve" } | null>(null);
 
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const { language, t } = useLanguage();
@@ -315,23 +318,34 @@ export function PurchaseBills() {
       const b = editingId
         ? await api.bills.update(editingId, payload)
         : await api.bills.create(payload);
-      // upsert · a dedupe UPDATED/SKIPPED response points at an existing row
-      setItems(prev => prev.some(x => x.id === b.id) ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
-      const msg = editingId ? t("تم تحديث الفاتورة", "Invoice updated") : (action === "draft" ? t(`تم حفظ ${b.billNumber || "الفاتورة"} كمسودة`, `Saved ${b.billNumber || "the invoice"} as draft`) : t(`تم اعتماد ${b.billNumber || "الفاتورة"}`, `Approved ${b.billNumber || "the invoice"}`));
-      push("success", msg);
-      const ing = (b as any).ingestion;
-      if (!editingId && ing && ing.dedupeDecision === "UPDATED") {
-        push("info", t("فاتورة مطابقة موجودة — تم تحديثها بدل إنشاء نسخة مكررة", "A matching invoice exists — updated instead of creating a duplicate"), 6000);
-      } else if (!editingId && ing && ing.dedupeDecision === "SKIPPED_DUPLICATE") {
-        push("info", t("الفاتورة موجودة مسبقاً — لم يتم إنشاء نسخة مكررة", "The invoice already exists — no duplicate was created"), 6000);
+      const review = editingId ? null : getSimilarityReview(b);
+      if (review) {
+        // nothing written server-side — the dialog resubmits with a signed decision
+        setPendingSimilarity({ review, payload, action });
+        return;
       }
-      if (ing?.attachmentStatus?.attached > 0) {
-        push("info", t(`أُرفق ${ing.attachmentStatus.attached} ملف بالفاتورة`, `${ing.attachmentStatus.attached} file(s) attached to the invoice`), 5000);
-      }
-      closeCreate();
+      finalizeSavedBill(b, action);
     } catch (e: any) {
       setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
     } finally { setBusy(false); }
+  };
+
+  // Shared success path after a real write (direct save or a signed similarity decision).
+  const finalizeSavedBill = (b: any, action: "draft" | "approve") => {
+    // upsert · a dedupe UPDATED/SKIPPED response points at an existing row
+    setItems(prev => prev.some(x => x.id === b.id) ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
+    const msg = editingId ? t("تم تحديث الفاتورة", "Invoice updated") : (action === "draft" ? t(`تم حفظ ${b.billNumber || "الفاتورة"} كمسودة`, `Saved ${b.billNumber || "the invoice"} as draft`) : t(`تم اعتماد ${b.billNumber || "الفاتورة"}`, `Approved ${b.billNumber || "the invoice"}`));
+    push("success", msg);
+    const ing = (b as any).ingestion;
+    if (!editingId && ing && ing.dedupeDecision === "UPDATED") {
+      push("info", t("فاتورة مطابقة موجودة — تم تحديثها بدل إنشاء نسخة مكررة", "A matching invoice exists — updated instead of creating a duplicate"), 6000);
+    } else if (!editingId && ing && ing.dedupeDecision === "SKIPPED_DUPLICATE") {
+      push("info", t("الفاتورة موجودة مسبقاً — لم يتم إنشاء نسخة مكررة", "The invoice already exists — no duplicate was created"), 6000);
+    }
+    if (ing?.attachmentStatus?.attached > 0) {
+      push("info", t(`أُرفق ${ing.attachmentStatus.attached} ملف بالفاتورة`, `${ing.attachmentStatus.attached} file(s) attached to the invoice`), 5000);
+    }
+    closeCreate();
   };
 
   const confirmMerge = async (targetBillId: string) => {
@@ -749,6 +763,30 @@ export function PurchaseBills() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Signed similarity review (server-driven duplicate decision) */}
+        {pendingSimilarity && (
+          <SimilarityReviewDialog
+            review={pendingSimilarity.review}
+            busy={busy}
+            onCancel={() => setPendingSimilarity(null)}
+            onChoose={async (decisionAction) => {
+              const pending = pendingSimilarity;
+              setBusy(true);
+              try {
+                const b = await api.bills.create({
+                  ...pending.payload,
+                  duplicateDecision: buildDuplicateDecision(pending.review, decisionAction),
+                });
+                setPendingSimilarity(null);
+                finalizeSavedBill(b, pending.action);
+              } catch (e: any) {
+                setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
+                setPendingSimilarity(null);
+              } finally { setBusy(false); }
+            }}
+          />
         )}
       </>
     );

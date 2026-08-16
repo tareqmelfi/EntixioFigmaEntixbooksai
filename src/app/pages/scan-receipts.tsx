@@ -16,11 +16,20 @@ import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { enhanceReceiptImage } from "../lib/receipt-enhance";
 import { api } from "../lib/api";
+import {
+  buildDuplicateDecision,
+  getSimilarityReview,
+  isStaleDecisionError,
+  type DuplicateDecision,
+  type SimilarityReview,
+} from "../lib/similarity-review";
+import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { useLanguage } from "../components/LanguageContext";
 
 const INBOUND_DOMAINS = ["in.entix.io", "bill.entix.io"] as const; // receive-only subdomains · apex mail stays on Google Workspace
 const DEFAULT_INBOUND_DOMAIN = "in.entix.io";
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // vision models struggle beyond this
+const MAX_BATCH_FILES = 50; // matches the API batch ceiling
 const EXTRACT_CONCURRENCY = 2;
 
 type JobStatus =
@@ -30,6 +39,7 @@ type JobStatus =
   | "recording"
   | "recorded"
   | "duplicate"
+  | "review"
   | "failed";
 
 type ReceiptJob = {
@@ -62,6 +72,8 @@ type ReceiptJob = {
   recordedId?: string | null;
   recordedNumber?: string | null;
   duplicateNumber?: string | null;
+  /** set when the server asks for a signed duplicate decision (nothing written yet) */
+  review?: SimilarityReview | null;
 };
 
 let jobSeq = 0;
@@ -194,6 +206,7 @@ export function ScanReceipts() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [jobs, setJobs] = useState<ReceiptJob[]>([]);
   const [recordBusy, setRecordBusy] = useState(false);
+  const [reviewJob, setReviewJob] = useState<ReceiptJob | null>(null);
   const [dragOver, setDragOver] = useState(false);
   // async-safe mirror of jobs + extraction queue
   const jobsRef = useRef<Map<string, ReceiptJob>>(new Map());
@@ -281,8 +294,15 @@ export function ScanReceipts() {
   const handleFilePick = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
+    if (list.length > MAX_BATCH_FILES) {
+      push("error", t(
+        `الحد الأقصى ${MAX_BATCH_FILES} ملفاً في الدفعة — اخترت ${list.length}. أُخذت أول ${MAX_BATCH_FILES} فقط.`,
+        `Batch limit is ${MAX_BATCH_FILES} files — you picked ${list.length}. Only the first ${MAX_BATCH_FILES} were taken.`,
+      ));
+    }
+    const capped = list.slice(0, MAX_BATCH_FILES);
     const newIds: string[] = [];
-    for (const file of list) {
+    for (const file of capped) {
       const id = nextJobId();
       const mime = file.type || "application/octet-stream";
       if (file.size > MAX_FILE_BYTES) {
@@ -353,7 +373,7 @@ export function ScanReceipts() {
   };
 
   // Record ONE receipt as an expense in its own currency (no conversion).
-  const recordJob = async (job: ReceiptJob, allowDuplicate = false): Promise<boolean> => {
+  const recordJob = async (job: ReceiptJob, allowDuplicate = false, duplicateDecision?: DuplicateDecision): Promise<boolean> => {
     const result = job.result;
     if (!result) return false;
     if (job.total == null || job.total <= 0) {
@@ -421,7 +441,15 @@ export function ScanReceipts() {
         ocrConfidence: job.confidence,
         autoCreateSupplier: true,
         allowDuplicate,
+        duplicateDecision,
       });
+      // Signed similarity review wins over the legacy duplicate flag — nothing
+      // was written server-side until the user picks an action.
+      const review = getSimilarityReview(created);
+      if (review) {
+        patchJob(job.id, { status: "review", review });
+        return false;
+      }
       if (created?.duplicateExpense) {
         patchJob(job.id, {
           status: "duplicate",
@@ -437,6 +465,11 @@ export function ScanReceipts() {
       });
       return true;
     } catch (e: any) {
+      if (duplicateDecision && isStaleDecisionError(e)) {
+        // the signed token expired — fetch a fresh review instead of stranding the job
+        await recordJob(job);
+        return false;
+      }
       patchJob(job.id, { status: "failed", error: e?.message || t("فشل التسجيل", "Recording failed") });
       return false;
     }
@@ -447,18 +480,20 @@ export function ScanReceipts() {
     const targets = jobs.filter((j) => j.status === "ready" && !j.excluded);
     if (!targets.length || recordBusy) return;
     setRecordBusy(true);
-    let ok = 0, failed = 0, dup = 0;
+    let ok = 0, failed = 0, dup = 0, reviewCount = 0;
     for (const job of targets) {
       const done = await recordJob(job);
       if (done) ok++;
       else {
         const after = jobsRef.current.get(job.id);
         if (after?.status === "duplicate") dup++;
+        else if (after?.status === "review") reviewCount++;
         else failed++;
       }
     }
     setRecordBusy(false);
     if (ok) push("success", t(`تم تسجيل ${ok} مصروف بنجاح`, `${ok} expense(s) recorded`));
+    if (reviewCount) push("info", t(`${reviewCount} مستند يحتاج قرار مراجعة التشابه`, `${reviewCount} document(s) need a similarity review decision`), 7000);
     if (dup) push("error", t(`${dup} مستند يبدو مكرراً — راجعه`, `${dup} document(s) look duplicated — review them`));
     if (failed) push("error", t(`تعذّر تسجيل ${failed} مستند`, `${failed} document(s) failed to record`));
   };
@@ -544,6 +579,21 @@ export function ScanReceipts() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+      {reviewJob?.review && (
+        <SimilarityReviewDialog
+          review={reviewJob.review}
+          busy={reviewJob.status === "recording"}
+          onCancel={() => setReviewJob(null)}
+          onChoose={async (action) => {
+            const job = jobsRef.current.get(reviewJob.id);
+            if (!job?.review) { setReviewJob(null); return; }
+            const decision = buildDuplicateDecision(job.review, action);
+            setReviewJob(null);
+            await recordJob(job, false, decision);
+          }}
+        />
+      )}
 
       {/* Hero */}
       <div className="text-center max-w-2xl mx-auto pt-4">
@@ -703,6 +753,7 @@ export function ScanReceipts() {
                         {job.status === "recording" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                         {job.status === "recorded" && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                         {job.status === "duplicate" && <AlertTriangle className="h-4 w-4 text-amber-600" />}
+                        {job.status === "review" && <AlertTriangle className="h-4 w-4 text-amber-600" />}
                         {(job.status === "error" || job.status === "failed") && <X className="h-4 w-4 text-red-500" />}
                       </span>
 
@@ -744,6 +795,11 @@ export function ScanReceipts() {
                         {job.status === "duplicate" && (
                           <div className="text-xs text-amber-700 mt-0.5">
                             {t("يبدو مسجلاً مسبقاً", "Looks already recorded")}{job.duplicateNumber ? ` · ${job.duplicateNumber}` : ""}
+                          </div>
+                        )}
+                        {job.status === "review" && (
+                          <div className="text-xs text-amber-700 mt-0.5">
+                            {t("مستند مشابه قائم — لم يُحفظ شيء بعد، اختر القرار", "A similar document exists — nothing saved yet, choose the decision")}
                           </div>
                         )}
                         {job.status === "recorded" && (
@@ -824,6 +880,15 @@ export function ScanReceipts() {
                             {t("تسجيل رغم التكرار", "Record anyway")}
                           </button>
                         )}
+                        {job.status === "review" && (
+                          <button
+                            onClick={() => setReviewJob(jobsRef.current.get(job.id) || job)}
+                            className="px-2.5 py-1.5 rounded-md bg-amber-600 text-white text-xs hover:bg-amber-700"
+                            title={t("مراجعة التشابه واختيار القرار", "Review similarity and choose the decision")}
+                          >
+                            {t("مراجعة التشابه", "Review similarity")}
+                          </button>
+                        )}
                         {(job.status === "error" || job.status === "failed") && job.fileBase64 && (
                           <button
                             onClick={() => openInForm(job)}
@@ -845,6 +910,23 @@ export function ScanReceipts() {
                     {/* expanded: line items + warnings */}
                     {job.expanded && job.status === "ready" && (
                       <div className="border-t border-border/60 px-3 py-2.5 space-y-2">
+                        {(job.result?.issuer?.vatNumber || job.result?.issuer?.crNumber || job.result?.issuer?.unifiedNationalNumber || job.result?.issuer?.nameAr) && (
+                          <div className="rounded-md bg-muted/40 border border-border/60 px-2.5 py-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span className="text-[10px] text-muted-foreground" style={{ fontWeight: 700 }}>{t("هوية المورّد", "Vendor identity")}</span>
+                            {job.result.issuer.nameAr && job.result.issuer.nameAr !== job.vendor && (
+                              <span className="text-[11px] text-foreground">{job.result.issuer.nameAr}</span>
+                            )}
+                            {job.result.issuer.vatNumber && (
+                              <span className="text-[11px] text-muted-foreground">{t("ضريبي:", "VAT:")} <span className="font-english" dir="ltr">{job.result.issuer.vatNumber}</span></span>
+                            )}
+                            {job.result.issuer.crNumber && (
+                              <span className="text-[11px] text-muted-foreground">{t("س.ت:", "CR:")} <span className="font-english" dir="ltr">{job.result.issuer.crNumber}</span></span>
+                            )}
+                            {job.result.issuer.unifiedNationalNumber && (
+                              <span className="text-[11px] text-muted-foreground">{t("موحد (700):", "UNN (700):")} <span className="font-english" dir="ltr">{job.result.issuer.unifiedNationalNumber}</span></span>
+                            )}
+                          </div>
+                        )}
                         {Array.isArray(job.result?.lines) && job.result.lines.length > 0 ? (
                           <div className="space-y-1">
                             {job.result.lines.map((line: any, i: number) => (

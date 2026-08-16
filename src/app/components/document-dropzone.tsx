@@ -26,14 +26,31 @@ import { api } from "../lib/api";
 
 export type ExtractTarget = "invoice-lines" | "quote-lines" | "bill-lines" | "expense" | "contact" | "auto";
 
+/** Party identity as extracted by the document-set pipeline (server: partySchema). */
+export interface ExtractedParty {
+  name?: string;
+  legalName?: string | null;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  vatNumber?: string | null;
+  unifiedNationalNumber?: string | null;
+  crNumber?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  country?: string;
+  confidence?: number | null;
+  /** legacy alias kept for older backends */
+  taxId?: string;
+}
+
 export interface ExtractedDocument {
   kind: string;
   confidence: number;
   status?: string;
   documentType?: string;
   message?: string;
-  issuer?: { name?: string; taxId?: string; country?: string };
-  buyer?: { name?: string; taxId?: string };
+  issuer?: ExtractedParty;
+  buyer?: ExtractedParty;
   documentNumber?: string;
   issueDate?: string;
   dueDate?: string;
@@ -51,6 +68,14 @@ export interface ExtractedDocument {
   paymentTerms?: string;
   notes?: string;
   warnings?: string[];
+  /** one ordered row per active page · fileId binds the row to the uploaded file */
+  pageProvenance?: Array<{
+    ordinal: number;
+    fileId?: string | null;
+    fileName?: string | null;
+    contributedFields: string[];
+    warnings: string[];
+  }>;
   _meta?: { model: string; cost: string };
   /** sha256 of the source file bytes (backend) · forward to bill/expense create for dedupe */
   sourceFileHash?: string;

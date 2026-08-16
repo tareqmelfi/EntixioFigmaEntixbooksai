@@ -36,6 +36,8 @@ import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
 import { useReturnTo } from "../lib/use-return-to";
 import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
+import { buildDuplicateDecision, getSimilarityReview, type SimilarityReview } from "../lib/similarity-review";
+import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { AttachmentViewer, ViewerAttachment } from "../components/attachment-viewer";
 import { useLanguage } from "../components/LanguageContext";
@@ -94,6 +96,8 @@ type FormState = {
 type ExtractionSummary = {
   fileName: string | null;
   vendor?: string | null;
+  vendorCr?: string | null;
+  vendorUnn?: string | null;
   total?: number | null;
   tax?: number | null;
   subtotal?: number | null;
@@ -639,6 +643,7 @@ export function Expenses() {
   const { goBack: goBackToSource } = useReturnTo();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [pendingSimilarity, setPendingSimilarity] = useState<{ review: SimilarityReview; input: ExpenseInput } | null>(null);
   const [formData, setFormData] = useState<FormState>(() => emptyForm());
   const [accounts, setAccounts] = useState<any[]>([]);
   const [extractionSummary, setExtractionSummary] = useState<ExtractionSummary | null>(null);
@@ -947,26 +952,37 @@ export function Expenses() {
         assetAccountId: formData.assetAccountId || null,
       };
       const saved = editingId ? await api.expenses.update(editingId, input) : await api.expenses.create(input);
-      await refresh();
-      const full = await api.expenses.get(saved.id);
-      setSelected(full);
-      push("success", editingId ? t("تم تحديث المصروف ", "Expense updated ") + saved.number : t("تم حفظ المصروف ", "Expense saved ") + saved.number);
-      if ((saved as any).duplicateExpense) push("info", t("تنبيه: يوجد مصروف مشابه ", "Warning: similar expense ") + (saved as any).duplicateExpense.number, 7000);
-      const ing = (saved as any).ingestion;
-      if (!editingId && ing?.dedupeDecision === "UPDATED") {
-        push("info", t("مصروف مطابق موجود — تم تحديثه بدل إنشاء نسخة مكررة", "Matching expense found — updated instead of creating duplicate"), 6000);
-      } else if (!editingId && ing?.dedupeDecision === "SKIPPED_DUPLICATE") {
-        push("info", t("المصروف موجود مسبقاً — لم يتم إنشاء نسخة مكررة", "Expense already exists — no duplicate created"), 6000);
+      const review = editingId ? null : getSimilarityReview(saved);
+      if (review) {
+        // nothing written server-side — the dialog resubmits with a signed decision
+        setPendingSimilarity({ review, input });
+        return;
       }
-      if (!editingId && ing?.attachmentStatus?.attached > 0) {
-        push("info", t("أُرفق ", "Attached ") + ing.attachmentStatus.attached + t(" ملف بالمصروف", " file(s) to expense"), 5000);
-      }
-      closeCreate(false);
+      await finalizeSavedExpense(saved);
     } catch (e: any) {
       setCreateError(humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" }));
     } finally {
       setBusy(false);
     }
+  }
+
+  // Shared success path after a real write (direct save or a signed similarity decision).
+  const finalizeSavedExpense = async (saved: any) => {
+    await refresh();
+    const full = await api.expenses.get(saved.id);
+    setSelected(full);
+    push("success", editingId ? t("تم تحديث المصروف ", "Expense updated ") + saved.number : t("تم حفظ المصروف ", "Expense saved ") + saved.number);
+    if ((saved as any).duplicateExpense) push("info", t("تنبيه: يوجد مصروف مشابه ", "Warning: similar expense ") + (saved as any).duplicateExpense.number, 7000);
+    const ing = (saved as any).ingestion;
+    if (!editingId && ing?.dedupeDecision === "UPDATED") {
+      push("info", t("مصروف مطابق موجود — تم تحديثه بدل إنشاء نسخة مكررة", "Matching expense found — updated instead of creating duplicate"), 6000);
+    } else if (!editingId && ing?.dedupeDecision === "SKIPPED_DUPLICATE") {
+      push("info", t("المصروف موجود مسبقاً — لم يتم إنشاء نسخة مكررة", "Expense already exists — no duplicate created"), 6000);
+    }
+    if (!editingId && ing?.attachmentStatus?.attached > 0) {
+      push("info", t("أُرفق ", "Attached ") + ing.attachmentStatus.attached + t(" ملف بالمصروف", " file(s) to expense"), 5000);
+    }
+    closeCreate(false);
   }
 
   // Deep link · /app/expenses/:id → open that expense directly (agent links, contact file, search)
@@ -1129,7 +1145,7 @@ export function Expenses() {
         : String(defaultExchangeRate(sourceCurrency, baseCurrency));
       const payments = normalizePayments(data, totals.total, formData.paymentMethod, sourceCurrency);
       const warnings = buildExtractionWarnings(t, data, items, totals.total || null);
-      const supplierTaxId = data?.issuer?.taxId || "";
+      const supplierTaxId = data?.issuer?.vatNumber || data?.issuer?.taxId || "";
       const vendorName = cleanVendorName(data?.issuer?.name);
       const bookBaseAmount = roundMoney(totals.total * (Number(exchangeRate) || defaultExchangeRate(sourceCurrency, baseCurrency)));
       setFormData((f) => ({
@@ -1158,6 +1174,8 @@ export function Expenses() {
       setExtractionSummary({
         fileName: file.name,
         vendor: vendorName || null,
+        vendorCr: data?.issuer?.crNumber || null,
+        vendorUnn: data?.issuer?.unifiedNationalNumber || null,
         total: totals.total || null,
         tax: totals.tax || null,
         subtotal: totals.subtotal || null,
@@ -1281,6 +1299,8 @@ export function Expenses() {
                         <span className="font-english">{extractionSummary.fileName}</span>
                         {extractionSummary.vendor ? <> · {extractionSummary.vendor}</> : null}
                         {extractionSummary.documentNumber ? <> · {t("رقم", "No.")} <span className="font-english">{extractionSummary.documentNumber}</span></> : null}
+                        {extractionSummary.vendorCr ? <> · {t("س.ت:", "CR:")} <span className="font-english">{extractionSummary.vendorCr}</span></> : null}
+                        {extractionSummary.vendorUnn ? <> · {t("موحد (700):", "UNN (700):")} <span className="font-english">{extractionSummary.vendorUnn}</span></> : null}
                         {extractionSummary.total ? <> · <span className="font-english">{extractionSummary.total.toFixed(2)} SAR</span></> : null}
                         {extractionSummary.confidence != null ? <> · {t("ثقة", "Confidence")} <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
                       </div>
@@ -2077,6 +2097,31 @@ export function Expenses() {
       </Card>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+      {pendingSimilarity && (
+        <SimilarityReviewDialog
+          review={pendingSimilarity.review}
+          busy={busy}
+          onCancel={() => setPendingSimilarity(null)}
+          onChoose={async (action) => {
+            const pending = pendingSimilarity;
+            setBusy(true);
+            try {
+              const saved = await api.expenses.create({
+                ...pending.input,
+                duplicateDecision: buildDuplicateDecision(pending.review, action),
+              });
+              setPendingSimilarity(null);
+              await finalizeSavedExpense(saved);
+            } catch (e: any) {
+              setCreateError(humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" }));
+              setPendingSimilarity(null);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

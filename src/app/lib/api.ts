@@ -8,6 +8,9 @@
  *  - JSON serialization
  *  - Error envelope normalization
  */
+import type { DuplicateDecision, SimilarityReview } from './similarity-review'
+
+export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
 
 const API_BASE =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
@@ -292,7 +295,11 @@ export const api = {
     list: (status?: string) => request<{ items: InboxMessageRow[]; total: number }>('/api/inbox', { query: status ? { status } : undefined }),
     status: () => request<{ address: string; configured: boolean; webhookConfigured: boolean; addressConfigured: boolean; mode: string; provider: string | null }>('/api/inbox/status'),
     get: (id: string) => request<InboxMessageDetail>(`/api/inbox/${id}`),
-    approve: (id: string) => request<{ ok: true; billId: string; billNumber: string }>(`/api/inbox/${id}/approve`, { method: 'POST' }),
+    approve: (id: string, duplicateDecision?: DuplicateDecision) =>
+      request<{ ok: true; billId: string; billNumber: string } & IngestionMeta>(
+        `/api/inbox/${id}/approve`,
+        { method: 'POST', body: duplicateDecision ? { duplicateDecision } : {} },
+      ),
     reject: (id: string) => request<{ ok: true }>(`/api/inbox/${id}/reject`, { method: 'POST' }),
     reprocess: (id: string) => request<{ ok: true; kind: string; lines: number }>(`/api/inbox/${id}/reprocess`, { method: 'POST' }),
     duplicateCheck: (id: string) => request<{ possibleDuplicate: boolean; match?: { id: string; billNumber: string; total: number; issueDate: string; supplierName: string | null } | null }>(`/api/inbox/${id}/duplicate-check`),
@@ -1597,6 +1604,8 @@ export interface ExpenseInput {
   sourceFileHash?: string | null
   /** explicit escape hatch for the "create anyway" manual flow */
   allowDuplicate?: boolean
+  /** signed duplicate decision after a SIMILARITY_REVIEW_REQUIRED outcome */
+  duplicateDecision?: DuplicateDecision
 }
 
 /** Ingestion contract block returned on bill/expense create paths (PR1 backend) */
@@ -1608,6 +1617,13 @@ export interface IngestionMeta {
   confidence: number
   reason: string
   fingerprint?: string
+  version?: number
+  /** when set, nothing was written — the user must choose a duplicate action */
+  outcome?: 'SIMILARITY_REVIEW_REQUIRED'
+  similarityReview?: SimilarityReview
+  duplicateOf?: { id: string; number?: string; billNumber?: string } | null
+  idempotency?: { replay: boolean }
+  legacyAllowDuplicate?: boolean
 }
 
 export interface SalesDashboard {
