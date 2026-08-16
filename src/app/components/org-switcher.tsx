@@ -12,6 +12,7 @@ import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { useLanguage } from "./LanguageContext";
 import { BidiText, NumericText } from "./bidi-text";
+import { isValidUnifiedNationalNumber, normalizeUnifiedNationalNumber, nullableUnifiedNationalNumber } from "../lib/digits";
 
 function orgInitials(name?: string | null) {
   const cleaned = (name || "").trim();
@@ -473,8 +474,9 @@ const COUNTRY_SPECS: Record<string, CountrySpec> = {
   SA: {
     defaultCurrency: "SAR",
     fields: [
+      { key: "unifiedNationalNumber", label: { ar: "الرقم الوطني الموحد للمنشأة (رقم 700)", en: "Unified National Number" }, placeholder: "7001234567", ltr: true, help: { ar: "10 أرقام · يبدأ عادةً بـ 7", en: "10 digits · usually starts with 7" } },
       { key: "vatNumber", label: { ar: "الرقم الضريبي (ZATCA)", en: "VAT number (ZATCA)" }, placeholder: "300xxxxxxxxxxxx", ltr: true, help: { ar: "15 رقم · يبدأ بـ 3", en: "15 digits · starts with 3" } },
-      { key: "crNumber", label: { ar: "السجل التجاري", en: "Commercial registration" }, placeholder: "10xxxxxxxx", ltr: true, help: { ar: "10 أرقام · من وزارة التجارة", en: "10 digits · from Ministry of Commerce" } },
+      { key: "crNumber", label: { ar: "السجل التجاري (اختياري)", en: "Commercial registration (optional)" }, placeholder: "10xxxxxxxx", ltr: true, help: { ar: "10 أرقام · من وزارة التجارة", en: "10 digits · from Ministry of Commerce" } },
     ],
   },
   AE: {
@@ -525,6 +527,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
     legalName: "",
     country: "SA",
     baseCurrency: "SAR",
+    unifiedNationalNumber: "",
     vatNumber: "",
     crNumber: "",
     fiscalYearEnd: 12, // December default
@@ -594,6 +597,10 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
       setFieldErrors({ name: [t("الاسم مطلوب", "Name is required")] });
       return;
     }
+    if (form.country === "SA" && !isValidUnifiedNationalNumber(form.unifiedNationalNumber)) {
+      setFieldErrors({ unifiedNationalNumber: [t("يجب أن يتكون الرقم الوطني الموحد من 10 أرقام", "Unified National Number must be exactly 10 digits")] });
+      return;
+    }
     setBusy(true);
     setError(null);
     setFieldErrors({});
@@ -603,6 +610,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
         country: form.country,
         baseCurrency: form.baseCurrency,
         fiscalYearEnd: Number(form.fiscalYearEnd) || 12,
+        unifiedNationalNumber: form.country === "SA" ? nullableUnifiedNationalNumber(form.unifiedNationalNumber) : null,
       };
       const optStr = (k: string) => { const v = String(form[k] || "").trim(); if (v) payload[k] = v; };
       [
@@ -899,9 +907,16 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               {spec.fields.map((f) => (
                 <div key={f.key}>
                   <label className="text-sm text-foreground/80 block mb-1">{t(f.label.ar, f.label.en)}</label>
-                  <input type="text" value={form[f.key] || ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  <input type="text" inputMode={f.key === "unifiedNationalNumber" ? "numeric" : undefined} maxLength={f.key === "unifiedNationalNumber" ? 10 : undefined}
+                    value={form[f.key] || ""} aria-invalid={!!fieldErrors[f.key]?.length}
+                    onChange={(e) => {
+                      const value = f.key === "unifiedNationalNumber" ? normalizeUnifiedNationalNumber(e.target.value) : e.target.value;
+                      setForm({ ...form, [f.key]: value });
+                      setFieldErrors((current) => ({ ...current, [f.key]: [] }));
+                    }}
                     placeholder={isRtl ? f.placeholder : (f.placeholderEn || f.placeholder)} dir={f.ltr ? "ltr" : "rtl"}
-                    className={`${inp} ${f.ltr ? "font-english" : ""}`} />
+                    className={`${inp} ${f.ltr ? "font-english" : ""} ${fieldErrors[f.key]?.length ? "border-red-500 focus:border-red-500" : ""}`} />
+                  {fieldErrors[f.key]?.map((message) => <p key={message} className="mt-1 text-xs text-red-600">{message}</p>)}
                   {f.help && <p className="text-xs text-muted-foreground/60 mt-1">{t(f.help.ar, f.help.en)}</p>}
                 </div>
               ))}

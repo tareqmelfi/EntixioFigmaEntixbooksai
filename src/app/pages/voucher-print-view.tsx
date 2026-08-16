@@ -271,6 +271,7 @@ export function VoucherPrintView() {
                   )}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
+                    {isKsa && org.unifiedNationalNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>الرقم الوطني الموحد للمنشأة: <span className="num">{org.unifiedNationalNumber}</span></div>}
                     {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>الرقم الضريبي: <span className="num">{org.vatNumber}</span></div>}
                     {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>السجل التجاري: <span className="num">{org.crNumber}</span></div>}
                   </div>

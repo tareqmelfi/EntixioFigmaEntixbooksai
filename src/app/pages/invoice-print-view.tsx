@@ -311,6 +311,7 @@ export function InvoicePrintView() {
                   {/* Company details stacked directly under the name · Arabic lines RTL-aligned · Latin lines LTR */}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
+                    {isKsa && org.unifiedNationalNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>الرقم الوطني الموحد للمنشأة: <span className="num">{org.unifiedNationalNumber}</span></div>}
                     {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "الرقم الضريبي" : "VAT No."}: <span className="num">{org.vatNumber}</span></div>}
                     {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{isKsa ? "السجل التجاري" : "C.R."}: <span className="num">{org.crNumber}</span></div>}
                   </div>

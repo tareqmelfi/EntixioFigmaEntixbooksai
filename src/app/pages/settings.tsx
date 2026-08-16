@@ -14,6 +14,7 @@ import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLog
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
+import { isValidUnifiedNationalNumber, normalizeUnifiedNationalNumber, nullableUnifiedNationalNumber } from "../lib/digits";
 
 type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans";
 const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans"];
@@ -35,7 +36,7 @@ export function Settings() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     name: "", legalName: "", legalType: "" as string, legalSubtype: "" as string, country: "SA", baseCurrency: "SAR",
-    vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
+    unifiedNationalNumber: "", vatNumber: "", crNumber: "", fiscalYearEnd: 12, zatcaEnabled: false,
     logoUrl: "", stampUrl: "", signatureUrl: "",
     email: "", phone: "", website: "",
     industry: "",
@@ -87,6 +88,7 @@ export function Settings() {
         legalType: (active as any).legalType || "",
         legalSubtype: (active as any).legalSubtype || "",
         country: active.country, baseCurrency: active.baseCurrency,
+        unifiedNationalNumber: active.unifiedNationalNumber || "",
         vatNumber: active.vatNumber || "", crNumber: active.crNumber || "",
         fiscalYearEnd: (active as any).fiscalYearEnd || 12,
         zatcaEnabled: active.zatcaEnabled,
@@ -114,6 +116,10 @@ export function Settings() {
 
   const handleSave = async () => {
     if (!org) return;
+    if (form.country === "SA" && !isValidUnifiedNationalNumber(form.unifiedNationalNumber)) {
+      setError(t("يجب أن يتكون الرقم الوطني الموحد من 10 أرقام", "Unified National Number must be exactly 10 digits"));
+      return;
+    }
     setBusy(true); setError(null); setSaved(false);
     try {
       // Auto-derive fiscalYearStart = (end mod 12) + 1 · per UX-134
@@ -123,6 +129,7 @@ export function Settings() {
         legalType: form.legalType || null,
         legalSubtype: form.legalSubtype || null,
         country: form.country, baseCurrency: form.baseCurrency,
+        unifiedNationalNumber: form.country === "SA" ? nullableUnifiedNationalNumber(form.unifiedNationalNumber) : null,
         vatNumber: form.vatNumber || null, crNumber: form.crNumber || null,
         fiscalYearEnd: form.fiscalYearEnd,
         fiscalYearStart: yearStart,
@@ -287,7 +294,7 @@ export function Settings() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>{t("الدولة", "Country")}</Label>
-                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value, unifiedNationalNumber: e.target.value === "SA" ? form.unifiedNationalNumber : "" })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
                   <option value="SA">{t("السعودية", "Saudi Arabia")}</option><option value="AE">{t("الإمارات", "UAE")}</option><option value="KW">{t("الكويت", "Kuwait")}</option>
                   <option value="QA">{t("قطر", "Qatar")}</option><option value="BH">{t("البحرين", "Bahrain")}</option><option value="OM">{t("عُمان", "Oman")}</option>
                   <option value="EG">{t("مصر", "Egypt")}</option><option value="US">{t("الولايات المتحدة", "United States")}</option><option value="GB">{t("المملكة المتحدة", "United Kingdom")}</option>
@@ -307,10 +314,19 @@ export function Settings() {
                 <p className="text-[10px] text-muted-foreground/60 mt-1">{t("شهر إقفال الحسابات السنوي (KSA: ديسمبر افتراضي)", "Annual accounts closing month (KSA: December by default)")}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {form.country === "SA" && (
+                <div className="space-y-2">
+                  <Label>{t("الرقم الوطني الموحد للمنشأة (رقم 700)", "Unified National Number")}</Label>
+                  <Input inputMode="numeric" maxLength={10} value={form.unifiedNationalNumber}
+                    onChange={(e) => setForm({ ...form, unifiedNationalNumber: normalizeUnifiedNationalNumber(e.target.value) })}
+                    placeholder="7001234567" dir="ltr" className="border-border font-english" />
+                  <p className="text-[10px] text-muted-foreground/60">{t("10 أرقام · يبدأ عادةً بـ 7", "10 digits · usually starts with 7")}</p>
+                </div>
+              )}
               <div className="space-y-2"><Label>{form.country === "US" ? "EIN" : form.country === "AE" ? "TRN" : t("الرقم الضريبي", "Tax number")}</Label>
                 <Input value={form.vatNumber} onChange={(e) => setForm({ ...form, vatNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
-              <div className="space-y-2"><Label>{form.country === "US" ? "State Filing #" : t("السجل التجاري", "Commercial registration")}</Label>
+              <div className="space-y-2"><Label>{form.country === "US" ? "State Filing #" : form.country === "SA" ? t("السجل التجاري (اختياري)", "Commercial registration (optional)") : t("السجل التجاري", "Commercial registration")}</Label>
                 <Input value={form.crNumber} onChange={(e) => setForm({ ...form, crNumber: e.target.value })} dir="ltr" className="border-border font-english" /></div>
             </div>
 
