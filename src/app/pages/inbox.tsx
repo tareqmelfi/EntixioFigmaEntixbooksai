@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { api, InboxMessageRow, InboxMessageDetail } from "../lib/api";
+import { buildDuplicateDecision, getSimilarityReview, type DuplicateDecision, type SimilarityReview } from "../lib/similarity-review";
+import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
@@ -45,6 +47,7 @@ export function InboxPage() {
   const [detail, setDetail] = useState<InboxMessageDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("ALL");
   const [orgSlug, setOrgSlug] = useState<string>("YOUR-ORG");
   const [orgAlias, setOrgAlias] = useState<{ local: string; domain: string } | null>(null);
@@ -100,37 +103,51 @@ export function InboxPage() {
     const targets = items.filter((m) => m.status === "EXTRACTED");
     if (!targets.length || approveAllBusy) return;
     setApproveAllBusy(true);
-    let ok = 0, dup = 0, failed = 0;
+    let ok = 0, dup = 0, failed = 0, reviewNeeded = 0;
     for (const m of targets) {
       try {
         const r = await api.inbox.approve(m.id) as any;
-        if (r?.dedupeDecision === "SKIPPED_DUPLICATE") dup++;
+        if (getSimilarityReview(r)) reviewNeeded++;
+        else if (r?.dedupeDecision === "SKIPPED_DUPLICATE") dup++;
         else ok++;
       } catch { failed++; }
     }
     setApproveAllBusy(false);
     if (ok) push("success", t(`✓ اعتُمد ${ok} مستند وأنشئت فواتير شرائه`, `✓ ${ok} document(s) approved and their bills created`));
+    if (reviewNeeded) push("info", t(`${reviewNeeded} مستند يحتاج قرار مراجعة تشابه — افتحه واعتمد يدوياً`, `${reviewNeeded} document(s) need a similarity decision — open and approve individually`), 7000);
     if (dup) push("info", t(`${dup} مستند موجود مسبقاً — لم يُكرَّر`, `${dup} already existed — not duplicated`));
     if (failed) push("error", t(`تعذّر اعتماد ${failed} مستند — راجعها يدوياً`, `${failed} document(s) could not be approved — review them`));
     await refresh();
   };
 
-  const handleApprove = async () => {
+  const announceApprove = (r: any) => {
+    const att = r.attachmentStatus?.attached > 0 ? t(` · ${r.attachmentStatus.attached} مرفق`, ` · ${r.attachmentStatus.attached} attachment(s)`) : "";
+    if (r.dedupeDecision === "UPDATED") {
+      push("success", t(`تم تحديث فاتورة الشراء الموجودة ${r.billNumber}${att}`, `Updated existing purchase bill ${r.billNumber}${att}`));
+    } else if (r.dedupeDecision === "SKIPPED_DUPLICATE") {
+      push("info", t(`الفاتورة موجودة مسبقاً (${r.billNumber}) — لم تُنشأ نسخة مكررة${att}`, `Bill already exists (${r.billNumber}) — no duplicate was created${att}`), 6000);
+    } else {
+      push("success", t(`✓ أُنشئت فاتورة شراء ${r.billNumber}${att}`, `✓ Purchase bill ${r.billNumber} created${att}`));
+    }
+    if (r.supplierResolvedTo?.displayName) {
+      push("info", t(`المورّد: ${r.supplierResolvedTo.displayName}`, `Supplier: ${r.supplierResolvedTo.displayName}`), 4000);
+    }
+  };
+
+  const handleApprove = async (duplicateDecision?: DuplicateDecision) => {
     if (!detail) return;
     setBusy(true);
     try {
-      const r = await api.inbox.approve(detail.id) as any;
-      const att = r.attachmentStatus?.attached > 0 ? t(` · ${r.attachmentStatus.attached} مرفق`, ` · ${r.attachmentStatus.attached} attachment(s)`) : "";
-      if (r.dedupeDecision === "UPDATED") {
-        push("success", t(`تم تحديث فاتورة الشراء الموجودة ${r.billNumber}${att}`, `Updated existing purchase bill ${r.billNumber}${att}`));
-      } else if (r.dedupeDecision === "SKIPPED_DUPLICATE") {
-        push("info", t(`الفاتورة موجودة مسبقاً (${r.billNumber}) — لم تُنشأ نسخة مكررة${att}`, `Bill already exists (${r.billNumber}) — no duplicate was created${att}`), 6000);
-      } else {
-        push("success", t(`✓ أُنشئت فاتورة شراء ${r.billNumber}${att}`, `✓ Purchase bill ${r.billNumber} created${att}`));
+      const r = await api.inbox.approve(detail.id, duplicateDecision) as any;
+      if (!duplicateDecision) {
+        const review = getSimilarityReview(r);
+        if (review) {
+          // nothing written server-side — the dialog resubmits with a signed decision
+          setPendingSimilarity(review);
+          return;
+        }
       }
-      if (r.supplierResolvedTo?.displayName) {
-        push("info", t(`المورّد: ${r.supplierResolvedTo.displayName}`, `Supplier: ${r.supplierResolvedTo.displayName}`), 4000);
-      }
+      announceApprove(r);
       await refresh();
       loadDetail(detail.id);
     } catch (e: any) {
@@ -193,6 +210,18 @@ export function InboxPage() {
   return (
     <div className="space-y-4">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+      {pendingSimilarity && (
+        <SimilarityReviewDialog
+          review={pendingSimilarity}
+          busy={busy}
+          onCancel={() => setPendingSimilarity(null)}
+          onChoose={async (action) => {
+            const decision = buildDuplicateDecision(pendingSimilarity, action);
+            setPendingSimilarity(null);
+            await handleApprove(decision);
+          }}
+        />
+      )}
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -414,6 +443,9 @@ function DetailPane({
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <Field label={t("المورّد", "Supplier")} value={ex.issuer?.name} />
+            {ex.issuer?.vatNumber ? <Field label={t("الرقم الضريبي", "VAT number")} value={ex.issuer.vatNumber} mono /> : null}
+            {ex.issuer?.crNumber ? <Field label={t("السجل التجاري", "CR number")} value={ex.issuer.crNumber} mono /> : null}
+            {ex.issuer?.unifiedNationalNumber ? <Field label={t("الرقم الوطني الموحد (700)", "Unified National Number (700)")} value={ex.issuer.unifiedNationalNumber} mono /> : null}
             <Field label={t("رقم الفاتورة", "Invoice number")} value={ex.documentNumber} mono />
             <Field label={t("تاريخ الإصدار", "Issue date")} value={ex.issueDate} mono />
             <Field label={t("تاريخ الاستحقاق", "Due date")} value={ex.dueDate} mono />

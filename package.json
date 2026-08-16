@@ -10,7 +10,7 @@
     "qa:solutions": "playwright test tests/solutions.spec.ts --project=chromium",
     "qa:build-report": "npm run build && npm run qa:routes",
     "qa:visual-policy": "node scripts/check-visual-policy.mjs src/app/components/product/index.tsx src/app/components/layout-contracts/index.tsx src/app/components/ui/button.tsx src/app/components/ui/card.tsx src/app/components/ui/input.tsx src/app/components/ui/select.tsx src/app/components/ui/table.tsx src/app/components/ui/tabs.tsx src/app/components/ui/textarea.tsx src/app/components/full-page-form.tsx src/app/components/inline-panel.tsx src/app/components/side-panel.tsx src/app/layouts/root.tsx src/app/components/app-header.tsx src/app/components/app-sidebar.tsx src/app/components/org-switcher.tsx",
-    "test:visual-contracts": "tsx tests/visual-components.contract.tsx && tsx tests/product-primitives.contract.tsx && tsx tests/panel-layout-contracts.contract.tsx && node tests/contacts-visual-contract.contract.mjs && node tests/accessibility-tokens.contract.mjs && node tests/visual-policy.contract.mjs",
+    "test:visual-contracts": "tsx tests/visual-components.contract.tsx && tsx tests/product-primitives.contract.tsx && tsx tests/panel-layout-contracts.contract.tsx && node tests/contacts-visual-contract.contract.mjs && node tests/accessibility-tokens.contract.mjs && node tests/visual-policy.contract.mjs && tsx tests/similarity-review.contract.tsx",
     "test": "npx playwright test",
     "test:ui": "npx playwright test --ui",
     "build:vite-only": "vite build"
