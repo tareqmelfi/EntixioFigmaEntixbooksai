@@ -42,6 +42,7 @@ import { BidiText } from "../components/bidi-text";
 import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
+import { PageHeader } from "../components/product";
 
 // Unified palette (user directive): navy/blue family only — no rainbow scatter
 const DONUT_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
@@ -298,17 +299,17 @@ useEffect(() => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("لوحة التحكم", "Dashboard")}</h1>
-          <p className="text-muted-foreground mt-1"><BidiText>{data.org.name}</BidiText> · <span className="font-english">{cur}</span></p>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/app/invoices?new=1" className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-primary transition">{t("+ فاتورة", "+ Invoice")}</Link>
-          <Link to="/app/expenses/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ مصروف", "+ Expense")}</Link>
-          <Link to="/app/vouchers/new" className="px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-primary/5 transition">{t("+ سند", "+ Voucher")}</Link>
-        </div>
-      </div>
+      <PageHeader
+        title={t("لوحة التحكم", "Dashboard")}
+        description={<><BidiText>{data.org.name}</BidiText> · <span className="font-english">{cur}</span></>}
+        actions={(
+          <>
+            <Link to="/app/invoices?new=1" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90">{t("+ فاتورة", "+ Invoice")}</Link>
+            <Link to="/app/expenses/new" className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-surface-hover">{t("+ مصروف", "+ Expense")}</Link>
+            <Link to="/app/vouchers/new" className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-surface-hover">{t("+ سند", "+ Voucher")}</Link>
+          </>
+        )}
+      />
 
       {onb && !onbDismissed && !onb.completed && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
@@ -545,19 +546,19 @@ useEffect(() => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title={t("عرض فواتير المبيعات", "View sales invoices")}>
+            <div className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-surface p-3 transition-colors hover:border-primary/50 hover:bg-surface-hover" onClick={() => navigate("/app/invoices")} title={t("عرض فواتير المبيعات", "View sales invoices")}>
               <div>
-                <div className="text-xs text-primary/80">{t("يستحقون لي (AR)", "Receivable (AR)")}</div>
-                <div className="font-english font-bold text-primary mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsReceivable)}</div>
+                <div className="text-xs text-muted-foreground">{t("يستحقون لي (AR)", "Receivable (AR)")}</div>
+                <div className="mt-0.5 font-english text-lg font-bold tabular-nums text-foreground">{fmt(k.accountsReceivable)}</div>
               </div>
-              <ArrowUpRight className="h-5 w-5 text-primary" />
+              <ArrowUpRight className="h-5 w-5 text-info" />
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-red-50/70 border border-red-100 cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/purchases/bills")} title={t("عرض فواتير المشتريات", "View purchase invoices")}>
+            <div className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-surface p-3 transition-colors hover:border-primary/50 hover:bg-surface-hover" onClick={() => navigate("/app/purchases/bills")} title={t("عرض فواتير المشتريات", "View purchase invoices")}>
               <div>
-                <div className="text-xs text-red-700/80">{t("أستحق عليهم (AP)", "Payable (AP)")}</div>
-                <div className="font-english font-bold text-red-700 mt-0.5" style={{ fontSize: "1.15rem" }}>{fmt(k.accountsPayable)}</div>
+                <div className="text-xs text-muted-foreground">{t("أستحق عليهم (AP)", "Payable (AP)")}</div>
+                <div className="mt-0.5 font-english text-lg font-bold tabular-nums text-foreground">{fmt(k.accountsPayable)}</div>
               </div>
-              <ArrowDownRight className="h-5 w-5 text-red-600" />
+              <ArrowDownRight className="h-5 w-5 text-danger" />
             </div>
             <div className="pt-2 border-t border-border flex justify-between items-center">
               <span className="text-xs text-muted-foreground">{t("صافي الذمم", "Net balance")}</span>

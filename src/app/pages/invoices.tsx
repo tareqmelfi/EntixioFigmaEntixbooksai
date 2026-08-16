@@ -8,6 +8,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -33,15 +34,15 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, APPROVED: { ar: "معتمدة", en: "Approved" }, SENT: { ar: "مرسلة", en: "Sent" }, VIEWED: { ar: "مُشاهَدة", en: "Viewed" }, PAID: { ar: "مدفوعة", en: "Paid" },
   PARTIAL: { ar: "مدفوعة جزئياً", en: "Partially paid" }, OVERDUE: { ar: "متأخرة", en: "Overdue" }, CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  SENT: "bg-blue-100 text-blue-700",
-  VIEWED: "bg-indigo-100 text-indigo-700",
-  PAID: "bg-green-100 text-green-700",
-  PARTIAL: "bg-amber-100 text-amber-700",
-  OVERDUE: "bg-red-100 text-red-700",
-  CANCELLED: "bg-gray-100 text-gray-500",
+const STATUS_TONES: Record<Invoice["status"], "neutral" | "info" | "success" | "warning" | "critical"> = {
+  DRAFT: "neutral",
+  APPROVED: "success",
+  SENT: "info",
+  VIEWED: "info",
+  PAID: "success",
+  PARTIAL: "warning",
+  OVERDUE: "critical",
+  CANCELLED: "neutral",
 };
 
 const EMPTY_FORM = {
@@ -971,13 +972,11 @@ export function Invoices() {
   // Default · list view
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("فواتير المبيعات", "Sales Invoices")}</h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة فواتير العملاء", "Manage customer invoices")}</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة جديدة", "New invoice")}</Button>
-      </div>
+      <PageHeader
+        title={t("فواتير المبيعات", "Sales Invoices")}
+        description={t("إدارة فواتير العملاء", "Manage customer invoices")}
+        actions={<Button onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة جديدة", "New invoice")}</Button>}
+      />
 
       {contactFilterId && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
@@ -991,31 +990,19 @@ export function Invoices() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الفواتير", "Total invoiced")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("المُحصَّل", "Collected")}</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{paid.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("المستحق", "Outstanding")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{outstanding.toLocaleString()}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("عدد الفواتير", "Invoice count")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-      </div>
+      <MetricStrip>
+        <Metric label={t("إجمالي الفواتير", "Total invoiced")} value={<span className="font-english">{total.toLocaleString()}</span>} />
+        <Metric label={t("المُحصَّل", "Collected")} value={<span className="font-english">{paid.toLocaleString()}</span>} tone="success" />
+        <Metric label={t("المستحق", "Outstanding")} value={<span className="font-english">{outstanding.toLocaleString()}</span>} tone="warning" />
+        <Metric label={t("عدد الفواتير", "Invoice count")} value={<span className="font-english">{items.length}</span>} />
+      </MetricStrip>
 
       <div className="grid grid-cols-1 gap-4">
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-foreground">{t("قائمة الفواتير", "Invoice list")}</CardTitle>
-            <div className="flex items-center gap-3">
+            <PageToolbar aria-label={t("مرشحات الفواتير", "Invoice filters")} className="border-0 bg-transparent p-0">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-40 border-border text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -1026,7 +1013,7 @@ export function Invoices() {
                 </SelectContent>
               </Select>
               <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-56 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-            </div>
+            </PageToolbar>
           </div>
         </CardHeader>
         <CardContent>
@@ -1098,7 +1085,7 @@ export function Invoices() {
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}</span>
+                        <StatusBadge tone={STATUS_TONES[i.status]}>{STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}</StatusBadge>
                         {i.status === "DRAFT" && (
                           pendingApprove === i.id ? (
                             <InlineConfirm

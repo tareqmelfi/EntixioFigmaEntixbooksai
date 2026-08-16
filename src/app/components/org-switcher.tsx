@@ -166,7 +166,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
 
   if (loading) {
     return (
-      <button className={`mb-2 flex w-full items-center justify-between rounded-md border border-border bg-white px-3 py-2 text-sm text-muted-foreground/60 ${className || ""}`}>
+      <button className={`mb-2 flex w-full items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted-foreground/60 ${className || ""}`}>
         <span>...{t("جارٍ التحميل", "Loading")}</span>
       </button>
     );
@@ -177,16 +177,16 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   if (variant === "header-chip") {
     return (
       <div className="relative" ref={dropdownRef}>
-        <div className={`flex items-center rounded-lg border border-border bg-white hover:border-primary/30 transition-all ${className || ""}`}>
+        <div className={`flex items-center rounded-lg border border-border bg-surface hover:border-primary/30 transition-all ${className || ""}`}>
           <Link
             to="/app"
             className="flex items-center gap-2.5 ps-2 pe-3 py-2 hover:bg-muted rounded-s-lg transition-colors"
             title={activeOrg?.name ? activeOrg.name + " · " + t("لوحة التحكم","Dashboard") : t("الرئيسية","Home")}
           >
             {activeOrg?.logoUrl ? (
-              <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-contain p-0.5 bg-white border border-border/50 shrink-0" />
+              <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-8 w-8 rounded-md object-contain p-0.5 bg-surface border border-border/50 shrink-0" />
             ) : (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
                 {orgInitials(activeOrg?.name)}
               </div>
             )}
@@ -212,7 +212,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
         </div>
 
         {open && (
-          <div className="absolute end-0 top-full z-[60] mt-1 w-[min(22rem,calc(100vw-1.5rem))] max-h-[420px] overflow-y-auto rounded-lg border border-border bg-white shadow-lg">
+          <div className="absolute end-0 top-full z-[60] mt-1 w-[min(22rem,calc(100vw-1.5rem))] max-h-[420px] overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
             <div className="p-1">
               {orgs.map((o) => (
                 <button
@@ -222,9 +222,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 >
                   <div className={`flex min-w-0 ${rowDirClass} items-center gap-2`}>
                     {o.logoUrl ? (
-                      <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-contain p-0.5 bg-white border border-border/50 shrink-0" />
+                      <img src={o.logoUrl} alt={o.name} className="h-8 w-8 rounded object-contain p-0.5 bg-surface border border-border/50 shrink-0" />
                     ) : (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary text-white text-xs font-english" style={{ fontWeight: 700 }}>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground text-xs font-english" style={{ fontWeight: 700 }}>
                         {orgInitials(o.name)}
                       </div>
                     )}
@@ -240,7 +240,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                       aria-label={defaultOrgId === o.id ? t("إلغاء الافتراضية", "Remove default") : t("اجعلها الافتراضية", "Make default")}
                       title={defaultOrgId === o.id ? t("شركتك الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Your default company — sign-in always lands here") : t("اجعلها الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Make default — sign-in always lands here")}
                       onClick={(e) => toggleDefault(o, e)}
-                      className={`p-1 rounded-md cursor-pointer transition-colors ${defaultOrgId === o.id ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-400"} ${starBusy === o.id ? "opacity-40 pointer-events-none" : ""}`}
+                      className={`p-1 rounded-md cursor-pointer transition-colors ${defaultOrgId === o.id ? "text-warning" : "text-muted-foreground/40 hover:text-warning"} ${starBusy === o.id ? "opacity-40 pointer-events-none" : ""}`}
                     >
                       <Star className="h-4 w-4" fill={defaultOrgId === o.id ? "currentColor" : "none"} />
                     </span>
@@ -284,13 +284,13 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       <button
         ref={buttonRef}
         onClick={() => setOpen(!open)}
-        className={`mb-2 flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-white px-2.5 py-2 text-sm text-foreground hover:bg-muted hover:border-primary/30 transition-all ${className || ""}`}
+        className={`mb-2 flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-surface px-2.5 py-2 text-sm text-foreground hover:bg-muted hover:border-primary/30 transition-all ${className || ""}`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           {activeOrg?.logoUrl ? (
-            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-contain p-0.5 bg-white border border-border/50 shrink-0" />
+            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 rounded-md object-contain p-0.5 bg-surface border border-border/50 shrink-0" />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-english shadow-sm" style={{ fontWeight: 700 }}>
               {orgInitials(activeOrg?.name)}
             </div>
           )}
@@ -311,7 +311,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       {open && dropdownPos && createPortal(
         <div
           ref={dropdownContentRef}
-          className="fixed z-[100] overflow-hidden rounded-lg border border-border bg-white shadow-xl"
+          className="fixed z-[100] overflow-hidden rounded-lg border border-border bg-surface shadow-popover"
           style={{
             top: dropdownPos.top,
             left: dropdownPos.left,
@@ -326,7 +326,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("ابحث عن شركة...", "Search company...")}
-              className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm focus:bg-white focus:border-primary/30 outline-none"
+              className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm focus:bg-surface focus:border-primary/30 outline-none"
               autoFocus
             />
           </div>
@@ -361,14 +361,14 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                     }
                   }
                 }}
-                className={`flex w-full ${rowDirClass} items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-green-700 hover:bg-green-50`}
+                className={`flex w-full ${rowDirClass} items-start justify-between gap-2 px-3 py-2 text-xs leading-5 text-success hover:bg-success-subtle`}
                 style={{ fontWeight: 600 }}
               >
                 <Plus className="h-4 w-4" />
                 {t("+ إنشاء شركة ديمو مؤقتة (30 يوم)", "+ Create temporary demo (30 days)")}
               </button>
               {demoConflict && (
-                <div className="mx-2 mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-2">
+                <div className="mx-2 mb-2 rounded-md border border-warning-border bg-warning-subtle px-3 py-2 text-xs text-warning space-y-2">
                   <div>{t("عندك شركة ديمو موجودة — إنشاء واحدة جديدة يحذف الحالية نهائيًا.", "You already have a demo — creating a new one permanently deletes the current one.")}</div>
                   <div className="flex gap-2">
                     <button
@@ -384,10 +384,10 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                           setSeedMessage({ kind: "error", text: t("فشل: ", "Failed: ") + (e?.messageAr || e?.message || "") });
                         }
                       }}
-                      className="rounded bg-amber-600 px-2.5 py-1 text-white hover:bg-amber-700"
+                      className="rounded bg-warning px-2.5 py-1 text-primary-foreground hover:opacity-90"
                       style={{ fontWeight: 600 }}
                     >{t("استبدال الديمو", "Replace demo")}</button>
-                    <button onClick={() => setDemoConflict(false)} className="rounded border border-amber-300 px-2.5 py-1 hover:bg-amber-100">{t("إبقاء الحالية", "Keep current")}</button>
+                    <button onClick={() => setDemoConflict(false)} className="rounded border border-warning-border px-2.5 py-1 hover:bg-warning-subtle">{t("إبقاء الحالية", "Keep current")}</button>
                   </div>
                 </div>
               )}
@@ -397,8 +397,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
           {seedMessage && (
             <div className={`mx-2 my-2 rounded-md border px-3 py-2 text-xs ${
               seedMessage.kind === "success"
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-red-200 bg-red-50 text-red-700"
+                ? "border-success-border bg-success-subtle text-success"
+                : "border-danger-border bg-danger-subtle text-danger"
             }`}>
               {seedMessage.text}
             </div>
@@ -412,9 +412,9 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 className={`flex w-full ${rowDirClass} items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-primary/5 border-b border-border/50 last:border-b-0`}
               >
                 {o.logoUrl ? (
-                  <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-contain p-0.5 bg-white border border-border/50 shrink-0" />
+                  <img src={o.logoUrl} alt={o.name} className="h-9 w-9 rounded-md object-contain p-0.5 bg-surface border border-border/50 shrink-0" />
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white text-xs font-english" style={{ fontWeight: 700 }}>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-english" style={{ fontWeight: 700 }}>
                     {orgInitials(o.name)}
                   </div>
                 )}
@@ -422,7 +422,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                   <div className={`flex w-full ${rowDirClass} items-start gap-1.5`}>
                     <BidiText compact className="min-w-0 flex-1 text-[12px] font-medium leading-5" title={o.name}>{o.name}</BidiText>
                     {activeOrg?.id === o.id && (
-                      <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                      <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-success-subtle text-success font-medium">
                         {t("مختارة حالياً", "Active")}
                       </span>
                     )}
@@ -436,7 +436,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                   aria-label={defaultOrgId === o.id ? t("إلغاء الافتراضية", "Remove default") : t("اجعلها الافتراضية", "Make default")}
                   title={defaultOrgId === o.id ? t("شركتك الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Your default company — sign-in always lands here") : t("اجعلها الافتراضية — تدخل عليها دائمًا عند تسجيل الدخول", "Make default — sign-in always lands here")}
                   onClick={(e) => toggleDefault(o, e)}
-                  className={`shrink-0 p-1.5 rounded-md cursor-pointer transition-colors ${defaultOrgId === o.id ? "text-amber-500" : "text-muted-foreground/30 hover:text-amber-400"} ${starBusy === o.id ? "opacity-40 pointer-events-none" : ""}`}
+                  className={`shrink-0 p-1.5 rounded-md cursor-pointer transition-colors ${defaultOrgId === o.id ? "text-warning" : "text-muted-foreground/30 hover:text-warning"} ${starBusy === o.id ? "opacity-40 pointer-events-none" : ""}`}
                 >
                   <Star className="h-4 w-4" fill={defaultOrgId === o.id ? "currentColor" : "none"} />
                 </span>
@@ -637,20 +637,20 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
   const inp = "w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20";
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white overflow-y-auto" dir={isRtl ? "rtl" : "ltr"}>
+    <div className="fixed inset-0 z-[100] bg-surface overflow-y-auto" dir={isRtl ? "rtl" : "ltr"}>
       <form onSubmit={handleSubmit}>
         {/* Sticky header */}
-        <div className="sticky top-0 z-10 border-b border-border bg-white/95 backdrop-blur px-6 py-3 flex items-center justify-between">
+        <div className="sticky top-0 z-10 border-b border-border bg-surface/95 backdrop-blur px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button type="button" onClick={onClose} className="rounded p-1.5 text-muted-foreground hover:bg-muted/50"><X className="h-5 w-5" /></button>
             <div>
-              <h1 className="text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{t("إنشاء شركة جديدة", "Create new company")}</h1>
+              <h1 className="text-section font-bold text-foreground">{t("إنشاء شركة جديدة", "Create new company")}</h1>
               <p className="text-xs text-muted-foreground">{t("الاسم فقط يكفي للبدء · شجرة حسابات تنبني حسب النشاط وتعدّل لاحقًا", "A name is enough to start · the chart of accounts builds from your industry and edits later")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={onClose} className="rounded border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/50">{t("إلغاء", "Cancel")}</button>
-            <button type="submit" disabled={busy} className="rounded bg-primary px-5 py-2 text-sm text-white hover:bg-primary/80 disabled:opacity-60">
+            <button type="submit" disabled={busy} className="rounded bg-primary px-5 py-2 text-sm text-primary-foreground hover:bg-primary/80 disabled:opacity-60">
               {busy ? t("جارٍ الإنشاء…", "Creating…") : t("إنشاء الشركة", "Create company")}
             </button>
           </div>
@@ -658,12 +658,12 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
         <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
           {error && (
-            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            <div className="rounded border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>
           )}
 
           {/* ═══ W27 · STEP 1: country FIRST — everything below adapts to it ═══ */}
           <div className="rounded-lg border border-border p-5">
-            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("دولة الشركة", "Company country")} <span className="text-red-500">*</span></h2>
+            <h2 className="text-foreground mb-1" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("دولة الشركة", "Company country")} <span className="text-danger">*</span></h2>
             <p className="text-xs text-muted-foreground mb-4">{t("كل شيء بعدها (الضريبة · العنوان · التقارير) يتكيّف حسب الدولة", "Everything after this (tax · address · reports) adapts to the country")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {([
@@ -684,7 +684,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <div className="mt-3 flex items-center gap-2">
               <label className="text-xs text-muted-foreground shrink-0">{t("دولة أخرى:", "Other country:")}</label>
               <select value={["SA", "US"].includes(form.country) ? "" : form.country} onChange={(e) => e.target.value && setCountry(e.target.value)}
-                className="rounded-md border border-border px-2.5 py-1.5 text-xs bg-white focus:border-primary focus:outline-none">
+                className="rounded-md border border-border px-2.5 py-1.5 text-xs bg-surface focus:border-primary focus:outline-none">
                 <option value="">{t("اختر…", "Choose…")}</option>
                 <option value="AE">{t("الإمارات", "UAE")}</option>
                 <option value="KW">{t("الكويت", "Kuwait")}</option>
@@ -702,12 +702,12 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <h2 className="text-foreground mb-4" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الأساسيات — وتكمل الباقي لاحقًا من الإعدادات", "Essentials — complete the rest later in Settings")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة", "Company name")} <span className="text-red-500">*</span></label>
+                <label className="text-sm text-foreground/80 block mb-1">{t("اسم الشركة", "Company name")} <span className="text-danger">*</span></label>
                 <input type="text" required value={form.name} aria-invalid={!!fieldErrors.name?.length}
                   onChange={(e) => { setForm({ ...form, name: e.target.value }); setFieldErrors((current) => ({ ...current, name: [] })); }}
                   placeholder={t("مثال: شركة الأفق للتجارة", "e.g. Horizon Trading Co.")}
-                  className={`${inp} ${fieldErrors.name?.length ? "border-red-500 focus:border-red-500" : ""}`} />
-                {fieldErrors.name?.map((message) => <p key={message} className="mt-1 text-xs text-red-600">{message}</p>)}
+                  className={`${inp} ${fieldErrors.name?.length ? "border-danger focus:border-danger" : ""}`} />
+                {fieldErrors.name?.map((message) => <p key={message} className="mt-1 text-xs text-danger">{message}</p>)}
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1.5">{t("الشعار", "Logo")}</label>
@@ -719,7 +719,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                       <img src={form.logoUrl} alt="logo" className="max-w-[140px] max-h-[44px] object-contain bg-muted rounded p-1" />
                       <div className="flex flex-col gap-1">
                         <label htmlFor="logo-upload" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                        <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-red-600 hover:underline text-start">{t("حذف", "Remove")}</button>
+                        <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-xs text-danger hover:underline text-start">{t("حذف", "Remove")}</button>
                       </div>
                     </div>
                   ) : (
@@ -774,7 +774,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
           </div>
 
           {/* ═══ W27 · create-now note + billing model ═══ */}
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900 space-y-1.5">
+          <div className="rounded-lg border border-info-border bg-info-subtle px-4 py-3 text-xs text-info space-y-1.5">
             <div>✅ {t("تقدر تنشئ الشركة الآن بالاسم فقط — وبعد الدخول تكمل السجل التجاري · الضريبة · العنوان من الإعدادات", "You can create the company with just a name — after entering, complete the CR · tax · address from Settings")}</div>
             <div>💳 {t("الاشتراك يكون على الشركة وليس على حسابك — كل شركة لها باقتها · وشركتك الإضافية عليها خصم 30% تلقائي", "Subscription is per company, not per account — each company has its own plan · your additional companies get an automatic 30% off")}</div>
           </div>
@@ -802,7 +802,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                       <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-muted rounded p-1" />
                       <div className="flex flex-col gap-1">
                         <label htmlFor="stamp-upload" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                        <button type="button" onClick={() => setForm({ ...form, stampUrl: "" })} className="text-xs text-red-600 hover:underline text-start">{t("حذف", "Remove")}</button>
+                        <button type="button" onClick={() => setForm({ ...form, stampUrl: "" })} className="text-xs text-danger hover:underline text-start">{t("حذف", "Remove")}</button>
                       </div>
                     </div>
                   ) : (
@@ -827,7 +827,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1">{t("العملة الأساسية", "Base currency")}</label>
-                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className={inp + " bg-white"}>
+                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className={inp + " bg-surface"}>
                   <option value="SAR">{t("SAR · ريال سعودي", "SAR · Saudi Riyal")}</option>
                   <option value="USD">{t("USD · دولار", "USD · Dollar")}</option>
                   <option value="AED">{t("AED · درهم", "AED · Dirham")}</option>
@@ -837,7 +837,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </div>
               <div>
                 <label className="text-sm text-foreground/80 block mb-1">{t("نهاية السنة المالية (شهر)", "Fiscal year end (month)")}</label>
-                <select value={form.fiscalYearEnd} onChange={(e) => setForm({ ...form, fiscalYearEnd: Number(e.target.value) })} className={inp + " bg-white"}>
+                <select value={form.fiscalYearEnd} onChange={(e) => setForm({ ...form, fiscalYearEnd: Number(e.target.value) })} className={inp + " bg-surface"}>
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
                     <option key={m} value={m}>{months[m-1]}</option>
                   ))}
@@ -874,7 +874,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                     {lt.subtypes.map((st) => (
                       <button key={st.id} type="button"
                         onClick={() => setForm({ ...form, legalSubtype: form.legalSubtype === st.id ? "" : st.id })}
-                        className={`rounded-full border px-3 py-1 text-[11px] transition ${form.legalSubtype === st.id ? "border-amber-500 bg-amber-50 text-amber-700" : "border-dashed border-border text-muted-foreground hover:border-amber-400"}`}
+                        className={`rounded-full border px-3 py-1 text-[11px] transition ${form.legalSubtype === st.id ? "border-warning bg-warning-subtle text-warning" : "border-dashed border-border text-muted-foreground hover:border-warning"}`}
                         style={{ fontWeight: form.legalSubtype === st.id ? 700 : 500 }}>
                         {t(st.ar, st.en)}
                       </button>
@@ -889,7 +889,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
               {form.country === "US" && (
                 <div>
                   <label className="text-sm text-foreground/80 block mb-1">{t("الولاية", "State")}</label>
-                  <select value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={inp + " bg-white font-english"} dir="ltr">
+                  <select value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={inp + " bg-surface font-english"} dir="ltr">
                     <option value="">{t("اختر الولاية…", "Choose a state…")}</option>
                     {["WY","DE","NM","FL","TX","NV","CA","NY","WA","SD","TN","AK","AZ","CO","GA","IL","MA","NJ","OH","OR","UT","VA"].map((st) => <option key={st} value={st}>{st}</option>)}
                   </select>
@@ -925,7 +925,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                   </div>
                   <div>
                     <label className="text-sm text-foreground/80 block mb-1">{t("الفترة الضريبية", "VAT period")}</label>
-                    <select value={form.vatPeriod} onChange={(e) => setForm({ ...form, vatPeriod: e.target.value })} className={inp + " bg-white"}>
+                    <select value={form.vatPeriod} onChange={(e) => setForm({ ...form, vatPeriod: e.target.value })} className={inp + " bg-surface"}>
                       <option value="monthly">{t("شهرية", "Monthly")}</option>
                       <option value="quarterly">{t("ربع سنوية", "Quarterly")}</option>
                     </select>

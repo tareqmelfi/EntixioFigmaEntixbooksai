@@ -96,13 +96,13 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
     <>
       {/* Gate 0 · country selects relevance only; it never proves a verified server connection. */}
       {isSA && (
-      <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-amber-950 sm:px-6">
+      <div className="border-b border-warning-border bg-warning-subtle px-4 py-2 text-warning sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <Shield className="h-4 w-4 shrink-0 text-amber-600" />
+            <Shield className="h-4 w-4 shrink-0 text-warning" />
             <span className="truncate text-sm">{t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation")}</span>
           </div>
-          <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold text-amber-800 hover:underline">
+          <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold text-warning hover:underline">
             {t("مراجعة التفاصيل", "Review details")}
           </Link>
         </div>
@@ -147,7 +147,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute start-0 z-50 mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
+                <div className="absolute start-0 z-50 mt-1 w-80 rounded-lg border border-border bg-popover shadow-popover">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>
                       {t("الإشعارات", "Notifications")}{unreadCount > 0 && <span className="ms-2 text-xs text-primary font-english">({unreadCount})</span>}
@@ -209,7 +209,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               </button>
 
               {showProfile && (
-                <div className="absolute end-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+                <div className="absolute end-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-popover shadow-popover">
                   {/* User Info */}
                   <div className="px-4 py-3 border-b border-border">
                     <div className="flex items-center gap-3">
@@ -279,7 +279,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   <div className="border-t border-border py-1">
                     <Link to="/app/system-status" onClick={() => setShowProfile(false)}>
                       <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
-                        <Activity className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span className="min-w-0 flex-1 whitespace-normal">{t("حالة النظام", "System status")}</span>
+                        <Activity className="mt-0.5 h-4 w-4 shrink-0 text-success" /><span className="min-w-0 flex-1 whitespace-normal">{t("حالة النظام", "System status")}</span>
                       </button>
                     </Link>
                   </div>

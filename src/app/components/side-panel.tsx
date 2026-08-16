@@ -32,12 +32,10 @@ const WIDTH_MAP = {
 };
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 639px)").matches : false
-  );
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 639px)");
+    setIsMobile(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
@@ -59,8 +57,8 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
   // Mobile: bottom-sheet. Desktop: side slide-over.
   // Both: NO backdrop · page stays interactive (UX-1).
   const containerClass = isMobile
-    ? `fixed bottom-0 inset-x-0 z-40 bg-white border-t border-border rounded-t-2xl shadow-2xl transition-transform duration-200 ease-out max-h-[85vh] ${open ? "translate-y-0" : "translate-y-full"}`
-    : `fixed top-0 start-0 h-full z-40 bg-white border-e border-border shadow-xl transition-transform duration-200 ease-out ${WIDTH_MAP[width]} w-full ${open ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}`;
+    ? `fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-border rounded-t-lg shadow-popover transition-transform duration-200 ease-out max-h-[85vh] ${open ? "translate-y-0" : "translate-y-full"}`
+    : `fixed top-0 start-0 h-full z-40 bg-surface border-e border-border shadow-popover transition-transform duration-200 ease-out ${WIDTH_MAP[width]} w-full ${open ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}`;
 
   return (
     <div
@@ -77,7 +75,7 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
         )}
         <div className="flex items-start justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
           <div className="min-w-0">
-            {title && <h2 className="text-foreground truncate" style={{ fontSize: "1.125rem", fontWeight: 600 }}>{title}</h2>}
+            {title && <h2 className="text-section font-semibold text-foreground truncate">{title}</h2>}
             {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
           </div>
           <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0" aria-label="إغلاق">
@@ -85,7 +83,7 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">{children}</div>
-        {footer && <div className="px-4 sm:px-6 py-3 border-t border-border bg-muted safe-area-inset-bottom">{footer}</div>}
+        {footer && <div className="px-4 sm:px-6 py-3 border-t border-border bg-surface-subtle safe-area-inset-bottom">{footer}</div>}
       </div>
     </div>
   );
@@ -107,10 +105,10 @@ export function ToastStack({ toasts, onDismiss }: { toasts: ToastState[]; onDism
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto rounded-lg border px-4 py-3 shadow-lg flex items-start gap-3 ${
-            t.kind === "success" ? "border-green-200 bg-green-50 text-green-800" :
-            t.kind === "error" ? "border-red-200 bg-red-50 text-red-800" :
-            "border-blue-200 bg-blue-50 text-blue-800"
+          className={`pointer-events-auto rounded-lg border px-4 py-3 shadow-popover flex items-start gap-3 ${
+            t.kind === "success" ? "border-success-border bg-success-subtle text-success" :
+            t.kind === "error" ? "border-danger-border bg-danger-subtle text-danger" :
+            "border-info-border bg-info-subtle text-info"
           }`}
         >
           <span className="flex-1 text-sm">{t.message}</span>
@@ -166,10 +164,10 @@ export function InlineConfirm({ onConfirm, onCancel, label = "تأكيد الح�
     return () => clearTimeout(t);
   }, [onCancel]);
   return (
-    <div className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs">
-      <span className="text-red-700">{label}</span>
-      <button onClick={onConfirm} className="rounded px-1.5 py-0.5 bg-red-600 text-white hover:bg-red-700">نعم</button>
-      <button onClick={onCancel} className="rounded px-1.5 py-0.5 text-red-700 hover:bg-red-100">لا</button>
+    <div className="inline-flex items-center gap-1 rounded-md border border-danger-border bg-danger-subtle px-2 py-0.5 text-xs text-danger">
+      <span>{label}</span>
+      <button onClick={onConfirm} className="rounded-md bg-danger px-1.5 py-0.5 text-destructive-foreground hover:opacity-90">نعم</button>
+      <button onClick={onCancel} className="rounded-md px-1.5 py-0.5 text-danger hover:bg-surface-hover">لا</button>
     </div>
   );
 }
