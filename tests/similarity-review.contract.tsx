@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {
   buildDuplicateDecision,
   getSimilarityReview,
+  isStaleDecisionError,
   similaritySignalLabel,
   SIMILARITY_ACTION_REASON_CODES,
   type SimilarityReview,
@@ -56,5 +57,14 @@ assert.equal(similaritySignalLabel('amount', 'en'), 'Amount')
 assert.equal(similaritySignalLabel('canonical_party', 'ar'), 'الطرف')
 assert.equal(similaritySignalLabel('source_hash', 'en'), 'Source file')
 assert.equal(similaritySignalLabel('unknown_signal', 'ar'), 'unknown_signal')
+
+// stale/expired/invalid decision tokens are classified so callers can re-review
+assert.equal(isStaleDecisionError({ status: 409, code: 'stale_duplicate_decision' }), true)
+assert.equal(isStaleDecisionError({ status: 409, code: 'expired_duplicate_decision' }), true)
+assert.equal(isStaleDecisionError({ status: 409, code: 'invalid_duplicate_decision' }), true)
+assert.equal(isStaleDecisionError({ status: 409, code: 'number_already_exists' }), false)
+assert.equal(isStaleDecisionError({ status: 500, code: 'stale_duplicate_decision' }), false)
+assert.equal(isStaleDecisionError(null), false)
+assert.equal(isStaleDecisionError(new Error('network')), false)
 
 console.log('similarity-review contracts OK')

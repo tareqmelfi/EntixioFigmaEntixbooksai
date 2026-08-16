@@ -19,6 +19,7 @@ import { api } from "../lib/api";
 import {
   buildDuplicateDecision,
   getSimilarityReview,
+  isStaleDecisionError,
   type DuplicateDecision,
   type SimilarityReview,
 } from "../lib/similarity-review";
@@ -464,6 +465,11 @@ export function ScanReceipts() {
       });
       return true;
     } catch (e: any) {
+      if (duplicateDecision && isStaleDecisionError(e)) {
+        // the signed token expired — fetch a fresh review instead of stranding the job
+        await recordJob(job);
+        return false;
+      }
       patchJob(job.id, { status: "failed", error: e?.message || t("فشل التسجيل", "Recording failed") });
       return false;
     }

@@ -67,6 +67,11 @@ export function similaritySignalLabel(signal: string, language: 'ar' | 'en'): st
   return language === 'en' ? label.en : label.ar
 }
 
+/** The signed decision token expired/was invalidated — the caller should fetch a fresh review. */
+export function isStaleDecisionError(error: any): boolean {
+  return error?.status === 409 && /^(stale|expired|invalid)_duplicate_decision$/.test(error?.code || '')
+}
+
 export const SIMILARITY_ACTION_LABELS: Record<DuplicateDecisionAction, { ar: string; en: string }> = {
   USE_EXISTING: { ar: 'استخدام الموجود', en: 'Use existing' },
   UPDATE_DRAFT: { ar: 'تحديث المسودة', en: 'Update draft' },
