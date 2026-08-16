@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router";
-import { Menu, X, ChevronDown, Globe, MapPin } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
-import { useMarketingRegion, MarketingRegion } from "./marketing-region";
 import { EntixWordmark } from "./entix-brand";
 import { usePublicRoute } from "../lib/public-route";
+import { PublicPreferenceSelector } from "./public-preference-selector";
 
 interface DropdownItem {
   label: string;
@@ -25,21 +25,13 @@ interface NavItem {
 
 export function SharedNavbar() {
   const navigate = useNavigate();
-  const { language, toggleLanguage, t } = useLanguage();
-  const { region, setRegion } = useMarketingRegion();
+  const { language, t } = useLanguage();
   const publicRoute = usePublicRoute();
   const publicHref = publicRoute.href;
   const [mobileNav, setMobileNav] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const regionRef = useRef<HTMLDivElement>(null);
-
-  const REGIONS: { id: MarketingRegion; flag: string; labelAr: string; labelEn: string }[] = [
-    { id: "SA", flag: "🇸🇦", labelAr: "السعودية", labelEn: "Saudi Arabia" },
-    { id: "US", flag: "🇺🇸", labelAr: "أمريكا", labelEn: "United States" },
-  ];
-  const activeRegion = REGIONS.find((r) => r.id === region) || REGIONS[0];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -51,8 +43,7 @@ export function SharedNavbar() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const inNav = dropdownRef.current && dropdownRef.current.contains(e.target as Node);
-      const inRegion = regionRef.current && regionRef.current.contains(e.target as Node);
-      if (!inNav && !inRegion) setOpenDropdown(null);
+      if (!inNav) setOpenDropdown(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -95,16 +86,6 @@ export function SharedNavbar() {
     setMobileNav(false);
     setOpenDropdown(null);
     navigate(publicHref(path));
-  };
-
-  const handleRegion = (next: MarketingRegion) => {
-    setRegion(next);
-    if (publicRoute.route) publicRoute.changeMarket(next === "SA" ? "sa" : "us");
-  };
-
-  const handleLanguage = () => {
-    if (publicRoute.route) publicRoute.changeLocale(language === "ar" ? "en" : "ar");
-    toggleLanguage();
   };
 
   return (
@@ -187,58 +168,7 @@ export function SharedNavbar() {
 
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-3">
-          {/* Country selector · region (not language) drives features/currency */}
-          <div className="relative" ref={regionRef}>
-            <button
-              onClick={() => setOpenDropdown(openDropdown === "__region" ? null : "__region")}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-colors"
-              style={{ fontSize: "13px", fontWeight: 600 }}
-              aria-label={t("اختيار الدولة", "Select country")}
-            >
-              <MapPin className="h-4 w-4" />
-              <span>{activeRegion.flag} {t(activeRegion.labelAr, activeRegion.labelEn)}</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === "__region" ? "rotate-180" : ""}`} />
-            </button>
-            <AnimatePresence>
-              {openDropdown === "__region" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full end-0 mt-2 w-[220px] bg-white rounded-xl shadow-2xl shadow-black/10 border border-gray-100 overflow-hidden"
-                >
-                  <div className="px-4 py-2.5 text-muted-foreground border-b border-gray-50" style={{ fontSize: "11px", fontWeight: 600 }}>
-                    {t("المزايا والأسعار حسب الدولة", "Features & pricing by country")}
-                  </div>
-                  {REGIONS.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => { handleRegion(r.id); setOpenDropdown(null); }}
-                      className={`w-full text-start px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-2.5 ${
-                        r.id === region ? "bg-primary/5" : ""
-                      }`}
-                    >
-                      <span style={{ fontSize: "18px" }}>{r.flag}</span>
-                      <span className="text-foreground" style={{ fontSize: "14px", fontWeight: r.id === region ? 700 : 500 }}>
-                        {t(r.labelAr, r.labelEn)}
-                      </span>
-                      {r.id === region && <span className="ms-auto text-primary" style={{ fontSize: "12px" }}>✓</span>}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          <button
-            onClick={handleLanguage}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-3 py-2 text-foreground/80 hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-colors"
-            style={{ fontSize: "13px", fontWeight: 600 }}
-            aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
-          >
-            <Globe className="h-4 w-4" />
-            <span>{language === "ar" ? "English" : "Arabic"}</span>
-          </button>
+          <PublicPreferenceSelector />
           <button 
             onClick={() => navigate(publicHref("/login"))}
             className="text-foreground hover:text-primary transition-colors cursor-pointer px-4 py-2.5" 
@@ -308,35 +238,7 @@ export function SharedNavbar() {
                 </div>
               ))}
               <hr className="border-gray-100 my-4" />
-              {/* Country selector (mobile) */}
-              <div className="px-3 py-2.5">
-                <div className="text-muted-foreground mb-2" style={{ fontSize: "12px", fontWeight: 600 }}>{t("الدولة", "Country")}</div>
-                <div className="flex gap-2">
-                  {REGIONS.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => handleRegion(r.id)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer ${
-                        r.id === region ? "border-primary bg-primary/5 text-foreground" : "border-gray-200 text-foreground/70 hover:bg-gray-50"
-                      }`}
-                      style={{ fontSize: "14px", fontWeight: r.id === region ? 700 : 500 }}
-                    >
-                      <span>{r.flag}</span> {t(r.labelAr, r.labelEn)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={handleLanguage}
-                className="w-full flex items-center justify-between px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
-                style={{ fontSize: "15px", fontWeight: 600 }}
-              >
-                <span>{t("اللغة", "Language")}</span>
-                <span className="flex items-center gap-1.5 font-english">
-                  <Globe className="h-4 w-4" />
-                  {language === "ar" ? "English" : "العربية"}
-                </span>
-              </button>
+              <div className="px-3 py-2.5"><PublicPreferenceSelector /></div>
               <button 
                 onClick={() => handleNavigate("/login")} 
                 className="w-full text-start text-foreground px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"

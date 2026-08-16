@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send, Bot } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
+import { usePublicRoute } from "../lib/public-route";
 
 interface Msg { from: "bot" | "user"; text: string }
 
@@ -16,6 +17,7 @@ const CHAT_URL: string = (import.meta as any).env?.VITE_MARKETING_CHAT_URL || ""
 
 export function MarketingChat() {
   const { language, t } = useLanguage();
+  const { href } = usePublicRoute();
   const isAr = language !== "en";
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -149,7 +151,7 @@ export function MarketingChat() {
               {quick.map((q) => (
                 <a
                   key={q.href}
-                  href={q.href}
+                  href={href(q.href)}
                   className="text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-full transition-colors"
                   style={{ fontSize: "12px", fontWeight: 600 }}
                 >

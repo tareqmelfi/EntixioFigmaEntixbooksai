@@ -64,7 +64,7 @@ test.describe('/solutions/accountants', () => {
     await expect(main.getByRole('heading', { level: 1 })).toContainText(/account/i)
     await expect(main).toContainText(/client portfolio/i)
 
-    await page.getByRole('button', { name: /switch language to arabic/i }).click()
+    await page.getByRole('navigation').getByRole('button', { name: /switch language to arabic/i }).click()
     await expect(main).toHaveAttribute('dir', 'rtl')
     await expect(main.getByRole('heading', { level: 1 })).toContainText(/المحاسب/)
     await expect(main).toContainText(/محفظة العملاء/)
@@ -77,8 +77,9 @@ test.describe('/solutions/accountants', () => {
     const market = page.locator('[data-section="market-compliance"]')
     await expect(market).toContainText(/Saudi|ZATCA|VAT|compliance/i)
 
-    await page.getByRole('button', { name: /select country/i }).click()
-    await page.getByRole('button', { name: /United States/i }).click()
+    const navbar = page.getByRole('navigation')
+    await navbar.getByRole('button', { name: /select country/i }).click()
+    await navbar.getByRole('option', { name: /United States/i }).click()
     await expect(market).toContainText(/United States/i)
     await expect(market).toContainText(/sales tax/i)
     await expect(market).toContainText(/1099/i)

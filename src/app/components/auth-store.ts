@@ -26,6 +26,7 @@ export interface User {
   company: string
   role: 'admin' | 'accountant' | 'viewer'
   avatar?: string
+  locale?: 'ar' | 'en'
   createdAt: string
   /** ISO timestamp when account deletion was requested (null = healthy). */
   deletionRequestedAt?: string | null
@@ -78,6 +79,23 @@ class AuthStore {
 
   getState(): AuthState {
     return this.state
+  }
+
+  async updateLocale(locale: 'ar' | 'en'): Promise<void> {
+    if (!this.state.isAuthenticated || this.state.user?.locale === locale) return
+    if (this.state.user) {
+      this.state = { ...this.state, user: { ...this.state.user, locale } }
+      writeCachedUser(this.state.user)
+      this.notify()
+    }
+    try {
+      await fetch(`${API_BASE}/me/preferences`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale }),
+      })
+    } catch {}
   }
 
   /** Reload session from /api/auth/get-session */
@@ -228,6 +246,7 @@ class AuthStore {
               ? 'accountant'
               : 'viewer',
           avatar: data.user.image || undefined,
+          locale: me?.locale === 'ar' || me?.locale === 'en' ? me.locale : undefined,
           createdAt: data.user.createdAt,
           // 30-day deletion grace: when set, the AuthGuard swaps the whole
           // app for the restore screen (cancel → full recovery).
