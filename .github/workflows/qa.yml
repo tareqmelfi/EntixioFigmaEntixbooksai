@@ -51,6 +51,24 @@ jobs:
           QA_AUTO_START: '1'
           QA_ROUTE_SCOPE: 'solutions'
 
+  visual-regression-linux:
+    name: Visual Regression (Linux)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+      - run: npx playwright test tests/visual-regression.spec.ts --project=chromium --reporter=list
+        env:
+          CI: 'true'
+          VISUAL_REGRESSION: '1'
+
   visual-regression:
     name: Visual Regression (macOS)
     runs-on: macos-latest
@@ -64,6 +82,7 @@ jobs:
       - run: npx playwright test tests/visual-regression.spec.ts --project=chromium --reporter=list
         env:
           CI: 'true'
+          VISUAL_REGRESSION: '1'
 
   protect:
     name: Protect Critical Files

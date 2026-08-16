@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: process.env.CI && process.env.VISUAL_REGRESSION !== '1' ? '**/visual-regression.spec.ts' : undefined,
   timeout: 60000,
   expect: { timeout: 10000 },
   fullyParallel: false,

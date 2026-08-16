@@ -162,7 +162,7 @@ test('solution source and production route gates reject placeholder implementati
   expect(dockerignore).toMatch(/^\*credentials\*$/m)
 
   expect(workflow).not.toContain('npm run qa:solutions')
-  expect(workflow.match(/playwright test/g) ?? []).toHaveLength(2)
+  expect(workflow.match(/playwright test/g) ?? []).toHaveLength(3)
   expect(workflow).toContain('playwright test --reporter=list')
   expect(workflow).toContain('playwright test tests/visual-regression.spec.ts')
   expect(workflow).toContain('npm run test:visual-contracts')
