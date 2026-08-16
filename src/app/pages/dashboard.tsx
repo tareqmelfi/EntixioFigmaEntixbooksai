@@ -213,6 +213,7 @@ export function Dashboard() {
   const { t } = useLanguage();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chartPeriod, setChartPeriod] = useState<"months" | "years">("months");
   const [error, setError] = useState<string | null>(null);
   const [onb, setOnb] = useState<{ completed: boolean; completedAt: string | null; openingBalancesDone: boolean; productsCount: number; contactsCount: number } | null>(null);
   const [onbDismissed, setOnbDismissed] = useState(false);
@@ -431,17 +432,36 @@ useEffect(() => {
       </div>
 
       {/* Charts grid 2x2 · Figma spec UX-205 */}
+      {(data.yearlyTrend?.length ?? 0) > 0 && (
+        <div className="flex items-center justify-end gap-1 text-xs">
+          <span className="text-muted-foreground me-1">{t("فترة الرسوم:", "Chart period:")}</span>
+          <button
+            type="button"
+            onClick={() => setChartPeriod("months")}
+            className={`px-2.5 py-1 rounded-md border ${chartPeriod === "months" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+          >
+            {t("شهري · 6 أشهر", "Monthly · 6m")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setChartPeriod("years")}
+            className={`px-2.5 py-1 rounded-md border ${chartPeriod === "years" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+          >
+            {t("سنوي", "Yearly")}
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* P&L · vertical bars · navy + red */}
         <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح تقرير الأرباح والخسائر", "Open P&L report")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الأرباح والخسائر", "Profit & Loss")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{t("ملخص الأرباح والخسائر لآخر 6 أشهر", "P&L summary for the last 6 months")}</CardDescription>
+            <CardDescription className="text-muted-foreground text-xs">{chartPeriod === "years" ? t("ملخص الأرباح والخسائر حسب السنة", "P&L by year") : t("ملخص الأرباح والخسائر لآخر 6 أشهر", "P&L summary for the last 6 months")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={data.profitLoss.map(p => ({ month: p.month, profit: p.revenue, loss: p.expenses }))}>
+                <BarChart data={chartPeriod === "years" ? (data.yearlyTrend || []).map(y => ({ month: String(y.year), profit: y.revenue, loss: y.expenses })) : data.profitLoss.map(p => ({ month: p.month, profit: p.revenue, loss: p.expenses }))}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
                   <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
@@ -487,12 +507,12 @@ useEffect(() => {
         <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الإيرادات مقابل المصروفات", "Revenue vs Expenses")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
+            <CardDescription className="text-muted-foreground text-xs">{chartPeriod === "years" ? t("مقارنة الإيرادات بالمصروفات حسب السنة", "Revenue vs expenses by year") : t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={data.monthlyTrend}>
+                <BarChart data={chartPeriod === "years" ? (data.yearlyTrend || []).map(y => ({ month: String(y.year), revenue: y.revenue, expenses: y.expenses })) : data.monthlyTrend}>
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
                   <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />

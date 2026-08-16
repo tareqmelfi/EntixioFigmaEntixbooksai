@@ -1695,6 +1695,7 @@ export interface DashboardSummary {
     expensesFromJournal?: number
   }
   monthlyTrend: Array<{ month: string; revenue: number; expenses: number }>
+  yearlyTrend?: Array<{ year: number; revenue: number; expenses: number; net: number }>
   cashFlowTrend: Array<{ month: string; in: number; out: number; net: number }>
   profitLoss: Array<{ month: string; revenue: number; expenses: number; net: number }>
   expenseBreakdown: Array<{ category: string; total: number }>
