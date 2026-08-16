@@ -15,12 +15,12 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import { Link } from "react-router";
 import {
-  Users, Plus, Search, Trash2, Edit2, Loader2, User,
+  Users, Plus, Trash2, Edit2, Loader2, User,
   Building2, Mail, Phone, ExternalLink, Filter,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Metric, MetricStrip, PageHeader, SearchField, SectionHeader, StatusBadge } from "../components/product";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact } from "../lib/api";
 import { ContactWizard, ROLES, RoleKey } from "../components/contact-wizard";
@@ -147,23 +147,29 @@ export function Contacts() {
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("جهات الاتصال", "Contacts")}</h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر", "Manage all related parties · Customer · Supplier · Employee · Shareholder · Freelancer")}</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}>
-          <Plus className="me-2 h-4 w-4" /> {t("إضافة جهة", "Add contact")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("جهات الاتصال", "Contacts")}
+        description={t("إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر", "Manage all related parties · Customer · Supplier · Employee · Shareholder · Freelancer")}
+        actions={(
+          <Button onClick={openCreate}>
+            <Plus className="me-2 h-4 w-4" /> {t("إضافة جهة", "Add contact")}
+          </Button>
+        )}
+      />
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label={t("إجمالي جهات الاتصال", "Total contacts")} value={String(items.length)} hint={`${items.filter(c => c.entityKind === "COMPANY").length} ${t("منظمة", "organizations")} · ${items.filter(c => c.entityKind === "INDIVIDUAL").length} ${t("فرد", "individuals")}`} active={filter === "ALL"} onClick={() => setFilter("ALL")} />
-        <KpiCard label={t("العملاء", "Customers")} value={String(counts.isCustomer)} hint="" active={filter === "isCustomer"} onClick={() => setFilter("isCustomer")} valueColor="text-blue-700" />
-        <KpiCard label={t("الموردين", "Suppliers")} value={String(counts.isSupplier)} hint="" active={filter === "isSupplier"} onClick={() => setFilter("isSupplier")} valueColor="text-green-700" />
-        <KpiCard label={t("الموظفين + المساهمين + الفري لانسر", "Employees + Shareholders + Freelancers")} value={String(counts.isEmployee + counts.isShareholder + counts.isFreelancer)} hint={`${counts.isEmployee} ${t("موظف", "employees")} · ${counts.isShareholder} ${t("مساهم", "shareholders")} · ${counts.isFreelancer} ${t("فري لانسر", "freelancers")}`} active={false} onClick={() => {}} valueColor="text-purple-700" />
-      </div>
+      <MetricStrip>
+        <button type="button" onClick={() => setFilter("ALL")} aria-pressed={filter === "ALL"} className="text-start">
+          <Metric className={filter === "ALL" ? "border-primary" : undefined} label={t("إجمالي جهات الاتصال", "Total contacts")} value={String(items.length)} hint={`${items.filter(c => c.entityKind === "COMPANY").length} ${t("منظمة", "organizations")} · ${items.filter(c => c.entityKind === "INDIVIDUAL").length} ${t("فرد", "individuals")}`} />
+        </button>
+        <button type="button" onClick={() => setFilter("isCustomer")} aria-pressed={filter === "isCustomer"} className="text-start">
+          <Metric className={filter === "isCustomer" ? "border-primary" : undefined} tone="info" label={t("العملاء", "Customers")} value={String(counts.isCustomer)} />
+        </button>
+        <button type="button" onClick={() => setFilter("isSupplier")} aria-pressed={filter === "isSupplier"} className="text-start">
+          <Metric className={filter === "isSupplier" ? "border-primary" : undefined} tone="success" label={t("الموردين", "Suppliers")} value={String(counts.isSupplier)} />
+        </button>
+        <Metric tone="neutral" label={t("الموظفين + المساهمين + الفري لانسر", "Employees + Shareholders + Freelancers")} value={String(counts.isEmployee + counts.isShareholder + counts.isFreelancer)} hint={`${counts.isEmployee} ${t("موظف", "employees")} · ${counts.isShareholder} ${t("مساهم", "shareholders")} · ${counts.isFreelancer} ${t("فري لانسر", "freelancers")}`} />
+      </MetricStrip>
 
       {/* Filter pills */}
       <div className="flex flex-wrap items-center gap-2">
@@ -184,13 +190,18 @@ export function Contacts() {
       {/* Table card */}
       <Card className="border-border">
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-foreground flex items-center gap-2"><Filter className="h-4 w-4" /> {t("قائمة جهات الاتصال", "Contacts list")} ({filtered.length})</CardTitle>
-            <div className="relative w-72 max-w-full">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input placeholder={t("بحث بالاسم · الرمز · البريد · الرقم الضريبي...", "Search by name · code · email · tax number...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-          </div>
+          <SectionHeader
+            title={<span className="flex items-center gap-2"><Filter className="h-4 w-4" /> {t("قائمة جهات الاتصال", "Contacts list")} <span className="tabular-nums">({filtered.length})</span></span>}
+            actions={(
+              <SearchField
+                aria-label={t("بحث في جهات الاتصال", "Search contacts")}
+                placeholder={t("بحث بالاسم · الرمز · البريد · الرقم الضريبي...", "Search by name · code · email · tax number...")}
+                containerClassName="w-72 max-w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            )}
+          />
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -248,16 +259,16 @@ export function Contacts() {
                           <div className="flex min-w-0 max-w-full flex-wrap gap-1 overflow-hidden">
                             {ROLES.filter(r => (c as any)[r.key] || (r.key === "isCustomer" && (c.type === "CUSTOMER" || c.type === "BOTH")) || (r.key === "isSupplier" && (c.type === "SUPPLIER" || c.type === "BOTH")))
                               .map(r => (
-                                <span key={r.key} className={`text-xs px-1.5 py-0.5 rounded ${r.bg} ${r.text}`}>{t(r.label, ROLE_LABEL_EN[r.key])}</span>
+                                <StatusBadge key={r.key} tone={roleTone(r.key)}>{t(r.label, ROLE_LABEL_EN[r.key])}</StatusBadge>
                               ))}
-                            {c.isForeign && <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">{t("خارجي", "Foreign")}</span>}
+                            {c.isForeign && <StatusBadge tone="warning">{t("خارجي", "Foreign")}</StatusBadge>}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground space-y-0.5 text-start overflow-hidden align-middle" style={{ maxWidth: 0 }}>
-                          {c.email && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Mail className="h-3 w-3 shrink-0" /><span className="truncate font-english" title={c.email} style={{ fontVariantNumeric: "tabular-nums" }}>{c.email}</span></div>}
-                          {c.phone && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Phone className="h-3 w-3 shrink-0" /><span className="truncate font-english" title={c.phone} style={{ fontVariantNumeric: "tabular-nums" }}>{c.phone}</span></div>}
+                          {c.email && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Mail className="h-3 w-3 shrink-0" /><span className="truncate font-english tabular-nums" title={c.email}>{c.email}</span></div>}
+                          {c.phone && <div dir="ltr" className="flex min-w-0 items-center gap-1"><Phone className="h-3 w-3 shrink-0" /><span className="truncate font-english tabular-nums" title={c.phone}>{c.phone}</span></div>}
                         </td>
-                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{c.vatNumber || c.taxId || "—"}</span></td>
+                        <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{c.vatNumber || c.taxId || "—"}</span></td>
                         <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-foreground/80 uppercase">{c.country}</span></td>
                         <td className="px-2 py-3 text-end">
                           <div className="flex items-center gap-1 justify-end">
@@ -265,11 +276,11 @@ export function Contacts() {
                             <button onClick={() => openEdit(c)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
                             {pendingDelete === c.id ? (
                               <span className="flex items-center gap-1 text-xs">
-                                <button onClick={() => handleDelete(c.id)} className="px-2 py-1 rounded bg-red-600 text-white">{t("تأكيد", "Confirm")}</button>
-                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-border">{t("إلغاء", "Cancel")}</button>
+                                <button onClick={() => handleDelete(c.id)} className="rounded-md bg-danger px-2 py-1 text-background hover:bg-danger/90">{t("تأكيد", "Confirm")}</button>
+                                <button onClick={() => setPendingDelete(null)} className="rounded-md border border-border px-2 py-1">{t("إلغاء", "Cancel")}</button>
                               </span>
                             ) : (
-                              <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
+                              <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
                             )}
                           </div>
                         </td>
@@ -299,16 +310,13 @@ export function Contacts() {
 // ── Subcomponents ────────────────────────────────────────────────────────────
 // ── Subcomponents ────────────────────────────────────────────────────────────
 function pillClass(active: boolean) {
-  return `px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${active ? "bg-primary text-white" : "bg-white border border-border text-muted-foreground hover:border-primary/40"}`;
+  return `px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${active ? "bg-primary text-primary-foreground" : "bg-surface border border-border text-muted-foreground hover:border-primary/40"}`;
 }
 
-function KpiCard({ label, value, hint, active, onClick, valueColor = "text-foreground" }: { label: string; value: string; hint: string; active: boolean; onClick: () => void; valueColor?: string }) {
-  return (
-    <button onClick={onClick} className={`text-start rounded-lg border px-4 py-3 transition ${active ? "border-primary bg-primary/5" : "border-border bg-white hover:border-primary/40"}`}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`font-english font-bold mt-1 ${valueColor}`} style={{ fontSize: "1.5rem" }}>{value}</div>
-      {hint && <div className="text-xs text-muted-foreground/60 mt-0.5">{hint}</div>}
-    </button>
-  );
+function roleTone(role: RoleKey): "info" | "success" | "warning" | "neutral" {
+  if (role === "isCustomer") return "info";
+  if (role === "isSupplier") return "success";
+  if (role === "isEmployee") return "warning";
+  return "neutral";
 }
 

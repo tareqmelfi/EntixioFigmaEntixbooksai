@@ -19,6 +19,7 @@ import {
   KeyRound, Activity, Tag, Landmark , Eye, Printer, Download, Trash2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert, Metric, MetricStrip, PageHeader, SectionHeader, StatusBadge, TableNumericCell } from "../components/product";
 import { api, ApiError, ContactSummary } from "../lib/api";
 import { ContactWizard } from "../components/contact-wizard";
 import { ImageCropperModal } from "../components/image-cropper-modal";
@@ -43,51 +44,45 @@ const TAB_ICONS: Record<Tab, any> = {
   activity: Activity,
 };
 
-function StatusPill({ status }: { status: string }) {
+type SemanticTone = "neutral" | "info" | "success" | "warning" | "critical";
+
+function DocumentStatus({ status }: { status: string }) {
   const { t } = useLanguage();
-  const map: Record<string, { bg: string; text: string; label: { ar: string; en: string } }> = {
-    PAID:     { bg: "bg-green-50",  text: "text-green-700",  label: { ar: "مدفوعة", en: "Paid" } },
-    SENT:     { bg: "bg-blue-50",   text: "text-blue-700",   label: { ar: "مرسلة", en: "Sent" } },
-    PARTIAL:  { bg: "bg-amber-50",  text: "text-amber-700",  label: { ar: "جزئية", en: "Partial" } },
-    OVERDUE:  { bg: "bg-red-50",    text: "text-red-700",    label: { ar: "متأخرة", en: "Overdue" } },
-    DRAFT:    { bg: "bg-gray-50",   text: "text-gray-700",   label: { ar: "مسودة", en: "Draft" } },
-    UNPAID:   { bg: "bg-amber-50",  text: "text-amber-700",  label: { ar: "غير مدفوعة", en: "Unpaid" } },
-    APPROVED: { bg: "bg-blue-50",   text: "text-blue-700",   label: { ar: "معتمدة", en: "Approved" } },
-    ACCEPTED: { bg: "bg-green-50",  text: "text-green-700",  label: { ar: "مقبول", en: "Accepted" } },
-    REJECTED: { bg: "bg-red-50",    text: "text-red-700",    label: { ar: "مرفوض", en: "Rejected" } },
-    EXPIRED:  { bg: "bg-gray-100",  text: "text-gray-600",   label: { ar: "منتهي", en: "Expired" } },
-    CANCELLED:{ bg: "bg-gray-100",  text: "text-gray-600",   label: { ar: "ملغاة", en: "Cancelled" } },
+  const map: Record<string, { tone: SemanticTone; label: { ar: string; en: string } }> = {
+    PAID:     { tone: "success", label: { ar: "مدفوعة", en: "Paid" } },
+    SENT:     { tone: "info", label: { ar: "مرسلة", en: "Sent" } },
+    PARTIAL:  { tone: "warning", label: { ar: "جزئية", en: "Partial" } },
+    OVERDUE:  { tone: "critical", label: { ar: "متأخرة", en: "Overdue" } },
+    DRAFT:    { tone: "neutral", label: { ar: "مسودة", en: "Draft" } },
+    UNPAID:   { tone: "warning", label: { ar: "غير مدفوعة", en: "Unpaid" } },
+    APPROVED: { tone: "info", label: { ar: "معتمدة", en: "Approved" } },
+    ACCEPTED: { tone: "success", label: { ar: "مقبول", en: "Accepted" } },
+    REJECTED: { tone: "critical", label: { ar: "مرفوض", en: "Rejected" } },
+    EXPIRED:  { tone: "neutral", label: { ar: "منتهي", en: "Expired" } },
+    CANCELLED:{ tone: "neutral", label: { ar: "ملغاة", en: "Cancelled" } },
   };
-  const m = map[status] || { bg: "bg-gray-50", text: "text-gray-700", label: { ar: status, en: status } };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-english ${m.bg} ${m.text}`}>
-      {t(m.label.ar, m.label.en)}
-    </span>
-  );
+  const mapped = map[status] || { tone: "neutral" as const, label: { ar: status, en: status } };
+  return <StatusBadge tone={mapped.tone} className="font-english">{t(mapped.label.ar, mapped.label.en)}</StatusBadge>;
 }
 
 function RoleBadges({ contact }: { contact: any }) {
   const { t } = useLanguage();
-  const roles: Array<{ key: string; label: string; color: string }> = [];
-  if (contact.isCustomer) roles.push({ key: "c", label: t("عميل", "Customer"), color: "bg-blue-100 text-blue-700" });
-  if (contact.isSupplier) roles.push({ key: "s", label: t("مورّد", "Supplier"), color: "bg-amber-100 text-amber-700" });
-  if (contact.isEmployee) roles.push({ key: "e", label: t("موظف", "Employee"), color: "bg-purple-100 text-purple-700" });
-  if (contact.isShareholder) roles.push({ key: "sh", label: t("مساهم", "Shareholder"), color: "bg-pink-100 text-pink-700" });
-  if (contact.isFreelancer) roles.push({ key: "f", label: t("مستقل", "Freelancer"), color: "bg-cyan-100 text-cyan-700" });
+  const roles: Array<{ key: string; label: string; tone: SemanticTone }> = [];
+  if (contact.isCustomer) roles.push({ key: "c", label: t("عميل", "Customer"), tone: "info" });
+  if (contact.isSupplier) roles.push({ key: "s", label: t("مورّد", "Supplier"), tone: "success" });
+  if (contact.isEmployee) roles.push({ key: "e", label: t("موظف", "Employee"), tone: "warning" });
+  if (contact.isShareholder) roles.push({ key: "sh", label: t("مساهم", "Shareholder"), tone: "neutral" });
+  if (contact.isFreelancer) roles.push({ key: "f", label: t("مستقل", "Freelancer"), tone: "neutral" });
   return (
     <div className="flex flex-wrap gap-1.5">
-      {roles.map((r) => (
-        <span key={r.key} className={`text-xs px-2 py-0.5 rounded-full ${r.color}`}>{r.label}</span>
-      ))}
-      {roles.length === 0 && (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{t("بدون دور", "No role")}</span>
-      )}
+      {roles.map((role) => <StatusBadge key={role.key} tone={role.tone}>{role.label}</StatusBadge>)}
+      {roles.length === 0 && <StatusBadge>{t("بدون دور", "No role")}</StatusBadge>}
     </div>
   );
 }
 
 export function ContactDetail() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<ContactSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,9 +151,9 @@ export function ContactDetail() {
         <Link to="/app/contacts" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary">
           <ArrowRight className="h-4 w-4" /> {t("العودة", "Back")}
         </Link>
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <InlineAlert tone="critical">
           {error || t("تعذّر تحميل بيانات جهة الاتصال", "Could not load contact data")}
-        </div>
+        </InlineAlert>
       </div>
     );
   }
@@ -170,59 +165,39 @@ export function ContactDetail() {
   return (
     <div className="space-y-5">
       {/* Header bar · Wave-style minimal (UX-201) */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link to="/app/contacts" className="text-muted-foreground/60 hover:text-primary transition">
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-          <h1 className="text-foreground truncate" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-            {contact.displayName}
-          </h1>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="px-4 py-1.5 rounded-full border border-primary text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
-          >
-            {t("تعديل العميل", "Edit customer")}
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setMoreOpen((v) => !v)}
-              className="px-4 py-1.5 rounded-full border border-primary text-primary text-sm hover:bg-primary/5 transition flex items-center gap-1.5"
-              aria-expanded={moreOpen}
-              aria-haspopup="menu"
-            >
-              {t("المزيد", "More")} <span className="text-[10px]">▾</span>
-            </button>
-            {moreOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
-                <div className="absolute end-0 top-full mt-1.5 z-50 w-60 rounded-xl border border-border bg-white shadow-xl py-1.5" role="menu">
-                  {[
-                    { label: t("فاتورة مبيعات جديدة", "New sales invoice"), to: `/app/invoices?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
-                    { label: t("عرض سعر جديد", "New quote"), to: `/app/quotes?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
-                    { label: t("سند قبض جديد", "New receipt"), to: `/app/receipts/new?contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
-                    { label: t("سند صرف جديد", "New payment"), to: `/app/payments/new?contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
-                    { label: t("مصروف جديد", "New expense"), to: `/app/expenses?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
-                    { label: t("فاتورة شراء جديدة", "New purchase bill"), to: `/app/purchases/bills?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
-                  ].map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      role="menuitem"
-                      onClick={() => setMoreOpen(false)}
-                      className="block px-4 py-2.5 text-sm text-foreground hover:bg-primary/5 hover:text-primary transition"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        leading={<Link to="/app/contacts" aria-label={t("العودة إلى جهات الاتصال", "Back to contacts")} className="block rounded-md p-1.5 text-muted-foreground transition hover:bg-surface-hover hover:text-primary"><ArrowRight className={`h-5 w-5 ${language === "en" ? "rotate-180" : ""}`} /></Link>}
+        title={<span className="block break-words">{contact.displayName}</span>}
+        actions={(
+          <>
+            <Button variant="outline" onClick={() => setEditOpen(true)}>{t("تعديل العميل", "Edit customer")}</Button>
+            <div className="relative">
+              <Button variant="outline" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-haspopup="menu">
+                {t("المزيد", "More")} <span className="text-[10px]">▾</span>
+              </Button>
+              {moreOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+                  <div className="absolute end-0 top-full mt-1.5 z-50 w-60 rounded-lg border border-border bg-surface py-1.5 shadow-popover" role="menu">
+                    {[
+                      { label: t("فاتورة مبيعات جديدة", "New sales invoice"), to: `/app/invoices?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                      { label: t("عرض سعر جديد", "New quote"), to: `/app/quotes?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                      { label: t("سند قبض جديد", "New receipt"), to: `/app/receipts/new?contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                      { label: t("سند صرف جديد", "New payment"), to: `/app/payments/new?contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                      { label: t("مصروف جديد", "New expense"), to: `/app/expenses?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                      { label: t("فاتورة شراء جديدة", "New purchase bill"), to: `/app/purchases/bills?new=1&contactId=${contact.id}&returnTo=/app/contacts/${contact.id}` },
+                    ].map((item) => (
+                      <Link key={item.to} to={item.to} role="menuitem" onClick={() => setMoreOpen(false)} className="block px-4 py-2.5 text-sm text-foreground transition hover:bg-surface-hover hover:text-primary">
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      />
 
       {/* Wave-style 2-column · contact card on left + tabs on right */}
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5 items-start">
@@ -252,20 +227,18 @@ export function ContactDetail() {
                 ) : (
                   <User className="h-10 w-10 text-primary" />
                 )}
-                <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                  {logoBusy ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <span className="text-white text-[10px] font-semibold">{t("رفع شعار", "Upload logo")}</span>}
+                <div className="absolute inset-0 flex items-center justify-center bg-foreground/45 opacity-0 transition group-hover:opacity-100">
+                  {logoBusy ? <Loader2 className="h-5 w-5 animate-spin text-background" /> : <span className="text-[10px] font-semibold text-background">{t("رفع شعار", "Upload logo")}</span>}
                 </div>
               </div>
               {logoError && (
-                <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-1.5 mb-1 max-w-[220px] text-center">
+                <InlineAlert tone="critical" className="mb-1 max-w-[220px] px-2.5 py-1.5 text-center text-xs">
                   {logoError}
-                </div>
+                </InlineAlert>
               )}
               <div className="mb-2" />
               <div className="flex flex-wrap gap-1 justify-center">
-                {contact.isForeign && (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-700">{t("جهة خارجية", "Foreign entity")}</span>
-                )}
+                {contact.isForeign && <StatusBadge tone="warning">{t("جهة خارجية", "Foreign entity")}</StatusBadge>}
                 <RoleBadges contact={contact} />
               </div>
             </div>
@@ -320,57 +293,34 @@ export function ContactDetail() {
       </div>
 
       {/* Top KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> {t("الفواتير", "Invoices")}
-            </div>
-            <div className="font-english-block font-bold text-foreground" style={{ fontSize: "1.15rem" }}>
-              {totals.invoices.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-muted-foreground/70 font-normal" style={{ fontSize: "0.7rem" }}>{cur}</span>
-            </div>
-            <div className="text-xs text-muted-foreground/60 mt-0.5"><span className="font-english font-semibold">{totals.invoices.count}</span> {t("فاتورة", "invoices")}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-              <ShoppingBag className="h-3.5 w-3.5" /> {t("فواتير الشراء", "Purchase bills")}
-            </div>
-            <div className="font-english-block font-bold text-foreground" style={{ fontSize: "1.15rem" }}>
-              {totals.bills.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-muted-foreground/70 font-normal" style={{ fontSize: "0.7rem" }}>{cur}</span>
-            </div>
-            <div className="text-xs text-muted-foreground/60 mt-0.5"><span className="font-english font-semibold">{totals.bills.count}</span> {t("فاتورة شراء", "purchase bills")}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-              <Receipt className="h-3.5 w-3.5" /> {t("سندات القبض", "Receipts")}
-            </div>
-            <div className="font-english-block font-bold text-green-700" style={{ fontSize: "1.15rem" }}>
-              {totals.receipts.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-green-700/60 font-normal" style={{ fontSize: "0.7rem" }}>{cur}</span>
-            </div>
-            <div className="text-xs text-muted-foreground/60 mt-0.5"><span className="font-english font-semibold">{totals.receipts.count}</span> {t("سند قبض", "receipts")}</div>
-          </CardContent>
-        </Card>
-        <Card className={`border ${totals.balance >= 0 ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30"}`}>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-              <Banknote className="h-3.5 w-3.5" /> {t("الرصيد الصافي", "Net balance")}
-            </div>
-            <div className={`font-english-block font-bold ${totals.balance >= 0 ? "text-green-700" : "text-amber-700"}`} style={{ fontSize: "1.15rem" }}>
-              {fmt(Math.abs(totals.balance))}
-            </div>
-            <div className="text-xs mt-0.5">
-              {totals.balance > 0 ? <span className="text-green-700">{t("يستحق لي", "Owed to me")}</span> : totals.balance < 0 ? <span className="text-amber-700">{t("أستحق له", "I owe")}</span> : <span className="text-muted-foreground/60">{t("متعادل", "Settled")}</span>}
-            </div>
-            <div className="text-[11px] text-muted-foreground/70 mt-1.5 pt-1.5 border-t border-border/40">
-              {t("إجمالي العمليات", "Total transactions")} <span className="font-english font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(undefined, { maximumFractionDigits: 2 })} {cur}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <MetricStrip>
+        <Metric
+          label={t("الفواتير", "Invoices")}
+          icon={<FileText className="h-3.5 w-3.5" />}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.invoices.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          hint={<><span className="font-english tabular-nums font-semibold">{totals.invoices.count}</span> {t("فاتورة", "invoices")}</>}
+        />
+        <Metric
+          label={t("فواتير الشراء", "Purchase bills")}
+          icon={<ShoppingBag className="h-3.5 w-3.5" />}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.bills.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          hint={<><span className="font-english tabular-nums font-semibold">{totals.bills.count}</span> {t("فاتورة شراء", "purchase bills")}</>}
+        />
+        <Metric
+          tone="success"
+          label={t("سندات القبض", "Receipts")}
+          icon={<Receipt className="h-3.5 w-3.5" />}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.receipts.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          hint={<><span className="font-english tabular-nums font-semibold">{totals.receipts.count}</span> {t("سند قبض", "receipts")}</>}
+        />
+        <Metric
+          tone={totals.balance >= 0 ? "success" : "warning"}
+          label={t("الرصيد الصافي", "Net balance")}
+          icon={<Banknote className="h-3.5 w-3.5" />}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{fmt(Math.abs(totals.balance))}</span>}
+          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(undefined, { maximumFractionDigits: 2 })} {cur}</span></span></>}
+        />
+      </MetricStrip>
 
       {/* Tabs */}
       <div className="border-b border-border">
@@ -383,9 +333,8 @@ export function ContactDetail() {
                 key={tabKey}
                 onClick={() => setTab(tabKey)}
                 className={`px-4 py-2.5 text-sm flex items-center gap-1.5 border-b-2 transition shrink-0 ${
-                  active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  active ? "border-primary text-primary font-semibold" : "border-transparent text-muted-foreground font-medium hover:text-foreground"
                 }`}
-                style={{ fontWeight: active ? 600 : 500 }}
               >
                 <Icon className="h-4 w-4" /> {t(TAB_LABELS[tabKey].ar, TAB_LABELS[tabKey].en)}
               </button>
@@ -429,7 +378,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
       <div className="lg:col-span-1 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-foreground" style={{ fontSize: "0.95rem", fontWeight: 600 }}>{t("معلومات الاتصال", "Contact info")}</CardTitle>
+            <SectionHeader title={t("معلومات الاتصال", "Contact info")} />
           </CardHeader>
           <CardContent className="space-y-2.5 text-sm">
             {contact.email && (
@@ -464,7 +413,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
 
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-foreground" style={{ fontSize: "0.95rem", fontWeight: 600 }}>{t("الهوية الضريبية", "Tax identity")}</CardTitle>
+            <SectionHeader title={t("الهوية الضريبية", "Tax identity")} />
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Row label={t("الرقم الضريبي", "Tax ID")} value={contact.vatNumber} mono />
@@ -482,13 +431,11 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         {(contact as any).tags && (
           <Card className="border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-foreground flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-                <Tag className="h-4 w-4" /> {t("الوسوم", "Tags")}
-              </CardTitle>
+              <SectionHeader title={<span className="flex items-center gap-1.5"><Tag className="h-4 w-4" /> {t("الوسوم", "Tags")}</span>} />
             </CardHeader>
             <CardContent className="flex flex-wrap gap-1.5">
               {String((contact as any).tags).split(",").map((t: string, i: number) => (
-                <span key={i} className="text-xs px-2 py-1 rounded-full bg-primary/5 text-primary border border-blue-100">
+                <span key={i} className="rounded-full border border-info-border bg-info-subtle px-2 py-1 text-xs text-info">
                   {t.trim()}
                 </span>
               ))}
@@ -499,7 +446,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         {contact.notes && (
           <Card className="border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-foreground" style={{ fontSize: "0.95rem", fontWeight: 600 }}>{t("ملاحظات", "Notes")}</CardTitle>
+              <SectionHeader title={t("ملاحظات", "Notes")} />
             </CardHeader>
             <CardContent>
               <p className="text-sm text-foreground/80 whitespace-pre-wrap">{contact.notes}</p>
@@ -512,14 +459,10 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
       <div className="lg:col-span-2 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-                <FileText className="h-4 w-4" /> {t("آخر الفواتير", "Latest invoices")}
-              </CardTitle>
-              <span className="text-xs text-muted-foreground/60">
-                {t("مستحق:", "Due:")} <span dir="ltr" className="font-english inline-block">{totals.arOpen.toLocaleString()} {cur}</span>
-              </span>
-            </div>
+            <SectionHeader
+              title={<span className="flex items-center gap-1.5"><FileText className="h-4 w-4" /> {t("آخر الفواتير", "Latest invoices")}</span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString()} {cur}</span></span>}
+            />
           </CardHeader>
           <CardContent>
             {recentInvoices.length === 0 ? (
@@ -543,14 +486,10 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
 
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-                <ShoppingBag className="h-4 w-4" /> {t("آخر فواتير الشراء", "Latest purchase bills")}
-              </CardTitle>
-              <span className="text-xs text-muted-foreground/60">
-                {t("مستحق:", "Due:")} <span dir="ltr" className="font-english inline-block">{totals.apOpen.toLocaleString()} {cur}</span>
-              </span>
-            </div>
+            <SectionHeader
+              title={<span className="flex items-center gap-1.5"><ShoppingBag className="h-4 w-4" /> {t("آخر فواتير الشراء", "Latest purchase bills")}</span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString()} {cur}</span></span>}
+            />
           </CardHeader>
           <CardContent>
             {recentBills.length === 0 ? (
@@ -581,7 +520,7 @@ function Row({ label, value, mono }: { label: string; value?: string | null; mon
   return (
     <div className="flex justify-between items-center">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-sm text-foreground/80 ${mono ? "font-english" : ""}`}>{value}</span>
+      <span dir={mono ? "ltr" : undefined} className={`text-sm text-foreground/80 ${mono ? "font-english tabular-nums" : ""}`}>{value}</span>
     </div>
   );
 }
@@ -609,10 +548,10 @@ function DocList({ rows }: { rows: Array<{ id: string; number: string; date: str
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end min-w-[140px] md:min-w-[180px]">
-            <StatusPill status={r.status} />
+            <DocumentStatus status={r.status} />
             <div className="text-end">
-              <div dir="ltr" className="text-sm font-english font-semibold text-foreground whitespace-nowrap">{r.total.toLocaleString()}</div>
-              <div dir="ltr" className="text-xs text-muted-foreground/60 font-english whitespace-nowrap">{r.cur}</div>
+              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString()}</div>
+              <div dir="ltr" className="whitespace-nowrap text-xs font-english tabular-nums text-muted-foreground">{r.cur}</div>
             </div>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary shrink-0" />
           </div>
@@ -660,24 +599,21 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
             }`}
           >
             <div className="text-xs text-muted-foreground">{s.label}</div>
-            <div className="font-english font-bold text-foreground mt-0.5" style={{ fontSize: "1rem" }}>{s.count}</div>
-            <div className="text-xs text-muted-foreground/60 font-english">{s.total.toLocaleString()} {cur}</div>
+            <div className="mt-0.5 font-english tabular-nums text-base font-bold text-foreground">{s.count}</div>
+            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString()} {cur}</div>
           </button>
         ))}
       </div>
 
       {/* Action bar */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm text-foreground" style={{ fontWeight: 600 }}>
-          {sections.find((s) => s.key === section)?.label}
-        </h3>
-        <Link
-          to={newLinks[section]}
-          className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:bg-primary transition flex items-center gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" /> {t("إضافة جديد", "Add new")}
-        </Link>
-      </div>
+      <SectionHeader
+        title={sections.find((s) => s.key === section)?.label}
+        actions={(
+          <Button asChild size="sm">
+            <Link to={newLinks[section]}><Plus className="h-3.5 w-3.5" /> {t("إضافة جديد", "Add new")}</Link>
+          </Button>
+        )}
+      />
 
       {/* Section content · table */}
       <Card className="border-border">
@@ -731,10 +667,10 @@ function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: st
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{r.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground"><span dir="ltr" className="font-english inline-block">{r.due?.slice(0, 10) || "—"}</span></td>
-              <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block font-semibold text-foreground">{r.total.toLocaleString()}</span></td>
-              <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block text-green-600">{r.paid.toLocaleString()}</span></td>
-              <td className="px-4 py-2.5 text-end"><span dir="ltr" className="font-english inline-block text-amber-600">{(r.total - r.paid).toLocaleString()}</span></td>
-              <td className="px-4 py-2.5 text-center"><StatusPill status={r.status} /></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString()}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString()}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString()}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-center"><DocumentStatus status={r.status} /></td>
               <td className="px-2 py-2.5"><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary" /></Link></td>
             </tr>
           ))}
@@ -782,13 +718,13 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
             >
               <td className="px-4 py-2.5"><span dir="ltr" className="font-english inline-block font-semibold text-primary">{v.number}</span></td>
               <td className="px-4 py-2.5">
-                <span className={`text-xs px-2 py-0.5 rounded ${v.type === "RECEIPT" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                <StatusBadge tone={v.type === "RECEIPT" ? "success" : "warning"}>
                   {v.type === "RECEIPT" ? t("قبض", "Receipt") : t("صرف", "Payment")}
-                </span>
+                </StatusBadge>
               </td>
-              <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{v.date.slice(0, 10)}</span></td>
-              <td className={`px-4 py-2.5 text-end ${v.type === "RECEIPT" ? "text-green-700" : "text-amber-700"}`}>
-                <span dir="ltr" className="font-english inline-block font-semibold">{Number(v.amount).toLocaleString()} {v.currency}</span>
+              <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english tabular-nums inline-block">{v.date.slice(0, 10)}</span></td>
+              <td className={`px-4 py-2.5 text-end ${v.type === "RECEIPT" ? "text-success" : "text-warning"}`}>
+                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString()} {v.currency}</TableNumericCell>
               </td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{v.paymentMethod || "—"}</td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs"><span dir="ltr" className="font-english inline-block">{v.reference || "—"}</span></td>
@@ -847,7 +783,7 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{e.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{e.category || t("غير مصنّف", "Uncategorized")}</td>
               <td className="px-4 py-2.5 text-foreground/80 whitespace-normal break-words">{e.description || "—"}</td>
-              <td className="px-4 py-2.5 text-end text-amber-700"><span dir="ltr" className="font-english inline-block font-semibold whitespace-nowrap">{Number(e.total).toLocaleString()} {e.currency}</span></td>
+              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString()} {e.currency}</TableNumericCell></td>
             </tr>
           ))}
         </tbody>
@@ -871,7 +807,7 @@ function DocumentsTab({ contact }: { contact: any }) {
           <p className="text-xs text-muted-foreground/60 mt-1">{t("العقود · بطاقات الضريبة · السجلات التجارية · ملفات الهوية", "Contracts · tax cards · commercial registrations · ID files")}</p>
           <Link
             to={`/app/files/upload?contactId=${contact.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-sm mt-4 hover:bg-primary transition"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground transition hover:bg-primary/90"
           >
             <Plus className="h-3.5 w-3.5" /> {t("رفع مستند", "Upload document")}
           </Link>
@@ -1037,9 +973,9 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
   const expiryBadge = (expiresAt: string | null) => {
     if (!expiresAt) return null;
     const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
-    if (days < 0) return <span className="rounded bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("منتهٍ!", "Expired!")}</span>;
-    if (days <= 30) return <span className="rounded bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t(`ينتهي خلال ${days} يوم`, `Expires in ${days}d`)}</span>;
-    return <span className="rounded bg-green-100 text-green-700 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("ساري", "Valid")}</span>;
+    if (days < 0) return <StatusBadge tone="critical" className="text-[10px] font-bold">{t("منتهٍ!", "Expired!")}</StatusBadge>;
+    if (days <= 30) return <StatusBadge tone="warning" className="text-[10px] font-bold">{t(`ينتهي خلال ${days} يوم`, `Expires in ${days}d`)}</StatusBadge>;
+    return <StatusBadge tone="success" className="text-[10px] font-bold">{t("ساري", "Valid")}</StatusBadge>;
   };
 
   return (
@@ -1061,7 +997,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
             <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
               <div className="flex gap-1.5 flex-wrap">
                 {DOC_KINDS.map((k) => (
-                  <button key={k.id} onClick={() => setKind(k.id)} className={`rounded-lg px-2.5 py-1 text-[11px] transition-colors ${kind === k.id ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: kind === k.id ? 700 : 500 }}>{t(k.ar, k.en)}</button>
+                  <button key={k.id} onClick={() => setKind(k.id)} className={`rounded-lg px-2.5 py-1 text-[11px] transition-colors ${kind === k.id ? "bg-primary text-primary-foreground font-bold" : "bg-muted/50 text-muted-foreground font-medium hover:bg-muted"}`}>{t(k.ar, k.en)}</button>
                 ))}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -1075,7 +1011,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
                   type="date"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
-                  className="rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-foreground"
+                  className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-foreground"
                   title={t("تاريخ انتهاء المستند (اختياري)", "Document expiry (optional)")}
                 />
                 <Button size="sm" className="bg-primary hover:bg-primary/90" disabled={!file || busy} onClick={upload}>
@@ -1091,7 +1027,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
 
             {/* HR-5 extracted-fields review card */}
             {extracted && (
-              <div className="rounded-lg border border-primary/30 bg-primary/5/50 p-3 space-y-2">
+              <div className="space-y-2 rounded-lg border border-info-border bg-info-subtle p-3">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-bold text-primary">{t("قرأنا المستند — راجع قبل التعبئة", "We read the document — review before applying")}</div>
                   <button onClick={() => setExtracted(null)} className="text-muted-foreground/60 hover:text-foreground text-xs">✕</button>
@@ -1106,7 +1042,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
                   {extracted.expiryDate ? <div><span className="text-muted-foreground">{t("انتهاء المستند:", "Doc expiry:")}</span> <span className="text-foreground font-english">{extracted.expiryDate}</span></div> : null}
                 </div>
                 {Array.isArray(extracted.warnings) && extracted.warnings.length > 0 && (
-                  <div className="text-[11px] text-amber-700">⚠ {extracted.warnings.join(" · ")}</div>
+                  <div className="text-[11px] text-warning">⚠ {extracted.warnings.join(" · ")}</div>
                 )}
                 <Button size="sm" className="bg-primary hover:bg-primary/90" disabled={applying} onClick={applyExtracted}>
                   {applying ? <Loader2 className="h-3.5 w-3.5 animate-spin me-1" /> : <Sparkles className="h-3.5 w-3.5 me-1" />}
@@ -1122,7 +1058,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
               <div className="divide-y divide-border/50">
                 {items.map((d) => (
                   <div key={d.id} className="flex items-center gap-3 py-2.5">
-                    <span className="rounded bg-primary/10 text-primary px-2 py-1 text-[10px] shrink-0" style={{ fontWeight: 700 }}>{kindLabel(d.documentKind)}</span>
+                    <span className="shrink-0 rounded bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">{kindLabel(d.documentKind)}</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm text-foreground truncate font-english">{d.fileName}</div>
                       <div className="text-[10px] text-muted-foreground/60 font-english">
@@ -1137,7 +1073,7 @@ function EmployeeDocumentsSection({ contactId }: { contactId: string }) {
                     {pendingDelete === d.id ? (
                       <InlineConfirm onConfirm={() => remove(d.id)} onCancel={() => setPendingDelete(null)} label={t("حذف؟", "Delete?")} />
                     ) : (
-                      <button onClick={() => setPendingDelete(d.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}>
+                      <button onClick={() => setPendingDelete(d.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle" title={t("حذف", "Delete")}>
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -1195,9 +1131,7 @@ function PortalTab({ contact }: { contact: any }) {
     <div className="space-y-4">
       <Card className="border-border">
         <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-            <KeyRound className="h-4 w-4" /> {t("بوابة العميل", "Customer portal")}
-          </CardTitle>
+          <SectionHeader title={<span className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> {t("بوابة العميل", "Customer portal")}</span>} />
           <CardDescription className="text-xs text-muted-foreground">
             {t("رابط مخصّص للعميل لعرض فواتيره · دفعها · تنزيلها · بدون حاجة لإنشاء حساب", "A dedicated link for the customer to view, pay, and download invoices · no account needed")}
           </CardDescription>
@@ -1230,14 +1164,14 @@ function PortalTab({ contact }: { contact: any }) {
           {contact.email ? (
             <button
               disabled={!portalUrl}
-              className="w-full px-3 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" /> {t("إرسال دعوة إلى", "Send invitation to")} <span className="font-english">{contact.email}</span>
             </button>
           ) : (
-            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-2">
-              <AlertCircle className="h-3.5 w-3.5" /> {t("أضف بريداً إلكترونياً لإرسال دعوة البوابة", "Add an email address to send the portal invitation")}
-            </div>
+            <InlineAlert tone="warning" icon={<AlertCircle className="h-3.5 w-3.5" />}>
+              {t("أضف بريداً إلكترونياً لإرسال دعوة البوابة", "Add an email address to send the portal invitation")}
+            </InlineAlert>
           )}
 
           <div className="grid grid-cols-2 gap-3 pt-2">
