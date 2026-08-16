@@ -35,14 +35,14 @@ export function InlinePanel({ open, title, description, onClose, children, foote
   if (open === false) return null;
 
   const wrapper = variant === "card"
-    ? "rounded-xl border border-border bg-white shadow-sm"
-    : "rounded-xl";
+    ? "rounded-lg border border-border bg-surface"
+    : "rounded-lg";
 
   return (
     <div className={wrapper}>
       <div className="flex items-start justify-between px-5 py-4 border-b border-border">
         <div className="min-w-0">
-          <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{title}</h2>
+          <h2 className="text-section font-semibold text-foreground">{title}</h2>
           {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
         <button
@@ -55,7 +55,7 @@ export function InlinePanel({ open, title, description, onClose, children, foote
       </div>
       <div className="px-5 py-5">{children}</div>
       {footer && (
-        <div className="px-5 py-3 border-t border-border bg-muted rounded-b-xl">
+        <div className="px-5 py-3 border-t border-border bg-surface-subtle rounded-b-lg">
           {footer}
         </div>
       )}

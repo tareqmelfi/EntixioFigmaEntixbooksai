@@ -2,84 +2,111 @@
 
 :root {
   --font-size: 15px;
-  --background: #F1F5F9;
-  --foreground: #0B1B49;
-  --card: #ffffff;
-  --card-foreground: #0B1B49;
-  --popover: #ffffff;
-  --popover-foreground: #0B1B49;
-  --primary: #0F6AD2;
-  --primary-foreground: #ffffff;
-  --secondary: #179FC5;
-  --secondary-foreground: #ffffff;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #0B1B49;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: #1276E3;
-  --chart-1: #0B1B49;
-  --chart-2: #1276E3;
-  --chart-3: #179FC5;
-  --chart-4: #4A90E2;
-  --chart-5: #82C3D7;
-  --radius: 0.625rem;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: rgba(11, 27, 73, 0.7);
-  --sidebar-primary: #1276E3;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(11, 27, 73, 0.05);
-  --sidebar-accent-foreground: #0B1B49;
-  --sidebar-border: #E5E7EB;
-  --sidebar-ring: #1276E3;
-  --navy-primary: #0B1B49;
-  --blue-accent: #1276E3;
-  --teal-secondary: #179FC5;
-  --light-background: #F1F5F9;
-}
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --brand-navy-950: #0b1b49;
+  --brand-blue-600: #1276e3;
+  --brand-blue-700: #0f62c3;
+  --brand-teal-600: #179fc5;
+  --neutral-0: #ffffff;
+  --neutral-25: #fafbfd;
+  --neutral-50: #f7f9fc;
+  --neutral-100: #f1f4f8;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-600: #5f6b7a;
+  --neutral-900: #172033;
+
+  --canvas: var(--neutral-50);
+  --surface: var(--neutral-0);
+  --surface-subtle: var(--neutral-25);
+  --surface-hover: var(--neutral-100);
+  --overlay-scrim: rgb(11 27 73 / 0.48);
+  --content: var(--brand-navy-950);
+  --content-secondary: var(--neutral-600);
+  --border-subtle: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --action-primary: var(--brand-blue-700);
+  --action-primary-hover: #0b52a4;
+  --action-secondary: #0e7490;
+  --focus-ring: color-mix(in srgb, var(--brand-blue-600) 24%, transparent);
+
+  --success: #126c4a;
+  --success-subtle: #eef9f4;
+  --success-border: #bce8d4;
+  --warning: #815200;
+  --warning-subtle: #fff8e6;
+  --warning-border: #f2d58a;
+  --danger: #b4233e;
+  --danger-subtle: #fff1f3;
+  --danger-border: #f3c0c9;
+  --info: var(--brand-blue-700);
+  --info-subtle: #eff6ff;
+  --info-border: #bfdbfe;
+
+  --background: var(--canvas);
+  --foreground: var(--content);
+  --card: var(--surface);
+  --card-foreground: var(--content);
+  --popover: var(--surface);
+  --popover-foreground: var(--content);
+  --primary: var(--action-primary);
+  --primary-foreground: var(--neutral-0);
+  --secondary: var(--action-secondary);
+  --secondary-foreground: var(--neutral-0);
+  --muted: var(--surface-subtle);
+  --muted-foreground: var(--content-secondary);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--content);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--neutral-0);
+  --border: var(--border-subtle);
+  --input: var(--border-strong);
+  --input-background: var(--surface);
+  --switch-background: var(--neutral-300);
+  --ring: var(--action-primary);
+
+  --chart-1: var(--brand-navy-950);
+  --chart-2: var(--brand-blue-600);
+  --chart-3: var(--brand-teal-600);
+  --chart-4: #4a90e2;
+  --chart-5: #82c3d7;
+
+  --geometry-radius-xs: 4px;
+  --geometry-radius-sm: 6px;
+  --geometry-radius-md: 8px;
+  --geometry-radius-lg: 10px;
+  --geometry-radius-xl: 12px;
+  --radius: var(--geometry-radius-lg);
+  --elevation-raised: 0 1px 2px rgb(11 27 73 / 0.06);
+  --elevation-popover: 0 8px 24px rgb(11 27 73 / 0.12);
+
+  --control-sm: 32px;
+  --control-md: 36px;
+  --control-lg: 40px;
+  --table-row-dense: 36px;
+  --table-row-default: 44px;
+  --page-gutter: clamp(16px, 2vw, 24px);
+
+  --type-xs: clamp(0.75rem, 0.73rem + 0.08vw, 0.8125rem);
+  --type-sm: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+  --type-body: clamp(0.9375rem, 0.91rem + 0.12vw, 1rem);
+  --type-section: clamp(1.125rem, 1.05rem + 0.25vw, 1.25rem);
+  --type-page: clamp(1.5rem, 1.35rem + 0.5vw, 1.875rem);
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--content-secondary);
+  --sidebar-primary: var(--action-primary);
+  --sidebar-primary-foreground: var(--neutral-0);
+  --sidebar-accent: var(--surface-hover);
+  --sidebar-accent-foreground: var(--content);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--action-primary);
+  --navy-primary: var(--brand-navy-950);
+  --blue-accent: var(--brand-blue-600);
+  --teal-secondary: var(--brand-teal-600);
+  --light-background: var(--canvas);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
 }
 
 @theme inline {
@@ -104,15 +131,32 @@
   --color-input-background: var(--input-background);
   --color-switch-background: var(--switch-background);
   --color-ring: var(--ring);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-hover: var(--surface-hover);
+  --color-overlay-scrim: var(--overlay-scrim);
+  --color-content: var(--content);
+  --color-content-secondary: var(--content-secondary);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-border: var(--info-border);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -121,6 +165,17 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --radius-xs: var(--geometry-radius-xs);
+  --radius-sm: var(--geometry-radius-sm);
+  --radius-md: var(--geometry-radius-md);
+  --radius-lg: var(--geometry-radius-lg);
+  --radius-xl: var(--geometry-radius-xl);
+  --text-page: var(--type-page);
+  --text-section: var(--type-section);
+  --text-body: var(--type-body);
+  --text-label: var(--type-sm);
+  --shadow-raised: var(--elevation-raised);
+  --shadow-popover: var(--elevation-popover);
 }
 
 @layer base {
@@ -128,43 +183,28 @@
     @apply border-border outline-ring/50;
   }
 
-  body {
-    @apply bg-background text-foreground;
-  }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
   html {
     font-size: var(--font-size);
   }
 
-  html[dir="rtl"] {
-    font-size: 14.5px;
+  html[dir="rtl"] body {
+    line-height: 1.65;
   }
 
-  @media (max-width: 640px) {
-    html {
-      font-size: 14.5px;
-    }
-
-    html[dir="rtl"] {
-      font-size: 14px;
-    }
+  body {
+    @apply bg-background text-foreground;
   }
 
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--type-page);
+    font-weight: 600;
+    line-height: 1.3;
   }
 
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--type-section);
+    font-weight: 600;
+    line-height: 1.4;
   }
 
   h3 {
@@ -179,24 +219,19 @@
     line-height: 1.5;
   }
 
-  label {
-    font-size: 0.875rem;
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
-    font-size: 0.875rem;
-    font-weight: var(--font-weight-medium);
+  label,
+  button,
+  input,
+  textarea,
+  select {
+    font-size: var(--type-sm);
     line-height: 1.5;
   }
 
   input,
   textarea,
   select {
-    font-size: 0.875rem;
     font-weight: var(--font-weight-normal);
-    line-height: 1.5;
   }
 
   textarea {
@@ -204,12 +239,12 @@
     resize: vertical;
   }
 
-  /* ── RTL-safe Recharts: force LTR inside chart containers ── */
   .recharts-wrapper,
   .recharts-responsive-container {
     direction: ltr !important;
     outline: none !important;
   }
+
   .recharts-wrapper *:focus,
   .recharts-responsive-container:focus,
   .recharts-wrapper:focus,
@@ -217,21 +252,20 @@
     outline: none !important;
   }
 
-  /* ── Muted chart typography: axes, ticks, legend ── */
   .recharts-cartesian-axis-tick-value {
-    fill: #C4CAD4 !important;
-    font-size: 10px !important;
-  }
-  .recharts-legend-item-text {
-    color: #9CA3AF !important;
-    font-size: 11px !important;
-  }
-  .recharts-cartesian-grid line {
-    stroke: #ECEEF1 !important;
+    fill: var(--neutral-300) !important;
+    font-size: var(--type-xs) !important;
   }
 
-  /* Tables may opt individual identifiers into nowrap; entity and description
-     cells must retain normal language-aware wrapping. */
+  .recharts-legend-item-text {
+    color: var(--content-secondary) !important;
+    font-size: var(--type-xs) !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: var(--border-subtle) !important;
+  }
+
   td.truncate {
     white-space: nowrap;
     overflow: hidden;

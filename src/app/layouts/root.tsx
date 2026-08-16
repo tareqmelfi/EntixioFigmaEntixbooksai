@@ -34,11 +34,11 @@ export function Root() {
   }, []);
 
   return (
-    <div className="flex h-dvh w-full bg-[#F1F5F9]" dir={language === "ar" ? "rtl" : "ltr"}>
+    <div data-shell="app" className="flex h-dvh w-full bg-canvas" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-overlay-scrim lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -77,7 +77,7 @@ export function Root() {
       {/* Main content area */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         <AppHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <main ref={mainRef} className="flex-1 overflow-auto p-4 sm:p-6">
+        <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">
           <Outlet />
         </main>
       </div>
@@ -86,7 +86,7 @@ export function Root() {
       {sidebarMode === "hidden" && (
         <button
           onClick={() => handleModeChange("pinned")}
-          className="hidden lg:flex fixed top-4 end-4 z-30 items-center gap-1.5 rounded-lg bg-white border border-[#E5E7EB] px-3 py-2 text-xs text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#0B1B49] shadow-sm transition-all"
+          className="fixed end-4 top-4 z-30 hidden items-center gap-1.5 rounded-lg border bg-surface px-3 py-2 text-xs text-muted-foreground shadow-raised transition-colors hover:bg-surface-hover hover:text-foreground lg:flex"
           title={t("إظهار القائمة", "Show sidebar")}
         >
           <PanelRightOpen className="h-4 w-4" />

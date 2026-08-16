@@ -350,7 +350,7 @@ export function AppSidebar({
     <aside
       className={`
         flex h-full w-64 xl:w-72 shrink-0 flex-col border-e border-border bg-card
-        fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-xl
+        fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-popover
         ${isOpen ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}
         ${className}
       `}
@@ -569,12 +569,11 @@ function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; act
     <Link to={item.path!} onClick={onClick}>
       <button
         className={`flex w-full items-center rounded-md text-sm transition-colors ${
-          active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"
+          active ? "border-s-2 border-primary bg-primary/5 text-primary" : "border-s-2 border-transparent text-foreground/80 hover:bg-accent hover:text-foreground"
         } ${collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"}`}
         title={tr(item.title)}
       >
-        {/* Wave style: icon a lighter teal than the navy label text */}
-        <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-secondary"}`} />
+        <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
         {!collapsed && <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>}
       </button>
     </Link>
@@ -634,7 +633,7 @@ function CollapsibleMenu({
               : "text-foreground/80 hover:bg-accent hover:text-foreground"
           }`}
         >
-          <Icon className={`h-5 w-5 shrink-0 ${isParentActive ? "text-primary" : "text-secondary"}`} />
+          <Icon className={`h-5 w-5 shrink-0 ${isParentActive ? "text-primary" : "text-muted-foreground"}`} />
           <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>
         </button>
         <button
@@ -672,7 +671,7 @@ function CollapsibleMenu({
                     active ? "bg-primary/10 text-primary" : "text-foreground/75 hover:bg-accent hover:text-foreground"
                   }`}
                 >
-                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-primary" : "text-secondary/75"}`} />
+                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(child.title)}</span>
                 </button>
               </Link>
