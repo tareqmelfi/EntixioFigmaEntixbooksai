@@ -5,6 +5,7 @@ import { EntixWordmark } from "./entix-brand";
 import { MarketingChat } from "./marketing-chat";
 import { useMarketingRegion } from "./marketing-region";
 import { usePublicRoute } from "../lib/public-route";
+import { PublicPreferenceSelector } from "./public-preference-selector";
 
 export function SharedFooter() {
   const { language, t } = useLanguage();
@@ -253,6 +254,7 @@ export function SharedFooter() {
               <span>LLC · {t("وايومنغ، الولايات المتحدة", "Wyoming, USA")}</span>
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
+              <PublicPreferenceSelector variant="dark" />
               {footerLinks.legal.map((link) => (
                 <Link 
                   key={link.label}

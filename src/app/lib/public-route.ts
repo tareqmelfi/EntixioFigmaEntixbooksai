@@ -22,12 +22,12 @@ export function usePublicRoute() {
     : pagePath || "/";
 
   const changeLocale = (locale: PublicLocale) => {
-    if (!route) return;
+    if (!route || route.locale === locale) return;
     navigate(`${localizedPath(route.market, locale, route.pagePath)}${location.search}${location.hash}`);
   };
 
   const changeMarket = (market: PublicMarket) => {
-    if (!route) return;
+    if (!route || route.market === market) return;
     navigate(`${localizedPath(market, route.locale, route.pagePath)}${location.search}${location.hash}`);
   };
 

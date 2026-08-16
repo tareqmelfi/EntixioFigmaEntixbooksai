@@ -1,5 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { publicRouteFromWindow } from "../lib/public-route";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { parsePublicPath } from "../public-site-manifest";
+import { authStore } from "./auth-store";
+import {
+  accountLocale,
+  applyDocumentLocale,
+  LANGUAGE_STORAGE_KEY,
+  PUBLIC_LOCATION_EVENT,
+  storedLanguage,
+} from "./public-preferences";
 
 export type Language = "ar" | "en";
 
@@ -12,44 +20,63 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+function initialLanguage(): Language {
+  const route = parsePublicPath(window.location.pathname);
+  if (route) return route.locale;
+  if (window.location.pathname === "/") return "en";
+  return storedLanguage();
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    const publicRoute = publicRouteFromWindow();
-    if (publicRoute) return publicRoute.locale;
-    if (window.location.pathname === "/") return "en";
-    const saved = localStorage.getItem("entix-language");
-    return saved === "ar" ? "ar" : "en";
+  const [language, setLanguageState] = useState<Language>(() => {
+    const initial = initialLanguage();
+    applyDocumentLocale(initial);
+    return initial;
   });
 
-  useEffect(() => {
-    const syncFromUrl = () => {
-      const urlLocale = publicRouteFromWindow()?.locale;
-      if (urlLocale) setLanguage(urlLocale);
-    };
-    window.addEventListener("popstate", syncFromUrl);
-    return () => window.removeEventListener("popstate", syncFromUrl);
+  const setLanguage = useCallback((next: Language) => {
+    const route = parsePublicPath(window.location.pathname);
+    if (route) {
+      setLanguageState(route.locale);
+      return;
+    }
+    setLanguageState(next);
+    void authStore.updateLocale(next);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("entix-language", language);
-    // Update document lang and dir for Google Translate compatibility
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
-    document.body.dir = language === "ar" ? "rtl" : "ltr";
-    document.body.style.fontFamily = language === "ar"
-      ? "var(--entix-font-ar)"
-      : "var(--entix-font-en)";
+    const syncCurrentPath = (state = authStore.getState()) => {
+      const route = parsePublicPath(window.location.pathname);
+      if (route) {
+        setLanguageState(route.locale);
+        return;
+      }
+      if (!window.location.pathname.startsWith("/app") || state.loading || !state.isAuthenticated) return;
+      const locale = accountLocale(state.user?.locale);
+      if (locale) setLanguageState(locale);
+    };
+    const syncLocation = () => syncCurrentPath();
+    window.addEventListener("popstate", syncLocation);
+    window.addEventListener(PUBLIC_LOCATION_EVENT, syncLocation);
+    const unsubscribe = authStore.subscribe(syncCurrentPath);
+    syncCurrentPath();
+    return () => {
+      window.removeEventListener("popstate", syncLocation);
+      window.removeEventListener(PUBLIC_LOCATION_EVENT, syncLocation);
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    applyDocumentLocale(language);
   }, [language]);
 
-  const toggleLanguage = () => {
-    setLanguage(prev => prev === "ar" ? "en" : "ar");
-  };
+  const toggleLanguage = useCallback(() => {
+    setLanguage(language === "ar" ? "en" : "ar");
+  }, [language, setLanguage]);
 
-  // Simple translation function: t(arabic, english)
-  const t = (ar: string, en?: string): string => {
-    if (language === "en" && en) return en;
-    return ar;
-  };
+  const t = (ar: string, en?: string): string => language === "en" && en ? en : ar;
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
@@ -60,8 +87,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useLanguage() {
   const context = useContext(LanguageContext);
-  if (context === undefined) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
-  }
+  if (context === undefined) throw new Error("useLanguage must be used within a LanguageProvider");
   return context;
 }
