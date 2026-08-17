@@ -179,7 +179,7 @@ export function ReportDocument({
 
       {resolved.showFooter && (
         <footer className="flex items-center justify-between gap-4 border-t border-slate-200 px-8 py-3 text-[11px] text-slate-400">
-          <span className="min-w-0 truncate"><BidiText mode="plaintext">{reportTitle}</BidiText> · <BidiText mode="plaintext">{report.org.name}</BidiText></span>
+          <span className="min-w-0 truncate"><BidiText mode="plaintext">{reportTitle}</BidiText> · <BidiText mode="plaintext">{report.org.name}</BidiText> · <NumericText>{report.id}</NumericText></span>
           <span className="hidden sm:inline">
             {t("أُنشئ في", "Created on")} <NumericText>{new Date(report.generatedAt).toLocaleDateString(isEn ? "en-GB" : "ar-SA")}</NumericText>
             {" · "}
