@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Save, Download, Printer } from "lucide-react";
-import { useSearchParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, RefreshCw, Save, Download, Printer, AlertTriangle, FileText, ShoppingBag } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
@@ -20,6 +20,28 @@ function monthStartIso() {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
 }
 
+// Saudi VAT is filed monthly or quarterly per the org's registration — the
+// return should open on the CURRENT filing period (not a bare month), and
+// offer one-click quarter jumps (user report 2026-08-18).
+function quarterRange(year: number, q: 1 | 2 | 3 | 4): [string, string] {
+  const startMonth = (q - 1) * 3;
+  const from = new Date(Date.UTC(year, startMonth, 1)).toISOString().slice(0, 10);
+  const to = new Date(Date.UTC(year, startMonth + 3, 0)).toISOString().slice(0, 10);
+  return [from, to];
+}
+
+function currentQuarterRange(): [string, string] {
+  const now = new Date();
+  return quarterRange(now.getFullYear(), (Math.floor(now.getMonth() / 3) + 1) as 1 | 2 | 3 | 4);
+}
+
+const QUARTER_LABELS: Array<[1 | 2 | 3 | 4, string, string]> = [
+  [1, "الربع الأول", "Q1"],
+  [2, "الربع الثاني", "Q2"],
+  [3, "الربع الثالث", "Q3"],
+  [4, "الربع الرابع", "Q4"],
+];
+
 const transferTypeLabel: Record<TaxReturnWithholdingRow["transferType"], { ar: string; en: string }> = {
   SERVICE: { ar: "خدمات", en: "Services" },
   ROYALTY: { ar: "إتاوة / امتياز", en: "Royalty" },
@@ -33,8 +55,19 @@ export function Taxes() {
   // sees a Saudi VAT return, and a Saudi company never sees US sales tax.
   const { isSA, isUS, country, loading: regionLoading } = useOrgRegion();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [from, setFrom] = useState(searchParams.get("from") || monthStartIso());
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
+  // An explicit range (URL or a user's pick) wins; otherwise the first loaded
+  // payload snaps the range to the org's filing cadence (quarterly SA filers
+  // open on the current quarter — never a lone month).
+  const didPickRange = useRef(Boolean(searchParams.get("from") || searchParams.get("to")));
+
+  const applyRange = (nextFrom: string, nextTo: string) => {
+    didPickRange.current = true;
+    setFrom(nextFrom);
+    setTo(nextTo);
+  };
 
   const [payload, setPayload] = useState<TaxReturnPayload | null>(null);
   const [usPayload, setUsPayload] = useState<UsSalesTaxPayload | null>(null);
@@ -91,6 +124,18 @@ export function Taxes() {
   }, [from, to, country, regionLoading]);
 
   const currency = payload?.org.baseCurrency || "SAR";
+
+  // First load with no explicit range → snap to the org's filing cadence.
+  useEffect(() => {
+    if (didPickRange.current || !payload) return;
+    didPickRange.current = true;
+    if (payload.org.vatPeriod === "quarterly") {
+      const [qf, qt] = currentQuarterRange();
+      setFrom(qf);
+      setTo(qt);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload]);
 
   const withholdingTotals = useMemo(() => {
     if (!payload) return { totalBase: 0, totalWithholding: 0 };
@@ -191,16 +236,41 @@ export function Taxes() {
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">{t("من تاريخ", "From date")}</span>
-            <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
+            <DateInput value={from} onChange={(v) => applyRange(v, to)} inputClassName="h-10 text-sm" />
           </label>
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">{t("إلى تاريخ", "To date")}</span>
-            <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
+            <DateInput value={to} onChange={(v) => applyRange(from, v)} inputClassName="h-10 text-sm" />
           </label>
           <div className="flex gap-2">
             <Button variant="outline" onClick={load}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
             <Button variant="outline" onClick={exportZatcaCsv} disabled={!payload}><Download className="me-2 h-4 w-4" />{t("تصدير ملخص الإقرار", "Export return summary")}</Button>
             <Button variant="outline" onClick={printZatca} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 md:col-span-3">
+            <span className="text-xs text-muted-foreground">{t("فترات جاهزة:", "Quick periods:")}</span>
+            {QUARTER_LABELS.map(([q, ar, en]) => {
+              const year = new Date().getFullYear();
+              const [qf, qt] = quarterRange(year, q);
+              const active = from === qf && to === qt;
+              return (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => applyRange(qf, qt)}
+                  className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border bg-white text-foreground/70 hover:bg-muted"}`}
+                >
+                  {t(ar, en)} <span className="font-english text-[10px] opacity-70">{year}</span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => applyRange(monthStartIso(), todayIso())}
+              className="rounded-full border border-border bg-white px-3 py-1 text-xs text-foreground/70 transition hover:bg-muted"
+            >
+              {t("الشهر الحالي", "Current month")}
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -217,6 +287,70 @@ export function Taxes() {
             <Metric label={t("صافي VAT", "Net VAT")} value={money(payload.vatDeclaration.netVat, currency)} tone={payload.vatDeclaration.netVat >= 0 ? "warn" : "good"} />
             <Metric label={payload.vatDeclaration.netVat >= 0 ? t("المستحق الدفع", "Payable") : t("الرصيد المسترد", "Refundable balance")} value={money(payload.vatDeclaration.netVat >= 0 ? payload.vatDeclaration.payable : payload.vatDeclaration.refundable, currency)} tone={payload.vatDeclaration.netVat >= 0 ? "warn" : "good"} />
           </div>
+
+          {/* Draft review — the filer's eye must pass over unposted documents
+              BEFORE approving the return (they never enter the buckets above). */}
+          {payload.drafts && payload.drafts.count > 0 && (
+            <Card className="border-amber-200 bg-amber-50/40">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base text-amber-900">
+                  <AlertTriangle className="h-4 w-4" />
+                  {t("مسودات داخل هذه الفترة تحتاج مراجعة", "Drafts inside this period need review")}
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{payload.drafts.count}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs leading-5 text-amber-800/80">
+                  {t(
+                    "هذه المستندات غير معتمدة ولا تدخل في بنود الإقرار أعلاه. افتحها واعتمدها أو احذفها قبل اعتماد الإقرار النهائي.",
+                    "These documents are unposted and excluded from the return lines above. Open each one — post it or delete it — before approving the final return.",
+                  )}
+                </p>
+                <ul className="divide-y divide-amber-200/60 rounded-lg border border-amber-200/70 bg-white">
+                  {payload.drafts.invoices.map((d) => (
+                    <li key={d.id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/app/invoices/${d.id}`)}
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition hover:bg-amber-50"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 text-amber-700" />
+                          <span className="truncate font-medium text-foreground">{d.invoiceNumber}</span>
+                          <span className="truncate text-xs text-muted-foreground">{d.contactName || "—"}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{t("مسودة فاتورة", "Draft invoice")}</span>
+                          <span className="font-english">{d.issueDate}</span>
+                          <span className="font-semibold text-foreground">{money(d.total, currency)}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {payload.drafts.bills.map((d) => (
+                    <li key={d.id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/app/purchases/bills/${d.id}`)}
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition hover:bg-amber-50"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <ShoppingBag className="h-4 w-4 shrink-0 text-amber-700" />
+                          <span className="truncate font-medium text-foreground">{d.billNumber}</span>
+                          <span className="truncate text-xs text-muted-foreground">{d.contactName || "—"}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{t("مسودة مشتريات", "Draft bill")}</span>
+                          <span className="font-english">{d.issueDate}</span>
+                          <span className="font-semibold text-foreground">{money(d.total, currency)}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Section 1 · ضريبة المبيعات / المخرجات (Output Tax) */}
           <Card className="border-border">

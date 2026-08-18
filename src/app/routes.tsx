@@ -222,6 +222,7 @@ export const router = createBrowserRouter([
       { path: "vouchers", element: lazyElement(() => import("./pages/receipts"), "Receipts"), errorElement: <ErrorBoundary /> },
       { path: "vouchers/new", element: lazyElement(() => import("./pages/receipts"), "Receipts"), errorElement: <ErrorBoundary /> },
       // Accounting
+      { path: "accounting", element: lazyElement(() => import("./pages/accounting-home"), "AccountingHome"), errorElement: <ErrorBoundary /> },
       { path: "chart-of-accounts", element: lazyElement(() => import("./pages/chart-of-accounts"), "ChartOfAccounts"), errorElement: <ErrorBoundary /> },
       { path: "journal-entries", element: lazyElement(() => import("./pages/journal-entries"), "JournalEntries"), errorElement: <ErrorBoundary /> },
       { path: "journal-entries/new", element: lazyElement(() => import("./pages/journal-entries"), "JournalEntries"), errorElement: <ErrorBoundary /> },
