@@ -6,8 +6,37 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Plus, Loader2, BookOpen, Trash2, X, AlertCircle, CheckCircle2, Calculator,
-  Pencil, Send, Undo2, Paperclip, Download, Upload,
+  Pencil, Send, Undo2, Paperclip, Download, Upload, ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router";
+
+/** Auto-posted entries carry their source document id in `reference` —
+ * map (source, id) → the document page so the ledger is one click from its
+ * evidence (user ask 2026-08-19: القيود يجب أن تكون واضحة كالمستندات). */
+function sourceDocHref(source: string | null, reference: string | null): string | null {
+  if (!source || !reference) return null;
+  switch (source) {
+    case "invoice": return `/app/invoices/${reference}`;
+    case "bill": return `/app/purchases/bills/${reference}`;
+    case "expense": return `/app/expenses/${reference}`;
+    case "receipt": return `/app/receipts/${reference}`;
+    case "payment": return `/app/payments/${reference}`;
+    case "credit-note": return `/app/credit-notes/${reference}`;
+    default: return null;
+  }
+}
+
+function sourceDocLabel(source: string | null, t: (ar: string, en?: string) => string): string {
+  switch (source) {
+    case "invoice": return t("فاتورة المبيعات", "Sales invoice");
+    case "bill": return t("فاتورة المشتريات", "Purchase bill");
+    case "expense": return t("المصروف", "Expense");
+    case "receipt": return t("سند القبض", "Receipt voucher");
+    case "payment": return t("سند الصرف", "Payment voucher");
+    case "credit-note": return t("الإشعار الدائن", "Credit note");
+    default: return t("المستند", "Document");
+  }
+}
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -49,6 +78,7 @@ export function JournalEntries() {
   const [busy, setBusy] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | "POSTED" | "DRAFT">("");
+  const [coverage, setCoverage] = useState<{ unposted: { invoices: number; bills: number; expenses: number; receipts: number; payments: number }; linked: boolean } | null>(null);
 
   // Detail panel state
   const [selected, setSelected] = useState<JournalEntryRow | null>(null);
@@ -70,6 +100,7 @@ export function JournalEntries() {
       ]);
       setItems(j.items);
       setAccounts(a.items);
+      api.journals.coverage().then(setCoverage).catch(() => setCoverage(null));
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
@@ -260,6 +291,35 @@ export function JournalEntries() {
           </Button>
         </div>
 
+        {/* Ledger linkage proof — every posted document should carry its auto
+            entry. Silent poster skips (missing COA account) surface HERE. */}
+        {coverage && (
+          coverage.linked ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {t("كل المستندات المعتمدة مترابطة مع الدفتر — لا فجوات.", "Every posted document is linked to the ledger — no gaps.")}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+              <div className="flex items-center gap-2 font-semibold">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {t("مستندات معتمدة بلا قيد محاسبي", "Posted documents without a journal entry")}
+              </div>
+              <div className="mt-1 text-xs leading-5 text-amber-800">
+                {[
+                  coverage.unposted.invoices > 0 ? t("فواتير مبيعات", "Sales invoices") + `: ${coverage.unposted.invoices}` : null,
+                  coverage.unposted.bills > 0 ? t("فواتير مشتريات", "Purchase bills") + `: ${coverage.unposted.bills}` : null,
+                  coverage.unposted.expenses > 0 ? t("مصروفات", "Expenses") + `: ${coverage.unposted.expenses}` : null,
+                  coverage.unposted.receipts > 0 ? t("سندات قبض", "Receipts") + `: ${coverage.unposted.receipts}` : null,
+                  coverage.unposted.payments > 0 ? t("سندات صرف", "Payments") + `: ${coverage.unposted.payments}` : null,
+                ].filter(Boolean).join(" · ")}
+                {" — "}
+                {t("السبب الأغلب: حساب واجهة غير موجود في شجرة الحسابات (مثل 11000 ذمم مدينة أو 21000 ضريبة). راجع شجرة الحسابات ثم أعد حفظ المستند ليُرحَّل.", "Most common cause: a posting account is missing from the chart (e.g. 11000 AR or 21000 VAT). Review the chart of accounts, then re-save the document to post it.")}
+              </div>
+            </div>
+          )
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي القيود", "Total Entries")}</div>
@@ -399,8 +459,18 @@ export function JournalEntries() {
               </div>
               {selected.reference && (
                 <div className="col-span-2">
-                  <div className="text-xs text-muted-foreground">{t("المرجع", "Reference")}</div>
-                  <div className="font-english text-foreground mt-0.5" dir="ltr">{selected.reference}</div>
+                  <div className="text-xs text-muted-foreground">{t("المستند المصدر", "Source document")}</div>
+                  {(() => {
+                    const href = sourceDocHref(selected.source, selected.reference);
+                    return href ? (
+                      <Link to={href} className="mt-0.5 inline-flex items-center gap-1 text-primary hover:underline">
+                        <span className="font-semibold">{sourceDocLabel(selected.source, t)}</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : (
+                      <div className="font-english text-foreground mt-0.5" dir="ltr">{selected.reference}</div>
+                    );
+                  })()}
                 </div>
               )}
             </div>

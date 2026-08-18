@@ -280,6 +280,9 @@ export const api = {
       request<JournalEntryRow>(`/api/journals/${id}`, { method: 'PATCH', body: data }),
     post: (id: string) => request<{ ok: true }>(`/api/journals/${id}/post`, { method: 'POST' }),
     unpost: (id: string) => request<{ ok: true }>(`/api/journals/${id}/unpost`, { method: 'POST' }),
+    /** Ledger linkage probe — posted documents missing their auto journal entry, per source. */
+    coverage: () =>
+      request<{ unposted: { invoices: number; bills: number; expenses: number; receipts: number; payments: number }; linked: boolean }>('/api/journals/coverage'),
     remove: (id: string) => request<void>(`/api/journals/${id}`, { method: 'DELETE' }),
     attachments: {
       list: (id: string) => request<{ items: JournalAttachment[] }>(`/api/journals/${id}/attachments`),
