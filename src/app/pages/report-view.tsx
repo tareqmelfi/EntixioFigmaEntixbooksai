@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Download, ExternalLink, Loader2, Printer, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { DateInput } from "../components/date-input";
@@ -17,6 +17,13 @@ function yearStartIso() {
   return new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
 }
 
+// Detail sections carry the per-account breakouts («*-detail» / «*-crosscheck»).
+// The summary mode keeps the statement compact (Wave-style) — a company with
+// a hundred accounts should not need a book to read its P&L (2026-08-19).
+const isDetailSection = (id: string) => /-detail$|-crosscheck$/.test(id);
+
+const VIEW_MODE_KEY = "entix-report-view-mode";
+
 export function ReportView() {
   const { t, language } = useLanguage();
   const { id = "income-statement" } = useParams();
@@ -28,6 +35,15 @@ export function ReportView() {
   const [selectedRow, setSelectedRow] = useState<ReportRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // «ملخص» collapses the per-account detail sections; the choice persists.
+  const [detailMode, setDetailMode] = useState<"summary" | "full">(() => {
+    if (typeof window === "undefined") return "summary";
+    return window.localStorage.getItem(VIEW_MODE_KEY) === "full" ? "full" : "summary";
+  });
+  const changeDetailMode = (mode: "summary" | "full") => {
+    setDetailMode(mode);
+    try { window.localStorage.setItem(VIEW_MODE_KEY, mode); } catch { /* private mode */ }
+  };
 
   useEffect(() => {
     setSearchParams({ from, to }, { replace: true });
@@ -56,6 +72,13 @@ export function ReportView() {
   }, [id, from, to]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
+
+  const hasDetailSections = useMemo(() => (report?.sections || []).some((s) => isDetailSection(s.id)), [report]);
+  const visibleReport = useMemo(() => {
+    if (!report) return report;
+    if (detailMode === "full" || !hasDetailSections) return report;
+    return { ...report, sections: report.sections.filter((s) => !isDetailSection(s.id)) };
+  }, [report, detailMode, hasDetailSections]);
 
   const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
@@ -93,6 +116,19 @@ export function ReportView() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {hasDetailSections && (
+            <Button
+              variant="outline"
+              onClick={() => changeDetailMode(detailMode === "summary" ? "full" : "summary")}
+              title={t("تصغير التقرير لأقسامه الرئيسية أو عرض الشجرة بكل تفاصيلها", "Collapse to main sections or expand the full tree")}
+            >
+              {detailMode === "summary" ? (
+                <><ListTree className="me-2 h-4 w-4" />{t("تفصيل كامل", "Full detail")}</>
+              ) : (
+                <><ListX className="me-2 h-4 w-4" />{t("ملخص فقط", "Summary only")}</>
+              )}
+            </Button>
+          )}
           <Button variant="outline" onClick={exportCsv} disabled={!report}>
             <Download className="me-2 h-4 w-4" />CSV
           </Button>
@@ -128,10 +164,10 @@ export function ReportView() {
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <div className="mt-3 text-sm text-muted-foreground">{t("جاري تحميل التقرير...", "Loading report...")}</div>
         </div>
-      ) : report ? (
+      ) : report && visibleReport ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="overflow-x-auto rounded-xl bg-muted/50 p-4">
-            <ReportDocument report={report} settings={settings} onRowClick={setSelectedRow} />
+            <ReportDocument report={visibleReport} settings={settings} onRowClick={setSelectedRow} />
           </div>
           <aside className="space-y-3">
             <Card className="border-border">

@@ -16,6 +16,7 @@ const defaultSettings: Required<ReportPrintSettings> = {
   showTaxInfo: true,
   showFooter: true,
   showPreparedBy: true,
+  showNotes: false,
 };
 
 const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal", "gross", "net", "debit", "credit", "balance", "value"]);
@@ -25,6 +26,38 @@ const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal",
 // with a rule above — no API change required.
 function isTotalRow(row: ReportRow) {
   return /(^|-)total$/.test(row.id) || row.id === "net-income" || row.id === "current-earnings";
+}
+
+const fmt = (value: number, currency: string) =>
+  `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+
+/** Wave-style equation strip: revenue − expenses = net, straight under the
+ * header so the arithmetic is visible before any table (user ask 2026-08-19). */
+function EquationStrip({ report, currency }: { report: ReportPayload; currency: string }) {
+  const { t } = useLanguage();
+  if (report.id !== "income-statement") return null;
+  const summary = report.sections.find((s) => s.id === "income-summary");
+  if (!summary) return null;
+  const amount = (id: string) => {
+    const row = summary.rows.find((r) => r.id === id);
+    return row ? Number(row.values.amount ?? 0) : null;
+  };
+  const revenue = amount("revenue");
+  const expenses = amount("expenses");
+  const net = amount("net-income");
+  if (revenue === null || expenses === null || net === null) return null;
+  return (
+    <div className="report-equation mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-md border border-slate-200 bg-slate-50/70 px-4 py-3 text-center" dir="ltr">
+      <span className="text-xs text-slate-500">{t("الإيرادات", "Revenue")}</span>
+      <NumericText className="text-base font-bold text-slate-900">{fmt(revenue, currency)}</NumericText>
+      <span className="text-lg font-bold text-slate-400">−</span>
+      <span className="text-xs text-slate-500">{t("المصروفات", "Expenses")}</span>
+      <NumericText className="text-base font-bold text-slate-900">{fmt(expenses, currency)}</NumericText>
+      <span className="text-lg font-bold text-slate-400">=</span>
+      <span className="text-xs text-slate-500">{t("صافي الربح / الخسارة", "Net income / (loss)")}</span>
+      <NumericText className={`text-lg font-bold ${net < 0 ? "text-red-700" : "text-emerald-700"}`}>{fmt(net, currency)}</NumericText>
+    </div>
+  );
 }
 
 export function normalizeReportSettings(settings?: ReportPrintSettings | null): Required<ReportPrintSettings> {
@@ -78,23 +111,23 @@ export function ReportDocument({
 
   return (
     <article
-      className="entix-report-paper document-paper overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none"
+      className="entix-report-paper document-paper overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none"
       dir={dir}
       style={style}
     >
-      {/* Reference chrome (user-approved Wave-style P&L): client logo pinned
-          TOP RIGHT, title block TOP LEFT — physically LTR in BOTH languages.
-          No software brand, no gradient, no status chips. */}
-      <header dir="ltr" className="border-b-2 px-8 pb-5 pt-7" style={{ borderColor: "var(--report-primary)" }}>
+      {/* Header follows the DOCUMENT direction: an Arabic report aligns text
+          to the right with the logo on the left; English keeps the Wave
+          layout (title left, logo right). No logo → nothing renders. */}
+      <header className="border-b-2 px-6 pb-4 pt-5" style={{ borderColor: "var(--report-primary)" }}>
         <div className="flex items-start justify-between gap-6">
-          <div className="min-w-0 text-left">
+          <div className="min-w-0 text-start">
             <h1 className="document-title" style={{ color: "var(--report-primary)" }}>
               <BidiText mode="plaintext">{reportTitle}</BidiText>
             </h1>
-            <div className="mt-1 text-sm font-semibold text-slate-800">
+            <div className="mt-0.5 text-sm font-semibold text-slate-800">
               <BidiText mode="plaintext">{report.org.legalName || report.org.name}</BidiText>
             </div>
-            <div className="mt-2 text-xs leading-5 text-slate-500">
+            <div className="mt-1.5 text-xs leading-5 text-slate-500">
               <div>
                 {t("الفترة", "Date Range")}: <NumericText>{report.period.from}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
                 {" · "}
@@ -105,26 +138,28 @@ export function ReportDocument({
               {resolved.showTaxInfo && taxLine ? <div><BidiText mode="plaintext">{taxLine}</BidiText></div> : null}
             </div>
           </div>
-          <div className="shrink-0">
-            {logo ? (
+          {logo ? (
+            <div className="shrink-0">
               <img src={logo} alt={report.org.name} className="max-h-14 max-w-[170px] object-contain" />
-            ) : (
-              <div className="inline-flex h-14 min-w-14 items-center justify-center rounded-lg px-3 text-base font-bold text-white" style={{ background: "var(--report-primary)" }}>
-                {report.org.name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </header>
 
-      <main className="space-y-5 px-8 py-5" style={{ fontSize: "var(--report-font-size)" }}>
+      <main className="space-y-5 px-6 py-5" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
             {report.notices.join(" · ")}
           </div>
         ) : null}
 
-        {report.sections.map((section) => (
+        <EquationStrip report={report} currency={report.currency} />
+
+        {report.sections.map((section) => {
+          // The note column is custom-print opt-in (showNotes); default reports
+          // stay a clean two-column «البند · القيمة» sheet.
+          const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
+          return (
           <section key={section.id} className="document-keep-together break-inside-avoid">
             <div className="mb-1.5">
               <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{section.title}</BidiText></h2>
@@ -133,10 +168,10 @@ export function ReportDocument({
             <table className="document-table w-full border-collapse">
               <thead>
                 <tr style={{ borderTop: "1.5px solid var(--report-primary)", borderBottom: "1px solid #cbd5e1" }}>
-                  {section.columns.map((column) => (
+                  {columns.map((column) => (
                     <th
                       key={column.key}
-                      className="text-[11px] font-bold uppercase tracking-wide text-slate-500"
+                      className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-slate-500"
                       style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
                     >
                       {column.label}
@@ -145,19 +180,20 @@ export function ReportDocument({
                 </tr>
               </thead>
               <tbody>
-                {section.rows.length ? section.rows.map((row) => {
+                {section.rows.length ? section.rows.map((row, rowIndex) => {
                   const totalRow = isTotalRow(row);
                   return (
                     <tr
                       key={row.id}
-                      className={onRowClick ? "cursor-pointer transition hover:bg-slate-50" : ""}
+                      className={`${rowIndex % 2 === 1 && !totalRow ? "bg-slate-50/70" : ""}${onRowClick ? " cursor-pointer transition hover:bg-slate-100/70" : ""}`}
                       onClick={() => onRowClick?.(row)}
                     >
-                      {section.columns.map((column) => (
+                      {columns.map((column) => (
                         <td
                           key={`${row.id}-${column.key}`}
-                          className={totalRow ? "border-t border-slate-300 font-bold text-slate-900" : "border-b border-slate-100 text-slate-700"}
+                          className={`${totalRow ? "border-t border-slate-300 font-bold text-slate-900" : "text-slate-700"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}`}
                           style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
+                          title={column.key === "label" ? String(row.values[column.key] ?? row.label) : undefined}
                         >
                           <CellValue value={row.values[column.key]} keyName={column.key} kind={column.kind} currency={report.currency} strong={totalRow} />
                         </td>
@@ -166,7 +202,7 @@ export function ReportDocument({
                   );
                 }) : (
                   <tr>
-                    <td colSpan={section.columns.length} className="px-4 py-6 text-center text-sm text-slate-500">
+                    <td colSpan={columns.length} className="px-4 py-6 text-center text-sm text-slate-500">
                       {t("لا توجد بيانات في هذا القسم خلال الفترة المحددة.", "No data in this section for the selected period.")}
                     </td>
                   </tr>
@@ -174,11 +210,12 @@ export function ReportDocument({
               </tbody>
             </table>
           </section>
-        ))}
+          );
+        })}
       </main>
 
       {resolved.showFooter && (
-        <footer className="flex items-center justify-between gap-4 border-t border-slate-200 px-8 py-3 text-[11px] text-slate-400">
+        <footer className="flex items-center justify-between gap-4 border-t border-slate-200 px-6 py-3 text-[11px] text-slate-400">
           <span className="min-w-0 truncate"><BidiText mode="plaintext">{reportTitle}</BidiText> · <BidiText mode="plaintext">{report.org.name}</BidiText> · <NumericText>{report.id}</NumericText></span>
           <span className="hidden sm:inline">
             {t("أُنشئ في", "Created on")} <NumericText>{new Date(report.generatedAt).toLocaleDateString(isEn ? "en-GB" : "ar-SA")}</NumericText>
