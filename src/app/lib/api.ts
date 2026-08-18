@@ -1247,6 +1247,8 @@ export interface ReportPrintSettings {
   showTaxInfo?: boolean
   showFooter?: boolean
   showPreparedBy?: boolean
+  /** Note columns («ملاحظة») are off by default — the print designer opts in. */
+  showNotes?: boolean
 }
 
 export interface Contact {

@@ -1,25 +1,21 @@
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { Link } from "react-router";
 import {
   BarChart3,
   Building2,
   Calculator,
   ClipboardList,
-  Download,
   FileText,
   Filter,
-  Landmark,
   Loader2,
   Package,
-  Printer,
   Search,
   ShieldCheck,
-  TrendingDown,
   TrendingUp,
   Users,
   Wallet,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type DashboardSummary } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
@@ -61,12 +57,6 @@ type CategoryDefinition = {
   englishTitle: string;
   icon: ComponentType<{ className?: string }>;
   accent: string;
-};
-
-type PreviewRow = {
-  label: string;
-  value: string;
-  note: string;
 };
 
 const money = (value: string | number | null | undefined, currency = "SAR") => {
@@ -653,17 +643,11 @@ const statusMeta = (t: TFunc): Record<ReportStatus, { label: string; className: 
 
 export function Reports() {
   const { language, t } = useLanguage();
-  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<ReportCategoryId | "all">("all");
   const [query, setQuery] = useState("");
-  const [selectedReportId, setSelectedReportId] = useState(() => {
-    if (typeof window !== "undefined" && window.location.pathname.includes("cash-flow")) return "cash-flow";
-    if (typeof window !== "undefined" && window.location.pathname.includes("profit-loss")) return "income-statement";
-    return "income-statement";
-  });
 
   useEffect(() => {
     let alive = true;
@@ -704,24 +688,7 @@ export function Reports() {
     });
   }, [catalog, category, query]);
 
-  const selectedReport = catalog.find((report) => report.id === selectedReportId) || filteredReports[0] || catalog[0];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const selectedRows = useMemo(() => buildPreviewRows(selectedReport, summary, currency, profile, t), [selectedReport, summary, currency, profile, language]);
   const counts = useMemo(() => summarizeReports(catalog), [catalog]);
-
-  const exportSelectedCsv = () => {
-    const header = "Report,Category,Line,Value,Note";
-    const categoryTitle = categories.find((item) => item.id === selectedReport.category)?.title || selectedReport.category;
-    const csv = [
-      header,
-      ...selectedRows.map((row) =>
-        [selectedReport.title, categoryTitle, row.label, row.value, row.note]
-          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-          .join(","),
-      ),
-    ].join("\n");
-    downloadCsv(csv, `entix-${selectedReport.id}.csv`);
-  };
 
   const exportCatalogCsv = () => {
     const header = "Category,Report,English Title,Status,Formats,Data Sources";
@@ -737,16 +704,6 @@ export function Reports() {
     downloadCsv(csv, "entix-reports-catalog.csv");
   };
 
-  const printSelectedReport = () => {
-    navigate(`/app/reports/${selectedReport.id}/print`);
-  };
-
-  const selectCategory = (nextCategory: ReportCategoryId | "all") => {
-    setCategory(nextCategory);
-    const first = catalog.find((report) => nextCategory === "all" || report.category === nextCategory);
-    if (first) setSelectedReportId(first.id);
-  };
-
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -759,12 +716,6 @@ export function Reports() {
         <div className="no-print flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportCatalogCsv}>
             <FileText className="me-2 h-4 w-4" />{t("تصدير فهرس التقارير", "Export report index")}
-          </Button>
-          <Button variant="outline" onClick={printSelectedReport} disabled={!selectedReport}>
-            <Printer className="me-2 h-4 w-4" />PDF / {t("طباعة", "Print")}
-          </Button>
-          <Button variant="outline" onClick={exportSelectedCsv} disabled={!selectedReport}>
-            <Download className="me-2 h-4 w-4" />{t("تصدير التقرير المحدد", "Export selected report")}
           </Button>
         </div>
       </div>
@@ -783,7 +734,7 @@ export function Reports() {
           <div className="grid gap-3 lg:grid-cols-[minmax(220px,260px)_1fr]">
             <aside className="space-y-2">
               <button
-                onClick={() => selectCategory("all")}
+                onClick={() => setCategory("all")}
                 className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
                   category === "all" ? "border-primary bg-primary/5 text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                 }`}
@@ -797,7 +748,7 @@ export function Reports() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => selectCategory(item.id)}
+                    onClick={() => setCategory(item.id)}
                     className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
                       category === item.id ? "border-primary bg-primary/5 text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
                     }`}
@@ -830,188 +781,57 @@ export function Reports() {
               {loading ? (
                 <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
               ) : (
-                <div className="grid gap-4 xl:grid-cols-[minmax(360px,0.95fr)_minmax(420px,1.05fr)]">
-                  <ReportList
-                    reports={filteredReports}
-                    selectedReportId={selectedReport.id}
-                    onSelect={(id) => {
-                      setSelectedReportId(id);
-                      navigate(`/app/reports/${id}`);
-                    }}
-                  />
-                  <ReportPreview
-                    report={selectedReport}
-                    rows={selectedRows}
-                    summary={summary}
-                    currency={currency}
-                    profile={profile}
-                    onExport={exportSelectedCsv}
-                    onPrint={printSelectedReport}
-                  />
-                </div>
+                <ReportCards reports={filteredReports} />
               )}
             </section>
           </div>
         </CardContent>
       </Card>
-
-      {summary && (
-        <div className="grid gap-4 xl:grid-cols-2">
-          <OperationalChart title={t("قائمة الدخل - آخر 6 أشهر", "Income Statement - last 6 months")} rows={summary.profitLoss.map((r) => ({ label: r.month, a: r.revenue, b: r.expenses, c: r.net }))} currency={currency} />
-          <OperationalChart title={t("التدفق النقدي - آخر 6 أشهر", "Cash Flow - last 6 months")} rows={summary.cashFlowTrend.map((r) => ({ label: r.month, a: r.in, b: r.out, c: r.net }))} currency={currency} cashMode />
-        </div>
-      )}
     </div>
   );
 }
 
-function ReportList({
-  reports,
-  selectedReportId,
-  onSelect,
-}: {
-  reports: ReportDefinition[];
-  selectedReportId: string;
-  onSelect: (id: string) => void;
-}) {
+/**
+ * The reports center is a directory of cards — an icon per report, its title
+ * and one-line purpose, its status. Opening a report goes straight to the
+ * report itself (numbers/equation live there), not to a preview pane
+ * (2026-08-19 simplification wave).
+ */
+function ReportCards({ reports }: { reports: ReportDefinition[] }) {
   const { language, t } = useLanguage();
   if (reports.length === 0) return <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />;
 
   return (
-    <div className="max-h-[680px] space-y-2 overflow-y-auto pe-1">
+    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
       {reports.map((report) => {
         const category = categories.find((item) => item.id === report.category)!;
-        const selected = selectedReportId === report.id;
+        const Icon = category.icon;
         return (
-          <button
+          <Link
             key={report.id}
-            onClick={() => onSelect(report.id)}
-            className={`w-full rounded-lg border p-3 text-start transition ${
-              selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-white hover:border-border hover:bg-muted"
-            }`}
+            to={`/app/reports/${report.id}`}
+            className="group rounded-lg border border-border bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+            <div className="flex items-start gap-3">
+              <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${category.accent}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-foreground">{language === "en" ? report.englishTitle || report.title : report.title}</span>
+                  <span className="font-semibold text-foreground group-hover:text-primary">{language === "en" ? report.englishTitle || report.title : report.title}</span>
                   {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">{t("جديد", "New")}</span>}
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/70">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-foreground/70">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <StatusBadge status={report.status} />
+                  {report.formats.map((format) => <span key={format} className="rounded border border-border bg-white px-2 py-0.5 text-[11px] text-muted-foreground">{format}</span>)}
+                </div>
               </div>
-              <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${category.accent}`}>{language === "en" ? category.englishTitle || category.title : category.title}</span>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusBadge status={report.status} />
-              {report.formats.map((format) => <span key={format} className="rounded border border-border bg-white px-2 py-0.5 text-[11px] text-muted-foreground">{format}</span>)}
-            </div>
-          </button>
+          </Link>
         );
       })}
     </div>
-  );
-}
-
-function ReportPreview({
-  report,
-  rows,
-  summary,
-  currency,
-  profile,
-  onExport,
-  onPrint,
-}: {
-  report: ReportDefinition;
-  rows: PreviewRow[];
-  summary: DashboardSummary | null;
-  currency: string;
-  profile: ReturnType<typeof getCompanyProfile>;
-  onExport: () => void;
-  onPrint: () => void;
-}) {
-  const { language, t } = useLanguage();
-  const category = categories.find((item) => item.id === report.category)!;
-  const Icon = category.icon;
-  const status = statusMeta(t)[report.status];
-
-  return (
-    <Card className="entix-report-print border-border">
-      <CardHeader className="border-b border-border">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${category.accent}`}>
-                <Icon className="h-4 w-4" />
-              </span>
-              <CardTitle className="text-foreground">{language === "en" ? report.englishTitle || report.title : report.title}</CardTitle>
-              {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">{t("جديد", "New")}</span>}
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground font-english">{report.englishTitle}</div>
-          </div>
-          <div className="no-print flex flex-wrap gap-2">
-            <Button variant="outline" onClick={onPrint}>
-              <Printer className="me-2 h-4 w-4" />PDF
-            </Button>
-            <Button variant="outline" onClick={onExport}>
-              <Download className="me-2 h-4 w-4" />CSV
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 p-4">
-        <div className="rounded-lg border border-border bg-muted p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={report.status} />
-            <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{profile.countryLabel}</span>
-            <span className="rounded-full border border-border bg-white px-2 py-1 text-xs text-foreground/80">{language === "en" ? (report.usTerm || report.ksaTerm || profile.standardLabel) : (report.ksaTerm || report.usTerm || profile.standardLabel)}</span>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-foreground/80">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">{status.help}</p>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <MiniFact label={t("الشركة", "Company")} value={summary?.org.name || t("الشركة الحالية", "Current company")} />
-          <MiniFact label={t("العملة", "Currency")} value={currency} />
-          <MiniFact label={t("النظام الضريبي", "Tax system")} value={profile.taxSystem} />
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">{t("معاينة التقرير", "Report preview")}</h3>
-            <span className="text-xs text-muted-foreground">{t("الأرقام تعرض من البيانات المتاحة الآن", "Numbers shown from available data")}</span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[560px]">
-              <thead>
-                <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">{t("البند", "Item")}</th>
-                  <th className="px-4 py-3 text-start">{t("القيمة", "Value")}</th>
-                  <th className="px-4 py-3 text-start">{t("ملاحظة", "Note")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={`${row.label}-${row.note}`} className="border-b border-border/50 last:border-0">
-                    <td className="px-4 py-3 text-sm font-medium text-foreground">{row.label}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-foreground font-english">{row.value}</td>
-                    <td className="px-4 py-3 text-xs leading-5 text-muted-foreground">{row.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <InfoBlock title={t("مصادر البيانات", "Data sources")} icon={<Landmark className="h-4 w-4" />}>
-            {report.dataSources.join(" · ")}
-          </InfoBlock>
-          <InfoBlock title={t("المخرجات", "Outputs")} icon={<Printer className="h-4 w-4" />}>
-            {report.formats.join(" · ")}
-          </InfoBlock>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -1032,78 +852,10 @@ function Metric({ label, value, tone }: { label: string; value: string; tone: "g
   );
 }
 
-function MiniFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-white px-3 py-2">
-      <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="mt-1 truncate text-sm font-semibold text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function InfoBlock({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <div className="rounded-lg border border-border bg-white p-3">
-      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">{icon}{title}</div>
-      <div className="text-xs leading-5 text-muted-foreground">{children}</div>
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: ReportStatus }) {
   const { t } = useLanguage();
   const meta = statusMeta(t)[status];
   return <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${meta.className}`}>{meta.label}</span>;
-}
-
-function OperationalChart({
-  title,
-  rows,
-  currency,
-  cashMode = false,
-}: {
-  title: string;
-  rows: Array<{ label: string; a: number; b: number; c: number }>;
-  currency: string;
-  cashMode?: boolean;
-}) {
-  const { t } = useLanguage();
-  const max = Math.max(1, ...rows.flatMap((row) => [Math.abs(row.a), Math.abs(row.b), Math.abs(row.c)]));
-  if (rows.length === 0) return <Empty text={t("لا توجد بيانات كافية لهذا التقرير", "Not enough data for this report")} />;
-  return (
-    <Card className="border-border">
-      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {rows.map((row) => (
-            <div key={row.label} className="grid gap-3 md:grid-cols-[130px_1fr_160px] md:items-center">
-              <div className="text-sm font-medium text-foreground">{row.label}</div>
-              <div className="space-y-1.5">
-                <Bar label={cashMode ? t("داخل", "In") : t("إيراد", "Revenue")} value={row.a} max={max} color="#1276E3" />
-                <Bar label={cashMode ? t("خارج", "Out") : t("مصروف", "Expenses")} value={row.b} max={max} color="#EF4444" />
-              </div>
-              <div className={`text-sm font-semibold font-english ${row.c >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                {row.c >= 0 ? <TrendingUp className="me-1 inline h-4 w-4" /> : <TrendingDown className="me-1 inline h-4 w-4" />}
-                {money(row.c, currency)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  return (
-    <div className="grid grid-cols-[72px_1fr_120px] items-center gap-2 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <div className="h-2 rounded bg-muted">
-        <div className="h-2 rounded" style={{ width: `${Math.min(100, (Math.abs(value) / max) * 100)}%`, background: color }} />
-      </div>
-      <span className="text-end font-english text-foreground/80">{money(value, "")}</span>
-    </div>
-  );
 }
 
 function Empty({ text }: { text: string }) {
@@ -1159,102 +911,4 @@ function localizeCatalog(catalog: ReportDefinition[], profile: ReturnType<typeof
     if (report.id === "vat-summary") return { ...report, title: "ضريبة القيمة المضافة" };
     return report;
   });
-}
-
-function buildPreviewRows(
-  report: ReportDefinition,
-  summary: DashboardSummary | null,
-  currency: string,
-  profile: ReturnType<typeof getCompanyProfile>,
-  t: TFunc,
-): PreviewRow[] {
-  if (!summary) {
-    return [
-      { label: t("حالة البيانات", "Data status"), value: t("لم يتم التحميل", "Not loaded"), note: t("سيظهر التقرير بعد تحميل بيانات الشركة.", "The report will appear after company data is loaded.") },
-      { label: t("مصادر التقرير", "Report sources"), value: report.dataSources.length.toString(), note: report.dataSources.join(" · ") },
-    ];
-  }
-
-  const totalExpense = summary.kpi.purchases + summary.kpi.expenses;
-  const netIncome = summary.kpi.revenue - totalExpense;
-  const equityEstimate = summary.kpi.cashOnHand + summary.kpi.accountsReceivable - summary.kpi.accountsPayable - Math.max(summary.kpi.vatNet, 0);
-
-  if (report.category === "financial" || report.category === "consolidated") {
-    if (report.id.includes("cash")) {
-      const lastCash = summary.cashFlowTrend[summary.cashFlowTrend.length - 1];
-      return [
-        { label: t("النقد الداخل", "Cash in"), value: money(lastCash?.in || summary.kpi.receipts, currency), note: t("من سندات القبض والحركات النقدية.", "From receipt vouchers and cash movements.") },
-        { label: t("النقد الخارج", "Cash out"), value: money(lastCash?.out || summary.kpi.payments, currency), note: t("من سندات الصرف والمصروفات.", "From payment vouchers and expenses.") },
-        { label: t("الصافي", "Net"), value: money(lastCash?.net || summary.kpi.receipts - summary.kpi.payments, currency), note: report.id.includes("indirect") ? t("الطريقة غير المباشرة تحتاج أرصدة افتتاحية وإقفال الفترة.", "The indirect method requires opening balances and period closing.") : t("تدفق مباشر من البيانات الحالية.", "Direct flow from current data.") },
-      ];
-    }
-    if (report.id.includes("balance")) {
-      return [
-        { label: t("النقد والبنوك", "Cash & banks"), value: money(summary.kpi.cashOnHand, currency), note: t("من الحسابات البنكية والنقدية.", "From bank and cash accounts.") },
-        { label: t("الذمم المدينة", "Receivables"), value: money(summary.kpi.accountsReceivable, currency), note: t("فواتير العملاء غير المحصلة.", "Uncollected customer invoices.") },
-        { label: t("الذمم الدائنة", "Payables"), value: money(summary.kpi.accountsPayable, currency), note: t("فواتير الموردين غير المدفوعة.", "Unpaid supplier bills.") },
-        { label: t("حقوق الملكية المقدرة", "Estimated equity"), value: money(equityEstimate, currency), note: t("تقدير سريع؛ التقرير الكامل يعتمد على كل أرصدة دليل الحسابات.", "A quick estimate; the full report depends on all chart-of-accounts balances.") },
-      ];
-    }
-    return [
-      { label: t("الإيرادات", "Revenue"), value: money(summary.kpi.revenue, currency), note: t("من الفواتير وقيود الإيراد.", "From invoices and revenue entries.") },
-      { label: t("المشتريات والمصروفات", "Purchases & expenses"), value: money(totalExpense, currency), note: t("من فواتير الموردين والمصروفات والقيود.", "From supplier bills, expenses, and entries.") },
-      { label: t("صافي الربح", "Net profit"), value: money(netIncome, currency), note: report.segmentation ? t(`يمكن تقسيمه حسب ${report.segmentation.join(" / ")}.`, `Can be segmented by ${report.segmentation.join(" / ")}.`) : t("قابل للتصدير PDF وCSV وExcel.", "Exportable to PDF, CSV, and Excel.") },
-    ];
-  }
-
-  if (report.category === "sales") {
-    return [
-      { label: t("إجمالي المبيعات", "Total sales"), value: money(summary.kpi.revenue, currency), note: t("من الفواتير المعتمدة وقيود الإيراد.", "From approved invoices and revenue entries.") },
-      { label: t("الذمم المدينة", "Receivables"), value: money(summary.kpi.accountsReceivable, currency), note: t("الرصيد المفتوح على العملاء.", "Open balance on customers.") },
-      { label: t("عدد الفواتير", "Invoice count"), value: numberValue(summary.kpi.invoiceCount), note: t("عدد فواتير المبيعات في الشركة.", "Number of sales invoices in the company.") },
-      { label: t("فواتير متأخرة", "Overdue invoices"), value: numberValue(summary.kpi.overdueCount), note: report.id.includes("aging") ? t("تستخدم لتقادم الحسابات المدينة.", "Used for receivables aging.") : t("تنبيه تحصيل.", "Collection alert.") },
-    ];
-  }
-
-  if (report.category === "purchases") {
-    return [
-      { label: t("إجمالي المشتريات", "Total purchases"), value: money(summary.kpi.purchases, currency), note: t("من فواتير الموردين.", "From supplier bills.") },
-      { label: t("إجمالي المصروفات", "Total expenses"), value: money(summary.kpi.expenses, currency), note: t("من المصروفات النقدية والمرفقات المقروءة OCR.", "From cash expenses and OCR-read receipts.") },
-      { label: t("الذمم الدائنة", "Payables"), value: money(summary.kpi.accountsPayable, currency), note: t("رصيد الموردين المفتوح.", "Open supplier balance.") },
-      { label: t("مصروفات نقدية", "Cash expenses"), value: money(summary.kpi.payments, currency), note: t("سندات الصرف والحركات النقدية.", "Payment vouchers and cash movements.") },
-    ];
-  }
-
-  if (report.category === "tax") {
-    return [
-      { label: profile.country === "US" ? "Sales Tax Output" : t("VAT مخرجات", "VAT Output"), value: money(summary.kpi.vatOutput, currency), note: t("ضريبة المبيعات أو الفواتير الصادرة.", "Sales tax or issued invoices.") },
-      { label: profile.country === "US" ? "Tax Input / Credits" : t("VAT مدخلات", "VAT Input"), value: money(summary.kpi.vatInput, currency), note: t("ضريبة مشتريات ومصروفات قابلة للمراجعة.", "Purchases and expenses tax available for review.") },
-      { label: t("الصافي", "Net"), value: money(summary.kpi.vatNet, currency), note: profile.taxSystem },
-    ];
-  }
-
-  if (report.category === "accountant") {
-    return [
-      { label: t("الحسابات", "Accounts"), value: t("دليل الحسابات", "Chart of accounts"), note: t("التقرير يعتمد على القيود المرحلة وأرصدة الحسابات.", "The report relies on posted entries and account balances.") },
-      { label: t("النقد", "Cash"), value: money(summary.kpi.cashOnHand, currency), note: t("نقطة تحقق سريعة من أرصدة البنوك.", "A quick verification point against bank balances.") },
-      { label: t("سجل التدقيق", "Audit log"), value: report.id === "audit-log" ? t("متاح", "Available") : t("مرتبط", "Linked"), note: t("يسجل الاعتماد والحذف والعكس وتعديل البيانات الحساسة.", "Records approvals, deletions, reversals, and sensitive data changes.") },
-    ];
-  }
-
-  if (report.category === "payroll") {
-    return [
-      { label: t("مصدر التقرير", "Report source"), value: "Payroll Runs", note: t("يظهر تفصيلاً عند حفظ مسيرات الرواتب.", "Shows detail when payroll runs are saved.") },
-      { label: t("الربط المحاسبي", "Accounting link"), value: "Journal Entries", note: t("يجب ترحيل قيد الرواتب ليظهر في التقارير المالية.", "The payroll entry must be posted to appear in financial reports.") },
-      { label: t("الامتثال", "Compliance"), value: profile.country === "US" ? "Payroll / Tax" : "GOSI / WPS", note: t("المسمى يتغير حسب بلد الشركة.", "The label changes by company country.") },
-    ];
-  }
-
-  if (report.category === "inventory") {
-    return [
-      { label: t("مصدر التقرير", "Report source"), value: "Inventory Movements", note: t("دخول، خروج، تعديل، وإرجاع للمخزون.", "Inventory in, out, adjustment, and returns.") },
-      { label: t("التقسيم", "Segmentation"), value: report.segmentation?.join(" / ") || "Product", note: t("يدعم المستودعات والمنتجات والخدمات.", "Supports warehouses, products, and services.") },
-      { label: t("التكلفة", "Cost"), value: "Inventory Costing", note: t("جاهز للربط مع تقييم المخزون عند اكتمال الحركات.", "Ready to link with inventory valuation once movements are complete.") },
-    ];
-  }
-
-  return [
-    { label: t("مصدر التقرير", "Report source"), value: report.dataSources[0] || "Data", note: t(report.description, EN_DESCRIPTIONS[report.id] || report.description) },
-    { label: t("المخرجات", "Outputs"), value: report.formats.join(" / "), note: t("التقرير موجود ضمن الفهرس ولا توجد رسالة حجب باقة.", "The report is listed in the catalog; there is no plan-gating message.") },
-  ];
 }

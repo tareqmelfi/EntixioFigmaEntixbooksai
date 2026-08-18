@@ -136,4 +136,90 @@ for (const lang of ['ar', 'en'] as const) {
   assert.ok(!/sm:grid-cols-3/.test(header), `${lang}: no three-box tax grid in the header`)
 }
 
+// ── 2026-08-19 density & direction wave (user review of the Arabic render) ──
+
+// 9 · header follows the DOCUMENT language — Arabic report aligns text to the
+// right with the logo on the left (no physical LTR pin), English keeps the
+// Wave layout (title left, logo right). NumericText inside keeps its own
+// LTR isolation — the contract targets the header CONTAINER only.
+{
+  const arHtml = render('ar')
+  const headerTag = arHtml.match(/<header[^>]*>/)?.[0] || ''
+  assert.ok(headerTag.startsWith('<header'), 'ar: header element exists')
+  assert.ok(!/dir="ltr"/.test(headerTag), 'ar: header container is NOT LTR-pinned — Arabic text aligns right, logo left')
+}
+
+// 10 · no logo → no placeholder box at all (the blue initials square is gone)
+{
+  const noLogoFixture = { ...fixture, org: { ...fixture.org, logoUrl: null, printLogoUrl: null } }
+  storage.clear()
+  storage.set('entix-language', 'ar')
+  const html = renderToStaticMarkup(
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: noLogoFixture, settings: null })),
+  )
+  const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] || ''
+  assert.ok(!/<img/.test(header), 'no <img> without a logo')
+  assert.ok(!/text-white/.test(header), 'no initials placeholder box without a logo')
+}
+
+// 11 · the note column is OFF by default (custom print can opt in)
+{
+  const withNotes = {
+    ...fixture,
+    sections: [{
+      ...fixture.sections[0],
+      columns: [...fixture.sections[0].columns, { key: 'note', label: 'ملاحظة' }],
+      rows: fixture.sections[0].rows.map((r: any) => ({ ...r, values: { ...r.values, note: 'ملاحظة طويلة' } })),
+    }],
+  }
+  storage.clear(); storage.set('entix-language', 'ar')
+  const defaultHtml = renderToStaticMarkup(
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withNotes, settings: null })),
+  )
+  assert.ok(!defaultHtml.includes('ملاحظة طويلة'), 'note column hidden by default')
+  const optedHtml = renderToStaticMarkup(
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withNotes, settings: { showNotes: true } })),
+  )
+  assert.ok(optedHtml.includes('ملاحظة طويلة'), 'note column renders when showNotes=true')
+}
+
+// 12 · dense single-line rows: labels never wrap to a second line; zebra
+// striping replaces per-row hairlines; minimal corner radius on the paper.
+{
+  const html = render('ar')
+  assert.ok(/whitespace-nowrap/.test(html), 'row labels are single-line (nowrap)')
+  assert.ok(/bg-slate-50/.test(html), 'zebra striping present')
+  assert.ok(!/rounded-xl/.test(html.match(/<article[^>]*>/)?.[0] || ''), 'paper uses minimal rounding')
+}
+
+// 13 · income-statement shows the Wave-style equation strip (revenue −
+// expenses = net) straight under the header.
+{
+  const withSummary = {
+    ...fixture,
+    id: 'income-statement',
+    sections: [
+      {
+        id: 'income-summary', title: 'ملخص قائمة الدخل',
+        columns: fixture.sections[0].columns,
+        rows: [
+          { id: 'revenue', label: 'الإيرادات', values: { amount: 12339.99 } },
+          { id: 'expenses', label: 'المصروفات', values: { amount: 12273.31 } },
+          { id: 'net-income', label: 'صافي الربح', values: { amount: 66.68 } },
+        ],
+      },
+      fixture.sections[0],
+    ],
+  }
+  storage.clear(); storage.set('entix-language', 'ar')
+  const html = renderToStaticMarkup(
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withSummary, settings: null })),
+  )
+  const headerEnd = html.indexOf('</header>')
+  const detailStart = html.indexOf('تفصيل قائمة الدخل حسب الحساب')
+  const equationIdx = html.search(/report-equation/)
+  assert.ok(equationIdx > -1 && equationIdx > headerEnd && detailStart > -1 && equationIdx < detailStart, 'equation strip sits between header and detail sections')
+  assert.ok(/12,339\.99/.test(html) && /12,273\.31/.test(html), 'equation carries the revenue and expense numbers')
+}
+
 console.log('report-document contract: all assertions passed')
