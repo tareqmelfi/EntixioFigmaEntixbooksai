@@ -68,6 +68,15 @@ jobs:
         env:
           CI: 'true'
           VISUAL_REGRESSION: '1'
+      # On snapshot drift, publish the actual renders so an intentional visual
+      # change can be accepted without a Linux workstation (review before
+      # adopting — artifacts are the source of the new expected snapshots).
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-linux-actual
+          path: test-results/
+          retention-days: 7
 
   visual-regression:
     name: Visual Regression (macOS)
@@ -83,6 +92,12 @@ jobs:
         env:
           CI: 'true'
           VISUAL_REGRESSION: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-macos-actual
+          path: test-results/
+          retention-days: 7
 
   protect:
     name: Protect Critical Files
