@@ -2,7 +2,7 @@
  * Settings · org info + members + auth · wired to /orgs · /orgs/:id/members
  */
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams, Link } from "react-router";
 import { Building2, Users, Loader2, Save, LogOut, Shield, Sparkles, Key, AlertTriangle, ExternalLink, Database, RotateCcw, ShieldCheck, Trash2, ArrowLeftRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -15,8 +15,8 @@ import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types"
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 
-type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans";
-const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans"];
+type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools";
+const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools"];
 
 function initialSettingsTab(): SettingsTab {
   if (typeof window === "undefined") return "company";
@@ -224,6 +224,7 @@ export function Settings() {
           ["ai", "الذكاء الاصطناعي", "AI"],
           ["branding", "العلامة التجارية", "Branding"],
           ["plans", "الباقات", "Plans"],
+          ["tools", "الأدوات", "Tools"],
           ["account", "حسابي", "Account"],
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
           <button
@@ -657,6 +658,28 @@ export function Settings() {
       {tab === "zatca" && org && <ZatcaTab org={org} push={push} />}
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
+
+      {/* الأدوات — account-level utilities live here, not in the main sidebar
+          (integrations, templates, and the partners program are NOT part of
+          the client's own books; user direction 2026-08-18). */}
+      {tab === "tools" && (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {([
+            { path: "/app/integrations", titleAr: "التكاملات", titleEn: "Integrations", descAr: "الربط البنكي والخدمات الخارجية", descEn: "Bank feeds and external services" },
+            { path: "/app/templates", titleAr: "القوالب", titleEn: "Templates", descAr: "قوالب المستندات والطباعة", descEn: "Document and print templates" },
+            { path: "/app/partners", titleAr: "برنامج الشركاء", titleEn: "Partners program", descAr: "عمولات الإحالة للمسوّقين", descEn: "Referral commissions for marketers" },
+          ] as const).map((tool) => (
+            <Link key={tool.path} to={tool.path}>
+              <Card className="h-full border-border transition hover:border-primary/40 hover:bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="text-sm font-semibold text-foreground">{t(tool.titleAr, tool.titleEn)}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{t(tool.descAr, tool.descEn)}</div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {tab === "account" && (
         <Card className="border-border">

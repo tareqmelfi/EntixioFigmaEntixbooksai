@@ -7,10 +7,10 @@ import {
   Calculator as CalculatorIcon, FolderOpen, Wallet,
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
-  Plug, FileCode, HelpCircle, Globe,
+  HelpCircle, Globe,
   Users2, Inbox, Camera, TrendingUp, HardHat,
   Pin, MousePointer, EyeOff, Crown,
-  PanelRightClose, HandCoins,
+  PanelRightClose,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { OrgSwitcher } from "./org-switcher";
@@ -173,6 +173,9 @@ const sections: MenuSection[] = [
       {
         title: "المحاسبة",
         icon: Calculator,
+        // The parent itself navigates to the accounting home — it was
+        // pathless before, so clicking it felt «stuck» (2026-08-18 report).
+        path: "/app/accounting",
         children: [
           { title: "القيود اليدوية", icon: CalculatorIcon, path: "/app/journal-entries" },
           { title: "شجرة الحسابات", icon: BookOpen, path: "/app/chart-of-accounts" },
@@ -192,17 +195,24 @@ const sections: MenuSection[] = [
           { title: "سجل المساهمين", icon: Users2, path: "/app/shareholders" },
         ],
       },
-      { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
-      { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
-      { title: "الفروع", icon: GitBranch, path: "/app/branches" },
-      { title: "برنامج الشركاء", icon: HandCoins, path: "/app/partners", badge: "جديد" },
+      {
+        title: "التحليل والهيكل",
+        icon: Target,
+        children: [
+          { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
+          { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
+          { title: "الفروع", icon: GitBranch, path: "/app/branches" },
+        ],
+      },
+      // برنامج الشركاء intentionally left the sidebar: it's an account-level
+      // tool under Settings → الأدوات, not part of the client's own books.
     ],
   },
+  // التقارير is the LAST main-list item (user direction). Integrations and
+  // Templates moved into Settings → الأدوات; the «للمطورين» group is gone.
   {
-    label: "للمطورين",
     items: [
-      { title: "التكاملات", icon: Plug, path: "/app/integrations" },
-      { title: "القوالب", icon: FileCode, path: "/app/templates", badge: "محدّث" },
+      { title: "التقارير", icon: BarChart3, path: "/app/reports" },
     ],
   },
 ];
@@ -227,6 +237,7 @@ const searchPages = [
   { label: "المنتجات والخدمات", path: "/app/products" },
   { label: "المخزون والمستودعات", path: "/app/warehouses" },
   { label: "حركات المخزون", path: "/app/stock-movements" },
+  { label: "المحاسبة", path: "/app/accounting" },
   { label: "القيود اليدوية", path: "/app/journal-entries" },
   { label: "شجرة الحسابات", path: "/app/chart-of-accounts" },
   { label: "الضرائب", path: "/app/taxes" },
@@ -510,12 +521,6 @@ function SidebarContent({
       <div className="border-t border-border p-3 space-y-0.5">
         {!collapsed && (
           <>
-            <Link to="/app/reports" onClick={onClose}>
-              <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/reports") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
-                <BarChart3 className="h-5 w-5 shrink-0" />
-                <span className="flex-1 min-w-0 truncate text-start">{tr("التقارير")}</span>
-              </button>
-            </Link>
             <Link to="/app/roadmap" onClick={onClose}>
               <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
                 <Map className="h-5 w-5 shrink-0" />

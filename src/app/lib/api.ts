@@ -1816,6 +1816,12 @@ export interface TaxReturnPayload {
     totalWithholding: number
     rows: TaxReturnWithholdingRow[]
   }
+  /** Draft documents inside the period — review list only, never counted in the ZATCA buckets. */
+  drafts?: {
+    count: number
+    invoices: Array<{ id: string; invoiceNumber: string; issueDate: string; total: number; taxTotal: number; contactName: string | null }>
+    bills: Array<{ id: string; billNumber: string; issueDate: string; total: number; taxTotal: number; contactName: string | null }>
+  }
 }
 
 export interface OcrResult {

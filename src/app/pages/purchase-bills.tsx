@@ -4,7 +4,7 @@
  * UX pattern: FullPageForm (replaces content area on create · مطابق Wafeq) + ItemsTable + SearchableCombobox.
  */
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams, useLocation } from "react-router";
+import { useSearchParams, useLocation, useNavigate } from "react-router";
 import { Plus, Search, Trash2, Loader2, ShoppingBag, Edit2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -80,6 +80,7 @@ export function PurchaseBills() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const { goBack: goBackToSource } = useReturnTo();
+  const navigate = useNavigate();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -385,8 +386,12 @@ export function PurchaseBills() {
     return (
       <>
         <FullPageForm
-          title={t("فاتورة مشتريات جديدة", "New purchase invoice")}
-          subtitle={t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic data · you can edit later")}
+          title={editingId
+            ? `${t("فاتورة مشتريات", "Purchase invoice")} · ${form.billNumber || ""}`
+            : t("فاتورة مشتريات جديدة", "New purchase invoice")}
+          subtitle={editingId
+            ? t("فاتورة مسجلة — أي تعديل هنا يحدّث نفس الفاتورة", "A recorded bill — edits here update this same bill")
+            : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic data · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
           footer={
@@ -842,7 +847,7 @@ export function PurchaseBills() {
               </tr></thead>
               <tbody>
                 {filtered.map(b => (
-                  <tr key={b.id} onClick={() => openEdit(b)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
+                  <tr key={b.id} onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{b.billNumber}</td>
                     <td className="py-3 px-4 text-sm text-foreground/80">{b.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{b.issueDate?.slice(0, 10)}</td>
@@ -851,7 +856,7 @@ export function PurchaseBills() {
                     <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()} {b.currency}</td>
                     <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
-                        <button onClick={() => openEdit(b)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
+                        <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
                         {b.status === "DRAFT" && (
                           <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-500/10 flex items-center gap-1 border border-emerald-500/20" title={t("اعتماد الفاتورة", "Approve invoice")}>
                             {t("✓ اعتماد", "✓ Approve")}
