@@ -62,6 +62,15 @@ export function ReportView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [from, setFrom] = useState(searchParams.get("from") || yearStartIso());
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
+  // Comparative layout (user ask 2026-08-19 — Apple-style year-over-year):
+  // toggle sends compareTo = the day before the current window starts.
+  const [compare, setCompare] = useState(searchParams.get("compare") === "1");
+  const compareTo = useMemo(() => {
+    if (!compare) return undefined;
+    const start = new Date(from);
+    if (Number.isNaN(start.getTime())) return undefined;
+    return new Date(start.getTime() - 86400000).toISOString().slice(0, 10);
+  }, [compare, from]);
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [selectedRow, setSelectedRow] = useState<ReportRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +99,7 @@ export function ReportView() {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.reports.get(id, { from, to });
+        const data = await api.reports.get(id, { from, to, compareTo });
         if (alive) {
           setReport(data);
           setSelectedRow(null);
@@ -104,7 +113,7 @@ export function ReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to]);
+  }, [id, from, to, compareTo]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -164,7 +173,7 @@ export function ReportView() {
               )}
             </Button>
           )}
-          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to }).then(setReport)}>
+          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, compareTo }).then(setReport)}>
             <RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}
           </Button>
           {/* One compact export control — formats live inside the menu (no
@@ -174,7 +183,7 @@ export function ReportView() {
       </div>
 
       <Card className="border-border">
-        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">{t("من تاريخ", "From date")}</span>
             <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
@@ -183,6 +192,14 @@ export function ReportView() {
             <span className="font-semibold">{t("إلى تاريخ", "To date")}</span>
             <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
           </label>
+          <button
+            type="button"
+            onClick={() => setCompare((v) => !v)}
+            className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${compare ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-foreground/80 hover:bg-muted"}`}
+            title={t("قارن بنفس الفترة من العام الماضي (مثل قوائم آبل)", "Compare to the same window last year (Apple-style)")}
+          >
+            {t("مقارنة سنوية", "Compare YoY")}
+          </button>
           <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
             {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{report?.status === "live" ? t("مباشر", "Live") : t("فارغ", "Empty")}</span>
           </div>

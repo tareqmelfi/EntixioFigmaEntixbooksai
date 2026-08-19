@@ -392,7 +392,7 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; compareTo?: string }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
@@ -1232,6 +1232,8 @@ export interface ReportPayload {
   status: 'live' | 'empty'
   generatedAt: string
   period: { from: string; to: string }
+  /** Prior-period window when ?compareTo= was passed (Apple-style compare) */
+  comparePeriod?: { from: string; to: string } | null
   currency: string
   org: Org
   summary: Record<string, number>
