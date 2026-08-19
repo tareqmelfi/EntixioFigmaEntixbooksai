@@ -1211,6 +1211,8 @@ export interface ReportRow {
   note?: string | null
   status?: string | null
   link?: { label: string; href: string; type: string } | null
+  /** Tree depth within its section (0 = section root) — up to 5 levels render indented (Wave-style hierarchy) */
+  depth?: number
 }
 
 export interface ReportSection {

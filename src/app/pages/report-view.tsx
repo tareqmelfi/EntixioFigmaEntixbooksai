@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, ChevronDown, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { DateInput } from "../components/date-input";
@@ -24,6 +24,37 @@ const isDetailSection = (id: string) => /-detail$|-crosscheck$/.test(id);
 
 const VIEW_MODE_KEY = "entix-report-view-mode";
 
+/** Single compact export dropdown — icon-only trigger, formats inside the menu. */
+function ExportMenu({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled?: boolean }) {
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <Button variant="outline" disabled={disabled} onClick={() => setOpen((v) => !v)} title={t("تصدير التقرير", "Export report")} aria-label={t("تصدير التقرير", "Export report")}>
+        <Download className="h-4 w-4" />
+        <ChevronDown className={`ms-1 h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </Button>
+      {open && (
+        <div className="absolute end-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-white py-1 shadow-lg">
+          <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={() => { setOpen(false); onPdf(); }}>
+            <Printer className="h-4 w-4 text-muted-foreground" />{t("PDF / طباعة", "PDF / Print")}
+          </button>
+          <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={() => { setOpen(false); onCsv(); }}>
+            <Download className="h-4 w-4 text-muted-foreground" />CSV
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ReportView() {
   const { t, language } = useLanguage();
   const { id = "income-statement" } = useParams();
@@ -35,10 +66,14 @@ export function ReportView() {
   const [selectedRow, setSelectedRow] = useState<ReportRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // «ملخص» collapses the per-account detail sections; the choice persists.
+  // Reports load FULLY EXPANDED (all account categories visible immediately —
+  // user ask 2026-08-19: «Reports should load with all account categories
+  // expanded by default for immediate visibility»). «ملخص» collapses the
+  // per-account detail sections; the choice persists.
   const [detailMode, setDetailMode] = useState<"summary" | "full">(() => {
-    if (typeof window === "undefined") return "summary";
-    return window.localStorage.getItem(VIEW_MODE_KEY) === "full" ? "full" : "summary";
+    if (typeof window === "undefined") return "full";
+    const stored = window.localStorage.getItem(VIEW_MODE_KEY);
+    return stored === "summary" ? "summary" : "full";
   });
   const changeDetailMode = (mode: "summary" | "full") => {
     setDetailMode(mode);
@@ -129,15 +164,12 @@ export function ReportView() {
               )}
             </Button>
           )}
-          <Button variant="outline" onClick={exportCsv} disabled={!report}>
-            <Download className="me-2 h-4 w-4" />CSV
-          </Button>
           <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to }).then(setReport)}>
             <RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}
           </Button>
-          <Button onClick={() => navigate(printHref)}>
-            <Printer className="me-2 h-4 w-4" />{t("PDF / تصميم", "PDF / Design")}
-          </Button>
+          {/* One compact export control — formats live inside the menu (no
+              PDF/CSV/Excel text cluttering the toolbar, user ask 2026-08-19). */}
+          <ExportMenu onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report} />
         </div>
       </div>
 

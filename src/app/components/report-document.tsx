@@ -188,16 +188,26 @@ export function ReportDocument({
                       className={`${rowIndex % 2 === 1 && !totalRow ? "bg-slate-50/70" : ""}${onRowClick ? " cursor-pointer transition hover:bg-slate-100/70" : ""}`}
                       onClick={() => onRowClick?.(row)}
                     >
-                      {columns.map((column) => (
+                      {columns.map((column) => {
+                        // Tree hierarchy: the label cell indents by row.depth
+                        // (max 5 levels — Wave-style), keeping the one-line
+                        // density and ellipsis contract.
+                        const depth = Math.min(Math.max(row.depth ?? 0, 0), 5);
+                        return (
                         <td
                           key={`${row.id}-${column.key}`}
-                          className={`${totalRow ? "border-t border-slate-300 font-bold text-slate-900" : "text-slate-700"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}`}
-                          style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
+                          className={`${totalRow ? "border-t border-slate-300 font-bold text-slate-900" : "text-slate-700"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}${depth > 0 && column.key === "label" ? " text-slate-500" : ""}`}
+                          style={{
+                            padding: "var(--report-cell-padding)",
+                            textAlign: alignToCss(column.align),
+                            ...(column.key === "label" && depth > 0 ? { paddingInlineStart: `${depth * 18 + 10}px` } : {}),
+                          }}
                           title={column.key === "label" ? String(row.values[column.key] ?? row.label) : undefined}
                         >
                           <CellValue value={row.values[column.key]} keyName={column.key} kind={column.kind} currency={report.currency} strong={totalRow} />
                         </td>
-                      ))}
+                        );
+                      })}
                     </tr>
                   );
                 }) : (

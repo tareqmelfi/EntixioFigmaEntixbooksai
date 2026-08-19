@@ -222,4 +222,30 @@ for (const lang of ['ar', 'en'] as const) {
   assert.ok(/12,339\.99/.test(html) && /12,273\.31/.test(html), 'equation carries the revenue and expense numbers')
 }
 
+// 14 · multi-level account tree: a row with depth indents its label cell
+// (paddingInlineStart scales with depth, up to 5 levels — Wave-style) while
+// keeping the single-line density contract.
+{
+  const tree = {
+    ...fixture,
+    sections: [{
+      ...fixture.sections[0],
+      rows: [
+        { id: 'root', label: 'الإيرادات', values: { label: 'الإيرادات', amount: 100 } },
+        { id: 'lvl1', label: 'إيرادات الخدمات', values: { label: 'إيرادات الخدمات', amount: 60 }, depth: 1 },
+        { id: 'lvl2', label: 'إيرادات الخدمات الحكومية', values: { label: 'إيرادات الخدمات الحكومية', amount: 40 }, depth: 2 },
+        { id: 'lvl5', label: 'خدمة فرعية 1', values: { label: 'خدمة فرعية 1', amount: 5 }, depth: 5 },
+      ],
+    }],
+  }
+  storage.clear(); storage.set('entix-language', 'ar')
+  const html = renderToStaticMarkup(
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: tree, settings: null })),
+  )
+  assert.ok(/padding-inline-start:\s*28px/.test(html), 'depth 1 indents 28px')
+  assert.ok(/padding-inline-start:\s*46px/.test(html), 'depth 2 indents 46px')
+  assert.ok(/padding-inline-start:\s*100px/.test(html), 'depth 5 indents 100px (5-level cap respected)')
+  assert.ok(/إيرادات الخدمات الحكومية/.test(html), 'nested row label renders')
+}
+
 console.log('report-document contract: all assertions passed')

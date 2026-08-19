@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/test'
 import { prepareVisualApp, visualOrgId } from './fixtures/visual-app'
 
 /**
- * Report density toggle (user ask 2026-08-19 — Wave-style): the statement
- * opens on its main sections (ملخص); one button expands the full account tree
- * (تفصيل كامل) and the choice persists.
+ * Report density toggle (user asks 2026-08-19 — Wave-style): the statement
+ * opens FULLY EXPANDED (every account category visible immediately); one
+ * button collapses to the main sections (ملخص فقط) and the choice persists.
  */
 
 const org = {
@@ -48,7 +48,7 @@ const reportPayload = {
   ],
 }
 
-test('income statement opens in summary mode with the equation strip; تفصيل كامل expands the account tree', async ({ page }) => {
+test('income statement opens FULLY EXPANDED with the equation strip; ملخص فقط collapses the account tree', async ({ page }) => {
   await prepareVisualApp(page, 'ar')
   await page.route('https://api.entix.io/api/reports/income-statement*', (route) => route.fulfill({ json: reportPayload }))
 
@@ -58,13 +58,15 @@ test('income statement opens in summary mode with the equation strip; تفصيل
   await expect(page.getByText('12,339.99 SAR').first()).toBeVisible()
   await expect(page.getByText('66.68 SAR').first()).toBeVisible()
 
-  // Summary mode: per-account detail hidden, toggle offered
-  await expect(page.getByText('تفصيل قائمة الدخل حسب الحساب')).toHaveCount(0)
-  await page.getByRole('button', { name: /تفصيل كامل/ }).click()
+  // Expanded by default: per-account detail is visible without any click
   await expect(page.getByText('تفصيل قائمة الدخل حسب الحساب')).toBeVisible()
   await expect(page.getByText('42000 · المبيعات')).toBeVisible()
 
+  // One click collapses to the summary sections only
+  await page.getByRole('button', { name: /ملخص فقط/ }).click()
+  await expect(page.getByText('تفصيل قائمة الدخل حسب الحساب')).toHaveCount(0)
+
   // Choice persists across a reload
   await page.reload()
-  await expect(page.getByText('تفصيل قائمة الدخل حسب الحساب')).toBeVisible()
+  await expect(page.getByText('تفصيل قائمة الدخل حسب الحساب')).toHaveCount(0)
 })
