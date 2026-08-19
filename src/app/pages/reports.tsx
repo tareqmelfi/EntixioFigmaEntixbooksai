@@ -7,8 +7,10 @@ import {
   ClipboardList,
   FileText,
   Filter,
+  Landmark,
   Loader2,
   Package,
+  Scale,
   Search,
   ShieldCheck,
   TrendingUp,
@@ -729,6 +731,8 @@ export function Reports() {
         <Metric label={profile.taxLabel} value={summary ? money(summary.kpi.vatNet, currency) : money(0, currency)} tone="info" />
       </div>
 
+      <CoreStatementsBlock catalog={catalog} />
+
       <Card className="border-border bg-white">
         <CardContent className="p-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(220px,260px)_1fr]">
@@ -797,6 +801,43 @@ export function Reports() {
  * report itself (numbers/equation live there), not to a preview pane
  * (2026-08-19 simplification wave).
  */
+const CORE_STATEMENTS: Array<{ id: string; icon: ComponentType<{ className?: string }> }> = [
+  { id: "income-statement", icon: TrendingUp },
+  { id: "balance-sheet", icon: Scale },
+  { id: "cash-flow", icon: Landmark },
+];
+
+function CoreStatementsBlock({ catalog }: { catalog: ReportDefinition[] }) {
+  const { language, t } = useLanguage();
+  const core = CORE_STATEMENTS.map(({ id, icon }) => ({ def: catalog.find((r) => r.id === id), icon })).filter((x) => x.def);
+  if (core.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-primary/25 bg-primary/[0.03] p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Landmark className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-bold text-foreground">{t("القوائم المالية الأساسية", "Core financial statements")}</h2>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {core.map(({ def, icon: Icon }) => (
+          <Link
+            key={def!.id}
+            to={`/app/reports/${def!.id}`}
+            className="group flex items-center gap-3 rounded-lg border border-border bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
+          >
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/5 text-primary">
+              <Icon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground group-hover:text-primary">{language === "en" ? def!.englishTitle || def!.title : def!.title}</div>
+              <p className="mt-0.5 truncate text-xs text-foreground/60">{t(def!.description, EN_DESCRIPTIONS[def!.id] || def!.description)}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReportCards({ reports }: { reports: ReportDefinition[] }) {
   const { language, t } = useLanguage();
   if (reports.length === 0) return <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />;

@@ -89,10 +89,15 @@ export function ReportPrintDesigner() {
             size: ${resolved.paper} ${resolved.orientation};
             margin: 12mm;
           }
-          body {
+          html, body {
             background: #fff !important;
+            height: auto !important;
+            overflow: visible !important;
           }
-          body * {
+          /* Hide every non-report ancestor's siblings instead of the whole
+             document — visibility:hidden + absolute inset:0 clipped RTL
+             content off the left edge of the paper (user report 2026-08-19). */
+          body *:not(.entix-print-zone):not(:has(.entix-print-zone)) {
             visibility: hidden !important;
           }
           .entix-print-zone,
@@ -100,12 +105,12 @@ export function ReportPrintDesigner() {
             visibility: visible !important;
           }
           .entix-print-zone {
-            position: absolute !important;
-            inset: 0 !important;
+            position: static !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             background: #fff !important;
+            overflow: visible !important;
           }
           .entix-report-paper {
             width: 100% !important;
@@ -115,6 +120,11 @@ export function ReportPrintDesigner() {
             box-shadow: none !important;
           }
           .report-designer-chrome {
+            display: none !important;
+          }
+          /* Print expands the full tree: no collapse controls, no scroll
+             clipping — every section prints in full (Wave-style print). */
+          .no-print, [data-no-print] {
             display: none !important;
           }
         }

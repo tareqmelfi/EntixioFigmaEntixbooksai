@@ -2,6 +2,9 @@
  * Log work hours — full page (app-wide standard).
  * /app/work-logs/new?project=..&contractor=..
  *
+ * The worker is ANY contact (user ask 2026-08-19: «المقاول مو شرط يكون فري
+ * لانسر، قائمة الاتصال بها يفترض الكل») — picker lists every contact with
+ * inline create; the API binds/creates the contractor shell from contactId.
  * Rate resolution is shown live: engagement rate → contractor default → manual.
  * Non-billable hours are tracked but cost 0.
  */
@@ -15,7 +18,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, Contact } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
 const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -27,13 +30,16 @@ export function WorkLogNew() {
   const { toasts, push, dismiss } = useToasts();
 
   const [projects, setProjects] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [contractors, setContractors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newContactName, setNewContactName] = useState("");
+  const [creatingContact, setCreatingContact] = useState(false);
   const [form, setForm] = useState({
     projectId: searchParams.get("project") || "",
-    contractorId: searchParams.get("contractor") || "",
+    contactId: searchParams.get("contact") || "",
     date: new Date().toISOString().slice(0, 10),
     hours: "", description: "", billable: true, rateSnapshot: "",
   });
@@ -41,9 +47,14 @@ export function WorkLogNew() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, c] = await Promise.all([api.projects.list(), api.contractors.list()]);
+      const [p, c, ctr] = await Promise.all([
+        api.projects.list(),
+        api.contacts.list({ limit: 500 }),
+        api.contractors.list(),
+      ]);
       setProjects((p.items || []).filter((x: any) => x.status === "ACTIVE"));
-      setContractors((c.items || []).filter((x: any) => x.isActive !== false));
+      setContacts(c.items || []);
+      setContractors((ctr.items || []).filter((x: any) => x.isActive !== false));
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
@@ -51,30 +62,51 @@ export function WorkLogNew() {
   useEffect(() => { load(); }, [load]);
 
   const projectItems = useMemo(() => projects.map((p) => ({ id: p.id, label: `${p.code} · ${p.name}` })), [projects]);
-  const contractorItems = useMemo(() => contractors.map((c) => ({
-    id: c.id, label: `${c.code} · ${c.name}`,
-    sublabel: [c.specialty, c.hourlyRate != null ? `${money(c.hourlyRate)}/${t("ساعة", "hr")}` : null].filter(Boolean).join(" · "),
-  })), [contractors, t]);
+  // كل قائمة الاتصال — عميل، مورد، موظف، فري لانسر… الكل قابل لتسجيل ساعات
+  const contactItems = useMemo(() => contacts.map((c) => ({
+    id: c.id, label: c.displayName,
+    sublabel: [c.customCode, c.email || c.phone].filter(Boolean).join(" · "),
+  })), [contacts]);
 
-  const selectedContractor = contractors.find((c) => c.id === form.contractorId);
+  // Rate hint: the contractor shell bound to the picked contact (if any)
+  const boundContractor = useMemo(
+    () => contractors.find((x) => x.contactId === form.contactId),
+    [contractors, form.contactId],
+  );
   const effectiveRate = form.rateSnapshot !== "" ? Number(form.rateSnapshot)
-    : selectedContractor?.hourlyRate != null ? Number(selectedContractor.hourlyRate) : null;
+    : boundContractor?.hourlyRate != null ? Number(boundContractor.hourlyRate) : null;
   const amount = form.billable && effectiveRate != null && Number(form.hours) > 0 ? Number(form.hours) * effectiveRate : 0;
 
   if (loading) {
     return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
+  const createContactInline = async () => {
+    const name = newContactName.trim();
+    if (!name) return;
+    setCreatingContact(true);
+    setError(null);
+    try {
+      const created = await api.contacts.create({ displayName: name, isSupplier: true } as any);
+      setContacts((prev) => [...prev, created]);
+      setForm({ ...form, contactId: created.id });
+      setNewContactName("");
+      push("success", t("أُنشئ جهة الاتصال واخُتيرت", "Contact created and selected"));
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : t("فشل إنشاء جهة الاتصال", "Contact create failed"));
+    } finally { setCreatingContact(false); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!form.projectId || !form.contractorId) { setError(t("اختر المشروع والمقاول", "Choose project and contractor")); return; }
+    if (!form.projectId || !form.contactId) { setError(t("اختر المشروع وجهة الاتصال", "Choose project and contact")); return; }
     const hours = Number(form.hours);
     if (!hours || hours <= 0 || hours > 24) { setError(t("الساعات بين 0 و 24 لليوم الواحد", "Hours must be between 0 and 24 per day")); return; }
     setBusy(true);
     try {
       const log = await api.contractors.logWork({
-        projectId: form.projectId, contractorId: form.contractorId,
+        projectId: form.projectId, contactId: form.contactId,
         date: form.date, hours,
         description: form.description || null,
         billable: form.billable,
@@ -97,7 +129,7 @@ export function WorkLogNew() {
           <ArrowRight className="h-3.5 w-3.5" /> {t("العودة", "Back")}
         </Link>
         <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{t("تسجيل ساعات عمل", "Log work hours")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("السعر يُلتقط تلقائياً من اتفاق المشروع أو ملف المقاول ويُجمَّد في السجل", "The rate is captured from the project agreement or contractor profile and frozen into the log")}</p>
+        <p className="text-sm text-muted-foreground mt-1">{t("سجّل الساعات على أي جهة من قائمة الاتصال — عميل، مورد، مقاول أو موظف", "Log hours against any contact — customer, supplier, contractor or employee")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -111,9 +143,15 @@ export function WorkLogNew() {
                 {projects.length === 0 && <p className="text-[11px] text-amber-700">{t("أنشئ مشروعاً أولاً", "Create a project first")}</p>}
               </div>
               <div className="space-y-2">
-                <Label>{t("المقاول *", "Contractor *")}</Label>
-                <SearchableCombobox value={form.contractorId} onChange={(contractorId) => setForm({ ...form, contractorId })} items={contractorItems} placeholder={t("اختر المقاول...", "Choose the contractor...")} />
-                {contractors.length === 0 && <p className="text-[11px] text-amber-700">{t("سجّل مقاولاً أولاً", "Register a contractor first")}</p>}
+                <Label>{t("جهة العمل (من قائمة الاتصال) *", "Worker (from contacts) *")}</Label>
+                <SearchableCombobox value={form.contactId} onChange={(contactId) => setForm({ ...form, contactId })} items={contactItems} placeholder={t("اختر جهة الاتصال...", "Choose the contact...")} />
+                <div className="flex gap-1.5">
+                  <Input value={newContactName} onChange={(e) => setNewContactName(e.target.value)} placeholder={t("اسم جهة جديدة...", "New contact name...")} className="h-8 text-xs" />
+                  <Button type="button" variant="outline" size="sm" className="h-8 shrink-0" disabled={creatingContact || !newContactName.trim()} onClick={createContactInline}>
+                    {creatingContact ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("إنشاء", "Create")}
+                  </Button>
+                </div>
+                {contacts.length === 0 && <p className="text-[11px] text-amber-700">{t("أضف جهة اتصال أولاً أو أنشئها هنا", "Add a contact first or create one here")}</p>}
               </div>
             </div>
 
@@ -123,7 +161,7 @@ export function WorkLogNew() {
               <div className="space-y-2">
                 <Label>{t("سعر الساعة", "Hourly rate")}</Label>
                 <Input type="number" step="0.01" min="0" value={form.rateSnapshot} onChange={(e) => setForm({ ...form, rateSnapshot: e.target.value })} dir="ltr" className="font-english"
-                  placeholder={selectedContractor?.hourlyRate != null ? String(selectedContractor.hourlyRate) : t("يدوي", "manual")} />
+                  placeholder={boundContractor?.hourlyRate != null ? String(boundContractor.hourlyRate) : t("يدوي", "manual")} />
                 {effectiveRate != null && <p className="text-[10px] text-muted-foreground">{t("الساري:", "Effective:")} <span className="font-english">{money(effectiveRate)}</span></p>}
               </div>
             </div>
