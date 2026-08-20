@@ -2076,15 +2076,25 @@ export interface InvoiceInput {
   lines: InvoiceLine[]
 }
 
-// ── Bootstrap helper · auto-create demo org if none exist ────────────────────
+// ── Bootstrap helper · auto-create first org if none exist ───────────────────
 export async function bootstrap() {
   try {
     const orgs = await api.orgs.list()
     if (orgs.length === 0) {
+      // Jurisdiction chosen at registration survives email verification via
+      // `entix_pending_org_country`; otherwise follow the stored market, then SA.
+      let country: 'SA' | 'US' = 'SA'
+      try {
+        const pending = localStorage.getItem('entix_pending_org_country')
+        const market = localStorage.getItem('entix-marketing-region')
+        if (pending === 'SA' || pending === 'US') country = pending
+        else if (market === 'US') country = 'US'
+        localStorage.removeItem('entix_pending_org_country')
+      } catch { /* private mode */ }
       const newOrg = await api.orgs.create({
         name: 'My Company',
-        country: 'SA',
-        baseCurrency: 'SAR',
+        country,
+        baseCurrency: country === 'US' ? 'USD' : 'SAR',
       })
       setOrgId(newOrg.id)
       return newOrg

@@ -325,6 +325,7 @@ class AuthStore {
     name: string,
     company: string,
     captchaToken?: string | null,
+    country?: 'SA' | 'US',
   ): Promise<{ success: boolean; error?: string; code?: string }> {
     try {
       const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
@@ -341,8 +342,9 @@ class AuthStore {
       const requiresVerification = user && user.emailVerified === false
       if (requiresVerification) {
         // Verification-required signups must NOT bootstrap an org or continue
-        // into /app. The user should land on /login with an explicit pending-
-        // verification state instead of a silent bounce back to the form.
+        // into /app. The chosen country survives via localStorage and is
+        // consumed by the first-org bootstrap after the verified sign-in.
+        try { if (country) localStorage.setItem('entix_pending_org_country', country) } catch {}
         return { success: true, code: 'EMAIL_VERIFICATION_REQUIRED' }
       }
 
@@ -355,7 +357,7 @@ class AuthStore {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyName }),
+          body: JSON.stringify({ companyName, country }),
         })
         if (bootstrapRes.ok) {
           const json = await bootstrapRes.json()
@@ -368,6 +370,7 @@ class AuthStore {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ country }),
         })
         if (bootstrapRes.ok) {
           const json = await bootstrapRes.json()

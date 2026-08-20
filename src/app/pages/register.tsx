@@ -5,15 +5,20 @@ import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
 import { isTurnstileRequired, Turnstile } from "../components/turnstile";
 import { useLanguage } from "../components/LanguageContext";
+import { useMarketingRegion } from "../components/marketing-region";
 import { EntixWordmark } from "../components/entix-brand";
 
 export function Register() {
   const navigate = useNavigate();
   const { language, toggleLanguage, t } = useLanguage();
+  const { isSA } = useMarketingRegion();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // The org's jurisdiction is chosen HERE, at signup — it drives currency,
+  // taxes, and which market the company belongs to from day one.
+  const [country, setCountry] = useState<"SA" | "US">(isSA ? "SA" : "US");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +46,7 @@ export function Register() {
     }
     setLoading(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    const result = await authStore.register(email, password, fullName, "", captchaToken);
+    const result = await authStore.register(email, password, fullName, "", captchaToken, country);
     setLoading(false);
     if (result.success) {
       if (result.code === 'EMAIL_VERIFICATION_REQUIRED') {
@@ -198,6 +203,23 @@ export function Register() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>{t("دولة شركتك", "Your company's country")}</label>
+              <select
+                value={country}
+                onChange={e => setCountry(e.target.value === "US" ? "US" : "SA")}
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all cursor-pointer"
+                style={{ fontSize: "14px" }}
+                required
+              >
+                <option value="SA">{t("السعودية — ضريبة القيمة المضافة VAT", "Saudi Arabia — VAT")}</option>
+                <option value="US">{t("الولايات المتحدة — ضريبة المبيعات", "United States — Sales tax")}</option>
+              </select>
+              <p className="text-muted-foreground/70 mt-1.5" style={{ fontSize: "12px", lineHeight: 1.6 }}>
+                {t("تحدد العملة والضرائب والتقارير لشركتك — وتقدر تضيف شركات بدول أخرى لاحقًا.", "Sets your company's currency, taxes, and reports — you can add companies in other countries later.")}
+              </p>
             </div>
 
             <div className="flex items-start gap-2 pt-1">
