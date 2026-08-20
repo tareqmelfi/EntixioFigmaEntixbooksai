@@ -592,6 +592,24 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
             </Card>
           )}
 
+          {payload.formPreview && (
+            <Card className="border-emerald-200 bg-emerald-50/50">
+              <CardHeader>
+                <CardTitle className="text-foreground text-base">{t("ملخص نموذج الإقرار القابل للطباعة", "Printable filing preview")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm text-foreground/80">
+                <div>{t("الفترة", "Period")}: <span className="font-english">{payload.formPreview.period.label}</span></div>
+                <div>{t("الكيان", "Entity")}: {payload.formPreview.identity.companyName}</div>
+                {payload.formPreview.filing?.form && (
+                  <div>{t("النموذج الفيدرالي", "Federal form")}: <span className="font-semibold">{payload.formPreview.filing.form}</span></div>
+                )}
+                <div>{t("إجمالي المبيعات", "Gross sales")}: <span className="font-english" dir="ltr">{money(payload.formPreview.summary.grossSales, cur)}</span></div>
+                <div>{t("الضريبة المحصلة", "Tax collected")}: <span className="font-english" dir="ltr">{money(payload.formPreview.summary.taxCollected, cur)}</span></div>
+                <div className="text-xs text-emerald-900/80">{t("يمكنك استخدام هذا الملخص كنسخة مراجعة/طباعة قبل تقديم الإقرار الرسمي.", "You can use this as a printable review artifact before official filing.")}</div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border-border">
             <CardHeader><CardTitle className="text-foreground text-base">{t("حسب الولاية", "By state")}</CardTitle></CardHeader>
             <CardContent className="p-0">
@@ -651,22 +669,40 @@ function GenericVatView({ payload, loading, error, country, from, to, setFrom, s
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
-        <Card className="border-border">
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground"><th className="px-4 py-2 text-start font-medium">{t("البند", "Line item")}</th><th className="px-4 py-2 text-end font-medium">{t("الأساس الضريبي", "Taxable base")}</th><th className="px-4 py-2 text-end font-medium">{t("الضريبة", "Tax")}</th></tr></thead>
-              <tbody>
-                <Row label={t(`مبيعات بالنسبة الأساسية${ratePct != null ? ` (${ratePct}%)` : ""}`, `Standard-rated sales${ratePct != null ? ` (${ratePct}%)` : ""}`)} base={payload.sales.standardBase} tax={payload.sales.standardVat} />
-                <Row label={t("مبيعات صفرية (محلية)", "Zero-rated sales (domestic)")} base={payload.sales.zeroBase} tax={0} />
-                <Row label={t("الصادرات", "Exports")} base={payload.sales.exportsBase} tax={0} />
-                <Row label={t("مبيعات معفاة", "Exempt sales")} base={payload.sales.exemptBase} tax={0} />
-                <Row label={t(`مشتريات بالنسبة الأساسية${ratePct != null ? ` (${ratePct}%)` : ""}`, `Standard-rated purchases${ratePct != null ? ` (${ratePct}%)` : ""}`)} base={payload.purchases.standardBase} tax={payload.purchases.standardVat} />
-                <Row label={t("مشتريات صفرية ومعفاة", "Zero-rated & exempt purchases")} base={payload.purchases.zeroExemptBase} tax={0} />
-                <Row label={t("صافي الضريبة المستحقة / المستردة", "Net VAT due / refundable")} base={0} tax={payload.net.due} strong />
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        <>
+          {payload.formPreview && (
+            <Card className="border-emerald-200 bg-emerald-50/50">
+              <CardHeader>
+                <CardTitle className="text-foreground text-base">{t("ملخص نموذج VAT القابل للطباعة", "Printable VAT filing preview")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm text-foreground/80">
+                <div>{t("الفترة", "Period")}: <span className="font-english">{payload.formPreview.period.label}</span></div>
+                <div>{t("المنشأة", "Company")}: {payload.formPreview.identity.companyName}</div>
+                {payload.formPreview.identity.vatNumber && (
+                  <div>{t("الرقم الضريبي", "VAT number")}: <span className="font-english">{payload.formPreview.identity.vatNumber}</span></div>
+                )}
+                <div>{t("صافي الضريبة", "Net VAT")}: <span className="font-english" dir="ltr">{money(payload.formPreview.net.due, cur)}</span> · {payload.formPreview.net.direction === "payable" ? t("مستحق", "Payable") : t("مسترد", "Refundable")}</div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="border-border">
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground"><th className="px-4 py-2 text-start font-medium">{t("البند", "Line item")}</th><th className="px-4 py-2 text-end font-medium">{t("الأساس الضريبي", "Taxable base")}</th><th className="px-4 py-2 text-end font-medium">{t("الضريبة", "Tax")}</th></tr></thead>
+                <tbody>
+                  <Row label={t(`مبيعات بالنسبة الأساسية${ratePct != null ? ` (${ratePct}%)` : ""}`, `Standard-rated sales${ratePct != null ? ` (${ratePct}%)` : ""}`)} base={payload.sales.standardBase} tax={payload.sales.standardVat} />
+                  <Row label={t("مبيعات صفرية (محلية)", "Zero-rated sales (domestic)")} base={payload.sales.zeroBase} tax={0} />
+                  <Row label={t("الصادرات", "Exports")} base={payload.sales.exportsBase} tax={0} />
+                  <Row label={t("مبيعات معفاة", "Exempt sales")} base={payload.sales.exemptBase} tax={0} />
+                  <Row label={t(`مشتريات بالنسبة الأساسية${ratePct != null ? ` (${ratePct}%)` : ""}`, `Standard-rated purchases${ratePct != null ? ` (${ratePct}%)` : ""}`)} base={payload.purchases.standardBase} tax={payload.purchases.standardVat} />
+                  <Row label={t("مشتريات صفرية ومعفاة", "Zero-rated & exempt purchases")} base={payload.purchases.zeroExemptBase} tax={0} />
+                  <Row label={t("صافي الضريبة المستحقة / المستردة", "Net VAT due / refundable")} base={0} tax={payload.net.due} strong />
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </>
       ) : null}
     </div>
   );

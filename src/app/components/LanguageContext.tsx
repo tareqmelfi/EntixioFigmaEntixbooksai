@@ -76,7 +76,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLanguage(language === "ar" ? "en" : "ar");
   }, [language, setLanguage]);
 
-  const t = (ar: string, en?: string): string => language === "en" && en ? en : ar;
+  const t = (ar: string, en?: string): string => {
+    if (language === "en") return en || "";
+    return ar || en || "";
+  };
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>

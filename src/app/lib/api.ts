@@ -126,8 +126,8 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   // Locale travels with every call — server-rendered content (emails, errors,
   // PDF) follows the user's chosen language instead of a backend default.
   if (!headers['Accept-Language']) {
-    const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'ar'
-    headers['Accept-Language'] = lang === 'en' ? 'en-US,en;q=0.9,ar;q=0.8' : 'ar-SA,ar;q=0.9,en;q=0.8'
+    const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'en'
+    headers['Accept-Language'] = lang === 'ar' ? 'ar-SA,ar;q=0.9,en;q=0.8' : 'en-US,en;q=0.9,ar;q=0.8'
   }
   if (!opts.skipOrg && orgId) headers['X-Org-Id'] = orgId
 
@@ -1762,6 +1762,30 @@ export interface UsSalesTaxPayload {
   }
   irsGuide: { form: string; title: string; titleAr: string; notes: string[] } | null
   hint: string | null
+  formPreview?: {
+    type: 'us-tax-package'
+    jurisdiction: 'US'
+    period: { from: string; to: string; label: string }
+    identity: {
+      companyName: string
+      legalName: string | null
+      state: string | null
+      ein: string | null
+      filingClass: string | null
+    }
+    summary: {
+      grossSales: number
+      taxableSales: number
+      exemptSales: number
+      taxCollected: number
+    }
+    filing: { form: string; title: string; titleAr: string; notes: string[] } | null
+    schedules: {
+      byState: Array<{ state: string; base: number; tax: number }>
+      byRate: Array<{ rate: number; base: number; tax: number }>
+    }
+    print: { title: string; subtitle: string }
+  }
 }
 export interface VatSummaryPayload {
   type: 'vat-summary'
@@ -1772,6 +1796,21 @@ export interface VatSummaryPayload {
   sales: { standardBase: number; standardVat: number; zeroBase: number; exportsBase: number; exemptBase: number; nonTaxBase: number }
   purchases: { standardBase: number; standardVat: number; zeroExemptBase: number }
   net: { due: number }
+  formPreview?: {
+    type: 'vat-return-preview'
+    jurisdiction: string
+    period: { from: string; to: string; label: string }
+    identity: {
+      companyName: string
+      country: string
+      vatNumber: string | null
+      vatPeriod: string | null
+    }
+    sales: { standardBase: number; standardVat: number; zeroBase: number; exportsBase: number; exemptBase: number; nonTaxBase: number }
+    purchases: { standardBase: number; standardVat: number; zeroExemptBase: number }
+    net: { due: number; direction: 'payable' | 'refundable' }
+    print: { title: string; subtitle: string }
+  }
 }
 
 export interface TaxReturnPayload {

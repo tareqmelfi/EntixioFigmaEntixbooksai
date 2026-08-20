@@ -18,9 +18,9 @@ function initialRegion(): MarketingRegion {
   const route = parsePublicPath(window.location.pathname);
   if (route) return marketRegion(route.market);
   try {
-    return localStorage.getItem(MARKET_STORAGE_KEY) === "US" ? "US" : "SA";
+    return localStorage.getItem(MARKET_STORAGE_KEY) === "SA" ? "SA" : "US";
   } catch {
-    return "SA";
+    return "US";
   }
 }
 

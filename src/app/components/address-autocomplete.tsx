@@ -113,7 +113,7 @@ export function AddressAutocomplete({
           format: "jsonv2",
           addressdetails: "1",
           limit: "6",
-          "accept-language": (typeof localStorage !== "undefined" && localStorage.getItem("entix-language") === "en") ? "en" : "ar,en",
+          "accept-language": (typeof localStorage !== "undefined" && localStorage.getItem("entix-language") === "ar") ? "ar,en" : "en",
         });
         if (country) params.set("countrycodes", country.toLowerCase());
         const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
@@ -137,7 +137,7 @@ export function AddressAutocomplete({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
-        placeholder={placeholder || "ابدأ كتابة العنوان..."}
+        placeholder={placeholder || "Start typing an address..."}
         className="border-border pe-9"
       />
       {busy && <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground/60" />}

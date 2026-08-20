@@ -15,8 +15,8 @@ const API_BASE =
   'https://api.entix.io'
 
 function localeHeaders(): Record<string, string> {
-  const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'ar'
-  return { 'Accept-Language': lang === 'en' ? 'en-US,en;q=0.9,ar;q=0.8' : 'ar-SA,ar;q=0.9,en;q=0.8' }
+  const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'en'
+  return { 'Accept-Language': lang === 'ar' ? 'ar-SA,ar;q=0.9,en;q=0.8' : 'en-US,en;q=0.9,ar;q=0.8' }
 }
 
 export interface User {

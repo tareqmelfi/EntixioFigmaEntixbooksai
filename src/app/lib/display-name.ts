@@ -12,7 +12,7 @@ export type BilingualNamed = { name?: string | null; nameAr?: string | null };
 
 /** UI locale without a hook — LanguageContext persists it as `entix-language`. */
 function uiLang(): string {
-  try { return localStorage.getItem("entix-language") === "en" ? "en" : "ar"; } catch { return "ar"; }
+  try { return localStorage.getItem("entix-language") === "ar" ? "ar" : "en"; } catch { return "en"; }
 }
 
 export function displayName(entity: BilingualNamed, lang?: string): string {
