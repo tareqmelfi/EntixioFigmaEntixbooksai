@@ -293,7 +293,23 @@ class AuthStore {
     try {
       const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
       const { data, error } = await authClient.signIn.email({ email, password }, opts)
-      if (error) return { success: false, error: error.message || 'فشل تسجيل الدخول', code: (error as any)?.code }
+      if (error) {
+        const code = (error as any)?.code
+        const message = (error.message || '').toLowerCase()
+        if (
+          code === 'EMAIL_NOT_VERIFIED' ||
+          message.includes('email not verified') ||
+          message.includes('verify your email') ||
+          message.includes('not verified')
+        ) {
+          return {
+            success: false,
+            code: 'EMAIL_NOT_VERIFIED',
+            error: 'هذا البريد غير مُفعّل بعد. تحقق من بريدك أو أعد إرسال رسالة التفعيل.',
+          }
+        }
+        return { success: false, error: error.message || 'فشل تسجيل الدخول', code }
+      }
       if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
       await this.refresh()
       return { success: true }
@@ -309,7 +325,7 @@ class AuthStore {
     name: string,
     company: string,
     captchaToken?: string | null,
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; code?: string }> {
     try {
       const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
       const { data, error } = await authClient.signUp.email({ email, password, name }, opts)
@@ -317,9 +333,18 @@ class AuthStore {
         if (error.code === 'USER_ALREADY_EXISTS' || (error.message || '').toLowerCase().includes('already')) {
           return { success: false, error: 'البريد الإلكتروني مسجل مسبقاً' }
         }
-        return { success: false, error: error.message || 'فشل إنشاء الحساب' }
+        return { success: false, error: error.message || 'فشل إنشاء الحساب', code: (error as any)?.code }
       }
       if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
+
+      const user = (data as any)?.user
+      const requiresVerification = user && user.emailVerified === false
+      if (requiresVerification) {
+        // Verification-required signups must NOT bootstrap an org or continue
+        // into /app. The user should land on /login with an explicit pending-
+        // verification state instead of a silent bounce back to the form.
+        return { success: true, code: 'EMAIL_VERIFICATION_REQUIRED' }
+      }
 
       // Bootstrap first org for the new user.
       // Company is optional — if empty, the backend creates a default

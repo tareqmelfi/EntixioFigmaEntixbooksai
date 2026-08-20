@@ -44,6 +44,10 @@ export function Register() {
     const result = await authStore.register(email, password, fullName, "", captchaToken);
     setLoading(false);
     if (result.success) {
+      if (result.code === 'EMAIL_VERIFICATION_REQUIRED') {
+        navigate(`/login?registered=1&email=${encodeURIComponent(email.trim())}`, { replace: true });
+        return;
+      }
       navigate("/app");
       return;
     }

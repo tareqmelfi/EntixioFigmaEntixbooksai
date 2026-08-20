@@ -116,6 +116,19 @@ export function Login() {
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const registered = params.get("registered") === "1";
+    const emailParam = (params.get("email") || "").trim();
+    if (registered) {
+      setVerifyNotice(t("تم إنشاء حسابك بنجاح. تحقق من بريدك الإلكتروني لتفعيل الحساب ثم سجّل الدخول.", "Your account was created. Check your email to verify it, then sign in."));
+      if (emailParam) {
+        setEmail(emailParam);
+        setUnverifiedEmail(emailParam);
+      }
+    }
+  }, [location.search, t]);
+
+  useEffect(() => {
     authStore.getProviders().then(p => {
       setGoogleEnabled(p.google);
       setMicrosoftEnabled(p.microsoft);
@@ -174,7 +187,7 @@ export function Login() {
 
           {unverifiedEmail && (
             <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl mb-6" style={{ fontSize: "13px" }}>
-              <div className="mb-2">{t("البريد غير مفعل بعد.", "Email is not verified yet.")}</div>
+              <div className="mb-2">{t("البريد غير مفعل بعد. افتح بريدك وفعّل الحساب، أو أعد إرسال رابط التفعيل.", "Email is not verified yet. Open your inbox and verify the account, or resend the verification link.")}</div>
               <button
                 type="button"
                 onClick={handleResendVerification}

@@ -396,6 +396,12 @@ export const api = {
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
+  insights: {
+    reviewQueue: () => request<InsightsReviewQueuePayload>('/api/insights/review-queue'),
+    cashForecast: () => request<InsightsCashForecastPayload>('/api/insights/cash-forecast'),
+    complianceTimeline: () => request<InsightsComplianceTimelinePayload>('/api/insights/compliance-timeline'),
+  },
+
   // Bills (purchase invoices)
   bills: {
     list: (params?: { status?: string; contactId?: string }) =>
@@ -1870,6 +1876,48 @@ export interface TaxReturnPayload {
     invoices: Array<{ id: string; invoiceNumber: string; issueDate: string; total: number; taxTotal: number; contactName: string | null }>
     bills: Array<{ id: string; billNumber: string; issueDate: string; total: number; taxTotal: number; contactName: string | null }>
   }
+}
+
+export interface InsightsReviewQueuePayload {
+  summary: { total: number; critical: number; warning: number; info: number }
+  items: Array<{
+    id: string
+    kind: 'missing_document' | 'duplicate_risk' | 'overdue_invoice' | 'cash_pressure' | 'tax_readiness'
+    title: string
+    detail: string
+    severity: 'info' | 'warning' | 'critical'
+    confidence: number
+    actionLabel: string
+    href: string
+    source: 'rule-engine'
+    entityId?: string
+  }>
+}
+
+export interface InsightsCashForecastPayload {
+  summary: {
+    currency: string
+    cashOnHand: number
+    forecastEndCash: number
+    overdueInvoiceCount: number
+    upcomingBillCount: number
+  }
+  points: Array<{ month: string; expectedIn: number; expectedOut: number; net: number }>
+  overdueInvoices: Array<{ id: string; number: string; customer: string; dueDate: string; remaining: number; currency: string }>
+  upcomingBills: Array<{ id: string; number: string; supplier: string; dueDate: string; remaining: number; currency: string }>
+}
+
+export interface InsightsComplianceTimelinePayload {
+  jurisdiction: string
+  window: { from: string; to: string }
+  summary: { ready: number; attention: number; blocked: number }
+  items: Array<{
+    id: string
+    label: string
+    status: 'ready' | 'attention' | 'blocked'
+    detail: string
+    href: string
+  }>
 }
 
 export interface OcrResult {
