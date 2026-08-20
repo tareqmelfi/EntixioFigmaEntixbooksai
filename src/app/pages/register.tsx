@@ -22,6 +22,12 @@ export function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // After a verification-required signup the form swaps to this full panel —
+  // no navigation, no cross-page handoff: the user cannot miss that they must
+  // verify their email before signing in.
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -50,7 +56,7 @@ export function Register() {
     setLoading(false);
     if (result.success) {
       if (result.code === 'EMAIL_VERIFICATION_REQUIRED') {
-        navigate(`/login?registered=1&email=${encodeURIComponent(email.trim())}`, { replace: true });
+        setPendingVerificationEmail(email.trim());
         return;
       }
       navigate("/app");
@@ -63,6 +69,19 @@ export function Register() {
     } else {
       setError(result.error || t("حدث خطأ", "Something went wrong"));
     }
+  };
+
+  const handleResendLink = async () => {
+    if (!pendingVerificationEmail || resendBusy) return;
+    setResendBusy(true);
+    setResendNotice(null);
+    const r = await authStore.resendVerificationEmail(pendingVerificationEmail, "https://entix.io/login");
+    setResendBusy(false);
+    setResendNotice(
+      r.success
+        ? t("أعدنا إرسال رابط التفعيل — تحقق من بريدك (والبريد المزعج).", "We resent the verification link — check your inbox (and spam folder).")
+        : r.error || t("تعذر إرسال الرابط الآن — حاول بعد قليل.", "Couldn't resend the link right now — try again shortly."),
+    );
   };
 
   const handleGoogle = async () => {
@@ -132,6 +151,57 @@ export function Register() {
             <EntixWordmark size={34} />
           </div>
 
+          {pendingVerificationEmail ? (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
+              className="rounded-2xl border border-green-200 bg-green-50/60 p-6"
+              role="status"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green-500 text-white shrink-0">
+                  <CheckCircle2 className="h-6 w-6" />
+                </span>
+                <h1 className="text-foreground" style={{ fontSize: "22px", fontWeight: 700 }}>
+                  {t("تم إنشاء حسابك بنجاح", "Your account was created")}
+                </h1>
+              </div>
+              <p className="text-foreground/80 mb-2" style={{ fontSize: "15px", lineHeight: 1.8 }}>
+                {t("أرسلنا رابط التفعيل إلى", "We sent a verification link to")}{" "}
+                <span className="font-semibold" dir="ltr">{pendingVerificationEmail}</span>
+              </p>
+              <p className="text-muted-foreground mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+                {t(
+                  "افتح بريدك واضغط «تأكيد البريد الإلكتروني»، وبعدها سجّل دخولك. لن تتمكن من الدخول قبل التفعيل.",
+                  "Open your inbox and tap “Confirm email”, then sign in. You can't sign in before verifying.",
+                )}
+              </p>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/login", { replace: true })}
+                  className="w-full bg-primary hover:bg-primary/80 text-white py-3.5 rounded-xl transition-all cursor-pointer"
+                  style={{ fontSize: "15px", fontWeight: 600 }}
+                >
+                  {t("الانتقال لتسجيل الدخول", "Go to sign in")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendLink}
+                  disabled={resendBusy}
+                  className="w-full bg-white border border-border hover:border-primary text-foreground py-3.5 rounded-xl transition-all disabled:opacity-60 cursor-pointer"
+                  style={{ fontSize: "14px", fontWeight: 600 }}
+                >
+                  {resendBusy
+                    ? t("جارٍ إعادة الإرسال...", "Resending...")
+                    : t("لم يصلك البريد؟ أعد إرسال رابط التفعيل", "Didn't get it? Resend verification link")}
+                </button>
+                {resendNotice && (
+                  <p className="text-muted-foreground" style={{ fontSize: "13px" }}>{resendNotice}</p>
+                )}
+              </div>
+            </motion.div>
+          ) : (
+          <>
           <h1 className="text-foreground mb-2" style={{ fontSize: "30px", fontWeight: 700 }}>{t("إنشاء حساب جديد", "Create your account")}</h1>
           <p className="text-muted-foreground mb-8" style={{ fontSize: "15px" }}>{t("ابدأ شهرك المجاني — لا حاجة لبطاقة ائتمان", "Start your free month — no credit card needed")}</p>
 
@@ -313,6 +383,8 @@ export function Register() {
             <span className="text-muted-foreground" style={{ fontSize: "14px" }}>{t("لديك حساب بالفعل؟ ", "Already have an account? ")}</span>
             <Link to="/login" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("تسجيل الدخول", "Sign in")}</Link>
           </div>
+          </>
+          )}
         </motion.div>
       </div>
 
