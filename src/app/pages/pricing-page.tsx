@@ -97,6 +97,16 @@ export function PricingPage() {
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [openFaqs, setOpenFaqs] = useState<number[]>([0]);
+  // Billing identity must be VISIBLE before checkout — on a shared device the
+  // previous person's session/email can otherwise carry into the payment page
+  // without the new subscriber noticing.
+  const [authState, setAuthState] = useState(authStore.getState());
+  useEffect(() => authStore.subscribe(setAuthState), []);
+
+  const switchAccount = async () => {
+    await authStore.logout();
+    navigate("/login");
+  };
 
   const cell = (v: Cell): string => (typeof v === "boolean" ? "" : isAr ? v.ar : v.en);
 
@@ -254,6 +264,25 @@ export function PricingPage() {
       {/* Pricing Cards */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 -mt-12 relative z-10">
         <div className="max-w-7xl mx-auto">
+          {authState.isAuthenticated && authState.user && (
+            <div className="max-w-2xl mx-auto mb-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 bg-blue-50 border border-primary/25 text-foreground rounded-2xl px-5 py-3.5" role="note">
+              <p style={{ fontSize: "13px", fontWeight: 500 }}>
+                {t("سيتم الاشتراك باسم", "Subscribing as")}{" "}
+                <span className="font-semibold" dir="ltr">{authState.user.email}</span>
+                {authState.user.company ? <> · {authState.user.company}</> : null}
+                {" — "}
+                {t("تأكد أن هذا حسابك قبل الدفع", "make sure this is your account before paying")}
+              </p>
+              <button
+                type="button"
+                onClick={switchAccount}
+                className="text-primary hover:underline cursor-pointer"
+                style={{ fontSize: "13px", fontWeight: 700 }}
+              >
+                {t("ليس حسابك؟ بدّل الحساب", "Not you? Switch account")}
+              </button>
+            </div>
+          )}
           {checkoutError && (
             <div className="max-w-2xl mx-auto mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5" role="alert">
               <AlertCircle className="w-5 h-5 shrink-0" />
