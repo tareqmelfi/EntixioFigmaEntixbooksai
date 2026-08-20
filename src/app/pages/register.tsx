@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, useLocation, Link } from "react-router";
 import { Eye, EyeOff, ArrowRight, CheckCircle2, Users, Globe, BarChart3 } from "lucide-react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
@@ -10,6 +10,7 @@ import { EntixWordmark } from "../components/entix-brand";
 
 export function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language, toggleLanguage, t } = useLanguage();
   const { isSA } = useMarketingRegion();
   const [firstName, setFirstName] = useState("");
@@ -33,14 +34,18 @@ export function Register() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
 
+  // Invite links (/invite/:token) bounce here with state.from — after signup
+  // the invitee must land back on the invitation, not the bare app.
+  const fromPath: string = (location.state as any)?.from || "/app";
+
   useEffect(() => {
     const current = authStore.getState();
-    if (!current.loading && current.isAuthenticated) navigate("/app");
+    if (!current.loading && current.isAuthenticated) navigate(fromPath);
     const unsub = authStore.subscribe(s => {
-      if (!s.loading && s.isAuthenticated) navigate("/app");
+      if (!s.loading && s.isAuthenticated) navigate(fromPath);
     });
     return unsub;
-  }, [navigate]);
+  }, [navigate, fromPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +64,7 @@ export function Register() {
         setPendingVerificationEmail(email.trim());
         return;
       }
-      navigate("/app");
+      navigate(fromPath);
       return;
     }
     setCaptchaToken(null);

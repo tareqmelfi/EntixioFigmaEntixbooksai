@@ -77,16 +77,19 @@ export class ApiError extends Error {
   requestId?: string
   /** structured validation messages keyed by request field */
   fieldErrors?: Record<string, string[]>
+  /** raw parsed JSON body — for payloads carrying extra machine fields (e.g. invitedEmail) */
+  body?: unknown
   constructor(
     status: number,
     message: string,
     detail?: string,
-    extras?: { code?: string; messageAr?: string; requestId?: string; fieldErrors?: Record<string, string[]> },
+    extras?: { code?: string; messageAr?: string; requestId?: string; fieldErrors?: Record<string, string[]>; body?: unknown },
   ) {
     super(message)
     this.status = status
     this.detail = detail
     this.code = extras?.code
+    this.body = extras?.body
     this.messageAr = extras?.messageAr
     this.requestId = extras?.requestId
     this.fieldErrors = extras?.fieldErrors
@@ -191,7 +194,7 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
       requestId = clientErrorRef()
       console.error(`[api] ${requestId} ${opts.method || 'GET'} ${path} → ${res.status}`, { code, message })
     }
-    throw new ApiError(res.status, message, detail, { code, messageAr, requestId, fieldErrors })
+    throw new ApiError(res.status, message, detail, { code, messageAr, requestId, fieldErrors, body: data && typeof data === 'object' ? data : undefined })
   }
 
   return data as T
@@ -224,7 +227,11 @@ export const api = {
     members: (id: string) =>
       request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),
     inviteMember: (id: string, data: { email: string; role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER' }) =>
-      request<{ ok: true; pending?: boolean; member?: any; inviteUrl?: string; message?: string }>(`/orgs/${id}/members/invite`, { method: 'POST', body: data, skipOrg: true }),
+      request<{ ok: true; pending?: boolean; email?: string; role?: string; resent?: boolean; emailSent?: boolean; message?: string }>(`/orgs/${id}/members/invite`, { method: 'POST', body: data, skipOrg: true }),
+    invitations: (id: string) =>
+      request<{ invitations: Array<{ id: string; email: string; role: string; status: 'PENDING' | 'DECLINED'; invitedByName?: string | null; createdAt: string; expiresAt: string }> }>(`/orgs/${id}/invitations`, { skipOrg: true }),
+    revokeInvitation: (id: string, invitationId: string) =>
+      request<{ ok: true; revoked: true }>(`/orgs/${id}/invitations/${invitationId}`, { method: 'DELETE', skipOrg: true }),
     updateMemberRole: (id: string, memberId: string, role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER') =>
       request<{ ok: true }>(`/orgs/${id}/members/${memberId}`, { method: 'PATCH', body: { role }, skipOrg: true }),
     removeMember: (id: string, memberId: string) =>
@@ -237,6 +244,19 @@ export const api = {
       request<{ ok: true; mode: string; counts?: Record<string, number>; org?: Org }>(`/orgs/${id}/reset-data`, { method: 'POST', body: data, skipOrg: true }),
     auditLog: (id: string, limit = 50) =>
       request<{ items: AuditLogItem[] }>(`/orgs/${id}/audit-log`, { query: { limit }, skipOrg: true }),
+  },
+
+  // Account-level invites (consent-first) — the invitee accepts/declines;
+  // the membership exists only after accept.
+  invites: {
+    mine: () =>
+      request<{ invites: Array<{ token: string; org: { id: string; name: string; slug: string }; role: string; invitedByName?: string | null; createdAt: string; expiresAt: string }> }>('/api/invitations/mine', { skipOrg: true }),
+    get: (token: string) =>
+      request<{ org: { id: string; name: string; slug: string }; role: string; invitedByName?: string | null; status: string; expiresAt: string }>(`/api/invitations/${token}`, { skipOrg: true }),
+    accept: (token: string) =>
+      request<{ ok: true; org: { id: string; name: string; slug: string }; role: string; alreadyMember?: boolean }>(`/api/invitations/${token}/accept`, { method: 'POST', skipOrg: true }),
+    decline: (token: string) =>
+      request<{ ok: true; declined: true }>(`/api/invitations/${token}/decline`, { method: 'POST', skipOrg: true }),
   },
 
   // Contacts

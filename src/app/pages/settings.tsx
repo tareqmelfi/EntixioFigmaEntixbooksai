@@ -1598,7 +1598,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"OWNER" | "ADMIN" | "ACCOUNTANT" | "VIEWER">("ACCOUNTANT");
   const [busy, setBusy] = useState(false);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<Array<{ id: string; email: string; role: string; status: "PENDING" | "DECLINED"; createdAt: string; expiresAt: string }>>([]);
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
   const [seatInfo, setSeatInfo] = useState<{ tier: string; limit: number | null } | null>(null);
   const { t, language } = useLanguage();
@@ -1612,26 +1612,37 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
     }).catch(() => {});
   }, [orgId]);
 
+  // Pending invitations — an invite reserves a seat until accepted/declined/revoked.
+  const refreshInvites = () => {
+    api.orgs.invitations(orgId).then((r) => setPendingInvites(r.invitations)).catch(() => {});
+  };
+  useEffect(refreshInvites, [orgId]);
+
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setBusy(true);
     try {
       const r = await api.orgs.inviteMember(orgId, { email: inviteEmail.trim(), role: inviteRole });
-      if (r.pending) {
-        setInviteUrl(r.inviteUrl || null);
-        push("info", t(`${r.message} · انسخ الرابط أدناه`, `${r.message} · copy the link below`));
-      } else {
-        const next = [r.member, ...members];
-        setLocal(next); setMembers(next);
-        push("success", t(`تمت الدعوة · ${inviteEmail}`, `Invited · ${inviteEmail}`));
-      }
+      // Consent-first: nobody appears in the members table until THEY accept
+      // the emailed invite (user report 2026-08-21).
+      push(r.emailSent === false ? "info" : "success",
+        r.message || t(`أُرسلت الدعوة إلى ${inviteEmail} — تنضم عند قبولها`, `Invite sent to ${inviteEmail} — they join on acceptance`));
       setInviteEmail("");
+      refreshInvites();
     } catch (e: any) {
       const msg = e instanceof ApiError
         ? (language === "ar" && e.messageAr ? e.messageAr : e.message)
         : t("فشلت الدعوة", "Invite failed");
       push("error", msg);
     } finally { setBusy(false); }
+  };
+
+  const handleRevokeInvite = async (invitationId: string) => {
+    try {
+      await api.orgs.revokeInvitation(orgId, invitationId);
+      setPendingInvites((list) => list.filter((i) => i.id !== invitationId));
+      push("success", t("سُحبت الدعوة", "Invite revoked"));
+    } catch (e: any) { push("error", e?.message || t("فشل", "Failed")); }
   };
 
   const handleRoleChange = async (memberId: string, role: any) => {
@@ -1660,9 +1671,9 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
         <CardDescription>{members.length} {t("عضو · يمكنك دعوة محاسبين، مدراء، مشاهدين", "members · you can invite accountants, managers, viewers")}</CardDescription>
         {seatInfo && (
           <p className="text-xs text-muted-foreground mt-1">
-            {t("المقاعد:", "Seats:")} <span className="font-semibold text-foreground font-english">{members.length}{seatInfo.limit ? ` / ${seatInfo.limit}` : ` / ∞`}</span>
+            {t("المقاعد:", "Seats:")} <span className="font-semibold text-foreground font-english">{members.length + pendingInvites.filter((i) => i.status === "PENDING").length}{seatInfo.limit ? ` / ${seatInfo.limit}` : ` / ∞`}</span>
             {" · "}{t("الدعوات مجانية ضمن باقتك", "Invites are free within your plan")}
-            {seatInfo.limit && members.length >= seatInfo.limit && (
+            {seatInfo.limit && members.length + pendingInvites.filter((i) => i.status === "PENDING").length >= seatInfo.limit && (
               <span className="text-amber-600 font-medium">{" · "}{t("وصلت للحد — رقِّ الباقة لإضافة المزيد", "Limit reached — upgrade to add more")}</span>
             )}
           </p>
@@ -1690,14 +1701,30 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           </Button>
         </div>
 
-        {inviteUrl && (
-          <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs">
-            <div className="font-medium text-amber-700 mb-1">{t("المستخدم لم يُسجَّل بعد · انسخ الرابط وأرسله له:", "The user is not registered yet · copy the link and send it to them:")}</div>
-            <div className="flex items-center gap-2">
-              <input value={inviteUrl} readOnly className="flex-1 text-xs px-2 py-1 rounded border border-border font-english" dir="ltr" />
-              <button onClick={() => { navigator.clipboard.writeText(inviteUrl); push("success", t("تم النسخ", "Copied")); }} className="text-xs text-primary hover:underline">{t("نسخ", "Copy")}</button>
-              <button onClick={() => setInviteUrl(null)} className="text-xs text-muted-foreground hover:underline">{t("إخفاء", "Hide")}</button>
+        {pendingInvites.length > 0 && (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className="bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground">
+              {t("دعوات بانتظار القبول", "Invites awaiting acceptance")}
             </div>
+            {pendingInvites.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border/50 text-sm">
+                <div className="min-w-0">
+                  <span className="font-english text-foreground/80" dir="ltr">{inv.email}</span>
+                  <span className="text-xs text-muted-foreground ms-2">
+                    {{ OWNER: t("مالك", "Owner"), ADMIN: t("مدير", "Admin"), ACCOUNTANT: t("محاسب", "Accountant"), VIEWER: t("مشاهد", "Viewer") }[inv.role] || inv.role}
+                    {" · "}
+                    {inv.status === "DECLINED"
+                      ? <span className="text-danger">{t("رفضها", "Declined")}</span>
+                      : <>{t("تنتهي", "expires")} <span className="font-english">{new Date(inv.expiresAt).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US")}</span></>}
+                  </span>
+                </div>
+                {inv.status === "PENDING" && (
+                  <button onClick={() => handleRevokeInvite(inv.id)} className="text-xs text-danger hover:underline shrink-0">
+                    {t("سحب الدعوة", "Revoke")}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
