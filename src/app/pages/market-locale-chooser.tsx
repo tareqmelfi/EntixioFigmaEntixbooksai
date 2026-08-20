@@ -2,16 +2,17 @@ import { useEffect } from "react";
 import { Link } from "react-router";
 import { EntixWordmark } from "../components/entix-brand";
 import { API_BASE_URL } from "../lib/api";
-import { LANGUAGE_STORAGE_KEY, MARKET_STORAGE_KEY } from "../components/public-preferences";
 import { localizedPath, type PublicLocale, type PublicMarket } from "../public-site-manifest";
 
 /**
  * The marketing root no longer asks visitors to pick a market — it resolves
- * automatically and replaces the history entry so Back never returns here:
- *  1. An explicit stored preference (a previous market/language choice) wins.
- *  2. Otherwise the API resolves Cloudflare geo + browser language
- *     (Saudi Arabia + Arabic → /sa/ar · everywhere else → /us/en).
- *  3. Network failure falls back to the browser language alone.
+ * automatically and replaces the history entry so Back never returns here.
+ * The API resolves Cloudflare geo + browser language fresh on every visit
+ * (Saudi + Arabic browser → /sa/ar · everyone else → English). A previously
+ * STORED choice must NOT win here: it was usually written as a side effect of
+ * an earlier canonical-page visit, and honoring it trapped visitors on the
+ * wrong language with no obvious way out (user report 2026-08-21).
+ * Network failure falls back to the browser language alone.
  * Bots/prerender (navigator.webdriver) are NOT redirected — they get the
  * static links below so every canonical page stays crawlable.
  */
@@ -24,15 +25,6 @@ export function MarketLocaleChooser() {
       if (cancelled) return;
       window.location.replace(localizedPath(market, locale));
     };
-
-    try {
-      const market = localStorage.getItem(MARKET_STORAGE_KEY);
-      const locale = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      if ((market === "SA" || market === "US") && (locale === "ar" || locale === "en")) {
-        go(market === "SA" ? "sa" : "us", locale);
-        return;
-      }
-    } catch { /* private mode */ }
 
     (async () => {
       try {
