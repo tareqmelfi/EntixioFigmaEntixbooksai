@@ -27,6 +27,8 @@ export interface User {
   role: 'admin' | 'accountant' | 'viewer'
   avatar?: string
   locale?: 'ar' | 'en'
+  /** false = verification link not clicked yet (soft-gate banner shows). */
+  emailVerified?: boolean
   createdAt: string
   /** ISO timestamp when account deletion was requested (null = healthy). */
   deletionRequestedAt?: string | null
@@ -247,6 +249,9 @@ class AuthStore {
               : 'viewer',
           avatar: data.user.image || undefined,
           locale: me?.locale === 'ar' || me?.locale === 'en' ? me.locale : undefined,
+          // Soft-gate: false until the verification link is clicked — drives
+          // the persistent in-app banner (users enter immediately on signup).
+          emailVerified: data.user.emailVerified !== false,
           createdAt: data.user.createdAt,
           // 30-day deletion grace: when set, the AuthGuard swaps the whole
           // app for the restore screen (cancel → full recovery).
@@ -339,7 +344,13 @@ class AuthStore {
       if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
 
       const user = (data as any)?.user
-      const requiresVerification = user && user.emailVerified === false
+      // Soft-gate (2026-08-21): the server issues a session on signup even when
+      // the email is unverified — the user enters immediately and the in-app
+      // banner nags them to verify. The blocking panel below is kept ONLY for
+      // hard-gate mode (BLOCK_UNVERIFIED_SIGNIN=true), where signup returns no
+      // session token at all.
+      const hasSession = typeof (data as any)?.token === 'string' && (data as any).token.length > 0
+      const requiresVerification = user && user.emailVerified === false && !hasSession
       if (requiresVerification) {
         // Verification-required signups must NOT bootstrap an org or continue
         // into /app. The chosen country survives via localStorage and is
@@ -473,7 +484,7 @@ class AuthStore {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, callbackURL: callbackURL || `${window.location.origin}/login` }),
+        body: JSON.stringify({ email, callbackURL: callbackURL || `${window.location.origin}/verify-email` }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {

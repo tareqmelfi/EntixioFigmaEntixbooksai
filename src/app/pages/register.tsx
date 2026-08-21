@@ -19,7 +19,7 @@ export function Register() {
   const [password, setPassword] = useState("");
   // The org's jurisdiction is chosen HERE, at signup — it drives currency,
   // taxes, and which market the company belongs to from day one.
-  const [country, setCountry] = useState<"SA" | "US">(isSA ? "SA" : "US");
+  const [country] = useState<"SA" | "US">(isSA ? "SA" : "US");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -280,22 +280,11 @@ export function Register() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-foreground mb-2" style={{ fontSize: "14px", fontWeight: 500 }}>{t("دولة شركتك", "Your company's country")}</label>
-              <select
-                value={country}
-                onChange={e => setCountry(e.target.value === "US" ? "US" : "SA")}
-                className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all cursor-pointer"
-                style={{ fontSize: "14px" }}
-                required
-              >
-                <option value="SA">{t("السعودية — ضريبة القيمة المضافة VAT", "Saudi Arabia — VAT")}</option>
-                <option value="US">{t("الولايات المتحدة — ضريبة المبيعات", "United States — Sales tax")}</option>
-              </select>
-              <p className="text-muted-foreground/70 mt-1.5" style={{ fontSize: "12px", lineHeight: 1.6 }}>
-                {t("تحدد العملة والضرائب والتقارير لشركتك — وتقدر تضيف شركات بدول أخرى لاحقًا.", "Sets your company's currency, taxes, and reports — you can add companies in other countries later.")}
-              </p>
-            </div>
+            {/* No country question at signup (user directive 2026-08-21):
+                account ≠ company — one account can own companies in SA AND the
+                US, and supporters join clients' orgs. Country is chosen at
+                company creation; the first org silently follows the visitor's
+                market (see the silent `country` state derived from region). */}
 
             <div className="flex items-start gap-2 pt-1">
               <input type="checkbox" id="terms" className="mt-1 accent-[#1276E3]" required />

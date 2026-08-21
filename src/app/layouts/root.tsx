@@ -2,8 +2,51 @@ import { Outlet, useLocation } from "react-router";
 import { AppSidebar, SidebarMode } from "../components/app-sidebar";
 import { AppHeader } from "../components/app-header";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { PanelRightOpen } from "lucide-react";
+import { PanelRightOpen, MailWarning, Loader2 } from "lucide-react";
 import { useLanguage } from "../components/LanguageContext";
+import { authStore } from "../components/auth-store";
+
+/**
+ * Soft-gate banner (2026-08-21): signup lets users in immediately; this
+ * persistent strip is what nags them to verify. Disappears the moment the
+ * account is verified. Unverified accounts auto-purge after 30 days.
+ */
+function UnverifiedEmailBanner() {
+  const { t } = useLanguage();
+  const [auth, setAuth] = useState(authStore.getState());
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  useEffect(() => authStore.subscribe(setAuth), []);
+
+  if (auth.loading || !auth.isAuthenticated || auth.user?.emailVerified !== false) return null;
+  const email = auth.user!.email;
+
+  return (
+    <div className="shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 flex items-center justify-center gap-2 text-xs text-amber-800">
+      <MailWarning className="h-4 w-4 shrink-0" />
+      <span>
+        {t("بريدك غير مفعّل — فعّله لحماية حسابك (تُحذف الحسابات غير المفعّلة بعد 30 يومًا)", "Your email is unverified — verify it to protect your account (unverified accounts are removed after 30 days)")}
+      </span>
+      {sent ? (
+        <span className="font-medium">{t("أُرسل الرابط ✓", "Link sent ✓")}</span>
+      ) : (
+        <button
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await authStore.resendVerificationEmail(email);
+              setSent(true);
+            } finally { setBusy(false); }
+          }}
+          disabled={busy}
+          className="font-semibold underline underline-offset-2 hover:text-amber-900 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin inline" /> : t("إرسال رابط التفعيل", "Send verification link")}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function Root() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -77,6 +120,7 @@ export function Root() {
       {/* Main content area */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         <AppHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <UnverifiedEmailBanner />
         <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">
           <Outlet />
         </main>
