@@ -795,10 +795,11 @@ function DataResetTab({
     try {
       const res = await api.meDeleteAccount(accountConfirm.trim());
       setAccountScheduled((res.purgeAfter || "").slice(0, 10));
-      // The server revoked every session — show the schedule, then land on login.
+      // The server revoked every session — show the schedule, then land on a
+      // login page that keeps the 30-day recovery explanation visible.
       setTimeout(async () => {
         await authStore.logout();
-        window.location.href = "/login";
+        window.location.href = "/login?deletion=scheduled";
       }, 4500);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل طلب الحذف", "Deletion request failed"));

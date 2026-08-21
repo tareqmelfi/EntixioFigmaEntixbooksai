@@ -123,6 +123,16 @@ export function Login() {
     const params = new URLSearchParams(location.search);
     const registered = params.get("registered") === "1";
     const emailParam = (params.get("email") || "").trim();
+    if (params.get("deletion") === "scheduled") {
+      // Post-deletion landing — the server revoked every session; without this
+      // notice the user just saw a bare login page with zero explanation.
+      setVerifyNotice(t(
+        "تمت جدولة حذف حسابك. نأسف لرحيلك — لديك 30 يومًا للتراجع: سجّل الدخول مجددًا واختر «إلغاء الحذف واستعادة الحساب».",
+        "Your account deletion is scheduled. Sorry to see you go — you have 30 days to change your mind: sign back in and choose “Cancel deletion and restore account”.",
+      ));
+      if (emailParam) setEmail(emailParam);
+      return;
+    }
     if (registered) {
       setVerifyNotice(t("تم إنشاء حسابك بنجاح. تحقق من بريدك الإلكتروني لتفعيل الحساب ثم سجّل الدخول.", "Your account was created. Check your email to verify it, then sign in."));
       if (emailParam) {
