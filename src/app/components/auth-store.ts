@@ -68,6 +68,23 @@ class AuthStore {
     // Always start in a loading state and let refresh() determine the truth.
     this.state = { user: null, isAuthenticated: false, loading: true }
     this.refresh()
+    // Cross-tab sign-out: any tab that signs out stamps entix_logout_at; the
+    // others force-exit to /login instead of keeping a stale authenticated
+    // shell on screen (no data flows after the server revoked the session,
+    // but the UI must not linger).
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'entix_logout_at' && this.state.isAuthenticated) {
+          setOrgId(null)
+          writeCachedUser(null)
+          this.state = { user: null, isAuthenticated: false, loading: false }
+          this.notify()
+          if (!window.location.pathname.startsWith('/login')) {
+            window.location.replace('/login')
+          }
+        }
+      })
+    }
   }
 
   private notify() {
@@ -490,7 +507,9 @@ class AuthStore {
     }
   }
 
-  /** Sign out · clears server session + cookie + local caches */
+  /** Sign out · revokes the SERVER session (better-auth deletes the row),
+   *  clears cookie + local caches, and broadcasts to other TABS of this
+   *  browser so they can't keep showing a stale authenticated shell. */
   async logout(): Promise<void> {
     try {
       await authClient.signOut()
@@ -502,10 +521,25 @@ class AuthStore {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('entix_auth_hint')
+        // Cross-tab broadcast: every other open tab hard-exits to /login
+        // (user report 2026-08-21 — a new tab still walked straight in).
+        localStorage.setItem('entix_logout_at', String(Date.now()))
       }
     } catch {}
     this.state = { user: null, isAuthenticated: false, loading: false }
     this.notify()
+  }
+
+  /** Sign out of ALL devices/browsers: revokes every OTHER server-side
+   *  session for this account (each browser holds its own session row), then
+   *  signs this one out too. The public-device answer. */
+  async logoutEverywhere(): Promise<void> {
+    try {
+      await (authClient as any).revokeOtherSessions()
+    } catch (e) {
+      console.error('[auth] revokeOtherSessions failed', e)
+    }
+    await this.logout()
   }
 }
 

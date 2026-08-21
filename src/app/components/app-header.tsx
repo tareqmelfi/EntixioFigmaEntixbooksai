@@ -4,6 +4,7 @@ import {
   Bell, Settings, LogOut, Building2,
   CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu, CheckCheck,
   Shield,
+  ShieldCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
@@ -285,6 +286,15 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   </div>
 
                   <div className="border-t border-border py-1">
+                    <button
+                      onClick={async () => {
+                        await authStore.logoutEverywhere();
+                        navigate("/login", { replace: true });
+                      }}
+                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors cursor-pointer"
+                    >
+                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج من كل الأجهزة", "Sign out of all devices")}</span>
+                    </button>
                     <button 
                       onClick={async () => {
                         await authStore.logout();
