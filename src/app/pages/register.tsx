@@ -39,10 +39,12 @@ export function Register() {
   const fromPath: string = (location.state as any)?.from || "/app";
 
   useEffect(() => {
+    const dest = (st: { isAuthenticated: boolean; needsOnboarding?: boolean }) =>
+      st.needsOnboarding ? "/welcome" : fromPath;
     const current = authStore.getState();
-    if (!current.loading && current.isAuthenticated) navigate(fromPath);
+    if (!current.loading && current.isAuthenticated) navigate(dest(current));
     const unsub = authStore.subscribe(s => {
-      if (!s.loading && s.isAuthenticated) navigate(fromPath);
+      if (!s.loading && s.isAuthenticated) navigate(dest(s));
     });
     return unsub;
   }, [navigate, fromPath]);
@@ -64,7 +66,7 @@ export function Register() {
         setPendingVerificationEmail(email.trim());
         return;
       }
-      navigate(fromPath);
+      navigate(fromPath === "/app" ? "/welcome" : fromPath, { replace: true });
       return;
     }
     setCaptchaToken(null);

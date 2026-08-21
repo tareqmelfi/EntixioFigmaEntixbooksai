@@ -25,12 +25,15 @@ export function Login() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
-  // Redirect if already logged in · respect fromPath
+  // Redirect if already logged in · respect fromPath · zero-org accounts go to
+  // the /welcome chooser first (registration no longer creates a silent org).
   useEffect(() => {
+    const dest = (s: { isAuthenticated: boolean; needsOnboarding?: boolean }) =>
+      s.needsOnboarding && fromPath === "/app" ? "/welcome" : fromPath;
     const current = authStore.getState();
-    if (!current.loading && current.isAuthenticated) navigate(fromPath, { replace: true });
+    if (!current.loading && current.isAuthenticated) navigate(dest(current), { replace: true });
     const unsub = authStore.subscribe(s => {
-      if (!s.loading && s.isAuthenticated) navigate(fromPath, { replace: true });
+      if (!s.loading && s.isAuthenticated) navigate(dest(s), { replace: true });
     });
     return unsub;
   }, [navigate, fromPath]);
@@ -43,11 +46,12 @@ export function Login() {
     setUnverifiedEmail(null);
     setLoading(true);
     const result = await authStore.login(email, password, captchaToken);
-    setLoading(false);
     if (result.success) {
-      navigate(fromPath, { replace: true });
+      const s = authStore.getState();
+      navigate(s.needsOnboarding && fromPath === "/app" ? "/welcome" : fromPath, { replace: true });
       return;
     }
+    setLoading(false);
 
     setCaptchaToken(null);
     setCaptchaResetKey(key => key + 1);

@@ -76,6 +76,17 @@ export function Root() {
     localStorage.setItem("entix-sidebar-mode", mode);
   }, []);
 
+  // Zero-org accounts (fresh signup) belong to the /welcome chooser, not the
+  // app shell — deep links included.
+  const [authState, setAuthState] = useState(authStore.getState());
+  useEffect(() => authStore.subscribe(setAuthState), []);
+  useEffect(() => {
+    if (!authState.loading && authState.isAuthenticated && authState.needsOnboarding) {
+      window.location.replace("/welcome");
+    }
+  }, [authState.loading, authState.isAuthenticated, authState.needsOnboarding]);
+  if (authState.isAuthenticated && authState.needsOnboarding) return null;
+
   return (
     <div data-shell="app" className="flex h-dvh w-full bg-canvas" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Mobile overlay */}

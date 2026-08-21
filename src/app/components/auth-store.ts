@@ -38,6 +38,8 @@ export interface AuthState {
   user: User | null
   isAuthenticated: boolean
   loading: boolean
+  /** Authenticated but owns/joins zero orgs → routed to the /welcome chooser. */
+  needsOnboarding?: boolean
 }
 
 export function isDemoMembership(membership: { org?: { demoExpiresAt?: string | null } | null } | null | undefined): boolean {
@@ -190,36 +192,11 @@ class AuthStore {
           ownerMatch ||
           sorted[0]
 
-        // First login via Google can arrive with zero orgs.
-        // Auto-bootstrap a seeded demo org so app routes never crash with missing X-Org-Id.
-        // Retry up to 2 times — the seeding (accounts, demo data) can occasionally
-        // fail on the first attempt due to DB contention. Without a successful
-        // bootstrap, orgId stays null and every org-scoped API call returns 400.
-        if (!activeMembership) {
-          for (let attempt = 0; attempt < 2 && !activeMembership; attempt++) {
-            try {
-              const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json', ...localeHeaders() },
-              })
-              if (bootstrapRes.ok) {
-                const boot = await bootstrapRes.json().catch(() => null)
-                if (boot?.org?.id) {
-                  activeMembership = {
-                    org: boot.org,
-                    role: boot.role || 'OWNER',
-                  }
-                }
-              } else if (attempt === 1) {
-                // Log the failure on the final attempt so it's visible in console
-                console.error('[auth] bootstrap failed:', bootstrapRes.status, await bootstrapRes.text().catch(() => ''))
-              }
-            } catch (e) {
-              if (attempt === 1) console.error('[auth] bootstrap error:', e)
-            }
-          }
-        }
+        // Zero orgs = first-run chooser territory (2026-08-21 redesign). We NO
+        // LONGER auto-bootstrap a silent «شركتي · SA/SAR» org — that default
+        // dropped users into the wrong country/currency and hid their intent.
+        // The /welcome page (company with country · or a demo) creates it.
+        const needsOnboarding = !activeMembership
 
         if (activeMembership?.org?.id) {
           setOrgId(activeMembership.org.id)
@@ -258,7 +235,7 @@ class AuthStore {
           deletionRequestedAt: me?.deletionRequestedAt || null,
         }
         writeCachedUser(newUser)
-        this.state = { user: newUser, isAuthenticated: true, loading: false }
+        this.state = { user: newUser, isAuthenticated: true, loading: false, needsOnboarding }
       } else {
         writeCachedUser(null)
         this.state = { user: null, isAuthenticated: false, loading: false }
@@ -323,12 +300,13 @@ class AuthStore {
     }
   }
 
-  /** Email + password sign-up · auto-creates first org */
+  /** Email + password sign-up — the person only; orgs come from /welcome. The
+   *  `company`/`country` params remain for the hard-gate stash path only. */
   async register(
     email: string,
     password: string,
     name: string,
-    company: string,
+    _company: string,
     captchaToken?: string | null,
     country?: 'SA' | 'US',
   ): Promise<{ success: boolean; error?: string; code?: string }> {
@@ -359,41 +337,35 @@ class AuthStore {
         return { success: true, code: 'EMAIL_VERIFICATION_REQUIRED' }
       }
 
-      // Bootstrap first org for the new user.
-      // Company is optional — if empty, the backend creates a default
-      // org named after the user. The user can rename it later.
-      const companyName = company.trim()
-      if (companyName) {
-        const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyName, country }),
-        })
-        if (bootstrapRes.ok) {
-          const json = await bootstrapRes.json()
-          if (json?.org?.id) setOrgId(json.org.id)
-        }
-      } else {
-        // No company name — still bootstrap a default org so the user
-        // doesn't get "missing X-Org-Id" errors on the dashboard.
-        const bootstrapRes = await fetch(`${API_BASE}/me/bootstrap`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ country }),
-        })
-        if (bootstrapRes.ok) {
-          const json = await bootstrapRes.json()
-          if (json?.org?.id) setOrgId(json.org.id)
-        }
-      }
-
+      // No org creation at signup (2026-08-21): registration is the PERSON
+      // only (name · email · password). The first-run /welcome chooser creates
+      // the first org deliberately (company+country · or demo) — a silent
+      // «شركتي · SA» default landed users in the wrong jurisdiction and lost
+      // the company name they typed.
       await this.refresh()
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
     }
+  }
+
+  /**
+   * First-run chooser action — creates the user's first org (real company that
+   * starts at zero, or an expiring demo) then refreshes auth state so the app
+   * routes unlock. Idempotent server-side: an existing org is returned as-is.
+   */
+  async bootstrapOrg(input: { companyName?: string; country: 'SA' | 'US'; mode: 'company' | 'demo' }): Promise<{ ok: boolean; demo?: boolean }> {
+    const res = await fetch(`${API_BASE}/me/bootstrap`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...localeHeaders() },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) return { ok: false }
+    const json = await res.json().catch(() => null)
+    if (json?.org?.id) setOrgId(json.org.id)
+    await this.refresh()
+    return { ok: true, demo: json?.demo === true }
   }
 
   /** Cached `/auth-providers` response */
