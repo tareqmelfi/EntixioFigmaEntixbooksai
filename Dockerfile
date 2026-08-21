@@ -86,8 +86,10 @@ server {
   }
   location = /support/ios { try_files $uri/index.html =404; }
 
-  # Controlled application surfaces remain client-rendered.
-  location ~ ^/(?:app|portal|print)(?:/|$) { try_files $uri /index.html; }
+  # Controlled application surfaces remain client-rendered. invite/verify-email
+  # are emailed auth-flow landings — they must serve the shell (they 404'd on
+  # the honest-404 rule, breaking every invite + verification link 2026-08-21).
+  location ~ ^/(?:app|portal|print|invite|verify-email)(?:/|$) { try_files $uri /index.html; }
 
   # Unknown extensionless paths are honest 404s rather than SPA fake-200s.
   location / { try_files $uri =404; }
