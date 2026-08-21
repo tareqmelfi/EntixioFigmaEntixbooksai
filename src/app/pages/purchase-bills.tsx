@@ -3,7 +3,7 @@
  * UX-1: NO modal · NO slide-over.
  * UX pattern: FullPageForm (replaces content area on create · مطابق Wafeq) + ItemsTable + SearchableCombobox.
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router";
 import { Plus, Search, Trash2, Loader2, ShoppingBag, Edit2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -25,6 +25,7 @@ import { buildDuplicateDecision, getSimilarityReview, type SimilarityReview } fr
 import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
 const currencies = (t: (ar: string, en?: string) => string) => [
@@ -84,6 +85,16 @@ export function PurchaseBills() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  // A USD company must never open a SAR bill by default (owner report
+  // 2026-08-21). Applies while the user hasn't picked a currency manually.
+  const { currency: orgCurrency } = useOrgRegion();
+  const currencyTouchedRef = useRef(false);
+
+  useEffect(() => {
+    if (currencyTouchedRef.current || editingId) return;
+    if (orgCurrency && form.currency !== orgCurrency) setForm((f) => ({ ...f, currency: orgCurrency }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgCurrency, editingId]);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
 
@@ -153,7 +164,8 @@ export function PurchaseBills() {
   useEffect(() => {
     if (searchParams.get("new") === "1") {
       const prefillContact = searchParams.get("contactId") || "";
-      setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
+      currencyTouchedRef.current = false;
+      setForm({ ...EMPTY_FORM, currency: orgCurrency, ...(prefillContact ? { contactId: prefillContact } : {}) });
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
@@ -182,7 +194,8 @@ export function PurchaseBills() {
 
   const openCreate = () => {
     const prefillContact = searchParams.get("contactId") || "";
-    setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
+    currencyTouchedRef.current = false;
+      setForm({ ...EMPTY_FORM, currency: orgCurrency, ...(prefillContact ? { contactId: prefillContact } : {}) });
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setPaymentSplits([]);
@@ -198,7 +211,7 @@ export function PurchaseBills() {
       billNumber: b.billNumber || "",
       issueDate: b.issueDate?.slice(0, 10) || EMPTY_FORM.issueDate,
       dueDate: b.dueDate?.slice(0, 10) || EMPTY_FORM.dueDate,
-      currency: b.currency || "SAR",
+      currency: b.currency || orgCurrency || "SAR",
       notes: b.notes || "",
     } as any);
     const linesData = (b.lines || []).map((l: any) => ({ description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice), accountId: l.accountId || "", productId: l.productId || "" }));
@@ -446,6 +459,19 @@ export function PurchaseBills() {
                   }}
                   roleFilter="مورد"
                   placeholder={t("ابحث أو أنشئ مورد...", "Search or create supplier...")}
+                  options={suppliers.map((c) => ({
+                    id: c.id,
+                    name: c.displayName,
+                    nameEn: (c as any).nameEn || undefined,
+                    type: ((c as any).entityKind === "INDIVIDUAL" ? "person" : "organization") as "person" | "organization",
+                    roles: ["مورد" as const],
+                    email: c.email || "",
+                    phone: c.phone || "",
+                    taxNumber: (c as any).vatNumber || undefined,
+                    netBalance: 0,
+                    entityLocation: ((c as any).country && (c as any).country !== "SA" ? "foreign" : "local") as "local" | "foreign",
+                    country: (c as any).country || undefined,
+                  }))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -469,7 +495,7 @@ export function PurchaseBills() {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
-                <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+                <Select value={form.currency} onValueChange={(v) => { currencyTouchedRef.current = true; setForm({ ...form, currency: v }); }}>
                   <SelectTrigger className="h-9 border-border text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {currencies(t).map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}

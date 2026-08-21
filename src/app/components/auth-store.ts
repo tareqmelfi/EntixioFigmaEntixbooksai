@@ -9,6 +9,11 @@
 
 import { authClient } from '../lib/auth-client'
 import { setOrgId } from '../lib/api'
+import { storedLanguage } from './public-preferences'
+
+// UI-facing error strings follow the visitor's chosen language — never
+// hardcode Arabic for English sessions (storedLanguage defaults to "en").
+const tt = (ar: string, en: string): string => (storedLanguage() === 'ar' ? ar : en)
 
 const API_BASE =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
@@ -304,16 +309,16 @@ class AuthStore {
           return {
             success: false,
             code: 'EMAIL_NOT_VERIFIED',
-            error: 'هذا البريد غير مُفعّل بعد. تحقق من بريدك أو أعد إرسال رسالة التفعيل.',
+            error: tt('هذا البريد غير مُفعّل بعد. تحقق من بريدك أو أعد إرسال رسالة التفعيل.', 'This email is not verified yet. Check your inbox or resend the verification email.'),
           }
         }
-        return { success: false, error: error.message || 'فشل تسجيل الدخول', code }
+        return { success: false, error: error.message || tt('فشل تسجيل الدخول', 'Sign-in failed'), code }
       }
-      if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
+      if (!data) return { success: false, error: tt('حدث خطأ غير متوقع', 'An unexpected error occurred') }
       await this.refresh()
       return { success: true }
     } catch (e: any) {
-      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+      return { success: false, error: e?.message || tt('فشل الاتصال بالخادم', 'Could not reach the server') }
     }
   }
 
@@ -332,11 +337,11 @@ class AuthStore {
       const { data, error } = await authClient.signUp.email({ email, password, name }, opts)
       if (error) {
         if (error.code === 'USER_ALREADY_EXISTS' || (error.message || '').toLowerCase().includes('already')) {
-          return { success: false, error: 'البريد الإلكتروني مسجل مسبقاً' }
+          return { success: false, error: tt('البريد الإلكتروني مسجل مسبقاً', 'This email is already registered') }
         }
-        return { success: false, error: error.message || 'فشل إنشاء الحساب', code: (error as any)?.code }
+        return { success: false, error: error.message || tt('فشل إنشاء الحساب', 'Account creation failed'), code: (error as any)?.code }
       }
-      if (!data) return { success: false, error: 'حدث خطأ غير متوقع' }
+      if (!data) return { success: false, error: tt('حدث خطأ غير متوقع', 'An unexpected error occurred') }
 
       const user = (data as any)?.user
       // Soft-gate (2026-08-21): the server issues a session on signup even when
@@ -362,7 +367,7 @@ class AuthStore {
       await this.refresh()
       return { success: true }
     } catch (e: any) {
-      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+      return { success: false, error: e?.message || tt('فشل الاتصال بالخادم', 'Could not reach the server') }
     }
   }
 
@@ -456,14 +461,14 @@ class AuthStore {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        return { success: false, status: res.status, error: data?.message || 'فشل إرسال رابط الاسترداد' }
+        return { success: false, status: res.status, error: data?.message || tt('فشل إرسال رابط الاسترداد', 'Failed to send the recovery link') }
       }
       if (data?.status !== true) {
-        return { success: false, status: res.status, error: data?.message || 'تعذر إتمام الطلب الآن' }
+        return { success: false, status: res.status, error: data?.message || tt('تعذر إتمام الطلب الآن', 'Could not complete the request right now') }
       }
       return { success: true, status: res.status }
     } catch (e: any) {
-      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+      return { success: false, error: e?.message || tt('فشل الاتصال بالخادم', 'Could not reach the server') }
     }
   }
 
@@ -477,14 +482,14 @@ class AuthStore {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        return { success: false, status: res.status, error: data?.message || 'فشل إرسال رسالة التحقق' }
+        return { success: false, status: res.status, error: data?.message || tt('فشل إرسال رسالة التحقق', 'Failed to send the verification email') }
       }
       if (data?.status !== true) {
-        return { success: false, status: res.status, error: data?.message || 'تعذر إرسال رسالة التحقق' }
+        return { success: false, status: res.status, error: data?.message || tt('تعذر إرسال رسالة التحقق', 'Could not send the verification email') }
       }
       return { success: true, status: res.status }
     } catch (e: any) {
-      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+      return { success: false, error: e?.message || tt('فشل الاتصال بالخادم', 'Could not reach the server') }
     }
   }
 
@@ -499,11 +504,11 @@ class AuthStore {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        return { success: false, error: data?.message || 'الرابط منتهي أو غير صالح' }
+        return { success: false, error: data?.message || tt('الرابط منتهي أو غير صالح', 'The link is expired or invalid') }
       }
       return { success: true }
     } catch (e: any) {
-      return { success: false, error: e?.message || 'فشل الاتصال بالخادم' }
+      return { success: false, error: e?.message || tt('فشل الاتصال بالخادم', 'Could not reach the server') }
     }
   }
 

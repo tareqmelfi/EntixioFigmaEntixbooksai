@@ -26,6 +26,7 @@ import { Input } from "./ui/input";
 import { SearchableCombobox } from "./searchable-combobox";
 import { BarcodeScannerButton } from "./barcode-scanner";
 import { normalizeDigits } from "../lib/digits";
+import { useLanguage } from "./LanguageContext";
 
 export interface InvoiceLine {
   id: string;
@@ -215,6 +216,7 @@ export function ItemsTable({
   formKey,
   invalidIds,
 }: Props) {
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN_COLS);
   const [colsOpen, setColsOpen] = useState(false);
@@ -412,7 +414,7 @@ export function ItemsTable({
     // Show a placeholder row that says "جارٍ التحليل..." while AI works
     const aiPlaceholder: InvoiceLine = {
       ...newLine(defaultTaxRate, inclusive),
-      description: "⏳ جارٍ تحليل النص بالذكاء الاصطناعي...",
+      description: t("⏳ جارٍ تحليل النص بالذكاء الاصطناعي...", "⏳ Analyzing text with AI..."),
     };
     setLines([...lines, aiPlaceholder]);
     try {
@@ -505,38 +507,38 @@ export function ItemsTable({
                     type="button"
                     onClick={toggleSelectAll}
                     className="text-muted-foreground/70 hover:text-foreground"
-                    title={allSelected ? "إلغاء تحديد الكل" : "تحديد الكل"}
+                    title={allSelected ? t("إلغاء تحديد الكل", "Clear all") : t("تحديد الكل", "Select all")}
                   >
                     {allSelected ? <SquareCheck className="h-4 w-4" /> : <Square className="h-4 w-4" />}
                   </button>
                 </th>
                 {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الصنف</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الصنف", "Item")}</th>
                 )}
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الوصف</th>
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الكمية</th>
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>السعر</th>
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الوصف", "Description")}</th>
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الكمية", "Qty")}</th>
+                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("السعر", "Price")}</th>
                 {showAccount && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الحساب</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الحساب", "Account")}</th>
                 )}
                 {showTax && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>الضريبة</th>
+                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الضريبة", "Tax")}</th>
                 )}
-                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>المبلغ ({currency})</th>
+                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>{t("المبلغ", "Amount")} ({currency})</th>
                 {showTaxAmount && (
-                  <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>ض.ق.م</th>
+                  <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>{t("ض.ق.م", "VAT amt")}</th>
                 )}
-                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>الإجمالي ({currency})</th>
+                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")} ({currency})</th>
                 {showRecognition && (
                   <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>
                     <span className="inline-flex items-center gap-1.5">
-                      الاعتراف
-                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-white">جديد</span>
+                      {t("الاعتراف", "Recognition")}
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-white">{t("جديد", "New")}</span>
                     </span>
                   </th>
                 )}
                 {showAssetCol && (
-                  <th className="py-2.5 px-1 text-center" style={{ fontWeight: 600 }} title="تسجيل السطر كأصل ثابت تلقائياً عند الحفظ">أصل</th>
+                  <th className="py-2.5 px-1 text-center" style={{ fontWeight: 600 }} title={t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}>{t("أصل", "Asset")}</th>
                 )}
                 <th className="py-2.5 px-2 w-10"></th>
               </tr>
@@ -589,8 +591,8 @@ export function ItemsTable({
                             label: p.name,
                             sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString()}`,
                           }))}
-                          placeholder="ابحث عن صنف..."
-                          createLabel={(q) => `+ إنشاء صنف "${q}"`}
+                          placeholder={t("ابحث عن صنف...", "Search item...")}
+                          createLabel={(q) => t("+ إنشاء صنف", "+ Create item") + ` "${q}"`}
                           borderless
                           buttonClassName="min-h-7 h-auto py-1 px-2 text-xs rounded-md"
                           menuMinWidth={360}
@@ -610,7 +612,7 @@ export function ItemsTable({
                           }
                           // Shift+Enter is allowed default behavior (newline)
                         }}
-                        placeholder="الوصف · Shift+Enter لسطر جديد داخل الخلية"
+                        placeholder={t("الوصف · Shift+Enter لسطر جديد داخل الخلية", "Description · Shift+Enter for a newline inside the cell")}
                       />
                     </td>
                     <td className="px-2 py-1">
@@ -641,7 +643,7 @@ export function ItemsTable({
                           value={line.accountId || ""}
                           onChange={(id) => updateLine(i, { accountId: id })}
                           items={accountItems}
-                          placeholder="ابحث عن حساب..."
+                          placeholder={t("ابحث عن حساب...", "Search account...")}
                           borderless
                           buttonClassName="min-h-7 h-auto py-1 px-2 text-xs rounded-md"
                           menuMinWidth={520}
@@ -651,7 +653,7 @@ export function ItemsTable({
                             updateLine(i, { accountId: a.id });
                             return a.id;
                           } : undefined}
-                          createLabel={(q) => `+ إنشاء حساب جديد "${q}"`}
+                          createLabel={(q) => t("+ إنشاء حساب جديد", "+ Create account") + ` "${q}"`}
                         />
                       </td>
                     )}
@@ -665,10 +667,10 @@ export function ItemsTable({
                           }}
                           className="w-full h-7 rounded-md border-0 bg-transparent px-1.5 text-[11px] leading-tight focus:ring-1 focus:ring-primary/30"
                         >
-                          <option value="0.15-ex">15% غير شامل</option>
-                          <option value="0.15-in">15% شامل</option>
-                          <option value="0-ex">0% (صفر)</option>
-                          <option value="0-ex">معفى</option>
+                          <option value="0.15-ex">{t("15% غير شامل", "15% excluded")}</option>
+                          <option value="0.15-in">{t("15% شامل", "15% included")}</option>
+                          <option value="0-ex">{t("0% (صفر)", "0% (zero-rated)")}</option>
+                          <option value="0-ex">{t("معفى", "Exempt")}</option>
                         </select>
                       </td>
                     )}
@@ -701,13 +703,13 @@ export function ItemsTable({
                               max={120}
                               value={line.recognitionMonths ? String(line.recognitionMonths) : ""}
                               onChange={(e) => updateLine(i, { recognitionMonths: e.target.value ? Number(e.target.value) : undefined })}
-                              placeholder="أشهر"
+                              placeholder={t("أشهر", "Months")}
                               className="h-7 border-0 bg-transparent px-1 text-[11px] font-english focus:ring-1 focus:ring-primary/30"
                               dir="ltr"
                             />
                             {line.recognitionStartDate && line.recognitionMonths ? (
                               <span className="text-[10px] text-primary leading-tight">
-                                {line.recognitionMonths} شهر · يبدأ {line.recognitionStartDate}
+                                {t("{m} شهر · يبدأ {d}", "{m} months · starts {d}").replace("{m}", String(line.recognitionMonths)).replace("{d}", line.recognitionStartDate || "")}
                               </span>
                             ) : null}
                           </div>
@@ -722,7 +724,7 @@ export function ItemsTable({
                           line.accountId && fixedAssetAccountIds.has(line.accountId) ? (
                             <span
                               className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1.5 text-emerald-700 ring-1 ring-emerald-300"
-                              title="الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ"
+                              title={t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ", "Account sits in the assets branch · auto-registers as a fixed asset on save")}
                             >
                               <Building2 className="h-3.5 w-3.5" />
                             </span>
@@ -732,7 +734,7 @@ export function ItemsTable({
                               role="checkbox"
                               aria-checked={line.isAsset === true}
                               onClick={() => updateLine(i, { isAsset: !line.isAsset })}
-                              title={line.isAsset ? "سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء" : "تسجيل السطر كأصل ثابت تلقائياً عند الحفظ"}
+                              title={line.isAsset ? t("سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء", "Registers as a fixed asset on save · click to undo") : t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}
                               className={`rounded-md p-1.5 transition-colors ${line.isAsset ? "bg-primary/10 text-primary ring-1 ring-primary/40" : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground"}`}
                             >
                               <Building2 className="h-3.5 w-3.5" />
@@ -749,7 +751,7 @@ export function ItemsTable({
                           type="button"
                           onClick={() => removeRow(i)}
                           className="rounded-md p-1.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-                          title="حذف السطر"
+                          title={t("حذف السطر", "Delete line")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -770,7 +772,7 @@ export function ItemsTable({
               onClick={addRow}
               className="text-sm text-primary hover:underline flex items-center gap-1"
             >
-              <Plus className="h-3.5 w-3.5" /> إضافة سطر
+              <Plus className="h-3.5 w-3.5" /> {t("إضافة سطر", "Add line")}
             </button>
 
             {selected.size > 0 && (
@@ -779,17 +781,17 @@ export function ItemsTable({
                 onClick={deleteSelected}
                 className="text-sm text-destructive hover:underline flex items-center gap-1"
               >
-                <Trash2 className="h-3.5 w-3.5" /> حذف {selected.size} سطر
+                <Trash2 className="h-3.5 w-3.5" /> {t("حذف {n} سطر", "Delete {n} lines").replace("{n}", String(selected.size))}
               </button>
             )}
 
             {/* Cashier mode · type SKU/code + Enter → product drops in */}
             {products.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">كاشير:</span>
+                <span className="text-xs text-muted-foreground">{t("كاشير:", "Cashier:")}</span>
                 <input
                   type="text"
-                  placeholder="ادخل الكود + Enter"
+                  placeholder={t("ادخل الكود + Enter", "Enter code + Enter")}
                   className="text-sm rounded border border-border px-2 py-1 w-40 font-english focus:ring-1 focus:ring-primary/30"
                   dir="ltr"
                   onKeyDown={(e) => {
@@ -867,15 +869,15 @@ export function ItemsTable({
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card"
             >
               <Settings2 className="h-3.5 w-3.5" />
-              الأعمدة ({hiddenCount} مخفية)
+              {t("الأعمدة ({n} مخفية)", "Columns ({n} hidden)").replace("{n}", String(hiddenCount))}
             </button>
             {colsOpen && (
               <div className="absolute end-0 top-full mt-1 w-44 rounded-md border border-border bg-card shadow-lg p-2 z-10">
                 {[
-                  { key: "account" as const, label: "الحساب" },
-                  { key: "tax" as const, label: "الضريبة" },
-                  { key: "taxAmount" as const, label: "مبلغ الضريبة" },
-                  { key: "recognition" as const, label: "الاعتراف بالإيرادات" },
+                  { key: "account" as const, label: t("الحساب", "Account") },
+                  { key: "tax" as const, label: t("الضريبة", "Tax") },
+                  { key: "taxAmount" as const, label: t("مبلغ الضريبة", "Tax amount") },
+                  { key: "recognition" as const, label: t("الاعتراف بالإيرادات", "Revenue recognition") },
                 ].map((c) => (
                   <label key={c.key} className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted/50 rounded cursor-pointer">
                     <input

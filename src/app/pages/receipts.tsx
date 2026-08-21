@@ -596,7 +596,7 @@ export function Receipts() {
                 value={form.contactId}
                 onChange={(id) => setForm({ ...form, contactId: id, invoiceId: "", amount: "", allocations: [] })}
                 items={contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: [(c as any).legalName, c.email].filter(Boolean).join(" · ") || undefined }))}
-                placeholder={t("ابحث عن عميل (عربي/English)...", "Search customer (Arabic/English)...")}
+                placeholder={t("ابحث عن عميل...", "Search customer...")}
                 onCreate={async (name) => {
                   try {
                     const created = await api.contacts.create({ displayName: name, type: "CUSTOMER" as any, isCustomer: true, isSupplier: false, entityKind: "COMPANY" as any, country: "SA" } as any);

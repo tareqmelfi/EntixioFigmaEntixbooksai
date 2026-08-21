@@ -2,10 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Mail, ArrowRight, Shield } from "lucide-react";
 import { EntixWordmark } from "../components/entix-brand";
+import { useLanguage } from "../components/LanguageContext";
 
 type Step = "email" | "otp";
 
 export function PortalLogin() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -50,14 +52,14 @@ export function PortalLogin() {
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="mt-2"><EntixWordmark size={30} /></h1>
-            <p className="text-sm text-muted-foreground mt-1">بوابة الأطراف</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("بوابة الأطراف", "Client portal")}</p>
           </div>
 
           {step === "email" && (
             <form onSubmit={handleEmailSubmit}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-foreground/80 mb-1.5" style={{ fontWeight: 500 }}>البريد الإلكتروني</label>
+                  <label className="block text-sm text-foreground/80 mb-1.5" style={{ fontWeight: 500 }}>{t("البريد الإلكتروني", "Email address")}</label>
                   <div className="relative">
                     <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                     <input
@@ -76,7 +78,7 @@ export function PortalLogin() {
                   className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-white hover:bg-primary/90 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
-                  إرسال رمز الدخول
+                  {t("إرسال رمز الدخول", "Send sign-in code")}
                 </button>
               </div>
             </form>
@@ -87,7 +89,7 @@ export function PortalLogin() {
               <div className="space-y-5">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">
-                    أرسلنا رمز من 6 أرقام إلى
+                    {t("أرسلنا رمز من 6 أرقام إلى", "We sent a 6-digit code to")}
                   </p>
                   <p className="text-sm text-foreground font-english mt-0.5" style={{ fontWeight: 600 }}>{email}</p>
                 </div>
@@ -119,11 +121,11 @@ export function PortalLogin() {
                       className="text-xs text-primary hover:underline"
                       style={{ fontWeight: 500 }}
                     >
-                      أعد إرسال الرمز
+                      {t("أعد إرسال الرمز", "Resend code")}
                     </button>
                   ) : (
                     <p className="text-xs text-muted-foreground/60">
-                      ما وصلك الرمز؟ أعد الإرسال بعد <span className="font-english" style={{ fontWeight: 600 }}>{countdown}</span> ثانية
+                      {t("ما وصلك الرمز؟ أعد الإرسال بعد", "Didn't get the code? Resend after")} <span className="font-english" style={{ fontWeight: 600 }}>{countdown}</span> {t("ثانية", "seconds")}
                     </p>
                   )}
                 </div>
@@ -134,7 +136,7 @@ export function PortalLogin() {
                   className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ fontWeight: 600 }}
                 >
-                  دخول
+                  {t("دخول", "Sign in")}
                 </button>
 
                 <button
@@ -143,7 +145,7 @@ export function PortalLogin() {
                   className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   <ArrowRight className="h-3 w-3" />
-                  تغيير البريد الإلكتروني
+                  {t("تغيير البريد الإلكتروني", "Change email address")}
                 </button>
               </div>
             </form>
@@ -153,7 +155,7 @@ export function PortalLogin() {
         {/* Footer */}
         <div className="text-center mt-6 flex items-center justify-center gap-2">
           <Shield className="h-3.5 w-3.5 text-muted-foreground/60" />
-          <span className="text-xs text-muted-foreground/60">هذا الرابط آمن ومقدم من</span>
+          <span className="text-xs text-muted-foreground/60">{t("هذا الرابط آمن ومقدم من", "This link is secure and provided by")}</span>
           <span className="text-xs text-muted-foreground/60 font-english" style={{ fontWeight: 600 }}>ENTIX.IO — entix.io</span>
         </div>
       </div>

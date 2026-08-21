@@ -10,136 +10,138 @@ import { SharedFooter } from "../components/shared-footer";
 import { EntixWordmark } from "../components/entix-brand";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useLanguage } from "../components/LanguageContext";
 
 export function Features() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("invoices");
 
   const features = [
     {
       icon: FileText,
-      title: "ZATCA Phase 2 — قيد التحقق",
-      desc: "تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
+      title: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — under validation"),
+      desc: t("تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", "ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."),
       color: "#0B1B49",
       details: [
-        "حالة التكامل: قيد التحقق الفني والتنظيمي",
-        "توليد QR يحتوي بيانات الفاتورة الأساسية",
-        "غير مفعّل للاعتماد الإنتاجي",
-        "قوالب فواتير قابلة للتخصيص بالكامل",
-        "إرسال الفواتير عبر البريد الإلكتروني و WhatsApp",
-        "دعم الفواتير المبسطة والضريبية",
+        t("حالة التكامل: قيد التحقق الفني والتنظيمي", "Integration status: under technical and regulatory validation"),
+        t("توليد QR يحتوي بيانات الفاتورة الأساسية", "QR generation with core invoice data"),
+        t("غير مفعّل للاعتماد الإنتاجي", "Not enabled for production reliance"),
+        t("قوالب فواتير قابلة للتخصيص بالكامل", "Fully customizable invoice templates"),
+        t("إرسال الفواتير عبر البريد الإلكتروني و WhatsApp", "Send invoices via email and WhatsApp"),
+        t("دعم الفواتير المبسطة والضريبية", "Simplified and tax invoice support"),
       ]
     },
     {
       icon: BarChart3,
-      title: "تقارير مالية متقدمة",
-      desc: "لوحة تحكم شاملة مع تقارير تفصيلية ورسوم بيانية تفاعلية لمتابعة أداء أعمالك",
+      title: t("تقارير مالية متقدمة", "Advanced financial reports"),
+      desc: t("لوحة تحكم شاملة مع تقارير تفصيلية ورسوم بيانية تفاعلية لمتابعة أداء أعمالك", "A comprehensive dashboard with detailed reports and interactive charts to track your business performance"),
       color: "#1276E3",
       details: [
-        "تقرير الأرباح والخسائر التفصيلي",
-        "الميزانية العمومية",
-        "تقرير التدفقات النقدية",
-        "تقارير الضرائب جاهزة للتقديم",
-        "تحليل المبيعات والمشتريات",
-        "مقارنات بين الفترات الزمنية",
+        t("تقرير الأرباح والخسائر التفصيلي", "Detailed profit & loss report"),
+        t("الميزانية العمومية", "Balance sheet"),
+        t("تقرير التدفقات النقدية", "Cash flow statement"),
+        t("تقارير الضرائب جاهزة للتقديم", "Filing-ready tax reports"),
+        t("تحليل المبيعات والمشتريات", "Sales and purchases analysis"),
+        t("مقارنات بين الفترات الزمنية", "Period-over-period comparisons"),
       ]
     },
     {
       icon: Shield,
-      title: "أمان وحماية متقدمة",
-      desc: "تشفير أثناء النقل وجلسات آمنة ونسخ احتياطي يومي لبياناتك المالية",
+      title: t("أمان وحماية متقدمة", "Advanced security"),
+      desc: t("تشفير أثناء النقل وجلسات آمنة ونسخ احتياطي يومي لبياناتك المالية", "Encryption in transit, secure sessions, and daily backups for your financial data"),
       color: "#059669",
       details: [
-        "تشفير الاتصال عبر TLS",
-        "جلسات آمنة بكوكي HttpOnly مشفّرة",
-        "مدفوعات عبر Stripe — لا تُحفظ بيانات البطاقات لدينا",
-        "صلاحيات وصول حسب أدوار المستخدمين",
-        "سجل نشاط للعمليات (Activity Log)",
-        "نسخ احتياطي يومي تلقائي",
+        t("تشفير الاتصال عبر TLS", "TLS connection encryption"),
+        t("جلسات آمنة بكوكي HttpOnly مشفّرة", "Secure sessions with encrypted HttpOnly cookies"),
+        t("مدفوعات عبر Stripe — لا تُحفظ بيانات البطاقات لدينا", "Payments via Stripe — card data is never stored with us"),
+        t("صلاحيات وصول حسب أدوار المستخدمين", "Role-based access permissions"),
+        t("سجل نشاط للعمليات (Activity Log)", "Activity log for operations"),
+        t("نسخ احتياطي يومي تلقائي", "Automatic daily backups"),
       ]
     },
     {
       icon: Cloud,
-      title: "نسخ احتياطي واستمرارية",
-      desc: "نسخ احتياطي يومي تلقائي مع احتفاظ 14 يومًا — بياناتك آمنة وقابلة للتصدير",
+      title: t("نسخ احتياطي واستمرارية", "Backups & continuity"),
+      desc: t("نسخ احتياطي يومي تلقائي مع احتفاظ 14 يومًا — بياناتك آمنة وقابلة للتصدير", "Automatic daily backups with 14-day retention — your data is safe and exportable"),
       color: "#349FC4",
       details: [
-        "نسخ احتياطي يومي تلقائي",
-        "احتفاظ بالنسخ 14 يومًا",
-        "تصدير بياناتك كاملة في أي وقت",
-        "بياناتك ملكك — حذف عند الطلب",
-        "سجل نشاط للعمليات",
-        "وصول من أي جهاز ومتصفح",
+        t("نسخ احتياطي يومي تلقائي", "Automatic daily backups"),
+        t("احتفاظ بالنسخ 14 يومًا", "14-day backup retention"),
+        t("تصدير بياناتك كاملة في أي وقت", "Export all your data anytime"),
+        t("بياناتك ملكك — حذف عند الطلب", "Your data is yours — deletion on request"),
+        t("سجل نشاط للعمليات", "Operations activity log"),
+        t("وصول من أي جهاز ومتصفح", "Access from any device and browser"),
       ]
     },
     {
       icon: Globe,
-      title: "دعم متعدد اللغات والعملات",
-      desc: "واجهة عربية كاملة مع دعم RTL والعملات المتعددة وأسعار الصرف",
+      title: t("دعم متعدد اللغات والعملات", "Multi-language & multi-currency"),
+      desc: t("واجهة عربية كاملة مع دعم RTL والعملات المتعددة وأسعار الصرف", "Full Arabic interface with RTL support, multiple currencies, and exchange rates"),
       color: "#8B5CF6",
       details: [
-        "واجهة عربية RTL احترافية",
-        "واجهة إنجليزية كاملة LTR",
-        "عملات متعددة (SAR · USD وغيرها)",
-        "أسعار صرف محدّثة",
-        "فواتير بالعربية والإنجليزية",
-        "أرقام بصيغة عربية وإنجليزية",
+        t("واجهة عربية RTL احترافية", "Professional Arabic RTL interface"),
+        t("واجهة إنجليزية كاملة LTR", "Full English LTR interface"),
+        t("عملات متعددة (SAR · USD وغيرها)", "Multiple currencies (SAR · USD and more)"),
+        t("أسعار صرف محدّثة", "Up-to-date exchange rates"),
+        t("فواتير بالعربية والإنجليزية", "Invoices in Arabic and English"),
+        t("أرقام بصيغة عربية وإنجليزية", "Numbers in Arabic and English formats"),
       ]
     },
     {
       icon: Receipt,
-      title: "إدارة المصروفات والمشتريات",
-      desc: "تتبع دقيق للمصروفات مع تصنيف تلقائي ومراكز تكلفة ومشاريع",
+      title: t("إدارة المصروفات والمشتريات", "Expense & purchase management"),
+      desc: t("تتبع دقيق للمصروفات مع تصنيف تلقائي ومراكز تكلفة ومشاريع", "Precise expense tracking with automatic categorization, cost centers, and projects"),
       color: "#EF4444",
       details: [
-        "تسجيل المصروفات بالكاميرا",
-        "تصنيف تلقائي ذكي",
-        "ربط بمراكز التكلفة والمشاريع",
-        "موافقات متعددة المستويات",
-        "تقارير تفصيلية بالمصروفات",
-        "تنبيهات تجاوز الميزانية",
+        t("تسجيل المصروفات بالكاميرا", "Capture expenses with the camera"),
+        t("تصنيف تلقائي ذكي", "Smart automatic categorization"),
+        t("ربط بمراكز التكلفة والمشاريع", "Link to cost centers and projects"),
+        t("موافقات متعددة المستويات", "Multi-level approvals"),
+        t("تقارير تفصيلية بالمصروفات", "Detailed expense reports"),
+        t("تنبيهات تجاوز الميزانية", "Budget overrun alerts"),
       ]
     },
     {
       icon: Calculator,
-      title: "ضريبة القيمة المضافة",
-      desc: "حساب تلقائي للضريبة مع تقارير جاهزة للتقديم لهيئة الزكاة والضريبة",
+      title: t("ضريبة القيمة المضافة", "Value-added tax"),
+      desc: t("حساب تلقائي للضريبة مع تقارير جاهزة للتقديم لهيئة الزكاة والضريبة", "Automatic tax calculation with filing-ready reports"),
       color: "#F59E0B",
       details: [
-        "حساب تلقائي لضريبة القيمة المضافة",
-        "دعم نسب ضريبية متعددة",
-        "تقرير الضريبة المستحقة",
-        "تقرير المشتريات الخاضعة للضريبة",
-        "تقرير المبيعات الخاضعة للضريبة",
-        "تصدير تقارير جاهزة للتقديم",
+        t("حساب تلقائي لضريبة القيمة المضافة", "Automatic VAT calculation"),
+        t("دعم نسب ضريبية متعددة", "Multiple tax-rate support"),
+        t("تقرير الضريبة المستحقة", "Tax due report"),
+        t("تقرير المشتريات الخاضعة للضريبة", "Taxable purchases report"),
+        t("تقرير المبيعات الخاضعة للضريبة", "Taxable sales report"),
+        t("تصدير تقارير جاهزة للتقديم", "Export filing-ready reports"),
       ]
     },
     {
       icon: TrendingUp,
-      title: "تحليلات ذكية مدعومة بالـ AI",
-      desc: "تنبؤات مالية وتوصيات ذكية لتحسين الأداء المالي لأعمالك",
+      title: t("تحليلات ذكية مدعومة بالـ AI", "AI-powered smart analytics"),
+      desc: t("تنبؤات مالية وتوصيات ذكية لتحسين الأداء المالي لأعمالك", "Financial forecasts and smart recommendations to improve your business performance"),
       color: "#06B6D4",
       details: [
-        "تنبؤ بالتدفقات النقدية",
-        "توصيات لتحسين الأرباح",
-        "تحليل اتجاهات المبيعات",
-        "كشف الشذوذ في المعاملات",
-        "توقعات الإيرادات الشهرية",
-        "تحليل سلوك العملاء",
+        t("تنبؤ بالتدفقات النقدية", "Cash flow forecasting"),
+        t("توصيات لتحسين الأرباح", "Profit improvement recommendations"),
+        t("تحليل اتجاهات المبيعات", "Sales trend analysis"),
+        t("كشف الشذوذ في المعاملات", "Transaction anomaly detection"),
+        t("توقعات الإيرادات الشهرية", "Monthly revenue forecasts"),
+        t("تحليل سلوك العملاء", "Customer behavior analysis"),
       ]
     },
     {
       icon: Users,
-      title: "إدارة العملاء والموردين",
-      desc: "قاعدة بيانات شاملة للعملاء والموردين مع تتبع المعاملات والأرصدة",
+      title: t("إدارة العملاء والموردين", "Customer & vendor management"),
+      desc: t("قاعدة بيانات شاملة للعملاء والموردين مع تتبع المعاملات والأرصدة", "A comprehensive customer and vendor database with transaction and balance tracking"),
       color: "#10B981",
       details: [
-        "ملفات تفصيلية للعملاء والموردين",
-        "تتبع الأرصدة والمديونيات",
-        "سجل كامل للمعاملات",
-        "إشعارات تذكير بالمستحقات",
-        "تقارير تحليلية بالعملاء",
-        "تصنيفات وفئات مخصصة",
+        t("ملفات تفصيلية للعملاء والموردين", "Detailed customer and vendor profiles"),
+        t("تتبع الأرصدة والمديونيات", "Balance and receivables tracking"),
+        t("سجل كامل للمعاملات", "Full transaction history"),
+        t("إشعارات تذكير بالمستحقات", "Due-amount reminder notifications"),
+        t("تقارير تحليلية بالعملاء", "Customer analytics reports"),
+        t("تصنيفات وفئات مخصصة", "Custom tags and categories"),
       ]
     },
   ];
@@ -157,21 +159,21 @@ export function Features() {
           <div className="flex items-center mb-2">
             <EntixWordmark size={30} />
           </div>
-          <p className="text-muted-foreground text-sm">الرياض، المملكة العربية السعودية</p>
+          <p className="text-muted-foreground text-sm">{t("الرياض، المملكة العربية السعودية", "Riyadh, Saudi Arabia")}</p>
           <p className="text-muted-foreground text-sm" dir="ltr">+966 800 430 088</p>
         </div>
         <div className="text-left">
-          <h3 className="text-foreground text-2xl font-bold mb-2">فاتورة ضريبية</h3>
-          <p className="text-muted-foreground text-sm">رقم: INV-2026-001</p>
-          <p className="text-muted-foreground text-sm">التاريخ: 18 مارس 2026</p>
+          <h3 className="text-foreground text-2xl font-bold mb-2">{t("فاتورة ضريبية", "Tax Invoice")}</h3>
+          <p className="text-muted-foreground text-sm">{t("رقم:", "No:")} INV-2026-001</p>
+          <p className="text-muted-foreground text-sm">{t("التاريخ: 18 مارس 2026", "Date: March 18, 2026")}</p>
         </div>
       </div>
 
       {/* Customer info */}
       <div className="mb-6">
-        <p className="text-muted-foreground text-sm mb-1">العميل</p>
-        <p className="text-foreground font-semibold">شركة التقنية المتقدمة</p>
-        <p className="text-muted-foreground text-sm">الرقم الضريبي: 300123456789003</p>
+        <p className="text-muted-foreground text-sm mb-1">{t("العميل", "Customer")}</p>
+        <p className="text-foreground font-semibold">{t("شركة التقنية المتقدمة", "Advanced Technology Co.")}</p>
+        <p className="text-muted-foreground text-sm">{t("الرقم الضريبي:", "VAT No.:")} 300123456789003</p>
       </div>
 
       {/* Items table */}
@@ -179,21 +181,21 @@ export function Features() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-right p-3 text-foreground/80 text-sm font-semibold">البند</th>
-              <th className="text-center p-3 text-foreground/80 text-sm font-semibold">الكمية</th>
-              <th className="text-center p-3 text-foreground/80 text-sm font-semibold">السعر</th>
-              <th className="text-left p-3 text-foreground/80 text-sm font-semibold">المجموع</th>
+              <th className="text-right p-3 text-foreground/80 text-sm font-semibold">{t("البند", "Item")}</th>
+              <th className="text-center p-3 text-foreground/80 text-sm font-semibold">{t("الكمية", "Qty")}</th>
+              <th className="text-center p-3 text-foreground/80 text-sm font-semibold">{t("السعر", "Price")}</th>
+              <th className="text-left p-3 text-foreground/80 text-sm font-semibold">{t("المجموع", "Amount")}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-gray-100">
-              <td className="p-3 text-foreground">خدمات استشارية محاسبية</td>
+              <td className="p-3 text-foreground">{t("خدمات استشارية محاسبية", "Accounting consulting services")}</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">10</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">500.00</td>
               <td className="text-left p-3 text-foreground" dir="ltr">5,000.00</td>
             </tr>
             <tr className="border-b border-gray-100">
-              <td className="p-3 text-foreground">تدريب على الأنظمة المالية</td>
+              <td className="p-3 text-foreground">{t("تدريب على الأنظمة المالية", "Financial systems training")}</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">5</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">300.00</td>
               <td className="text-left p-3 text-foreground" dir="ltr">1,500.00</td>
@@ -206,15 +208,15 @@ export function Features() {
       <div className="flex justify-end mb-6">
         <div className="w-64 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">المجموع الفرعي</span>
+            <span className="text-muted-foreground">{t("المجموع الفرعي", "Subtotal")}</span>
             <span className="text-foreground" dir="ltr">6,500.00 SR</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">ضريبة القيمة المضافة (15%)</span>
+            <span className="text-muted-foreground">{t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
             <span className="text-foreground" dir="ltr">975.00 SR</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-gray-200">
-            <span className="text-foreground font-bold">الإجمالي</span>
+            <span className="text-foreground font-bold">{t("الإجمالي", "Total")}</span>
             <span className="text-foreground font-bold text-lg" dir="ltr">7,475.00 SR</span>
           </div>
         </div>
@@ -231,8 +233,8 @@ export function Features() {
             </div>
           </div>
           <div className="text-sm text-muted-foreground">
-            <p>رمز QR للفاتورة</p>
-            <p className="text-xs">ZATCA Phase 2 — قيد التحقق</p>
+            <p>{t("رمز QR للفاتورة", "Invoice QR code")}</p>
+            <p className="text-xs">{t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — under validation")}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -259,9 +261,9 @@ export function Features() {
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: "الإيرادات", value: "245,000", change: "+12.5%", icon: TrendingUp, color: "#22C55E" },
-          { label: "المصروفات", value: "89,500", change: "-3.2%", icon: Receipt, color: "#EF4444" },
-          { label: "صافي الربح", value: "155,500", change: "+18.7%", icon: DollarSign, color: "#1276E3" },
+          { label: t("الإيرادات", "Revenue"), value: "245,000", change: "+12.5%", icon: TrendingUp, color: "#22C55E" },
+          { label: t("المصروفات", "Expenses"), value: "89,500", change: "-3.2%", icon: Receipt, color: "#EF4444" },
+          { label: t("صافي الربح", "Net profit"), value: "155,500", change: "+18.7%", icon: DollarSign, color: "#1276E3" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <div className="flex items-center justify-between mb-2">
@@ -280,7 +282,7 @@ export function Features() {
 
       <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-white font-semibold">المبيعات الشهرية</h4>
+          <h4 className="text-white font-semibold">{t("المبيعات الشهرية", "Monthly sales")}</h4>
           <Calendar className="w-4 h-4 text-white/60" />
         </div>
         <div className="h-32 flex items-end justify-between gap-2">
@@ -313,18 +315,17 @@ export function Features() {
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-secondary" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>مميزات متقدمة لإدارة مالية احترافية</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("مميزات متقدمة لإدارة مالية احترافية", "Advanced features for professional financial management")}</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
-              كل ما تحتاجه لإدارة
+              {t("كل ما تحتاجه لإدارة", "Everything you need to manage")}
               <br />
               <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
-                حساباتك بذكاء
+                {t("حساباتك بذكاء", "your books smarter")}
               </span>
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8" style={{ lineHeight: 1.8 }}>
-              اكتشف مجموعة شاملة من الأدوات المحاسبية المتقدمة المصممة خصيصاً 
-              لتبسيط عملك وزيادة إنتاجيتك وتحسين أدائك المالي
+              {t("اكتشف مجموعة شاملة من الأدوات المحاسبية المتقدمة المصممة خصيصاً لتبسيط عملك وزيادة إنتاجيتك وتحسين أدائك المالي", "Discover a comprehensive set of advanced accounting tools designed to simplify your work, boost productivity, and improve your financial performance")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 
@@ -332,7 +333,7 @@ export function Features() {
                 className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                ابدأ شهرك المجاني
+                {t("ابدأ شهرك المجاني", "Start your free month")}
                 <ArrowLeft className="w-4 h-4" />
               </button>
               <button 
@@ -340,7 +341,7 @@ export function Features() {
                 className="border border-white/30 hover:border-white/50 hover:bg-white/10 text-white px-8 py-3.5 rounded-xl transition-all cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
-                شاهد الأسعار
+                {t("شاهد الأسعار", "See pricing")}
               </button>
             </div>
           </motion.div>
@@ -352,18 +353,18 @@ export function Features() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              شاهد النظام في العمل
+              {t("شاهد النظام في العمل", "See the system in action")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              واجهات احترافية سهلة الاستخدام مصممة لتوفير أفضل تجربة محاسبية
+              {t("واجهات احترافية سهلة الاستخدام مصممة لتوفير أفضل تجربة محاسبية", "Professional, easy-to-use interfaces designed for the best accounting experience")}
             </p>
           </div>
 
           {/* Tabs */}
           <div className="flex items-center justify-center gap-3 mb-10">
             {[
-              { id: "invoices", label: "الفواتير", icon: FileText },
-              { id: "dashboard", label: "لوحة التحكم", icon: BarChart3 },
+              { id: "invoices", label: t("الفواتير", "Invoices"), icon: FileText },
+              { id: "dashboard", label: t("لوحة التحكم", "Dashboard"), icon: BarChart3 },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -394,10 +395,10 @@ export function Features() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              مميزات شاملة ومتكاملة
+              {t("مميزات شاملة ومتكاملة", "Complete, integrated features")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              نظام محاسبي متكامل يغطي جميع احتياجاتك المالية والإدارية
+              {t("نظام محاسبي متكامل يغطي جميع احتياجاتك المالية والإدارية", "An integrated accounting system covering all your financial and administrative needs")}
             </p>
           </div>
 
@@ -446,10 +447,10 @@ export function Features() {
             viewport={{ once: true }}
           >
             <h2 className="text-white mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, lineHeight: 1.3 }}>
-              جاهز لتجربة أفضل نظام محاسبي؟
+              {t("جاهز لتجربة أفضل نظام محاسبي؟", "Ready to try a better accounting system?")}
             </h2>
             <p className="text-white/80 text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              ابدأ اليوم واكتشف كيف يمكن لـ ENTIX.IO تحويل طريقة إدارتك لحساباتك المالية
+              {t("ابدأ اليوم واكتشف كيف يمكن لـ ENTIX.IO تحويل طريقة إدارتك لحساباتك المالية", "Start today and discover how ENTIX.IO can transform the way you manage your finances")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 
@@ -457,11 +458,11 @@ export function Features() {
                 className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "16px", fontWeight: 600 }}
               >
-                ابدأ شهرك المجاني — 30 يومًا كاملة
+                {t("ابدأ شهرك المجاني — 30 يومًا كاملة", "Start your free month — 30 full days")}
                 <ArrowLeft className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-white/60 mt-4 text-sm">لا حاجة لبطاقة ائتمانية • إلغاء في أي وقت</p>
+            <p className="text-white/60 mt-4 text-sm">{t("لا حاجة لبطاقة ائتمانية • إلغاء في أي وقت", "No credit card required • Cancel anytime")}</p>
           </motion.div>
         </div>
       </section>

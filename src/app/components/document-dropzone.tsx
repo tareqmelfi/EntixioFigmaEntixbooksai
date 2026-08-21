@@ -23,6 +23,7 @@
 import { useState, useRef, ChangeEvent, useEffect, DragEvent as ReactDragEvent } from "react";
 import { Upload, FileText, Image, Loader2, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { api } from "../lib/api";
+import { useLanguage } from "./LanguageContext";
 
 export type ExtractTarget = "invoice-lines" | "quote-lines" | "bill-lines" | "expense" | "contact" | "auto";
 
@@ -122,6 +123,7 @@ export function DocumentDropZone({
   className = "",
   compact = false,
 }: Props) {
+  const { t } = useLanguage();
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export function DocumentDropZone({
     setError(null);
     try {
       if (file.size > 100 * 1024 * 1024) {
-        throw new Error("الملف أكبر من 100MB · جرّب ملفاً أصغر أو قسّمه");
+        throw new Error(t("الملف أكبر من 100MB · جرّب ملفاً أصغر أو قسّمه", "File exceeds 100MB · try a smaller file or split it"));
       }
       const base64 = await fileToBase64(file);
       const data: ExtractedDocument = await (api as any).agent.extractDocument({
@@ -149,10 +151,10 @@ export function DocumentDropZone({
         currency,
       });
       if (data?.status === BANK_STATEMENT_REVIEW_STATUS || data?.documentType === "bank_statement") {
-        throw new Error(data.message || "تم اكتشاف كشف حساب بنكي. لم يتم تحويله إلى مستند مالي.");
+        throw new Error(data.message || t("تم اكتشاف كشف حساب بنكي. لم يتم تحويله إلى مستند مالي.", "Bank statement detected. It was not converted into a financial document."));
       }
       if (!data || data.confidence === 0) {
-        throw new Error("تعذّر استخراج بيانات من المستند · جرّب صورة أوضح");
+        throw new Error(t("تعذّر استخراج بيانات من المستند · جرّب صورة أوضح", "Could not extract data from this document · try a clearer image"));
       }
       // Thread the source file through so the created record can carry it as an
       // attachment (mandate: files provided by the user MUST end up attached).
@@ -161,9 +163,11 @@ export function DocumentDropZone({
         sourceFileHash: (data as any).sourceFileHash,
         sourceFile: { name: file.name, contentType: file.type || "application/octet-stream", base64 },
       });
-      setSuccess(`تم استخراج ${data.lines?.length || 0} بنداً من ${file.name}`);
+      setSuccess(t("تم استخراج {n} بنداً من {file}", "Extracted {n} line(s) from {file}")
+        .replace("{n}", String(data.lines?.length || 0))
+        .replace("{file}", file.name));
     } catch (e: any) {
-      const msg = e?.message || "فشل الرفع";
+      const msg = e?.message || t("فشل الرفع", "Upload failed");
       setError(msg);
       onError?.(msg);
     } finally {
@@ -241,7 +245,7 @@ export function DocumentDropZone({
           <div className="fixed inset-0 z-[100] bg-primary/10 border-4 border-primary border-dashed flex items-center justify-center pointer-events-none">
             <div className="bg-card rounded-xl shadow-xl px-8 py-6 text-center">
               <Upload className="h-10 w-10 text-primary mx-auto mb-3" />
-              <p className="text-foreground font-semibold">أفلت الملف هنا لرفعه</p>
+              <p className="text-foreground font-semibold">{t("أفلت الملف هنا لرفعه", "Drop the file here to upload")}</p>
             </div>
           </div>
         )}
@@ -266,10 +270,10 @@ export function DocumentDropZone({
               <Upload className="h-4 w-4 text-primary shrink-0" />
             )}
             <span className="truncate">
-              {busy ? "جارٍ الاستخراج بالذكاء الاصطناعي..." :
+              {busy ? t("جارٍ الاستخراج بالذكاء الاصطناعي...", "Extracting with AI...") :
                success ? success :
                error ? error :
-               "اسحب ملفاً هنا · تصفح PDF · صور · AI OCR ← Excel تلقائي"}
+               t("اسحب ملفاً هنا · تصفح PDF · صور · AI OCR ← Excel تلقائي", "Drop a file here · browse PDF · images · AI OCR → auto-Excel")}
             </span>
           </div>
           <button
@@ -278,7 +282,7 @@ export function DocumentDropZone({
             disabled={busy}
             className="text-sm text-primary hover:underline disabled:opacity-50 shrink-0"
           >
-            تصفح الملفات
+            {t("تصفح الملفات", "Browse files")}
           </button>
         </div>
       </>
@@ -291,7 +295,7 @@ export function DocumentDropZone({
         <div className="fixed inset-0 z-[100] bg-primary/10 border-4 border-primary border-dashed flex items-center justify-center pointer-events-none">
           <div className="bg-card rounded-xl shadow-xl px-8 py-6 text-center">
             <Upload className="h-10 w-10 text-primary mx-auto mb-3" />
-            <p className="text-foreground font-semibold">أفلت الملف هنا لرفعه</p>
+            <p className="text-foreground font-semibold">{t("أفلت الملف هنا لرفعه", "Drop the file here to upload")}</p>
           </div>
         </div>
       )}
@@ -309,14 +313,14 @@ export function DocumentDropZone({
         {busy ? (
           <div className="flex flex-col items-center gap-3 py-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">جارٍ تحليل المستند بالذكاء الاصطناعي...</p>
+            <p className="text-sm text-muted-foreground">{t("جارٍ تحليل المستند بالذكاء الاصطناعي...", "Analyzing document with AI...")}</p>
           </div>
         ) : success ? (
           <div className="flex flex-col items-center gap-3 py-2">
             <CheckCircle2 className="h-8 w-8 text-emerald-500" />
             <p className="text-sm text-foreground">{success}</p>
             <button onClick={(e) => { e.stopPropagation(); setSuccess(null); }} className="text-xs text-primary hover:underline">
-              رفع ملف آخر
+              {t("رفع ملف آخر", "Upload another file")}
             </button>
           </div>
         ) : (
@@ -327,13 +331,13 @@ export function DocumentDropZone({
               <Upload className="h-6 w-6" />
             </div>
             <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>
-              اسحب أي مستند هنا أو اضغط للتصفح
+              {t("اسحب أي مستند هنا أو اضغط للتصفح", "Drag any document here or click to browse")}
             </p>
             <p className="text-xs text-muted-foreground">
-              PDF · صور · Excel · CSV · سيتم استخراج البنود تلقائياً بالذكاء الاصطناعي
+              {t("PDF · صور · Excel · CSV · سيتم استخراج البنود تلقائياً بالذكاء الاصطناعي", "PDF · Images · Excel · CSV · line items are extracted automatically with AI")}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              يمكنك حتى رفع عرض سعر · سنحوّله لفاتورة مبيعات بضغطة
+              {t("يمكنك حتى رفع عرض سعر · سنحوّله لفاتورة مبيعات بضغطة", "You can even upload a quotation · we convert it to a sales invoice in one click")}
             </p>
             {error && (
               <div className="mt-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 px-3 py-1.5 rounded-md flex items-center gap-1">

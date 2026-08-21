@@ -12,6 +12,7 @@
  *   size    — output square side in px (default 256)
  */
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useLanguage } from "./LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Slider } from "./ui/slider";
 import { Button } from "./ui/button";
@@ -27,6 +28,7 @@ interface Props {
 const VIEWPORT = 240; // square viewport px
 
 export function ImageCropperModal({ file, onCrop, onClose, size = 256 }: Props) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -166,7 +168,7 @@ export function ImageCropperModal({ file, onCrop, onClose, size = 256 }: Props) 
           )}
 
           <div className="w-full flex items-center gap-3 px-2">
-            <span className="text-xs text-muted-foreground shrink-0">تكبير</span>
+            <span className="text-xs text-muted-foreground shrink-0">{t("تكبير", "Zoom")}</span>
             <Slider
               value={[zoom * 100]}
               min={50}
@@ -179,7 +181,7 @@ export function ImageCropperModal({ file, onCrop, onClose, size = 256 }: Props) 
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleCancel} className="border-border">إلغاء</Button>
+          <Button variant="outline" onClick={handleCancel} className="border-border">{t("إلغاء", "Cancel")}</Button>
           <Button onClick={handleSave} disabled={loading || !imgRef.current} className="bg-primary hover:bg-primary/90 text-white">
             حفظ الشعار
           </Button>

@@ -132,7 +132,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
             >
               <span className={language === "ar" ? "font-english text-xs font-semibold" : "text-xs font-semibold"}>
-                {language === "ar" ? "English" : "العربية"}
+                {language === "ar" ? "EN" : "AR"}
               </span>
             </button>
 
@@ -204,7 +204,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   <div className="text-xs text-muted-foreground font-english">{authState.user?.email || "user@entix.io"}</div>
                 </div>
                 <Avatar>
-                  <AvatarFallback className="bg-primary text-primary-foreground">ط</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground">{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
@@ -215,7 +215,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   <div className="px-4 py-3 border-b border-border">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-lg">ط</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground text-lg">{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("حسابي", "My account")}</div>

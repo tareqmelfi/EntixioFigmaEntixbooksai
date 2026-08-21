@@ -55,6 +55,9 @@ interface ContactSearchInputProps {
   roleFilter?: RoleType;
   placeholder?: string;
   label?: string;
+  /** Real org contacts (API-backed). When provided, the picker searches ONLY
+   * these — never the legacy in-memory demo store. */
+  options?: Party[];
 }
 
 export function ContactSearchInput({
@@ -64,6 +67,7 @@ export function ContactSearchInput({
   roleFilter,
   placeholder,
   label,
+  options,
 }: ContactSearchInputProps) {
   const { t } = useLanguage();
   const { searchParties, addParty, getPartyByName } = useContacts();
@@ -92,7 +96,18 @@ export function ContactSearchInput({
   const [qcEmail, setQcEmail] = useState("");
   const [qcPhone, setQcPhone] = useState("");
 
-  const results = searchParties(query, roleFilter).slice(0, 8);
+  const results = (options !== undefined
+    ? (() => {
+        const q = query.toLowerCase().trim();
+        const match = (p: Party) => !q ||
+          p.name.toLowerCase().includes(q) ||
+          (p.nameEn?.toLowerCase().includes(q)) ||
+          (p.email || "").toLowerCase().includes(q) ||
+          Boolean(p.taxNumber?.includes(q));
+        return options.filter(match);
+      })()
+    : searchParties(query, roleFilter)
+  ).slice(0, 8);
   const hasExactMatch = results.some((p) => p.name === query || p.nameEn === query);
 
   // Close dropdown on click outside

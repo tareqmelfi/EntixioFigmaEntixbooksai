@@ -23,11 +23,15 @@ export function displayName(entity: BilingualNamed, lang?: string): string {
   return en || ar;
 }
 
-/** The other-language label, when it differs from the primary. */
+/** The other-language label, when it differs from the primary.
+ *  Owner rule (2026-08-21): an English UI NEVER shows Arabic — no subtitle,
+ *  no exception. Arabic UI may show the English subtitle (Latin reads fine
+ *  for Arabic users and account codes are Latin anyway). */
 export function secondaryName(entity: BilingualNamed, lang?: string): string | null {
   const l = lang ?? uiLang();
   const en = (entity.name || "").trim();
   const ar = (entity.nameAr || "").trim();
   if (!en || !ar || en === ar) return null;
-  return l === "ar" ? en : ar;
+  if (l === "ar") return en;
+  return null;
 }

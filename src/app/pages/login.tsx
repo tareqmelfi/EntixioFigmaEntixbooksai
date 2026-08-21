@@ -169,7 +169,7 @@ export function Login() {
               style={{ fontSize: "13px", fontWeight: 600 }}
             >
               <Globe className="h-4 w-4" />
-              {language === "ar" ? "English" : "العربية"}
+              {language === "ar" ? "EN" : "AR"}
             </button>
           </div>
           

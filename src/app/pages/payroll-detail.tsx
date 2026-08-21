@@ -11,6 +11,7 @@ import { ArrowRight, Download, Loader2, Printer, Wallet, CheckCircle2 } from "lu
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError } from "../lib/api";
+import { useLanguage } from "../components/LanguageContext";
 
 const money = (v: string | number | null | undefined) =>
   Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -18,6 +19,7 @@ const money = (v: string | number | null | undefined) =>
 export function PayrollDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [run, setRun] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function PayrollDetail() {
         const data = await api.payroll.getRun(id);
         setRun(data);
       } catch (e: any) {
-        setError(e instanceof ApiError ? e.message : "تعذر تحميل المسير");
+        setError(e instanceof ApiError ? e.message : t("تعذر تحميل المسير", "Could not load the payroll run"));
       } finally {
         setLoading(false);
       }
@@ -44,7 +46,7 @@ export function PayrollDetail() {
       const updated = await api.payroll.updateRunStatus(run.id, "PAID");
       setRun({ ...updated, org: run.org, lines: run.lines });
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : "فشل تنفيذ المسير");
+      setError(e instanceof ApiError ? e.message : t("فشل تنفيذ المسير", "Failed to execute the payroll run"));
     } finally {
       setBusy(false);
     }
@@ -52,7 +54,7 @@ export function PayrollDetail() {
 
   if (loading) return <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>;
   if (error) return <div className="py-8 text-center text-red-600">{error}</div>;
-  if (!run) return <div className="py-8 text-center text-muted-foreground">لم يتم العثور على المسير</div>;
+  if (!run) return <div className="py-8 text-center text-muted-foreground">{t("لم يتم العثور على المسير", "Payroll run not found")}</div>;
 
   const currency = run.currency || run.org?.baseCurrency || "SAR";
   const org = run.org || {};
@@ -68,20 +70,20 @@ export function PayrollDetail() {
           </button>
           <div>
             <h1 className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{run.runNumber}</h1>
-            <p className="text-sm text-muted-foreground">مسير رواتب · {run.period}</p>
+            <p className="text-sm text-muted-foreground">{t("مسير رواتب", "Payroll run")} · {run.period}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => window.print()} className="border-border">
-            <Printer className="me-2 h-4 w-4" /> طباعة قسيمة
+            <Printer className="me-2 h-4 w-4" /> {t("طباعة قسيمة", "Print payslip")}
           </Button>
           <Button variant="outline" onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank", "noopener")} className="border-border">
-            <Download className="me-2 h-4 w-4" /> تحميل SIF / WPS
+            <Download className="me-2 h-4 w-4" /> {t("تحميل SIF / WPS", "Download SIF / WPS")}
           </Button>
           {isApproved && run.status !== "PAID" && (
             <Button onClick={executePayment} disabled={busy} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Wallet className="me-2 h-4 w-4" />}
-              تنفيذ المسير
+              {t("تنفيذ المسير", "Execute run")}
             </Button>
           )}
         </div>
@@ -95,44 +97,44 @@ export function PayrollDetail() {
           run.status === "PAID" ? "bg-emerald-50 text-emerald-700" :
           "bg-gray-100 text-gray-600"
         }`}>{run.status}</span>
-        {run.status === "PAID" && <span className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> تم التنفيذ</span>}
+        {run.status === "PAID" && <span className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> {t("تم التنفيذ", "Executed")}</span>}
       </div>
 
       {/* Summary tiles */}
       <div className="grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-border bg-white px-4 py-3">
-          <div className="text-xs text-muted-foreground">إجمالي الرواتب</div>
+          <div className="text-xs text-muted-foreground">{t("إجمالي الرواتب", "Gross salaries")}</div>
           <div className="mt-1 text-lg font-semibold text-foreground font-english" dir="ltr">{money(run.grossSalary)} {currency}</div>
         </div>
         <div className="rounded-lg border border-border bg-white px-4 py-3">
-          <div className="text-xs text-muted-foreground">GOSI الموظف</div>
+          <div className="text-xs text-muted-foreground">{t("GOSI الموظف", "Employee GOSI")}</div>
           <div className="mt-1 text-lg font-semibold text-amber-700 font-english" dir="ltr">{money(run.employeeGosi)} {currency}</div>
         </div>
         <div className="rounded-lg border border-border bg-white px-4 py-3">
-          <div className="text-xs text-muted-foreground">GOSI الشركة</div>
+          <div className="text-xs text-muted-foreground">{t("GOSI الشركة", "Employer GOSI")}</div>
           <div className="mt-1 text-lg font-semibold text-amber-700 font-english" dir="ltr">{money(run.employerGosi)} {currency}</div>
         </div>
         <div className="rounded-lg border border-border bg-emerald-50 px-4 py-3">
-          <div className="text-xs text-muted-foreground">صافي الرواتب</div>
+          <div className="text-xs text-muted-foreground">{t("صافي الرواتب", "Net salaries")}</div>
           <div className="mt-1 text-lg font-bold text-emerald-700 font-english" dir="ltr">{money(run.netSalary)} {currency}</div>
         </div>
       </div>
 
       {/* Payslip table */}
       <Card className="border-border">
-        <CardHeader><CardTitle>قسائم الرواتب · {run.lines?.length || 0} موظف</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("قسائم الرواتب", "Payslips")} · {run.lines?.length || 0} {t("موظف", "employee(s)")}</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">الموظف</th>
-                  <th className="px-4 py-3 text-end">أساسي</th>
-                  <th className="px-4 py-3 text-end">بدلات</th>
-                  <th className="px-4 py-3 text-end">إجمالي</th>
+                  <th className="px-4 py-3 text-start">{t("الموظف", "Employee")}</th>
+                  <th className="px-4 py-3 text-end">{t("أساسي", "Basic")}</th>
+                  <th className="px-4 py-3 text-end">{t("بدلات", "Allowances")}</th>
+                  <th className="px-4 py-3 text-end">{t("إجمالي", "Gross")}</th>
                   <th className="px-4 py-3 text-end">GOSI</th>
-                  <th className="px-4 py-3 text-end">استقطاعات</th>
-                  <th className="px-4 py-3 text-end">الصافي</th>
+                  <th className="px-4 py-3 text-end">{t("استقطاعات", "Deductions")}</th>
+                  <th className="px-4 py-3 text-end">{t("الصافي", "Net")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +157,7 @@ export function PayrollDetail() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/50">
-                  <td className="px-4 py-3 font-semibold">الإجمالي</td>
+                  <td className="px-4 py-3 font-semibold">{t("الإجمالي", "Total")}</td>
                   <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">{money(run.grossSalary)}</td>
                   <td className="px-4 py-3"></td>
                   <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">{money(run.grossSalary)}</td>
@@ -174,7 +176,7 @@ export function PayrollDetail() {
         <div className="flex justify-center py-4">
           <div className="text-center">
             {org.stampUrl ? (
-              <img src={org.stampUrl} alt="ختم المؤسسة" style={{ maxHeight: 120, maxWidth: 180, objectFit: "contain", opacity: 0.9, mixBlendMode: "multiply" }} />
+              <img src={org.stampUrl} alt={t("ختم المؤسسة", "Organization stamp")} style={{ maxHeight: 120, maxWidth: 180, objectFit: "contain", opacity: 0.9, mixBlendMode: "multiply" }} />
             ) : org.logoUrl ? (
               <img src={org.logoUrl} alt={org.name} style={{ maxHeight: 80, maxWidth: 160, objectFit: "contain" }} />
             ) : null}

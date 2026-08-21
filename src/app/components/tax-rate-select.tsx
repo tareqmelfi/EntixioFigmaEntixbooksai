@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Settings, Plus, ExternalLink } from "lucide-react";
+import { useLanguage } from "./LanguageContext";
 
 export interface TaxRate {
   id: string;
@@ -29,6 +30,7 @@ interface TaxRateSelectProps {
 }
 
 export function TaxRateSelect({ value, onChange, type = "both", className }: TaxRateSelectProps) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,12 +73,12 @@ export function TaxRateSelect({ value, onChange, type = "both", className }: Tax
           <div className="border-b border-border">
             <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors">
               <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-foreground/80">إعداد ضريبة تلقائية</span>
+              <span className="text-sm text-foreground/80">{t("إعداد ضريبة تلقائية", "Automatic tax setup")}</span>
               <ExternalLink className="h-3 w-3 text-muted-foreground ms-auto" />
             </button>
             <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors border-b border-border">
               <Plus className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إنشاء نسبة ضريبة جديدة</span>
+              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>{t("إنشاء نسبة ضريبة جديدة", "Create new tax rate")}</span>
               <ExternalLink className="h-3 w-3 text-primary ms-auto" />
             </button>
           </div>

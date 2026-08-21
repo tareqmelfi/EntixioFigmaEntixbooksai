@@ -13,6 +13,7 @@ import { useState, useRef, useEffect } from "react";
 import { Barcode, X, Loader2, Camera } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { useLanguage } from "./LanguageContext";
 
 interface Props {
   onScanned: (code: string) => void;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function BarcodeScannerButton({ onScanned, className = "" }: Props) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
 
   return (
@@ -27,7 +29,7 @@ export function BarcodeScannerButton({ onScanned, className = "" }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="مسح باركود (Cmd+B)"
+        title={t("مسح باركود (Cmd+B)", "Scan barcode (Cmd+B)")}
         className={`rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-primary transition-colors ${className}`}
       >
         <Barcode className="h-4 w-4" />
@@ -38,6 +40,7 @@ export function BarcodeScannerButton({ onScanned, className = "" }: Props) {
 }
 
 function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onScanned: (code: string) => void }) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<"camera" | "manual">("camera");
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
@@ -62,7 +65,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
       // Check BarcodeDetector support
       const BarcodeDetector = (window as any).BarcodeDetector;
       if (!BarcodeDetector) {
-        setError("متصفحك لا يدعم قارئ الباركود · جرب Chrome أو Edge أو استخدم الإدخال اليدوي");
+        setError(t("متصفحك لا يدعم قارئ الباركود · جرب Chrome أو Edge أو استخدم الإدخال اليدوي", "Your browser does not support barcode scanning · try Chrome or Edge, or use manual entry"));
         return;
       }
       try {
@@ -84,7 +87,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
         setScanning(true);
         scanLoop();
       } catch (e: any) {
-        setError(e?.message || "تعذّر تشغيل الكاميرا");
+        setError(e?.message || t("تعذّر تشغيل الكاميرا", "Could not start the camera"));
       }
     }
 
@@ -123,7 +126,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
 
   const submitManual = () => {
     if (!manualCode.trim()) {
-      setError("أدخل الباركود");
+      setError(t("أدخل الباركود", "Enter the barcode"));
       return;
     }
     onScanned(manualCode.trim());
@@ -136,9 +139,9 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
         <div className="flex items-center justify-between p-5 border-b border-border/50">
           <div>
             <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 700 }}>
-              <Barcode className="inline h-4 w-4 me-2" /> مسح باركود
+              <Barcode className="inline h-4 w-4 me-2" /> {t("مسح باركود", "Scan barcode")}
             </h2>
-            <p className="text-xs text-muted-foreground mt-1">امسح باركود المنتج لتعبئة البند تلقائياً</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("امسح باركود المنتج لتعبئة البند تلقائياً", "Scan the product barcode to fill the line automatically")}</p>
           </div>
           <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50">
             <X className="h-4 w-4" />
@@ -153,7 +156,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
               mode === "camera" ? "bg-white text-primary border-b-2 border-primary" : "text-muted-foreground"
             }`}
           >
-            <Camera className="h-3.5 w-3.5" /> الكاميرا
+            <Camera className="h-3.5 w-3.5" /> {t("الكاميرا", "Camera")}
           </button>
           <button
             onClick={() => setMode("manual")}
@@ -161,7 +164,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
               mode === "manual" ? "bg-white text-primary border-b-2 border-primary" : "text-muted-foreground"
             }`}
           >
-            <Barcode className="h-3.5 w-3.5" /> إدخال يدوي
+            <Barcode className="h-3.5 w-3.5" /> {t("إدخال يدوي", "Manual entry")}
           </button>
         </div>
 
@@ -186,18 +189,18 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
               </div>
               {scanning && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 text-white px-3 py-1.5 rounded-full text-xs">
-                  <Loader2 className="h-3 w-3 animate-spin" /> جارٍ المسح...
+                  <Loader2 className="h-3 w-3 animate-spin" /> {t("جارٍ المسح...", "Scanning...")}
                 </div>
               )}
             </div>
           ) : (
             <div className="space-y-3">
               <div className="space-y-2">
-                <label className="text-xs text-foreground/80">الباركود / SKU</label>
+                <label className="text-xs text-foreground/80">{t("الباركود / SKU", "Barcode / SKU")}</label>
                 <Input
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="ابحث بـSKU أو الباركود"
+                  placeholder={t("ابحث بـSKU أو الباركود", "Search by SKU or barcode")}
                   dir="ltr"
                   className="border-border font-english"
                   onKeyDown={(e) => {
@@ -207,7 +210,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
                 />
               </div>
               <Button onClick={submitManual} className="w-full bg-primary hover:bg-primary/80">
-                بحث وتعبئة
+                {t("بحث وتعبئة", "Search & fill")}
               </Button>
             </div>
           )}

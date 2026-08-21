@@ -41,6 +41,7 @@ import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { AttachmentViewer, ViewerAttachment } from "../components/attachment-viewer";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
 type Translate = (ar: string, en?: string) => string;
@@ -491,7 +492,7 @@ function extractionTotals(data: any) {
   };
 }
 
-function normalizeLineItems(data: any): ExpenseLine[] {
+function normalizeLineItems(data: any, lang: "ar" | "en" = "ar"): ExpenseLine[] {
   if (!Array.isArray(data?.lines)) return [];
   return data.lines
     .map((line: any) => {
@@ -511,8 +512,8 @@ function normalizeLineItems(data: any): ExpenseLine[] {
         taxInclusive: Boolean(line?.taxInclusive),
         lineTotal: lineTotal ?? subtotal,
         subtotal,
-        category: line?.category || inferLineCategory(description),
-        accountName: line?.accountName || suggestLineAccount(description),
+        category: line?.category || inferLineCategory(description, lang),
+        accountName: line?.accountName || suggestLineAccount(description, lang),
         costCenter: line?.costCenter || null,
         projectCode: line?.projectCode || null,
         sku: line?.sku || null,
@@ -523,22 +524,26 @@ function normalizeLineItems(data: any): ExpenseLine[] {
     .filter(Boolean) as ExpenseLine[];
 }
 
-function inferLineCategory(text: string): string {
+// Auto-suggested categories/accounts are saved as expense data, so they must
+// follow the org's working language — never store Arabic for English UIs.
+function inferLineCategory(text: string, lang: "ar" | "en" = "ar"): string {
   const value = text.toLowerCase();
-  if (/coffee|coffeemate|cereal|food|market|grocery|بقال|تموين|غذائ|قهوة|حبوب/.test(value)) return "مواد غذائية";
-  if (/restaurant|meal|chicken|وجبة|مطعم|دجاج/.test(value)) return "ضيافة ووجبات";
-  if (/fuel|gas|بنزين|وقود/.test(value)) return "وقود";
-  if (/software|subscription|app|برنامج|اشتراك/.test(value)) return "برامج واشتراكات";
-  return "مصروف عام";
+  const en = lang === "en";
+  if (/coffee|coffeemate|cereal|food|market|grocery|بقال|تموين|غذائ|قهوة|حبوب/.test(value)) return en ? "Groceries & food supplies" : "مواد غذائية";
+  if (/restaurant|meal|chicken|وجبة|مطعم|دجاج/.test(value)) return en ? "Meals & hospitality" : "ضيافة ووجبات";
+  if (/fuel|gas|بنزين|وقود/.test(value)) return en ? "Fuel" : "وقود";
+  if (/software|subscription|app|برنامج|اشتراك/.test(value)) return en ? "Software & subscriptions" : "برامج واشتراكات";
+  return en ? "General expense" : "مصروف عام";
 }
 
-function suggestLineAccount(text: string): string {
+function suggestLineAccount(text: string, lang: "ar" | "en" = "ar"): string {
   const value = text.toLowerCase();
-  if (/coffee|coffeemate|cereal|food|market|grocery|بقال|تموين|غذائ|قهوة|حبوب/.test(value)) return "509-01 · مشتريات البقالة والمواد الغذائية";
-  if (/restaurant|meal|chicken|وجبة|مطعم|دجاج/.test(value)) return "509-02 · ضيافة ووجبات";
-  if (/fuel|gas|بنزين|وقود/.test(value)) return "509-03 · وقود وتنقل";
-  if (/software|subscription|app|برنامج|اشتراك/.test(value)) return "509-04 · برامج واشتراكات";
-  return "509-99 · مصروفات عامة";
+  const en = lang === "en";
+  if (/coffee|coffeemate|cereal|food|market|grocery|بقال|تموين|غذائ|قهوة|حبوب/.test(value)) return en ? "509-01 · Grocery & food purchases" : "509-01 · مشتريات البقالة والمواد الغذائية";
+  if (/restaurant|meal|chicken|وجبة|مطعم|دجاج/.test(value)) return en ? "509-02 · Meals & hospitality" : "509-02 · ضيافة ووجبات";
+  if (/fuel|gas|بنزين|وقود/.test(value)) return en ? "509-03 · Fuel & transport" : "509-03 · وقود وتنقل";
+  if (/software|subscription|app|برنامج|اشتراك/.test(value)) return en ? "509-04 · Software & subscriptions" : "509-04 · برامج واشتراكات";
+  return en ? "509-99 · General expenses" : "509-99 · مصروفات عامة";
 }
 
 function normalizePaymentMethod(value: any): ApiExpense["paymentMethod"] {
@@ -577,14 +582,15 @@ function paymentTotal(payments: ExpensePaymentSplit[]): number {
   return payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
 }
 
-function inferCategory(data: any): string {
+function inferCategory(data: any, lang: "ar" | "en" = "ar"): string {
   const explicit = String(data?.category || "").trim();
   if (explicit) return explicit;
   const text = JSON.stringify(data?.lines || []).toLowerCase();
-  if (/coffeemate|cereal|tamimi|markets|بقال|تموين|غذائ|حبوب/.test(text)) return "مشتريات بقالة ومواد غذائية";
-  if (/chicken|restaurant|meal|food|وجبة|دجاج|مطعم|قهوة|ضيافة/.test(text)) return "ضيافة ووجبات";
-  if (/electric|water|utility|كهرباء|مياه|فاتورة/.test(text)) return "فواتير خدمات";
-  return "مشتريات وفواتير";
+  const en = lang === "en";
+  if (/coffeemate|cereal|tamimi|markets|بقال|تموين|غذائ|حبوب/.test(text)) return en ? "Grocery & food purchases" : "مشتريات بقالة ومواد غذائية";
+  if (/chicken|restaurant|meal|food|وجبة|دجاج|مطعم|قهوة|ضيافة/.test(text)) return en ? "Meals & hospitality" : "ضيافة ووجبات";
+  if (/electric|water|utility|كهرباء|مياه|فاتورة/.test(text)) return en ? "Utility bills" : "فواتير خدمات";
+  return en ? "Purchases & bills" : "مشتريات وفواتير";
 }
 
 function buildExtractionWarnings(t: Translate, data: any, items: ApiExpense[], total: number | null): string[] {
@@ -627,7 +633,7 @@ export function Expenses() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<ApiExpense[]>([]);
   const { toasts, push, dismiss } = useToasts();
-  const [summary, setSummary] = useState<{ sumTotal: string; avgTotal: string }>({ sumTotal: "0", avgTotal: "0" });
+  const [summary, setSummary] = useState<{ sumTotal: string; avgTotal: string; sumByCurrency?: Array<{ currency: string; total: string }> }>({ sumTotal: "0", avgTotal: "0" });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -652,6 +658,7 @@ export function Expenses() {
   const [draftAvailable, setDraftAvailable] = useState(() => hasStoredExpenseDraft());
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const { language, t } = useLanguage();
+  const { currency: orgCurrency } = useOrgRegion();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -687,7 +694,7 @@ export function Expenses() {
             // Raw extractor shape (issuer/totals/lines) — map it exactly like handleExtract
             // so amounts, line items, payments and the document's own currency survive.
             const totals = extractionTotals(ocr);
-            const lineItems = normalizeLineItems(ocr);
+            const lineItems = normalizeLineItems(ocr, language);
             const sourceCurrency = detectedDocumentCurrency(ocr, "SAR");
             const baseCurrency = normalizeCurrency("SAR");
             const exchangeRate = String(defaultExchangeRate(sourceCurrency, baseCurrency));
@@ -697,7 +704,7 @@ export function Expenses() {
             setFormData((f: any) => ({
               ...emptyForm(),
               ...f,
-              category: inferCategory(ocr),
+              category: inferCategory(ocr, language),
               amount: totals.subtotal ? String(totals.subtotal) : (totals.total ? String(totals.total) : f.amount),
               taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
               totalAmount: totals.total ? String(totals.total) : f.totalAmount,
@@ -764,6 +771,20 @@ export function Expenses() {
   );
   const total = Number(summary.sumTotal || 0);
   const avg = Number(summary.avgTotal || 0);
+  // Currency-honest totals (owner report 2026-08-21): single currency → label
+  // it; mixed → per-currency lines, never a blended figure in a wrong unit.
+  const expByCur = (summary.sumByCurrency || []).filter((r) => Number(r.total) !== 0);
+  const expSingleCur = expByCur.length === 1 ? expByCur[0].currency : null;
+  const totalMoney = expSingleCur
+    ? money(expByCur[0].total, expSingleCur)
+    : expByCur.length > 1
+      ? expByCur.map((r) => money(r.total, r.currency)).join("  ·  ")
+      : money(total, orgCurrency);
+  const avgMoney = expSingleCur
+    ? money(items.length ? avg : 0, expSingleCur)
+    : expByCur.length > 1
+      ? t("— مختلط العملات", "— mixed currencies")
+      : money(items.length ? avg : 0, orgCurrency);
 
   function openCreate() {
     setEditingId(null);
@@ -1137,7 +1158,7 @@ export function Expenses() {
         return;
       }
       const totals = extractionTotals(data);
-      const lineItems = normalizeLineItems(data);
+      const lineItems = normalizeLineItems(data, language);
       const sourceCurrency = detectedDocumentCurrency(data, formData.sourceCurrency || "SAR");
       const baseCurrency = normalizeCurrency(formData.baseCurrency, sourceCurrency === "SAR" ? "SAR" : formData.baseCurrency || "SAR");
       const exchangeRate = formData.exchangeRate && formData.exchangeRate !== "1"
@@ -1150,7 +1171,7 @@ export function Expenses() {
       const bookBaseAmount = roundMoney(totals.total * (Number(exchangeRate) || defaultExchangeRate(sourceCurrency, baseCurrency)));
       setFormData((f) => ({
         ...f,
-        category: f.category || inferCategory(data),
+        category: f.category || inferCategory(data, language),
         amount: totals.subtotal ? String(totals.subtotal) : f.amount,
         taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
         totalAmount: totals.total ? String(totals.total) : f.totalAmount,
@@ -1557,7 +1578,7 @@ export function Expenses() {
                           <td className="px-2 py-2">
                             <Input value={line.description || ""} onChange={(e) => {
                               const description = e.target.value;
-                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, description, category: item.category || inferLineCategory(description), accountName: item.accountName || suggestLineAccount(description) } : item) }));
+                              setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, description, category: item.category || inferLineCategory(description, language), accountName: item.accountName || suggestLineAccount(description, language) } : item) }));
                             }} className="h-8 border-border" />
                           </td>
                           <td className="px-2 py-2">
@@ -2015,7 +2036,7 @@ export function Expenses() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-border">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(total)}</div><p className="text-xs text-muted-foreground mt-1">{t("إجمالي", "Total")}</p></CardContent>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{totalMoney}</div><p className="text-xs text-muted-foreground mt-1">{t("إجمالي", "Total")}</p></CardContent>
         </Card>
         <Card className="border-border">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("عدد المصروفات", "Expense Count")}</CardTitle></CardHeader>
@@ -2023,7 +2044,7 @@ export function Expenses() {
         </Card>
         <Card className="border-border">
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("متوسط المصروف", "Average Expense")}</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{money(items.length ? avg : 0)}</div><p className="text-xs text-muted-foreground mt-1">{t("لكل مصروف", "per expense")}</p></CardContent>
+          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{avgMoney}</div><p className="text-xs text-muted-foreground mt-1">{t("لكل مصروف", "per expense")}</p></CardContent>
         </Card>
       </div>
 

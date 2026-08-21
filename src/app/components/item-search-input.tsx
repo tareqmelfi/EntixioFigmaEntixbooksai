@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLanguage } from "./LanguageContext";
 import { Plus, Package } from "lucide-react";
 
 // ── Product/Item catalog ──
@@ -35,7 +36,8 @@ interface ItemSearchInputProps {
   className?: string;
 }
 
-export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو أنشئ صنف...", className }: ItemSearchInputProps) {
+export function ItemSearchInput({ value, onChange, placeholder, className }: ItemSearchInputProps) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -93,7 +95,7 @@ export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو 
         onChange={(e) => handleInputChange(e.target.value)}
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={placeholder || t("ابحث أو أنشئ صنف...", "Search or create an item...")}
         className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       />
 
@@ -107,7 +109,7 @@ export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو 
               className={`w-full text-start px-3 py-2.5 flex items-center gap-2 border-b border-border transition-colors ${highlightIndex === results.length ? "bg-primary/5" : "hover:bg-muted"}`}
             >
               <Plus className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إنشاء صنف جديد</span>
+              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>{t("إنشاء صنف جديد", "Create new item")}</span>
             </button>
           )}
 
@@ -137,7 +139,7 @@ export function ItemSearchInput({ value, onChange, placeholder = "ابحث أو 
               </button>
             ))}
             {results.length === 0 && query.trim() && (
-              <div className="px-3 py-3 text-sm text-muted-foreground text-center">لا توجد أصناف مطابقة</div>
+              <div className="px-3 py-3 text-sm text-muted-foreground text-center">{t("لا توجد أصناف مطابقة", "No matching items")}</div>
             )}
           </div>
         </div>

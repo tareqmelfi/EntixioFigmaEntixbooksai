@@ -12,6 +12,7 @@
  *   </SidePanel>
  */
 import { useEffect, useState, useCallback, useRef, ReactNode } from "react";
+import { useLanguageSafe } from "./LanguageContext";
 import { X } from "lucide-react";
 
 interface SidePanelProps {
@@ -44,6 +45,7 @@ function useIsMobile() {
 }
 
 export function SidePanel({ open, onClose, title, description, width = "md", children, footer }: SidePanelProps) {
+  const { t } = useLanguageSafe();
   const isMobile = useIsMobile();
 
   // Close on ESC
@@ -78,7 +80,7 @@ export function SidePanel({ open, onClose, title, description, width = "md", chi
             {title && <h2 className="text-section font-semibold text-foreground truncate">{title}</h2>}
             {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0" aria-label="إغلاق">
+          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0" aria-label={t("إغلاق", "Close")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -158,16 +160,17 @@ export function useToasts() {
  *     <button onClick={() => setPendingDelete(id)}><Trash /></button>
  *   )}
  */
-export function InlineConfirm({ onConfirm, onCancel, label = "تأكيد الحذف؟" }: { onConfirm: () => void; onCancel: () => void; label?: string }) {
+export function InlineConfirm({ onConfirm, onCancel, label }: { onConfirm: () => void; onCancel: () => void; label?: string }) {
+  const { t } = useLanguageSafe();
   useEffect(() => {
-    const t = setTimeout(onCancel, 4000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(onCancel, 4000);
+    return () => clearTimeout(timer);
   }, [onCancel]);
   return (
     <div className="inline-flex items-center gap-1 rounded-md border border-danger-border bg-danger-subtle px-2 py-0.5 text-xs text-danger">
-      <span>{label}</span>
-      <button onClick={onConfirm} className="rounded-md bg-danger px-1.5 py-0.5 text-destructive-foreground hover:opacity-90">نعم</button>
-      <button onClick={onCancel} className="rounded-md px-1.5 py-0.5 text-danger hover:bg-surface-hover">لا</button>
+      <span>{label || t("تأكيد الحذف؟", "Confirm delete?")}</span>
+      <button onClick={onConfirm} className="rounded-md bg-danger px-1.5 py-0.5 text-destructive-foreground hover:opacity-90">{t("نعم", "Yes")}</button>
+      <button onClick={onCancel} className="rounded-md px-1.5 py-0.5 text-danger hover:bg-surface-hover">{t("لا", "No")}</button>
     </div>
   );
 }

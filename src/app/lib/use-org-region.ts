@@ -16,10 +16,17 @@ export type OrgRegion = {
   country: string; // ISO-ish code as stored on the org ("SA" | "US" | …)
   isSA: boolean;
   isUS: boolean;
+  /** Org base currency ("SAR" | "USD" | …) — drives every money label */
+  currency: string;
   loading: boolean;
 };
 
-let cached: { orgId: string; country: string } | null = null;
+let cached: { orgId: string; country: string; currency: string } | null = null;
+
+function currencyFor(country: string, base?: string | null): string {
+  if (base) return base.toUpperCase();
+  return country === "US" ? "USD" : "SAR";
+}
 let inflight: Promise<void> | null = null;
 
 async function loadOnce(): Promise<void> {
@@ -27,10 +34,11 @@ async function loadOnce(): Promise<void> {
     const orgs = await api.orgs.list();
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
     const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
-    cached = { orgId: active?.id || "", country: (active?.country || "SA").toUpperCase() };
+    const country = (active?.country || "SA").toUpperCase();
+    cached = { orgId: active?.id || "", country, currency: currencyFor(country, (active as any)?.baseCurrency) };
   } catch {
     // network hiccup → default SA (the product's home market) without blocking UI
-    cached = cached || { orgId: "", country: "SA" };
+    cached = cached || { orgId: "", country: "SA", currency: "SAR" };
   }
 }
 
@@ -39,6 +47,7 @@ export function useOrgRegion(): OrgRegion {
     country: cached?.country || "SA",
     isSA: (cached?.country || "SA") === "SA",
     isUS: cached?.country === "US",
+    currency: cached?.currency || "SAR",
     loading: !cached,
   }));
 
@@ -49,7 +58,7 @@ export function useOrgRegion(): OrgRegion {
     inflight.then(() => {
       if (!mounted) return;
       const country = cached?.country || "SA";
-      setState({ country, isSA: country === "SA", isUS: country === "US", loading: false });
+      setState({ country, isSA: country === "SA", isUS: country === "US", currency: cached?.currency || "SAR", loading: false });
     });
     return () => { mounted = false; };
   }, []);

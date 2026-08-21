@@ -21,6 +21,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useReturnTo } from "../lib/use-return-to";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
 
 export function Payments() {
   const { t } = useLanguage();
@@ -35,7 +36,8 @@ export function Payments() {
   const [bills, setBills] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const { toasts, push, dismiss } = useToasts();
-  const [summary, setSummary] = useState({ sumAmount: "0", avgAmount: "0" });
+  const { currency: orgCurrency } = useOrgRegion();
+  const [summary, setSummary] = useState<{ sumAmount: string; avgAmount: string; sumByCurrency?: Array<{ currency: string; total: string }> }>({ sumAmount: "0", avgAmount: "0" });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Voucher | null>(null);
@@ -198,6 +200,16 @@ export function Payments() {
   );
   const total = Number(summary.sumAmount || 0);
   const avg = Number(summary.avgAmount || 0);
+  // Currency-honest totals: one currency → label it; mixed → per-currency
+  // lines instead of a meaningless blended figure (owner report 2026-08-21).
+  const byCur = (summary.sumByCurrency || []).filter((r) => Number(r.total) !== 0);
+  const singleCur = byCur.length === 1 ? byCur[0].currency : null;
+  const totalDisplay = singleCur
+    ? `${Number(byCur[0].total).toLocaleString()} ${singleCur}`
+    : byCur.length > 1
+      ? byCur.map((r) => `${Number(r.total).toLocaleString()} ${r.currency}`).join("  ·  ")
+      : `${total.toLocaleString()} ${orgCurrency}`;
+  const avgDisplay = singleCur ? `${avg.toLocaleString()} ${singleCur}` : (byCur.length > 1 ? t("— مختلط العملات", "— mixed currencies") : `${avg.toLocaleString()} ${orgCurrency}`);
 
   const resetForm = () => setForm({
     contactId: "", billId: "",
@@ -368,11 +380,11 @@ export function Payments() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المصروف", "Total spent")}</div>
-            <div className="font-english font-bold text-red-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString()} SR</div>
+            <div className="font-english font-bold text-red-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalDisplay}</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("متوسط السند", "Average voucher")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString()} SR</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avgDisplay}</div>
           </CardContent></Card>
         </div>
 
@@ -540,7 +552,7 @@ export function Payments() {
                       label: c.displayName,
                       sublabel: [c.legalName, c.email].filter(Boolean).join(" · ") || undefined,
                     }))}
-                    placeholder={t("ابحث عن مورّد (عربي/English)...", "Search supplier (Arabic/English)...")}
+                    placeholder={t("ابحث عن مورّد...", "Search supplier...")}
                     onCreate={async (name: string) => {
                       const created = await api.contacts.create({
                         displayName: name,

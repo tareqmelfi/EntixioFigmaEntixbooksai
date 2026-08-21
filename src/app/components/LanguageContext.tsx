@@ -93,3 +93,19 @@ export function useLanguage() {
   if (context === undefined) throw new Error("useLanguage must be used within a LanguageProvider");
   return context;
 }
+
+/**
+ * Provider-optional variant for leaf UI primitives (panels, confirms) that are
+ * also rendered bare by layout contract tests. Falls back to the global-market
+ * default (English) when no provider is present.
+ */
+export function useLanguageSafe(): LanguageContextType {
+  const context = useContext(LanguageContext);
+  if (context !== undefined) return context;
+  return {
+    language: "en",
+    setLanguage: () => {},
+    toggleLanguage: () => {},
+    t: (_ar: string, en?: string) => en ?? _ar,
+  };
+}

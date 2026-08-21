@@ -16,7 +16,7 @@ import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
 import { BidiText, NumericText } from "../components/bidi-text";
 
-const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
+const METHOD_LABELS_AR: Record<Voucher["paymentMethod"], string> = {
   CASH: "نقداً",
   BANK_TRANSFER: "تحويل بنكي",
   CARD: "بطاقة",
@@ -24,6 +24,15 @@ const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
   MADA: "مدى",
   CHECK: "شيك",
   OTHER: "أخرى",
+};
+const METHOD_LABELS_EN: Record<Voucher["paymentMethod"], string> = {
+  CASH: "Cash",
+  BANK_TRANSFER: "Bank transfer",
+  CARD: "Card",
+  STC_PAY: "STC Pay",
+  MADA: "mada",
+  CHECK: "Check",
+  OTHER: "Other",
 };
 
 function safeNum(v: any, d = 0): number {
@@ -34,6 +43,7 @@ function safeNum(v: any, d = 0): number {
 export function VoucherPrintView() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const langOverride = searchParams.get("lang"); // "ar" | "en" | null
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<Voucher | null>(null);
@@ -89,7 +99,7 @@ export function VoucherPrintView() {
           if (active) setOrg(await api.orgs.get(active.id));
         }
       } catch (e: any) {
-        setError(e instanceof ApiError ? e.message : "فشل التحميل");
+        setError(e instanceof ApiError ? e.message : (langOverride === "ar" ? "فشل التحميل" : "Failed to load"));
       } finally {
         setLoading(false);
       }
@@ -142,20 +152,31 @@ export function VoucherPrintView() {
   }
 
   if (error || !voucher || !org) {
+    const errAr = langOverride !== "en";
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F7FB", padding: 24 }}>
         <div style={{ width: "min(420px,100%)", background: "white", border: "1px solid #E5EAF2", borderRadius: 10, padding: 24, textAlign: "center" }}>
-          <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, color: "#0B1B49" }}>تعذّر تحميل السند</h1>
-          <p style={{ margin: 0, color: "#607089" }}>{error || "هذا السند غير متاح"}</p>
+          <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, color: "#0B1B49" }}>{errAr ? "تعذّر تحميل السند" : "Could not load voucher"}</h1>
+          <p style={{ margin: 0, color: "#607089" }}>{error || (errAr ? "هذا السند غير متاح" : "This voucher is unavailable")}</p>
         </div>
       </div>
     );
   }
 
+  // Language: ?lang= override · else org.defaultInvoiceLanguage · else infer from country
+  const orgDefaultLang = (org as any).defaultInvoiceLanguage as ("ar" | "en" | undefined);
+  const inferredLang = ((org as any).country || "SA") === "SA" ? "ar" : "en";
+  const lang = (langOverride === "ar" || langOverride === "en") ? langOverride : (orgDefaultLang || inferredLang);
+  const isRtl = lang === "ar";
+  const T = (ar: string, en: string) => (isRtl ? ar : en);
+  const METHOD_LABELS = isRtl ? METHOD_LABELS_AR : METHOD_LABELS_EN;
+
   const isReceipt = voucher.type === "RECEIPT";
   const titleAr = isReceipt ? "سند قبض" : "سند صرف";
   const titleEn = isReceipt ? "Receipt Voucher" : "Payment Voucher";
-  const partyLabelAr = isReceipt ? "استُلم من" : "صُرف لـ";
+  const docTitle = isRtl ? titleAr : titleEn;
+  const docSubtitle = isRtl ? titleEn : null;
+  const partyLabel = isRtl ? (isReceipt ? "استُلم من" : "صُرف لـ") : (isReceipt ? "Received from" : "Paid to");
 
   const amount = safeNum(voucher.amount);
   const currency = voucher.currency || "SAR";
@@ -172,7 +193,9 @@ export function VoucherPrintView() {
   const printLogo = printImages?.logo || "";
   const stampUrl = printImages?.stamp || "";
 
-  const amountInWords = `${amount.toFixed(2)} ${currency === "SAR" ? "ريال سعودي" : currency} فقط لا غير`;
+  const amountInWords = isRtl
+    ? `${amount.toFixed(2)} ${currency === "SAR" ? "ريال سعودي" : currency} فقط لا غير`
+    : `${amount.toFixed(2)} ${currency} only`;
 
   // ── Electronic voucher: QR verification + issuer e-signature ──
   const tlvBase64 = (fields: Array<[number, string]>): string => {
@@ -187,7 +210,6 @@ export function VoucherPrintView() {
     return btoa(bin);
   };
   const sellerVat = (org as any).vatNumber || "";
-  const isKsa = ((org as any).country || "SA") === "SA";
   // ZATCA TLV QR requires a real VAT number (tag 2). Omit the QR entirely when
   // there is no VAT number — emitting "-" was malformed and made the QR unscannable.
   // Tag 5 must be the VAT total, not the voucher number. A payment/receipt voucher
@@ -237,29 +259,29 @@ export function VoucherPrintView() {
         ${embed ? ".voucher-page{ margin:8px auto !important; zoom:0.78; box-shadow:none !important; } body{ background:white; }" : ""}
       `}</style>
 
-      <div dir="rtl" style={{ color: "#0B1B49", fontSize: 13, lineHeight: 1.5 }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ color: "#0B1B49", fontSize: 13, lineHeight: 1.5 }}>
         <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: embed ? "none" : "flex", gap: 8 }}>
           <button
             onClick={() => window.print()}
             style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "#1276E3", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
           >
             <Printer style={{ display: "inline-block", verticalAlign: "middle", height: 14, width: 14, marginInlineEnd: 6 }} />
-            طباعة / حفظ PDF
+            {T("طباعة / حفظ PDF", "Print / Save PDF")}
           </button>
           <button
             onClick={() => window.close()}
             style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #D1D5DB", background: "white", cursor: "pointer", fontSize: 13 }}
           >
             <X style={{ display: "inline-block", verticalAlign: "middle", height: 14, width: 14, marginInlineEnd: 6 }} />
-            إغلاق
+            {T("إغلاق", "Close")}
           </button>
         </div>
 
         <article className="voucher-page document-paper" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
-              <h1 className="document-title" style={{ margin: "0 0 4px 0" }}>{titleAr}</h1>
-              <div style={{ fontSize: 13, color: "#6B7280" }}>{titleEn}</div>
+              <h1 className="document-title" style={{ margin: "0 0 4px 0" }}>{docTitle}</h1>
+              {docSubtitle && <div style={{ fontSize: 13, color: "#6B7280" }}>{docSubtitle}</div>}
             </div>
 
             <div style={{ textAlign: "end" }}>
@@ -271,8 +293,8 @@ export function VoucherPrintView() {
                   )}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
-                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>الرقم الضريبي: <span className="num">{org.vatNumber}</span></div>}
-                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>السجل التجاري: <span className="num">{org.crNumber}</span></div>}
+                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{T("الرقم الضريبي:", "VAT No.:")} <span className="num">{org.vatNumber}</span></div>}
+                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{T("السجل التجاري:", "CR No.:")} <span className="num">{org.crNumber}</span></div>}
                   </div>
                 </div>
                 {printLogo ? (
@@ -286,25 +308,25 @@ export function VoucherPrintView() {
 
           <div className="document-data document-table document-keep-together" style={{ marginTop: 12, borderTop: "1px solid #D1D5DB", borderBottom: "1px solid #D1D5DB", padding: "10px 0" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, fontSize: 12 }}>
-              <div><span style={{ color: "#6B7280" }}>رقم السند:</span> <strong><NumericText className="num">{voucher.number}</NumericText></strong></div>
-              <div><span style={{ color: "#6B7280" }}>التاريخ:</span> <strong className="num">{String(voucher.date).slice(0, 10)}</strong></div>
-              <div><span style={{ color: "#6B7280" }}>{partyLabelAr}:</span> <strong><BidiText>{contact?.displayName || voucher.contact?.displayName || "—"}</BidiText></strong></div>
-              <div><span style={{ color: "#6B7280" }}>طريقة الدفع:</span> <strong>{METHOD_LABELS[voucher.paymentMethod]}</strong></div>
-              {voucher.reference && <div><span style={{ color: "#6B7280" }}>المرجع:</span> <strong className="num">{voucher.reference}</strong></div>}
-              {voucher.invoiceId && <div><span style={{ color: "#6B7280" }}>الفاتورة المرتبطة:</span> <strong className="num">{linkedInvoiceNumber || voucher.invoiceId}</strong></div>}
-              {voucher.billId && <div><span style={{ color: "#6B7280" }}>سند المشتريات المرتبط:</span> <strong className="num">{linkedBillNumber || voucher.billId}</strong></div>}
+              <div><span style={{ color: "#6B7280" }}>{T("رقم السند:", "Voucher No.:")}</span> <strong><NumericText className="num">{voucher.number}</NumericText></strong></div>
+              <div><span style={{ color: "#6B7280" }}>{T("التاريخ:", "Date:")}</span> <strong className="num">{String(voucher.date).slice(0, 10)}</strong></div>
+              <div><span style={{ color: "#6B7280" }}>{partyLabel}:</span> <strong><BidiText>{contact?.displayName || voucher.contact?.displayName || "—"}</BidiText></strong></div>
+              <div><span style={{ color: "#6B7280" }}>{T("طريقة الدفع:", "Payment method:")}</span> <strong>{METHOD_LABELS[voucher.paymentMethod]}</strong></div>
+              {voucher.reference && <div><span style={{ color: "#6B7280" }}>{T("المرجع:", "Reference:")}</span> <strong className="num">{voucher.reference}</strong></div>}
+              {voucher.invoiceId && <div><span style={{ color: "#6B7280" }}>{T("الفاتورة المرتبطة:", "Linked invoice:")}</span> <strong className="num">{linkedInvoiceNumber || voucher.invoiceId}</strong></div>}
+              {voucher.billId && <div><span style={{ color: "#6B7280" }}>{T("سند المشتريات المرتبط:", "Linked bill:")}</span> <strong className="num">{linkedBillNumber || voucher.billId}</strong></div>}
             </div>
           </div>
 
           <div style={{ marginTop: 18, border: "2px solid #1276E3", borderRadius: 10, background: "#EFF8FF", padding: "16px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 12, color: "#6B7280" }}>المبلغ</div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>{T("المبلغ", "Amount")}</div>
             <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#1276E3", marginTop: 2 }}>{amount.toLocaleString()} {currency}</div>
             <div style={{ marginTop: 6, fontSize: 12 }}>{amountInWords}</div>
           </div>
 
           {voucher.notes && (
             <div style={{ marginTop: 16, padding: "12px 14px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 12 }}>
-              <strong>ملاحظات:</strong> {voucher.notes}
+              <strong>{T("ملاحظات:", "Notes:")}</strong> {voucher.notes}
             </div>
           )}
 
@@ -315,7 +337,7 @@ export function VoucherPrintView() {
             ) : (
               <span style={{ fontFamily: "'Segoe Script','Traditional Arabic',cursive", fontSize: 20, color: "#0B1B49" }}>{issuerName}</span>
             )}
-            <span style={{ color: "#6B7280", fontSize: 11 }}>· أُصدر إلكترونيًا</span>
+            <span style={{ color: "#6B7280", fontSize: 11 }}>{T("· أُصدر إلكترونيًا", "· Issued electronically")}</span>
           </div>
 
           <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "end", gap: 20 }}>
@@ -324,7 +346,7 @@ export function VoucherPrintView() {
                 <>
                   <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
                   <div style={{ fontSize: 8, color: "#9CA3AF", marginTop: 4, maxWidth: 150, marginInline: "auto", lineHeight: 1.4 }}>
-                    {isKsa
+                    {isRtl
                       ? "يحتوي رمز QR على بيانات الفاتورة الأساسية. المستند غير مختوم من ZATCA وغير مفعّل للاعتماد الإنتاجي."
                       : "QR contains core invoice data. This document is not ZATCA-stamped and is not enabled for production reliance."}
                   </div>
@@ -337,11 +359,11 @@ export function VoucherPrintView() {
               {stampUrl ? (
                 <img src={stampUrl} alt="stamp" style={{ maxHeight: 180, maxWidth: 180, objectFit: "contain", opacity: 0.88, mixBlendMode: "multiply" }} />
               ) : (
-                <div style={{ color: "#9CA3AF", fontSize: 11 }}>ختم الشركة</div>
+                <div style={{ color: "#9CA3AF", fontSize: 11 }}>{T("ختم الشركة", "Company stamp")}</div>
               )}
             </div>
             <div style={{ borderTop: "1px solid #9CA3AF", paddingTop: 8, textAlign: "center", color: "#6B7280", fontSize: 12 }}>
-              توقيع المستلم
+              {T("توقيع المستلم", "Recipient signature")}
             </div>
           </div>
         </article>

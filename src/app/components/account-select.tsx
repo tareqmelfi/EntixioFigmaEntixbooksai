@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLanguage } from "./LanguageContext";
 import { Plus, ExternalLink } from "lucide-react";
 
 // ── Chart of Accounts data (flat with categories) ──
@@ -62,7 +63,8 @@ interface AccountSelectProps {
   filterCategories?: string[];
 }
 
-export function AccountSelect({ value, onChange, placeholder = "حساب", className, filterCategories }: AccountSelectProps) {
+export function AccountSelect({ value, onChange, placeholder, className, filterCategories }: AccountSelectProps) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -122,7 +124,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
         onChange={(e) => { setQuery(e.target.value); setHighlightIndex(-1); }}
         onFocus={() => { setIsOpen(true); setQuery(""); }}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={placeholder || t("حساب", "Account")}
         className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       />
 
@@ -132,7 +134,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
           <div className="border-b border-border">
             <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors">
               <Plus className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>إنشاء حساب جديد</span>
+              <span className="text-sm text-primary" style={{ fontWeight: 600 }}>{t("إنشاء حساب جديد", "Create new account")}</span>
               <ExternalLink className="h-3 w-3 text-primary ms-auto" />
             </button>
           </div>
@@ -162,7 +164,7 @@ export function AccountSelect({ value, onChange, placeholder = "حساب", class
               );
             })}
             {flatResults.length === 0 && (
-              <div className="px-3 py-3 text-sm text-muted-foreground text-center">لا توجد حسابات مطابقة</div>
+              <div className="px-3 py-3 text-sm text-muted-foreground text-center">{t("لا توجد حسابات مطابقة", "No matching accounts")}</div>
             )}
           </div>
         </div>

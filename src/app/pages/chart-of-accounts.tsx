@@ -745,8 +745,8 @@ export function ChartOfAccounts() {
               <Input placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-primary" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
-            <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">+ توسيع</button>
-            <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">طيّ</button>
+            <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">{t("+ توسيع", "+ Expand")}</button>
+            <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">{t("طيّ", "Collapse")}</button>
             <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
           </div>
         </CardContent>
@@ -863,7 +863,7 @@ export function ChartOfAccounts() {
                               >
                                 <PlusCircle className="h-3.5 w-3.5" />
                               </button>
-                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title="تعديل"><Edit2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-3.5 w-3.5" /></button>
                               <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title={t("العمليات", "Transactions")}><History className="h-3.5 w-3.5" /></button>
                               {pendingDelete === node.id ? (
                                 <span className="flex items-center gap-0.5 text-[10px]">

@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Images, Upload, Sparkles, X, FileText, Image as ImageIcon, Loader2, Eye } from "lucide-react";
 import { Button } from "./ui/button";
 import { api } from "../lib/api";
+import { useLanguage } from "./LanguageContext";
 
 export interface DocumentPreviewProps {
   className?: string;
@@ -69,14 +70,15 @@ type ProcessingState = {
   total?: number;
 };
 
-function extractionMessageForFile(file: File | null, fallbackName: string) {
+function extractionMessageForFile(file: File | null, fallbackName: string, lang: "ar" | "en" = "ar") {
   const name = file?.name || fallbackName;
   const type = (file?.type || "").toLowerCase();
   const heicLike = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(name);
-  if (heicLike) return "تحويل HEIC ومعالجة الصورة ثم قراءة البيانات";
-  if (type.includes("pdf") || /\.pdf$/i.test(name)) return "قراءة PDF واستخراج المورد والضريبة والبنود";
-  if (type.startsWith("image/")) return "قص الزوائد وتحسين الصورة ثم قراءة البيانات";
-  return "تحليل الملف واستخراج بيانات المصروف";
+  const en = lang === "en";
+  if (heicLike) return en ? "Converting HEIC and processing the image, then reading the data" : "تحويل HEIC ومعالجة الصورة ثم قراءة البيانات";
+  if (type.includes("pdf") || /\.pdf$/i.test(name)) return en ? "Reading the PDF and extracting supplier, tax, and line items" : "قراءة PDF واستخراج المورد والضريبة والبنود";
+  if (type.startsWith("image/")) return en ? "Trimming edges and enhancing the image, then reading the data" : "قص الزوائد وتحسين الصورة ثم قراءة البيانات";
+  return en ? "Analyzing the file and extracting the expense data" : "تحليل الملف واستخراج بيانات المصروف";
 }
 
 async function fileToBase64(file: File): Promise<string> {
@@ -105,10 +107,11 @@ export function DocumentPreviewPane({
   accept = ".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv",
   maxSizeMb = 25,
   initialFiles = [],
-  hint = "اسحب ملف الفاتورة أو المستند هنا",
+  hint,
   enableExtract = true,
   autoExtract = false,
 }: DocumentPreviewProps) {
+  const { t, language } = useLanguage();
   const [files, setFiles] = useState<FileItem[]>(() => toInitialFileItems(initialFiles));
   const [activeId, setActiveId] = useState<string | null>(initialFiles[0] ? `init-0` : null);
   const [dragOver, setDragOver] = useState(false);
@@ -147,14 +150,16 @@ export function DocumentPreviewPane({
     const arr = Array.from(incoming);
     const tooBig = arr.find((f) => f.size > maxSizeMb * 1024 * 1024);
     if (tooBig) {
-      setError(`${tooBig.name} أكبر من ${maxSizeMb} ميجا`);
+      setError(t("{name} أكبر من {max} ميجا", "{name} is larger than {max} MB").replace("{name}", tooBig.name).replace("{max}", String(maxSizeMb)));
       return;
     }
 
     setProcessing({
       phase: "preparing",
-      title: "Entix AI يجهز المرفقات",
-      detail: arr.length > 1 ? `جاري تجهيز ${arr.length} ملفات للقراءة` : "جاري تجهيز الصورة للقراءة",
+      title: t("Entix AI يجهز المرفقات", "Entix AI is preparing attachments"),
+      detail: arr.length > 1
+        ? t("جاري تجهيز {n} ملفات للقراءة", "Preparing {n} files for reading").replace("{n}", String(arr.length))
+        : t("جاري تجهيز الصورة للقراءة", "Preparing the image for reading"),
       current: 0,
       total: arr.length,
     });
@@ -165,13 +170,13 @@ export function DocumentPreviewPane({
         const f = arr[index];
         setProcessing({
           phase: "preparing",
-          title: "Entix AI يجهز المرفقات",
-          detail: extractionMessageForFile(f, f.name),
+          title: t("Entix AI يجهز المرفقات", "Entix AI is preparing attachments"),
+          detail: extractionMessageForFile(f, f.name, language),
           fileName: f.name,
           current: index + 1,
           total: arr.length,
         });
-        const prepared = await prepareFileForPreviewAndUpload(f);
+        const prepared = await prepareFileForPreviewAndUpload(f, language);
         newItems.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           file: f,
@@ -180,12 +185,12 @@ export function DocumentPreviewPane({
           url: prepared.url,
           type: prepared.type,
           note: archiveOriginal
-            ? "المعاينة تستخدم نسخة JPG منظفة، لكن الأرشفة ستحفظ الملف الكامل كما رفعته."
+            ? t("المعاينة تستخدم نسخة JPG منظفة، لكن الأرشفة ستحفظ الملف الكامل كما رفعته.", "The preview uses a cleaned JPG copy, but archiving keeps the full file exactly as uploaded.")
             : prepared.note,
         });
       }
     } catch (e: any) {
-      setError(e?.message || "فشل تجهيز المرفقات");
+      setError(e?.message || t("فشل تجهيز المرفقات", "Failed to prepare attachments"));
       setProcessing(null);
       return;
     }
@@ -196,14 +201,14 @@ export function DocumentPreviewPane({
       try {
         setProcessing({
           phase: "attaching",
-          title: "جاري تثبيت المرفقات",
-          detail: "نحفظ نسخة جاهزة من الملف قبل الاستخراج",
+          title: t("جاري تثبيت المرفقات", "Saving attachments"),
+          detail: t("نحفظ نسخة جاهزة من الملف قبل الاستخراج", "Saving a ready copy of the file before extraction"),
           current: newItems.length,
           total: newItems.length,
         });
         await onFilesAdded(newItems.map((item) => archiveOriginal ? item.file : (item.extractFile || item.file)).filter(Boolean) as File[]);
       } catch (e: any) {
-        setError(e?.message || "فشل حفظ المرفقات");
+        setError(e?.message || t("فشل حفظ المرفقات", "Failed to save attachments"));
         setProcessing(null);
         return;
       }
@@ -229,8 +234,8 @@ export function DocumentPreviewPane({
     if (!source || !onExtract) return;
     setProcessing({
       phase: "extracting",
-      title: "Entix AI يقرأ المستند",
-      detail: extractionMessageForFile(source, item.name),
+      title: t("Entix AI يقرأ المستند", "Entix AI is reading the document"),
+      detail: extractionMessageForFile(source, item.name, language),
       fileName: item.name,
       current: progress?.current,
       total: progress?.total,
@@ -241,15 +246,15 @@ export function DocumentPreviewPane({
       setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: false, extracted: true } : f));
       setProcessing({
         phase: "done",
-        title: "تمت القراءة والتعبئة",
-        detail: "راجع البيانات قبل الحفظ",
+        title: t("تمت القراءة والتعبئة", "Reading and filling complete"),
+        detail: t("راجع البيانات قبل الحفظ", "Review the data before saving"),
         fileName: item.name,
         current: progress?.current,
         total: progress?.total,
       });
       window.setTimeout(() => setProcessing((current) => current?.phase === "done" ? null : current), progress?.keepDoneVisible ? 1400 : 450);
     } catch (e: any) {
-      setError(e?.message || "فشل الاستخراج");
+      setError(e?.message || t("فشل الاستخراج", "Extraction failed"));
       setFiles((prev) => prev.map((f) => f.id === item.id ? { ...f, extracting: false } : f));
       setProcessing(null);
     }
@@ -289,28 +294,28 @@ export function DocumentPreviewPane({
           onDragLeave={() => setDragOver(false)}
         >
           <Upload className="h-10 w-10 text-muted-foreground/60 mb-3" />
-          <p className="text-sm text-foreground font-medium">{hint}</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">PDF · JPG · PNG · HEIC · صور من الجوال · حتى {maxSizeMb}MB</p>
+          <p className="text-sm text-foreground font-medium">{hint || t("اسحب ملف الفاتورة أو المستند هنا", "Drag the invoice or document file here")}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">{t("PDF · JPG · PNG · HEIC · صور من الجوال · حتى {max}MB", "PDF · JPG · PNG · HEIC · phone photos · up to {max}MB").replace("{max}", String(maxSizeMb))}</p>
           <div className="mt-3 inline-flex rounded-lg border border-border bg-white p-1 text-xs">
             <button
               type="button"
               onClick={() => setArchiveOriginal(false)}
               className={`rounded-md px-2.5 py-1.5 transition ${!archiveOriginal ? "bg-foreground text-white" : "text-muted-foreground hover:bg-muted"}`}
             >
-              أرشفة ممسوحة
+              {t("أرشفة ممسوحة", "Clean archive")}
             </button>
             <button
               type="button"
               onClick={() => setArchiveOriginal(true)}
               className={`rounded-md px-2.5 py-1.5 transition ${archiveOriginal ? "bg-foreground text-white" : "text-muted-foreground hover:bg-muted"}`}
             >
-              حفظ كامل
+              {t("حفظ كامل", "Keep original")}
             </button>
           </div>
           <input ref={fileRef} type="file" hidden multiple accept={accept}
             onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }} />
           <Button onClick={() => fileRef.current?.click()} variant="outline" className="mt-4 border-border">
-            <Upload className="h-4 w-4 me-2" /> اختر ملفاً
+            <Upload className="h-4 w-4 me-2" /> {t("اختر ملفاً", "Choose a file")}
           </Button>
           {processing && (
             <div className="mt-4 w-full max-w-sm px-3">
@@ -334,20 +339,20 @@ export function DocumentPreviewPane({
                 type="button"
                 onClick={() => setArchiveOriginal((value) => !value)}
                 className={`h-7 rounded-md border px-2 text-[11px] transition ${archiveOriginal ? "border-foreground bg-foreground text-white" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}
-                title="يؤثر على الملفات الجديدة التي ترفعها بعد تغيير الخيار"
+                title={t("يؤثر على الملفات الجديدة التي ترفعها بعد تغيير الخيار", "Applies to new files you upload after changing this option")}
               >
-                {archiveOriginal ? "حفظ كامل" : "أرشفة ممسوحة"}
+                {archiveOriginal ? t("حفظ كامل", "Keep original") : t("أرشفة ممسوحة", "Clean archive")}
               </button>
               {enableExtract && active?.file && onExtract && (
                 <Button onClick={handleExtract} disabled={active.extracting}
                   size="sm" className="bg-primary hover:bg-primary/90 text-white text-xs h-7 px-2">
                   {active.extracting ? <Loader2 className="h-3 w-3 animate-spin me-1" /> : <Sparkles className="h-3 w-3 me-1" />}
-                  {active.extracting ? "جاري الاستخراج" : active.extracted ? "تم الاستخراج" : "استخراج البيانات"}
+                  {active.extracting ? t("جاري الاستخراج", "Extracting") : active.extracted ? t("تم الاستخراج", "Extracted") : t("استخراج البيانات", "Extract data")}
                 </Button>
               )}
               <input ref={fileRef} type="file" hidden multiple accept={accept}
                 onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }} />
-              <button onClick={() => fileRef.current?.click()} className="p-1.5 text-primary hover:bg-blue-50 rounded" title="إضافة ملف">
+              <button onClick={() => fileRef.current?.click()} className="p-1.5 text-primary hover:bg-blue-50 rounded" title={t("إضافة ملف", "Add file")}>
                 <Upload className="h-4 w-4" />
               </button>
             </div>
@@ -360,14 +365,14 @@ export function DocumentPreviewPane({
 
           {/* Main preview */}
           <div className="relative flex-1 min-h-[400px] bg-muted flex items-center justify-center p-2">
-            {active && renderPreview(active)}
+            {active && renderPreview(active, t)}
             {active?.extracting && (
               <div className="absolute inset-2 flex items-center justify-center rounded-lg bg-white/82 backdrop-blur-sm">
                 <div className="w-full max-w-xs">
                   <ProcessingBanner state={processing || {
                     phase: "extracting",
-                    title: "Entix AI يقرأ المستند",
-                    detail: extractionMessageForFile(active.extractFile || active.file, active.name),
+                    title: t("Entix AI يقرأ المستند", "Entix AI is reading the document"),
+                    detail: extractionMessageForFile(active.extractFile || active.file, active.name, language),
                     fileName: active.name,
                   }} />
                 </div>
@@ -412,6 +417,7 @@ export function DocumentPreviewPane({
 }
 
 function ProcessingBanner({ state, compact = false }: { state: ProcessingState; compact?: boolean }) {
+  const { t } = useLanguage();
   const total = state.total || 0;
   const current = state.current || 0;
   const percent = total > 0 ? Math.max(8, Math.min(100, Math.round((current / total) * 100))) : 62;
@@ -446,9 +452,9 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
           )}
           {!compact && !done && (
             <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] text-primary">
-              <span className="rounded bg-white px-2 py-1 text-center">تهيئة</span>
+              <span className="rounded bg-white px-2 py-1 text-center">{t("تهيئة", "Preparing")}</span>
               <span className="rounded bg-white px-2 py-1 text-center">OCR</span>
-              <span className="rounded bg-white px-2 py-1 text-center">تعبئة</span>
+              <span className="rounded bg-white px-2 py-1 text-center">{t("تعبئة", "Filling")}</span>
             </div>
           )}
         </div>
@@ -457,10 +463,10 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
   );
 }
 
-function renderPreview(item: FileItem) {
-  const t = item.type.toLowerCase();
-  const heicLike = t.includes("heic") || t.includes("heif") || /\.(heic|heif)$/i.test(item.name);
-  if (t.includes("pdf")) {
+function renderPreview(item: FileItem, t: (ar: string, en: string) => string) {
+  const mime = item.type.toLowerCase();
+  const heicLike = mime.includes("heic") || mime.includes("heif") || /\.(heic|heif)$/i.test(item.name);
+  if (mime.includes("pdf")) {
     return (
       <iframe
         src={`${item.url}#toolbar=0&view=FitH`}
@@ -470,7 +476,7 @@ function renderPreview(item: FileItem) {
       />
     );
   }
-  if (t.startsWith("image/")) {
+  if (mime.startsWith("image/")) {
     if (heicLike) {
       return (
         <div className="text-center p-8 max-w-sm">
@@ -479,7 +485,7 @@ function renderPreview(item: FileItem) {
           </div>
           <p className="text-sm text-foreground font-medium mb-2">{item.name}</p>
           <p className="text-xs text-muted-foreground leading-5">
-            صيغة HEIC من الآيفون لا تظهر دائماً داخل المتصفح، لكنها تُرسل للسيرفر للتحويل إلى JPG قبل الاستخراج.
+            {t("صيغة HEIC من الآيفون لا تظهر دائماً داخل المتصفح، لكنها تُرسل للسيرفر للتحويل إلى JPG قبل الاستخراج.", "iPhone HEIC format does not always display in the browser, but it is sent to the server for conversion to JPG before extraction.")}
           </p>
         </div>
       );
@@ -498,7 +504,7 @@ function renderPreview(item: FileItem) {
       <FileText className="h-16 w-16 text-muted-foreground/60 mx-auto mb-3" />
       <p className="text-sm text-foreground font-medium mb-2">{item.name}</p>
       <a href={item.url} download={item.name} className="text-primary text-sm hover:underline inline-flex items-center gap-1">
-        <Eye className="h-3 w-3" /> فتح
+        <Eye className="h-3 w-3" /> {t("فتح", "Open")}
       </a>
     </div>
   );
@@ -514,7 +520,8 @@ function guessType(name: string): string {
   return "application/octet-stream";
 }
 
-async function prepareFileForPreviewAndUpload(file: File): Promise<{ file: File; url: string; type: string; note?: string }> {
+async function prepareFileForPreviewAndUpload(file: File, lang: "ar" | "en" = "ar"): Promise<{ file: File; url: string; type: string; note?: string }> {
+  const en = lang === "en";
   const type = file.type || guessType(file.name);
   const heicLike = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(file.name);
 
@@ -531,14 +538,14 @@ async function prepareFileForPreviewAndUpload(file: File): Promise<{ file: File;
         file: converted,
         url: URL.createObjectURL(converted),
         type: converted.type,
-        note: "تم تحويل HEIC إلى JPG ممسوح ومنظف للمعاينة والأرشفة.",
+        note: en ? "HEIC converted to a cleaned JPG for preview and archiving." : "تم تحويل HEIC إلى JPG ممسوح ومنظف للمعاينة والأرشفة.",
       };
     } catch {
       return {
         file,
         url: URL.createObjectURL(file),
         type,
-        note: "تعذر تحويل HEIC للمعاينة الآن، وسيحاول السيرفر قراءته عند الاستخراج.",
+        note: en ? "Could not convert HEIC for preview now; the server will try to read it during extraction." : "تعذر تحويل HEIC للمعاينة الآن، وسيحاول السيرفر قراءته عند الاستخراج.",
       };
     }
   }
@@ -593,14 +600,14 @@ async function prepareFileForPreviewAndUpload(file: File): Promise<{ file: File;
       file: converted,
       url: URL.createObjectURL(converted),
       type: converted.type,
-      note: "تم تجهيز الصورة قبل الاستخراج: قص الزوائد الواضحة، تصغير الحجم، وتحويلها إلى JPG.",
+      note: en ? "Image prepared before extraction: trimmed visible edges, reduced size, converted to JPG." : "تم تجهيز الصورة قبل الاستخراج: قص الزوائد الواضحة، تصغير الحجم، وتحويلها إلى JPG.",
     };
   } catch {
     return {
       file,
       url: URL.createObjectURL(file),
       type,
-      note: "تعذر تجهيز الصورة في المتصفح، وسيحاول السيرفر معالجتها كما هي.",
+      note: en ? "Could not prepare the image in the browser; the server will process it as-is." : "تعذر تجهيز الصورة في المتصفح، وسيحاول السيرفر معالجتها كما هي.",
     };
   }
 }

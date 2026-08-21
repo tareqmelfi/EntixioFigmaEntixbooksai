@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useLanguage } from "./LanguageContext";
 import { FileImage, Download } from "lucide-react";
 
 /**
@@ -32,6 +33,7 @@ function base64ToBlobUrl(base64: string, type: string): string | null {
 }
 
 export function AttachmentViewer({ attachment, height = 620 }: { attachment: ViewerAttachment; height?: number }) {
+  const { t } = useLanguage();
   const type = (attachment.type || "application/octet-stream").toLowerCase();
   const isHeic = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(attachment.name);
   const isPdf = type.includes("pdf") || /\.pdf$/i.test(attachment.name);
@@ -59,7 +61,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted text-center" style={{ minHeight: height / 2 }}>
         <FileImage className="mb-3 h-10 w-10 text-muted-foreground/60" />
-        <p className="text-sm text-muted-foreground">تعذّر تجهيز المرفق للعرض</p>
+        <p className="text-sm text-muted-foreground">{t("تعذّر تجهيز المرفق للعرض", "Could not prepare the attachment for preview")}</p>
       </div>
     );
   }
@@ -88,7 +90,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
     <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted text-center" style={{ minHeight: height / 2 }}>
       <FileImage className="mb-3 h-10 w-10 text-primary" />
       <p className="font-english text-sm text-foreground" dir="ltr">{attachment.name}</p>
-      <p className="mt-1 text-xs text-muted-foreground">هذه الصيغة لا تظهر مباشرة داخل المتصفح</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("هذه الصيغة لا تظهر مباشرة داخل المتصفح", "This format cannot be previewed in the browser")}</p>
       <a
         href={src}
         download={attachment.name}

@@ -6,15 +6,17 @@ import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useLanguage } from "../components/LanguageContext";
 
 export function Integration() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("sync");
 
   const sections = [
-    { id: "sync", label: "المزامنة الذكية", icon: RefreshCw },
-    { id: "compliance", label: "الالتزام والتوافق", icon: FileCheck },
-    { id: "security", label: "الأمان والحماية", icon: Shield },
+    { id: "sync", label: t("المزامنة الذكية", "Smart sync"), icon: RefreshCw },
+    { id: "compliance", label: t("الالتزام والتوافق", "Compliance"), icon: FileCheck },
+    { id: "security", label: t("الأمان والحماية", "Security"), icon: Shield },
   ];
 
   return (
@@ -35,18 +37,17 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-secondary" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>ZATCA Phase 2 • قيد التحقق الفني والتنظيمي</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("ZATCA Phase 2 • قيد التحقق الفني والتنظيمي", "ZATCA Phase 2 • Under technical and regulatory validation")}</span>
             </div>
             <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
-              تكامل سلس وأمان
+              {t("تكامل سلس وأمان", "Seamless integration and security")}
               <br />
               <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
-                يمكنك الوثوق به
+                {t("يمكنك الوثوق به", "you can trust")}
               </span>
             </h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي،
-              مع بنية سحابية محمية بممارسات أمان قياسية
+              {t("تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي، مع بنية سحابية محمية بممارسات أمان قياسية", "ZATCA Phase 2 integration is under technical and regulatory validation and not enabled for production reliance, on a cloud architecture protected by standard security practices")}
             </p>
           </motion.div>
         </div>
@@ -89,13 +90,13 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-full mb-4">
               <RefreshCw className="w-4 h-4" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>بنية سحابية موثوقة</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("بنية سحابية موثوقة", "Trusted cloud architecture")}</span>
             </div>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              اعمل في أي مكان، في أي وقت
+              {t("اعمل في أي مكان، في أي وقت", "Work anywhere, anytime")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              نظام سحابي بالكامل — بياناتك محفوظة بأمان ومتاحة من أي جهاز ومتصفح، مع نسخ احتياطي يومي تلقائي
+              {t("نظام سحابي بالكامل — بياناتك محفوظة بأمان ومتاحة من أي جهاز ومتصفح، مع نسخ احتياطي يومي تلقائي", "Fully cloud-based — your data is stored securely and available from any device or browser, with automatic daily backups")}
             </p>
           </motion.div>
 
@@ -104,39 +105,39 @@ export function Integration() {
             {[
               {
                 icon: Cloud,
-                title: "سحابي بالكامل",
-                desc: "لا حاجة لأي تثبيت — افتح المتصفح وابدأ العمل من أي جهاز.",
+                title: t("سحابي بالكامل", "Fully cloud"),
+                desc: t("لا حاجة لأي تثبيت — افتح المتصفح وابدأ العمل من أي جهاز.", "No installation needed — open the browser and start working from any device."),
                 color: "#0B1B49",
                 features: [
-                  "وصول من أي جهاز ومتصفح",
-                  "تحديثات تلقائية بدون توقف",
-                  "واجهة عربية وإنجليزية كاملة",
-                  "بيانات محدّثة دائمًا لكل فريقك",
+                  t("وصول من أي جهاز ومتصفح", "Access from any device and browser"),
+                  t("تحديثات تلقائية بدون توقف", "Automatic updates with no downtime"),
+                  t("واجهة عربية وإنجليزية كاملة", "Full Arabic and English interface"),
+                  t("بيانات محدّثة دائمًا لكل فريقك", "Always up-to-date data for your whole team"),
                 ]
               },
               {
                 icon: Database,
-                title: "نسخ احتياطي يومي",
-                desc: "نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا.",
+                title: t("نسخ احتياطي يومي", "Daily backups"),
+                desc: t("نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا.", "Automatic backups every day with 14-day retention."),
                 color: "#1276E3",
                 features: [
-                  "نسخ تلقائي يومي",
-                  "احتفاظ 14 يومًا",
-                  "استعادة عند الحاجة",
-                  "تصدير كامل في أي وقت",
+                  t("نسخ تلقائي يومي", "Automatic daily copies"),
+                  t("احتفاظ 14 يومًا", "14-day retention"),
+                  t("استعادة عند الحاجة", "Restore when needed"),
+                  t("تصدير كامل في أي وقت", "Full export anytime"),
                 ],
                 highlighted: true
               },
               {
                 icon: Lock,
-                title: "حماية عبر Cloudflare",
-                desc: "تشفير أثناء النقل وحماية من الهجمات على مستوى الشبكة.",
+                title: t("حماية عبر Cloudflare", "Protection via Cloudflare"),
+                desc: t("تشفير أثناء النقل وحماية من الهجمات على مستوى الشبكة.", "Encryption in transit and network-level attack protection."),
                 color: "#349FC4",
                 features: [
-                  "تشفير TLS لكل الاتصالات",
-                  "حماية DDoS عبر Cloudflare",
-                  "Turnstile ضد البوتات",
-                  "تحديد معدل الطلبات",
+                  t("تشفير TLS لكل الاتصالات", "TLS encryption for all connections"),
+                  t("حماية DDoS عبر Cloudflare", "DDoS protection via Cloudflare"),
+                  t("Turnstile ضد البوتات", "Turnstile bot protection"),
+                  t("تحديد معدل الطلبات", "Rate limiting"),
                 ]
               },
             ].map((mode, i) => (
@@ -201,33 +202,33 @@ export function Integration() {
             className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 border border-gray-100"
           >
             <h3 className="text-foreground mb-8 text-center" style={{ fontSize: "22px", fontWeight: 600 }}>
-              كيف تعمل المزامنة؟
+              {t("كيف تعمل المزامنة؟", "How does sync work?")}
             </h3>
             <div className="grid md:grid-cols-4 gap-6">
               {[
                 { 
                   step: "1", 
                   icon: HardDrive, 
-                  title: "التخزين المحلي", 
-                  desc: "البيانات محفوظة على جهازك" 
+                  title: t("التخزين المحلي", "Local storage"), 
+                  desc: t("البيانات محفوظة على جهازك", "Data is stored on your device") 
                 },
                 { 
                   step: "2", 
                   icon: Wifi, 
-                  title: "الاتصال بالسحابة", 
-                  desc: "اتصال آمن عند توفر الإنترنت" 
+                  title: t("الاتصال بالسحابة", "Cloud connection"), 
+                  desc: t("اتصال آمن عند توفر الإنترنت", "Secure connection when the internet is available") 
                 },
                 { 
                   step: "3", 
                   icon: GitBranch, 
-                  title: "حل التعارضات", 
-                  desc: "مقارنة ذكية للتغييرات" 
+                  title: t("حل التعارضات", "Conflict resolution"), 
+                  desc: t("مقارنة ذكية للتغييرات", "Smart comparison of changes") 
                 },
                 { 
                   step: "4", 
                   icon: CheckCircle2, 
-                  title: "اكتمال المزامنة", 
-                  desc: "بياناتك محدّثة ومتطابقة" 
+                  title: t("اكتمال المزامنة", "Sync complete"), 
+                  desc: t("بياناتك محدّثة ومتطابقة", "Your data is updated and identical") 
                 },
               ].map((step, i) => (
                 <div key={step.step} className="relative">
@@ -266,13 +267,13 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-green-50 text-green-500 px-4 py-2 rounded-full mb-4">
               <FileCheck className="w-4 h-4" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>جاهزية نظامية</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("جاهزية نظامية", "Regulatory readiness")}</span>
             </div>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              مصمم لدعم المتطلبات النظامية
+              {t("مصمم لدعم المتطلبات النظامية", "Designed to support regulatory requirements")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.
+              {t("تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", "ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance.")}
             </p>
           </motion.div>
 
@@ -281,30 +282,30 @@ export function Integration() {
             {[
               {
                 icon: Award,
-                title: "ZATCA Phase 2 — قيد التحقق",
-                subtitle: "غير مفعّل للاعتماد الإنتاجي",
+                title: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — under validation"),
+                subtitle: t("غير مفعّل للاعتماد الإنتاجي", "Not enabled for production reliance"),
                 color: "#F59E0B",
                 features: [
-                  "التحقق الفني والتنظيمي مستمر",
-                  "QR محلي يحتوي بيانات الفاتورة الأساسية",
-                  "إعداد محلي غير متحقق منه (LOCAL_UNVERIFIED)",
-                  "خط الإنتاج غير جاهز (zatca_pipeline_not_ready)",
+                  t("التحقق الفني والتنظيمي مستمر", "Technical and regulatory validation is ongoing"),
+                  t("QR محلي يحتوي بيانات الفاتورة الأساسية", "Local QR containing core invoice data"),
+                  t("إعداد محلي غير متحقق منه (LOCAL_UNVERIFIED)", "Local unverified setup (LOCAL_UNVERIFIED)"),
+                  t("خط الإنتاج غير جاهز (zatca_pipeline_not_ready)", "Production line not ready (zatca_pipeline_not_ready)"),
                 ]
               },
               {
                 icon: Globe,
-                title: "المعايير الدولية",
-                subtitle: "توافق مع IFRS و GAAP",
+                title: t("المعايير الدولية", "International standards"),
+                subtitle: t("توافق مع IFRS و GAAP", "IFRS and GAAP alignment"),
                 color: "#1276E3",
                 features: [
-                  "معايير المحاسبة الدولية IFRS",
-                  "مبادئ المحاسبة المقبولة عموماً GAAP",
-                  "UBL 2.1 للفواتير الإلكترونية",
-                  "دليل محاسبي قياسي",
-                  "تقارير مالية موحدة",
-                  "قواعد الاعتراف بالإيرادات",
-                  "معالجة العملات المتعددة",
-                  "دعم السنة المالية المخصصة",
+                  t("معايير المحاسبة الدولية IFRS", "International Financial Reporting Standards (IFRS)"),
+                  t("مبادئ المحاسبة المقبولة عموماً GAAP", "Generally Accepted Accounting Principles (GAAP)"),
+                  t("UBL 2.1 للفواتير الإلكترونية", "UBL 2.1 for electronic invoices"),
+                  t("دليل محاسبي قياسي", "Standard chart of accounts"),
+                  t("تقارير مالية موحدة", "Standardized financial reports"),
+                  t("قواعد الاعتراف بالإيرادات", "Revenue recognition rules"),
+                  t("معالجة العملات المتعددة", "Multi-currency handling"),
+                  t("دعم السنة المالية المخصصة", "Custom fiscal-year support"),
                 ]
               },
             ].map((compliance, i) => (
@@ -347,10 +348,10 @@ export function Integration() {
           {/* Compliance Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { value: "Phase 2", label: "قيد التحقق الفني والتنظيمي", icon: Award },
-              { value: "محلي", label: "إعداد غير متحقق منه", icon: Lock },
-              { value: "يوميًا", label: "نسخ احتياطي تلقائي", icon: Eye },
-              { value: "AR + EN", label: "واجهة ثنائية اللغة", icon: Zap },
+              { value: "Phase 2", label: t("قيد التحقق الفني والتنظيمي", "Under technical and regulatory validation"), icon: Award },
+              { value: t("محلي", "Local"), label: t("إعداد غير متحقق منه", "Unverified setup"), icon: Lock },
+              { value: t("يوميًا", "Daily"), label: t("نسخ احتياطي تلقائي", "Automatic backups"), icon: Eye },
+              { value: "AR + EN", label: t("واجهة ثنائية اللغة", "Bilingual interface"), icon: Zap },
             ].map((stat) => (
               <motion.div
                 key={stat.label}
@@ -383,14 +384,13 @@ export function Integration() {
           >
             <div className="inline-flex items-center gap-2 bg-red-50 text-red-500 px-4 py-2 rounded-full mb-4">
               <Shield className="w-4 h-4" />
-              <span style={{ fontSize: "13px", fontWeight: 600 }}>أمان متقدم</span>
+              <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("أمان متقدم", "Advanced security")}</span>
             </div>
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
-              حماية بممارسات قياسية
+              {t("حماية بممارسات قياسية", "Protection with standard practices")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>
-              بياناتك المالية محمية بتشفير أثناء النقل، ونسخ احتياطي يومي تلقائي،
-              وجلسات آمنة مشفّرة
+              {t("بياناتك المالية محمية بتشفير أثناء النقل، ونسخ احتياطي يومي تلقائي، وجلسات آمنة مشفّرة", "Your financial data is protected with encryption in transit, automatic daily backups, and encrypted secure sessions")}
             </p>
           </motion.div>
 
@@ -399,68 +399,68 @@ export function Integration() {
             {[
               {
                 icon: Lock,
-                title: "تشفير متقدم",
+                title: t("تشفير متقدم", "Advanced encryption"),
                 color: "#EF4444",
                 features: [
-                  "تشفير AES-256-GCM لمفاتيح التكامل",
-                  "تشفير الاتصال عبر TLS",
-                  "كلمات المرور مُجزّأة ولا تُحفظ نصيًا",
-                  "بيانات البطاقات عبر Stripe فقط — لا تمر بسيرفراتنا",
+                  t("تشفير AES-256-GCM لمفاتيح التكامل", "AES-256-GCM encryption for integration keys"),
+                  t("تشفير الاتصال عبر TLS", "TLS connection encryption"),
+                  t("كلمات المرور مُجزّأة ولا تُحفظ نصيًا", "Passwords are hashed and never stored in plain text"),
+                  t("بيانات البطاقات عبر Stripe فقط — لا تمر بسيرفراتنا", "Card data goes through Stripe only — never touches our servers"),
                 ]
               },
               {
                 icon: Key,
-                title: "التحكم بالوصول",
+                title: t("التحكم بالوصول", "Access control"),
                 color: "#F59E0B",
                 features: [
-                  "صلاحيات حسب أدوار المستخدمين",
-                  "جلسات آمنة محدودة المدة بكوكي HttpOnly",
-                  "عزل كامل لبيانات كل منشأة",
-                  "إدارة الأعضاء والصلاحيات من الإعدادات",
+                  t("صلاحيات حسب أدوار المستخدمين", "Role-based user permissions"),
+                  t("جلسات آمنة محدودة المدة بكوكي HttpOnly", "Time-limited secure sessions with HttpOnly cookies"),
+                  t("عزل كامل لبيانات كل منشأة", "Full data isolation per organization"),
+                  t("إدارة الأعضاء والصلاحيات من الإعدادات", "Member and permission management from Settings"),
                 ]
               },
               {
                 icon: Eye,
-                title: "المراقبة والتدقيق",
+                title: t("المراقبة والتدقيق", "Monitoring & audit"),
                 color: "#8B5CF6",
                 features: [
-                  "سجل نشاط لعمليات المنشأة",
-                  "سجل استخدام AI بالتكلفة لكل عملية",
-                  "تتبع حالة الفوترة الإلكترونية لكل فاتورة",
-                  "سجلات نظام مركزية على الخادم",
+                  t("سجل نشاط لعمليات المنشأة", "Activity log for organization operations"),
+                  t("سجل استخدام AI بالتكلفة لكل عملية", "AI usage log with per-operation cost"),
+                  t("تتبع حالة الفوترة الإلكترونية لكل فاتورة", "E-invoicing status tracking per invoice"),
+                  t("سجلات نظام مركزية على الخادم", "Centralized server system logs"),
                 ]
               },
               {
                 icon: Database,
-                title: "النسخ الاحتياطي",
+                title: t("النسخ الاحتياطي", "Backups"),
                 color: "#06B6D4",
                 features: [
-                  "نسخ احتياطي يومي تلقائي",
-                  "احتفاظ بالنسخ 14 يومًا",
-                  "نسخ مؤرشفة قابلة للاستعادة عند الحاجة",
-                  "بياناتك قابلة للتصدير في أي وقت",
+                  t("نسخ احتياطي يومي تلقائي", "Automatic daily backups"),
+                  t("احتفاظ بالنسخ 14 يومًا", "14-day backup retention"),
+                  t("نسخ مؤرشفة قابلة للاستعادة عند الحاجة", "Archived copies restorable when needed"),
+                  t("بياناتك قابلة للتصدير في أي وقت", "Your data is exportable at any time"),
                 ]
               },
               {
                 icon: Fingerprint,
-                title: "الخصوصية",
+                title: t("الخصوصية", "Privacy"),
                 color: "#10B981",
                 features: [
-                  "بياناتك ملكك — لا نبيعها ولا نشاركها",
-                  "إخفاء الأسرار والمفاتيح في الواجهة",
-                  "سياسة خصوصية منشورة وواضحة",
-                  "حقك في حذف حسابك وبياناتك",
+                  t("بياناتك ملكك — لا نبيعها ولا نشاركها", "Your data is yours — we never sell or share it"),
+                  t("إخفاء الأسرار والمفاتيح في الواجهة", "Secrets and keys are masked in the UI"),
+                  t("سياسة خصوصية منشورة وواضحة", "A clear, published privacy policy"),
+                  t("حقك في حذف حسابك وبياناتك", "Your right to delete your account and data"),
                 ]
               },
               {
                 icon: AlertTriangle,
-                title: "بنية تحتية محمية",
+                title: t("بنية تحتية محمية", "Protected infrastructure"),
                 color: "#F97316",
                 features: [
-                  "حماية DDoS عبر Cloudflare",
-                  "تحديد معدل الطلبات ضد التخمين",
-                  "Cloudflare Turnstile ضد البوتات",
-                  "تحديثات أمنية مستمرة للمنصة",
+                  t("حماية DDoS عبر Cloudflare", "DDoS protection via Cloudflare"),
+                  t("تحديد معدل الطلبات ضد التخمين", "Rate limiting against guessing attacks"),
+                  t("Cloudflare Turnstile ضد البوتات", "Cloudflare Turnstile bot protection"),
+                  t("تحديثات أمنية مستمرة للمنصة", "Continuous platform security updates"),
                 ]
               },
             ].map((security, i) => (
@@ -501,10 +501,10 @@ export function Integration() {
             className="bg-gradient-to-br from-foreground to-primary rounded-2xl p-10 text-center text-white"
           >
             <h3 className="text-white mb-6" style={{ fontSize: "24px", fontWeight: 700 }}>
-              ممارسات الأمان لدينا
+              {t("ممارسات الأمان لدينا", "Our security practices")}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {["تشفير TLS أثناء النقل", "نسخ احتياطي يومي تلقائي", "جلسات HttpOnly مشفّرة"].map((cert) => (
+              {["تشفير TLS أثناء النقل", t("نسخ احتياطي يومي تلقائي", "Automatic daily backups"), "جلسات HttpOnly مشفّرة"].map((cert) => (
                 <div key={cert} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-colors">
                   <Award className="w-10 h-10 mx-auto mb-3 text-sky-400" />
                   <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
@@ -526,17 +526,17 @@ export function Integration() {
             viewport={{ once: true }}
           >
             <h2 className="text-foreground mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700 }}>
-              بياناتك محمية وملكك دائمًا
+              {t("بياناتك محمية وملكك دائمًا", "Your data is protected and always yours")}
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
-              نطبّق ممارسات حماية قياسية — تشفير أثناء النقل، نسخ احتياطي يومي، وجلسات آمنة — وتصدّر بياناتك كاملة متى شئت
+              {t("نطبّق ممارسات حماية قياسية — تشفير أثناء النقل، نسخ احتياطي يومي، وجلسات آمنة — وتصدّر بياناتك كاملة متى شئت", "We apply standard protection practices — encryption in transit, daily backups, and secure sessions — and you can export all your data anytime")}
             </p>
             <button 
               onClick={() => navigate("/register")}
               className="bg-primary hover:bg-primary/80 text-white px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-primary/25 flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
-              ابدأ تجربتك المجانية
+              {t("ابدأ تجربتك المجانية", "Start your free trial")}
               <ArrowLeft className="w-5 h-5" />
             </button>
           </motion.div>

@@ -67,6 +67,7 @@ const EN_TEXT: Record<string, string> = {
   "القوالب": "Templates",
   "محدّث": "Updated",
   "التعاقد مع محاسب": "Hire an accountant",
+  "التحليل والهيكل": "Analysis & structure",
   "التقارير": "Reports",
   "خارطة المزايا": "Roadmap",
   "الإعدادات": "Settings",
@@ -545,7 +546,7 @@ function SidebarContent({
                 aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
               >
                 <Globe className="h-4 w-4 shrink-0" />
-                <span className={language === "ar" ? "font-english" : ""}>{language === "ar" ? "English" : "العربية"}</span>
+                <span className="font-english">{language === "ar" ? "EN" : "AR"}</span>
               </button>
             </div>
           </>

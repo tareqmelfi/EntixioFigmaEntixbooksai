@@ -2,8 +2,10 @@ import { useRouteError, isRouteErrorResponse, Link } from "react-router";
 import { AlertTriangle, Home, ArrowRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { clientErrorRef } from "../lib/api";
+import { useLanguage } from "./LanguageContext";
 
 export function ErrorBoundary() {
+  const { t } = useLanguage();
   const error = useRouteError();
   
   let errorMessage: string;
@@ -69,14 +71,14 @@ export function ErrorBoundary() {
             <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white">
               <Link to="/app" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
-                <span>العودة للرئيسية</span>
+                <span>{t("العودة للرئيسية", "Back to home")}</span>
               </Link>
             </Button>
 
             <Button asChild variant="outline" className="w-full border-border text-muted-foreground hover:bg-muted">
               <button onClick={() => window.history.back()} className="flex items-center justify-center gap-2">
                 <ArrowRight className="h-4 w-4" />
-                <span>رجوع</span>
+                <span>{t("رجوع", "Back")}</span>
               </button>
             </Button>
           </div>
@@ -104,6 +106,7 @@ export function ErrorBoundary() {
 }
 
 export function NotFound() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-white p-4">
       <div className="w-full max-w-md">
@@ -135,13 +138,13 @@ export function NotFound() {
             <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white">
               <Link to="/app" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
-                <span>العودة للرئيسية</span>
+                <span>{t("العودة للرئيسية", "Back to home")}</span>
               </Link>
             </Button>
 
             <Button asChild variant="outline" className="w-full border-border text-muted-foreground hover:bg-muted">
               <Link to="/app/contacts" className="flex items-center justify-center gap-2">
-                <span>جميع جهات الاتصال</span>
+                <span>{t("جميع جهات الاتصال", "All contacts")}</span>
               </Link>
             </Button>
           </div>
