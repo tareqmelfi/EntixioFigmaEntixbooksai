@@ -15,9 +15,14 @@ import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
 
 export function BranchDetail() {
   const { t } = useLanguage();
+  const { country } = useOrgRegion();
+  // Placeholder examples follow the org's country — a US company gets US
+  // examples, not Riyadh ones it cannot relate to (owner evidence 2026-08-21).
+  const isSa = (country || "SA") === "SA";
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = !id || id === "new";
@@ -78,10 +83,10 @@ export function BranchDetail() {
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات الفرع", "Branch details")}</div>
-          <div className="space-y-2"><Label>{t("الاسم", "Name")} *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("فرع الرياض", "Riyadh branch")} /></div>
+          <div className="space-y-2"><Label>{t("الاسم", "Name")} *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={isSa ? t("فرع الرياض", "Riyadh branch") : t("فرع الرياض", "Austin branch")} /></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>{t("الرمز", "Code")}</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="RUH" dir="ltr" className="font-english" /></div>
-            <div className="space-y-2"><Label>{t("العنوان", "Address")}</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={t("الرياض · حي الورود", "Riyadh · Al-Wurud dist.")} /></div>
+            <div className="space-y-2"><Label>{t("الرمز", "Code")}</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder={isSa ? "RUH" : "AUS"} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label>{t("العنوان", "Address")}</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={isSa ? t("الرياض · حي الورود", "Riyadh · Al-Wurud dist.") : t("الرياض · حي الورود", "Austin · Downtown")} /></div>
           </div>
         </CardContent>
       </Card>

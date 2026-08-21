@@ -12,9 +12,12 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
 
 export function WarehouseNew() {
   const { t } = useLanguage();
+  const { country } = useOrgRegion();
+  const isSa = (country || "SA") === "SA";
   const navigate = useNavigate();
   const { toasts, push, dismiss } = useToasts();
   const [busy, setBusy] = useState(false);
@@ -58,7 +61,7 @@ export function WarehouseNew() {
               <div className="space-y-2"><Label>{t("الرمز *", "Code *")}</Label><Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} dir="ltr" className="font-english" placeholder="MAIN" /></div>
               <div className="space-y-2"><Label>{t("الاسم *", "Name *")}</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("المستودع الرئيسي", "Main warehouse")} /></div>
             </div>
-            <div className="space-y-2"><Label>{t("العنوان", "Address")}</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={t("الرياض · حي...", "Riyadh · district...")} /></div>
+            <div className="space-y-2"><Label>{t("العنوان", "Address")}</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={isSa ? t("الرياض · حي...", "Riyadh · district...") : t("الرياض · حي...", "Austin · Downtown...")} /></div>
             <div className="space-y-2">
               <Label>{t("النوع", "Kind")}</Label>
               <div className="flex gap-2">

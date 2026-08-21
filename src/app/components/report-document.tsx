@@ -3,11 +3,13 @@ import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 import { BidiText, NumericText } from "./bidi-text";
 
-const defaultSettings: Required<ReportPrintSettings> = {
+// `language` stays UNSET by default: the effective document language resolves
+// in ReportDocument (explicit org choice → app UI language). A persisted "ar"
+// default made non-SA orgs render Arabic chrome (owner evidence 2026-08-21).
+const defaultSettings: Omit<Required<ReportPrintSettings>, "language"> = {
   logoSource: "print",
   paper: "A4",
   orientation: "portrait",
-  language: "ar",
   fontScale: "normal",
   density: "standard",
   primaryColor: "#0B1B49",
@@ -18,6 +20,8 @@ const defaultSettings: Required<ReportPrintSettings> = {
   showPreparedBy: true,
   showNotes: false,
 };
+
+export type NormalizedReportSettings = Omit<Required<ReportPrintSettings>, "language"> & Pick<ReportPrintSettings, "language">;
 
 const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal", "gross", "net", "debit", "credit", "balance", "value"]);
 
@@ -60,7 +64,7 @@ function EquationStrip({ report, currency }: { report: ReportPayload; currency: 
   );
 }
 
-export function normalizeReportSettings(settings?: ReportPrintSettings | null): Required<ReportPrintSettings> {
+export function normalizeReportSettings(settings?: ReportPrintSettings | null): NormalizedReportSettings {
   return { ...defaultSettings, ...(settings || {}) };
 }
 
@@ -79,7 +83,13 @@ export function ReportDocument({
   // The document language follows the org's explicit print-setting when set;
   // otherwise it follows the APP UI language — an English app must render an
   // English report, never Arabic chrome (product rule: no language mixing).
-  const resolved = { ...normalizeReportSettings(settings), language: settings?.language || appLanguage };
+  // Legacy guard: orgs that merely opened the print designer before 2026-08-21
+  // got language:"ar" persisted without ever choosing it — treat "ar" on a
+  // non-SA org as unset (owner rule: a US company never renders Arabic chrome).
+  const storedLanguageChoice = settings?.language;
+  const orgCountry = (report.org as any).country || "SA";
+  const explicitLanguage = storedLanguageChoice === "ar" && orgCountry !== "SA" ? undefined : storedLanguageChoice;
+  const resolved = { ...normalizeReportSettings(settings), language: explicitLanguage || appLanguage };
   const isEn = resolved.language === "en";
   const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;

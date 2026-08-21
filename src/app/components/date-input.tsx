@@ -15,6 +15,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Calendar } from "lucide-react";
+import { useLanguage } from "./LanguageContext";
 
 function isoToDisplay(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
@@ -58,7 +59,9 @@ interface Props {
   id?: string;
 }
 
-export function DateInput({ value, onChange, className = "", inputClassName = "", placeholder = "يوم/شهر/سنة", disabled, required, id }: Props) {
+export function DateInput({ value, onChange, className = "", inputClassName = "", placeholder, disabled, required, id }: Props) {
+  const { t } = useLanguage();
+  const resolvedPlaceholder = placeholder ?? t("يوم/شهر/سنة", "day/month/year");
   const [text, setText] = useState(isoToDisplay(value));
   const [invalid, setInvalid] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
@@ -110,7 +113,7 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         value={text}
         onChange={(e) => commit(e.target.value)}
         onBlur={onBlur}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         disabled={disabled}
         required={required}
         className={`w-full ${inputClassName || "h-10 text-sm"} rounded-md border ${invalid ? "border-red-400 ring-1 ring-red-300" : "border-border"} bg-white px-3 pe-9 font-english text-start focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:opacity-50`}

@@ -13,7 +13,7 @@ const defaultColors = {
 };
 
 export function ReportPrintDesigner() {
-  const { t } = useLanguage();
+  const { t, language: appLanguage } = useLanguage();
   const { id = "income-statement" } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -190,7 +190,7 @@ export function ReportPrintDesigner() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Control label={t("اللغة", "Language")}>
-                    <select value={resolved.language} onChange={(e) => update("language", e.target.value as any)} className={selectClass}>
+                    <select value={resolved.language || appLanguage} onChange={(e) => update("language", e.target.value as any)} className={selectClass}>
                       <option value="ar">عربي RTL</option>
                       <option value="en">English LTR</option>
                     </select>
