@@ -874,6 +874,27 @@ export const api = {
         `/api/zatca/invoices/${invoiceId}/process`, { method: 'POST' },
       ),
     getQr: (invoiceId: string) => request<{ qr: string }>(`/api/zatca/invoices/${invoiceId}/qr`),
+    // CSID onboarding wizard (prepare → compliance → production) · SA orgs only
+    onboarding: {
+      status: () => request<{
+        zatcaEnabled: boolean; mode: string; status: 'NONE' | 'CSR_READY' | 'COMPLIANCE' | 'PRODUCTION';
+        hasCsr: boolean; hasCertificate: boolean; hasCsid: boolean; hasSigningMaterial: boolean;
+        vatConfigured: boolean;
+        complianceResult: { ok: boolean; passed: number; failed: number; ranAt: string; results: Array<{ docType: string; ok: boolean; status: string | null; errors: string[]; warnings: string[] }> } | null;
+      }>('/api/zatca/onboarding/status'),
+      prepare: (data?: { deviceName?: string; branchName?: string }) =>
+        request<{ ok: true; csrBase64: string; deviceName: string; deviceId: string; status: string }>(
+          '/api/zatca/onboarding/prepare', { method: 'POST', body: data || {} }),
+      compliance: (otp: string) =>
+        request<{ ok: true; status: string; requestId: string | null }>(
+          '/api/zatca/onboarding/compliance', { method: 'POST', body: { otp } }),
+      complianceCheck: () =>
+        request<{ ok: boolean; passed: number; failed: number; ranAt: string; results: Array<{ docType: string; ok: boolean; status: string | null; errors: string[]; warnings: string[] }> }>(
+          '/api/zatca/onboarding/compliance-check', { method: 'POST', body: {} }),
+      production: () =>
+        request<{ ok: true; status: string; requestId: string | null }>(
+          '/api/zatca/onboarding/production', { method: 'POST', body: {} }),
+    },
   },
 
   // Partners & Affiliates · برنامج الشركاء (عمولات + نقاط + سحب)

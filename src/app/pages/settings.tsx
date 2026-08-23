@@ -1773,73 +1773,211 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
 }
 
 // ── ZATCA TAB ───────────────────────────────────────────────────────────────
-function ZatcaTab({ org, push }: { org: Org; push: any }) {
-  const zatcaState = "LOCAL_UNVERIFIED";
-  const zatcaReason = "zatca_pipeline_not_ready";
-  const [csid, setCsid] = useState((org as any).zatcaCsid || "");
-  const [csidSecret, setCsidSecret] = useState((org as any).zatcaCsidSecret || "");
-  const [mode, setMode] = useState<"sandbox" | "simulation" | "production">((org as any).zatcaMode || "sandbox");
-  const [status, setStatus] = useState<any>(null);
+// CSID onboarding wizard (Gate-0 outbound freeze documented in-product):
+//   NONE → prepare (local keypair + CSR) → CSR_READY → compliance (Fatoora OTP)
+//   → COMPLIANCE → compliance-check (6 sample docs vs simulation) → production
+//   → PRODUCTION. Invoice clearance/reporting stay frozen until the explicit
+//   Gate-0 unfreeze — this wizard never submits a real invoice.
+const ZATCA_DOC_TYPES: Array<{ id: string; ar: string; en: string }> = [
+  { id: "standard-invoice", ar: "فاتورة ضريبية قياسية", en: "Standard tax invoice" },
+  { id: "simplified-invoice", ar: "فاتورة مبسطة", en: "Simplified invoice" },
+  { id: "standard-credit-note", ar: "إشعار دائن قياسي", en: "Standard credit note" },
+  { id: "standard-debit-note", ar: "إشعار مدين قياسي", en: "Standard debit note" },
+  { id: "simplified-credit-note", ar: "إشعار دائن مبسط", en: "Simplified credit note" },
+  { id: "simplified-debit-note", ar: "إشعار مدين مبسط", en: "Simplified debit note" },
+];
+
+function ZatcaTab({ push }: { org: Org; push: any }) {
   const { t } = useLanguage();
+  const [st, setSt] = useState<any>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [otp, setOtp] = useState("");
+  const [csr, setCsr] = useState<{ csrBase64: string; deviceName: string } | null>(null);
+  const [run, setRun] = useState<any>(null);
 
-  useEffect(() => {
-    api.zatca.status().then(setStatus).catch(() => {});
-  }, []);
+  const refresh = async () => {
+    try { setSt(await api.zatca.onboarding.status()); } catch { /* gated/unauth */ }
+  };
+  useEffect(() => { refresh(); }, []);
 
-  const handleOnboard = async () => {
-    if (!csid.trim() || !csidSecret.trim()) { push("error", t("أدخل CSID والمفتاح السري", "Enter CSID and the secret key")); return; }
+  const status: string = st?.status || "NONE";
+  const steps = [
+    { id: "prepare", label: t("توليد المفاتيح و CSR", "Generate keys + CSR"), done: status !== "NONE" },
+    { id: "compliance", label: t("شهادة الامتثال (OTP)", "Compliance certificate (OTP)"), done: status === "COMPLIANCE" || status === "PRODUCTION" },
+    { id: "checks", label: t("فحوصات الامتثال (٦ مستندات)", "Compliance checks (6 documents)"), done: !!st?.complianceResult?.ok || status === "PRODUCTION" },
+    { id: "production", label: t("شهادة الإنتاج", "Production certificate"), done: status === "PRODUCTION" },
+  ];
+
+  const act = async (key: string, fn: () => Promise<any>, okMsg: string) => {
+    setBusy(key);
     try {
-      await api.zatca.onboard({ csid: csid.trim(), csidSecret: csidSecret.trim(), mode });
-      push("success", t("تم حفظ بيانات الاعتماد · التخليص غير مفعّل", "Credentials saved · clearance not enabled"));
-      const s = await api.zatca.status();
-      setStatus(s);
+      const out = await fn();
+      push("success", okMsg);
+      await refresh();
+      return out;
     } catch (e: any) {
-      push("error", e?.message || t("فشل", "Failed"));
-    }
+      push("error", e?.message || t("فشل الإجراء", "Action failed"));
+      return null;
+    } finally { setBusy(null); }
+  };
+
+  const downloadCsr = () => {
+    if (!csr) return;
+    const blob = new Blob([atob(csr.csrBase64)], { type: "application/pkcs10" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${csr.deviceName}.csr`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">📋 {t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation")}</CardTitle>
-        <CardDescription>{t("التكامل قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", "The integration is under technical and regulatory validation and is not enabled for production reliance.")}</CardDescription>
+        <CardTitle className="text-foreground flex items-center gap-2">📋 {t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")}</CardTitle>
+        <CardDescription>{t("تهيئة شهادة الجهاز (CSID) عبر مسار فاتورة الرسمي: مفاتيح محلية → OTP → امتثال → إنتاج.", "Device certificate (CSID) onboarding via the official Fatoora path: local keys → OTP → compliance → production.")}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <div className="font-medium text-amber-900">{t("إعداد محلي غير متحقق منه · التخليص غير مفعّل", "Local setup unverified · clearance not enabled")}</div>
-          <div className="mt-1 text-xs text-amber-800" dir="ltr">{zatcaState} · {zatcaReason}</div>
-          {status?.nextActions && <div className="mt-2 text-xs text-muted-foreground">{status.nextActions}</div>}
-        </div>
+      <CardContent className="space-y-5">
+        {/* Stepper */}
+        <ol className="space-y-2">
+          {steps.map((s2, i) => (
+            <li key={s2.id} className="flex items-center gap-3 text-sm">
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${s2.done ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
+                {s2.done ? "✓" : i + 1}
+              </span>
+              <span className={s2.done ? "text-foreground" : "text-muted-foreground"}>{s2.label}</span>
+            </li>
+          ))}
+        </ol>
 
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs">
-          <div className="font-medium text-foreground">{t("نموذج اعتماد قديم · متقدم ومعطّل بانتظار مسار التهيئة الجديد", "Legacy credential form · advanced and disabled pending the new onboarding flow")}</div>
-          <div className="mt-1 text-foreground/70">{t("الحفظ محلي فقط ولا يثبت الاتصال أو التحقق أو جاهزية الإنتاج.", "Saving is local only and does not prove connectivity, validation, or production readiness.")}</div>
-        </div>
+        {/* Step 1 · prepare */}
+        {status === "NONE" && (
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            {!st?.vatConfigured && (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
+                {t("أضف الرقم الضريبي للمنشأة من تبويب «بيانات الشركة» أولاً — الشهادة تُصدر على هذا الرقم.", "Add the organization VAT number from the Company tab first — the certificate is issued against it.")}
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              {t("نولّد مفتاح secp256k1 وطلب توقيع شهادة (CSR) محليًا على جهازك — لا يغادر المفتاح الخاص الخادم ولا نرسل شيئًا للهيئة في هذه الخطوة.", "We generate a secp256k1 key and certificate signing request (CSR) locally — the private key never leaves the server and nothing is sent to ZATCA at this step.")}
+            </p>
+            <Button
+              disabled={busy === "prepare" || !st?.vatConfigured}
+              onClick={() => act("prepare", async () => {
+                const out = await api.zatca.onboarding.prepare({});
+                if (out) setCsr({ csrBase64: out.csrBase64, deviceName: out.deviceName });
+                return out;
+              }, t("تم توليد المفاتيح و CSR", "Keys and CSR generated"))}
+            >
+              {busy === "prepare" ? t("جارٍ التوليد...", "Generating...") : t("توليد المفاتيح و CSR", "Generate keys + CSR")}
+            </Button>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="md:col-span-2">
-            <Label className="text-xs">CSID Token</Label>
-            <Input value={csid} onChange={(e) => setCsid(e.target.value)} disabled dir="ltr" className="font-english" placeholder={t("نموذج قديم معطّل", "Disabled legacy field")} />
+        {/* CSR download + Step 2 · OTP */}
+        {status === "CSR_READY" && (
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            {csr && (
+              <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 p-3">
+                <span className="text-sm text-foreground">{t("ملف CSR جاهز", "CSR file ready")} · <span className="font-english">{csr.deviceName}</span></span>
+                <Button variant="outline" size="sm" onClick={downloadCsr}>{t("تنزيل CSR", "Download CSR")}</Button>
+              </div>
+            )}
+            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+              <li>{t("ادخل بوابة فاتورة (Fatoora) وسجّل الدخول بحساب المنشأة.", "Sign in to the Fatoora portal with the organization account.")}</li>
+              <li>{t("من «خدماتي» → «إدارة أجهزة الفوترة» اطلب رمز تحقق (OTP) لجهاز جديد.", "Under My services → E-invoicing device management, request an OTP for a new device.")}</li>
+              <li>{t("أدخل الرمز هنا خلال ساعة من إصداره.", "Enter the code here within one hour of issuance.")}</li>
+            </ol>
+            <div className="flex items-center gap-2">
+              <Input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder={t("رمز OTP · 6 أرقام", "OTP · 6 digits")}
+                dir="ltr" className="font-english max-w-44"
+              />
+              <Button
+                disabled={busy === "compliance" || otp.length !== 6}
+                onClick={() => act("compliance", () => api.zatca.onboarding.compliance(otp), t("صدرت شهادة الامتثال", "Compliance certificate issued"))}
+              >
+                {busy === "compliance" ? t("جارٍ التحقق...", "Verifying...") : t("إصدار شهادة الامتثال", "Issue compliance certificate")}
+              </Button>
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">{t("الوضع", "Mode")}</Label>
-            <select value={mode} onChange={(e) => setMode(e.target.value as any)} disabled className="w-full text-sm rounded border border-border px-3 py-2 bg-muted/40">
-              <option value="sandbox">{t("Sandbox (تجريبي)", "Sandbox (test)")}</option>
-              <option value="simulation">Simulation</option>
-              <option value="production">{t("Production (إنتاج)", "Production (live)")}</option>
-            </select>
-          </div>
-          <div className="md:col-span-3">
-            <Label className="text-xs">CSID Secret</Label>
-            <Input type="password" value={csidSecret} onChange={(e) => setCsidSecret(e.target.value)} disabled dir="ltr" className="font-english" placeholder={t("نموذج قديم معطّل", "Disabled legacy field")} />
-          </div>
-        </div>
+        )}
 
-        <Button onClick={handleOnboard} disabled className="bg-muted text-muted-foreground">
-          {t("معطّل بانتظار مسار التهيئة الجديد", "Disabled pending new onboarding")}
-        </Button>
+        {/* Step 3 · compliance checks */}
+        {status === "COMPLIANCE" && (
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {t("ترسل المنصة 6 مستندات تجريبية موقّعة (فاتورة قياسية ومبسطة + إشعارات دائنة ومدينة) إلى بيئة المحاكاة للتحقق من التوقيع والتسلسل والصيغة.", "The platform submits 6 signed sample documents (standard + simplified invoices, credit/debit notes) to the simulation environment to validate signature, chain, and format.")}
+            </p>
+            <Button
+              disabled={busy === "checks"}
+              onClick={() => act("checks", async () => {
+                const out = await api.zatca.onboarding.complianceCheck();
+                if (out) setRun(out);
+                return out;
+              }, t("اكتملت فحوصات الامتثال", "Compliance checks completed"))}
+            >
+              {busy === "checks" ? t("جارٍ الفحص...", "Running...") : t("تشغيل فحوصات الامتثال", "Run compliance checks")}
+            </Button>
+            <ComplianceResults run={run || st?.complianceResult} t={t} />
+            {(run?.ok || st?.complianceResult?.ok) && (
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700"
+                disabled={busy === "production"}
+                onClick={() => act("production", () => api.zatca.onboarding.production(), t("صدرت شهادة الإنتاج", "Production certificate issued"))}
+              >
+                {busy === "production" ? t("جارٍ الإصدار...", "Issuing...") : t("طلب شهادة الإنتاج", "Request production certificate")}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Done */}
+        {status === "PRODUCTION" && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <div className="text-sm font-semibold text-emerald-900">{t("شهادة الإنتاج فعّالة", "Production certificate active")}</div>
+            <p className="mt-1 text-xs text-emerald-800">
+              {t("الفواتير الجديدة تُوقَّع محليًا وتُختم بسلسلة ICV/PIH تلقائيًا عند اعتمادها.", "New invoices are signed locally and chained (ICV/PIH) automatically on approval.")}
+            </p>
+          </div>
+        )}
+
+        {/* Gate-0 honesty banner — always visible */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          {t("ملاحظة: الإرسال الفعلي للفواتير إلى الهيئة (التخليص/الإبلاغ) ما زال مجمّدًا قيد التحقق النهائي — كل فاتورة تُوقَّع وتُخزَّن محليًا وستُرفع فور فتح المسار.", "Note: live invoice submission to ZATCA (clearance/reporting) remains frozen pending final validation — every invoice is signed and stored locally and will be submitted as soon as the path opens.")}
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ComplianceResults({ run, t }: { run: any; t: (ar: string, en?: string) => string }) {
+  if (!run?.results) return null;
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <table className="w-full text-xs">
+        <tbody>
+          {run.results.map((r: any) => {
+            const label = ZATCA_DOC_TYPES.find((d) => d.id === r.docType);
+            return (
+              <tr key={r.docType} className="border-b border-border/50 last:border-0">
+                <td className="px-3 py-2 text-foreground">{label ? t(label.ar, label.en) : r.docType}</td>
+                <td className="px-3 py-2 text-end">
+                  {r.ok
+                    ? <span className="text-emerald-700 font-semibold">{t("ناجح", "Pass")}</span>
+                    : <span className="text-red-700 font-semibold" title={(r.errors || []).join(" · ")}>{t("فشل", "Fail")}</span>}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+        {t("ناجح", "Passed")}: {run.passed} · {t("فشل", "Failed")}: {run.failed} · <span className="font-english">{run.ranAt?.slice(0, 16).replace("T", " ")}</span>
+      </div>
+    </div>
   );
 }
 
