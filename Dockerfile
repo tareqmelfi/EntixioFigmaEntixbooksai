@@ -94,6 +94,20 @@ server {
   # Unknown extensionless paths are honest 404s rather than SPA fake-200s.
   location / { try_files $uri =404; }
 
+  # Sitemap must answer application/xml and revalidate — GSC "Couldn't fetch"
+  # incidents trace back to stale/guess-typed responses. robots stays text/plain.
+  location = /sitemap.xml {
+    types { application/xml xml; }
+    default_type application/xml;
+    add_header Cache-Control "no-cache, must-revalidate";
+    try_files $uri =404;
+  }
+  location = /robots.txt {
+    default_type text/plain;
+    add_header Cache-Control "no-cache, must-revalidate";
+    try_files $uri =404;
+  }
+
   # Serve .well-known as static files with correct content type
   # (Microsoft identity verification requires application/json)
   location /.well-known/ {

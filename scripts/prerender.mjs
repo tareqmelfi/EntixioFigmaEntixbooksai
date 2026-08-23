@@ -270,16 +270,68 @@ function alternateLinks(pagePath) {
   tags.push(`<link rel="alternate" hreflang="x-default" href="${SITE_ORIGIN}/">`)
   return tags
 }
-function writeSitemap() {
-  const urls = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.flatMap((locale) =>
-    PUBLIC_PAGES.filter((page) => page.indexable).map((page) => [
-      '  <url>', `    <loc>${canonicalUrl(market, locale, page.path)}</loc>`,
-      `    <changefreq>${page.changefreq}</changefreq>`, `    <priority>${page.priority}</priority>`, '  </url>',
-    ].join('\n')),
+// ── Sitemap · single source of truth (generated at build; overwrites the
+// public/ fallback). Two blocks:
+//   1. Localized canonical cluster — every indexable PUBLIC_PAGES page across
+//      every market × locale, each carrying the full hreflang alternate set +
+//      x-default (multi-region SEO; GSC "Discovered – currently not indexed"
+//      on unprefixed URLs is avoided because canonicals self-reference).
+//   2. Legacy unprefixed marketing pages from META — these still serve real
+//      prerendered documents at their established URLs. Transactional and
+//      private surfaces (/buy, /claim, /app, /portal, /print) are NEVER listed.
+function hreflangCluster(pagePath) {
+  const links = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.map((locale) =>
+    `    <xhtml:link rel="alternate" hreflang="${locale}-${market.toUpperCase()}" href="${canonicalUrl(market, locale, pagePath)}" />`,
   ))
+  links.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${canonicalUrl('us', 'en', pagePath)}" />`)
+  return links
+}
+function writeSitemap() {
+  // Computed at call time: top-level consts are not initialized yet when the
+  // hoisted pipeline invokes this during early module evaluation (TDZ crash).
+  const SITEMAP_LASTMOD = new Date().toISOString().slice(0, 10)
+  const SITEMAP_LEGACY_EXCLUDE = new Set(['/forgot-password', '/reset-password'])
+  const LEGACY_PRIORITY = {
+    '/features': ['weekly', '0.9'], '/pricing': ['weekly', '0.9'],
+    '/solutions/small-business': ['monthly', '0.8'], '/solutions/accountants': ['monthly', '0.8'],
+    '/solutions/enterprises': ['monthly', '0.8'], '/solutions/restaurants': ['monthly', '0.7'],
+    '/solutions/ecommerce': ['monthly', '0.7'], '/contact': ['monthly', '0.7'],
+    '/integration': ['monthly', '0.6'], '/about': ['monthly', '0.6'], '/blog': ['weekly', '0.6'],
+    '/case-studies': ['monthly', '0.6'], '/docs': ['weekly', '0.7'], '/help': ['weekly', '0.6'],
+    '/support/ios': ['monthly', '0.7'], '/videos': ['monthly', '0.5'], '/glossary': ['monthly', '0.5'],
+    '/partners': ['monthly', '0.5'], '/careers': ['monthly', '0.5'], '/changelog': ['weekly', '0.5'],
+    '/roadmap': ['monthly', '0.5'], '/team': ['yearly', '0.4'], '/register': ['yearly', '0.4'],
+    '/privacy': ['yearly', '0.3'], '/terms': ['yearly', '0.3'], '/refund': ['yearly', '0.3'],
+    '/sla': ['yearly', '0.3'], '/login': ['yearly', '0.2'],
+  }
+  const indexable = PUBLIC_PAGES.filter((page) => page.indexable)
+  const localized = indexable.flatMap((page) =>
+    PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.map((locale) => [
+      '  <url>', `    <loc>${canonicalUrl(market, locale, page.path)}</loc>`,
+      ...hreflangCluster(page.path),
+      `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`,
+      `    <changefreq>${page.changefreq}</changefreq>`, `    <priority>${page.priority}</priority>`, '  </url>',
+    ].join('\n'))),
+  )
+  // Neutral root serves the chooser; it canonicals into the cluster above.
+  const root = [
+    '  <url>', `    <loc>${SITE_ORIGIN}/</loc>`, ...hreflangCluster(''),
+    `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`, '    <changefreq>weekly</changefreq>', '    <priority>1.0</priority>', '  </url>',
+  ].join('\n')
+  const legacy = Object.keys(META)
+    .filter((route) => route !== '/' && !SITEMAP_LEGACY_EXCLUDE.has(route))
+    .map((route) => {
+      const [changefreq, priority] = LEGACY_PRIORITY[route] || ['monthly', '0.5']
+      return [
+        '  <url>', `    <loc>${SITE_ORIGIN}${route}</loc>`,
+        `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`,
+        `    <changefreq>${changefreq}</changefreq>`, `    <priority>${priority}</priority>`, '  </url>',
+      ].join('\n')
+    })
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', ...urls, '</urlset>', '',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    root, ...localized, ...legacy, '</urlset>', '',
   ].join('\n'))
 }
 function jsonLd(value) { return JSON.stringify(value).replace(/</g, '\\u003c') }
