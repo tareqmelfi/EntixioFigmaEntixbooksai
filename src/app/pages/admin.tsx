@@ -6,7 +6,7 @@
  * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send } from "lucide-react";
+import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -14,7 +14,7 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-type Tab = "overview" | "orgs" | "users" | "support" | "ai";
+type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email";
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
 export function AdminDashboard() {
@@ -46,7 +46,7 @@ export function AdminDashboard() {
         <p className="text-sm text-muted-foreground mt-0.5">{t("المشتركون · المنشآت · المستخدمون · الدعم — كل فعل يُسجّل في سجل التدقيق", "Subscribers · orgs · users · support — every action is audit-logged")}</p>
       </div>
       <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
-        {([["overview", t("نظرة عامة", "Overview")], ["orgs", t("المنشآت", "Orgs")], ["users", t("المستخدمون", "Users")], ["support", t("الدعم", "Support")], ["ai", t("الذكاء", "AI usage")]] as [Tab, string][]).map(([id, label]) => (
+        {([["overview", t("نظرة عامة", "Overview")], ["orgs", t("المنشآت", "Orgs")], ["users", t("المستخدمون", "Users")], ["support", t("الدعم", "Support")], ["ai", t("الذكاء", "AI usage")], ["email", t("البريد", "Email")]] as [Tab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
@@ -57,6 +57,7 @@ export function AdminDashboard() {
       {tab === "users" && <UsersTab guard={guard} push={push} t={t} />}
       {tab === "support" && <SupportTab guard={guard} push={push} t={t} />}
       {tab === "ai" && <AiTab guard={guard} />}
+      {tab === "email" && <EmailTab guard={guard} push={push} t={t} />}
     </div>
   );
 }
@@ -328,5 +329,81 @@ function AiTab({ guard }: { guard: (e: any) => boolean }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind: "success" | "error", msg: string, ms?: number) => void; t: (ar: string, en?: string) => string }) {
+  const [data, setData] = useState<{ configured: boolean; from?: string | null; suppressions: Array<{ email: string; origin: string; since: string }>; recent: Array<{ to: string[]; subject: string; event: string; at: string | null }> } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const load = useCallback(async () => { try { setData(await api.admin.emailHealth()); } catch (e) { guard(e); } }, [guard]);
+  useEffect(() => { load(); }, [load]);
+
+  const unsuppress = async (email: string) => {
+    setBusy(email);
+    try {
+      await api.admin.unsuppressEmail(email);
+      push("success", t("أُزيل من قائمة المنع — الرسائل القادمة تصل طبيعية", "Removed from the suppression list — future emails will arrive"));
+      await load();
+    } catch (e) { guard(e); } finally { setBusy(null); }
+  };
+
+  if (!data) return <div className="py-16 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></div>;
+  if (!data.configured) return <Card className="border-border"><CardContent className="py-8 text-sm text-muted-foreground">{t("مزود البريد غير مُعد (RESEND_API_KEY مفقود في بيئة الخادم)", "Email provider not configured (RESEND_API_KEY missing on the server)")}</CardContent></Card>;
+
+  const bad = new Set(["bounced", "suppressed", "failed", "complained"]);
+  const failures = data.recent.filter((r) => bad.has(r.event));
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><MailWarning className="h-4 w-4 text-amber-600" />{t("قائمة المنع (Suppression List)", "Suppression list")}</CardTitle>
+          <p className="text-xs text-muted-foreground">{t("أي عنوان هنا لا تصله رسائلنا إطلاقًا — أُضيف تلقائيًا بعد ارتداد سابق. الإرسال من:", "Addresses here never receive our emails — auto-added after a past bounce. Sending from:")} <span dir="ltr" className="font-english">{data.from || "—"}</span></p>
+        </CardHeader>
+        <CardContent>
+          {data.suppressions.length === 0 ? (
+            <p className="text-sm text-emerald-700">{t("لا يوجد أي عنوان محظور — مسار البريد نظيف ✓", "No suppressed addresses — the mail path is clean ✓")}</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {data.suppressions.map((sp) => (
+                <div key={sp.email} className="flex items-center justify-between gap-3 py-2.5">
+                  <div>
+                    <div className="text-sm font-english text-foreground" dir="ltr">{sp.email}</div>
+                    <div className="text-[11px] text-muted-foreground">{sp.origin} · {fmtDate(sp.since)}</div>
+                  </div>
+                  <button onClick={() => unsuppress(sp.email)} disabled={busy === sp.email}
+                    className="text-[11px] px-2.5 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50">
+                    {busy === sp.email ? <Loader2 className="h-3 w-3 animate-spin" /> : t("إزالة من المنع", "Unsuppress")}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t("أحدث الرسائل الفاشلة", "Recent failed emails")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {failures.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("لا فشل في آخر 20 رسالة ✓", "No failures in the last 20 emails ✓")}</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {failures.map((r, i) => (
+                <div key={i} className="py-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-english truncate" dir="ltr">{r.to.join(", ")}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{r.subject}</div>
+                  </div>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 shrink-0">{r.event}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
