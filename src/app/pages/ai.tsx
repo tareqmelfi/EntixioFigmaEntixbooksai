@@ -69,7 +69,7 @@ const quickPrompts = (t: (ar: string, en?: string) => string) => [
   t("كم إجمالي المصروفات هذا الشهر؟", "What are total expenses this month?"),
   t("أعطني ملخص مالي لهذا الشهر", "Give me a financial summary this month"),
   t("اعرض لي آخر 10 فواتير", "Show me the last 10 invoices"),
-  t("أضف عميل جديد: شركة الفجر · رقم ضريبي 300123456789012", "Add a new customer: Al-Fajr Company · Tax number 300123456789012"),
+  t("أضف عميل جديد: شركة الفجر · رقم ضريبي 300123456789012", "Add a new customer: Bluebonnet Bakery · EIN 12-3456789"),
   t("كم عملائي وكم مورديني؟", "How many customers and suppliers do I have?"),
 ];
 

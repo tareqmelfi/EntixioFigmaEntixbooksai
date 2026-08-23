@@ -23,11 +23,12 @@ const STATUS_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
   EXPIRED: { ar: "منتهٍ", en: "Expired", bg: "bg-red-100 text-red-700" },
 };
 
-const money = (cents: number, currency = "sar") =>
-  `${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency.toUpperCase() === "SAR" ? "ر.س" : currency.toUpperCase()}`;
+const money = (cents: number, currency = "sar", isEn = false) =>
+  `${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency.toUpperCase() === "SAR" ? (isEn ? "SAR" : "ر.س") : currency.toUpperCase()}`;
 
 export function Billing() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isEn = language === "en";
   const { toasts, push, dismiss } = useToasts();
   const [searchParams] = useSearchParams();
   const [sub, setSub] = useState<any | null>(null);
@@ -35,7 +36,7 @@ export function Billing() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cycle, setCycle] = useState<"month" | "year">("month");
+  const [cycle, setCycle] = useState<"month" | "year">("year");
   // Plan currency follows the org's country (US → USD · everyone else → SAR),
   // unless the active subscription already carries a currency.
   const [planCurrency, setPlanCurrency] = useState<"sar" | "usd">("sar");
@@ -203,12 +204,12 @@ export function Billing() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="font-english text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }} dir="ltr">
-                      {money(p.price, p.currency)}
+                      {money(p.price, p.currency, isEn)}
                       <span className="text-xs text-muted-foreground font-normal"> / {p.interval === "year" ? t("سنة", "year") : t("شهر", "month")}</span>
                     </div>
                     <ul className="space-y-1.5 text-xs text-foreground/80">
                       {(Array.isArray(p.features) ? p.features : []).slice(0, 5).map((f: any, i: number) => (
-                        <li key={i} className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />{typeof f === "string" ? f : (f.labelAr || f.label)}</li>
+                        <li key={i} className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />{typeof f === "string" ? f : (isEn ? (f.labelEn || f.label) : f.label)}</li>
                       ))}
                     </ul>
                     {isPaid && (

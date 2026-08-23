@@ -1024,8 +1024,8 @@ export function Invoices() {
             <div className="overflow-x-auto">
             <table className="w-full min-w-[1120px] table-fixed">
               <colgroup>
-                <col style={{ width: "11%" }} />{/* الرقم */}
-                <col style={{ width: "24%", minWidth: "220px" }} />{/* العميل */}
+                <col style={{ width: "15%" }} />{/* الرقم */}
+                <col style={{ width: "20%", minWidth: "180px" }} />{/* العميل */}
                 <col style={{ width: "10%" }} />{/* التاريخ */}
                 <col style={{ width: "10%" }} />{/* الاستحقاق */}
                 <col style={{ width: "11%" }} />{/* الحالة */}

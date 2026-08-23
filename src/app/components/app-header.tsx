@@ -248,8 +248,12 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                       </button>
                     </Link>
                     <Link to="/app/billing" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
-                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("الباقة والاشتراك", "Plan & billing")}</span>
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-start transition-colors bg-emerald-50 hover:bg-emerald-100 border-y border-emerald-200/60 text-emerald-900">
+                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                        <span className="min-w-0 flex-1 whitespace-normal" style={{ fontWeight: 700 }}>{t("الباقة والاشتراك", "Plan & billing")}</span>
+                        <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] text-white" style={{ fontWeight: 700 }}>
+                          {t("وفّر حتى 20% سنويًا", "Save up to 20% yearly")}
+                        </span>
                       </button>
                     </Link>
                     <Link to="/app/settings?tab=members" onClick={() => setShowProfile(false)}>

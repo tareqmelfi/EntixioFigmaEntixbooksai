@@ -157,10 +157,12 @@ const PRICING_US = [
 // ─── Product showcase · tabbed real screenshots in a browser frame ───
 function ShowcaseTabs({ t }: { t: (ar: string, en?: string) => string }) {
   const [active, setActive] = useState(0);
+  const isEn = t("ar", "en") === "en";
+  const sfx = isEn ? "-en" : "";
   const shots = [
-    { src: "/marketing/dashboard.webp", label: t("لوحة التحكم", "Dashboard"), desc: t("نظرة لحظية على الإيرادات والمصروفات والضريبة", "A live view of revenue, expenses, and tax") },
-    { src: "/marketing/invoices.webp", label: t("الفواتير", "Invoices"), desc: t("إدارة فواتير العملاء مع الحالات والتحصيل", "Manage customer invoices, statuses, and collection") },
-    { src: "/marketing/ai-agent.webp", label: t("المساعد الذكي", "AI assistant"), desc: t("أنشئ فواتير ومصروفات وتقارير بمحادثة واحدة", "Create invoices, expenses, and reports in one chat") },
+    { src: `/marketing/dashboard${sfx}.webp`, label: t("لوحة التحكم", "Dashboard"), desc: t("نظرة لحظية على الإيرادات والمصروفات والضريبة", "A live view of revenue, expenses, and tax") },
+    { src: `/marketing/invoices${sfx}.webp`, label: t("الفواتير", "Invoices"), desc: t("إدارة فواتير العملاء مع الحالات والتحصيل", "Manage customer invoices, statuses, and collection") },
+    { src: `/marketing/ai-agent${sfx}.webp`, label: t("المساعد الذكي", "AI assistant"), desc: t("أنشئ فواتير ومصروفات وتقارير بمحادثة واحدة", "Create invoices, expenses, and reports in one chat") },
   ];
   return (
     <div>

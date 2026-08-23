@@ -7,8 +7,9 @@ import { useNavigate, Link } from "react-router";
 import { api } from "../lib/api";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
+import { useMarketingRegion } from "../components/marketing-region";
 
-type Tier = "starter" | "professional" | "enterprise";
+type Tier = "starter" | "lite" | "professional" | "enterprise";
 type Cell = { ar: string; en: string; state?: "under-validation" } | boolean;
 
 interface PlanDef {
@@ -21,6 +22,12 @@ interface PlanDef {
   /** anchor list price (monthly, strikethrough) — charge price stays `price` */
   standard?: Record<"SAR" | "USD", number>;
   features: { ar: string[]; en: string[] };
+  /** Market-scoped overrides — features follow the visitor's COUNTRY market,
+   * never the payment currency (owner rule 2026-08-22). */
+  featuresSa?: { ar: string[]; en: string[] };
+  featuresUs?: { ar: string[]; en: string[] };
+  /** Annual-only tiers (Lite) hide on the monthly view. */
+  annualOnly?: boolean;
 }
 
 const PLANS: PlanDef[] = [
@@ -31,8 +38,28 @@ const PLANS: PlanDef[] = [
     color: "#6B7280",
     price: { SAR: { monthly: 0, yearly: 0 }, USD: { monthly: 0, yearly: 0 } },
     features: {
-      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA Phase 2 — قيد التحقق", "شهر مجاني على أي باقة مدفوعة"],
-      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA Phase 2 — Under validation", "Free month on any paid plan"],
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية"],
+      en: ["5 invoices / month", "1 user", "Basic reports"],
+    },
+    featuresSa: {
+      ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية", "ZATCA Phase 2 — قيد التحقق"],
+      en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA Phase 2 — Under validation"],
+    },
+  },
+  {
+    tier: "lite",
+    name: { ar: "لايت", en: "Lite" },
+    desc: { ar: "محاسبة كاملة بسعر اقتصادي — بدون ذكاء اصطناعي", en: "Full accounting at an economy price — no hosted AI" },
+    color: "#0E7490",
+    annualOnly: true,
+    price: { SAR: { monthly: 0, yearly: 535 }, USD: { monthly: 0, yearly: 99 } },
+    features: {
+      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "مستخدم واحد", "نقل بيانات مجاني أول مرة"],
+      en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Core & tax reports", "1 user", "Free first data migration"],
+    },
+    featuresSa: {
+      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "جاهزية ZATCA + QR", "مستخدم واحد", "نقل بيانات مجاني أول مرة"],
+      en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Core & tax reports", "ZATCA + QR readiness", "1 user", "Free first data migration"],
     },
   },
   {
@@ -44,8 +71,18 @@ const PLANS: PlanDef[] = [
     price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 19, yearly: 190 } },
     standard: { SAR: 149, USD: 29 },
     features: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تقارير متقدمة", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Advanced reports", "Full API access"],
+    },
+    // Features follow the MARKET, never the payment currency (owner rule:
+    // a Saudi company paying in USD still gets ZATCA; a US company never sees it).
+    featuresSa: {
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Full API access"],
+    },
+    featuresUs: {
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تكاملات بنكية (Plaid)", "تتبع موردي 1099", "API كامل"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Bank feeds (Plaid)", "1099 vendor tracking", "Full API access"],
     },
   },
   {
@@ -82,7 +119,7 @@ const COMPARISON: ComparisonCategory[] = [
     { name: { ar: "التكاملات البنكية (Plaid)", en: "Bank feeds (Plaid)" }, free: false, pro: true, enterprise: true },
     { name: { ar: "API", en: "API access" }, free: false, pro: { ar: "كامل", en: "Full" }, enterprise: { ar: "كامل", en: "Full" } },
     { name: { ar: "الدعم", en: "Support" }, free: { ar: "بريد", en: "Email" }, pro: { ar: "مباشر", en: "Live" }, enterprise: { ar: "أولوية", en: "Priority" } },
-    { name: { ar: "شهر مجاني", en: "Free month" }, free: { ar: "عند الترقية", en: "On upgrade" }, pro: true, enterprise: true },
+    { name: { ar: "باقة مجانية دائمة", en: "Permanent free plan" }, free: true, pro: true, enterprise: true },
   ]},
 ];
 
@@ -90,8 +127,13 @@ export function PricingPage() {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const isAr = language !== "en";
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const [currency, setCurrency] = useState<"SAR" | "USD">(isAr ? "SAR" : "USD");
+  // Currency follows the visitor's MARKET (country), never the UI language —
+  // a Saudi reading English still pays SAR; a US reader of Arabic pays USD.
+  const { isSA } = useMarketingRegion();
+  // Yearly first (owner directive 2026-08-22): the discount is the headline —
+  // monthly is the opt-out toggle, not the default.
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
+  const [currency, setCurrency] = useState<"SAR" | "USD">(isSA ? "SAR" : "USD");
   const [showComparison, setShowComparison] = useState(false);
   const [livePriceIds, setLivePriceIds] = useState<Record<string, string>>({});
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
@@ -109,6 +151,11 @@ export function PricingPage() {
   };
 
   const cell = (v: Cell): string => (typeof v === "boolean" ? "" : isAr ? v.ar : v.en);
+  const featureList = (plan: PlanDef): string[] => {
+    const scoped = isSA ? plan.featuresSa : plan.featuresUs;
+    const pack = scoped || plan.features;
+    return isAr ? pack.ar : pack.en;
+  };
 
   // Live Stripe plans → map tier+interval+currency to the real priceId so the
   // CTA can start a real checkout for logged-in users (guests register first).
@@ -130,7 +177,12 @@ export function PricingPage() {
     // never bounce a logged-in user to /register (that just dumps them inside
     // the app with no explanation).
     if (tier === "starter" || !priceId) { navigate(authed ? "/app/billing" : "/register"); return; }
-    if (!authed) { navigate("/register"); return; }
+    // Pay-first: guests pay BEFORE any account exists — the claim email lands
+    // in their inbox after Stripe confirms (owner directive 2026-08-22).
+    if (!authed) {
+      navigate(`/buy?tier=${tier}&interval=${interval}&currency=${currency.toLowerCase()}`);
+      return;
+    }
     setCheckoutBusy(tier);
     setCheckoutError(null);
     try {
@@ -154,8 +206,8 @@ export function PricingPage() {
       a: { ar: "نعم، يمكنك تغيير باقتك في أي وقت. عند الترقية، ستدفع الفرق المتناسب للفترة المتبقية. عند التخفيض، سيطبق التغيير في بداية دورة الفوترة التالية.", en: "Yes, change your plan anytime. Upgrades are prorated for the remaining period; downgrades apply at the next billing cycle." },
     },
     {
-      q: { ar: "ماذا يحدث بعد انتهاء الفترة التجريبية؟", en: "What happens after the free trial ends?" },
-      a: { ar: "بعد انتهاء الشهر المجاني تختار الباقة المناسبة للاستمرار، أو تبقى تلقائيًا على الباقة المجانية بحدودها (مستخدم واحد · 5 فواتير شهريًا). بياناتك محفوظة بالكامل ولا تُفقد في أي حال.", en: "After your free month, pick a paid plan to continue — or stay automatically on the free Starter plan within its limits (1 user · 5 invoices/month). Your data stays fully intact either way." },
+      q: { ar: "هل يوجد التزام أو عقد طويل؟", en: "Is there a long-term commitment?" },
+      a: { ar: "لا. الدفع مباشر والتفعيل فوري، وتقدر تلغي في أي وقت من بوابة الفوترة — تبقى صلاحيتك حتى نهاية الفترة المدفوعة. والباقة المجانية متاحة دائمًا بلا بطاقة.", en: "No. You pay upfront and activate instantly, and you can cancel anytime from the billing portal — access stays until the end of the paid period. The free Starter plan is always available, no card required." },
     },
     {
       q: { ar: "هل الاشتراك على الشركة أم على المستخدم؟", en: "Is billing per company or per user?" },
@@ -163,7 +215,7 @@ export function PricingPage() {
     },
     {
       q: { ar: "عندي أكثر من شركة — هل أدفع لكل شركة؟", en: "I run multiple companies — do I pay for each one?" },
-      a: { ar: "لكل شركة اشتراكها المستقل وشهرها المجاني الخاص، وتقدر تُبقي أي شركة على الباقة المجانية بحدودها. ولأنك معنا: كل شركة إضافية تحصل تلقائيًا على خصم 30% طالما شركتك الأولى مشتركة بباقة مدفوعة — يظهر الخصم في صفحة الدفع.", en: "Each company has its own subscription and its own free month, and you can keep any company on the free Starter plan within its limits. As a bonus: every additional company gets an automatic 30% discount while your first company stays on a paid plan — shown at checkout." },
+      a: { ar: "لكل شركة اشتراكها المستقل، وتقدر تُبقي أي شركة على الباقة المجانية بحدودها. ولأنك معنا: كل شركة إضافية تحصل تلقائيًا على خصم 30% طالما شركتك الأولى مشتركة بباقة مدفوعة — يظهر الخصم في صفحة الدفع.", en: "Each company has its own subscription, and you can keep any company on the free Starter plan within its limits. As a bonus: every additional company gets an automatic 30% discount while your first company stays on a paid plan — shown at checkout." },
     },
     {
       q: { ar: "هل الأسعار شاملة ضريبة القيمة المضافة؟", en: "Are prices VAT-inclusive?" },
@@ -256,7 +308,7 @@ export function PricingPage() {
                 ))}
               </span>
             </div>
-            <p className="text-white/60 text-sm">{t("جميع الباقات المدفوعة تأتي مع شهر مجاني كامل", "Every paid plan starts with a full free month")}</p>
+            <p className="text-white/60 text-sm">{t("ادفع اليوم وابدأ العمل فورًا — التفعيل لحظي بعد الدفع", "Pay today and start immediately — activation is instant after payment")}</p>
           </motion.div>
         </div>
       </section>
@@ -295,8 +347,8 @@ export function PricingPage() {
               </button>
             </div>
           )}
-          <div className="grid md:grid-cols-3 gap-8">
-            {PLANS.map((plan, i) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {PLANS.filter((plan) => !plan.annualOnly || billingCycle === "yearly").map((plan, i) => (
               <motion.div
                 key={plan.tier}
                 initial={{ opacity: 0, y: 20 }}
@@ -348,7 +400,7 @@ export function PricingPage() {
                       </span>
                     )}
                   </div>
-                  {billingCycle === "yearly" && plan.price[currency].yearly > 0 && (
+                  {billingCycle === "yearly" && plan.price[currency].yearly > 0 && plan.price[currency].monthly > 0 && (
                     <>
                       <p className="text-green-500" style={{ fontSize: "13px" }} dir="ltr">
                         {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString("en-US")} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
@@ -374,14 +426,14 @@ export function PricingPage() {
                     ? t("جارٍ تحويلك لصفحة الدفع الآمنة...", "Taking you to secure checkout...")
                     : plan.price[currency][billingCycle] === 0
                       ? t("ابدأ مجاناً", "Start free")
-                      : t("ابدأ شهرك المجاني", "Start your free month")}
+                      : t("اشترك الآن · يُفعّل فورًا", "Subscribe now · active instantly")}
                 </button>
 
                 <div className="space-y-4">
                   <h4 className="text-foreground/80 mb-4" style={{ fontSize: "14px", fontWeight: 600 }}>
                     {t("ما ستحصل عليه:", "What you get:")}
                   </h4>
-                  {(isAr ? plan.features.ar : plan.features.en).map((f) => {
+                  {featureList(plan).map((f) => {
                     const isZatcaValidation = /ZATCA Phase 2/i.test(f);
                     return (
                       <div key={f} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className="flex items-start gap-3">
@@ -490,8 +542,8 @@ export function PricingPage() {
             </div>
             <p className="text-white/85 mb-6" style={{ fontSize: "15px", lineHeight: 1.9 }}>
               {t(
-                "اشترك سنوياً وننقل بياناتك مجاناً، والمدة المتبقية في اشتراكك الحالي نضيفها لك كاملة مجاناً — فوق شهرك المجاني. ما تخسر ولا يوم دفعته.",
-                "Subscribe annually and we migrate your data FREE, with the remaining time on your current subscription added in full, FREE — on top of your free month. You never lose a paid day."
+                "اشترك سنوياً وننقل بياناتك مجاناً، والمدة المتبقية في اشتراكك الحالي نضيفها لك كاملة مجاناً. ما تخسر ولا يوم دفعته.",
+                "Subscribe annually and we migrate your data FREE, with the remaining time on your current subscription added in full, FREE. You never lose a paid day."
               )}
             </p>
             <div className="grid sm:grid-cols-3 gap-4 mb-7">

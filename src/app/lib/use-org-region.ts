@@ -44,10 +44,10 @@ async function loadOnce(): Promise<void> {
 
 export function useOrgRegion(): OrgRegion {
   const [state, setState] = useState<OrgRegion>(() => ({
-    country: cached?.country || "SA",
-    isSA: (cached?.country || "SA") === "SA",
+    country: cached?.country || "",
+    isSA: cached?.country === "SA",
     isUS: cached?.country === "US",
-    currency: cached?.currency || "SAR",
+    currency: cached?.currency || "",
     loading: !cached,
   }));
 
@@ -57,8 +57,8 @@ export function useOrgRegion(): OrgRegion {
     inflight = inflight || loadOnce().finally(() => { inflight = null; });
     inflight.then(() => {
       if (!mounted) return;
-      const country = cached?.country || "SA";
-      setState({ country, isSA: country === "SA", isUS: country === "US", currency: cached?.currency || "SAR", loading: false });
+      const country = cached?.country || "";
+      setState({ country, isSA: country === "SA", isUS: country === "US", currency: cached?.currency || "", loading: false });
     });
     return () => { mounted = false; };
   }, []);
