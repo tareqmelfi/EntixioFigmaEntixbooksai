@@ -6,7 +6,7 @@
  * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning } from "lucide-react";
+import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning, UserPlus, Trash2, DatabaseBackup, Bot, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -14,7 +14,7 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email";
+type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email" | "backups" | "agent";
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
 export function AdminDashboard() {
@@ -46,7 +46,7 @@ export function AdminDashboard() {
         <p className="text-sm text-muted-foreground mt-0.5">{t("المشتركون · المنشآت · المستخدمون · الدعم — كل فعل يُسجّل في سجل التدقيق", "Subscribers · orgs · users · support — every action is audit-logged")}</p>
       </div>
       <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
-        {([["overview", t("نظرة عامة", "Overview")], ["orgs", t("المنشآت", "Orgs")], ["users", t("المستخدمون", "Users")], ["support", t("الدعم", "Support")], ["ai", t("الذكاء", "AI usage")], ["email", t("البريد", "Email")]] as [Tab, string][]).map(([id, label]) => (
+        {([["overview", t("نظرة عامة", "Overview")], ["orgs", t("المنشآت", "Orgs")], ["users", t("المستخدمون", "Users")], ["support", t("الدعم", "Support")], ["ai", t("الذكاء", "AI usage")], ["email", t("البريد", "Email")], ["backups", t("النسخ الاحتياطي", "Backups")], ["agent", t("وكيل الأدمن", "Admin agent")]] as [Tab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
@@ -58,6 +58,8 @@ export function AdminDashboard() {
       {tab === "support" && <SupportTab guard={guard} push={push} t={t} />}
       {tab === "ai" && <AiTab guard={guard} />}
       {tab === "email" && <EmailTab guard={guard} push={push} t={t} />}
+      {tab === "backups" && <BackupsTab guard={guard} push={push} t={t} />}
+      {tab === "agent" && <AgentTab guard={guard} push={push} t={t} />}
     </div>
   );
 }
@@ -111,11 +113,21 @@ function OrgsTab({ guard, push, t }: any) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [membersFor, setMembersFor] = useState<string | null>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberRole, setMemberRole] = useState("VIEWER");
+  const [memberBusy, setMemberBusy] = useState(false);
   const load = useCallback(async (query?: string) => {
     setLoading(true);
     try { setItems((await api.admin.orgs(query || undefined)).items); } catch (e) { guard(e); } finally { setLoading(false); }
   }, [guard]);
   useEffect(() => { load(); }, [load]);
+  const openMembers = async (orgId: string) => {
+    if (membersFor === orgId) { setMembersFor(null); return; }
+    setMembersFor(orgId);
+    try { setMembers((await api.admin.orgMembers(orgId)).items); } catch (e) { guard(e); }
+  };
   const act = async (orgId: string, action: "comp" | "trial" | "cancel", months?: number) => {
     setBusyId(orgId + action);
     try {
@@ -149,7 +161,40 @@ function OrgsTab({ guard, push, t }: any) {
                       <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
                       <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
                       <button disabled={!!busyId} onClick={() => act(o.id, "cancel")} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
+                      <button onClick={() => openMembers(o.id)} className="text-[11px] px-2 py-1 rounded bg-muted text-foreground border border-border hover:bg-accent"><Users className="inline h-3 w-3 me-0.5" />{t("الأعضاء", "Members")}</button>
                     </div>
+                    {membersFor === o.id && (
+                      <div className="mt-2 rounded-lg border border-border bg-muted/30 p-3 space-y-2 min-w-[260px]">
+                        <div className="text-xs text-muted-foreground" style={{ fontWeight: 700 }}>{t("أعضاء المنشأة", "Org members")}</div>
+                        {members.map((m) => (
+                          <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-english text-foreground/80" dir="ltr">{m.user.email}</span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded bg-white border border-border text-[10px]">{m.role}</span>
+                              <button onClick={async () => {
+                                if (!window.confirm(t(`إزالة ${m.user.email} من المنشأة؟`, `Remove ${m.user.email} from the org?`))) return;
+                                try { await api.admin.removeOrgMember(o.id, m.user.id); push("success", t("أُزيل العضو", "Member removed")); setMembers((await api.admin.orgMembers(o.id)).items); } catch (e) { guard(e); }
+                              }} className="text-red-600 hover:bg-red-50 rounded p-0.5"><X className="h-3 w-3" /></button>
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex gap-1.5 pt-1 border-t border-border">
+                          <Input value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)} placeholder={t("بريد مستخدم موجود", "Existing user email")} dir="ltr" className="font-english h-8 text-xs border-border" />
+                          <select value={memberRole} onChange={(e) => setMemberRole(e.target.value)} className="h-8 text-xs rounded-md border border-border bg-white px-1.5">
+                            <option value="VIEWER">VIEWER</option><option value="ACCOUNTANT">ACCOUNTANT</option><option value="ADMIN">ADMIN</option><option value="OWNER">OWNER</option>
+                          </select>
+                          <Button size="sm" disabled={memberBusy || !memberEmail.includes("@")} onClick={async () => {
+                            setMemberBusy(true);
+                            try {
+                              await api.admin.addOrgMember(o.id, { email: memberEmail.trim(), role: memberRole });
+                              push("success", t("أُضيف/حُدّث العضو ✓", "Member added/updated ✓"));
+                              setMemberEmail("");
+                              setMembers((await api.admin.orgMembers(o.id)).items);
+                            } catch (e) { guard(e); } finally { setMemberBusy(false); }
+                          }} className="h-8">{memberBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : t("إضافة", "Add")}</Button>
+                        </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -169,6 +214,11 @@ function UsersTab({ guard, push, t }: any) {
   const [resetFor, setResetFor] = useState<any | null>(null);
   const [newPass, setNewPass] = useState("");
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [createPass, setCreatePass] = useState("");
+  const [generated, setGenerated] = useState<string | null>(null);
   const load = useCallback(async (query?: string) => {
     setLoading(true);
     try { setItems((await api.admin.users(query || undefined)).items); } catch (e) { guard(e); } finally { setLoading(false); }
@@ -180,7 +230,37 @@ function UsersTab({ guard, push, t }: any) {
         <form onSubmit={(e) => { e.preventDefault(); load(q); }} className="flex gap-2">
           <div className="relative flex-1"><Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("بحث بالإيميل أو الاسم…", "Search email or name…")} className="ps-9 border-border" /></div>
           <Button type="submit" variant="outline">{t("بحث", "Search")}</Button>
+          <Button type="button" onClick={() => setCreateOpen((v) => !v)} className="bg-primary hover:bg-primary/90"><UserPlus className="h-4 w-4 me-1" />{t("مستخدم جديد", "New user")}</Button>
         </form>
+        {createOpen && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+            <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("إنشاء حساب مستخدم (يوثَّق بريده تلقائيًا)", "Create a user account (email auto-verified)")}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Input value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} placeholder="email@company.com" dir="ltr" className="font-english border-border" />
+              <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder={t("الاسم (اختياري)", "Name (optional)")} className="border-border" />
+              <Input value={createPass} onChange={(e) => setCreatePass(e.target.value)} placeholder={t("كلمة سر (فارغ = توليد تلقائي)", "Password (blank = auto-generate)")} dir="ltr" className="font-english border-border" />
+            </div>
+            <div className="flex gap-2">
+              <Button disabled={busy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(createEmail)} onClick={async () => {
+                setBusy(true); setGenerated(null);
+                try {
+                  const r = await api.admin.createUser({ email: createEmail.trim(), name: createName.trim() || undefined, password: createPass || undefined });
+                  if (r.generatedPassword) setGenerated(r.generatedPassword);
+                  push("success", t("أُنشئ المستخدم ✓", "User created ✓"));
+                  setCreateEmail(""); setCreateName(""); setCreatePass("");
+                  await load(q || undefined);
+                } catch (e) { guard(e); } finally { setBusy(false); }
+              }}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("إنشاء", "Create")}</Button>
+              <Button variant="outline" onClick={() => { setCreateOpen(false); setGenerated(null); }}>{t("إغلاق", "Close")}</Button>
+            </div>
+            {generated && (
+              <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                {t("كلمة السر المولّدة (تظهر مرة واحدة فقط — انسخها الآن):", "Generated password (shown once — copy it now):")}{" "}
+                <span className="font-english select-all" dir="ltr" style={{ fontWeight: 700 }}>{generated}</span>
+              </div>
+            )}
+          </div>
+        )}
         {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : (
           <table className="w-full text-sm">
             <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-3 py-2 text-start font-medium">{t("المستخدم", "User")}</th><th className="px-3 py-2 text-start font-medium">{t("المنشآت", "Orgs")}</th><th className="px-3 py-2 text-start font-medium">{t("سجّل", "Joined")}</th><th className="px-3 py-2 text-start font-medium">{t("إجراءات", "Actions")}</th></tr></thead>
@@ -194,6 +274,10 @@ function UsersTab({ guard, push, t }: any) {
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
                       {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}
+                      <button onClick={async () => {
+                        if (!window.confirm(t(`حذف ${u.email} نهائيًا؟ يشمل جلساته وعضوياته.`, `Delete ${u.email} permanently? Sessions and memberships go too.`))) return;
+                        try { await api.admin.deleteUser(u.id); push("success", t("حُذف المستخدم", "User deleted")); load(q || undefined); } catch (e) { guard(e); }
+                      }} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
                     </div>
                   </td>
                 </tr>
@@ -405,5 +489,104 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ═══ Backups ═══
+function BackupsTab({ guard, push, t }: any) {
+  const [data, setData] = useState<any | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => { try { setData(await api.admin.backupStatus()); } catch (e) { guard(e); } }, [guard]);
+  useEffect(() => { load(); }, [load]);
+
+  if (!data) return <div className="py-16 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></div>;
+  const st = data.status || {};
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <Card className="border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><DatabaseBackup className="h-4 w-4 text-primary" />{t("النسخ الاحتياطي خارج الموقع", "Off-site backups")}</CardTitle>
+          <p className="text-xs text-muted-foreground">{t("نسخة pg_dump كاملة إلى Google Drive يوميًا 03:30 UTC — مع التشغيل اليدوي هنا.", "Full pg_dump to Google Drive daily at 03:30 UTC — plus a manual run here.")}</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("الحالة", "State")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{data.enabled ? t("مفعّل", "Enabled") : t("معطّل (env ناقص)", "Disabled (missing env)")}</div></div>
+            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("آخر تشغيل", "Last run")}</div><div className="text-foreground text-xs" style={{ fontWeight: 600 }} dir="ltr">{st.lastRunAt ? new Date(st.lastRunAt).toLocaleString("en-GB") : "—"}</div></div>
+            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("نتيجة آخر تشغيل", "Last result")}</div><div className={st.lastOk ? "text-emerald-700" : "text-red-700"} style={{ fontWeight: 700 }}>{st.lastRunAt ? (st.lastOk ? "✓ OK" : "✗ FAILED") : "—"}</div></div>
+            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("الملف", "File")}</div><div className="text-foreground text-xs font-english truncate" dir="ltr">{st.lastFileName || "—"}</div></div>
+          </div>
+          {st.lastError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 font-english" dir="ltr">{st.lastError}</div>}
+          <Button disabled={busy || !data.enabled} onClick={async () => {
+            setBusy(true);
+            try {
+              const r = await api.admin.runBackup();
+              if (r.ok) push("success", t("اكتمل النسخ الاحتياطي ✓", "Backup completed ✓"));
+              else push("error", r.error || t("فشل النسخ", "Backup failed"));
+              await load();
+            } catch (e) { guard(e); } finally { setBusy(false); }
+          }} className="bg-primary hover:bg-primary/90">
+            {busy ? <><Loader2 className="h-4 w-4 animate-spin me-2" />{t("جارٍ النسخ… (قد يأخذ دقيقة)", "Running… (may take a minute)")}</> : <><DatabaseBackup className="h-4 w-4 me-2" />{t("شغّل نسخة احتياطية الآن", "Run backup now")}</>}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══ Admin AI agent ═══
+function AgentTab({ guard, push, t }: any) {
+  const [messages, setMessages] = useState<Array<{ role: string; content: string; tools?: string[] }>>([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    const text = input.trim();
+    if (!text || busy) return;
+    setInput("");
+    const next = [...messages, { role: "user", content: text }];
+    setMessages(next);
+    setBusy(true);
+    try {
+      const history = next.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content }));
+      const r = await api.admin.agentChat(text, history.slice(0, -1));
+      if (r.ok && r.reply) {
+        setMessages([...next, { role: "assistant", content: r.reply, tools: (r.toolsUsed || []).map((x) => x.name) }]);
+      } else {
+        push("error", r.detail || r.error || t("فشل الوكيل", "Agent failed"));
+      }
+    } catch (e) { guard(e); } finally { setBusy(false); }
+  };
+  return (
+    <Card className="border-border max-w-3xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4 text-primary" />{t("وكيل الأدمن — إدارة وصيانة المنصة", "Admin agent — platform ops & maintenance")}</CardTitle>
+        <p className="text-xs text-muted-foreground">{t("يسأل عن المشتركين والمستخدمين، يعدّل الاشتراكات، يدير قائمة منع البريد، ويشغّل النسخ الاحتياطي — كل تغيير يُسجَّل تدقيقيًا.", "Answers about subscribers and users, edits subscriptions, manages the email suppression list, and runs backups — every change is audit-logged.")}</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="rounded-lg border border-border bg-muted/20 p-3 min-h-[240px] max-h-[420px] overflow-y-auto space-y-3">
+          {messages.length === 0 && (
+            <div className="text-xs text-muted-foreground space-y-1.5">
+              <div>{t("أمثلة:", "Try:")}</div>
+              <div>· {t("كم عدد المشتركين النشطين الآن؟", "How many active subscribers right now?")}</div>
+              <div>· {t("أظهر آخر المنشآت المسجلة وباقاتها", "Show the latest orgs and their plans")}</div>
+              <div>· {t("هل يوجد عناوين محظورة في البريد؟ أزلها", "Any suppressed email addresses? Remove them")}</div>
+              <div>· {t("شغّل نسخة احتياطية الآن وأخبرني بالنتيجة", "Run a backup now and report the result")}</div>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} className={`text-sm ${m.role === "user" ? "text-start" : "text-start"}`}>
+              <div className={`inline-block max-w-[90%] rounded-xl px-3 py-2 ${m.role === "user" ? "bg-primary text-white" : "bg-white border border-border text-foreground"}`}>
+                <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
+                {m.tools && m.tools.length > 0 && <div className="mt-1.5 text-[10px] text-muted-foreground font-english" dir="ltr">tools: {m.tools.join(", ")}</div>}
+              </div>
+            </div>
+          ))}
+          {busy && <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" />{t("الوكيل يعمل…", "Agent working…")}</div>}
+        </div>
+        <div className="flex gap-2">
+          <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={t("اطلب مهمة إدارية…", "Ask for an admin task…")} className="border-border" />
+          <Button onClick={send} disabled={busy || !input.trim()} className="bg-primary hover:bg-primary/90"><Send className="h-4 w-4" /></Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

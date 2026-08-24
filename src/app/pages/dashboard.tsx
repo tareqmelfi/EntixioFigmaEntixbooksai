@@ -235,6 +235,18 @@ useEffect(() => {
   const { toasts, dismiss } = useToasts();
   const navigate = useNavigate();
 
+  // Platform admins land on the admin portal, not a company workspace — the
+  // admin account must not look like a customer account (owner directive
+  // 2026-08-24). The org workspace stays reachable via the sidebar/switcher.
+  useEffect(() => {
+    let alive = true;
+    api.me().then((me: any) => {
+      if (alive && me?.isPlatformAdmin) navigate("/app/admin", { replace: true });
+    }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     setOnb(null);
     if (!orgId) {
