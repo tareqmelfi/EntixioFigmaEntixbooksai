@@ -3,12 +3,11 @@ import { Link, useParams, useSearchParams } from "react-router";
 import { AlertTriangle, ArrowLeft, Building2, Loader2, RefreshCw, Users, CreditCard, MessageSquare, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, type AdminOrganizationWorkspace } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-type OrganizationWorkspace = Awaited<ReturnType<typeof api.admin.orgDetail>>;
 type WorkspaceTab = "overview" | "people" | "subscription" | "support" | "activity";
-type ViewState = "loading" | "ready" | "session" | "notFound" | "failed";
+type ViewState = "loading" | "ready" | "session" | "forbidden" | "notFound" | "failed";
 
 const TABS: WorkspaceTab[] = ["overview", "people", "subscription", "support", "activity"];
 
@@ -42,7 +41,7 @@ export function AdminOrganizationWorkspace() {
   const tab = useMemo(() => parseTab(searchParams.get("tab")), [searchParams]);
 
   const [viewState, setViewState] = useState<ViewState>("loading");
-  const [workspace, setWorkspace] = useState<OrganizationWorkspace | null>(null);
+  const [workspace, setWorkspace] = useState<AdminOrganizationWorkspace | null>(null);
 
   const load = useCallback(async () => {
     setViewState("loading");
@@ -53,6 +52,10 @@ export function AdminOrganizationWorkspace() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setViewState("session");
+        return;
+      }
+      if (err instanceof ApiError && err.status === 403) {
+        setViewState("forbidden");
         return;
       }
       if (err instanceof ApiError && err.status === 404) {
@@ -80,6 +83,20 @@ export function AdminOrganizationWorkspace() {
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">{t("سجّل الدخول مرة ثانية للوصول إلى صفحة المنشأة.", "Please sign in again to access this organization workspace.")}</p>
           <Link to="/login" className="text-sm text-primary hover:underline">{t("الانتقال إلى تسجيل الدخول", "Go to login")}</Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (viewState === "forbidden") {
+    return (
+      <Card className="border-border max-w-2xl">
+        <CardHeader>
+          <CardTitle className="text-foreground">{t("غير متاح لهذا الحساب", "Access unavailable")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">{t("هذه مساحة منشأة أدمن وغير متاحة لحسابك الحالي.", "This admin organization workspace is unavailable for your current account.")}</p>
+          <Link to="/app/admin" className="text-sm text-primary hover:underline">{t("العودة إلى لوحة الأدمن", "Back to admin dashboard")}</Link>
         </CardContent>
       </Card>
     );
