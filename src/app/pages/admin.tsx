@@ -6,6 +6,7 @@
  * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning, UserPlus, Trash2, DatabaseBackup, Bot, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -92,7 +93,12 @@ function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
             <tbody>
               {data.recentOrgs.map((o: any) => (
                 <tr key={o.id} className="border-b border-border/60">
-                  <td className="px-4 py-2.5 text-foreground" style={{ fontWeight: 600 }}>{o.name} <span className="text-xs text-muted-foreground font-normal">{o.country}</span></td>
+                  <td className="px-4 py-2.5">
+                    <Link to={`/app/admin/orgs/${o.id}`} className="text-foreground hover:underline" style={{ fontWeight: 600 }}>
+                      {o.name}
+                    </Link>{" "}
+                    <span className="text-xs text-muted-foreground font-normal">{o.country}</span>
+                  </td>
                   <td className="px-4 py-2.5 text-muted-foreground font-english text-xs">{o.ownerEmail || "—"}</td>
                   <td className="px-4 py-2.5 text-foreground/80 text-xs">{o.plan || "—"}</td>
                   <td className="px-4 py-2.5"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : o.status === "TRIALING" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>{o.status}</span></td>
@@ -152,7 +158,7 @@ function OrgsTab({ guard, push, t }: any) {
             <tbody>
               {items.map((o) => (
                 <tr key={o.id} className="border-b border-border/60 align-top">
-                  <td className="px-3 py-2.5"><div className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</div><div className="text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div></td>
+                  <td className="px-3 py-2.5"><div><Link to={`/app/admin/orgs/${o.id}`} className="text-foreground hover:underline" style={{ fontWeight: 600 }}>{o.name}</Link></div><div className="text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div></td>
                   <td className="px-3 py-2.5 text-xs font-english text-muted-foreground">{o.owner?.email || "—"}</td>
                   <td className="px-3 py-2.5 text-xs">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}</div></>) : "—"}</td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground">{o.members} / {o.invoices}</td>

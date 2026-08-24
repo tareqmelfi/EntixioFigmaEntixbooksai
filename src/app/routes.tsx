@@ -308,6 +308,7 @@ export const router = createBrowserRouter([
       { path: "system-status", element: lazyElement(() => import("./pages/system-status"), "SystemStatus"), errorElement: <ErrorBoundary /> },
       { path: "notifications", element: lazyElement(() => import("./pages/notifications"), "Notifications"), errorElement: <ErrorBoundary /> },
       { path: "admin", element: lazyElement(() => import("./pages/admin"), "AdminDashboard"), errorElement: <ErrorBoundary /> },
+      { path: "admin/orgs/:orgId", element: lazyElement(() => import("./pages/admin-organization"), "AdminOrganizationWorkspace"), errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: lazyElement(() => import("./pages/feature-roadmap"), "FeatureRoadmap"), errorElement: <ErrorBoundary /> },
       { path: "marketplace/accountants", element: <Navigate to="/app/roadmap" replace />, errorElement: <ErrorBoundary /> },
     ],
