@@ -741,6 +741,29 @@ test.describe('admin entity workspaces', () => {
     await expect(page.getByText('upstream_temporarily_unavailable')).toBeVisible()
   })
 
+  test('arabic locale keeps admin workspace identity/sections visible with rtl direction', async ({ page }) => {
+    await prepareVisualApp(page, 'ar')
+    await stubAdminRoutes(page)
+    await page.setViewportSize({ width: 1280, height: 800 })
+
+    await page.goto(`${ORG_DETAIL_PATH}?tab=support`)
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    await expect(page.getByRole('heading', { name: ORG_NAME })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'محادثات الدعم' })).toBeVisible()
+
+    await page.goto(USER_DETAIL_PATH)
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    await expect(page.getByRole('heading', { name: 'owner@acme.test' })).toBeVisible()
+
+    await page.goto(SUBSCRIBER_DETAIL_PATH)
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    await expect(page.getByRole('heading', { name: 'مساحة المشترك' })).toBeVisible()
+
+    await page.goto(SUPPORT_DETAIL_PATH)
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    await expect(page.getByRole('heading', { name: 'الروابط' })).toBeVisible()
+  })
+
   test('workspace routes render distinct 401, 403, and 404 states for org/user/subscriber/support', async ({ page }) => {
     await prepareVisualApp(page, 'en')
 
