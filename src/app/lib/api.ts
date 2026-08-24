@@ -300,6 +300,119 @@ export interface AdminOrganizationWorkspace {
   outstandingPlatformBilling: AdminDetailSection<null>
 }
 
+export interface AdminUserWorkspaceSummary {
+  id: string
+  email: string
+  name: string | null
+  emailVerified: boolean
+  createdAt: string
+  locale: string
+}
+
+export interface AdminUserWorkspaceMembership {
+  id: string
+  role: string
+  createdAt: string
+  org: {
+    id: string
+    name: string
+    slug: string
+    country: string
+  }
+}
+
+export interface AdminUserWorkspaceAuthProvider {
+  providerId: string
+  createdAt: string
+}
+
+export interface AdminUserWorkspace {
+  kind: 'user_workspace'
+  summary: AdminDetailSection<AdminUserWorkspaceSummary>
+  memberships: AdminDetailSection<AdminDetailCursorPage<AdminUserWorkspaceMembership>>
+  authProviders: AdminDetailSection<AdminDetailCursorPage<AdminUserWorkspaceAuthProvider>>
+}
+
+export interface AdminSubscriberWorkspaceSummary {
+  id: string
+  orgId: string
+  status: string
+  currentPeriodStart: string | null
+  currentPeriodEnd: string | null
+  trialEndsAt: string | null
+  cancelAtPeriodEnd: boolean
+  maskedStripeSubscriptionId: string | null
+  maskedStripeCustomerId: string | null
+  plan: {
+    id: string
+    name: string
+    nameAr: string | null
+    tier: string
+    interval: string
+    currency: string
+    price: number
+    isActive: boolean
+  } | null
+  org: {
+    id: string
+    name: string
+    slug: string
+    baseCurrency: string
+  }
+}
+
+export interface AdminSubscriberWorkspacePlatformBilling {
+  maskedStripeCustomerId: string
+  maskedStripeSubscriptionId: string
+  subscriptionStatus: string
+  cancelAtPeriodEnd: boolean
+  currentPeriodEnd: string | null
+  billingEmail: string | null
+  billingName: string | null
+  paymentMethodBrand: string | null
+  paymentMethodLast4: string | null
+}
+
+export interface AdminSubscriberWorkspace {
+  kind: 'subscriber_workspace'
+  summary: AdminDetailSection<AdminSubscriberWorkspaceSummary>
+  platformBilling: AdminDetailSection<AdminSubscriberWorkspacePlatformBilling | null>
+}
+
+export interface AdminSupportWorkspaceSummary {
+  id: string
+  title: string
+  createdAt: string
+  lastMessageAt: string
+  org: {
+    id: string
+    name: string
+    slug: string
+    country: string
+  }
+  user: {
+    id: string
+    email: string
+    name: string | null
+  }
+}
+
+export interface AdminSupportWorkspaceMessage {
+  id: string
+  role: string
+  content: string
+  createdAt: string
+  metadata: unknown
+  userId: string | null
+}
+
+export interface AdminSupportWorkspace {
+  kind: 'support_workspace'
+  summary: AdminDetailSection<AdminSupportWorkspaceSummary>
+  messages: AdminDetailSection<AdminDetailCursorPage<AdminSupportWorkspaceMessage>>
+  attachments: AdminDetailSection<null>
+}
+
 // ── Resource clients ──────────────────────────────────────────────────────────
 export const api = {
   // Identity
@@ -1166,6 +1279,9 @@ export const api = {
     overview: () => request<{ users: number; orgs: number; newUsers7d: number; newOrgs7d: number; subsByStatus: Record<string, number>; recentOrgs: Array<{ id: string; name: string; country: string; createdAt: string; ownerEmail: string | null; plan: string | null; tier: string | null; status: string }> }>('/api/admin/overview', { skipOrg: true }),
     orgs: (q?: string) => request<{ items: Array<{ id: string; name: string; slug: string; country: string; currency: string; industry: string | null; createdAt: string; members: number; invoices: number; owner: { id: string; email: string; name: string | null } | null; subscription: { status: string; currentPeriodEnd: string | null; plan?: { id: string; name: string; tier: string; price: number | null; currency: string; interval: string }; price: number | null } | null }> }>('/api/admin/orgs', { query: q ? { q } : undefined, skipOrg: true }),
     orgDetail: (orgId: string, query?: { limit?: number; cursor?: string }) => request<AdminOrganizationWorkspace>(`/api/admin/orgs/${orgId}`, { query, skipOrg: true }),
+    userDetail: (userId: string, query?: { limit?: number; cursor?: string }) => request<AdminUserWorkspace>(`/api/admin/users/${userId}`, { query, skipOrg: true }),
+    subscriberDetail: (orgId: string, query?: { limit?: number; cursor?: string }) => request<AdminSubscriberWorkspace>(`/api/admin/subscribers/${orgId}`, { query, skipOrg: true }),
+    supportDetail: (threadId: string, query?: { limit?: number; cursor?: string }) => request<AdminSupportWorkspace>(`/api/admin/support/${threadId}`, { query, skipOrg: true }),
     users: (q?: string) => request<{ items: Array<{ id: string; email: string; name: string | null; emailVerified: boolean; createdAt: string; orgs: Array<{ id: string; name: string; country: string; role: string }> }> }>('/api/admin/users', { query: q ? { q } : undefined, skipOrg: true }),
     resetPassword: (email: string, newPassword: string) => request<{ ok: true }>('/api/admin/users/reset-password', { method: 'POST', body: { email, newPassword }, skipOrg: true }),
     verifyEmail: (email: string) => request<{ ok: true }>('/api/admin/users/verify-email', { method: 'POST', body: { email }, skipOrg: true }),

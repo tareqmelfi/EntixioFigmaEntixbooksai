@@ -311,11 +311,34 @@ function UsersTab({ guard, push, t }: any) {
             <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-3 py-2 text-start font-medium">{t("المستخدم", "User")}</th><th className="px-3 py-2 text-start font-medium">{t("المنشآت", "Orgs")}</th><th className="px-3 py-2 text-start font-medium">{t("سجّل", "Joined")}</th><th className="px-3 py-2 text-start font-medium">{t("إجراءات", "Actions")}</th></tr></thead>
             <tbody>
               {items.map((u) => (
-                <tr key={u.id} className="border-b border-border/60 align-top">
-                  <td className="px-3 py-2.5"><div className="text-foreground font-english text-xs" style={{ fontWeight: 600 }}>{u.email}</div><div className="text-[11px] text-muted-foreground">{u.name || ""} {u.emailVerified ? "· ✓" : "· ⚠️ unverified"}</div></td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{u.orgs.map((o: any) => `${o.name} (${o.role})`).join(" · ") || "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{fmtDate(u.createdAt)}</td>
-                  <td className="px-3 py-2.5">
+                <tr key={u.id} className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
+                  <td className="px-3 py-2.5 relative">
+                    <Link
+                      to={`/app/admin/users/${u.id}`}
+                      data-testid={`admin-user-row-link-${u.id}`}
+                      aria-label={`${u.email} workspace`}
+                      className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          e.preventDefault();
+                          e.currentTarget.click();
+                        }
+                      }}
+                    >
+                      <span className="sr-only">{u.email}</span>
+                    </Link>
+                    <div className="relative z-20 pointer-events-none text-foreground font-english text-xs" style={{ fontWeight: 600 }}>{u.email}</div>
+                    <div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{u.name || ""} {u.emailVerified ? "· ✓" : "· ⚠️ unverified"}</div>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative">
+                    <Link to={`/app/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{u.orgs.map((o: any) => `${o.name} (${o.role})`).join(" · ") || "—"}</div>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative">
+                    <Link to={`/app/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{fmtDate(u.createdAt)}</div>
+                  </td>
+                  <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
                       {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}

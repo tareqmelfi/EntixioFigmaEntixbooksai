@@ -212,7 +212,17 @@ export function AdminOrganizationWorkspace() {
                 <tbody>
                   {workspace.people.data.items.map((row) => (
                     <tr key={row.id} className="border-b border-border/60">
-                      <td className="px-3 py-2.5"><div className="font-english text-xs text-foreground" dir="ltr">{row.user.email}</div><div className="text-[11px] text-muted-foreground">{row.user.name || "—"}</div></td>
+                      <td className="px-3 py-2.5">
+                        <Link
+                          to={`/app/admin/users/${row.user.id}`}
+                          data-testid={`org-people-user-link-${row.user.id}`}
+                          className="font-english text-xs text-foreground hover:underline"
+                          dir="ltr"
+                        >
+                          {row.user.email}
+                        </Link>
+                        <div className="text-[11px] text-muted-foreground">{row.user.name || "—"}</div>
+                      </td>
                       <td className="px-3 py-2.5 text-xs">{row.role}</td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground font-english" dir="ltr">{fmtDate(row.createdAt)}</td>
                     </tr>
@@ -257,7 +267,14 @@ export function AdminOrganizationWorkspace() {
                 {workspace.support.data.items.map((thread) => (
                   <div key={thread.id} className="rounded-lg border border-border p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{thread.title || t("محادثة", "Thread")}</div>
+                      <Link
+                        to={`/app/admin/support/${thread.id}`}
+                        data-testid={`org-support-thread-link-${thread.id}`}
+                        className="text-sm text-foreground hover:underline"
+                        style={{ fontWeight: 600 }}
+                      >
+                        {thread.title || t("محادثة", "Thread")}
+                      </Link>
                       <div className="text-[11px] text-muted-foreground font-english" dir="ltr">{fmtDate(thread.lastMessageAt)}</div>
                     </div>
                     <div className="text-xs text-muted-foreground font-english" dir="ltr">{thread.user.email} · {thread.messageCount} msgs</div>
