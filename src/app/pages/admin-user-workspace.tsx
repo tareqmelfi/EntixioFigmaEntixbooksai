@@ -99,6 +99,12 @@ export function AdminUserWorkspacePage() {
   }
 
   const summary = workspace.summary.data;
+  const membershipsPage = workspace.memberships.availability === "available" && workspace.memberships.data && Array.isArray(workspace.memberships.data.items)
+    ? workspace.memberships.data
+    : null;
+  const authProvidersPage = workspace.authProviders.availability === "available" && workspace.authProviders.data && Array.isArray(workspace.authProviders.data.items)
+    ? workspace.authProviders.data
+    : null;
 
   return (
     <div className="space-y-5 max-w-6xl">
@@ -149,13 +155,13 @@ export function AdminUserWorkspacePage() {
           <CardContent>
             {workspace.memberships.availability !== "available" ? (
               <UnavailableSection title={t("العضويات", "Memberships")} reason={workspace.memberships.unavailableReason} />
-            ) : workspace.memberships.data.items.length === 0 ? (
+            ) : !membershipsPage || membershipsPage.items.length === 0 ? (
               <EmptySection text={t("لا توجد عضويات.", "No memberships found.")} />
             ) : (
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border text-xs text-muted-foreground"><th className="px-3 py-2 text-start font-medium">{t("المنشأة", "Organization")}</th><th className="px-3 py-2 text-start font-medium">{t("الدور", "Role")}</th><th className="px-3 py-2 text-start font-medium">{t("انضم", "Joined")}</th></tr></thead>
                 <tbody>
-                  {workspace.memberships.data.items.map((row) => (
+                  {membershipsPage.items.map((row) => (
                     <tr key={row.id} className="border-b border-border/60">
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-3">
@@ -181,11 +187,11 @@ export function AdminUserWorkspacePage() {
           <CardContent>
             {workspace.authProviders.availability !== "available" ? (
               <UnavailableSection title={t("مزودات الدخول", "Auth providers")} reason={workspace.authProviders.unavailableReason} />
-            ) : workspace.authProviders.data.items.length === 0 ? (
+            ) : !authProvidersPage || authProvidersPage.items.length === 0 ? (
               <EmptySection text={t("لا توجد مزودات دخول مرتبطة.", "No auth providers are linked.")} />
             ) : (
               <div className="space-y-2">
-                {workspace.authProviders.data.items.map((row) => (
+                {authProvidersPage.items.map((row) => (
                   <div key={`${row.providerId}-${row.createdAt}`} className="rounded-lg border border-border p-3">
                     <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{row.providerId}</div>
                     <div className="text-xs text-muted-foreground font-english" dir="ltr">{fmtDate(row.createdAt)}</div>
@@ -197,7 +203,7 @@ export function AdminUserWorkspacePage() {
         </Card>
       )}
 
-      {workspace.memberships.data.hasMore || workspace.authProviders.data.hasMore ? (
+      {(membershipsPage?.hasMore === true || authProvidersPage?.hasMore === true) ? (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5" />
           <span>{t("هذه الصفحة تعرض أول دفعة فقط (قراءة فقط، بدون أي تعديل).", "This page currently shows the first batch only (read-only, no mutations).")}</span>

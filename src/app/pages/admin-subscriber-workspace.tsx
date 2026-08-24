@@ -26,6 +26,7 @@ export function AdminSubscriberWorkspacePage() {
   const [viewState, setViewState] = useState<AdminWorkspaceViewState>("loading");
   const [workspace, setWorkspace] = useState<AdminSubscriberWorkspace | null>(null);
   const [billingRefreshing, setBillingRefreshing] = useState(false);
+  const [billingRetryError, setBillingRetryError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setViewState("loading");
@@ -43,16 +44,26 @@ export function AdminSubscriberWorkspacePage() {
 
   const refreshBilling = useCallback(async () => {
     setBillingRefreshing(true);
+    setBillingRetryError(null);
     try {
       const data = await api.admin.subscriberDetail(orgId);
       setWorkspace(data);
       setViewState("ready");
-    } catch {
-      // Keep existing partial state; full refresh path still uses main retry.
+      setBillingRetryError(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setViewState("session");
+      } else if (err instanceof ApiError && err.status === 403) {
+        setViewState("forbidden");
+      } else if (err instanceof ApiError && err.status === 404) {
+        setViewState("notFound");
+      } else {
+        setBillingRetryError(t("فشلت إعادة محاولة Stripe. حاول مرة أخرى.", "Retrying Stripe billing failed. Please try again."));
+      }
     } finally {
       setBillingRefreshing(false);
     }
-  }, [orgId]);
+  }, [orgId, t]);
 
   useEffect(() => {
     void load();
@@ -140,6 +151,11 @@ export function AdminSubscriberWorkspacePage() {
                 {t("تعذر تحميل بيانات Stripe حاليًا. يمكنك إعادة المحاولة بدون أي تعديل على البيانات.", "Stripe billing is currently unavailable. You can retry without mutating any data.")}
               </div>
               <Button variant="outline" onClick={() => void refreshBilling()} disabled={billingRefreshing}>{billingRefreshing ? t("جاري التحديث…", "Refreshing…") : t("إعادة محاولة الفوترة", "Retry billing")}</Button>
+              {billingRetryError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700" data-testid="subscriber-retry-error">
+                  {billingRetryError}
+                </div>
+              ) : null}
             </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">

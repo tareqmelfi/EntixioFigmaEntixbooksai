@@ -16,6 +16,8 @@ interface WorkspaceStatusOptions {
   userDetailStatus?: 200 | 401 | 403 | 404
   subscriberDetailStatus?: 200 | 401 | 403 | 404
   supportDetailStatus?: 200 | 401 | 403 | 404
+  userSectionsUnavailable?: boolean
+  subscriberRetryFailure?: boolean
 }
 
 interface WorkspaceCursorPage<T> {
@@ -231,7 +233,8 @@ function workspacePayload(): WorkspacePayload {
   }
 }
 
-function userWorkspacePayload() {
+function userWorkspacePayload(options?: { unavailableSections?: boolean }) {
+  const unavailableSections = options?.unavailableSections === true
   return {
     kind: 'user_workspace',
     summary: {
@@ -253,37 +256,41 @@ function userWorkspacePayload() {
       source: 'org_memberships',
       isAuthoritative: true,
       asOf: '2026-08-24T10:00:00.000Z',
-      availability: 'available',
-      unavailableReason: null,
-      data: {
-        items: [
-          {
-            id: 'm_1',
-            role: 'OWNER',
-            createdAt: '2026-08-24T10:00:00.000Z',
-            org: {
-              id: ORG_ID,
-              name: ORG_NAME,
-              slug: 'acme-industries',
-              country: 'US',
-            },
+      availability: unavailableSections ? 'unavailable' : 'available',
+      unavailableReason: unavailableSections ? 'upstream_temporarily_unavailable' : null,
+      data: unavailableSections
+        ? null
+        : {
+            items: [
+              {
+                id: 'm_1',
+                role: 'OWNER',
+                createdAt: '2026-08-24T10:00:00.000Z',
+                org: {
+                  id: ORG_ID,
+                  name: ORG_NAME,
+                  slug: 'acme-industries',
+                  country: 'US',
+                },
+              },
+            ],
+            nextCursor: null,
+            hasMore: false,
           },
-        ],
-        nextCursor: null,
-        hasMore: false,
-      },
     },
     authProviders: {
       source: 'auth_accounts',
       isAuthoritative: true,
       asOf: '2026-08-24T10:00:00.000Z',
-      availability: 'available',
-      unavailableReason: null,
-      data: {
-        items: [{ providerId: 'credential', createdAt: '2026-08-01T00:00:00.000Z' }],
-        nextCursor: null,
-        hasMore: false,
-      },
+      availability: unavailableSections ? 'unavailable' : 'available',
+      unavailableReason: unavailableSections ? 'upstream_temporarily_unavailable' : null,
+      data: unavailableSections
+        ? null
+        : {
+            items: [{ providerId: 'credential', createdAt: '2026-08-01T00:00:00.000Z' }],
+            nextCursor: null,
+            hasMore: false,
+          },
     },
   }
 }
@@ -404,6 +411,9 @@ function stubAdminRoutes(page: Page, options: WorkspaceStatusOptions = {}) {
   const userDetailStatus = options.userDetailStatus ?? 200
   const subscriberDetailStatus = options.subscriberDetailStatus ?? 200
   const supportDetailStatus = options.supportDetailStatus ?? 200
+  const userSectionsUnavailable = options.userSectionsUnavailable === true
+  const subscriberRetryFailure = options.subscriberRetryFailure === true
+  let subscriberDetailCalls = 0
 
   return page.route('https://api.entix.io/api/admin/**', (route) => {
     const reqUrl = new URL(route.request().url())
@@ -513,13 +523,17 @@ function stubAdminRoutes(page: Page, options: WorkspaceStatusOptions = {}) {
       if (userDetailStatus === 401) return route.fulfill({ status: 401, json: { error: 'unauthorized' } })
       if (userDetailStatus === 403) return route.fulfill({ status: 403, json: { error: 'forbidden' } })
       if (userDetailStatus === 404) return route.fulfill({ status: 404, json: { error: 'not_found' } })
-      return route.fulfill({ json: userWorkspacePayload() })
+      return route.fulfill({ json: userWorkspacePayload({ unavailableSections: userSectionsUnavailable }) })
     }
 
     if (pathname === `/api/admin/subscribers/${ORG_ID}`) {
       if (subscriberDetailStatus === 401) return route.fulfill({ status: 401, json: { error: 'unauthorized' } })
       if (subscriberDetailStatus === 403) return route.fulfill({ status: 403, json: { error: 'forbidden' } })
       if (subscriberDetailStatus === 404) return route.fulfill({ status: 404, json: { error: 'not_found' } })
+      subscriberDetailCalls += 1
+      if (subscriberRetryFailure && subscriberDetailCalls >= 2) {
+        return route.fulfill({ status: 503, json: { error: 'temporary_unavailable' } })
+      }
       return route.fulfill({ json: subscriberWorkspacePayload() })
     }
 
@@ -572,7 +586,7 @@ test.describe('admin entity workspaces', () => {
     await expect(page.getByText('Org members')).toBeVisible()
   })
 
-  test('user row is a primary native link target with nested actions isolated', async ({ page }) => {
+  test('user row preserves native link semantics and nested actions stay isolated', async ({ page }) => {
     await prepareVisualApp(page, 'en')
     await stubAdminRoutes(page)
 
@@ -596,6 +610,24 @@ test.describe('admin entity workspaces', () => {
 
     await page.goBack()
     await expect(page).toHaveURL('/app/admin')
+
+    await rowLink.focus()
+    await page.keyboard.press('Space')
+    await expect(page).toHaveURL(USER_DETAIL_PATH)
+
+    await page.goBack()
+    await expect(page).toHaveURL('/app/admin')
+
+    await rowLink.click({ button: 'right' })
+    await expect(page).toHaveURL('/app/admin')
+
+    await rowLink.click({ modifiers: [clickModifier()] })
+    await expect(page).toHaveURL('/app/admin')
+    await expect(rowLink).toHaveAttribute('href', USER_DETAIL_PATH)
+
+    await rowLink.click({ button: 'middle' })
+    await expect(page).toHaveURL('/app/admin')
+    await expect(rowLink).toHaveAttribute('href', USER_DETAIL_PATH)
 
     await page.getByRole('button', { name: 'Password' }).click()
     await expect(page).toHaveURL('/app/admin')
@@ -683,6 +715,30 @@ test.describe('admin entity workspaces', () => {
 
     await page.getByRole('button', { name: 'Retry billing' }).click()
     await expect(page).toHaveURL(SUBSCRIBER_DETAIL_PATH)
+  })
+
+  test('subscriber workspace shows a visible retry failure message when retry request fails', async ({ page }) => {
+    await prepareVisualApp(page, 'en')
+    await stubAdminRoutes(page, { subscriberRetryFailure: true })
+
+    await page.goto(SUBSCRIBER_DETAIL_PATH)
+    await expect(page.getByRole('heading', { name: 'Subscriber workspace' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Retry billing' }).click()
+    await expect(page.getByTestId('subscriber-retry-error')).toBeVisible()
+  })
+
+  test('user workspace handles unavailable memberships/auth sections without hasMore crashes', async ({ page }) => {
+    await prepareVisualApp(page, 'en')
+    await stubAdminRoutes(page, { userSectionsUnavailable: true })
+
+    await page.goto(`${USER_DETAIL_PATH}?tab=memberships`)
+    await expect(page.getByRole('heading', { name: 'Memberships' })).toBeVisible()
+    await expect(page.getByText('upstream_temporarily_unavailable')).toBeVisible()
+
+    await page.getByRole('link', { name: 'Auth providers' }).click()
+    await expect(page).toHaveURL(`${USER_DETAIL_PATH}?tab=auth`)
+    await expect(page.getByText('upstream_temporarily_unavailable')).toBeVisible()
   })
 
   test('workspace routes render distinct 401, 403, and 404 states for org/user/subscriber/support', async ({ page }) => {
