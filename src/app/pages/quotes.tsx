@@ -14,6 +14,7 @@ import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { useFormDraft } from "../lib/form-draft";
+import { useOrgRegion } from "../lib/use-org-region";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
@@ -72,6 +73,14 @@ export function Quotes() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  // Locale-pure defaults (CEO 2026-08-25): a US company never opens on SAR / 15% VAT.
+  const { isUS, currency: orgCurrency } = useOrgRegion();
+  useEffect(() => {
+    if (!createOpen || !orgCurrency) return;
+    if (form.currency === EMPTY_FORM.currency && orgCurrency !== EMPTY_FORM.currency) setForm((f) => ({ ...f, currency: orgCurrency }));
+    if (isUS) setLines((ls) => ls.map((l) => (l.taxRate === 0.15 && !l.productId && !l.description ? { ...l, taxRate: 0 } : l)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createOpen, orgCurrency, isUS]);
   const draft = useFormDraft({ key: "quote:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
   const [signFor, setSignFor] = useState<Quote | null>(null);

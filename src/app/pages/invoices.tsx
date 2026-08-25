@@ -93,7 +93,7 @@ export function Invoices() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const { language } = useLanguage();
-  const { isUS } = useOrgRegion();
+  const { isUS, currency: orgCurrency } = useOrgRegion();
   const defaultTaxRate = isUS ? 0 : 0.15; // US orgs default to 0% sales tax
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
@@ -128,6 +128,14 @@ export function Invoices() {
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [splittingId, setSplittingId] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  // Locale-pure defaults (CEO 2026-08-25): a US company never opens on SAR / 15% VAT.
+  // Applies only while the form still carries the untouched SAR default and no invoice is being edited.
+  useEffect(() => {
+    if (!createOpen || editingInvoice || !orgCurrency) return;
+    if (form.currency === EMPTY_FORM.currency && orgCurrency !== EMPTY_FORM.currency) setForm((f) => ({ ...f, currency: orgCurrency }));
+    if (isUS) setLines((ls) => ls.map((l) => (l.taxRate === 0.15 && !l.productId && !l.description ? { ...l, taxRate: 0 } : l)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createOpen, orgCurrency, isUS, editingInvoice]);
   // Draft protection · autosave + leave guards (CEO 2026-08-25 · never lose a typed invoice)
   const draft = useFormDraft({
     key: editingInvoice ? `invoice:${editingInvoice.id}` : "invoice:new",
