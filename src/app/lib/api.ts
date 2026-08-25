@@ -459,6 +459,15 @@ export const api = {
       request<{ items: AuditLogItem[] }>(`/orgs/${id}/audit-log`, { query: { limit }, skipOrg: true }),
   },
 
+  // API keys · programmatic access for agents/integrations (Settings → API keys)
+  // The raw key is returned ONCE by create(); list() only ever shows `prefix`.
+  apiKeys: {
+    list: () => request<{ keys: ApiKeyItem[]; scopes: ApiKeyScope[] }>('/api/api-keys'),
+    create: (data: { name: string; scopes: ApiKeyScope[]; expiresInDays?: number }) =>
+      request<{ key: string; apiKey: ApiKeyItem }>('/api/api-keys', { method: 'POST', body: data }),
+    revoke: (id: string) => request<{ apiKey: ApiKeyItem }>(`/api/api-keys/${id}`, { method: 'DELETE' }),
+  },
+
   // Account-level invites (consent-first) — the invitee accepts/declines;
   // the membership exists only after accept.
   invites: {
@@ -1424,6 +1433,20 @@ export interface Org {
   vatPeriod?: 'monthly' | 'quarterly' | null
   paymentSettings?: any
   numberingSettings?: any
+}
+
+export type ApiKeyScope = 'read' | 'write:accounts' | 'write:cost_centers' | 'write:products'
+export interface ApiKeyItem {
+  id: string
+  name: string
+  prefix: string
+  scopes: ApiKeyScope[]
+  expiresAt: string | null
+  revokedAt: string | null
+  lastUsedAt: string | null
+  createdAt: string
+  createdById: string
+  status: 'active' | 'revoked' | 'expired'
 }
 
 export interface AuditLogItem {

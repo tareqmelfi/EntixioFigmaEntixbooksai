@@ -14,9 +14,10 @@ import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLog
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
+import { ApiKeysTab } from "../components/api-keys-tab";
 
-type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools";
-const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools"];
+type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys";
+const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys"];
 
 function initialSettingsTab(): SettingsTab {
   if (typeof window === "undefined") return "company";
@@ -225,6 +226,7 @@ export function Settings() {
           ["branding", "العلامة التجارية", "Branding"],
           ["plans", "الباقات", "Plans"],
           ["tools", "الأدوات", "Tools"],
+          ["api-keys", "مفاتيح API", "API keys"],
           ["account", "حسابي", "Account"],
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
           <button
@@ -679,6 +681,10 @@ export function Settings() {
             </Link>
           ))}
         </div>
+      )}
+
+      {tab === "api-keys" && org && (
+        <ApiKeysTab canManage={(org as any).role === "OWNER" || (org as any).role === "ADMIN" || (org as any).role == null} push={push} />
       )}
 
       {tab === "account" && (
