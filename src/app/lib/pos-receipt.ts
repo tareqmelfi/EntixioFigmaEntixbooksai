@@ -35,7 +35,8 @@ function tlvBase64(fields: Array<[number, string]>): string {
 
 export function receiptQrSvg(sale: QueuedSale, store: PosStore | null, size = 120): string | null {
   const vat = store?.vatNumber?.trim();
-  if (!vat) return null;
+  // ZATCA TLV QR is a Saudi requirement · a US EIN in vatNumber must not produce one.
+  if (!vat || store?.country !== "SA") return null;
   const seller = store?.name || store?.legalName || "";
   const payload = tlvBase64([[1, seller], [2, vat], [3, new Date(sale.occurredAt).toISOString()], [4, sale.totals.grand.toFixed(2)], [5, sale.totals.vat.toFixed(2)]]);
   try {
@@ -94,11 +95,11 @@ ${logo ? `<img class="logo" src="${esc(logo)}" alt="">` : ""}
 ${store?.legalName && store.legalName !== store.name ? `<div class="muted">${esc(store.legalName)}</div>` : ""}
 ${addr ? `<div class="muted">${esc(addr)}</div>` : ""}
 ${store?.phone ? `<div class="muted" dir="ltr">${esc(store.phone)}</div>` : ""}
-${store?.vatNumber ? `<div class="muted">${t("الرقم الضريبي", "VAT No.")}: <span dir="ltr">${esc(store.vatNumber)}</span></div>` : ""}
+${store?.vatNumber ? `<div class="muted">${store.country === "US" ? "EIN" : t("الرقم الضريبي", "VAT No.")}: <span dir="ltr">${esc(store.vatNumber)}</span></div>` : ""}
 ${store?.crNumber ? `<div class="muted">${t("س.ت", "CR")}: <span dir="ltr">${esc(store.crNumber)}</span></div>` : ""}
 </div>
 <hr>
-<div class="c b">${store?.vatNumber ? t("فاتورة ضريبية مبسطة", "Simplified Tax Invoice") : t("إيصال بيع", "Sales Receipt")}</div>
+<div class="c b">${store?.vatNumber && store?.country === "SA" ? t("فاتورة ضريبية مبسطة", "Simplified Tax Invoice") : t("إيصال بيع", "Sales Receipt")}</div>
 <table class="muted">
 <tr><td class="n">${t("رقم", "No.")}</td><td class="a">${esc(number)}${provisional ? ` <span class="badge">${t("مؤقت", "offline")}</span>` : ""}</td></tr>
 <tr><td class="n">${t("التاريخ", "Date")}</td><td class="a">${date} ${time}</td></tr>
