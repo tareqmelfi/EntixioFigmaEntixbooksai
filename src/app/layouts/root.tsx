@@ -86,12 +86,13 @@ export function Root() {
       window.location.replace("/welcome");
     }
   }, [authState.loading, authState.isAuthenticated, authState.needsOnboarding]);
-  if (authState.isAuthenticated && authState.needsOnboarding) return null;
-
   // 402 subscription_required / 410 org_deleted → friendly full-content gate
   // inside <main> (no popups) instead of raw red errors on every screen.
+  // (hook must run before any early return — hooks order)
   const { gate, clear: clearGate } = useSubscriptionGate();
-  const activeOrgName = (authState as any).activeOrg?.name ?? (authState as any).user?.activeOrgName ?? null;
+  const activeOrgName = authState.user?.company || null;
+
+  if (authState.isAuthenticated && authState.needsOnboarding) return null;
 
   return (
     <div data-shell="app" className="flex h-dvh w-full bg-canvas" dir={language === "ar" ? "rtl" : "ltr"}>

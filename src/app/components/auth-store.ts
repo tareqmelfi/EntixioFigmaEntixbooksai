@@ -145,6 +145,11 @@ class AuthStore {
         // Pull org info via /me
         const meRes = await fetch(`${API_BASE}/me`, { credentials: 'include', headers: localeHeaders() })
         const me = meRes.ok ? await meRes.json() : null
+        // HOTFIX 2026-08-25: when /me is unavailable (API restart during a
+        // deploy, 502/503, timeout) we must NOT conclude "zero companies" —
+        // that sent paying customers to /welcome. Only a successful /me with
+        // an empty membership list means onboarding.
+        const meKnown = meRes.ok && !!me
         const memberships = me?.memberships || []
         // Resolve the active org for this session.
         // 1. If the user previously selected an org (stored in localStorage),
@@ -228,7 +233,7 @@ class AuthStore {
         // already redirects isPlatformAdmin sessions to /app/admin once they
         // land past this gate.
         const isPlatformAdmin = !!me?.isPlatformAdmin
-        const needsOnboarding = !activeMembership && !isPlatformAdmin
+        const needsOnboarding = meKnown && !activeMembership && !isPlatformAdmin
 
         if (activeMembership?.org?.id) {
           setOrgId(activeMembership.org.id)
