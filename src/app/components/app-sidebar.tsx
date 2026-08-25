@@ -17,6 +17,7 @@ import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
 import { useLegalType } from "../lib/use-legal-type";
+import { authStore } from "./auth-store";
 
 const EN_TEXT: Record<string, string> = {
   "لوحة التحكم": "Dashboard",
@@ -275,6 +276,8 @@ export function AppSidebar({
   className?: string;
 }) {
   const location = useLocation();
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(!!authStore.getState().user?.isPlatformAdmin);
+  useEffect(() => authStore.subscribe((s) => setIsPlatformAdmin(!!s.user?.isPlatformAdmin)), []);
   const navigate = useNavigate();
   const tr = useSidebarText();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
@@ -449,7 +452,10 @@ function SidebarContent({
         </div>
 
         {/* Active org switcher · Wafeq-style with logo + search + "مختارة حالياً" tag */}
-        {!collapsed && <OrgSwitcher />}
+        {/* Platform-admin accounts never own/belong to a company (owner
+         * directive 2026-08-25) — showing an empty/broken switcher here is
+         * worse than showing nothing. */}
+        {!collapsed && !isPlatformAdmin && <OrgSwitcher />}
 
         {!collapsed && (
         <div className="relative" ref={searchRef}>
