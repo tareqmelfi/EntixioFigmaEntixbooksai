@@ -355,6 +355,7 @@ export function AppSidebar({
           navigate={navigate}
           collapsed={collapsed}
           setCollapsed={setCollapsed}
+          isPlatformAdmin={isPlatformAdmin}
         />
       </aside>
     );
@@ -390,6 +391,7 @@ export function AppSidebar({
         searchResults={searchResults}
         navigate={navigate}
         onClose={onClose}
+        isPlatformAdmin={isPlatformAdmin}
       />
     </aside>
   );
@@ -400,7 +402,7 @@ function SidebarContent({
   cycleMode, modeLabel, ModeIcon,
   openMenus, toggleMenu, isActive, hasActiveChild, isParentPathActive,
   searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
-  navigate, onClose, collapsed, setCollapsed,
+  navigate, onClose, collapsed, setCollapsed, isPlatformAdmin,
 }: {
   cycleMode: () => void;
   modeLabel: string;
@@ -420,6 +422,7 @@ function SidebarContent({
   onClose?: () => void;
   collapsed?: boolean;
   setCollapsed?: (c: boolean) => void;
+  isPlatformAdmin?: boolean;
 }) {
   const { language, toggleLanguage, t } = useLanguage();
   const tr = useSidebarText();
