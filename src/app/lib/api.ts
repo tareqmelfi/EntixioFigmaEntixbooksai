@@ -1306,7 +1306,7 @@ export const api = {
     users: (q?: string) => request<{ items: Array<{ id: string; email: string; name: string | null; emailVerified: boolean; createdAt: string; orgs: Array<{ id: string; name: string; country: string; role: string }> }> }>('/api/admin/users', { query: q ? { q } : undefined, skipOrg: true }),
     resetPassword: (email: string, newPassword: string) => request<{ ok: true }>('/api/admin/users/reset-password', { method: 'POST', body: { email, newPassword }, skipOrg: true }),
     verifyEmail: (email: string) => request<{ ok: true }>('/api/admin/users/verify-email', { method: 'POST', body: { email }, skipOrg: true }),
-    orgSubscription: (orgId: string, data: { action: 'comp' | 'trial' | 'cancel'; months?: number; planId?: string }) => request<{ ok: true; status?: string; planName?: string }>(`/api/admin/orgs/${orgId}/subscription`, { method: 'POST', body: data, skipOrg: true }),
+    orgSubscription: (orgId: string, data: { action: 'comp' | 'trial' | 'cancel' | 'lifetime'; months?: number; planId?: string }) => request<{ ok: true; status?: string; planName?: string; planTier?: string; lifetime?: boolean }>(`/api/admin/orgs/${orgId}/subscription`, { method: 'POST', body: data, skipOrg: true }),
     createUser: (data: { email: string; name?: string; password?: string }) => request<{ ok: true; user: { id: string; email: string; name: string | null }; generatedPassword?: string }>('/api/admin/users/create', { method: 'POST', body: data, skipOrg: true }),
     deleteUser: (userId: string) => request<{ ok: true; deleted: string }>(`/api/admin/users/${userId}`, { method: 'DELETE', skipOrg: true }),
     orgMembers: (orgId: string) => request<{ items: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name: string | null; emailVerified: boolean } }> }>(`/api/admin/orgs/${orgId}/members`, { skipOrg: true }),
@@ -1410,6 +1410,7 @@ export interface OrgSubscriptionSummary {
   trialEndsAt?: string | null
   currentPeriodEnd?: string | null
   plan?: { name: string; tier?: string | null } | null
+  lifetime?: boolean // ACTIVE with no period/trial end — granted without expiry
 }
 export interface Org {
   id: string

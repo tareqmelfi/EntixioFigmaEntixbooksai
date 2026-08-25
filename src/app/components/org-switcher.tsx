@@ -37,6 +37,7 @@ function planBadge(o: Org, t: (ar: string, en: string) => string): { label: stri
   const planName = sub?.plan?.name || "";
   const isPaidTier = tier ? tier !== "starter" && tier !== "free" : /pro|enterprise|professional/i.test(planName);
   if (!sub) return { label: t("بدون باقة", "No plan"), cls: "bg-muted text-muted-foreground" };
+  if (sub.status === "ACTIVE" && isPaidTier && (sub.lifetime || (!sub.currentPeriodEnd && !sub.trialEndsAt))) return { label: t("مدفوع · دائم", "Paid · Lifetime"), cls: "bg-primary/10 text-primary" };
   if (sub.status === "ACTIVE" && isPaidTier) return { label: t("مدفوع", "Paid"), cls: "bg-primary/10 text-primary" };
   if (sub.status === "ACTIVE") return { label: t("مجاني", "Free"), cls: "bg-muted text-foreground/70" };
   if (sub.status === "TRIALING") return { label: t("تجربة", "Trial"), cls: "bg-warning-subtle text-warning" };
