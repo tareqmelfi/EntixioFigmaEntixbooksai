@@ -15,6 +15,7 @@ import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types"
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 import { ApiKeysTab } from "../components/api-keys-tab";
+import { DeletedCompanies } from "../components/deleted-companies";
 
 type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys";
 const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys"];
@@ -694,6 +695,7 @@ export function Settings() {
             <div className="rounded-lg border border-border p-4">
               <p className="text-sm text-muted-foreground">{t("جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على", "Secure session · 30 days · encrypted via HttpOnly cookie on")} <span className="font-english">.entix.io</span></p>
             </div>
+            <DeletedCompanies push={push} />
             {pendingSignOut ? (
             <InlineConfirm onConfirm={handleSignOut} onCancel={() => setPendingSignOut(false)} label={t("تسجيل الخروج؟", "Sign out?")} />
           ) : (
@@ -785,11 +787,21 @@ function DataResetTab({
     setDeleting(true);
     try {
       const result = await api.orgs.remove(org.id, { confirmName: deleteConfirmName.trim() });
-      if (result.nextOrgId) setOrgId(result.nextOrgId);
-      push("success", t("تم حذف الشركة والتبديل إلى شركة أخرى", "Company deleted and switched to another company"));
-      setTimeout(() => window.location.assign("/app/settings?tab=company"), 500);
+      // Farewell + grace period (CEO 2026-08-25): the company is hidden now and
+      // restorable from Account → Deleted companies until `restoreUntil`.
+      const until = (() => { try { return new Date(result.restoreUntil).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); } catch { return ""; } })();
+      push("success", t(`تم حذف «${org.name}» · يمكنك استعادتها حتى ${until} من حسابي ← الشركات المحذوفة`, `“${org.name}” deleted · you can restore it until ${until} from Account → Deleted companies`));
+      setOrgId(result.nextOrgId);
+      // Switch to the next company · or /welcome when this was the last one (zero companies is a valid state).
+      setTimeout(() => window.location.assign(result.nextOrgId ? "/app/dashboard" : "/welcome"), 1200);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل حذف الشركة", "Failed to delete company"));
+      const code = e instanceof ApiError ? e.code : undefined;
+      const reason =
+        code === "owner_required" ? t("الحذف متاح لمالك الشركة فقط", "Only the company owner can delete it") :
+        code === "confirmation_mismatch" ? t("اكتب اسم الشركة أو الـ slug كما هو بالضبط", "Type the company name or slug exactly as shown") :
+        code === "already_deleted" ? t("هذه الشركة محذوفة مسبقًا", "This company is already deleted") :
+        e instanceof ApiError ? `${e.message}${e.requestId ? ` · ${e.requestId}` : ""}` : t("فشل حذف الشركة", "Failed to delete company");
+      push("error", reason);
     } finally {
       setDeleting(false);
     }

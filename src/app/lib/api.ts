@@ -194,6 +194,15 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
       requestId = clientErrorRef()
       console.error(`[api] ${requestId} ${opts.method || 'GET'} ${path} → ${res.status}`, { code, message })
     }
+    // Subscription gate (402) → the app shell renders a friendly upgrade page
+    // instead of every screen printing a raw `subscription_required` error (CEO 2026-08-25).
+    if (res.status === 402 && code === 'subscription_required' && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('entix:subscription-required', { detail: { status: (data as any)?.status ?? null, path } })) } catch {}
+    }
+    // Soft-deleted company (410) → switch away · the shell listens and reroutes.
+    if (res.status === 410 && code === 'org_deleted' && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('entix:org-deleted', { detail: { path } })) } catch {}
+    }
     throw new ApiError(res.status, message, detail, { code, messageAr, requestId, fieldErrors, body: data && typeof data === 'object' ? data : undefined })
   }
 
@@ -436,7 +445,10 @@ export const api = {
     update: (id: string, data: Partial<Org>) =>
       request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
     remove: (id: string, data: { confirmName: string }) =>
-      request<{ ok: true; deletedOrgId: string; nextOrgId: string | null }>(`/orgs/${id}`, { method: 'DELETE', body: data, skipOrg: true }),
+      request<{ ok: true; deletedOrgId: string; deletedAt: string; restoreUntil: string; graceDays: number; nextOrgId: string | null }>(`/orgs/${id}`, { method: 'DELETE', body: data, skipOrg: true }),
+    restore: (id: string) =>
+      request<{ ok: true; org: Org }>(`/orgs/${id}/restore`, { method: 'POST', skipOrg: true }),
+    listDeleted: () => request<Org[]>('/orgs', { query: { deleted: 1 }, skipOrg: true }),
     members: (id: string) =>
       request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),
     inviteMember: (id: string, data: { email: string; role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER' }) =>
@@ -1392,9 +1404,19 @@ export interface MeResponse extends User {
   }>
 }
 
+export interface OrgSubscriptionSummary {
+  id: string
+  status: string // TRIALING · ACTIVE · PAST_DUE · CANCELED · EXPIRED
+  trialEndsAt?: string | null
+  currentPeriodEnd?: string | null
+  plan?: { name: string; tier?: string | null } | null
+}
 export interface Org {
   id: string
   slug: string
+  createdAt?: string
+  deletedAt?: string | null
+  subscription?: OrgSubscriptionSummary | null
   inboundEmailLocal?: string | null // custom inbound alias · default bills+<slug>@in.entix.io
   name: string
   legalName?: string | null

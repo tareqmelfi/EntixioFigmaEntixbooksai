@@ -29,6 +29,26 @@ interface Props {
   variant?: "sidebar" | "header-chip";
 }
 
+
+/** Plan badge per company (CEO 2026-08-25): paid · trial · free · expired — so identical names can be told apart. */
+function planBadge(o: Org, t: (ar: string, en: string) => string): { label: string; cls: string } {
+  const sub = o.subscription;
+  const tier = (sub?.plan?.tier || "").toLowerCase();
+  const planName = sub?.plan?.name || "";
+  const isPaidTier = tier ? tier !== "starter" && tier !== "free" : /pro|enterprise|professional/i.test(planName);
+  if (!sub) return { label: t("بدون باقة", "No plan"), cls: "bg-muted text-muted-foreground" };
+  if (sub.status === "ACTIVE" && isPaidTier) return { label: t("مدفوع", "Paid"), cls: "bg-primary/10 text-primary" };
+  if (sub.status === "ACTIVE") return { label: t("مجاني", "Free"), cls: "bg-muted text-foreground/70" };
+  if (sub.status === "TRIALING") return { label: t("تجربة", "Trial"), cls: "bg-warning-subtle text-warning" };
+  if (sub.status === "PAST_DUE") return { label: t("متأخر", "Past due"), cls: "bg-danger-subtle text-danger" };
+  return { label: t("منتهي", "Expired"), cls: "bg-danger-subtle text-danger" };
+}
+
+function shortDate(iso?: string | null) {
+  if (!iso) return "";
+  try { return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); } catch { return ""; }
+}
+
 export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const { language, t } = useLanguage();
   const isRtl = language === "ar";
@@ -114,6 +134,13 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   useEffect(() => {
     if (open) updateDropdownPos();
   }, [open, updateDropdownPos]);
+
+  // Shell-level "switch company" (subscription gate · deleted company) opens the switcher.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("entix:open-switcher", onOpen);
+    return () => window.removeEventListener("entix:open-switcher", onOpen);
+  }, []);
 
   const handleSelect = async (o: Org) => {
     setActiveOrg(o);
@@ -421,14 +448,17 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
                 <div className={`flex min-w-0 flex-1 flex-col gap-0 ${alignItemsClass}`}>
                   <div className={`flex w-full ${rowDirClass} items-start gap-1.5`}>
                     <BidiText compact className="min-w-0 flex-1 text-[12px] font-medium leading-5" title={o.name}>{o.name}</BidiText>
+                    {(() => { const b = planBadge(o, t); return (
+                      <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded font-medium ${b.cls}`} title={o.subscription?.plan?.name || ""}>{b.label}</span>
+                    ); })()}
                     {activeOrg?.id === o.id && (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-success-subtle text-success font-medium">
-                        {t("مختارة حالياً", "Active")}
+                        {t("الحالية", "Current")}
                       </span>
                     )}
                   </div>
                   <NumericText className="block text-[10px] leading-4 text-muted-foreground">
-                    {o.country} · {o.baseCurrency}
+                    {o.country} · {o.baseCurrency}{o.subscription?.plan?.name ? ` · ${o.subscription.plan.name}` : ""}{o.createdAt ? ` · ${shortDate(o.createdAt)}` : ""}
                   </NumericText>
                 </div>
                 <span

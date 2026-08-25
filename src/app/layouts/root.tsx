@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { PanelRightOpen, MailWarning, Loader2 } from "lucide-react";
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
+import { SubscriptionGate, useSubscriptionGate } from "../components/subscription-gate";
 
 /**
  * Soft-gate banner (2026-08-21): signup lets users in immediately; this
@@ -87,6 +88,11 @@ export function Root() {
   }, [authState.loading, authState.isAuthenticated, authState.needsOnboarding]);
   if (authState.isAuthenticated && authState.needsOnboarding) return null;
 
+  // 402 subscription_required / 410 org_deleted → friendly full-content gate
+  // inside <main> (no popups) instead of raw red errors on every screen.
+  const { gate, clear: clearGate } = useSubscriptionGate();
+  const activeOrgName = (authState as any).activeOrg?.name ?? (authState as any).user?.activeOrgName ?? null;
+
   return (
     <div data-shell="app" className="flex h-dvh w-full bg-canvas" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Mobile overlay */}
@@ -133,7 +139,11 @@ export function Root() {
         <AppHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         <UnverifiedEmailBanner />
         <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">
-          <Outlet />
+          {gate ? (
+            <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
 

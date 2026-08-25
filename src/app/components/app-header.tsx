@@ -33,14 +33,6 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const notifRef = useRef<HTMLDivElement>(null);
   const authState = authStore.getState();
   const { isSA } = useOrgRegion();
-  const currentCompanyName = authState.user?.company || t("الشركة الحالية", "Current company");
-  const currentCompanyInitials = currentCompanyName
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0))
-    .join("")
-    .toUpperCase() || "E";
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -225,21 +217,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                     </div>
                   </div>
 
-                  {/* Current company */}
-                  <div className="px-4 py-2 border-b border-border">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary">
-                          <span className="font-english text-xs text-primary-foreground" style={{ fontWeight: 700 }}>{currentCompanyInitials}</span>
-                        </div>
-                        <BidiText compact className="min-w-0 flex-1 text-sm leading-5 text-foreground" title={currentCompanyName}>{currentCompanyName}</BidiText>
-                      </div>
-                      <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)} className="shrink-0 text-xs text-primary hover:underline" style={{ fontWeight: 500 }}>
-                        {t("تغيير", "Change")}
-                      </Link>
-                    </div>
-                  </div>
-
+                  {/* Company row + «Change» removed (CEO 2026-08-25): the sidebar
+                      switcher is the single place to change company. */}
                   {/* Menu Items */}
                   <div className="py-1">
                     <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)}>
