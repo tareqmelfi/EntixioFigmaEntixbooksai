@@ -37,6 +37,9 @@ export interface User {
   createdAt: string
   /** ISO timestamp when account deletion was requested (null = healthy). */
   deletionRequestedAt?: string | null
+  /** Platform-admin (ADMIN_EMAILS) — never owns/belongs to a company; routed
+   * straight to /app/admin, never through /welcome onboarding. */
+  isPlatformAdmin?: boolean
 }
 
 export interface AuthState {
@@ -218,7 +221,14 @@ class AuthStore {
         // LONGER auto-bootstrap a silent «شركتي · SA/SAR» org — that default
         // dropped users into the wrong country/currency and hid their intent.
         // The /welcome page (company with country · or a demo) creates it.
-        const needsOnboarding = !activeMembership
+        // Platform-admin exception (2026-08-25): admin@ensidex.com-style
+        // accounts are DELIBERATELY zero-org (detached from any company by
+        // design) — sending them to /welcome would ask them to create a
+        // company, which is exactly what must never happen. dashboard.tsx
+        // already redirects isPlatformAdmin sessions to /app/admin once they
+        // land past this gate.
+        const isPlatformAdmin = !!me?.isPlatformAdmin
+        const needsOnboarding = !activeMembership && !isPlatformAdmin
 
         if (activeMembership?.org?.id) {
           setOrgId(activeMembership.org.id)
@@ -255,6 +265,7 @@ class AuthStore {
           // 30-day deletion grace: when set, the AuthGuard swaps the whole
           // app for the restore screen (cancel → full recovery).
           deletionRequestedAt: me?.deletionRequestedAt || null,
+          isPlatformAdmin,
         }
         writeCachedUser(newUser)
         this.state = { user: newUser, isAuthenticated: true, loading: false, needsOnboarding }
