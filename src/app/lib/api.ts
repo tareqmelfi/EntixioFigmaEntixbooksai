@@ -656,7 +656,7 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; compareTo?: string }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; compareTo?: string; bilingual?: 1 }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
@@ -1591,6 +1591,14 @@ export interface ReportPrintSettings {
   showPreparedBy?: boolean
   /** Note columns («ملاحظة») are off by default — the print designer opts in. */
   showNotes?: boolean
+  /** Print template · 'condensed' = professional bilingual sheet with a page-pinned footer (default since 2026-08-26) · 'classic' = legacy layout */
+  template?: 'condensed' | 'classic'
+  /** Condensed only · render «العربية · English» label pairs (needs the API's bilingual mode) */
+  bilingual?: boolean
+  /** Free text printed above the copyright line in the pinned footer (disclaimer, basis of preparation…) */
+  footerNote?: string
+  /** Optional «Prepared by» line */
+  preparedBy?: string
 }
 
 export interface Contact {

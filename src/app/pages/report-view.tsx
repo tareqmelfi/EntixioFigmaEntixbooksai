@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { DateInput } from "../components/date-input";
 import { Card, CardContent } from "../components/ui/card";
 import { ReportDocument, normalizeReportSettings } from "../components/report-document";
+import { splitBi } from "../components/report-document-condensed";
 import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -99,7 +100,8 @@ export function ReportView() {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.reports.get(id, { from, to, compareTo });
+        // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
+        const data = await api.reports.get(id, { from, to, compareTo, bilingual: 1 });
         if (alive) {
           setReport(data);
           setSelectedRow(null);
@@ -132,7 +134,8 @@ export function ReportView() {
     for (const section of report.sections) {
       for (const row of section.rows) {
         for (const [key, value] of Object.entries(row.values)) {
-          lines.push([section.title, row.label, key, value ?? ""].map((item) => `"${String(item).replace(/"/g, '""')}"`).join(","));
+          const sectionTitle = (() => { const b = splitBi(section.title); return b.en ? `${b.ar} / ${b.en}` : b.ar; })();
+          lines.push([sectionTitle, row.label, key, value ?? ""].map((item) => `"${String(item).replace(/"/g, '""')}"`).join(","));
         }
       }
     }

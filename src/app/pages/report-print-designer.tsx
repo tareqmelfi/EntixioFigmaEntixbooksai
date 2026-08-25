@@ -34,7 +34,7 @@ export function ReportPrintDesigner() {
       setLoading(true);
       setError(null);
       try {
-        const payload = await api.reports.get(id, { from, to });
+        const payload = await api.reports.get(id, { from, to, bilingual: 1 });
         const fullOrg = await api.orgs.get(payload.org.id);
         const nextSettings = normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports);
         if (alive) {
@@ -167,6 +167,12 @@ export function ReportPrintDesigner() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <Control label={t("القالب", "Template")}>
+                  <select value={resolved.template} onChange={(e) => update("template", e.target.value as any)} className={selectClass}>
+                    <option value="condensed">{t("موجز ثنائي اللغة (احترافي · افتراضي)", "Condensed bilingual (professional · default)")}</option>
+                    <option value="classic">{t("كلاسيكي", "Classic")}</option>
+                  </select>
+                </Control>
                 <Control label={t("الشعار", "Logo")}>
                   <select value={resolved.logoSource} onChange={(e) => update("logoSource", e.target.value as any)} className={selectClass}>
                     <option value="print">{t("شعار الطباعة", "Print logo")}</option>
@@ -222,6 +228,12 @@ export function ReportPrintDesigner() {
                 <Toggle label={t("معلومات الضريبة والسجل", "Tax & registration info")} checked={resolved.showTaxInfo} onChange={(value) => update("showTaxInfo", value)} />
                 <Toggle label={t("عمود الملاحظات", "Notes column")} checked={resolved.showNotes} onChange={(value) => update("showNotes", value)} />
                 <Toggle label={t("تذييل التقرير", "Report footer")} checked={resolved.showFooter} onChange={(value) => update("showFooter", value)} />
+                <Control label={t("نص التذييل (إخلاء مسؤولية · أساس الإعداد…)", "Footer note (disclaimer · basis of preparation…)")}>
+                  <textarea value={resolved.footerNote || ""} onChange={(e) => update("footerNote", e.target.value)} rows={3} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary" placeholder={t("مثال: هذه القوائم غير مدققة وتُستبدل بالأرقام المعتمدة عند الإصدار الرسمي.", "e.g. These statements are unaudited and will be replaced by audited figures.")} />
+                </Control>
+                <Control label={t("أُعدّ بواسطة", "Prepared by")}>
+                  <input value={resolved.preparedBy || ""} onChange={(e) => update("preparedBy", e.target.value)} className={selectClass} placeholder={t("الاسم · المسمى", "Name · title")} />
+                </Control>
                 <Toggle label="Prepared for" checked={resolved.showPreparedBy} onChange={(value) => update("showPreparedBy", value)} />
               </CardContent>
             </Card>

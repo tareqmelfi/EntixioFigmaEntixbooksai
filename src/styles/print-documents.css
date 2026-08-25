@@ -129,4 +129,20 @@
     break-before: page;
     page-break-before: always;
   }
+
+  /* Condensed report · footer pinned to the bottom of EVERY printed page
+     (CEO 2026-08-25: «الفوتر لازم يكون تحت»). The body reserves the same
+     height so the last rows never hide behind it. */
+  .report-condensed {
+    min-height: auto !important;
+    padding-bottom: 18mm !important;
+  }
+  .report-condensed-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    margin: 0 !important;
+  }
 }

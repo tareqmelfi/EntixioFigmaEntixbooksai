@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 import { BidiText, NumericText } from "./bidi-text";
+import { CondensedReportDocument, splitBi } from "./report-document-condensed";
 
 // `language` stays UNSET by default: the effective document language resolves
 // in ReportDocument (explicit org choice → app UI language). A persisted "ar"
@@ -19,6 +20,11 @@ const defaultSettings: Omit<Required<ReportPrintSettings>, "language"> = {
   showFooter: true,
   showPreparedBy: true,
   showNotes: false,
+  // Condensed bilingual sheet is the professional default (CEO 2026-08-25 · Z12).
+  template: "condensed",
+  bilingual: true,
+  footerNote: "",
+  preparedBy: "",
 };
 
 export type NormalizedReportSettings = Omit<Required<ReportPrintSettings>, "language"> & Pick<ReportPrintSettings, "language">;
@@ -111,7 +117,13 @@ export function ReportDocument({
     width: paperWidth,
   } as CSSProperties;
 
+  if (resolved.template === "condensed") {
+    return <CondensedReportDocument report={report} resolved={resolved as any} mode={mode} onRowClick={onRowClick} t={t} />;
+  }
+
   const reportTitle = resolved.language === "en" ? report.englishTitle : report.title;
+  // Bilingual payloads (ar␟en) collapse to the document language in the classic template.
+  const one = (v: string | null | undefined) => { const { ar, en } = splitBi(v); return isEn ? (en || ar) : (ar || en); };
   const companyLine = [report.org.addressLine, report.org.city, report.org.region, report.org.postalCode].filter(Boolean).join(" · ");
   const contactLine = [report.org.email, report.org.phone, report.org.website].filter(Boolean).join(" · ");
   const taxLine = [
@@ -172,8 +184,8 @@ export function ReportDocument({
           return (
           <section key={section.id} className="document-keep-together break-inside-avoid">
             <div className="mb-1.5">
-              <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{section.title}</BidiText></h2>
-              {section.description && <p className="mt-0.5 text-xs text-slate-500"><BidiText mode="plaintext">{section.description}</BidiText></p>}
+              <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{one(section.title)}</BidiText></h2>
+              {section.description && <p className="mt-0.5 text-xs text-slate-500"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
             <table className="document-table w-full border-collapse">
               <thead>
@@ -184,7 +196,7 @@ export function ReportDocument({
                       className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-slate-500"
                       style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
                     >
-                      {column.label}
+                      {one(column.label)}
                     </th>
                   ))}
                 </tr>
