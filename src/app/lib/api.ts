@@ -1287,9 +1287,14 @@ export const api = {
     request<{ summary: { openingFloat: number; cashSales: number; expectedCash: number; closingCount: number; difference: number; salesTotal: number; salesCount: number } }>(
       '/api/pos/shift/close', { method: 'POST', body: { closingCount, notes } },
     ),
-  posSale: (data: { lines: Array<{ productId: string; qty: number; unitPrice?: number }>; paymentMethod: 'CASH' | 'CARD' | 'MADA'; amountTendered?: number; shiftId?: string | null; customerId?: string | null }) =>
-    request<{ ok: true; invoice: { id: string; number: string; total: number; subtotal: number; taxTotal: number }; payment: { method: string; amount: number; tendered: number; change: number } }>(
+  posSale: (data: { lines: Array<{ productId: string; qty: number; unitPrice?: number }>; paymentMethod: 'CASH' | 'CARD' | 'MADA'; amountTendered?: number; shiftId?: string | null; customerId?: string | null; clientSaleId?: string; occurredAt?: string; branchId?: string | null; deviceId?: string; cashierName?: string; provisionalNumber?: string }) =>
+    request<{ ok: true; duplicate?: boolean; invoice: { id: string; number: string; total: number; subtotal: number; taxTotal: number; issueDate?: string }; payment: { method: string; amount: number; tendered: number; change: number } }>(
       '/api/pos/sale', { method: 'POST', body: data },
+    ),
+  // POS v2 · offline queue upload (≤100 sales · per-item result · idempotent by clientSaleId)
+  posSync: (data: { deviceId?: string; sales: Array<Record<string, unknown>> }) =>
+    request<{ ok: boolean; total: number; created: number; duplicate: number; failed: number; results: Array<{ clientSaleId: string | null; status: 'created' | 'duplicate' | 'failed'; error?: string; invoice?: { id: string; number: string; total: number; issueDate: string } }> }>(
+      '/api/pos/sync', { method: 'POST', body: data },
     ),
 
   seedDemo: (opts: { country?: 'SA' | 'US'; replace?: boolean } = {}) =>
