@@ -6,6 +6,7 @@
  * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning, UserPlus, Trash2, DatabaseBackup, Bot, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -91,12 +92,40 @@ function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
             <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-4 py-2 text-start font-medium">{t("المنشأة", "Org")}</th><th className="px-4 py-2 text-start font-medium">{t("المالك", "Owner")}</th><th className="px-4 py-2 text-start font-medium">{t("الباقة", "Plan")}</th><th className="px-4 py-2 text-start font-medium">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start font-medium">{t("أُنشئت", "Created")}</th></tr></thead>
             <tbody>
               {data.recentOrgs.map((o: any) => (
-                <tr key={o.id} className="border-b border-border/60">
-                  <td className="px-4 py-2.5 text-foreground" style={{ fontWeight: 600 }}>{o.name} <span className="text-xs text-muted-foreground font-normal">{o.country}</span></td>
-                  <td className="px-4 py-2.5 text-muted-foreground font-english text-xs">{o.ownerEmail || "—"}</td>
-                  <td className="px-4 py-2.5 text-foreground/80 text-xs">{o.plan || "—"}</td>
-                  <td className="px-4 py-2.5"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : o.status === "TRIALING" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>{o.status}</span></td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{fmtDate(o.createdAt)}</td>
+                <tr key={o.id} className="relative border-b border-border/60 hover:bg-muted/20 focus-within:bg-muted/20">
+                  <td className="px-4 py-2.5 relative">
+                    <Link
+                      to={`/app/admin/orgs/${o.id}`}
+                      data-testid={`admin-overview-org-row-link-${o.id}`}
+                      aria-label={`${o.name} workspace`}
+                      className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          e.preventDefault();
+                          e.currentTarget.click();
+                        }
+                      }}
+                    >
+                      <span className="sr-only">{o.name}</span>
+                    </Link>
+                    <div className="relative z-20 pointer-events-none text-foreground" style={{ fontWeight: 600 }}>{o.name} <span className="text-xs text-muted-foreground font-normal">{o.country}</span></div>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground font-english text-xs relative">
+                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{o.ownerEmail || "—"}</div>
+                  </td>
+                  <td className="px-4 py-2.5 text-foreground/80 text-xs relative">
+                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{o.plan || "—"}</div>
+                  </td>
+                  <td className="px-4 py-2.5 relative">
+                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : o.status === "TRIALING" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>{o.status}</span></div>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground text-xs relative">
+                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{fmtDate(o.createdAt)}</div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -151,12 +180,28 @@ function OrgsTab({ guard, push, t }: any) {
             </tr></thead>
             <tbody>
               {items.map((o) => (
-                <tr key={o.id} className="border-b border-border/60 align-top">
-                  <td className="px-3 py-2.5"><div className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</div><div className="text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div></td>
-                  <td className="px-3 py-2.5 text-xs font-english text-muted-foreground">{o.owner?.email || "—"}</td>
-                  <td className="px-3 py-2.5 text-xs">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}</div></>) : "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{o.members} / {o.invoices}</td>
-                  <td className="px-3 py-2.5">
+                <tr key={o.id} className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
+                  <td className="px-3 py-2.5 relative">
+                    <Link
+                      to={`/app/admin/orgs/${o.id}`}
+                      data-testid={`admin-org-row-link-${o.id}`}
+                      aria-label={`${o.name} workspace`}
+                      className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          e.preventDefault();
+                          e.currentTarget.click();
+                        }
+                      }}
+                    >
+                      <span className="sr-only">{o.name}</span>
+                    </Link>
+                    <div className="relative z-20 pointer-events-none"><span className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</span></div><div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs font-english text-muted-foreground relative"><Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.owner?.email || "—"}</div></td>
+                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}</div></>) : "—"}</div></td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative"><Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.members} / {o.invoices}</div></td>
+                  <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
                       <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
                       <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
@@ -266,11 +311,34 @@ function UsersTab({ guard, push, t }: any) {
             <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-3 py-2 text-start font-medium">{t("المستخدم", "User")}</th><th className="px-3 py-2 text-start font-medium">{t("المنشآت", "Orgs")}</th><th className="px-3 py-2 text-start font-medium">{t("سجّل", "Joined")}</th><th className="px-3 py-2 text-start font-medium">{t("إجراءات", "Actions")}</th></tr></thead>
             <tbody>
               {items.map((u) => (
-                <tr key={u.id} className="border-b border-border/60 align-top">
-                  <td className="px-3 py-2.5"><div className="text-foreground font-english text-xs" style={{ fontWeight: 600 }}>{u.email}</div><div className="text-[11px] text-muted-foreground">{u.name || ""} {u.emailVerified ? "· ✓" : "· ⚠️ unverified"}</div></td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{u.orgs.map((o: any) => `${o.name} (${o.role})`).join(" · ") || "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{fmtDate(u.createdAt)}</td>
-                  <td className="px-3 py-2.5">
+                <tr key={u.id} className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
+                  <td className="px-3 py-2.5 relative">
+                    <Link
+                      to={`/app/admin/users/${u.id}`}
+                      data-testid={`admin-user-row-link-${u.id}`}
+                      aria-label={`${u.email} workspace`}
+                      className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          e.preventDefault();
+                          e.currentTarget.click();
+                        }
+                      }}
+                    >
+                      <span className="sr-only">{u.email}</span>
+                    </Link>
+                    <div className="relative z-20 pointer-events-none text-foreground font-english text-xs" style={{ fontWeight: 600 }}>{u.email}</div>
+                    <div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{u.name || ""} {u.emailVerified ? "· ✓" : "· ⚠️ unverified"}</div>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative">
+                    <Link to={`/app/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{u.orgs.map((o: any) => `${o.name} (${o.role})`).join(" · ") || "—"}</div>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative">
+                    <Link to={`/app/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <div className="relative z-20 pointer-events-none">{fmtDate(u.createdAt)}</div>
+                  </td>
+                  <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
                       {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}
