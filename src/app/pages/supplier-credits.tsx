@@ -7,6 +7,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
@@ -55,6 +56,7 @@ export function SupplierCredits() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  const draft = useFormDraft({ key: "supplier-credit:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { toasts, push, dismiss } = useToasts();
   const { language, t } = useLanguage();
@@ -148,6 +150,7 @@ export function SupplierCredits() {
       });
       setItems((prev) => [created, ...prev]);
       push("success", t(`تم إنشاء إشعار مورد ${created.creditNumber}`, `Supplier credit ${created.creditNumber} created`));
+      draft.clear();
       setCreateOpen(false);
     } catch (e: any) {
       setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
@@ -179,6 +182,7 @@ export function SupplierCredits() {
           subtitle={t("يربط المرتجع أو الخصم بفاتورة مشتريات أصلية ويخصم من رصيد المورد", "Links the return or discount to an original purchase bill and deducts from the supplier balance")}
           onClose={() => setCreateOpen(false)}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="border-border">{t("إلغاء", "Cancel")}</Button>

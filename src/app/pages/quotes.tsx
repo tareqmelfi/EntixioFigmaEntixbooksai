@@ -13,6 +13,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
@@ -71,6 +72,7 @@ export function Quotes() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  const draft = useFormDraft({ key: "quote:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
   const [signFor, setSignFor] = useState<Quote | null>(null);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
@@ -163,6 +165,7 @@ export function Quotes() {
       setItems(prev => [q, ...prev]);
       const msg = action === "draft" ? t(`تم حفظ ${q.quoteNumber} كمسودة`, `Saved ${q.quoteNumber} as draft`) : t(`تم إرسال ${q.quoteNumber}`, `Sent ${q.quoteNumber}`);
       push("success", msg);
+      draft.clear();
       if (action === "send" && q.id) {
         try { await (api as any).email?.sendQuote?.(q.id, { message: form.notes || undefined }); } catch (e) {}
       }
@@ -239,6 +242,7 @@ export function Quotes() {
           subtitle={t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic details · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>

@@ -32,6 +32,11 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+/** Active company id (in-memory · set by authStore after session validation). */
+export function getOrgId(): string | null {
+  return orgId
+}
+
 export function setOrgId(id: string | null) {
   orgId = id
   if (typeof localStorage !== 'undefined') {
@@ -193,6 +198,11 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     if (!requestId) {
       requestId = clientErrorRef()
       console.error(`[api] ${requestId} ${opts.method || 'GET'} ${path} → ${res.status}`, { code, message })
+    }
+    // Session expired mid-work (401) → the shell shows a non-blocking banner
+    // («سجّل الدخول في تبويب جديد») — the form and its autosaved draft stay intact.
+    if (res.status === 401 && typeof window !== 'undefined' && !path.startsWith('/api/auth')) {
+      try { window.dispatchEvent(new CustomEvent('entix:session-expired', { detail: { path } })) } catch {}
     }
     // Subscription gate (402) → the app shell renders a friendly upgrade page
     // instead of every screen printing a raw `subscription_required` error (CEO 2026-08-25).

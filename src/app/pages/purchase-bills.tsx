@@ -13,6 +13,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { ContactSearchInput } from "../components/contact-search-input";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import type { ContactInput } from "../lib/api";
@@ -97,6 +98,7 @@ export function PurchaseBills() {
   }, [orgCurrency, editingId]);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  const draft = useFormDraft({ key: editingId ? `bill:${editingId}` : "bill:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -350,6 +352,7 @@ export function PurchaseBills() {
     setItems(prev => prev.some(x => x.id === b.id) ? prev.map(x => x.id === b.id ? b : x) : [b, ...prev]);
     const msg = editingId ? t("تم تحديث الفاتورة", "Invoice updated") : (action === "draft" ? t(`تم حفظ ${b.billNumber || "الفاتورة"} كمسودة`, `Saved ${b.billNumber || "the invoice"} as draft`) : t(`تم اعتماد ${b.billNumber || "الفاتورة"}`, `Approved ${b.billNumber || "the invoice"}`));
     push("success", msg);
+    draft.clear();
     const ing = (b as any).ingestion;
     if (!editingId && ing && ing.dedupeDecision === "UPDATED") {
       push("info", t("فاتورة مطابقة موجودة — تم تحديثها بدل إنشاء نسخة مكررة", "A matching invoice exists — updated instead of creating a duplicate"), 6000);
@@ -407,6 +410,7 @@ export function PurchaseBills() {
             : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic data · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>

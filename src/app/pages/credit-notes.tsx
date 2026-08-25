@@ -17,6 +17,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
@@ -85,6 +86,7 @@ export function CreditNotes() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
+  const draft = useFormDraft({ key: editId ? `credit-note:${editId}` : "credit-note:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { toasts, push, dismiss } = useToasts();
@@ -232,11 +234,13 @@ export function CreditNotes() {
       if (isEditing && editId) {
         const cn = await api.creditNotes.update(editId, payload);
         push("success", t(`تم تحديث الإشعار ${cn.noteNumber}`, `Updated credit note ${cn.noteNumber}`));
+        draft.clear();
         navigate("/app/credit-notes", { replace: true });
       } else {
         const cn = await api.creditNotes.create(payload);
         setItems((prev) => [cn, ...prev]);
         push("success", t(`تم إنشاء إشعار دائن ${cn.noteNumber}`, `Created credit note ${cn.noteNumber}`));
+        draft.clear();
         closeCreate();
       }
     } catch (e: any) {
@@ -266,6 +270,7 @@ export function CreditNotes() {
           subtitle={t("ربط الإشعار بفاتورة الأصلية اختياري · سيخصم القيمة من رصيد العميل", "Linking the note to the original invoice is optional · the value will be deducted from the customer's balance")}
           onClose={closeCreate}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>

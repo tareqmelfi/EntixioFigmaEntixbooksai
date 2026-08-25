@@ -16,6 +16,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { voucherEmail } from "../lib/email-templates";
 import { api, Voucher, Contact } from "../lib/api";
@@ -101,6 +102,7 @@ export function Receipts() {
     notes: "",
     allocations: [] as Array<{ invoiceId: string; amount: string }>,
   });
+  const draft = useFormDraft({ key: editingReceipt ? `receipt:${editingReceipt.id}` : "receipt:new", open, snapshot: form, restore: (s) => setForm(s) });
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -261,6 +263,7 @@ export function Receipts() {
         setItems(prev => prev.map(x => x.id === updated.id ? updated : x));
         setEditingReceipt(updated);
         push("success", t(`تم تحديث ${updated.number}`, `Updated ${updated.number}`));
+        draft.clear();
         refresh();
         return;
       }
@@ -309,6 +312,7 @@ export function Receipts() {
 
       setItems(prev => [...created, ...prev]);
       push("success", created.length === 1 ? t(`تم إنشاء ${created[0].number}`, `Created ${created[0].number}`) : t(`تم إنشاء ${created.length} سند قبض`, `Created ${created.length} receipt vouchers`));
+      draft.clear();
       closeCreate();
       refresh();
     } catch (e: any) {
@@ -566,6 +570,7 @@ export function Receipts() {
           subtitle={editingReceipt ? t(`مراجعة السند ${editingReceipt.number} · المعاينة يسار`, `Review voucher ${editingReceipt.number} · preview on left`) : t("إنشاء سند قبض مرتبط بالفواتير أو توزيع مبلغ على أكثر من فاتورة", "Create a receipt voucher linked to invoices or distribute an amount across multiple invoices")}
           onClose={closeCreate}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap w-full">
               <div className="flex items-center gap-2">

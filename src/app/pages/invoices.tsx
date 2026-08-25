@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
@@ -127,6 +128,13 @@ export function Invoices() {
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [splittingId, setSplittingId] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  // Draft protection · autosave + leave guards (CEO 2026-08-25 · never lose a typed invoice)
+  const draft = useFormDraft({
+    key: editingInvoice ? `invoice:${editingInvoice.id}` : "invoice:new",
+    open: createOpen,
+    snapshot: { form, lines, taxMode },
+    restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); },
+  });
   const [previewOpen, setPreviewOpen] = useState(true);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
@@ -401,6 +409,7 @@ export function Invoices() {
       // Switch to edit mode of the freshly-saved invoice · preserve all form fields
       setEditingInvoice(inv as Invoice);
       setForm((prev) => ({ ...prev, invoiceNumber: inv.invoiceNumber }));
+      draft.clear(); // saved → the autosaved draft is obsolete
       // Keep createOpen true · just refresh state
       // closeCreate();   // ❌ removed · was bouncing user back to list and losing context
     } catch (e: any) {
@@ -563,6 +572,7 @@ export function Invoices() {
           subtitle={editingInvoice ? t(`الحالة: ${STATUS_LABELS[editingInvoice.status]?.ar || editingInvoice.status}`, `Status: ${STATUS_LABELS[editingInvoice.status]?.en || editingInvoice.status}`) : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic details · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">

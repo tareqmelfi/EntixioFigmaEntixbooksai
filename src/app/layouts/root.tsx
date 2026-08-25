@@ -6,6 +6,7 @@ import { PanelRightOpen, MailWarning, Loader2 } from "lucide-react";
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
 import { SubscriptionGate, useSubscriptionGate } from "../components/subscription-gate";
+import { SessionExpiredBanner } from "../components/session-expired-banner";
 
 /**
  * Soft-gate banner (2026-08-21): signup lets users in immediately; this
@@ -139,6 +140,7 @@ export function Root() {
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         <AppHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         <UnverifiedEmailBanner />
+        <SessionExpiredBanner />
         <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">
           {gate ? (
             <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />

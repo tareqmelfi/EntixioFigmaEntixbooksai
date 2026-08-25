@@ -43,6 +43,7 @@ import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { useFormDraft, formatDraftTime } from "../lib/form-draft";
 import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
@@ -90,6 +91,8 @@ export function JournalEntries() {
   const [form, setForm] = useState<FormState>({
     date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true,
   });
+  // Draft protection · autosave + restore (CEO 2026-08-25 · never lose a typed entry)
+  const draft = useFormDraft({ key: editMode && selected ? `journal:${selected.id}` : "journal:new", open, snapshot: form, restore: (s) => setForm(s) });
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -184,6 +187,7 @@ export function JournalEntries() {
         await api.journals.create(payload);
         push("success", form.postOnSave ? t("تم حفظ القيد ومُرحَّل", "Entry saved and posted") : t("تم حفظ القيد كمسودة", "Entry saved as draft"));
       }
+      draft.clear();
       setOpen(false); setEditMode(false); resetForm(); setSelected(null);
       refresh();
     } catch (err: any) {
@@ -591,7 +595,7 @@ export function JournalEntries() {
 
       {/* ── CREATE / EDIT MODAL ──────────────────────────────────────────── */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { if (!draft.dirty) setOpen(false); }}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-5 border-b border-border/50">
@@ -602,6 +606,12 @@ export function JournalEntries() {
                   <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
+              {draft.restored && (
+                <div className="px-5 py-2 border-b border-border/50 bg-warning-subtle/60 flex items-center justify-between gap-3 text-xs">
+                  <span>{t(`استعدنا مسودة لم تُحفظ (${formatDraftTime(draft.restored, "ar")}) — أكمل من حيث توقفت.`, `We restored an unsaved draft (${formatDraftTime(draft.restored, "en")}) — continue where you left off.`)}</span>
+                  <button type="button" onClick={draft.discard} className="font-medium text-muted-foreground hover:text-danger">{t("تجاهل المسودة", "Discard draft")}</button>
+                </div>
+              )}
 
               <div className="p-5 space-y-4">
                 <div className="grid grid-cols-3 gap-3">

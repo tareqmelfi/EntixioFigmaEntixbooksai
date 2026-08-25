@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { voucherEmail } from "../lib/email-templates";
 import { useNavigate, useSearchParams } from "react-router";
@@ -146,6 +147,7 @@ export function Payments() {
     notes: "",
     allocations: [] as Array<{ billId: string; amount: string }>,
   });
+  const draft = useFormDraft({ key: editingPayment ? `payment:${editingPayment.id}` : "payment:new", open, snapshot: form, restore: (s) => setForm(s) });
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -249,6 +251,7 @@ export function Payments() {
         setItems(prev => prev.map(x => x.id === updated.id ? updated : x));
         setEditingPayment(updated);
         push("success", t(`تم تحديث ${updated.number}`, `Updated ${updated.number}`));
+        draft.clear();
         refresh();
         return;
       }
@@ -297,6 +300,7 @@ export function Payments() {
 
       setItems(prev => [...created, ...prev]);
       push("success", created.length === 1 ? t(`تم إنشاء ${created[0].number}`, `Created ${created[0].number}`) : t(`تم إنشاء ${created.length} سند صرف`, `Created ${created.length} payment vouchers`));
+      draft.clear();
       closeCreate();
       refresh();
     } catch (e: any) {
@@ -518,6 +522,7 @@ export function Payments() {
           subtitle={editingPayment ? t(`مراجعة السند ${editingPayment.number} · المعاينة يسار`, `Review voucher ${editingPayment.number} · preview on left`) : t("إنشاء سند صرف مرتبط بفاتورة المشتريات أو توزيع مبلغ على أكثر من فاتورة", "Create a payment voucher linked to a purchase invoice or distribute an amount across multiple invoices")}
           onClose={closeCreate}
           disableEscape={busy}
+          draft={draft}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap w-full">
               <div className="flex items-center gap-2">
