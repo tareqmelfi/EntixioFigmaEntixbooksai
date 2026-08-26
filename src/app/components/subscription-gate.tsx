@@ -18,10 +18,14 @@ type GateState = { kind: "subscription"; status: string | null } | { kind: "dele
 export function useSubscriptionGate() {
   const [gate, setGate] = useState<GateState>(null);
   const location = useLocation();
+  // Settings / billing / admin must NEVER be gated — that is where the user fixes the
+  // plan, deletes the company or switches away (CEO 2026-08-26: «لازم أقدر أروح
+  // للسيتنج»). Events that land while on those screens are ignored, not just cleared.
+  const isExempt = () => /^\/(app\/(billing|settings|admin)|admin)/.test(window.location.pathname);
   useEffect(() => {
-    const onSub = (e: Event) => setGate({ kind: "subscription", status: (e as CustomEvent).detail?.status ?? null });
+    const onSub = (e: Event) => { if (!isExempt()) setGate({ kind: "subscription", status: (e as CustomEvent).detail?.status ?? null }); };
     const onDeleted = () => setGate({ kind: "deleted" });
-    const onSuspended = (e: Event) => setGate({ kind: "suspended", reason: (e as CustomEvent).detail?.reason ?? null });
+    const onSuspended = (e: Event) => { if (!isExempt()) setGate({ kind: "suspended", reason: (e as CustomEvent).detail?.reason ?? null }); };
     window.addEventListener("entix:subscription-required", onSub);
     window.addEventListener("entix:org-deleted", onDeleted);
     window.addEventListener("entix:org-suspended", onSuspended);
@@ -99,6 +103,7 @@ export function SubscriptionGate({ gate, orgName, onSwitch }: { gate: GateState;
           <div className="mt-6 flex flex-wrap gap-2">
             <Link to="/app/settings?tab=plans"><Button className="bg-primary hover:bg-primary/90"><CreditCard className="h-4 w-4 me-2" />{t("اختيار باقة", "Choose a plan")}</Button></Link>
             <Button variant="outline" onClick={onSwitch}><ArrowLeftRight className="h-4 w-4 me-2" />{t("التبديل لشركة أخرى", "Switch company")}</Button>
+            <Link to="/app/settings?tab=data"><Button variant="outline">{t("إعدادات الشركة · حذف", "Company settings · delete")}</Button></Link>
           </div>
         </div>
       </div>
