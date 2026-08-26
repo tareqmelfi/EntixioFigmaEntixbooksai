@@ -13,7 +13,7 @@ import { Button } from "./ui/button";
 import { useLanguage } from "./LanguageContext";
 import { setOrgId } from "../lib/api";
 
-type GateState = { kind: "subscription"; status: string | null } | { kind: "deleted" } | null;
+type GateState = { kind: "subscription"; status: string | null } | { kind: "deleted" } | { kind: "suspended"; reason: string | null } | null;
 
 export function useSubscriptionGate() {
   const [gate, setGate] = useState<GateState>(null);
@@ -21,11 +21,14 @@ export function useSubscriptionGate() {
   useEffect(() => {
     const onSub = (e: Event) => setGate({ kind: "subscription", status: (e as CustomEvent).detail?.status ?? null });
     const onDeleted = () => setGate({ kind: "deleted" });
+    const onSuspended = (e: Event) => setGate({ kind: "suspended", reason: (e as CustomEvent).detail?.reason ?? null });
     window.addEventListener("entix:subscription-required", onSub);
     window.addEventListener("entix:org-deleted", onDeleted);
+    window.addEventListener("entix:org-suspended", onSuspended);
     return () => {
       window.removeEventListener("entix:subscription-required", onSub);
       window.removeEventListener("entix:org-deleted", onDeleted);
+      window.removeEventListener("entix:org-suspended", onSuspended);
     };
   }, []);
   // Billing / settings / welcome screens must stay reachable so the user can actually fix it.
@@ -51,6 +54,23 @@ export function SubscriptionGate({ gate, orgName, onSwitch }: { gate: GateState;
         <div className="mt-6 flex justify-center gap-2">
           <Button onClick={() => window.location.assign("/app/dashboard")} className="bg-primary hover:bg-primary/90"><ArrowLeftRight className="h-4 w-4 me-2" />{t("الانتقال لشركة أخرى", "Go to another company")}</Button>
           <Link to="/app/settings?tab=account"><Button variant="outline">{t("الشركات المحذوفة", "Deleted companies")}</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (gate.kind === "suspended") {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-border bg-surface p-8 text-center shadow-raised">
+        <ShieldCheck className="mx-auto h-10 w-10 text-warning" />
+        <h2 className="mt-4 text-lg font-semibold text-foreground">{orgName ? t(`«${orgName}» موقوفة مؤقتًا`, `“${orgName}” is temporarily suspended`) : t("هذه الشركة موقوفة مؤقتًا", "This company is temporarily suspended")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("أوقفت إدارة المنصة الوصول لهذه الشركة. بياناتك محفوظة بالكامل ولن تُمس — تواصل مع الدعم لرفع الإيقاف.", "Platform administration paused access to this company. Your data is fully preserved and untouched — contact support to lift the suspension.")}
+        </p>
+        {gate.reason ? <p className="mt-2 text-xs text-muted-foreground">{t("السبب:", "Reason:")} {gate.reason}</p> : null}
+        <div className="mt-6 flex justify-center gap-2">
+          <Button onClick={onSwitch} className="bg-primary hover:bg-primary/90"><ArrowLeftRight className="h-4 w-4 me-2" />{t("الانتقال لشركة أخرى", "Go to another company")}</Button>
+          <a href="mailto:support@entix.io"><Button variant="outline">{t("تواصل مع الدعم", "Contact support")}</Button></a>
         </div>
       </div>
     );

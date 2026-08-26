@@ -230,6 +230,10 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     if (res.status === 410 && code === 'org_deleted' && typeof window !== 'undefined') {
       try { window.dispatchEvent(new CustomEvent('entix:org-deleted', { detail: { path } })) } catch {}
     }
+    // Suspended by the platform (423 · Admin Console Z2.2) → full-content gate, data untouched.
+    if (res.status === 423 && code === 'org_suspended' && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('entix:org-suspended', { detail: { path, reason: (data as any)?.reason ?? null } })) } catch {}
+    }
     throw new ApiError(res.status, message, detail, { code, messageAr, requestId, fieldErrors, body: data && typeof data === 'object' ? data : undefined })
   }
 
@@ -237,6 +241,19 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
 }
 
 export type AdminDetailAvailability = 'available' | 'partial' | 'unavailable'
+
+// Z2.2 · Admin Console records
+export interface AdminOrgRecord { id: string; name: string; legalName: string | null; slug: string; country: string; baseCurrency: string; industry: string | null; deletedAt: string | null; suspendedAt: string | null; suspendedReason: string | null }
+export interface AdminUserRecord { id: string; email: string; name: string | null; emailVerified: boolean; disabledAt: string | null; disabledReason: string | null; createdAt: string }
+export interface AdminSubscriptionRow {
+  id: string; orgId: string; orgName: string; country: string; currency: string; owner: string | null; suspended: boolean
+  plan: { id: string; name: string; nameAr: string | null; tier: string; interval: string; price: number }
+  status: string; lifetime: boolean; trialEndsAt: string | null; currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean
+  stripeSubscriptionId: string | null; stripeCustomerId: string | null; source: 'stripe' | 'lifetime' | 'manual'; mrrCents: number; updatedAt: string
+}
+export interface AdminSubscriptionsPayload { items: AdminSubscriptionRow[]; total: number; mrrCents: Record<string, number>; byStatus: Record<string, number>; lifetime: number }
+export interface AdminPlanRecord { id: string; stripePriceId: string; name: string; nameAr: string | null; description: string | null; price: number; currency: string; interval: string; tier: string; isActive: boolean; subscriptions: number }
+export interface AdminAuditRow { id: string; adminUserId: string; adminEmail: string; action: string; targetType: string; targetId: string | null; targetLabel: string | null; before: any; after: any; reason: string | null; ipAddress: string | null; createdAt: string }
 
 export interface AdminDetailCursorPage<T> {
   items: T[]
@@ -260,6 +277,10 @@ export interface AdminOrganizationWorkspaceSummary {
   country: string
   baseCurrency: string
   industry: string | null
+  legalName?: string | null
+  deletedAt?: string | null
+  suspendedAt?: string | null
+  suspendedReason?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -341,6 +362,8 @@ export interface AdminUserWorkspaceSummary {
   email: string
   name: string | null
   emailVerified: boolean
+  disabledAt?: string | null
+  disabledReason?: string | null
   createdAt: string
   locale: string
 }
@@ -1365,6 +1388,19 @@ export const api = {
     orgSubscription: (orgId: string, data: { action: 'comp' | 'trial' | 'cancel' | 'lifetime'; months?: number; planId?: string }) => request<{ ok: true; status?: string; planName?: string; planTier?: string; lifetime?: boolean }>(`/api/admin/orgs/${orgId}/subscription`, { method: 'POST', body: data, skipOrg: true }),
     createUser: (data: { email: string; name?: string; password?: string }) => request<{ ok: true; user: { id: string; email: string; name: string | null }; generatedPassword?: string }>('/api/admin/users/create', { method: 'POST', body: data, skipOrg: true }),
     deleteUser: (userId: string) => request<{ ok: true; deleted: string }>(`/api/admin/users/${userId}`, { method: 'DELETE', skipOrg: true }),
+    // Z2.2 · Admin Console CRUD
+    me: () => request<{ isInternal: boolean; internalRole: string; email: string; userId: string }>('/api/admin/me', { skipOrg: true }),
+    updateOrg: (orgId: string, data: { name?: string; legalName?: string | null; country?: string; baseCurrency?: string; industry?: string | null; suspended?: boolean; reason?: string | null }) =>
+      request<AdminOrgRecord>(`/api/admin/orgs/${orgId}`, { method: 'PATCH', body: data, skipOrg: true }),
+    deleteOrg: (orgId: string, reason: string) => request<{ ok: true; deletedAt: string; restoreUntil: string; graceDays: number }>(`/api/admin/orgs/${orgId}`, { method: 'DELETE', body: { reason }, skipOrg: true }),
+    restoreOrg: (orgId: string) => request<{ ok: true; org: AdminOrgRecord }>(`/api/admin/orgs/${orgId}/restore`, { method: 'POST', skipOrg: true }),
+    updateUser: (userId: string, data: { name?: string | null; email?: string; disabled?: boolean; reason?: string | null }) =>
+      request<AdminUserRecord>(`/api/admin/users/${userId}`, { method: 'PATCH', body: data, skipOrg: true }),
+    subscriptions: (params?: { status?: string; country?: string; q?: string }) => request<AdminSubscriptionsPayload>('/api/admin/subscriptions', { query: params, skipOrg: true }),
+    plans: () => request<{ items: AdminPlanRecord[] }>('/api/admin/plans', { skipOrg: true }),
+    updatePlan: (planId: string, data: { name?: string; nameAr?: string | null; description?: string | null; isActive?: boolean; tier?: string; reason?: string | null }) =>
+      request<AdminPlanRecord>(`/api/admin/plans/${planId}`, { method: 'PATCH', body: data, skipOrg: true }),
+    audit: (params?: { targetType?: string; targetId?: string; adminUserId?: string; from?: string; to?: string; limit?: number }) => request<{ items: AdminAuditRow[]; total: number }>('/api/admin/audit', { query: params, skipOrg: true }),
     orgMembers: (orgId: string) => request<{ items: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name: string | null; emailVerified: boolean } }> }>(`/api/admin/orgs/${orgId}/members`, { skipOrg: true }),
     addOrgMember: (orgId: string, data: { email: string; role: string }) => request<{ ok: true }>(`/api/admin/orgs/${orgId}/members`, { method: 'POST', body: data, skipOrg: true }),
     removeOrgMember: (orgId: string, userId: string) => request<{ ok: true }>(`/api/admin/orgs/${orgId}/members/${userId}`, { method: 'DELETE', skipOrg: true }),

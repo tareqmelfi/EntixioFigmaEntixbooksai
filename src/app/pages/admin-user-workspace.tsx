@@ -4,6 +4,8 @@ import { KeyRound, Loader2, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { api, ApiError, type AdminUserWorkspace } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { ToastStack, useToasts } from "../components/side-panel";
+import { AdminUserManageCard } from "../components/admin-manage-cards";
 import {
   AdminWorkspaceBackLink,
   AdminWorkspaceFailedCard,
@@ -37,6 +39,7 @@ export function AdminUserWorkspacePage() {
   const [viewState, setViewState] = useState<AdminWorkspaceViewState>("loading");
   const [workspace, setWorkspace] = useState<AdminUserWorkspace | null>(null);
 
+  const { toasts, push, dismiss } = useToasts();
   const load = useCallback(async () => {
     setViewState("loading");
     try {
@@ -107,11 +110,13 @@ export function AdminUserWorkspacePage() {
     : null;
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 max-w-7xl">
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div className="space-y-1">
         <AdminWorkspaceBackLink label={t("رجوع للوحة الأدمن", "Back to admin")} />
         <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
           <User className="h-5 w-5 text-primary" />{summary.email}
+          {summary.disabledAt ? <span className="rounded-full bg-danger-subtle px-2 py-0.5 text-[11px] font-semibold text-danger">{t("موقوف", "Disabled")}</span> : null}
         </h1>
         <p className="text-sm text-muted-foreground">{summary.name || "—"} · {summary.emailVerified ? t("موثق", "Verified") : t("غير موثق", "Unverified")}</p>
       </div>
@@ -138,6 +143,7 @@ export function AdminUserWorkspacePage() {
         })}
       </nav>
 
+      {tab === "overview" && <AdminUserManageCard user={summary} push={push} onChanged={() => void load()} />}
       {tab === "overview" && (
         <Card className="border-border">
           <CardHeader><CardTitle className="text-base text-foreground">{t("ملخص المستخدم", "User summary")}</CardTitle></CardHeader>

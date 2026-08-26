@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
-import { LayoutDashboard, Building2, Users, CreditCard, MessageSquare, Server, ShieldCheck, LogOut, Languages, Menu, X, Loader2 } from "lucide-react";
+import { LayoutDashboard, Building2, Users, CreditCard, MessageSquare, Server, ShieldCheck, LogOut, Languages, Menu, X, Loader2, Tags, ScrollText } from "lucide-react";
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
 import { SessionExpiredBanner } from "../components/session-expired-banner";
@@ -21,8 +21,10 @@ export const ADMIN_SECTIONS = [
   { key: "orgs", path: "/admin/orgs", ar: "الشركات", en: "Companies", icon: Building2 },
   { key: "users", path: "/admin/users", ar: "المستخدمون", en: "Users", icon: Users },
   { key: "subscriptions", path: "/admin/subscriptions", ar: "الاشتراكات", en: "Subscriptions", icon: CreditCard },
+  { key: "plans", path: "/admin/plans", ar: "الباقات", en: "Plans", icon: Tags },
   { key: "support", path: "/admin/support", ar: "الدعم", en: "Support", icon: MessageSquare },
   { key: "system", path: "/admin/system", ar: "النظام", en: "System", icon: Server },
+  { key: "audit", path: "/admin/audit", ar: "سجل الأثر", en: "Audit trail", icon: ScrollText },
 ] as const;
 
 export function AdminRoot() {

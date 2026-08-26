@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { api, ApiError, type AdminOrganizationWorkspace } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { ToastStack, useToasts } from "../components/side-panel";
+import { AdminOrgManageCard } from "../components/admin-manage-cards";
 
 type WorkspaceTab = "overview" | "people" | "subscription" | "support" | "activity";
 type ViewState = "loading" | "ready" | "session" | "forbidden" | "notFound" | "failed";
@@ -42,6 +44,7 @@ export function AdminOrganizationWorkspace() {
 
   const [viewState, setViewState] = useState<ViewState>("loading");
   const [workspace, setWorkspace] = useState<AdminOrganizationWorkspace | null>(null);
+  const { toasts, push, dismiss } = useToasts();
 
   const load = useCallback(async () => {
     setViewState("loading");
@@ -133,13 +136,16 @@ export function AdminOrganizationWorkspace() {
   const metrics = workspace.metrics.data;
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 max-w-7xl">
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div className="space-y-1">
-        <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+        <Link to="/admin/orgs" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />{t("رجوع للوحة الأدمن", "Back to admin")}
         </Link>
         <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
           <Building2 className="h-5 w-5 text-primary" />{summary.name}
+          {(summary as any).suspendedAt ? <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[11px] font-semibold text-warning">{t("موقوفة", "Suspended")}</span> : null}
+          {(summary as any).deletedAt ? <span className="rounded-full bg-danger-subtle px-2 py-0.5 text-[11px] font-semibold text-danger">{t("محذوفة", "Deleted")}</span> : null}
         </h1>
         <p className="text-sm text-muted-foreground font-english" dir="ltr">{summary.slug} · {summary.country} · {summary.baseCurrency}</p>
       </div>
@@ -179,6 +185,9 @@ export function AdminOrganizationWorkspace() {
 
       {tab === "overview" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <AdminOrgManageCard org={summary as any} push={push} onChanged={() => void load()} />
+          </div>
           <Card className="border-border">
             <CardHeader><CardTitle className="text-base text-foreground">{t("ملخص المنشأة", "Organization summary")}</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
