@@ -8,6 +8,7 @@ import { authStore } from "../components/auth-store";
 import { SubscriptionGate, useSubscriptionGate } from "../components/subscription-gate";
 import { SessionExpiredBanner } from "../components/session-expired-banner";
 import { ActingAsBanner } from "../components/acting-as-banner";
+import { GlobalToasts } from "../components/global-toasts";
 import { readActAs } from "../lib/act-as";
 import { setOrgId } from "../lib/api";
 
@@ -151,6 +152,7 @@ export function Root() {
         <ActingAsBanner />
         <UnverifiedEmailBanner />
         <SessionExpiredBanner />
+        <GlobalToasts />
         <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">
           {gate ? (
             <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />

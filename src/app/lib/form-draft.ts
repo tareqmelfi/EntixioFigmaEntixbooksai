@@ -49,6 +49,8 @@ export interface FormDraftState {
   clear: () => void;
   /** Throw away the restored draft and return to the opening baseline. */
   discard: () => void;
+  /** Write the current snapshot NOW (leaving the form · before navigation) · returns savedAt */
+  flush: () => string | null;
   /** Re-baseline: treat the current snapshot as clean (e.g. after save-and-stay). */
   markClean: () => void;
 }
@@ -251,7 +253,19 @@ export function useFormDraft<T>(opts: {
     setTick((n) => n + 1);
   }, []);
 
-  return { dirty, savedAt, restored, clear, discard, markClean };
+  // Leaving the form (X · sidebar · Back) never loses work: the draft is written
+  // synchronously on the way out (CEO 2026-08-26: «لو طلعت الحفظ تلقائي كمسودة»).
+  const dirtyRef = useRef(false); dirtyRef.current = dirty;
+  const flush = useCallback(() => {
+    if (!enabled || !dirtyRef.current) return null;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const at = writeDraft(keyRef.current, JSON.parse(serializedRef.current || "null"));
+    if (at) setSavedAt(at);
+    return at;
+  }, [enabled]);
+  useEffect(() => () => { if (dirtyRef.current && enabled) writeDraft(keyRef.current, JSON.parse(serializedRef.current || "null")); }, [enabled]);
+
+  return { dirty, savedAt, restored, clear, discard, markClean, flush };
 }
 
 /** Human time for banners · "قبل 3 دقائق" / "3 min ago" style, locale-safe. */

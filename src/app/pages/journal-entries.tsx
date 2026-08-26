@@ -605,7 +605,7 @@ export function JournalEntries() {
 
       {/* ── CREATE / EDIT MODAL ──────────────────────────────────────────── */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { if (!draft.dirty) setOpen(false); }}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { if (draft.dirty) { draft.flush(); push("info", t("حُفظت مسودتك تلقائيًا — ترجع لها عند فتح النموذج", "Your draft was saved — it comes back when you reopen the form")); } setOpen(false); }}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-5 border-b border-border/50">

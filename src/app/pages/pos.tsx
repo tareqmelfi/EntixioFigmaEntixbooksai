@@ -22,7 +22,7 @@ import {
   Wheat, Candy, SprayCan, Beef, Carrot, Apple, Egg, Droplets, Pill, Shirt, Smartphone, Cigarette, Baby, Dog,
   User, LogOut, ChevronDown, History, Loader2, AlertTriangle, Store, type LucideIcon,
 } from "lucide-react";
-import { api } from "../lib/api";
+import { api, getOrgId, type PosCashierRow } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 import {
@@ -91,6 +91,10 @@ export function PosPage() {
   const [shift, setShift] = useState<{ id: string; openedAt: string; openingFloat: string } | null>(() => loadShiftCache());
   const [shiftChecked, setShiftChecked] = useState(false);
   const [floatInput, setFloatInput] = useState("0");
+  // Named cashier (2026-08-26): picked on shift open · PIN verified offline against the cached hash
+  const [cashierId, setCashierId] = useState<string>(() => localStorage.getItem("entix:pos:cashierId") || "");
+  const [pinInput, setPinInput] = useState("");
+  const [pinErr, setPinErr] = useState(false);
   const [closeCount, setCloseCount] = useState("");
   const [closeSummary, setCloseSummary] = useState<any | null>(null);
   const [panel, setPanel] = useState<Panel>("none");
@@ -250,9 +254,25 @@ export function PosPage() {
   };
 
   // ── shift ──
+  const cashiers = catalog?.cashiers ?? [];
+  const pickedCashier = cashiers.find((c) => c.id === cashierId) ?? null;
+  const pinOk = async (): Promise<boolean> => {
+    if (!pickedCashier?.hasPin) return true;
+    if (!pickedCashier.pinHash) return true;
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${getOrgId() || ""}:${pinInput}`));
+    const hex = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    return hex === pickedCashier.pinHash;
+  };
   const openShift = async () => {
-    try { await api.posShiftOpen(Number(floatInput) || 0, settings.branchId); const r = await api.posShiftCurrent(); setShift(r.shift); saveShiftCache(r.shift); }
-    catch (e: any) { showToast("err", e?.message || t("تعذر فتح الوردية", "Could not open the shift")); }
+    if (cashiers.length && !pickedCashier) { showToast("err", t("اختر الكاشير أولًا", "Pick the cashier first")); return; }
+    if (!(await pinOk())) { setPinErr(true); setPinInput(""); showToast("err", t("الرقم السري غير صحيح", "Wrong PIN")); return; }
+    try {
+      await api.posShiftOpen(Number(floatInput) || 0, settings.branchId, pickedCashier ? { cashierId: pickedCashier.id, pin: pinInput || null } : null);
+      const r = await api.posShiftCurrent(); setShift(r.shift); saveShiftCache(r.shift);
+      if (pickedCashier) { localStorage.setItem("entix:pos:cashierId", pickedCashier.id); updateSettings({ cashierName: pickedCashier.name }); }
+      setPinInput(""); setPinErr(false);
+    }
+    catch (e: any) { showToast("err", e?.code === "wrong_pin" || /wrong_pin/.test(e?.message || "") ? t("الرقم السري غير صحيح", "Wrong PIN") : e?.message || t("تعذر فتح الوردية", "Could not open the shift")); }
   };
   const [localMode, setLocalMode] = useState(false);
   const startWithoutShift = () => { setShift(null); saveShiftCache(null); setShiftChecked(true); setLocalMode(true); };
@@ -305,6 +325,32 @@ export function PosPage() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Unlock className="h-7 w-7" /></div>
             <h1 className="mt-4 text-center text-xl font-bold text-foreground">{t("افتح الوردية للبدء", "Open a shift to start")}</h1>
             <p className="mt-1 text-center text-sm text-muted-foreground">{t("عهدة الدرج تُطابَق عند الإغلاق · العمليات تُرحّل تلقائيًا", "Drawer float reconciles at close · sales post automatically")}</p>
+            {cashiers.length > 0 && (
+              <>
+                <label className="mt-6 block text-xs font-semibold text-foreground">{t("الكاشير", "Cashier")}</label>
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  {cashiers.map((c) => (
+                    <button key={c.id} type="button" onClick={() => { setCashierId(c.id); setPinInput(""); setPinErr(false); }}
+                      className={`flex items-center justify-between rounded-xl border-2 px-3 py-2.5 text-sm font-semibold ${cashierId === c.id ? "border-primary bg-primary/10 text-primary" : "border-border bg-canvas text-foreground hover:border-primary/40"}`}>
+                      <span className="truncate">{c.name}</span>{c.hasPin ? <Lock className="h-3.5 w-3.5 shrink-0 opacity-70" /> : null}
+                    </button>
+                  ))}
+                </div>
+                {pickedCashier?.hasPin && (
+                  <>
+                    <label className="mt-4 block text-xs font-semibold text-foreground">{t("الرقم السري", "PIN")}</label>
+                    <input value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setPinErr(false); }} onKeyDown={(e) => { if (e.key === "Enter") void openShift(); }} inputMode="numeric" type="password" dir="ltr" autoFocus
+                      className={`mt-1.5 w-full rounded-xl border-2 bg-canvas px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] text-foreground outline-none ${pinErr ? "border-danger" : "border-primary/60 focus:border-primary"}`} />
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "⌫"].map((k) => (
+                        <button key={k} type="button" onClick={() => { setPinErr(false); if (k === "C") setPinInput(""); else if (k === "⌫") setPinInput((v) => v.slice(0, -1)); else setPinInput((v) => (v + k).slice(0, 6)); }}
+                          className="h-11 rounded-lg border border-border bg-surface text-lg font-bold text-foreground hover:bg-muted/40">{k}</button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
             <label className="mt-6 block text-xs font-semibold text-foreground">{t("العهدة الافتتاحية (نقد الدرج)", "Opening float (drawer cash)")}</label>
             <input value={floatInput} onChange={(e) => setFloatInput(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" dir="ltr"
               className="mt-1.5 w-full rounded-xl border-2 border-primary/60 bg-canvas px-4 py-3 text-center text-2xl font-bold text-foreground outline-none focus:border-primary" />
@@ -359,7 +405,7 @@ export function PosPage() {
           <Link to="/app/dashboard" title={t("الخروج من الكاشير", "Exit the cashier")} className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"><LogOut className="h-5 w-5 rtl:rotate-180" /></Link>
           <div className="flex min-w-0 items-center gap-2">
             <Store className="h-4 w-4 text-[#05B6FA]" />
-            <div className="truncate text-sm font-bold">{store?.name || "ENTIX"}<span className="mx-1.5 text-white/40">·</span><span className="font-normal text-white/80">{branchName || t("الكاشير", "Cashier")}</span></div>
+            <div className="truncate text-sm font-bold">{store?.name || "ENTIX"}<span className="mx-1.5 text-white/40">·</span><span className="font-normal text-white/80">{branchName || t("الكاشير", "Cashier")}</span>{(shift as any)?.cashierName ? <span className="ms-1.5 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-normal text-white/90">{(shift as any).cashierName}</span> : null}</div>
           </div>
           {shift ? (
             <span className="hidden items-center gap-1.5 rounded-full border border-success/40 bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-[#86EFAC] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#4ADE80]" />{t("وردية مفتوحة", "Shift open")} · <span className="font-english">{new Date(shift.openedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span></span>
@@ -643,6 +689,45 @@ function HistoryPanel({ recent, onClose, reprint, t, currency, syncNote, onSync,
   );
 }
 
+/** Named cashiers (2026-08-26): unlimited · name + optional PIN · OWNER/ADMIN manage from here. */
+function CashiersManager({ t }: { t: (a: string, e: string) => string }) {
+  const [items, setItems] = useState<PosCashierRow[]>([]);
+  const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const load = useCallback(() => { api.posCashiers.list().then((r) => setItems(r.items)).catch(() => setItems([])); }, []);
+  useEffect(() => { load(); }, [load]);
+  const add = async () => {
+    if (!name.trim()) return;
+    if (pin && !/^\d{4,6}$/.test(pin)) { setErr(t("الرقم السري 4-6 أرقام", "PIN must be 4-6 digits")); return; }
+    setBusy(true); setErr(null);
+    try { await api.posCashiers.create({ name: name.trim(), pin: pin || null }); setName(""); setPin(""); load(); void refreshCatalog(); }
+    catch (e: any) { setErr(e?.status === 403 ? t("المالك/الأدمن فقط يضيف كاشيرات", "Only owner/admin can add cashiers") : e?.message || t("فشل", "Failed")); }
+    finally { setBusy(false); }
+  };
+  const remove = async (id: string) => { try { await api.posCashiers.remove(id); load(); void refreshCatalog(); } catch (e: any) { setErr(e?.message || t("فشل", "Failed")); } };
+  return (
+    <div className="py-3">
+      <div className="mb-1.5 text-sm text-foreground">{t("الكاشيرات (بلا حد · اسم + رقم سري اختياري)", "Cashiers (unlimited · name + optional PIN)")}</div>
+      <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">{t("كل وردية تُفتح باسم كاشير · اسمه يظهر على الإيصال وفي كل عملية · الرقم السري يعمل حتى بدون إنترنت.", "Every shift opens under a cashier · the name prints on the receipt and on every sale · the PIN works offline too.")}</p>
+      {items.length > 0 && (
+        <ul className="mb-2 divide-y divide-border/60 rounded-lg border border-border">
+          {items.map((c) => (
+            <li key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-sm"><span className="truncate">{c.name}</span>{c.hasPin ? <Lock className="h-3 w-3 text-muted-foreground" /> : null}<button type="button" onClick={() => void remove(c.id)} className="ms-auto text-xs text-muted-foreground hover:text-danger">{t("إزالة", "Remove")}</button></li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-1.5">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("اسم الكاشير", "Cashier name")} className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-primary" />
+        <input value={pin} onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder={t("رقم سري", "PIN")} inputMode="numeric" dir="ltr" className="w-20 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-primary" />
+        <button type="button" onClick={() => void add()} disabled={busy || !name.trim()} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50">{t("إضافة", "Add")}</button>
+      </div>
+      {err && <div className="mt-1 text-[11px] text-danger">{err}</div>}
+    </div>
+  );
+}
+
 function SettingsPanel({ settings, update, branches, onClose, t, device, testPrint }: { settings: PosSettings; update: (p: Partial<PosSettings>) => void; branches: Array<{ id: string; name: string }>; onClose: () => void; t: (a: string, e: string) => string; device: string; testPrint: () => void }) {
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => <div className="flex items-center justify-between gap-3 py-2.5"><span className="text-sm text-foreground">{label}</span>{children}</div>;
   const Seg = <T extends string>({ value, options, onChange }: { value: T; options: Array<[T, string]>; onChange: (v: T) => void }) => (
@@ -662,7 +747,7 @@ function SettingsPanel({ settings, update, branches, onClose, t, device, testPri
             <select value={settings.branchId ?? ""} onChange={(e) => update({ branchId: e.target.value || null })} className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"><option value="">{t("— بدون —", "— none —")}</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
           </Row>
         )}
-        <Row label={t("اسم الكاشير (يظهر بالإيصال)", "Cashier name (on receipt)")}><input value={settings.cashierName} onChange={(e) => update({ cashierName: e.target.value })} className="w-40 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-primary" /></Row>
+        <CashiersManager t={t} />
         <Row label={t("نص أسفل الإيصال", "Receipt footer text")}><input value={settings.footerText} onChange={(e) => update({ footerText: e.target.value })} placeholder={t("شكرًا لتسوقكم معنا", "Thank you for shopping with us")} className="w-40 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-primary" /></Row>
         <Row label={t("شعار المتجر على الإيصال", "Store logo on receipt")}><Toggle on={settings.showLogo} onChange={(v) => update({ showLogo: v })} /></Row>
         <Row label={t("صوت عند الإضافة", "Beep on add")}><Toggle on={settings.soundOn} onChange={(v) => update({ soundOn: v })} /></Row>

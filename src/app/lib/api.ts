@@ -1363,9 +1363,17 @@ export const api = {
       '/api/pos/catalog',
     ),
   posShiftCurrent: () =>
-    request<{ shift: { id: string; openedAt: string; openingFloat: string } | null }>('/api/pos/shift/current'),
-  posShiftOpen: (openingFloat: number, branchId?: string | null) =>
-    request<{ shift: { id: string; branchId?: string | null } }>('/api/pos/shift/open', { method: 'POST', body: { openingFloat, branchId } }),
+    request<{ shift: { id: string; openedAt: string; openingFloat: string; cashierId?: string | null; cashierName?: string | null } | null }>('/api/pos/shift/current'),
+  // Named cashiers (2026-08-26)
+  posCashiers: {
+    list: (all?: boolean) => request<{ items: PosCashierRow[] }>('/api/pos/cashiers', { query: all ? { all: 1 } : undefined }),
+    create: (data: { name: string; pin?: string | null }) => request<PosCashierRow>('/api/pos/cashiers', { method: 'POST', body: data }),
+    update: (id: string, data: { name?: string; pin?: string | null; clearPin?: boolean; isActive?: boolean }) => request<PosCashierRow>(`/api/pos/cashiers/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void>(`/api/pos/cashiers/${id}`, { method: 'DELETE' }),
+    verify: (id: string, pin: string) => request<{ ok: boolean }>(`/api/pos/cashiers/${id}/verify`, { method: 'POST', body: { pin } }),
+  },
+  posShiftOpen: (openingFloat: number, branchId?: string | null, cashier?: { cashierId: string; pin?: string | null } | null) =>
+    request<{ shift: { id: string; branchId?: string | null; cashierName?: string | null } }>('/api/pos/shift/open', { method: 'POST', body: { openingFloat, branchId, cashierId: cashier?.cashierId ?? null, pin: cashier?.pin ?? null } }),
   posShiftClose: (closingCount: number, notes?: string) =>
     request<{ summary: { openingFloat: number; cashSales: number; expectedCash: number; closingCount: number; difference: number; salesTotal: number; salesCount: number } }>(
       '/api/pos/shift/close', { method: 'POST', body: { closingCount, notes } },
@@ -1753,6 +1761,7 @@ export interface StockTransfer extends Omit<StockTransferSummary, 'lines'> {
   journal: { id: string; entryNumber: string } | null
 }
 export interface StockTransferInput { fromWarehouseId: string; toWarehouseId: string; fromBranchId?: string | null; toBranchId?: string | null; notes?: string | null; lines: Array<{ productId: string; qty: number; reason?: string | null }>; send?: boolean }
+export interface PosCashierRow { id: string; name: string; hasPin: boolean; isActive: boolean; createdAt?: string }
 export interface ProductBarcode { id: string; productId: string; barcode: string; unitMultiplier: string | number; label?: string | null; createdAt: string }
 export interface ReorderAlert { product: { id: string; sku: string | null; name: string; nameAr: string | null; category: string | null; imageUrl?: string | null }; onHand: number; reorderQty: number; shortBy: number; unitCost: number; suggestedQty: number }
 

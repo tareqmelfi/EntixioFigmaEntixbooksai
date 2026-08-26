@@ -31,7 +31,8 @@ export type PosStore = {
   logoUrl: string | null; printLogoUrl: string | null;
 };
 export type PosBranch = { id: string; name: string; code: string | null; warehouseId?: string | null };
-export type PosCatalog = { items: PosProduct[]; orgVatRate: number; store: PosStore | null; branches: PosBranch[]; fetchedAt: string };
+export type PosCashier = { id: string; name: string; hasPin: boolean; pinHash: string | null };
+export type PosCatalog = { items: PosProduct[]; orgVatRate: number; store: PosStore | null; branches: PosBranch[]; cashiers?: PosCashier[]; fetchedAt: string };
 
 export type PaymentMethod = "CASH" | "CARD" | "MADA";
 export type QueuedLine = { productId: string; qty: number; unitPrice: number; name: string; nameAr: string | null; sku: string | null; taxRate: number };
@@ -118,7 +119,7 @@ export function loadCatalogCache(): PosCatalog | null {
 }
 export async function refreshCatalog(): Promise<PosCatalog> {
   const r: any = await api.posCatalog();
-  const cat: PosCatalog = { items: r.items || [], orgVatRate: typeof r.orgVatRate === "number" ? r.orgVatRate : 0.15, store: r.store ?? null, branches: r.branches ?? [], fetchedAt: new Date().toISOString() };
+  const cat: PosCatalog = { items: r.items || [], orgVatRate: typeof r.orgVatRate === "number" ? r.orgVatRate : 0.15, store: r.store ?? null, branches: r.branches ?? [], cashiers: (r as any).cashiers ?? [], fetchedAt: new Date().toISOString() };
   write("catalog", cat);
   return cat;
 }

@@ -22,11 +22,11 @@
  *   - shows an autosave indicator,
  *   - intercepts X / Esc / in-app navigation / browser back while dirty with an
  *     INLINE bar (UX-1 · no dialogs) — the draft is already saved either way,
- *   - arms the browser's beforeunload guard while dirty (tab close / reload).
+ *   - never blocks leaving: the draft is flushed on the way out + a toast says so (2026-08-26).
  */
-import { useCallback, useEffect, useState, ReactNode } from "react";
-import { useBlocker } from "react-router";
-import { X, Save, RotateCcw, AlertTriangle } from "lucide-react";
+import { useCallback, useEffect, useRef, ReactNode } from "react";
+import { useLocation } from "react-router";
+import { X, Save, RotateCcw } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { formatDraftTime, type FormDraftState } from "../lib/form-draft";
 
@@ -47,15 +47,17 @@ interface Props {
 export function FullPageForm({ title, subtitle, onClose, children, footer, toolbar, disableEscape, draft }: Props) {
   const { t } = useLanguage();
   const dirty = !!draft?.dirty;
-  const [leaveAsk, setLeaveAsk] = useState(false);
 
-  // Guarded close: dirty → ask inline first (the draft is autosaved regardless).
-  const requestClose = useCallback(() => {
-    if (dirty) { setLeaveAsk(true); return; }
-    onClose();
-  }, [dirty, onClose]);
+  // Leaving NEVER blocks (CEO 2026-08-26: «لما طلعت أضغط على أي شي علّق»). The draft
+  // is written on the way out and a toast says so; reopening the form restores it.
+  const keepDraftToast = useCallback(() => {
+    if (!dirty) return;
+    draft?.flush?.();
+    try { window.dispatchEvent(new CustomEvent("entix:toast", { detail: { kind: "info", message: t("حُفظت مسودتك تلقائيًا — ترجع لها عند فتح النموذج", "Your draft was saved — it comes back when you reopen the form") } })); } catch { /* ignore */ }
+  }, [dirty, draft, t]);
+  const requestClose = useCallback(() => { keepDraftToast(); onClose(); }, [keepDraftToast, onClose]);
 
-  // Esc closes the form (guarded)
+  // Esc closes the form
   useEffect(() => {
     if (disableEscape) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") requestClose(); };
@@ -63,29 +65,16 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
     return () => document.removeEventListener("keydown", onKey);
   }, [requestClose, disableEscape]);
 
-  // In-app navigation + browser Back while dirty → inline bar, never a lost form.
-  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    dirty && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search));
-  const blocked = blocker.state === "blocked";
-
-  // Tab close / reload while dirty → native guard (the only mechanism browsers allow).
+  // In-app navigation (sidebar · Back) while dirty → keep the draft, say so, let it through.
+  const dirtyRef = useRef(dirty); dirtyRef.current = dirty;
+  const toastRef = useRef(keepDraftToast); toastRef.current = keepDraftToast;
+  const location = useLocation();
+  const firstPath = useRef(location.pathname + location.search);
   useEffect(() => {
-    if (!dirty) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
-
-  // Once clean again, drop any pending ask.
-  useEffect(() => { if (!dirty) setLeaveAsk(false); }, [dirty]);
-
-  const askVisible = leaveAsk || blocked;
-  const stay = () => { setLeaveAsk(false); if (blocked) blocker.reset(); };
-  const leave = () => {
-    setLeaveAsk(false);
-    if (blocked) { blocker.proceed(); return; }
-    onClose();
-  };
+    const here = location.pathname + location.search;
+    if (here !== firstPath.current) { toastRef.current(); firstPath.current = here; }
+  }, [location.pathname, location.search]);
+  useEffect(() => () => { if (dirtyRef.current) toastRef.current(); }, []);
 
   return (
     <div className="-m-4 sm:-m-6 min-h-[calc(100vh-4rem)] flex flex-col bg-canvas relative">
@@ -135,26 +124,6 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
             <button type="button" onClick={draft.discard} className="text-xs font-medium text-muted-foreground hover:text-danger underline-offset-2 hover:underline">
               {t("تجاهل المسودة والبدء من جديد", "Discard draft and start fresh")}
             </button>
-          </div>
-        )}
-        {/* Leave guard · inline · UX-1 (no dialogs) */}
-        {askVisible && (
-          <div className="px-4 sm:px-6 lg:px-8 py-2.5 border-t border-warning/40 bg-warning-subtle flex items-center justify-between gap-3 flex-wrap" role="alert">
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
-              <span>
-                {t("لديك تغييرات لم تُحفظ بعد. مسودتك محفوظة تلقائيًا وستعود عند فتح النموذج.",
-                   "You have changes that are not saved yet. Your draft is autosaved and will come back when you reopen the form.")}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={stay} className="text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
-                {t("متابعة التحرير", "Keep editing")}
-              </button>
-              <button type="button" onClick={leave} className="text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-surface hover:bg-muted/50 text-foreground">
-                {t("مغادرة (المسودة محفوظة)", "Leave (draft kept)")}
-              </button>
-            </div>
           </div>
         )}
       </div>
