@@ -275,6 +275,8 @@ export const router = createBrowserRouter([
       { path: "warehouses", element: lazyElement(() => import("./pages/inventory"), "Inventory"), errorElement: <ErrorBoundary /> },
       { path: "stock-movements", element: lazyElement(() => import("./pages/inventory"), "Inventory"), errorElement: <ErrorBoundary /> },
       { path: "inventory/warehouses/new", element: lazyElement(() => import("./pages/warehouse-new"), "WarehouseNew"), errorElement: <ErrorBoundary /> },
+      { path: "inventory/counts", element: lazyElement(() => import("./pages/stock-counts"), "StockCounts"), errorElement: <ErrorBoundary /> },
+      { path: "inventory/counts/:id", element: lazyElement(() => import("./pages/stock-counts"), "StockCountDetail"), errorElement: <ErrorBoundary /> },
       { path: "inventory/movements/new", element: lazyElement(() => import("./pages/stock-movement-new"), "StockMovementNew"), errorElement: <ErrorBoundary /> },
       // Payroll & Employees
       { path: "payroll", element: lazyElement(() => import("./pages/payroll"), "Payroll"), errorElement: <ErrorBoundary /> },

@@ -574,6 +574,9 @@ export const api = {
 
   // Accounts (chart of accounts)
   accounts: {
+    ledgerMapping: () => request<{ roles: LedgerRoleRow[] }>('/api/accounts/ledger-mapping'),
+    setLedgerMapping: (data: Record<string, string | null>) => request<{ ok: true; roles: LedgerRoleRow[] }>('/api/accounts/ledger-mapping', { method: 'PUT', body: data }),
+    inactive: () => request<{ items: any[] }>('/api/accounts/inactive'),
     list: () => request<{ items: Account[]; total: number }>('/api/accounts'),
     get: (id: string) => request<Account>(`/api/accounts/${id}`),
     create: (data: AccountInput) =>
@@ -1179,6 +1182,19 @@ export const api = {
       request<{ cogs: number; shortfall: number }>('/api/inventory/issues', { method: 'POST', body: data }),
     transfer: (data: { productId: string; fromWarehouseId: string; toWarehouseId: string; quantity: number; method?: 'WAC' | 'FIFO' | 'LIFO' }) =>
       request<any>('/api/inventory/transfers', { method: 'POST', body: data }),
+    // Stocktake (B4 · 2026-08-26)
+    counts: {
+      list: (status?: string) => request<{ items: StockCountSummary[] }>('/api/inventory/counts', { query: status ? { status } : undefined }),
+      get: (id: string) => request<StockCount>(`/api/inventory/counts/${id}`),
+      create: (data: { warehouseId: string; scope?: 'FULL' | 'CATEGORY' | 'SELECTED'; category?: string | null; productIds?: string[]; branchId?: string | null; blind?: boolean; notes?: string | null }) =>
+        request<StockCount>('/api/inventory/counts', { method: 'POST', body: data }),
+      lines: (id: string, lines: Array<{ productId?: string; sku?: string; countedQty: number; mode?: 'set' | 'add'; reason?: string | null }>) =>
+        request<{ ok: boolean; results: Array<{ productId: string | null; sku?: string; status: 'counted' | 'not_in_count' | 'unknown_sku'; countedQty?: number }> }>(`/api/inventory/counts/${id}/lines`, { method: 'POST', body: { lines } }),
+      review: (id: string) => request<StockCount>(`/api/inventory/counts/${id}/review`, { method: 'POST', body: {} }),
+      reopen: (id: string) => request<StockCount>(`/api/inventory/counts/${id}/reopen`, { method: 'POST', body: {} }),
+      post: (id: string, uncounted: 'skip' | 'zero' = 'skip') => request<{ ok: boolean; adjustments: Array<{ productId: string; delta: number; ok: boolean; error?: string }>; failed: any[]; count: StockCount }>(`/api/inventory/counts/${id}/post`, { method: 'POST', body: { uncounted } }),
+      cancel: (id: string) => request<StockCount>(`/api/inventory/counts/${id}/cancel`, { method: 'POST', body: {} }),
+    },
   },
 
   // Payroll · GOSI + SIF (مدد)
@@ -1576,6 +1592,46 @@ export interface ReportPayload {
   summary: Record<string, number>
   sections: ReportSection[]
   notices?: string[]
+}
+
+export interface LedgerRoleRow {
+  role: 'cash' | 'bank' | 'ar' | 'inventory' | 'ap' | 'vat' | 'salesRevenue' | 'serviceRevenue' | 'cogs' | 'expenseFallback'
+  ar: string
+  en: string
+  type: 'ASSET' | 'LIABILITY' | 'REVENUE' | 'EXPENSE'
+  explicit: string | null
+  resolved: { id: string; code: string; name: string } | null
+  via: 'explicit' | 'legacy_code' | 'heuristic' | 'none'
+}
+export interface StockCountLine {
+  id: string
+  productId: string
+  product: { id: string; sku: string | null; name: string; nameAr: string | null; category: string | null; imageUrl: string | null } | null
+  systemQty: number
+  countedQty: number | null
+  variance: number | null
+  unitCost: number
+  varianceValue: number | null
+  reason: string | null
+  countedAt: string | null
+}
+export interface StockCountSummary {
+  id: string
+  number: string
+  status: 'COUNTING' | 'REVIEW' | 'POSTED' | 'CANCELLED'
+  scope: string
+  category: string | null
+  blind: boolean
+  snapshotAt: string
+  postedAt: string | null
+  notes: string | null
+  createdAt: string
+  warehouse: { id: string; code: string; name: string }
+  lineCount?: number
+}
+export interface StockCount extends StockCountSummary {
+  lines: StockCountLine[]
+  summary: { lines: number; counted: number; variances: number; shortageValue: number; surplusValue: number }
 }
 
 export interface ReportPrintSettings {

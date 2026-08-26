@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse, ClipboardList } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -127,6 +127,7 @@ export function Inventory() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
+          <Button variant="outline" onClick={() => navigate("/app/inventory/counts")}><ClipboardList className="me-2 h-4 w-4" />{t("الجرد", "Stocktake")}</Button>
           <Button variant="outline" onClick={() => navigate("/app/inventory/warehouses/new")}><Warehouse className="me-2 h-4 w-4" />{t("مستودع جديد", "New warehouse")}</Button>
           <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/inventory/movements/new")}><Plus className="me-2 h-4 w-4" />{t("حركة مخزون", "Stock movement")}</Button>
         </div>

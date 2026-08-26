@@ -15,10 +15,11 @@ import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types"
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 import { ApiKeysTab } from "../components/api-keys-tab";
+import { LedgerMappingTab } from "../components/ledger-mapping-tab";
 import { DeletedCompanies } from "../components/deleted-companies";
 
-type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys";
-const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys"];
+type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys" | "control-accounts";
+const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys", "control-accounts"];
 
 function initialSettingsTab(): SettingsTab {
   if (typeof window === "undefined") return "company";
@@ -228,6 +229,7 @@ export function Settings() {
           ["plans", "الباقات", "Plans"],
           ["tools", "الأدوات", "Tools"],
           ["api-keys", "مفاتيح API", "API keys"],
+          ["control-accounts", "الحسابات الرقابية", "Control accounts"],
           ["account", "حسابي", "Account"],
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
           <button
@@ -686,6 +688,10 @@ export function Settings() {
 
       {tab === "api-keys" && org && (
         <ApiKeysTab canManage={(org as any).role === "OWNER" || (org as any).role === "ADMIN" || (org as any).role == null} push={push} />
+      )}
+
+      {tab === "control-accounts" && org && (
+        <LedgerMappingTab canManage={(org as any).role === "OWNER" || (org as any).role === "ADMIN" || (org as any).role === "ACCOUNTANT" || (org as any).role == null} push={push} />
       )}
 
       {tab === "account" && (
