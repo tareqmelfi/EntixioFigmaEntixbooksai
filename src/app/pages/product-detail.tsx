@@ -33,6 +33,7 @@ const EMPTY_FORM = {
   unitPrice: "",
   costPrice: "0",
   stockQty: "0",
+  reorderQty: "",
   incomeAccountId: "",
   expenseAccountId: "",
 };
@@ -75,6 +76,7 @@ export function ProductDetail() {
         unitPrice: String(item.unitPrice ?? ""),
         costPrice: String(item.costPrice ?? "0"),
         stockQty: String(item.stockQty ?? "0"),
+        reorderQty: item.reorderQty == null ? "" : String(item.reorderQty),
         incomeAccountId: item.incomeAccountId || "",
         expenseAccountId: item.expenseAccountId || "",
       });
@@ -115,6 +117,7 @@ export function ProductDetail() {
         description: form.description || null, category: form.category || null, imageUrl: form.imageUrl || null,
         type: form.type, unitPrice: Number(form.unitPrice), costPrice: Number(form.costPrice || 0),
         stockQty: Number(form.stockQty || 0),
+        reorderQty: form.reorderQty.trim() === "" ? null : Number(form.reorderQty),
         incomeAccountId: form.incomeAccountId || null, expenseAccountId: form.expenseAccountId || null,
       };
       const saved = isNew ? await api.products.create(payload) : await api.products.update(id!, payload);
@@ -231,8 +234,11 @@ export function ProductDetail() {
                   <div className="space-y-2"><Label>{t("سعر البيع", "Sale price")} *</Label><Input type="number" step="0.01" min="0" required value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} dir="ltr" className="font-english" /></div>
                   <div className="space-y-2"><Label>{t("سعر التكلفة", "Cost price")}</Label><Input type="number" step="0.01" min="0" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} dir="ltr" className="font-english" /></div>
                 </div>
-                {form.type === "INVENTORY" && (
-                  <div className="space-y-2"><Label>{t("الرصيد الافتتاحي بالمخزون", "Opening stock quantity")}</Label><Input type="number" step="0.01" min="0" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: e.target.value })} dir="ltr" className="font-english" /></div>
+                {(form.type === "INVENTORY" || form.type === "GOOD") && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {form.type === "INVENTORY" && <div className="space-y-2"><Label>{t("الرصيد الافتتاحي بالمخزون", "Opening stock quantity")}</Label><Input type="number" step="0.01" min="0" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: e.target.value })} dir="ltr" className="font-english" /></div>}
+                    <div className="space-y-2"><Label>{t("حد إعادة الطلب", "Reorder point")}</Label><Input type="number" step="1" min="0" value={form.reorderQty} onChange={(e) => setForm({ ...form, reorderQty: e.target.value })} dir="ltr" className="font-english" placeholder={t("فارغ = بدون تنبيه", "Empty = no alert")} /><p className="text-[11px] text-muted-foreground">{t("يظهر تنبيه في المخزون عندما يصل المتوفر إلى هذا الحد.", "Inventory shows an alert once on-hand reaches this level.")}</p></div>
+                  </div>
                 )}
               </CardContent>
             </Card>
