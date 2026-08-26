@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { readActAs } from "./act-as";
 
 /**
  * useOrgRegion · active-org country → region gates (SA vs US …)
@@ -30,6 +31,9 @@ function currencyFor(country: string, base?: string | null): string {
 let inflight: Promise<void> | null = null;
 
 async function loadOnce(): Promise<void> {
+  // Z2.3 · an admin acting on behalf of a company has no membership → region comes from the grant.
+  const act = readActAs();
+  if (act) { cached = { orgId: act.orgId, country: (act.country || "SA").toUpperCase(), currency: (act.currency || "").toUpperCase() || currencyFor((act.country || "SA").toUpperCase()) }; return; }
   try {
     const orgs = await api.orgs.list();
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;

@@ -43,6 +43,7 @@ import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
 import { PageHeader } from "../components/product";
+import { readActAs } from "../lib/act-as";
 
 // Unified palette (user directive): navy/blue family only — no rainbow scatter
 const DONUT_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
@@ -241,7 +242,8 @@ useEffect(() => {
   useEffect(() => {
     let alive = true;
     api.me().then((me: any) => {
-      if (alive && me?.isPlatformAdmin) navigate("/admin", { replace: true });
+      // Z2.3 · an admin acting on behalf of a company stays in the workspace.
+      if (alive && me?.isPlatformAdmin && !readActAs()) navigate("/admin", { replace: true });
     }).catch(() => {});
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -7,6 +7,9 @@ import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
 import { SubscriptionGate, useSubscriptionGate } from "../components/subscription-gate";
 import { SessionExpiredBanner } from "../components/session-expired-banner";
+import { ActingAsBanner } from "../components/acting-as-banner";
+import { readActAs } from "../lib/act-as";
+import { setOrgId } from "../lib/api";
 
 /**
  * Soft-gate banner (2026-08-21): signup lets users in immediately; this
@@ -87,6 +90,12 @@ export function Root() {
       window.location.replace("/welcome");
     }
   }, [authState.loading, authState.isAuthenticated, authState.needsOnboarding]);
+  // Z2.3 · a platform admin acting on behalf of a company: adopt the granted
+  // org as the active one (they hold no membership, so authStore resolves none).
+  useEffect(() => {
+    const act = readActAs();
+    if (act && authState.user?.isPlatformAdmin) setOrgId(act.orgId);
+  }, [authState.user?.isPlatformAdmin]);
   // 402 subscription_required / 410 org_deleted → friendly full-content gate
   // inside <main> (no popups) instead of raw red errors on every screen.
   // (hook must run before any early return — hooks order)
@@ -139,6 +148,7 @@ export function Root() {
       {/* Main content area */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         <AppHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <ActingAsBanner />
         <UnverifiedEmailBanner />
         <SessionExpiredBanner />
         <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">

@@ -155,6 +155,14 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
     headers['Accept-Language'] = lang === 'ar' ? 'ar-SA,ar;q=0.9,en;q=0.8' : 'en-US,en;q=0.9,ar;q=0.8'
   }
   if (!opts.skipOrg && orgId) headers['X-Org-Id'] = orgId
+  // Z2.3 · Open-as-admin: the grant in localStorage turns the active org into an
+  // admin override (requireOrg accepts + audit-logs it · restricted paths 403).
+  if (!opts.skipOrg && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('entix_act_as')
+      if (raw) { const v = JSON.parse(raw); if (v?.orgId && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+    } catch { /* ignore */ }
+  }
 
   let body: string | undefined
   if (opts.body !== undefined) body = JSON.stringify(opts.body)
@@ -1401,6 +1409,8 @@ export const api = {
     updatePlan: (planId: string, data: { name?: string; nameAr?: string | null; description?: string | null; isActive?: boolean; tier?: string; reason?: string | null }) =>
       request<AdminPlanRecord>(`/api/admin/plans/${planId}`, { method: 'PATCH', body: data, skipOrg: true }),
     audit: (params?: { targetType?: string; targetId?: string; adminUserId?: string; from?: string; to?: string; limit?: number }) => request<{ items: AdminAuditRow[]; total: number }>('/api/admin/audit', { query: params, skipOrg: true }),
+    impersonate: (orgId: string, reason: string) => request<{ orgId: string; orgName: string; country: string; baseCurrency: string; suspended: boolean; reason: string; expiresAt: string; minutes: number }>('/api/admin/impersonate', { method: 'POST', body: { orgId, reason }, skipOrg: true }),
+    impersonateStop: (orgId: string) => request<{ ok: true }>('/api/admin/impersonate/stop', { method: 'POST', body: { orgId }, skipOrg: true }),
     orgMembers: (orgId: string) => request<{ items: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name: string | null; emailVerified: boolean } }> }>(`/api/admin/orgs/${orgId}/members`, { skipOrg: true }),
     addOrgMember: (orgId: string, data: { email: string; role: string }) => request<{ ok: true }>(`/api/admin/orgs/${orgId}/members`, { method: 'POST', body: data, skipOrg: true }),
     removeOrgMember: (orgId: string, userId: string) => request<{ ok: true }>(`/api/admin/orgs/${orgId}/members/${userId}`, { method: 'DELETE', skipOrg: true }),

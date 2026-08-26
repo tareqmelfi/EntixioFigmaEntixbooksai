@@ -10,13 +10,15 @@
  * server-side (AdminAudit).
  */
 import { useState } from "react";
-import { Ban, CheckCircle2, Loader2, Pencil, RotateCcw, Save, ShieldAlert, Trash2, UserX } from "lucide-react";
+import { Ban, CheckCircle2, Loader2, Pencil, RotateCcw, Save, ShieldAlert, Trash2, UserX, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { InlineConfirm } from "./side-panel";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, setOrgId } from "../lib/api";
+import { startActAs } from "../lib/act-as";
+import { invalidateOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "./LanguageContext";
 
 type Push = (kind: "success" | "error" | "info", msg: string) => void;
@@ -33,6 +35,19 @@ export function AdminOrgManageCard({ org, push, onChanged }: {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"suspend" | "delete" | null>(null);
+  const [actReason, setActReason] = useState("");
+
+  const openAsAdmin = async () => {
+    setBusy("act");
+    try {
+      const g = await api.admin.impersonate(org.id, actReason.trim());
+      startActAs({ orgId: g.orgId, orgName: g.orgName, country: g.country, currency: g.baseCurrency, reason: g.reason, until: new Date(g.expiresAt).getTime() });
+      setOrgId(g.orgId); invalidateOrgRegion();
+      push("success", t(`فُتحت «${g.orgName}» بالنيابة · ${g.minutes} دقيقة`, `Opened “${g.orgName}” on behalf · ${g.minutes} min`));
+      window.open("/app/dashboard", "_blank", "noopener");
+    } catch (e) { push("error", errMsg(e, t("تعذر الفتح", "Could not open"))); }
+    finally { setBusy(null); }
+  };
 
   const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(key);
@@ -57,6 +72,20 @@ export function AdminOrgManageCard({ org, push, onChanged }: {
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-warning-border bg-warning-subtle px-3 py-2 text-sm text-warning">
             <Ban className="h-4 w-4" />{t("موقوفة", "Suspended")}{org.suspendedReason ? ` · ${org.suspendedReason}` : ""}
             <Button size="sm" variant="outline" className="ms-auto border-border" disabled={busy === "unsuspend"} onClick={() => run("unsuspend", () => api.admin.updateOrg(org.id, { suspended: false }), t("رُفع الإيقاف", "Suspension lifted"))}><CheckCircle2 className="me-1 h-3.5 w-3.5" />{t("رفع الإيقاف", "Lift suspension")}</Button>
+          </div>
+        )}
+
+        {/* Z2.3 · Open-as-admin */}
+        {!org.deletedAt && (
+          <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/[0.03] p-3">
+            <Label className="text-xs">{t("فتح كأدمن — السبب إلزامي (10 أحرف+) · 60 دقيقة · كل إجراء يُسجَّل باسمك", "Open as admin — reason required (10+ chars) · 60 minutes · every action is logged under your name")}</Label>
+            <div className="flex flex-wrap gap-2">
+              <Input value={actReason} onChange={(e) => setActReason(e.target.value)} placeholder={t("مثال: تذكرة #123 · نقل بيانات بطلب المالك", "e.g. ticket #123 · data migration at the owner's request")} className="flex-1 min-w-[240px]" />
+              <Button size="sm" className="bg-primary hover:bg-primary/90" disabled={busy === "act" || actReason.trim().length < 10} onClick={() => void openAsAdmin()}>
+                {busy === "act" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ExternalLink className="me-1 h-3.5 w-3.5" />{t("فتح كأدمن", "Open as admin")}</>}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">{t("يُفتح في تبويب جديد بشريط أحمر «تعمل بالنيابة». ممنوع أثناءه: مفاتيح API · حذف الشركة · Stripe checkout · كلمة مرور المالك.", "Opens in a new tab with a red «acting on behalf» strip. Blocked meanwhile: API keys · company delete · Stripe checkout · owner password.")}</p>
           </div>
         )}
 
