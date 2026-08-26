@@ -151,6 +151,7 @@ export function useFormDraft<T>(opts: {
     document.addEventListener("change", onTouch, true);
     document.addEventListener("paste", onTouch, true);
     document.addEventListener("keydown", onTouch, true);
+    document.addEventListener("pointerdown", onTouch, true); // combobox/toggle picks are clicks, not input events
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
@@ -159,6 +160,7 @@ export function useFormDraft<T>(opts: {
       document.removeEventListener("change", onTouch, true);
       document.removeEventListener("paste", onTouch, true);
       document.removeEventListener("keydown", onTouch, true);
+      document.removeEventListener("pointerdown", onTouch, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, key, enabled]);
@@ -174,6 +176,15 @@ export function useFormDraft<T>(opts: {
       setSavedAt(null);
     }
   }, [key, open]);
+
+  // Programmatic prefills that land BEFORE any user interaction (org currency,
+  // member default branch, async lookups) are part of the opening state — fold
+  // them into the baseline so an untouched form never shows «unsaved changes».
+  useEffect(() => {
+    if (open && !touchedRef.current && baselineRef.current !== "" && serialized !== baselineRef.current) {
+      baselineRef.current = serialized;
+    }
+  }, [open, serialized]);
 
   const dirty = open && serialized !== baselineRef.current && baselineRef.current !== "" &&
     (touchedRef.current || Date.now() - openedAtRef.current > TOUCH_GRACE_MS);
