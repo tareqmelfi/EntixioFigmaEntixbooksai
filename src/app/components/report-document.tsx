@@ -22,7 +22,7 @@ const defaultSettings: Omit<Required<ReportPrintSettings>, "language"> = {
   showNotes: false,
   // Condensed bilingual sheet is the professional default (CEO 2026-08-25 · Z12).
   template: "condensed",
-  bilingual: true,
+  bilingual: undefined as any, // org-derived (SA → on · else off) unless the designer sets it
   footerNote: "",
   preparedBy: "",
 };

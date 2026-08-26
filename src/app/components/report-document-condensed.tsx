@@ -32,12 +32,12 @@ const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal",
 const isTotalRow = (row: ReportRow) => /(^|-)total$/.test(row.id) || row.id === "net-income" || row.id === "current-earnings";
 const num = (v: number) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function Bi({ value, lang, primary, size = "md" }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg" }) {
+function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg"; both?: boolean }) {
   const { ar, en } = splitBi(value);
-  const both = ar && en;
+  const both = bothEnabled && ar && en;
   const main = lang === "ar" ? ar || en : en || ar;
   const alt = lang === "ar" ? en : ar;
-  const mainCls = size === "lg" ? "text-[15px] font-bold" : size === "sm" ? "text-[11px] font-semibold" : "text-[12.5px] font-bold";
+  const mainCls = size === "lg" ? "text-[15px] font-bold" : size === "sm" ? "text-[11px] font-medium" : "text-[12.5px] font-bold";
   const altCls = size === "lg" ? "text-[11px] font-semibold tracking-wide" : "text-[10px] font-medium";
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
@@ -56,6 +56,10 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
 }) {
   const lang = resolved.language;
   const isEn = lang === "en";
+  // Bilingual pairs only when the company wants them (explicit setting) — default
+  // ON for Saudi companies, OFF elsewhere (a US company never shows Arabic chrome).
+  const orgCountry = (report.org as any).country || "SA";
+  const bilingual = typeof (resolved as any).bilingual === "boolean" ? (resolved as any).bilingual : orgCountry === "SA";
   const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 12.5 : resolved.fontScale === "compact" ? 10.5 : 11.5;
@@ -89,8 +93,14 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
 
       {/* ── title block ── */}
       <div className="px-8 pb-2 pt-6 text-center">
-        <h1 className="text-[17px] font-extrabold leading-tight text-slate-900" dir="rtl">{report.title}</h1>
-        <div className="mt-0.5 text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--report-primary)" }} dir="ltr">{report.englishTitle}</div>
+        {bilingual ? (
+          <>
+            <h1 className="text-[17px] font-extrabold leading-tight text-slate-900" dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
+            <div className="mt-0.5 text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--report-primary)" }} dir={isEn ? "rtl" : "ltr"}>{isEn ? report.title : report.englishTitle}</div>
+          </>
+        ) : (
+          <h1 className="text-[17px] font-extrabold leading-tight" style={{ color: "var(--report-primary)" }} dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
+        )}
         <div className="mt-1 text-[10.5px] text-slate-500"><NumericText>{periodLine}</NumericText> · {currencyLine}</div>
       </div>
 
@@ -104,15 +114,15 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
           return (
             <section key={section.id} className="document-keep-together break-inside-avoid">
               <div className="mb-1.5 text-center">
-                <Bi value={section.title} lang={lang} primary size="md" />
-                {section.description ? <div className="mt-0.5 text-[10px] text-slate-500"><Bi value={section.description} lang={lang} size="sm" /></div> : null}
+                <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />
+                {section.description ? <div className="mt-0.5 text-[10px] text-slate-500"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
               <table className="document-table w-full border-collapse">
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-slate-600" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
-                        <Bi value={column.label} lang={lang} size="sm" />
+                        <Bi value={column.label} lang={lang} size="sm" both={bilingual} />
                       </th>
                     ))}
                   </tr>
@@ -135,8 +145,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                               {v === null || v === undefined || v === "" ? <span className="text-slate-400">—</span>
                                 : money ? <NumericText className={Number(v) < 0 ? "font-semibold text-red-700" : total ? "font-bold" : "font-medium"}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
                                 : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString("en-US")}</NumericText>
-                                : column.key === "label" ? <span dir="auto">{String(v)}</span>
-                                : <Bi value={String(v)} lang={lang} size="sm" />}
+                                : column.key === "label" ? <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />
+                                : <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />}
                             </td>
                           );
                         })}

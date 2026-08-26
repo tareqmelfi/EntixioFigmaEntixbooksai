@@ -226,6 +226,7 @@ export function ReportPrintDesigner() {
                 </div>
                 <Toggle label={t("معلومات الشركة", "Company info")} checked={resolved.showCompanyInfo} onChange={(value) => update("showCompanyInfo", value)} />
                 <Toggle label={t("معلومات الضريبة والسجل", "Tax & registration info")} checked={resolved.showTaxInfo} onChange={(value) => update("showTaxInfo", value)} />
+                <Toggle label={t("عناوين ثنائية اللغة (عربي · English)", "Bilingual labels (Arabic · English)")} checked={typeof resolved.bilingual === "boolean" ? resolved.bilingual : ((report?.org as any)?.country || "SA") === "SA"} onChange={(value) => update("bilingual", value)} />
                 <Toggle label={t("عمود الملاحظات", "Notes column")} checked={resolved.showNotes} onChange={(value) => update("showNotes", value)} />
                 <Toggle label={t("تذييل التقرير", "Report footer")} checked={resolved.showFooter} onChange={(value) => update("showFooter", value)} />
                 <Control label={t("نص التذييل (إخلاء مسؤولية · أساس الإعداد…)", "Footer note (disclaimer · basis of preparation…)")}>
