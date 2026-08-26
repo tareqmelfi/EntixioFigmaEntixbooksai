@@ -47,6 +47,7 @@ import { useFormDraft, formatDraftTime } from "../lib/form-draft";
 import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchField } from "../components/branch-field";
 
 type Line = { accountId: string; debit: string; credit: string; description: string };
 const blankLine = (): Line => ({ accountId: "", debit: "0", credit: "0", description: "" });
@@ -58,6 +59,8 @@ type FormState = {
   reference: string;
   lines: Line[];
   postOnSave: boolean;
+  /** Branch dimension (B1) · undefined = apply member default · null = none */
+  branchId?: string | null;
 };
 
 export function JournalEntries() {
@@ -89,7 +92,7 @@ export function JournalEntries() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<FormState>({
-    date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true,
+    date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true, branchId: undefined,
   });
   // Draft protection · autosave + restore (CEO 2026-08-25 · never lose a typed entry)
   const draft = useFormDraft({ key: editMode && selected ? `journal:${selected.id}` : "journal:new", open, snapshot: form, restore: (s) => setForm(s) });
@@ -123,7 +126,7 @@ export function JournalEntries() {
     setForm({ ...form, lines });
   };
 
-  const resetForm = () => setForm({ date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true });
+  const resetForm = () => setForm({ date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true, branchId: undefined });
 
   const openCreate = () => { resetForm(); setEditMode(false); setOpen(true); };
 
@@ -136,6 +139,7 @@ export function JournalEntries() {
       date: e.date.slice(0, 10),
       description: e.description,
       reference: e.reference || "",
+      branchId: (e as any).branchId ?? null,
       lines: e.lines.map(l => ({
         accountId: l.accountId,
         debit: String(l.debit || 0),
@@ -170,6 +174,7 @@ export function JournalEntries() {
       description: form.description.trim(),
       reference: form.reference.trim() || null,
       postOnSave: form.postOnSave,
+      branchId: form.branchId ?? null,
       lines: validLines.map(l => ({
         accountId: l.accountId,
         debit: Number(l.debit) || 0,
@@ -624,9 +629,15 @@ export function JournalEntries() {
                     <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t("قيد تسوية رواتب شهر...", "Monthly payroll settlement entry...")} required className="border-border" />
                   </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("المرجع (اختياري)", "Reference (optional)")}</Label>
-                  <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم مستند خارجي", "External document number")} className="border-border" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t("المرجع (اختياري)", "Reference (optional)")}</Label>
+                    <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم مستند خارجي", "External document number")} className="border-border" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t("الفرع", "Branch")}</Label>
+                    <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-border overflow-hidden">

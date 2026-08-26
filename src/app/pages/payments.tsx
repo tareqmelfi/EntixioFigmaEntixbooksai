@@ -22,6 +22,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useReturnTo } from "../lib/use-return-to";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchField } from "../components/branch-field";
 import { useOrgRegion } from "../lib/use-org-region";
 
 export function Payments() {
@@ -79,6 +80,7 @@ export function Payments() {
         reference: full.reference || "",
         bankAccountId: (full as any).bankAccountId || "",
         notes: full.notes || "",
+        branchId: (full as any).branchId ?? null,
         allocations: [],
       });
       setEditingPayment(full);
@@ -145,6 +147,7 @@ export function Payments() {
     reference: "",
     bankAccountId: "",
     notes: "",
+    branchId: undefined as string | null | undefined, // B1 · undefined = apply member default
     allocations: [] as Array<{ billId: string; amount: string }>,
   });
   const draft = useFormDraft({ key: editingPayment ? `payment:${editingPayment.id}` : "payment:new", open, snapshot: form, restore: (s) => setForm(s) });
@@ -217,6 +220,7 @@ export function Payments() {
     contactId: "", billId: "",
     date: new Date().toISOString().slice(0, 10),
     amount: "", paymentMethod: "BANK_TRANSFER", reference: "", bankAccountId: "", notes: "",
+    branchId: undefined,
     allocations: [],
   });
 
@@ -247,6 +251,7 @@ export function Payments() {
           bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
           reference: form.reference || null,
           notes: form.notes || null,
+          branchId: form.branchId ?? null,
         });
         setItems(prev => prev.map(x => x.id === updated.id ? updated : x));
         setEditingPayment(updated);
@@ -275,6 +280,7 @@ export function Payments() {
             bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
             reference: bill?.billNumber || form.reference || null,
             notes: form.notes || null,
+            branchId: form.branchId ?? null,
           });
           created.push(v);
         }
@@ -289,6 +295,7 @@ export function Payments() {
           bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
           reference: form.reference || null,
           notes: form.notes || null,
+          branchId: form.branchId ?? null,
         });
         created.push(v);
       }
@@ -694,9 +701,15 @@ export function Payments() {
                   <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم تحويل / رقم شيك", "Transfer no. / Check no.")} dir="ltr" className="font-english" />
                 </div>
 
-                <div>
-                  <Label className="text-xs">{t("ملاحظات", "Notes")}</Label>
-                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("ملاحظات اختيارية", "Optional notes")} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">{t("ملاحظات", "Notes")}</Label>
+                    <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("ملاحظات اختيارية", "Optional notes")} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("الفرع", "Branch")}</Label>
+                    <BranchField compact value={form.branchId} onChange={(id) => setForm((f: any) => ({ ...f, branchId: id }))} />
+                  </div>
                 </div>
           </form>
 

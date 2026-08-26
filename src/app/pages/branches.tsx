@@ -3,7 +3,7 @@
  * (/app/branches/:id) instead of a slide-over. New → /app/branches/new.
  */
 import { useEffect, useState, useCallback } from "react";
-import { GitBranch, Plus, Loader2, ChevronLeft } from "lucide-react";
+import { GitBranch, Plus, Loader2, ChevronLeft, Star } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -14,12 +14,13 @@ export function Branches() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
+  const [defaultBranchId, setDefaultBranchId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setItems((await api.branches.list()).items); }
+    try { const r = await api.branches.list(); setItems(r.items); setDefaultBranchId(r.defaultBranchId ?? null); }
     catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load")); }
     finally { setLoading(false); }
   }, []);
@@ -47,7 +48,13 @@ export function Branches() {
           </tr></thead><tbody>
             {items.map(b => (
               <tr key={b.id} onClick={() => navigate(`/app/branches/${b.id}`)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
-                <td className="py-3 px-4 text-sm text-foreground" style={{ fontWeight: 500 }}>{b.name}</td>
+                <td className="py-3 px-4 text-sm text-foreground" style={{ fontWeight: 500 }}>
+                  <span className="inline-flex items-center gap-2">{b.name}
+                    {b.isHQ ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{t("المركز الرئيسي", "HQ")}</span> : null}
+                    {defaultBranchId === b.id ? <span title={t("فرعي الافتراضي", "My default branch")}><Star className="h-3.5 w-3.5 text-warning" /></span> : null}
+                  </span>
+                  {b.nameAr ? <div className="text-xs text-muted-foreground">{b.nameAr}</div> : null}
+                </td>
                 <td className="py-3 px-4 font-english text-sm text-muted-foreground">{b.code || "—"}</td>
                 <td className="py-3 px-4 text-sm text-foreground/80">{b.address || "—"}</td>
                 <td className="py-3 px-2 text-muted-foreground/50"><ChevronLeft className="h-4 w-4" /></td>

@@ -26,6 +26,7 @@ import { buildDuplicateDecision, getSimilarityReview, type SimilarityReview } fr
 import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchField } from "../components/branch-field";
 import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
@@ -69,6 +70,8 @@ const EMPTY_FORM = {
   dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
   currency: "SAR",
   notes: "",
+  // Branch dimension (B1) · undefined = apply member default · null = none
+  branchId: undefined as string | null | undefined,
 };
 
 export function PurchaseBills() {
@@ -187,9 +190,12 @@ export function PurchaseBills() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
+  // B1 · /app/purchases/bills?branchId=<id|none> (deep-link from branch reports)
+  const branchFilterId = searchParams.get("branchId") || "";
   const filtered = items.filter(b =>
-    !searchQuery || b.billNumber.includes(searchQuery) ||
-    (b.contact?.displayName || "").includes(searchQuery)
+    (!branchFilterId || (branchFilterId === "none" ? !b.branchId : b.branchId === branchFilterId)) &&
+    (!searchQuery || b.billNumber.includes(searchQuery) ||
+    (b.contact?.displayName || "").includes(searchQuery))
   );
 
   const total = items.reduce((s, b) => s + Number(b.total), 0);
@@ -215,6 +221,7 @@ export function PurchaseBills() {
       dueDate: b.dueDate?.slice(0, 10) || EMPTY_FORM.dueDate,
       currency: b.currency || orgCurrency || "SAR",
       notes: b.notes || "",
+      branchId: b.branchId ?? null,
     } as any);
     const linesData = (b.lines || []).map((l: any) => ({ description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice), accountId: l.accountId || "", productId: l.productId || "" }));
     setLines(linesData.length > 0 ? linesData : [newLine()]);
@@ -288,6 +295,7 @@ export function PurchaseBills() {
         currency: form.currency,
         status,
         notes: form.notes || null,
+        branchId: form.branchId ?? null,
         termsConditions: form.reference ? `Supplier Ref: ${form.reference}` : undefined,
         // ingestion-integrity: supplier doc number + source file for dedupe & attachment guarantee
         supplierDocNumber: form.reference || extractedDocNumber || undefined,
@@ -516,6 +524,10 @@ export function PurchaseBills() {
                     <SelectItem value="custom">{t("مخصصة لكل بند", "Custom per line")}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
+                <BranchField compact value={form.branchId} onChange={(id) => setForm((f: any) => ({ ...f, branchId: id }))} />
               </div>
             </div>
 

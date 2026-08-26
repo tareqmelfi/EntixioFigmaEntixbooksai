@@ -27,6 +27,7 @@ export function ReportPrintDesigner() {
 
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
+  const branchId = searchParams.get("branchId") || undefined;
 
   useEffect(() => {
     let alive = true;
@@ -34,7 +35,7 @@ export function ReportPrintDesigner() {
       setLoading(true);
       setError(null);
       try {
-        const payload = await api.reports.get(id, { from, to, bilingual: 1 });
+        const payload = await api.reports.get(id, { from, to, bilingual: 1, branchId });
         const fullOrg = await api.orgs.get(payload.org.id);
         const nextSettings = normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports);
         if (alive) {

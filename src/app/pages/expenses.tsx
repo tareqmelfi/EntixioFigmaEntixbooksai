@@ -41,6 +41,7 @@ import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { AttachmentViewer, ViewerAttachment } from "../components/attachment-viewer";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchField } from "../components/branch-field";
 import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
@@ -92,6 +93,8 @@ type FormState = {
   registerAsAsset?: boolean;
   /** حساب الأصل من الشجرة — اختيار حساب داخل فرع الأصول يسجّله تلقائياً حتى بدون تفعيل العلم */
   assetAccountId?: string;
+  /** Branch dimension (B1) · undefined = apply member default · null = none */
+  branchId?: string | null;
 };
 
 type ExtractionSummary = {
@@ -209,6 +212,7 @@ function emptyForm(): FormState {
     ocrConfidence: null,
     registerAsAsset: false,
     assetAccountId: "",
+    branchId: undefined,
   };
 }
 
@@ -760,14 +764,17 @@ export function Expenses() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
 
+  // B1 · /app/expenses?branchId=<id|none> (deep-link from branch reports)
+  const branchFilterId = searchParams.get("branchId") || "";
   const filtered = items.filter((e) =>
+    (!branchFilterId || (branchFilterId === "none" ? !e.branchId : e.branchId === branchFilterId)) && (
     !searchQuery
       || e.category.includes(searchQuery)
       || e.number.includes(searchQuery)
       || (e.documentNumber || "").includes(searchQuery)
       || (e.description || "").includes(searchQuery)
       || (e.vendorName || "").includes(searchQuery)
-      || (e.contact?.displayName || "").includes(searchQuery)
+      || (e.contact?.displayName || "").includes(searchQuery))
   );
   const total = Number(summary.sumTotal || 0);
   const avg = Number(summary.avgTotal || 0);
@@ -889,6 +896,7 @@ export function Expenses() {
       }] : [],
       extractedJson: expense.extractedJson || null,
       ocrConfidence: expense.ocrConfidence ? Number(expense.ocrConfidence) : null,
+      branchId: (expense as any).branchId ?? null,
     });
     setCreateOpen(true);
   }
@@ -971,6 +979,7 @@ export function Expenses() {
         // تسجيل كأصل ثابت تلقائياً (يرتبط بالمصروف ويأخذ كوداً تلقائياً)
         registerAsAsset: formData.registerAsAsset === true,
         assetAccountId: formData.assetAccountId || null,
+        branchId: formData.branchId ?? null,
       };
       const saved = editingId ? await api.expenses.update(editingId, input) : await api.expenses.create(input);
       const review = editingId ? null : getSimilarityReview(saved);
@@ -1416,6 +1425,7 @@ export function Expenses() {
                     options={Object.entries(paymentMethodLabels(t)).map(([value, label]) => ({ value, label }))}
                   />
                 </div>
+                <BranchField value={formData.branchId} onChange={(id) => setFormData((f) => ({ ...f, branchId: id }))} />
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

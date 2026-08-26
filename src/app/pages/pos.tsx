@@ -246,7 +246,7 @@ export function PosPage() {
 
   // ── shift ──
   const openShift = async () => {
-    try { await api.posShiftOpen(Number(floatInput) || 0); const r = await api.posShiftCurrent(); setShift(r.shift); saveShiftCache(r.shift); }
+    try { await api.posShiftOpen(Number(floatInput) || 0, settings.branchId); const r = await api.posShiftCurrent(); setShift(r.shift); saveShiftCache(r.shift); }
     catch (e: any) { showToast("err", e?.message || t("تعذر فتح الوردية", "Could not open the shift")); }
   };
   const [localMode, setLocalMode] = useState(false);

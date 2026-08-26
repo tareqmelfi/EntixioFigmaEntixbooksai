@@ -24,6 +24,7 @@ import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Contact, Invoice } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchField } from "../components/branch-field";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, ISSUED: { ar: "صادر", en: "Issued" }, APPLIED: { ar: "مطبَّق", en: "Applied" }, CANCELLED: { ar: "ملغى", en: "Cancelled" },
@@ -49,6 +50,8 @@ const EMPTY_FORM = {
   issueDate: new Date().toISOString().slice(0, 10),
   reason: "RETURN",
   notes: "",
+  // Branch dimension (B1) · undefined = apply member default · null = none
+  branchId: undefined as string | null | undefined,
 };
 
 interface CreditNote {
@@ -130,6 +133,7 @@ export function CreditNotes() {
           issueDate: (cn.issueDate || "").slice(0, 10),
           reason: cn.reason || "RETURN",
           notes: cn.notes || "",
+          branchId: cn.branchId ?? null,
         });
         const mapped = (cn.lines || []).map((line: any) => ({
           ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0.15, false),
@@ -220,6 +224,7 @@ export function CreditNotes() {
         issueDate: form.issueDate,
         reason: form.reason,
         notes: form.notes || null,
+        branchId: form.branchId ?? null,
         lines: validLines.map((l) => ({
           originalInvoiceLineId: (l as any).originalInvoiceLineId || null,
           productId: l.productId || null,
@@ -322,15 +327,18 @@ export function CreditNotes() {
                 <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-foreground/80">{t("سبب الإصدار", "Reason for issue")} *</Label>
-              <select
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
-              >
-                {REASONS.map(r => <option key={r.value} value={r.value}>{t(r.label.ar, r.label.en)}</option>)}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-foreground/80">{t("سبب الإصدار", "Reason for issue")} *</Label>
+                <select
+                  value={form.reason}
+                  onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                  className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
+                >
+                  {REASONS.map(r => <option key={r.value} value={r.value}>{t(r.label.ar, r.label.en)}</option>)}
+                </select>
+              </div>
+              <BranchField value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
             </div>
             {selectedInvoice && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-sm text-foreground">

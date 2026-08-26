@@ -8,6 +8,7 @@ import { ReportDocument, normalizeReportSettings } from "../components/report-do
 import { splitBi } from "../components/report-document-condensed";
 import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchFilter } from "../components/branch-field";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -66,6 +67,8 @@ export function ReportView() {
   // Comparative layout (user ask 2026-08-19 — Apple-style year-over-year):
   // toggle sends compareTo = the day before the current window starts.
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
+  // B1 · branch scope ("" = all · "none" = unassigned · id)
+  const [branchId, setBranchId] = useState(searchParams.get("branchId") || "");
   const compareTo = useMemo(() => {
     if (!compare) return undefined;
     const start = new Date(from);
@@ -91,8 +94,8 @@ export function ReportView() {
   };
 
   useEffect(() => {
-    setSearchParams({ from, to }, { replace: true });
-  }, [from, to, setSearchParams]);
+    setSearchParams(branchId ? { from, to, branchId } : { from, to }, { replace: true });
+  }, [from, to, branchId, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -101,7 +104,7 @@ export function ReportView() {
       setError(null);
       try {
         // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
-        const data = await api.reports.get(id, { from, to, compareTo, bilingual: 1 });
+        const data = await api.reports.get(id, { from, to, compareTo, bilingual: 1, branchId: branchId || undefined });
         if (alive) {
           setReport(data);
           setSelectedRow(null);
@@ -115,7 +118,7 @@ export function ReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, compareTo]);
+  }, [id, from, to, compareTo, branchId]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -126,7 +129,7 @@ export function ReportView() {
     return { ...report, sections: report.sections.filter((s) => !isDetailSection(s.id)) };
   }, [report, detailMode, hasDetailSections]);
 
-  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}`;
 
   const exportCsv = () => {
     if (!report) return;
@@ -176,7 +179,7 @@ export function ReportView() {
               )}
             </Button>
           )}
-          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, compareTo }).then(setReport)}>
+          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, compareTo, bilingual: 1, branchId: branchId || undefined }).then(setReport)}>
             <RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}
           </Button>
           {/* One compact export control — formats live inside the menu (no
@@ -186,7 +189,7 @@ export function ReportView() {
       </div>
 
       <Card className="border-border">
-        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto_auto_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">{t("من تاريخ", "From date")}</span>
             <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
@@ -195,6 +198,7 @@ export function ReportView() {
             <span className="font-semibold">{t("إلى تاريخ", "To date")}</span>
             <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
           </label>
+          <BranchFilter value={branchId} onChange={setBranchId} className="h-10 rounded-lg border border-border bg-white px-3 text-sm text-foreground" />
           <button
             type="button"
             onClick={() => setCompare((v) => !v)}

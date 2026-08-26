@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
+import { BranchField } from "../components/branch-field";
 import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
@@ -56,6 +57,8 @@ const EMPTY_FORM = {
   paymentTerms: "net30", // net15 | net30 | net60 | due-on-receipt | custom
   brandTemplate: "default",
   notes: "",
+  // Branch dimension (B1) · undefined = apply member default · null = none
+  branchId: undefined as string | null | undefined,
 };
 
 const PAYMENT_TERMS = [
@@ -229,8 +232,11 @@ export function Invoices() {
   const contactFilterId = searchParams.get("contactId") || "";
   const contactFilterName = contactFilterId ? (customers.find((c) => c.id === contactFilterId)?.displayName || "") : "";
 
+  // B1 · /app/invoices?branchId=<id|none> (deep-link from branch reports)
+  const branchFilterId = searchParams.get("branchId") || "";
   const filtered = items.filter(i => {
     if (contactFilterId && i.contactId !== contactFilterId) return false;
+    if (branchFilterId && (branchFilterId === "none" ? !!i.branchId : i.branchId !== branchFilterId)) return false;
     if (filterStatus !== "ALL" && i.status !== filterStatus) return false;
     if (searchQuery) return i.invoiceNumber.includes(searchQuery) || (i.contact?.displayName || "").includes(searchQuery);
     return true;
@@ -338,6 +344,7 @@ export function Invoices() {
         currency: form.currency,
         status,
         notes: form.notes || null,
+        branchId: form.branchId ?? null,
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
@@ -514,6 +521,7 @@ export function Invoices() {
       currency: inv.currency,
       notes: inv.notes || "",
       reference: (inv as any).reference || "",
+      branchId: (inv as any).branchId ?? null,
     } as any);
     setLines(((inv.lines as any[]) || []).map((l: any) => ({
       id: l.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -696,8 +704,8 @@ export function Invoices() {
               </div>
             </div>
 
-            {/* Second row · currency + tax mode + brand template + documents button */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {/* Second row · currency + tax mode + brand template + payment terms + branch (B1) */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
@@ -744,6 +752,10 @@ export function Invoices() {
                     {PAYMENT_TERMS.map((pt) => <SelectItem key={pt.value} value={pt.value}>{t(pt.label.ar, pt.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
+                <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
               </div>
             </div>
 

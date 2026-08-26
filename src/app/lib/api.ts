@@ -681,15 +681,15 @@ export const api = {
     merge: (targetBillId: string, data: { sourceDocumentId?: string }) => request<any>(`/api/bills/${targetBillId}/merge`, { method: 'POST', body: data }),
   },
 
-  // Branches
+  // Branches (B1 · 2026-08-26): analytical dimension on every document
   branches: {
-    list: () => request<{ items: any[]; total: number }>('/api/branches'),
-    get: (id: string) => request<any>(`/api/branches/${id}`),
-    create: (data: { name: string; code?: string; address?: string }) =>
-      request<any>('/api/branches', { method: 'POST', body: data }),
-    update: (id: string, data: { name?: string; code?: string; address?: string }) =>
-      request<any>(`/api/branches/${id}`, { method: 'PATCH', body: data }),
+    list: (params?: { all?: 1 }) => request<{ items: Branch[]; total: number; defaultBranchId: string | null }>('/api/branches', { query: params }),
+    get: (id: string) => request<Branch>(`/api/branches/${id}`),
+    create: (data: BranchInput) => request<Branch>('/api/branches', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<BranchInput>) => request<Branch>(`/api/branches/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/branches/${id}`, { method: 'DELETE' }),
+    /** Caller's default branch for new documents (per company membership) */
+    setDefault: (branchId: string | null) => request<{ ok: true; defaultBranchId: string | null }>('/api/branches/default', { method: 'PUT', body: { branchId } }),
   },
 
   // Cost Centers
@@ -1273,7 +1273,7 @@ export const api = {
 
   // Invoices
   invoices: {
-    list: (params?: { status?: string; contactId?: string; page?: number; limit?: number }) =>
+    list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string }) =>
       request<PaginatedResponse<Invoice>>('/api/invoices', { query: params }),
     nextNumber: () => request<{ number: string }>('/api/invoices/_/next-number'),
     get: (id: string) => request<Invoice>(`/api/invoices/${id}`),
@@ -1297,8 +1297,8 @@ export const api = {
     ),
   posShiftCurrent: () =>
     request<{ shift: { id: string; openedAt: string; openingFloat: string } | null }>('/api/pos/shift/current'),
-  posShiftOpen: (openingFloat: number) =>
-    request<{ shift: { id: string } }>('/api/pos/shift/open', { method: 'POST', body: { openingFloat } }),
+  posShiftOpen: (openingFloat: number, branchId?: string | null) =>
+    request<{ shift: { id: string; branchId?: string | null } }>('/api/pos/shift/open', { method: 'POST', body: { openingFloat, branchId } }),
   posShiftClose: (closingCount: number, notes?: string) =>
     request<{ summary: { openingFloat: number; cashSales: number; expectedCash: number; closingCount: number; difference: number; salesTotal: number; salesCount: number } }>(
       '/api/pos/shift/close', { method: 'POST', body: { closingCount, notes } },
@@ -1433,6 +1433,31 @@ export interface MeResponse extends User {
     role: 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'VIEWER'
     org: { id: string; slug: string; name: string; baseCurrency: string; country: string; demoExpiresAt?: string | null }
   }>
+}
+
+export interface Branch {
+  id: string;
+  orgId: string;
+  name: string;
+  nameAr?: string | null;
+  code?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  vatBranchNo?: string | null;
+  warehouseId?: string | null;
+  isHQ: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
+export interface BranchInput {
+  name: string;
+  nameAr?: string | null;
+  code?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  vatBranchNo?: string | null;
+  warehouseId?: string | null;
+  isHQ?: boolean;
 }
 
 export interface OrgSubscriptionSummary {
@@ -1735,6 +1760,8 @@ export interface JournalAttachment {
 }
 
 export interface JournalEntryRow {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   id: string
   number: string
   date: string
@@ -1752,6 +1779,8 @@ export interface JournalEntryRow {
 }
 
 export interface JournalEntryInput {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   date: string
   description: string
   reference?: string | null
@@ -1905,6 +1934,8 @@ export interface AccountInput {
 }
 
 export interface Expense {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   id: string
   orgId: string
   contactId?: string | null
@@ -1977,6 +2008,8 @@ export interface ExpensePaymentSplit {
 }
 
 export interface ExpenseInput {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   number?: string
   date: string
   category: string
@@ -2344,6 +2377,8 @@ export interface OcrResult {
 }
 
 export interface Quote {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   id: string
   orgId: string
   contactId: string
@@ -2373,6 +2408,8 @@ export interface Quote {
 }
 
 export interface QuoteInput {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   contactId: string
   quoteNumber?: string
   status?: Quote['status']
@@ -2393,6 +2430,8 @@ export interface QuoteInput {
 }
 
 export interface Voucher {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   id: string
   orgId: string
   type: 'RECEIPT' | 'PAYMENT'
@@ -2410,6 +2449,8 @@ export interface Voucher {
 }
 
 export interface VoucherInput {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   type: 'RECEIPT' | 'PAYMENT'
   number?: string
   date: string
@@ -2425,6 +2466,8 @@ export interface VoucherInput {
 }
 
 export interface Invoice {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   id: string
   orgId: string
   contactId: string
@@ -2459,6 +2502,8 @@ export interface InvoiceLine {
 }
 
 export interface InvoiceInput {
+  /** Branch dimension (B1) · omitted → member default · null → none */
+  branchId?: string | null
   contactId: string
   invoiceNumber?: string
   status?: Invoice['status']

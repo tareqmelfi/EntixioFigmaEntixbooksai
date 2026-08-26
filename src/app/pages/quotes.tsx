@@ -24,6 +24,7 @@ import { api, ApiError, Quote, Contact } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
+import { BranchField } from "../components/branch-field";
 
 const CURRENCIES = [
   { value: "SAR", label: { ar: "ريال سعودي · SAR", en: "Saudi Riyal · SAR" } },
@@ -54,6 +55,8 @@ const EMPTY_FORM = {
   validUntil: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
   currency: "SAR",
   notes: "",
+  // Branch dimension (B1) · undefined = apply member default · null = none
+  branchId: undefined as string | null | undefined,
 };
 
 export function Quotes() {
@@ -161,6 +164,7 @@ export function Quotes() {
         currency: form.currency,
         status,
         notes: form.notes || null,
+        branchId: form.branchId ?? null,
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: validLines.map((l) => ({
           productId: l.productId || null,
@@ -325,6 +329,10 @@ export function Quotes() {
                     <SelectItem value="custom">{t("مخصصة لكل بند", "Custom per line")}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
+                <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
               </div>
             </div>
 
