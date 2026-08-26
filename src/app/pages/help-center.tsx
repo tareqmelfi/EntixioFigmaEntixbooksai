@@ -99,7 +99,7 @@ export function HelpCenter() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-7xl">
       <div>
         <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("مركز الدعم", "Support center")}</h1>
         <p className="text-muted-foreground mt-1">{t("الوكيل يحل أغلب الأسئلة فورًا — وإلا صعّد لنا مباشرة", "The agent solves most questions instantly — otherwise escalate to us directly")}</p>

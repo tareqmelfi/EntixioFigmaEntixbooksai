@@ -117,7 +117,7 @@ export function Billing() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-7xl">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
         <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الاشتراك والفوترة", "Subscription & Billing")}</h1>

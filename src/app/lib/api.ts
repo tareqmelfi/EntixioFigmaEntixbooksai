@@ -37,7 +37,24 @@ export function getOrgId(): string | null {
   return orgId
 }
 
+// S3 (2026-08-26): GET /orgs was fired ~40× per Settings load (every hook and
+// page re-resolved the active org). One short-lived cache + in-flight dedupe;
+// every org mutation and org switch invalidates it.
+const ORGS_TTL_MS = 15_000
+let orgsCache: { at: number; data: Org[] } | null = null
+let orgsInflight: Promise<Org[]> | null = null
+export function invalidateOrgsCache() { orgsCache = null }
+function listOrgsCached(): Promise<Org[]> {
+  if (orgsCache && Date.now() - orgsCache.at < ORGS_TTL_MS) return Promise.resolve(orgsCache.data)
+  if (orgsInflight) return orgsInflight
+  orgsInflight = request<Org[]>('/orgs', { skipOrg: true })
+    .then((data) => { orgsCache = { at: Date.now(), data }; return data })
+    .finally(() => { orgsInflight = null })
+  return orgsInflight
+}
+
 export function setOrgId(id: string | null) {
+  if (id !== orgId) invalidateOrgsCache()
   orgId = id
   if (typeof localStorage !== 'undefined') {
     if (id) localStorage.setItem('entix_org_id', id)
@@ -448,16 +465,17 @@ export const api = {
 
   // Orgs
   orgs: {
-    list: () => request<Org[]>('/orgs', { skipOrg: true }),
+    /** Cached 15 s + deduped in flight (S3) · pass { fresh: true } to bypass */
+    list: (opts?: { fresh?: boolean }) => { if (opts?.fresh) invalidateOrgsCache(); return listOrgsCached() },
     create: (data: CreateOrgInput) =>
-      request<Org>('/orgs', { method: 'POST', body: data, skipOrg: true }),
+      request<Org>('/orgs', { method: 'POST', body: data, skipOrg: true }).then((r) => { invalidateOrgsCache(); return r }),
     get: (id: string) => request<Org>(`/orgs/${id}`, { skipOrg: true }),
     update: (id: string, data: Partial<Org>) =>
-      request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }),
+      request<Org>(`/orgs/${id}`, { method: 'PATCH', body: data, skipOrg: true }).then((r) => { invalidateOrgsCache(); return r }),
     remove: (id: string, data: { confirmName: string }) =>
-      request<{ ok: true; deletedOrgId: string; deletedAt: string; restoreUntil: string; graceDays: number; nextOrgId: string | null }>(`/orgs/${id}`, { method: 'DELETE', body: data, skipOrg: true }),
+      request<{ ok: true; deletedOrgId: string; deletedAt: string; restoreUntil: string; graceDays: number; nextOrgId: string | null }>(`/orgs/${id}`, { method: 'DELETE', body: data, skipOrg: true }).then((r) => { invalidateOrgsCache(); return r }),
     restore: (id: string) =>
-      request<{ ok: true; org: Org }>(`/orgs/${id}/restore`, { method: 'POST', skipOrg: true }),
+      request<{ ok: true; org: Org }>(`/orgs/${id}/restore`, { method: 'POST', skipOrg: true }).then((r) => { invalidateOrgsCache(); return r }),
     listDeleted: () => request<Org[]>('/orgs', { query: { deleted: 1 }, skipOrg: true }),
     members: (id: string) =>
       request<{ members: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name?: string | null } }> }>(`/orgs/${id}/members`, { skipOrg: true }),

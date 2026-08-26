@@ -394,7 +394,7 @@ export function ContractorDetail() {
   );
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-7xl">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
         <Link to="/app/contractors" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
