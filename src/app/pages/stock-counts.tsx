@@ -323,7 +323,14 @@ export function StockCountDetail() {
           </table>
         </CardContent>
       </Card>
-      {sc.status === "POSTED" && <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-subtle px-4 py-3 text-sm text-success"><Check className="h-4 w-4" />{t("رُحّلت التسويات إلى دفتر المخزون (نوع الحركة: تسوية جرد).", "Adjustments were posted to the stock ledger (movement type: stocktake adjustment).")}</div>}
+      {sc.status === "POSTED" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-success-border bg-success-subtle px-4 py-3 text-sm text-success">
+          <Check className="h-4 w-4" />{t("رُحّلت التسويات إلى دفتر المخزون (نوع الحركة: تسوية جرد).", "Adjustments were posted to the stock ledger (movement type: stocktake adjustment).")}
+          {sc.journal
+            ? <Link to={`/app/journal-entries/${sc.journal.id}`} className="ms-auto font-english underline underline-offset-2" dir="ltr">{sc.journal.entryNumber} ↗</Link>
+            : <span className="ms-auto text-xs text-muted-foreground">{t("لا قيد محاسبي (لا فروق ذات قيمة · أو لا حساب مخزون في الدليل)", "No GL entry (no valued variance · or no inventory account in the chart)")}</span>}
+        </div>
+      )}
       <style>{`@media print { .print\\:hidden { display: none !important; } aside, header, nav { display: none !important; } }`}</style>
     </div>
   );

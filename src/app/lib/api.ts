@@ -801,6 +801,11 @@ export const api = {
     create: (data: any) => request<any>('/api/products', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/products/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/products/${id}`, { method: 'DELETE' }),
+    // B3.2 · alias barcodes (carton = 12 units …)
+    barcodes: (id: string) => request<{ items: ProductBarcode[] }>(`/api/products/${id}/barcodes`),
+    addBarcode: (id: string, data: { barcode: string; unitMultiplier?: number; label?: string | null }) => request<ProductBarcode>(`/api/products/${id}/barcodes`, { method: 'POST', body: data }),
+    removeBarcode: (id: string, barcodeId: string) => request<void>(`/api/products/${id}/barcodes/${barcodeId}`, { method: 'DELETE' }),
+    lookup: (code: string) => request<{ product: any; unitMultiplier: number; via: 'sku' | 'barcode'; label?: string | null }>('/api/products/_/lookup', { query: { code } }),
     importBulk: (rows: Array<{ sku?: string; name: string; nameAr?: string; description?: string; type?: string; category?: string; billingCycle?: string; unitPrice?: number; costPrice?: number }>, skipExisting = true) =>
       request<{ ok: true; created: number; skipped: number; errors: any[]; message: string }>(
         '/api/products/import',
@@ -1170,6 +1175,8 @@ export const api = {
   // Inventory · multi-warehouse · WAC/FIFO/LIFO
   inventory: {
     listWarehouses: () => request<{ items: any[] }>('/api/inventory/warehouses'),
+    // B3.3 · products at/below their reorder point
+    reorder: (params?: { warehouseId?: string }) => request<{ items: ReorderAlert[]; total: number }>('/api/inventory/reorder', { query: params }),
     createWarehouse: (data: { code: string; name: string; isPrimary?: boolean; address?: string }) =>
       request<any>('/api/inventory/warehouses', { method: 'POST', body: data }),
     listStock: (params?: { productId?: string; warehouseId?: string }) =>
@@ -1657,7 +1664,11 @@ export interface StockCountSummary {
 export interface StockCount extends StockCountSummary {
   lines: StockCountLine[]
   summary: { lines: number; counted: number; variances: number; shortageValue: number; surplusValue: number }
+  /** B4.2 · GL entry mirroring the posted variances (null until posted / when the company has no inventory account) */
+  journal?: { id: string; entryNumber: string } | null
 }
+export interface ProductBarcode { id: string; productId: string; barcode: string; unitMultiplier: string | number; label?: string | null; createdAt: string }
+export interface ReorderAlert { product: { id: string; sku: string | null; name: string; nameAr: string | null; category: string | null; imageUrl?: string | null }; onHand: number; reorderQty: number; shortBy: number; unitCost: number; suggestedQty: number }
 
 export interface ReportPrintSettings {
   logoSource?: 'print' | 'main' | 'none'

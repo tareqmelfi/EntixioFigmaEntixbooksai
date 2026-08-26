@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse, ClipboardList } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse, ClipboardList, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
+import { useOrgRegion } from "../lib/use-org-region";
+import type { ReorderAlert } from "../lib/api";
 
 type ProductRow = {
   id: string;
@@ -86,6 +88,8 @@ export function Inventory() {
   const [warehouses, setWarehouses] = useState<WarehouseRow[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [movements, setMovements] = useState<MovementRow[]>([]);
+  const [reorder, setReorder] = useState<ReorderAlert[]>([]);
+  const { currency: orgCurrency } = useOrgRegion();
   const navigate = useNavigate();
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
@@ -101,6 +105,7 @@ export function Inventory() {
         api.inventory.listStock(),
         api.inventory.listMovements(),
       ]);
+      api.inventory.reorder().then((r) => setReorder(r.items || [])).catch(() => setReorder([]));
       setProducts(productsRes.items || []);
       setWarehouses(warehousesRes.items || []);
       setStock(stockRes.items || []);
@@ -139,8 +144,42 @@ export function Inventory() {
         <Metric label={t("المستودعات", "Warehouses")} value={warehouses.length.toString()} />
         <Metric label={t("الأصناف المخزنية", "Inventory items")} value={products.filter((p) => p.type === "INVENTORY").length.toString()} />
         <Metric label={t("إجمالي الكمية", "Total quantity")} value={qty(totalQty)} />
-        <Metric label={t("قيمة المخزون", "Stock value")} value={`${money(stockValue)} SAR`} tone={lowStock > 0 ? "warn" : "default"} />
+        <Metric label={t("قيمة المخزون", "Stock value")} value={`${money(stockValue)} ${orgCurrency || ""}`} tone={lowStock > 0 ? "warn" : "default"} />
       </div>
+
+      {/* B3.3 · reorder alerts · products at/below their reorder point */}
+      {reorder.length > 0 && (
+        <Card className="border-warning-border bg-warning-subtle/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4 text-warning" />{t(`تنبيهات إعادة الطلب · ${reorder.length}`, `Reorder alerts · ${reorder.length}`)}</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto p-0">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border/60 text-xs text-muted-foreground">
+                <th className="px-4 py-2 text-start">{t("الصنف", "Item")}</th>
+                <th className="px-4 py-2 text-end">{t("المتوفر", "On hand")}</th>
+                <th className="px-4 py-2 text-end">{t("حد الطلب", "Reorder point")}</th>
+                <th className="px-4 py-2 text-end">{t("النقص", "Short by")}</th>
+                <th className="px-4 py-2 text-end">{t("كمية مقترحة", "Suggested qty")}</th>
+                <th className="px-4 py-2 text-end">{t("التكلفة التقديرية", "Est. cost")}</th>
+              </tr></thead>
+              <tbody>
+                {reorder.slice(0, 20).map((r) => (
+                  <tr key={r.product.id} className="border-b border-border/40 hover:bg-white/60 cursor-pointer" onClick={() => navigate(`/app/products/${r.product.id}`)}>
+                    <td className="px-4 py-2 text-foreground">{displayName(r.product as any)}{r.product.sku ? <span className="ms-2 font-english text-xs text-muted-foreground" dir="ltr">{r.product.sku}</span> : null}</td>
+                    <td className="px-4 py-2 text-end font-english">{qty(r.onHand)}</td>
+                    <td className="px-4 py-2 text-end font-english">{qty(r.reorderQty)}</td>
+                    <td className="px-4 py-2 text-end font-english text-danger">{qty(r.shortBy)}</td>
+                    <td className="px-4 py-2 text-end font-english">{qty(r.suggestedQty)}</td>
+                    <td className="px-4 py-2 text-end font-english">{money(r.suggestedQty * r.unitCost)} {orgCurrency || ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {reorder.length > 20 && <div className="px-4 py-2 text-xs text-muted-foreground">{t(`+${reorder.length - 20} صنف آخر`, `+${reorder.length - 20} more`)}</div>}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <TabButton active={activeTab === "stock"} onClick={() => setActiveTab("stock")}>{t("الأرصدة", "Balances")}</TabButton>

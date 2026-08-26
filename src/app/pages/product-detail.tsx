@@ -9,13 +9,13 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowRight, ImagePlus, Loader2, Save, Trash2, X } from "lucide-react";
+import { ArrowRight, ImagePlus, Loader2, Save, Trash2, X, ScanBarcode, Plus } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError, Account } from "../lib/api";
+import { api, ApiError, Account, type ProductBarcode } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { useLanguage } from "../components/LanguageContext";
@@ -283,6 +283,7 @@ export function ProductDetail() {
                 )}
               </CardContent>
             </Card>
+            {!isNew && (form.type === "GOOD" || form.type === "INVENTORY") && <BarcodesCard productId={id!} push={push} />}
           </div>
         </div>
 
@@ -295,5 +296,54 @@ export function ProductDetail() {
         </div>
       </form>
     </div>
+  );
+}
+
+
+/** B3.2 · alias scan codes: a carton barcode with multiplier 12 sells 12 units in one POS scan. */
+function BarcodesCard({ productId, push }: { productId: string; push: (kind: "success" | "error" | "info", msg: string) => void }) {
+  const { t } = useLanguage();
+  const [items, setItems] = useState<ProductBarcode[]>([]);
+  const [barcode, setBarcode] = useState("");
+  const [mult, setMult] = useState("1");
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => { api.products.barcodes(productId).then((r) => setItems(r.items || [])).catch(() => setItems([])); }, [productId]);
+  useEffect(() => { load(); }, [load]);
+  const add = async () => {
+    if (!barcode.trim()) return;
+    setBusy(true);
+    try {
+      await api.products.addBarcode(productId, { barcode: barcode.trim(), unitMultiplier: Number(mult) || 1, label: label.trim() || null });
+      setBarcode(""); setMult("1"); setLabel(""); load();
+      push("success", t("أُضيف الباركود", "Barcode added"));
+    } catch (e: any) {
+      push("error", e instanceof ApiError && e.message.includes("barcode_taken") ? t("هذا الباركود مستخدم لصنف آخر", "This barcode belongs to another item") : e instanceof ApiError ? e.message : t("فشل الإضافة", "Add failed"));
+    } finally { setBusy(false); }
+  };
+  return (
+    <Card className="border-border">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><ScanBarcode className="h-4 w-4 text-muted-foreground" />{t("باركودات إضافية (كرتون · عبوة)", "Extra barcodes (carton · pack)")}</div>
+        <p className="text-[11px] text-muted-foreground leading-5">{t("SKU الصنف هو الكود الأساسي. أضف هنا باركود الكرتون مع عدد الوحدات — مسحة واحدة في الكاشير تبيع الكمية كاملة.", "The item SKU is the primary code. Add the carton barcode with its unit count — one POS scan sells the whole quantity.")}</p>
+        {items.length > 0 && (
+          <ul className="divide-y divide-border/60 rounded-lg border border-border">
+            {items.map((b) => (
+              <li key={b.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                <span className="font-english" dir="ltr">{b.barcode}</span>
+                <span className="text-xs text-muted-foreground">× {Number(b.unitMultiplier)}{b.label ? ` · ${b.label}` : ""}</span>
+                <button type="button" onClick={async () => { try { await api.products.removeBarcode(productId, b.id); load(); } catch { push("error", t("فشل الحذف", "Delete failed")); } }} className="ms-auto text-muted-foreground hover:text-danger" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="grid grid-cols-[1fr_72px_1fr_auto] gap-2 items-end">
+          <div className="space-y-1"><Label className="text-xs">{t("الباركود", "Barcode")}</Label><Input value={barcode} onChange={(e) => setBarcode(e.target.value)} dir="ltr" className="font-english h-9" placeholder="628…" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void add(); } }} /></div>
+          <div className="space-y-1"><Label className="text-xs">{t("وحدات", "Units")}</Label><Input value={mult} onChange={(e) => setMult(e.target.value)} dir="ltr" className="font-english h-9" inputMode="numeric" /></div>
+          <div className="space-y-1"><Label className="text-xs">{t("وصف", "Label")}</Label><Input value={label} onChange={(e) => setLabel(e.target.value)} className="h-9" placeholder={t("كرتون 12", "Carton of 12")} /></div>
+          <Button type="button" variant="outline" onClick={add} disabled={busy || !barcode.trim()} className="h-9 border-border"><Plus className="h-4 w-4" /></Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

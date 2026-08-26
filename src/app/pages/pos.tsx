@@ -171,6 +171,11 @@ export function PosPage() {
     if (!raw) { if (cart.length) void pay(); return; }
     const exact = items.find((p) => (p.sku || "").toLowerCase() === raw.toLowerCase());
     if (exact) return add(exact, qty);
+    // B3.2 · alias barcode (carton/pack) → product × unitMultiplier
+    for (const p of items) {
+      const alias = (p.barcodes || []).find((b) => b.barcode.toLowerCase() === raw.toLowerCase());
+      if (alias) return add(p, qty * (Number(alias.unitMultiplier) || 1));
+    }
     const byName = items.filter((p) => p.name.toLowerCase().includes(raw.toLowerCase()) || (p.nameAr || "").includes(raw));
     if (byName.length === 1) return add(byName[0], qty);
     if (byName.length === 0) { beep("err", settings.soundOn); showToast("err", t(`لا يوجد صنف بالباركود/الاسم «${raw}»`, `No item matches “${raw}”`)); setQuery(""); }

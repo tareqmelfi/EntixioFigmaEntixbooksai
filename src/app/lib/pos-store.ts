@@ -22,13 +22,15 @@ export type PosProduct = {
   id: string; sku: string | null; name: string; nameAr: string | null; imageUrl: string | null;
   type: string; unitPrice: string; stockQty: string; category: string | null;
   taxRate: { rate: string; type: string } | null;
+  /** B3.2 · alias scan codes (carton = 12 units …) */
+  barcodes?: Array<{ barcode: string; unitMultiplier: string | number; label: string | null }>;
 };
 export type PosStore = {
   name: string | null; legalName: string | null; vatNumber: string | null; crNumber: string | null; phone: string | null;
   addressLine: string | null; city: string | null; country: string | null; baseCurrency: string | null;
   logoUrl: string | null; printLogoUrl: string | null;
 };
-export type PosBranch = { id: string; name: string; code: string | null };
+export type PosBranch = { id: string; name: string; code: string | null; warehouseId?: string | null };
 export type PosCatalog = { items: PosProduct[]; orgVatRate: number; store: PosStore | null; branches: PosBranch[]; fetchedAt: string };
 
 export type PaymentMethod = "CASH" | "CARD" | "MADA";
