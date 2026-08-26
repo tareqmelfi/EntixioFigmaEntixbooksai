@@ -113,9 +113,9 @@ export function AdminSupportWorkspacePage() {
       <Card className="border-border">
         <CardHeader><CardTitle className="text-base text-foreground">{t("الروابط", "Links")}</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3 text-sm">
-          <Link to={`/app/admin/users/${summary.user.id}`} data-testid={`support-user-link-${summary.user.id}`} className="text-primary hover:underline">{summary.user.email}</Link>
+          <Link to={`/admin/users/${summary.user.id}`} data-testid={`support-user-link-${summary.user.id}`} className="text-primary hover:underline">{summary.user.email}</Link>
           <span className="text-muted-foreground">·</span>
-          <Link to={`/app/admin/orgs/${summary.org.id}`} data-testid={`support-org-link-${summary.org.id}`} className="text-primary hover:underline">{summary.org.name}</Link>
+          <Link to={`/admin/orgs/${summary.org.id}`} data-testid={`support-org-link-${summary.org.id}`} className="text-primary hover:underline">{summary.org.name}</Link>
         </CardContent>
       </Card>
 

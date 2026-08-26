@@ -1,5 +1,5 @@
 /**
- * Admin Dashboard · /app/admin (W31)
+ * Admin Dashboard · /admin (W31)
  *
  * «يوزر أدمن مختلف مرة — يشوف المشتركين والشركات ويتحكم ويرد على الدعم»
  * Server-side gate: every /api/admin/* call returns 403 unless the session
@@ -18,10 +18,15 @@ import { useLanguage } from "../components/LanguageContext";
 type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email" | "backups" | "agent";
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
-export function AdminDashboard() {
+/** Z2.1 · URL section → tab (the shell's sidebar drives navigation; «system» keeps sub-tabs). */
+export type AdminSection = "overview" | "orgs" | "users" | "subscriptions" | "support" | "system";
+const SYSTEM_TABS: Tab[] = ["email", "backups", "agent", "ai"];
+
+export function AdminDashboard({ section = "overview" }: { section?: AdminSection }) {
   const { t } = useLanguage();
   const { toasts, push, dismiss } = useToasts();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [systemTab, setSystemTab] = useState<Tab>("email");
+  const tab: Tab = section === "system" ? systemTab : section === "subscriptions" ? "orgs" : section;
   const [forbidden, setForbidden] = useState(false);
   const guard = useCallback((e: any) => {
     if (e instanceof ApiError && e.status === 403) { setForbidden(true); return true; }
@@ -39,20 +44,30 @@ export function AdminDashboard() {
     );
   }
 
+  const titles: Record<AdminSection, [string, string]> = {
+    overview: [t("اللوحة", "Overview"), t("أرقام اليوم · الشركات النشطة · ما يحتاج انتباهك", "Today's numbers · active companies · what needs attention")],
+    orgs: [t("الشركات", "Companies"), t("بحث · الأعضاء · الاشتراك · فتح ملف الشركة", "Search · members · subscription · open the company file")],
+    users: [t("المستخدمون", "Users"), t("بحث · توثيق · إعادة تعيين · إنشاء حساب", "Search · verify · reset · create account")],
+    subscriptions: [t("الاشتراكات", "Subscriptions"), t("حسب الشركة: مجاملة · تجربة · إلغاء · Lifetime (الجدول الموحّد في Z2.2)", "Per company: comp · trial · cancel · lifetime (unified table lands in Z2.2)")],
+    support: [t("الدعم", "Support"), t("المحادثات والتذاكر", "Threads and tickets")],
+    system: [t("النظام", "System"), t("البريد · النسخ الاحتياطي · وكيل الأدمن · استهلاك الذكاء", "Email · backups · admin agent · AI usage")],
+  };
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5 max-w-7xl">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{t("لوحة الأدمن", "Admin dashboard")}</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{t("المشتركون · المنشآت · المستخدمون · الدعم — كل فعل يُسجّل في سجل التدقيق", "Subscribers · orgs · users · support — every action is audit-logged")}</p>
+        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{titles[section][0]}</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{titles[section][1]}</p>
       </div>
-      <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
-        {([["overview", t("نظرة عامة", "Overview")], ["orgs", t("المنشآت", "Orgs")], ["users", t("المستخدمون", "Users")], ["support", t("الدعم", "Support")], ["ai", t("الذكاء", "AI usage")], ["email", t("البريد", "Email")], ["backups", t("النسخ الاحتياطي", "Backups")], ["agent", t("وكيل الأدمن", "Admin agent")]] as [Tab, string][]).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
-        ))}
-      </div>
+      {section === "system" && (
+        <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
+          {([["email", t("البريد", "Email")], ["backups", t("النسخ الاحتياطي", "Backups")], ["agent", t("وكيل الأدمن", "Admin agent")], ["ai", t("الذكاء", "AI usage")]] as [Tab, string][]).filter(([id]) => SYSTEM_TABS.includes(id)).map(([id, label]) => (
+            <button key={id} onClick={() => setSystemTab(id)}
+              className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
+          ))}
+        </div>
+      )}
       {tab === "overview" && <OverviewTab guard={guard} />}
       {tab === "orgs" && <OrgsTab guard={guard} push={push} t={t} />}
       {tab === "users" && <UsersTab guard={guard} push={push} t={t} />}
@@ -95,7 +110,7 @@ function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
                 <tr key={o.id} className="relative border-b border-border/60 hover:bg-muted/20 focus-within:bg-muted/20">
                   <td className="px-4 py-2.5 relative">
                     <Link
-                      to={`/app/admin/orgs/${o.id}`}
+                      to={`/admin/orgs/${o.id}`}
                       data-testid={`admin-overview-org-row-link-${o.id}`}
                       aria-label={`${o.name} workspace`}
                       className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
@@ -111,19 +126,19 @@ function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
                     <div className="relative z-20 pointer-events-none text-foreground" style={{ fontWeight: 600 }}>{o.name} <span className="text-xs text-muted-foreground font-normal">{o.country}</span></div>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground font-english text-xs relative">
-                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
                     <div className="relative z-20 pointer-events-none">{o.ownerEmail || "—"}</div>
                   </td>
                   <td className="px-4 py-2.5 text-foreground/80 text-xs relative">
-                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
                     <div className="relative z-20 pointer-events-none">{o.plan || "—"}</div>
                   </td>
                   <td className="px-4 py-2.5 relative">
-                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
                     <div className="relative z-20 pointer-events-none"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : o.status === "TRIALING" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>{o.status}</span></div>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs relative">
-                    <Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
                     <div className="relative z-20 pointer-events-none">{fmtDate(o.createdAt)}</div>
                   </td>
                 </tr>
@@ -184,7 +199,7 @@ function OrgsTab({ guard, push, t }: any) {
                 <tr key={o.id} className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
                   <td className="px-3 py-2.5 relative">
                     <Link
-                      to={`/app/admin/orgs/${o.id}`}
+                      to={`/admin/orgs/${o.id}`}
                       data-testid={`admin-org-row-link-${o.id}`}
                       aria-label={`${o.name} workspace`}
                       className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
@@ -199,9 +214,9 @@ function OrgsTab({ guard, push, t }: any) {
                     </Link>
                     <div className="relative z-20 pointer-events-none"><span className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</span></div><div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div>
                   </td>
-                  <td className="px-3 py-2.5 text-xs font-english text-muted-foreground relative"><Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.owner?.email || "—"}</div></td>
-                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}{o.subscription.status === "ACTIVE" && !o.subscription.currentPeriodEnd ? ` · ${t("بدون انتهاء", "no expiry")}` : ""}</div></>) : "—"}</div></td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative"><Link to={`/app/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.members} / {o.invoices}</div></td>
+                  <td className="px-3 py-2.5 text-xs font-english text-muted-foreground relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.owner?.email || "—"}</div></td>
+                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}{o.subscription.status === "ACTIVE" && !o.subscription.currentPeriodEnd ? ` · ${t("بدون انتهاء", "no expiry")}` : ""}</div></>) : "—"}</div></td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.members} / {o.invoices}</div></td>
                   <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
                       <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
@@ -321,7 +336,7 @@ function UsersTab({ guard, push, t }: any) {
                 <tr key={u.id} className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
                   <td className="px-3 py-2.5 relative">
                     <Link
-                      to={`/app/admin/users/${u.id}`}
+                      to={`/admin/users/${u.id}`}
                       data-testid={`admin-user-row-link-${u.id}`}
                       aria-label={`${u.email} workspace`}
                       className="absolute inset-0 z-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
@@ -338,11 +353,11 @@ function UsersTab({ guard, push, t }: any) {
                     <div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{u.name || ""} {u.emailVerified ? "· ✓" : "· ⚠️ unverified"}</div>
                   </td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground relative">
-                    <Link to={`/app/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <Link to={`/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
                     <div className="relative z-20 pointer-events-none">{u.orgs.map((o: any) => `${o.name} (${o.role})`).join(" · ") || "—"}</div>
                   </td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground relative">
-                    <Link to={`/app/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
+                    <Link to={`/admin/users/${u.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
                     <div className="relative z-20 pointer-events-none">{fmtDate(u.createdAt)}</div>
                   </td>
                   <td className="px-3 py-2.5 relative z-20">

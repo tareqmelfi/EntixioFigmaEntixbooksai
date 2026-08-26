@@ -241,7 +241,7 @@ useEffect(() => {
   useEffect(() => {
     let alive = true;
     api.me().then((me: any) => {
-      if (alive && me?.isPlatformAdmin) navigate("/app/admin", { replace: true });
+      if (alive && me?.isPlatformAdmin) navigate("/admin", { replace: true });
     }).catch(() => {});
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

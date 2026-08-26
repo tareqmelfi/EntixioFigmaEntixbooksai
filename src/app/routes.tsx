@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { Root } from "./layouts/root";
+import { AdminRoot, LegacyAdminRedirect } from "./layouts/admin";
 import { AuthGuard } from "./components/auth-guard";
 import { ErrorBoundary, NotFound } from "./components/error-boundary";
 import { Landing } from "./pages/landing";
@@ -24,6 +25,7 @@ function RouteFallback() {
 function lazyElement(
   factory: () => Promise<Record<string, React.ComponentType<any> | undefined>>,
   name: string,
+  props?: Record<string, unknown>,
 ) {
   const C = React.lazy(async () => {
     const m = await factory();
@@ -33,7 +35,7 @@ function lazyElement(
   });
   return (
     <Suspense fallback={<RouteFallback />}>
-      <C />
+      <C {...(props || {})} />
     </Suspense>
   );
 }
@@ -177,6 +179,29 @@ export const router = createBrowserRouter([
     errorElement: <ErrorBoundary />,
   },
 
+  // Admin Console v2 · standalone shell (Z2.1) · no accounting sidebar · no org switcher
+  {
+    path: "/admin",
+    element: (
+      <AuthGuard>
+        <AdminRoot />
+      </AuthGuard>
+    ),
+    errorElement: <ErrorBoundary />,
+    children: [
+      { index: true, element: lazyElement(() => import("./pages/admin"), "AdminDashboard"), errorElement: <ErrorBoundary /> },
+      { path: "orgs", element: lazyElement(() => import("./pages/admin"), "AdminDashboard", { section: "orgs" }), errorElement: <ErrorBoundary /> },
+      { path: "users", element: lazyElement(() => import("./pages/admin"), "AdminDashboard", { section: "users" }), errorElement: <ErrorBoundary /> },
+      { path: "subscriptions", element: lazyElement(() => import("./pages/admin"), "AdminDashboard", { section: "subscriptions" }), errorElement: <ErrorBoundary /> },
+      { path: "support", element: lazyElement(() => import("./pages/admin"), "AdminDashboard", { section: "support" }), errorElement: <ErrorBoundary /> },
+      { path: "system", element: lazyElement(() => import("./pages/admin"), "AdminDashboard", { section: "system" }), errorElement: <ErrorBoundary /> },
+      { path: "orgs/:orgId", element: lazyElement(() => import("./pages/admin-organization"), "AdminOrganizationWorkspace"), errorElement: <ErrorBoundary /> },
+      { path: "users/:userId", element: lazyElement(() => import("./pages/admin-user-workspace"), "AdminUserWorkspacePage"), errorElement: <ErrorBoundary /> },
+      { path: "subscribers/:orgId", element: lazyElement(() => import("./pages/admin-subscriber-workspace"), "AdminSubscriberWorkspacePage"), errorElement: <ErrorBoundary /> },
+      { path: "support/:threadId", element: lazyElement(() => import("./pages/admin-support-workspace"), "AdminSupportWorkspacePage"), errorElement: <ErrorBoundary /> },
+    ],
+  },
+
   // Protected app routes
   {
     path: "/app",
@@ -309,11 +334,9 @@ export const router = createBrowserRouter([
       { path: "onboarding", element: lazyElement(() => import("./pages/onboarding-wizard"), "OnboardingWizard"), errorElement: <ErrorBoundary /> },
       { path: "system-status", element: lazyElement(() => import("./pages/system-status"), "SystemStatus"), errorElement: <ErrorBoundary /> },
       { path: "notifications", element: lazyElement(() => import("./pages/notifications"), "Notifications"), errorElement: <ErrorBoundary /> },
-      { path: "admin", element: lazyElement(() => import("./pages/admin"), "AdminDashboard"), errorElement: <ErrorBoundary /> },
-      { path: "admin/orgs/:orgId", element: lazyElement(() => import("./pages/admin-organization"), "AdminOrganizationWorkspace"), errorElement: <ErrorBoundary /> },
-      { path: "admin/users/:userId", element: lazyElement(() => import("./pages/admin-user-workspace"), "AdminUserWorkspacePage"), errorElement: <ErrorBoundary /> },
-      { path: "admin/subscribers/:orgId", element: lazyElement(() => import("./pages/admin-subscriber-workspace"), "AdminSubscriberWorkspacePage"), errorElement: <ErrorBoundary /> },
-      { path: "admin/support/:threadId", element: lazyElement(() => import("./pages/admin-support-workspace"), "AdminSupportWorkspacePage"), errorElement: <ErrorBoundary /> },
+      // Z2.1 · the admin console moved to its own shell (/admin/*) · old links redirect
+      { path: "admin/*", element: <LegacyAdminRedirect />, errorElement: <ErrorBoundary /> },
+      { path: "admin", element: <LegacyAdminRedirect />, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: lazyElement(() => import("./pages/feature-roadmap"), "FeatureRoadmap"), errorElement: <ErrorBoundary /> },
       { path: "marketplace/accountants", element: <Navigate to="/app/roadmap" replace />, errorElement: <ErrorBoundary /> },
     ],

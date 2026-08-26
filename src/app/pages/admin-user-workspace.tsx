@@ -165,8 +165,8 @@ export function AdminUserWorkspacePage() {
                     <tr key={row.id} className="border-b border-border/60">
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-3">
-                          <Link to={`/app/admin/orgs/${row.org.id}`} data-testid={`user-membership-org-link-${row.org.id}`} className="text-foreground hover:underline">{row.org.name}</Link>
-                          <Link to={`/app/admin/subscribers/${row.org.id}`} data-testid={`user-membership-subscriber-link-${row.org.id}`} className="text-xs text-primary hover:underline">{t("الاشتراك", "Subscriber")}</Link>
+                          <Link to={`/admin/orgs/${row.org.id}`} data-testid={`user-membership-org-link-${row.org.id}`} className="text-foreground hover:underline">{row.org.name}</Link>
+                          <Link to={`/admin/subscribers/${row.org.id}`} data-testid={`user-membership-subscriber-link-${row.org.id}`} className="text-xs text-primary hover:underline">{t("الاشتراك", "Subscriber")}</Link>
                         </div>
                         <div className="text-[11px] text-muted-foreground font-english" dir="ltr">{row.org.slug} · {row.org.country}</div>
                       </td>

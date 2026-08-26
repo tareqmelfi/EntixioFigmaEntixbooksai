@@ -11,7 +11,7 @@ export function AdminWorkspaceLoading() {
 
 export function AdminWorkspaceBackLink({ label }: { label: string }) {
   return (
-    <Link to="/app/admin" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+    <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
       <ArrowLeft className="h-3.5 w-3.5" />
       {label}
     </Link>
@@ -32,7 +32,7 @@ export function AdminWorkspaceStateCard(props: {
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{props.body}</p>
         {props.notFoundId ? <p className="text-sm text-muted-foreground font-english" dir="ltr">{props.notFoundId}</p> : null}
-        <Link to="/app/admin" className="text-sm text-primary hover:underline">{props.backLabel}</Link>
+        <Link to="/admin" className="text-sm text-primary hover:underline">{props.backLabel}</Link>
       </CardContent>
     </Card>
   );

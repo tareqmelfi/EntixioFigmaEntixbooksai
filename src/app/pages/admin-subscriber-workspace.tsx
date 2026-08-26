@@ -129,7 +129,7 @@ export function AdminSubscriberWorkspacePage() {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-muted-foreground">{t("المنشأة", "Organization")}: </span>
-            <Link to={`/app/admin/orgs/${summary.org.id}`} data-testid={`subscriber-org-link-${summary.org.id}`} className="text-primary hover:underline">
+            <Link to={`/admin/orgs/${summary.org.id}`} data-testid={`subscriber-org-link-${summary.org.id}`} className="text-primary hover:underline">
               {summary.org.name}
             </Link>
           </div>

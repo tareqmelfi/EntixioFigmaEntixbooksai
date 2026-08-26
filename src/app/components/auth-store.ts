@@ -38,7 +38,7 @@ export interface User {
   /** ISO timestamp when account deletion was requested (null = healthy). */
   deletionRequestedAt?: string | null
   /** Platform-admin (ADMIN_EMAILS) — never owns/belongs to a company; routed
-   * straight to /app/admin, never through /welcome onboarding. */
+   * straight to /admin, never through /welcome onboarding. */
   isPlatformAdmin?: boolean
 }
 
@@ -230,7 +230,7 @@ class AuthStore {
         // accounts are DELIBERATELY zero-org (detached from any company by
         // design) — sending them to /welcome would ask them to create a
         // company, which is exactly what must never happen. dashboard.tsx
-        // already redirects isPlatformAdmin sessions to /app/admin once they
+        // already redirects isPlatformAdmin sessions to /admin once they
         // land past this gate.
         const isPlatformAdmin = !!me?.isPlatformAdmin
         const needsOnboarding = meKnown && !activeMembership && !isPlatformAdmin

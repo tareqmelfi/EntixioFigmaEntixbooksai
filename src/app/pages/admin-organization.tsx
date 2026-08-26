@@ -96,7 +96,7 @@ export function AdminOrganizationWorkspace() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">{t("هذه مساحة منشأة أدمن وغير متاحة لحسابك الحالي.", "This admin organization workspace is unavailable for your current account.")}</p>
-          <Link to="/app/admin" className="text-sm text-primary hover:underline">{t("العودة إلى لوحة الأدمن", "Back to admin dashboard")}</Link>
+          <Link to="/admin" className="text-sm text-primary hover:underline">{t("العودة إلى لوحة الأدمن", "Back to admin dashboard")}</Link>
         </CardContent>
       </Card>
     );
@@ -110,7 +110,7 @@ export function AdminOrganizationWorkspace() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground font-english" dir="ltr">{orgId}</p>
-          <Link to="/app/admin" className="text-sm text-primary hover:underline">{t("العودة إلى لوحة الأدمن", "Back to admin dashboard")}</Link>
+          <Link to="/admin" className="text-sm text-primary hover:underline">{t("العودة إلى لوحة الأدمن", "Back to admin dashboard")}</Link>
         </CardContent>
       </Card>
     );
@@ -135,7 +135,7 @@ export function AdminOrganizationWorkspace() {
   return (
     <div className="space-y-5 max-w-6xl">
       <div className="space-y-1">
-        <Link to="/app/admin" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+        <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />{t("رجوع للوحة الأدمن", "Back to admin")}
         </Link>
         <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
@@ -214,7 +214,7 @@ export function AdminOrganizationWorkspace() {
                     <tr key={row.id} className="border-b border-border/60">
                       <td className="px-3 py-2.5">
                         <Link
-                          to={`/app/admin/users/${row.user.id}`}
+                          to={`/admin/users/${row.user.id}`}
                           data-testid={`org-people-user-link-${row.user.id}`}
                           className="font-english text-xs text-foreground hover:underline"
                           dir="ltr"
@@ -268,7 +268,7 @@ export function AdminOrganizationWorkspace() {
                   <div key={thread.id} className="rounded-lg border border-border p-3">
                     <div className="flex items-center justify-between gap-2">
                       <Link
-                        to={`/app/admin/support/${thread.id}`}
+                        to={`/admin/support/${thread.id}`}
                         data-testid={`org-support-thread-link-${thread.id}`}
                         className="text-sm text-foreground hover:underline"
                         style={{ fontWeight: 600 }}
