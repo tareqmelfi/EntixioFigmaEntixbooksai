@@ -9,6 +9,8 @@ import {
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
 import { useOrgRegion } from "../lib/use-org-region";
+import { useZatcaStatus } from "../lib/use-zatca-status";
+import { zatcaStatusLabel } from "./zatca-status-badge";
 import { api, NotificationItem } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 import { BidiText } from "./bidi-text";
@@ -33,6 +35,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const notifRef = useRef<HTMLDivElement>(null);
   const authState = authStore.getState();
   const { isSA } = useOrgRegion();
+  const zatca = useZatcaStatus(isSA);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -87,16 +90,18 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      {/* Gate 0 · country selects relevance only; it never proves a verified server connection. */}
-      {isSA && (
-      <div className="border-b border-warning-border bg-warning-subtle px-4 py-2 text-warning sm:px-6">
+      {/* ZATCA strip · per-org truth (CEO 26/08): green when the production CSID is
+          issued, amber while linking, neutral when not started. Country only selects
+          relevance; the label comes from /api/zatca/onboarding/status. */}
+      {isSA && !zatca.loading && (
+      <div className={`border-b px-4 py-2 sm:px-6 ${zatca.connection === "connected" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : zatca.connection === "in_progress" ? "border-warning-border bg-warning-subtle text-warning" : "border-border bg-muted/40 text-muted-foreground"}`} data-zatca-connection={zatca.connection}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <Shield className="h-4 w-4 shrink-0 text-warning" />
-            <span className="truncate text-sm">{t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation")}</span>
+            {zatca.connection === "connected" ? <ShieldCheck className="h-4 w-4 shrink-0" /> : <Shield className="h-4 w-4 shrink-0" />}
+            <span className="truncate text-sm">ZATCA Phase 2 — {zatcaStatusLabel(zatca, t)}</span>
           </div>
-          <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold text-warning hover:underline">
-            {t("مراجعة التفاصيل", "Review details")}
+          <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold hover:underline">
+            {zatca.connection === "connected" ? t("التفاصيل", "Details") : zatca.connection === "in_progress" ? t("إكمال الربط", "Continue linking") : t("ابدأ الربط", "Start linking")}
           </Link>
         </div>
       </div>

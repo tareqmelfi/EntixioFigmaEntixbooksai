@@ -17,6 +17,8 @@ import { useLanguage } from "../components/LanguageContext";
 import { ApiKeysTab } from "../components/api-keys-tab";
 import { LedgerMappingTab } from "../components/ledger-mapping-tab";
 import { DeletedCompanies } from "../components/deleted-companies";
+import { useZatcaStatus, invalidateZatcaStatus } from "../lib/use-zatca-status";
+import { ZatcaStatusBadge, ZatcaStatusRow } from "../components/zatca-status-badge";
 
 type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys" | "control-accounts";
 const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys", "control-accounts"];
@@ -44,6 +46,7 @@ export function Settings() {
     industry: "",
     defaultInvoiceLanguage: "ar" as "ar" | "en",
   });
+  const zatcaStatus = useZatcaStatus(form.country !== "US");
 
   // AI Billing state
   const [aiConfig, setAiConfig] = useState<AiBillingConfig | null>(null);
@@ -436,12 +439,7 @@ export function Settings() {
                 </div>
               </div>
             </div>
-            {form.country !== "US" && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <input type="checkbox" id="zatca" checked={false} disabled className="h-4 w-4" />
-                <label htmlFor="zatca" className="text-sm text-amber-900">{t("ZATCA Phase 2 — قيد التحقق · التفعيل الإنتاجي معطّل", "ZATCA Phase 2 — Under validation · production enablement disabled")}</label>
-              </div>
-            )}
+            {form.country !== "US" && <ZatcaStatusRow status={zatcaStatus} />}
             {form.country === "US" && (
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900">
                 {t("🇺🇸 وضع الشركات الأمريكية مفعّل · لا حاجة لـ ZATCA · أنت مرتبط ببوابات أمريكية (Stripe · Plaid · 1099) ولا تحتاج للسوق السعودي", "🇺🇸 US company mode is on · no ZATCA needed · you are linked to US gateways (Stripe · Plaid · 1099) and don't need the Saudi market")}
@@ -1819,8 +1817,10 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
   const [csr, setCsr] = useState<{ csrBase64: string; deviceName: string } | null>(null);
   const [run, setRun] = useState<any>(null);
 
+  const live = useZatcaStatus();
   const refresh = async () => {
     try { setSt(await api.zatca.onboarding.status()); } catch { /* gated/unauth */ }
+    invalidateZatcaStatus(); // header strip + company row follow the wizard without a reload
   };
   useEffect(() => { refresh(); }, []);
 
@@ -1858,7 +1858,7 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">📋 {t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")}</CardTitle>
+        <CardTitle className="text-foreground flex flex-wrap items-center gap-2">📋 {t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")} <ZatcaStatusBadge status={live} size="xs" /></CardTitle>
         <CardDescription>{t("تهيئة شهادة الجهاز (CSID) عبر مسار فاتورة الرسمي: مفاتيح محلية → OTP → امتثال → إنتاج.", "Device certificate (CSID) onboarding via the official Fatoora path: local keys → OTP → compliance → production.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -1873,6 +1873,15 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
             </li>
           ))}
         </ol>
+
+        {/* Assisted linking · the OTP step needs the taxpayer's own Fatoora login, so
+            it can never be fully automatic; everything else is. Offer the managed path. */}
+        {status !== "PRODUCTION" && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <span>{t("تفضّل أن يربطها فريق Entix لك؟ نكمل الخطوات معك في اتصال قصير — تحتاج فقط تسجيل الدخول لبوابة فاتورة وقت الاتصال.", "Prefer the Entix team to link it for you? We complete the steps with you on a short call — you only need your Fatoora portal login at the time.")}</span>
+            <a href={`mailto:support@entix.io?subject=${encodeURIComponent(t("طلب ربط ZATCA Phase 2", "ZATCA Phase 2 linking request"))}`} className="text-primary hover:underline" style={{ fontWeight: 600 }}>{t("اطلب الربط المُدار", "Request managed linking")}</a>
+          </div>
+        )}
 
         {/* Step 1 · prepare */}
         {status === "NONE" && (
@@ -1968,10 +1977,17 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
           </div>
         )}
 
-        {/* Gate-0 honesty banner — always visible */}
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          {t("ملاحظة: الإرسال الفعلي للفواتير إلى الهيئة (التخليص/الإبلاغ) ما زال مجمّدًا قيد التحقق النهائي — كل فاتورة تُوقَّع وتُخزَّن محليًا وستُرفع فور فتح المسار.", "Note: live invoice submission to ZATCA (clearance/reporting) remains frozen pending final validation — every invoice is signed and stored locally and will be submitted as soon as the path opens.")}
-        </div>
+        {/* Submission note — connection ≠ submission. Connected orgs get the calm
+            version; the rest keep the honest freeze note. */}
+        {status === "PRODUCTION" ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-900">
+            {t("الربط مكتمل ✅ · الإرسال الحي للفواتير إلى الهيئة (التخليص/الإبلاغ) يُفعَّل لمنشأتك من فريق Entix بعد التحقق النهائي — لا يلزمك أي إجراء إضافي، وسيصلك إشعار عند التفعيل.", "Linking complete ✅ · live submission to ZATCA (clearance/reporting) is switched on for your organization by the Entix team after final validation — nothing more is needed from you; you will be notified when it goes live.")}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            {t("ملاحظة: الإرسال الفعلي للفواتير إلى الهيئة (التخليص/الإبلاغ) ما زال مجمّدًا قيد التحقق النهائي — كل فاتورة تُوقَّع وتُخزَّن محليًا وستُرفع فور فتح المسار.", "Note: live invoice submission to ZATCA (clearance/reporting) remains frozen pending final validation — every invoice is signed and stored locally and will be submitted as soon as the path opens.")}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
