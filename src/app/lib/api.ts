@@ -1224,6 +1224,17 @@ export const api = {
   // Inventory · multi-warehouse · WAC/FIFO/LIFO
   inventory: {
     listWarehouses: () => request<{ items: any[] }>('/api/inventory/warehouses'),
+    // B2 · transfer documents between warehouses / branches
+    transfers: {
+      list: (params?: { status?: string }) => request<{ items: StockTransferSummary[]; total: number; inTransitValue: number }>('/api/inventory/transfers/docs', { query: params }),
+      get: (id: string) => request<StockTransfer>(`/api/inventory/transfers/docs/${id}`),
+      create: (data: StockTransferInput) => request<StockTransfer>('/api/inventory/transfers/docs', { method: 'POST', body: data }),
+      update: (id: string, data: Partial<StockTransferInput>) => request<StockTransfer>(`/api/inventory/transfers/docs/${id}`, { method: 'PATCH', body: data }),
+      send: (id: string) => request<StockTransfer>(`/api/inventory/transfers/docs/${id}/send`, { method: 'POST' }),
+      receive: (id: string, data?: { lines?: Array<{ productId: string; receivedQty: number; reason?: string | null }>; receivedByName?: string | null }) =>
+        request<{ ok: true; shortfallValue: number; journal: { journalId: string | null; skipped?: string }; transfer: StockTransfer }>(`/api/inventory/transfers/docs/${id}/receive`, { method: 'POST', body: data ?? {} }),
+      cancel: (id: string) => request<StockTransfer>(`/api/inventory/transfers/docs/${id}/cancel`, { method: 'POST' }),
+    },
     // B3.3 · products at/below their reorder point
     reorder: (params?: { warehouseId?: string }) => request<{ items: ReorderAlert[]; total: number }>('/api/inventory/reorder', { query: params }),
     createWarehouse: (data: { code: string; name: string; isPrimary?: boolean; address?: string }) =>
@@ -1731,6 +1742,17 @@ export interface StockCount extends StockCountSummary {
   /** B4.2 · GL entry mirroring the posted variances (null until posted / when the company has no inventory account) */
   journal?: { id: string; entryNumber: string } | null
 }
+export interface StockTransferLine { id: string; productId: string; qty: number; unitCost: number; receivedQty: number | null; reason: string | null; value: number; shortfall: number | null; product: { id: string; sku: string | null; name: string; nameAr: string | null; imageUrl?: string | null } | null }
+export interface StockTransferSummary { id: string; number: string; status: 'DRAFT' | 'SENT' | 'RECEIVED' | 'CANCELLED'; notes: string | null; createdAt: string; sentAt: string | null; receivedAt: string | null; fromWarehouse: { id: string; code: string; name: string }; toWarehouse: { id: string; code: string; name: string }; lines: number; qty: number; value: number }
+export interface StockTransfer extends Omit<StockTransferSummary, 'lines'> {
+  fromWarehouseId: string; toWarehouseId: string; fromBranchId: string | null; toBranchId: string | null
+  fromBranch: { id: string; name: string; nameAr: string | null; code: string | null } | null; toBranch: { id: string; name: string; nameAr: string | null; code: string | null } | null
+  receivedByName: string | null; cancelledAt: string | null
+  lines: StockTransferLine[]
+  summary: { lines: number; qty: number; value: number; receivedQty: number; shortfallValue: number }
+  journal: { id: string; entryNumber: string } | null
+}
+export interface StockTransferInput { fromWarehouseId: string; toWarehouseId: string; fromBranchId?: string | null; toBranchId?: string | null; notes?: string | null; lines: Array<{ productId: string; qty: number; reason?: string | null }>; send?: boolean }
 export interface ProductBarcode { id: string; productId: string; barcode: string; unitMultiplier: string | number; label?: string | null; createdAt: string }
 export interface ReorderAlert { product: { id: string; sku: string | null; name: string; nameAr: string | null; category: string | null; imageUrl?: string | null }; onHand: number; reorderQty: number; shortBy: number; unitCost: number; suggestedQty: number }
 
