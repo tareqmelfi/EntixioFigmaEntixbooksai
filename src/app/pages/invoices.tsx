@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { BranchField } from "../components/branch-field";
+import { ProjectField } from "../components/project-field";
 import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
@@ -59,6 +60,8 @@ const EMPTY_FORM = {
   notes: "",
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
+  // Project / job-costing dimension (C2)
+  projectId: null as string | null,
 };
 
 const PAYMENT_TERMS = [
@@ -234,9 +237,11 @@ export function Invoices() {
 
   // B1 · /app/invoices?branchId=<id|none> (deep-link from branch reports)
   const branchFilterId = searchParams.get("branchId") || "";
+  const projectFilterId = searchParams.get("projectId") || "";
   const filtered = items.filter(i => {
     if (contactFilterId && i.contactId !== contactFilterId) return false;
     if (branchFilterId && (branchFilterId === "none" ? !!i.branchId : i.branchId !== branchFilterId)) return false;
+    if (projectFilterId && (projectFilterId === "none" ? !!i.projectId : i.projectId !== projectFilterId)) return false;
     if (filterStatus !== "ALL" && i.status !== filterStatus) return false;
     if (searchQuery) return i.invoiceNumber.includes(searchQuery) || (i.contact?.displayName || "").includes(searchQuery);
     return true;
@@ -345,6 +350,7 @@ export function Invoices() {
         status,
         notes: form.notes || null,
         branchId: form.branchId ?? null,
+        projectId: form.projectId ?? null,
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
@@ -522,6 +528,7 @@ export function Invoices() {
       notes: inv.notes || "",
       reference: (inv as any).reference || "",
       branchId: (inv as any).branchId ?? null,
+      projectId: (inv as any).projectId ?? null,
     } as any);
     setLines(((inv.lines as any[]) || []).map((l: any) => ({
       id: l.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -705,7 +712,7 @@ export function Invoices() {
             </div>
 
             {/* Second row · currency + tax mode + brand template + payment terms + branch (B1) */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
@@ -756,6 +763,10 @@ export function Invoices() {
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-foreground/80 text-xs">{t("المشروع", "Project")}</Label>
+                <ProjectField compact value={form.projectId} onChange={(id) => setForm((f) => ({ ...f, projectId: id }))} />
               </div>
             </div>
 

@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
 };
 const STATUS_ORDER = ["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"];
 
-const EMPTY_FORM = { code: "", name: "", startDate: "", endDate: "", status: "ACTIVE", budget: "", notes: "" };
+const EMPTY_FORM = { code: "", name: "", startDate: "", endDate: "", status: "ACTIVE", budget: "", notes: "", contractValue: "", retentionPct: "", percentComplete: "" };
 
 export function ProjectDetail() {
   const { t, language } = useLanguage();
@@ -53,6 +53,7 @@ export function ProjectDetail() {
       startDate: (p.startDate || "").slice(0, 10), endDate: (p.endDate || "").slice(0, 10),
       status: p.status || "ACTIVE",
       budget: p.budget != null ? String(p.budget) : "", notes: p.notes || "",
+      contractValue: p.contractValue != null ? String(p.contractValue) : "", retentionPct: p.retentionPct != null ? String(p.retentionPct) : "", percentComplete: p.percentComplete != null ? String(p.percentComplete) : "",
     });
   }, []);
 
@@ -76,7 +77,7 @@ export function ProjectDetail() {
     if (!form.code.trim() || !form.name.trim()) { setError(t("الرمز والاسم مطلوبان", "Code and name are required")); return; }
     setBusy(true); setError(null);
     try {
-      const payload = { code: form.code.trim(), name: form.name.trim(), startDate: form.startDate || null, endDate: form.endDate || null, status: form.status, budget: form.budget ? Number(form.budget) : null, notes: form.notes || null };
+      const payload = { code: form.code.trim(), name: form.name.trim(), startDate: form.startDate || null, endDate: form.endDate || null, status: form.status, budget: form.budget ? Number(form.budget) : null, notes: form.notes || null, contractValue: form.contractValue ? Number(form.contractValue) : null, retentionPct: form.retentionPct ? Number(form.retentionPct) : null, percentComplete: form.percentComplete ? Number(form.percentComplete) : null };
       const saved = isNew ? await api.projects.create(payload) : await api.projects.update(id!, payload);
       push("success", isNew ? t("تم إنشاء المشروع", "Project created") : t("تم تحديث المشروع", "Project updated"));
       if (isNew) navigate(`/app/projects/${saved.id}`, { replace: true });
@@ -135,6 +136,13 @@ export function ProjectDetail() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>{t("ميزانية المشروع", "Project budget")}</Label><Input type="number" step="0.01" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} dir="ltr" className="font-english" placeholder="20000" /></div>
             <div className="space-y-2"><Label>{t("ملاحظات", "Notes")}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("نطاق العمل · الشروط · المرجع", "Scope · terms · reference")} /></div>
+          </div>
+          {/* C2 · contracting (job costing) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg border border-border/60 bg-muted/30 p-3">
+            <div className="space-y-2"><Label>{t("قيمة العقد", "Contract value")}</Label><Input type="number" step="0.01" min="0" value={form.contractValue} onChange={(e) => setForm({ ...form, contractValue: e.target.value })} dir="ltr" className="font-english" placeholder="250000" /></div>
+            <div className="space-y-2"><Label>{t("نسبة الاحتجاز %", "Retention %")}</Label><Input type="number" step="0.5" min="0" max="100" value={form.retentionPct} onChange={(e) => setForm({ ...form, retentionPct: e.target.value })} dir="ltr" className="font-english" placeholder="10" /></div>
+            <div className="space-y-2"><Label>{t("نسبة الإنجاز %", "% complete")}</Label><Input type="number" step="1" min="0" max="100" value={form.percentComplete} onChange={(e) => setForm({ ...form, percentComplete: e.target.value })} dir="ltr" className="font-english" placeholder="0" /></div>
+            <p className="md:col-span-3 text-[11px] text-muted-foreground">{t("تظهر في تقرير «ربحية المشاريع»: المفوتر مقابل العقد · الاحتجاز المقدّر · الميزانية مقابل الفعلي.", "Used by the Project Profitability report: billed vs contract · estimated retention · budget vs actual.")}</p>
           </div>
           <div className="space-y-2">
             <Label>{t("الحالة", "Status")}</Label>

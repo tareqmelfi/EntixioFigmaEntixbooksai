@@ -1340,7 +1340,7 @@ export const api = {
 
   // Invoices
   invoices: {
-    list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string }) =>
+    list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string; projectId?: string }) =>
       request<PaginatedResponse<Invoice>>('/api/invoices', { query: params }),
     nextNumber: () => request<{ number: string }>('/api/invoices/_/next-number'),
     get: (id: string) => request<Invoice>(`/api/invoices/${id}`),
@@ -1859,6 +1859,8 @@ export interface JournalAttachment {
 export interface JournalEntryRow {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   id: string
   number: string
   date: string
@@ -1878,6 +1880,8 @@ export interface JournalEntryRow {
 export interface JournalEntryInput {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   date: string
   description: string
   reference?: string | null
@@ -2033,6 +2037,8 @@ export interface AccountInput {
 export interface Expense {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   id: string
   orgId: string
   contactId?: string | null
@@ -2107,6 +2113,8 @@ export interface ExpensePaymentSplit {
 export interface ExpenseInput {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   number?: string
   date: string
   category: string
@@ -2476,6 +2484,8 @@ export interface OcrResult {
 export interface Quote {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   id: string
   orgId: string
   contactId: string
@@ -2507,6 +2517,8 @@ export interface Quote {
 export interface QuoteInput {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   contactId: string
   quoteNumber?: string
   status?: Quote['status']
@@ -2529,6 +2541,8 @@ export interface QuoteInput {
 export interface Voucher {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   id: string
   orgId: string
   type: 'RECEIPT' | 'PAYMENT'
@@ -2548,6 +2562,8 @@ export interface Voucher {
 export interface VoucherInput {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   type: 'RECEIPT' | 'PAYMENT'
   number?: string
   date: string
@@ -2565,6 +2581,8 @@ export interface VoucherInput {
 export interface Invoice {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   id: string
   orgId: string
   contactId: string
@@ -2601,6 +2619,8 @@ export interface InvoiceLine {
 export interface InvoiceInput {
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null
   contactId: string
   invoiceNumber?: string
   status?: Invoice['status']

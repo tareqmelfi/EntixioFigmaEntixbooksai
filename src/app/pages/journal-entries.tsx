@@ -48,6 +48,7 @@ import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../l
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
+import { ProjectField } from "../components/project-field";
 
 type Line = { accountId: string; debit: string; credit: string; description: string };
 const blankLine = (): Line => ({ accountId: "", debit: "0", credit: "0", description: "" });
@@ -61,6 +62,8 @@ type FormState = {
   postOnSave: boolean;
   /** Branch dimension (B1) · undefined = apply member default · null = none */
   branchId?: string | null;
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null;
 };
 
 export function JournalEntries() {
@@ -92,7 +95,7 @@ export function JournalEntries() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<FormState>({
-    date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true, branchId: undefined,
+    date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true, branchId: undefined, projectId: null,
   });
   // Draft protection · autosave + restore (CEO 2026-08-25 · never lose a typed entry)
   const draft = useFormDraft({ key: editMode && selected ? `journal:${selected.id}` : "journal:new", open, snapshot: form, restore: (s) => setForm(s) });
@@ -126,7 +129,7 @@ export function JournalEntries() {
     setForm({ ...form, lines });
   };
 
-  const resetForm = () => setForm({ date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true, branchId: undefined });
+  const resetForm = () => setForm({ date: today, description: "", reference: "", lines: [blankLine(), blankLine()], postOnSave: true, branchId: undefined, projectId: null });
 
   const openCreate = () => { resetForm(); setEditMode(false); setOpen(true); };
 
@@ -140,6 +143,7 @@ export function JournalEntries() {
       description: e.description,
       reference: e.reference || "",
       branchId: (e as any).branchId ?? null,
+      projectId: (e as any).projectId ?? null,
       lines: e.lines.map(l => ({
         accountId: l.accountId,
         debit: String(l.debit || 0),
@@ -175,6 +179,7 @@ export function JournalEntries() {
       reference: form.reference.trim() || null,
       postOnSave: form.postOnSave,
       branchId: form.branchId ?? null,
+      projectId: form.projectId ?? null,
       lines: validLines.map(l => ({
         accountId: l.accountId,
         debit: Number(l.debit) || 0,
@@ -629,7 +634,7 @@ export function JournalEntries() {
                     <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t("قيد تسوية رواتب شهر...", "Monthly payroll settlement entry...")} required className="border-border" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">{t("المرجع (اختياري)", "Reference (optional)")}</Label>
                     <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم مستند خارجي", "External document number")} className="border-border" />
@@ -637,6 +642,10 @@ export function JournalEntries() {
                   <div>
                     <Label className="text-xs text-muted-foreground">{t("الفرع", "Branch")}</Label>
                     <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t("المشروع", "Project")}</Label>
+                    <ProjectField compact value={form.projectId} onChange={(id) => setForm((f) => ({ ...f, projectId: id }))} />
                   </div>
                 </div>
 

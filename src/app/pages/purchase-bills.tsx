@@ -27,6 +27,7 @@ import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
+import { ProjectField } from "../components/project-field";
 import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
@@ -72,6 +73,7 @@ const EMPTY_FORM = {
   notes: "",
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
+  projectId: null as string | null,
 };
 
 export function PurchaseBills() {
@@ -192,8 +194,10 @@ export function PurchaseBills() {
 
   // B1 · /app/purchases/bills?branchId=<id|none> (deep-link from branch reports)
   const branchFilterId = searchParams.get("branchId") || "";
+  const projectFilterId = searchParams.get("projectId") || "";
   const filtered = items.filter(b =>
     (!branchFilterId || (branchFilterId === "none" ? !b.branchId : b.branchId === branchFilterId)) &&
+    (!projectFilterId || (projectFilterId === "none" ? !b.projectId : b.projectId === projectFilterId)) &&
     (!searchQuery || b.billNumber.includes(searchQuery) ||
     (b.contact?.displayName || "").includes(searchQuery))
   );
@@ -222,6 +226,7 @@ export function PurchaseBills() {
       currency: b.currency || orgCurrency || "SAR",
       notes: b.notes || "",
       branchId: b.branchId ?? null,
+      projectId: b.projectId ?? null,
     } as any);
     const linesData = (b.lines || []).map((l: any) => ({ description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice), accountId: l.accountId || "", productId: l.productId || "" }));
     setLines(linesData.length > 0 ? linesData : [newLine()]);
@@ -296,6 +301,7 @@ export function PurchaseBills() {
         status,
         notes: form.notes || null,
         branchId: form.branchId ?? null,
+        projectId: form.projectId ?? null,
         termsConditions: form.reference ? `Supplier Ref: ${form.reference}` : undefined,
         // ingestion-integrity: supplier doc number + source file for dedupe & attachment guarantee
         supplierDocNumber: form.reference || extractedDocNumber || undefined,
@@ -504,7 +510,7 @@ export function PurchaseBills() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
                 <Select value={form.currency} onValueChange={(v) => { currencyTouchedRef.current = true; setForm({ ...form, currency: v }); }}>
@@ -528,6 +534,10 @@ export function PurchaseBills() {
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f: any) => ({ ...f, branchId: id }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-foreground/80 text-xs">{t("المشروع", "Project")}</Label>
+                <ProjectField compact value={form.projectId} onChange={(id) => setForm((f: any) => ({ ...f, projectId: id }))} />
               </div>
             </div>
 

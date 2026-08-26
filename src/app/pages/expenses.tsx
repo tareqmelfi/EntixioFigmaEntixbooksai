@@ -42,6 +42,7 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { AttachmentViewer, ViewerAttachment } from "../components/attachment-viewer";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
+import { ProjectField } from "../components/project-field";
 import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
@@ -95,6 +96,8 @@ type FormState = {
   assetAccountId?: string;
   /** Branch dimension (B1) · undefined = apply member default · null = none */
   branchId?: string | null;
+  /** Project / job-costing dimension (C2) */
+  projectId?: string | null;
 };
 
 type ExtractionSummary = {
@@ -213,6 +216,7 @@ function emptyForm(): FormState {
     registerAsAsset: false,
     assetAccountId: "",
     branchId: undefined,
+    projectId: null,
   };
 }
 
@@ -766,8 +770,10 @@ export function Expenses() {
 
   // B1 · /app/expenses?branchId=<id|none> (deep-link from branch reports)
   const branchFilterId = searchParams.get("branchId") || "";
+  const projectFilterId = searchParams.get("projectId") || "";
   const filtered = items.filter((e) =>
-    (!branchFilterId || (branchFilterId === "none" ? !e.branchId : e.branchId === branchFilterId)) && (
+    (!branchFilterId || (branchFilterId === "none" ? !e.branchId : e.branchId === branchFilterId)) &&
+    (!projectFilterId || (projectFilterId === "none" ? !e.projectId : e.projectId === projectFilterId)) && (
     !searchQuery
       || e.category.includes(searchQuery)
       || e.number.includes(searchQuery)
@@ -897,6 +903,7 @@ export function Expenses() {
       extractedJson: expense.extractedJson || null,
       ocrConfidence: expense.ocrConfidence ? Number(expense.ocrConfidence) : null,
       branchId: (expense as any).branchId ?? null,
+      projectId: (expense as any).projectId ?? null,
     });
     setCreateOpen(true);
   }
@@ -980,6 +987,7 @@ export function Expenses() {
         registerAsAsset: formData.registerAsAsset === true,
         assetAccountId: formData.assetAccountId || null,
         branchId: formData.branchId ?? null,
+        projectId: formData.projectId ?? null,
       };
       const saved = editingId ? await api.expenses.update(editingId, input) : await api.expenses.create(input);
       const review = editingId ? null : getSimilarityReview(saved);
@@ -1426,6 +1434,7 @@ export function Expenses() {
                   />
                 </div>
                 <BranchField value={formData.branchId} onChange={(id) => setFormData((f) => ({ ...f, branchId: id }))} />
+                <ProjectField value={formData.projectId} onChange={(id) => setFormData((f) => ({ ...f, projectId: id }))} />
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
