@@ -93,8 +93,8 @@ const PRICING_SA = [
     periodEn: "SAR / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "API كامل"],
-    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "Full API access"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "وصول API (مفاتيح · استيراد جماعي)"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "API access (keys · bulk import)"],
     highlighted: true
   },
   {
@@ -135,8 +135,8 @@ const PRICING_US = [
     periodEn: "USD / month",
     desc: "للشركات الصغيرة والمتوسطة",
     descEn: "For small and medium businesses",
-    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "مدفوعات Stripe", "تكاملات بنكية (Plaid تجريبي)", "API كامل"],
-    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Stripe payments", "Bank feeds (Plaid Beta)", "Full API access"],
+    features: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "مدفوعات Stripe", "تكاملات بنكية (Plaid تجريبي)", "وصول API (مفاتيح · استيراد جماعي)"],
+    featuresEn: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Stripe payments", "Bank feeds (Plaid Beta)", "API access (keys · bulk import)"],
     highlighted: true
   },
   {

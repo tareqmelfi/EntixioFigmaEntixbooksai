@@ -560,6 +560,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
     crNumber: "",
     fiscalYearEnd: 12, // December default
     industry: "",
+    coaMode: "industry" as "industry" | "simple" | "blank",
     email: "",
     phone: "",
     website: "",
@@ -592,7 +593,8 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
     api.industryTemplates()
       .then((rows) => setIndustryItems(rows.map((r) => ({
         id: r.id,
-        label: (isRtl ? r.nameAr : r.name) + (r.icon ? ` ${r.icon}` : ""),
+        // N5 (CEO 2026-08-25): no colourful emoji in the picker — clean text only.
+        label: isRtl ? r.nameAr : r.name,
         sublabel: r.description,
       }))))
       .catch(() => { /* templates are a nicety — free text still works */ });
@@ -644,6 +646,7 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
         "logoUrl","stampUrl",
         "vatPeriod","taxRegistrationDate","firstVatPeriodStart",
       ].forEach(optStr);
+      if (form.coaMode && form.coaMode !== "industry") payload.coaMode = form.coaMode;
       if (form.country === "US" && form.usFilingClass) payload.usFilingClass = form.usFilingClass;
       if (form.legalType) payload.legalType = form.legalType;
       if (form.legalSubtype) payload.legalSubtype = form.legalSubtype;
@@ -780,6 +783,24 @@ function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated
                   createLabel={(q) => t(`أخرى: «${q}»`, `Other: "${q}"`)}
                 />
                 <p className="text-[11px] text-muted-foreground/70 mt-1">{t("شجرة الحسابات تنبني تلقائيًا حسب النشاط المختار — وتقدر تعدّلها في أي وقت", "The chart of accounts builds automatically from the chosen industry — editable anytime")}</p>
+              </div>
+              {/* N6 · how the chart of accounts starts (CEO 2026-08-25) */}
+              <div className="md:col-span-2">
+                <label className="text-sm text-foreground/80 block mb-1">{t("دليل الحسابات عند الإنشاء", "Chart of accounts at creation")}</label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="radiogroup">
+                  {([
+                    ["industry", t("حسب النشاط", "By industry"), t("دليل أساسي + حسابات نشاطك (موصى به)", "Base chart + your industry's accounts (recommended)")],
+                    ["simple", t("قياسي بسيط", "Standard · simple"), t("الدليل الأساسي فقط بدون إضافات", "The base chart only, no extras")],
+                    ["blank", t("فارغ — أضيفه بنفسي", "Blank — I'll add my own"), t("بدون أي حساب · للاستيراد أو الإدخال اليدوي", "No accounts · import or add manually")],
+                  ] as const).map(([v, title, desc]) => (
+                    <button type="button" key={v} role="radio" aria-checked={form.coaMode === v} onClick={() => setForm({ ...form, coaMode: v })}
+                      className={`rounded-xl border p-3 text-start transition-colors ${form.coaMode === v ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-surface hover:bg-muted/30"}`}>
+                      <div className="text-sm font-semibold text-foreground">{title}</div>
+                      <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">{desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground/70 mt-1">{t("في كل الحالات يمكنك تعديل الدليل أو استيراده لاحقًا من الإعدادات → API Keys / دليل الحسابات.", "In every case you can edit or import the chart later from Settings → API Keys / Chart of accounts.")}</p>
               </div>
               {form.country === "US" && (
                 <div className="md:col-span-2">

@@ -2254,8 +2254,8 @@ function PlansTab({ org }: { org: Org }) {
       en: ["5 invoices / month", "1 user", "Basic reports", "ZATCA Phase 2 — Under validation", "Free month on any paid plan"],
     },
     professional: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "تكاملات بنكية (Plaid)", "وصول API (مفاتيح · استيراد جماعي)"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Bank feeds (Plaid)", "API access (keys · bulk import)"],
     },
     enterprise: {
       ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],

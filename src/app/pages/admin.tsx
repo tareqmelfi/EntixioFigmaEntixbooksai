@@ -11,7 +11,7 @@ import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, 
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { ToastStack, useToasts } from "../components/side-panel";
+import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -144,6 +144,7 @@ function OrgsTab({ guard, push, t }: any) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [membersFor, setMembersFor] = useState<string | null>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [pendingMemberRemove, setPendingMemberRemove] = useState<string | null>(null); // UX-1 · inline confirm instead of window.confirm
   const [memberEmail, setMemberEmail] = useState("");
   const [memberRole, setMemberRole] = useState("VIEWER");
   const [memberBusy, setMemberBusy] = useState(false);
@@ -217,10 +218,14 @@ function OrgsTab({ guard, push, t }: any) {
                             <span className="font-english text-foreground/80" dir="ltr">{m.user.email}</span>
                             <span className="flex items-center gap-1.5">
                               <span className="px-1.5 py-0.5 rounded bg-white border border-border text-[10px]">{m.role}</span>
-                              <button onClick={async () => {
-                                if (!window.confirm(t(`إزالة ${m.user.email} من المنشأة؟`, `Remove ${m.user.email} from the org?`))) return;
-                                try { await api.admin.removeOrgMember(o.id, m.user.id); push("success", t("أُزيل العضو", "Member removed")); setMembers((await api.admin.orgMembers(o.id)).items); } catch (e) { guard(e); }
-                              }} className="text-red-600 hover:bg-red-50 rounded p-0.5"><X className="h-3 w-3" /></button>
+                              {pendingMemberRemove === m.user.id ? (
+                                <InlineConfirm label={t("إزالة العضو؟", "Remove member?")} onCancel={() => setPendingMemberRemove(null)} onConfirm={async () => {
+                                  setPendingMemberRemove(null);
+                                  try { await api.admin.removeOrgMember(o.id, m.user.id); push("success", t("أُزيل العضو", "Member removed")); setMembers((await api.admin.orgMembers(o.id)).items); } catch (e) { guard(e); }
+                                }} />
+                              ) : (
+                                <button onClick={() => setPendingMemberRemove(m.user.id)} className="text-red-600 hover:bg-red-50 rounded p-0.5"><X className="h-3 w-3" /></button>
+                              )}
                             </span>
                           </div>
                         ))}
@@ -258,6 +263,7 @@ function UsersTab({ guard, push, t }: any) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetFor, setResetFor] = useState<any | null>(null);
+  const [pendingUserDelete, setPendingUserDelete] = useState<string | null>(null); // UX-1 · inline confirm
   const [newPass, setNewPass] = useState("");
   const [busy, setBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -343,10 +349,14 @@ function UsersTab({ guard, push, t }: any) {
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
                       {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}
-                      <button onClick={async () => {
-                        if (!window.confirm(t(`حذف ${u.email} نهائيًا؟ يشمل جلساته وعضوياته.`, `Delete ${u.email} permanently? Sessions and memberships go too.`))) return;
-                        try { await api.admin.deleteUser(u.id); push("success", t("حُذف المستخدم", "User deleted")); load(q || undefined); } catch (e) { guard(e); }
-                      }} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
+                      {pendingUserDelete === u.id ? (
+                        <InlineConfirm label={t("حذف نهائي؟ يشمل الجلسات والعضويات", "Delete permanently? Sessions and memberships too")} onCancel={() => setPendingUserDelete(null)} onConfirm={async () => {
+                          setPendingUserDelete(null);
+                          try { await api.admin.deleteUser(u.id); push("success", t("حُذف المستخدم", "User deleted")); load(q || undefined); } catch (e) { guard(e); }
+                        }} />
+                      ) : (
+                        <button onClick={() => setPendingUserDelete(u.id)} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
+                      )}
                     </div>
                   </td>
                 </tr>

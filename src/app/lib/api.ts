@@ -1527,6 +1527,8 @@ export interface CreateOrgInput {
   suiteUnit?: string
   state?: string
   industry?: string
+  /** N6 · chart of accounts at creation: industry (default) · simple · blank */
+  coaMode?: 'industry' | 'simple' | 'blank'
   taxRegistrationDate?: string
   firstVatPeriodStart?: string
   vatPeriod?: string

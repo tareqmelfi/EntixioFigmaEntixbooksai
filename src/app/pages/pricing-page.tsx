@@ -71,18 +71,18 @@ const PLANS: PlanDef[] = [
     price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 19, yearly: 190 } },
     standard: { SAR: 149, USD: 29 },
     features: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تقارير متقدمة", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Advanced reports", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تقارير متقدمة", "وصول API (مفاتيح · استيراد جماعي)"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Advanced reports", "API access (keys · bulk import)"],
     },
     // Features follow the MARKET, never the payment currency (owner rule:
     // a Saudi company paying in USD still gets ZATCA; a US company never sees it).
     featuresSa: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "ZATCA Phase 2 — قيد التحقق", "وصول API (مفاتيح · استيراد جماعي)"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "ZATCA Phase 2 — Under validation", "API access (keys · bulk import)"],
     },
     featuresUs: {
-      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تكاملات بنكية (Plaid)", "تتبع موردي 1099", "API كامل"],
-      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Bank feeds (Plaid)", "1099 vendor tracking", "Full API access"],
+      ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تكاملات بنكية (Plaid)", "تتبع موردي 1099", "وصول API (مفاتيح · استيراد جماعي)"],
+      en: ["Unlimited invoices", "Up to 5 users", "Full AI agent", "Bank feeds (Plaid)", "1099 vendor tracking", "API access (keys · bulk import)"],
     },
   },
   {
@@ -727,9 +727,9 @@ export function PricingPage() {
               </thead>
               <tbody>
                 {([
-                  { ar: "سعر البداية الشهري", en: "Starting monthly price", us: currency === "USD" ? "$29" : "SAR 99", wafeq: "SAR 99", wave: "$0 · Pro $19" },
+                  { ar: "سعر البداية الشهري", en: "Starting monthly price", us: currency === "USD" ? "$19" : "SAR 99", wafeq: "SAR 99", wave: "$0 · Pro $19" },
                   { ar: "ماذا تشمل باقة البداية؟", en: "Entry plan includes", us: t("فواتير + مشتريات + رواتب + مخزون + AI", "Invoices + purchases + payroll + inventory + AI"), wafeq: t("فواتير فقط", "Invoices only"), wave: t("فواتير وقيود أساسية", "Basic invoicing & books") },
-                  { ar: "تكلفة مزايا مماثلة لباقتنا", en: "Cost to match our features", us: currency === "USD" ? "$29" : "SAR 99", wafeq: "SAR 199 (Premium)", wave: t("$19 + إضافات مدفوعة", "$19 + paid add-ons") },
+                  { ar: "تكلفة مزايا مماثلة لباقتنا", en: "Cost to match our features", us: currency === "USD" ? "$19" : "SAR 99", wafeq: "SAR 199 (Premium)", wave: t("$19 + إضافات مدفوعة", "$19 + paid add-ons") },
                   { ar: "باقة مجانية دائمة", en: "Permanent free plan", us: t("✓ (5 فواتير/شهر)", "✓ (5 invoices/mo)"), wafeq: t("✗ — تجربة 14 يوم فقط", "✗ — 14-day trial only"), wave: t("✓ فواتير غير محدودة", "✓ unlimited invoices") },
                   { ar: "تجربة الباقات المدفوعة", en: "Paid-plan trial", us: t("30 يومًا كاملة", "Full 30 days"), wafeq: t("14 يومًا", "14 days"), wave: "—" },
                   { ar: "المستخدمون في باقة البداية", en: "Users at entry", us: t("حتى 5", "Up to 5"), wafeq: "2", wave: "—" },
