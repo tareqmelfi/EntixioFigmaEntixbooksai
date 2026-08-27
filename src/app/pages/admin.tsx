@@ -54,7 +54,7 @@ export function AdminDashboard({ section = "overview" }: { section?: AdminSectio
     system: [t("النظام", "System"), t("البريد · النسخ الاحتياطي · وكيل الأدمن · استهلاك الذكاء", "Email · backups · admin agent · AI usage")],
   };
   return (
-    <div className="space-y-5 max-w-7xl">
+    <div className={`space-y-5 ${section === "overview" ? "max-w-[1680px]" : "max-w-7xl"}`}>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
         <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{titles[section][0]}</h1>

@@ -169,10 +169,9 @@ export function AdminOverview() {
         <Panel title={t("توزيع الباقات المدفوعة", "Paid plan mix")} icon={CreditCard} action={<Link to="/admin/plans" className="text-xs text-primary hover:underline">{t("الباقات", "Plans")}</Link>}>
           {tierData.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">{t("لا اشتراكات مدفوعة بعد", "No paid subscriptions yet")}</p> : (
             <div className="flex items-center gap-4">
-              <div dir="ltr" className="h-[150px] w-[150px] shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={tierData} dataKey="value" nameKey="name" innerRadius={48} outerRadius={70} paddingAngle={3} stroke="none">{tierData.map((d) => <Cell key={d.name} fill={TIER_COLORS[d.name] || SOFT} />)}</Pie></PieChart>
-                </ResponsiveContainer>
+              <div dir="ltr" className="relative h-[150px] w-[150px] shrink-0">
+                <PieChart width={150} height={150}><Pie data={tierData} dataKey="value" nameKey="name" cx={70} cy={70} innerRadius={48} outerRadius={70} paddingAngle={3} stroke="none" isAnimationActive={false}>{tierData.map((d) => <Cell key={d.name} fill={TIER_COLORS[d.name] || SOFT} />)}</Pie></PieChart>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="text-xl font-english tabular-nums text-foreground" style={{ fontWeight: 800 }}>{k.paying}</span><span className="text-[10px] text-muted-foreground">{t("يدفعون", "paying")}</span></div>
               </div>
               <ul className="flex-1 space-y-2 text-sm">
                 {tierData.map((d) => (
@@ -244,7 +243,8 @@ export function AdminOverview() {
                 {[
                   [t("قاعدة البيانات", "Database"), data.system.db === "ok", data.system.db === "ok" ? "PG16 · OK" : "ERROR"],
                   [t("Stripe", "Stripe"), data.system.stripeConfigured, data.system.stripeConfigured ? t("مهيأ", "configured") : t("غير مهيأ", "missing")],
-                  [t("ZATCA الإرسال الحي", "ZATCA outbound"), data.system.zatcaOutbound, data.system.zatcaOutbound ? t("مفعّل", "on") : t("مجمّد (Gate 0)", "frozen (Gate 0)")],
+                  [t("ZATCA · ربط الأجهزة", "ZATCA · device linking"), data.system.zatcaOutbound, data.system.zatcaOutbound ? t("متاح", "enabled") : t("معطّل", "disabled")],
+                  [t("ZATCA · إرسال الفواتير", "ZATCA · invoice submission"), false, t("مجمّد (Gate 0)", "frozen (Gate 0)")],
                   [t("API", "API"), true, `${data.system.version ? data.system.version + " · " : ""}${data.system.uptimeHours}h ${t("تشغيل", "up")}`],
                 ].map(([l, ok, v]) => (
                   <li key={String(l)} className="flex items-center justify-between gap-2"><span className="inline-flex items-center gap-2 text-muted-foreground"><i className={`h-2 w-2 rounded-full ${ok ? "bg-emerald-500" : "bg-amber-500"}`} />{l as string}</span><span className="font-english text-xs text-foreground" dir="ltr">{v as string}</span></li>
