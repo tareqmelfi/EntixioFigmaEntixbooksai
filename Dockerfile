@@ -41,6 +41,17 @@ server {
   index index.html;
   absolute_redirect off;
 
+  # Security headers (SEC-01 · 2026-08-27). These lived in the Cloudflare
+  # worker (worker.js) before DNS moved to Coolify; the nginx origin sent none.
+  # `always` keeps them on 3xx/4xx. CSP is intentionally NOT set here yet —
+  # the app calls Plaid/GLEIF/Nominatim/OpenRouter and a blind policy could
+  # break a paying customer; tracked as tech debt TD-SEC-CSP.
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+
   # Canonical host and HTTPS are fixed rather than derived from an untrusted Host
   # header or the container's internal HTTP scheme behind Cloudflare/Coolify.
   if ($host = "www.entix.io") {
@@ -102,11 +113,19 @@ server {
     types { application/xml xml; }
     default_type application/xml;
     add_header Cache-Control "no-cache, must-revalidate";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     try_files $uri =404;
   }
   location = /robots.txt {
     default_type text/plain;
     add_header Cache-Control "no-cache, must-revalidate";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     try_files $uri =404;
   }
 
@@ -116,12 +135,20 @@ server {
     try_files $uri =404;
     default_type application/json;
     add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
   }
 
   # Cache hashed assets aggressively
   location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$ {
     expires 1y;
     add_header Cache-Control "public, immutable";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
   }
 
   # Service worker must always revalidate · a stale SW would pin old bundles
@@ -129,12 +156,20 @@ server {
   location = /sw.js {
     expires -1;
     add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Pragma "no-cache";
   }
 
   # Every HTML document, including prerendered nested route files, must revalidate.
   location ~* \.html$ {
     add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Pragma "no-cache";
   }
 }
