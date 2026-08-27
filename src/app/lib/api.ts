@@ -1429,6 +1429,7 @@ export const api = {
       request<AdminPlanRecord>(`/api/admin/plans/${planId}`, { method: 'PATCH', body: data, skipOrg: true }),
     audit: (params?: { targetType?: string; targetId?: string; adminUserId?: string; from?: string; to?: string; limit?: number }) => request<{ items: AdminAuditRow[]; total: number }>('/api/admin/audit', { query: params, skipOrg: true }),
     impersonate: (orgId: string, reason: string) => request<{ orgId: string; orgName: string; country: string; baseCurrency: string; suspended: boolean; reason: string; expiresAt: string; minutes: number }>('/api/admin/impersonate', { method: 'POST', body: { orgId, reason }, skipOrg: true }),
+    metrics: (days: 7 | 30 | 90 = 30) => request<AdminMetrics>('/api/admin/metrics', { query: { days }, skipOrg: true }),
     impersonateStop: (orgId: string) => request<{ ok: true }>('/api/admin/impersonate/stop', { method: 'POST', body: { orgId }, skipOrg: true }),
     orgMembers: (orgId: string) => request<{ items: Array<{ id: string; role: string; createdAt: string; user: { id: string; email: string; name: string | null; emailVerified: boolean } }> }>(`/api/admin/orgs/${orgId}/members`, { skipOrg: true }),
     addOrgMember: (orgId: string, data: { email: string; role: string }) => request<{ ok: true }>(`/api/admin/orgs/${orgId}/members`, { method: 'POST', body: data, skipOrg: true }),
@@ -2765,4 +2766,19 @@ export interface SignSendResult {
   signatureRequest: SignatureRequest
   docuseal: { id: number | string; embed_src?: string } | null
   error: string | null
+}
+
+/** Admin Console v3 · command-center payload (GET /api/admin/metrics) */
+export type AdminMetrics = {
+  generatedAt: string
+  windowDays: number
+  kpis: { users: number; orgs: number; paying: number; trialing: number; pastDue: number; newUsers: number; newOrgs: number; newUsersPrev: number; newOrgsPrev: number; newPaid: number; churned: number; churnRate: number; mrr: Record<string, number>; arr: Record<string, number> }
+  series: Array<{ date: string; users: number; orgs: number }>
+  mix: { status: Record<string, number>; tier: Record<string, number>; country: Record<string, number> }
+  attention: Array<{ kind: string; severity: 'high' | 'medium' | 'low'; orgId: string; orgName: string; detail: string; at?: string | null }>
+  support: { open: number; pending: number; resolvedInWindow: number; oldestWaiting: { id: string; subject: string; priority: string; orgName: string | null; since: string; hours: number } | null; aiConversations24h: number }
+  partners: { active: number; commissionsPendingCount: number; commissionsPendingAmount: number; payoutsPendingCount: number; payoutsPendingAmount: number }
+  system: { db: 'ok' | 'error'; version: string | null; uptimeHours: number; stripeConfigured: boolean; zatcaOutbound: boolean }
+  recentAudit: Array<{ id: string; action: string; targetType: string; targetLabel: string | null; adminEmail: string; createdAt: string }>
+  latestOrgs: Array<{ id: string; name: string; country: string; createdAt: string; ownerEmail: string | null; plan: string | null; tier: string | null; status: string }>
 }

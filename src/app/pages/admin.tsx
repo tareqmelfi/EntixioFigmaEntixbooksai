@@ -14,6 +14,7 @@ import { Input } from "../components/ui/input";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { AdminOverview } from "./admin-overview";
 
 type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email" | "backups" | "agent";
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
@@ -45,7 +46,7 @@ export function AdminDashboard({ section = "overview" }: { section?: AdminSectio
   }
 
   const titles: Record<AdminSection, [string, string]> = {
-    overview: [t("اللوحة", "Overview"), t("أرقام اليوم · الشركات النشطة · ما يحتاج انتباهك", "Today's numbers · active companies · what needs attention")],
+    overview: [t("مركز القيادة", "Command center"), t("الإيراد · العملاء · التجارب · الدعم · الشركاء · النظام — في شاشة واحدة", "Revenue · customers · trials · support · partners · system — one screen")],
     orgs: [t("الشركات", "Companies"), t("بحث · الأعضاء · الاشتراك · فتح ملف الشركة", "Search · members · subscription · open the company file")],
     users: [t("المستخدمون", "Users"), t("بحث · توثيق · إعادة تعيين · إنشاء حساب", "Search · verify · reset · create account")],
     subscriptions: [t("الاشتراكات", "Subscriptions"), t("حسب الشركة: مجاملة · تجربة · إلغاء · Lifetime (الجدول الموحّد في Z2.2)", "Per company: comp · trial · cancel · lifetime (unified table lands in Z2.2)")],
@@ -68,7 +69,7 @@ export function AdminDashboard({ section = "overview" }: { section?: AdminSectio
           ))}
         </div>
       )}
-      {tab === "overview" && <OverviewTab guard={guard} />}
+      {tab === "overview" && <AdminOverview />}
       {tab === "orgs" && <OrgsTab guard={guard} push={push} t={t} />}
       {tab === "users" && <UsersTab guard={guard} push={push} t={t} />}
       {tab === "support" && <SupportTab guard={guard} push={push} t={t} />}
@@ -80,7 +81,8 @@ export function AdminDashboard({ section = "overview" }: { section?: AdminSectio
   );
 }
 
-// ═══ Overview ═══
+// ═══ Overview (legacy · superseded by admin-overview.tsx · kept for reference) ═══
+void 0 as unknown as typeof OverviewTab;
 function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
   const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
