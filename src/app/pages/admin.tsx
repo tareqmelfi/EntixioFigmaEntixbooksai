@@ -5,7 +5,7 @@
  * Server-side gate: every /api/admin/* call returns 403 unless the session
  * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning, UserPlus, Trash2, DatabaseBackup, Bot, X, Crown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -335,7 +335,8 @@ function UsersTab({ guard, push, t }: any) {
             <thead><tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs"><th className="px-3 py-2 text-start font-medium">{t("المستخدم", "User")}</th><th className="px-3 py-2 text-start font-medium">{t("المنشآت", "Orgs")}</th><th className="px-3 py-2 text-start font-medium">{t("سجّل", "Joined")}</th><th className="px-3 py-2 text-start font-medium">{t("إجراءات", "Actions")}</th></tr></thead>
             <tbody>
               {items.map((u) => (
-                <tr key={u.id} className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
+                <Fragment key={u.id}>
+                <tr className="border-b border-border/60 align-top hover:bg-muted/20 focus-within:bg-muted/20">
                   <td className="px-3 py-2.5 relative">
                     <Link
                       to={`/admin/users/${u.id}`}
@@ -366,17 +367,16 @@ function UsersTab({ guard, push, t }: any) {
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
                       {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}
-                      {pendingUserDelete === u.id ? (
-                        <InlineConfirm label={t("حذف نهائي؟ يشمل الجلسات والعضويات", "Delete permanently? Sessions and memberships too")} onCancel={() => setPendingUserDelete(null)} onConfirm={async () => {
-                          setPendingUserDelete(null);
-                          try { await api.admin.deleteUser(u.id); push("success", t("حُذف المستخدم", "User deleted")); load(q || undefined); } catch (e) { guard(e); }
-                        }} />
-                      ) : (
-                        <button onClick={() => setPendingUserDelete(u.id)} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
-                      )}
+                      <button onClick={() => setPendingUserDelete(pendingUserDelete === u.id ? null : u.id)} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
                     </div>
                   </td>
                 </tr>
+                {pendingUserDelete === u.id && (
+                  <tr className="bg-red-50/40"><td colSpan={4} className="px-3 py-3">
+                    <UserDeletePlanner userId={u.id} email={u.email} t={t} onCancel={() => setPendingUserDelete(null)} onDone={(msg) => { setPendingUserDelete(null); push("success", msg); load(q || undefined); }} onError={guard} />
+                  </td></tr>
+                )}
+              </Fragment>
               ))}
             </tbody>
           </table>
@@ -684,5 +684,46 @@ function AgentTab({ guard, push, t }: any) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+
+// ── User delete planner (Admin v3 R1.5 · CEO 27/08) ─────────────────────────
+// Deleting a user never silently deletes companies. The planner lists every
+// company the user owns; ticked ones are SOFT-deleted (30-day restore) with the
+// user, unticked ones stay and get a new owner from the company page.
+function UserDeletePlanner({ userId, email, t, onCancel, onDone, onError }: { userId: string; email: string; t: (ar: string, en?: string) => string; onCancel: () => void; onDone: (msg: string) => void; onError: (e: any) => boolean }) {
+  const [preview, setPreview] = useState<import("../lib/api").AdminUserDeletePreview | null>(null);
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api.admin.userDeletePreview(userId).then((p) => { setPreview(p); const init: Record<string, boolean> = {}; for (const o of p.orgs) if (o.soleOwner && !o.deletedAt) init[o.id] = true; setPicked(init); }).catch(onError); }, [userId, onError]);
+  if (!preview) return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+  const owned = preview.orgs.filter((o) => o.role === "OWNER" && !o.deletedAt);
+  const blocked = owned.filter((o) => !o.soleOwner && !picked[o.id]);
+  const chosen = Object.entries(picked).filter(([, v]) => v).map(([k]) => k);
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="text-foreground" style={{ fontWeight: 700 }}>{t("حذف المستخدم", "Delete user")} <span className="font-english text-xs font-normal text-muted-foreground" dir="ltr">{email}</span></div>
+      {owned.length === 0 ? <p className="text-xs text-muted-foreground">{t("لا يملك أي شركة — سيُحذف المستخدم وعضوياته فقط.", "Owns no company — only the user and memberships are removed.")}</p> : (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">{t("اختر الشركات التي تُحذف معه (حذف مؤقت · تُستعاد خلال 30 يوم). غير المختارة تبقى وتحتاج مالكًا جديدًا.", "Tick the companies to delete with the user (soft delete · restorable for 30 days). Unticked ones stay and need a new owner.")}</p>
+          {owned.map((o) => (
+            <label key={o.id} className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-xs">
+              <input type="checkbox" checked={!!picked[o.id]} onChange={(e) => setPicked({ ...picked, [o.id]: e.target.checked })} className="h-4 w-4" />
+              <span className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</span>
+              <span className="text-muted-foreground font-english" dir="ltr">{o.country} · {o.members} {t("عضو", "members")} · {o.invoices} {t("فاتورة", "inv")} · {o.plan || "—"} {o.status || ""}</span>
+              {!o.soleOwner ? <span className="ms-auto rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-800">{t("فيها أعضاء آخرون", "has other members")}</span> : null}
+            </label>
+          ))}
+        </div>
+      )}
+      {blocked.length > 0 && <p className="text-xs text-amber-800">⚠️ {t("شركات فيها أعضاء آخرون والمستخدم مالكها الوحيد — إمّا احذفها معه أو انقل الملكية أولًا:", "Companies with other members where this user is the sole owner — delete them too or transfer ownership first:")} {blocked.map((b) => b.name).join(" · ")}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t("اكتب DELETE للتأكيد", "Type DELETE to confirm")} className="h-8 rounded-md border border-border px-2 text-xs font-english" dir="ltr" />
+        <button disabled={busy || typed !== "DELETE" || blocked.length > 0} onClick={async () => { setBusy(true); try { const r = await api.admin.deleteUser(userId, chosen); onDone(t(`حُذف ${r.deleted}${r.deletedOrgs?.length ? ` + ${r.deletedOrgs.length} شركة (تُستعاد خلال 30 يوم)` : ""}`, `Deleted ${r.deleted}${r.deletedOrgs?.length ? ` + ${r.deletedOrgs.length} companies (restorable 30d)` : ""}`)); } catch (e) { onError(e); } finally { setBusy(false); } }} className="rounded-md bg-red-600 px-3 py-1.5 text-xs text-white disabled:opacity-40" style={{ fontWeight: 600 }}>{busy ? "…" : t(`حذف المستخدم${chosen.length ? ` + ${chosen.length} شركة` : ""}`, `Delete user${chosen.length ? ` + ${chosen.length} companies` : ""}`)}</button>
+        <button onClick={onCancel} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
+      </div>
+    </div>
   );
 }

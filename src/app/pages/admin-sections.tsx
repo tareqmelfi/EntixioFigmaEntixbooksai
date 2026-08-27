@@ -14,6 +14,7 @@ import { Input } from "../components/ui/input";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, API_BASE_URL, type AdminAuditRow, type AdminPlanRecord, type AdminSubscriptionsPayload } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { SubscriptionProgress, SubscriptionManagePanel, SubscriptionSourceBadge, OriginBadge } from "../components/admin-subscription-tools";
 
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 const fmtDateTime = (d?: string | null) => (d ? new Date(d).toLocaleString("en-GB") : "—");
@@ -27,7 +28,8 @@ function StatusPill({ status, lifetime }: { status: string; lifetime?: boolean }
 // ── Subscriptions ─────────────────────────────────────────────────────────────
 export function AdminSubscriptions() {
   const { t, language } = useLanguage();
-  const { toasts, dismiss } = useToasts();
+  const { toasts, push, dismiss } = useToasts();
+  const [editing, setEditing] = useState<string | null>(null); // orgId whose manage panel is open
   const [data, setData] = useState<AdminSubscriptionsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,22 +87,40 @@ export function AdminSubscriptions() {
                 <th className="px-3 py-2 text-start">{t("الباقة", "Plan")}</th>
                 <th className="px-3 py-2 text-start">{t("الحالة", "Status")}</th>
                 <th className="px-3 py-2 text-start">{t("المصدر", "Source")}</th>
-                <th className="px-3 py-2 text-start">{t("نهاية الفترة", "Period end")}</th>
+                <th className="px-3 py-2 text-start">{t("الفترة", "Period")}</th>
                 <th className="px-3 py-2 text-end">MRR</th>
+                <th className="px-3 py-2 text-end">{t("إجراء", "Action")}</th>
               </tr></thead>
               <tbody>
                 {(data?.items || []).map((r) => (
-                  <tr key={r.id} className="border-b border-border/50 hover:bg-primary/5">
-                    <td className="px-3 py-2"><Link to={`/admin/orgs/${r.orgId}`} className="text-foreground hover:text-primary" style={{ fontWeight: 600 }}>{r.orgName}</Link><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{r.country} · {r.currency}{r.suspended ? <span className="ms-1 inline-flex items-center gap-0.5 text-warning"><Ban className="h-3 w-3" />{t("موقوفة", "suspended")}</span> : null}</div></td>
+                  <Fragment key={r.id}>
+                  <tr className={`border-b border-border/50 hover:bg-primary/5 ${editing === r.orgId ? "bg-primary/5" : ""}`}>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        {r.logoUrl ? <img src={r.logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-md border border-border object-contain bg-white" /> : <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] text-muted-foreground" style={{ fontWeight: 700 }}>{r.orgName.slice(0, 1)}</span>}
+                        <div className="min-w-0">
+                          <Link to={`/admin/orgs/${r.orgId}`} className="text-foreground hover:text-primary" style={{ fontWeight: 600 }}>{r.orgName}</Link>
+                          <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground font-english" dir="ltr">{r.country} · {r.currency}{r.suspended ? <span className="ms-1 inline-flex items-center gap-0.5 text-warning"><Ban className="h-3 w-3" />{t("موقوفة", "suspended")}</span> : null} <OriginBadge via={r.createdVia} /></div>
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-3 py-2 font-english text-xs" dir="ltr">{r.owner || "—"}</td>
-                    <td className="px-3 py-2">{language === "ar" ? (r.plan.nameAr || r.plan.name) : r.plan.name}<div className="text-[11px] text-muted-foreground font-english" dir="ltr">{r.plan.tier} · {r.plan.interval}</div></td>
+                    <td className="px-3 py-2">{language === "ar" ? (r.plan.nameAr || r.plan.name) : r.plan.name}<div className="text-[11px] text-muted-foreground font-english" dir="ltr">{r.plan.tier} · {r.plan.interval}</div>{r.note ? <div className="mt-0.5 max-w-[26ch] truncate text-[11px] text-amber-800" title={r.note}>📝 {r.note}</div> : null}</td>
                     <td className="px-3 py-2"><StatusPill status={r.status} lifetime={r.lifetime} />{r.cancelAtPeriodEnd ? <div className="text-[11px] text-warning">{t("يُلغى نهاية الفترة", "cancels at period end")}</div> : null}</td>
-                    <td className="px-3 py-2 text-xs font-english" dir="ltr">{r.source}{r.stripeSubscriptionId ? <div className="text-[10px] text-muted-foreground">{r.stripeSubscriptionId.slice(0, 12)}…</div> : null}</td>
-                    <td className="px-3 py-2 font-english text-xs" dir="ltr">{r.lifetime ? "∞" : fmtDate(r.currentPeriodEnd || r.trialEndsAt)}</td>
+                    <td className="px-3 py-2 text-xs" dir="ltr"><SubscriptionSourceBadge source={r.source} lifetime={r.lifetime} sponsored={r.sponsored} />{r.stripeSubscriptionId ? <div className="mt-0.5 text-[10px] text-muted-foreground font-english">{r.stripeSubscriptionId.slice(0, 12)}…</div> : null}</td>
+                    <td className="px-3 py-2"><SubscriptionProgress compact start={r.currentPeriodStart} end={r.currentPeriodEnd || r.trialEndsAt} status={r.status} lifetime={r.lifetime} sponsored={r.sponsored} />{!r.lifetime && !r.sponsored && (r.currentPeriodEnd || r.trialEndsAt) ? <div className="text-[10px] text-muted-foreground font-english" dir="ltr">{fmtDate(r.currentPeriodEnd || r.trialEndsAt)}</div> : null}</td>
                     <td className="px-3 py-2 text-end font-english" dir="ltr">{r.mrrCents ? money(r.mrrCents, r.currency) : "—"}</td>
+                    <td className="px-3 py-2 text-end"><button type="button" onClick={() => setEditing(editing === r.orgId ? null : r.orgId)} className="rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-muted/50" style={{ fontWeight: 600 }}>{editing === r.orgId ? t("إغلاق", "Close") : t("تغيير", "Change")}</button></td>
                   </tr>
+                  {editing === r.orgId && (
+                    <tr className="border-b border-border/50 bg-primary/5"><td colSpan={8} className="p-3">
+                      <SubscriptionManagePanel orgId={r.orgId} currency={r.currency} currentPlanId={r.plan.id} currentMode={r.sponsored ? "sponsored" : r.lifetime ? "lifetime" : r.source === "manual" ? "manual" : null} currentNote={r.note}
+                        onDone={(msg) => { push("success", msg); setEditing(null); void load(); }} onCancel={() => setEditing(null)} />
+                    </td></tr>
+                  )}
+                  </Fragment>
                 ))}
-                {data && data.items.length === 0 && <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">{t("لا اشتراكات مطابقة", "No matching subscriptions")}</td></tr>}
+                {data && data.items.length === 0 && <tr><td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">{t("لا اشتراكات مطابقة", "No matching subscriptions")}</td></tr>}
               </tbody>
             </table>
           )}

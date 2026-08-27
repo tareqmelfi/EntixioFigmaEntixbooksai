@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { AlertTriangle, ArrowLeft, Building2, Loader2, RefreshCw, Users, CreditCard, MessageSquare, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -7,6 +7,8 @@ import { api, ApiError, type AdminOrganizationWorkspace } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { AdminOrgManageCard } from "../components/admin-manage-cards";
+import { SubscriptionProgress, SubscriptionManagePanel, SubscriptionSourceBadge, OriginBadge } from "../components/admin-subscription-tools";
+import { AdminOrgUsagePanel, AdminOrgNotes } from "../components/admin-org-panels";
 
 type WorkspaceTab = "overview" | "people" | "subscription" | "support" | "activity";
 type ViewState = "loading" | "ready" | "session" | "forbidden" | "notFound" | "failed";
@@ -39,11 +41,13 @@ function EmptySection({ text }: { text: string }) {
 export function AdminOrganizationWorkspace() {
   const { t } = useLanguage();
   const { orgId = "" } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tab = useMemo(() => parseTab(searchParams.get("tab")), [searchParams]);
 
   const [viewState, setViewState] = useState<ViewState>("loading");
   const [workspace, setWorkspace] = useState<AdminOrganizationWorkspace | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
   const { toasts, push, dismiss } = useToasts();
 
   const load = useCallback(async () => {
@@ -136,14 +140,16 @@ export function AdminOrganizationWorkspace() {
   const metrics = workspace.metrics.data;
 
   return (
-    <div className="space-y-5 max-w-7xl">
+    <div className="space-y-5">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div className="space-y-1">
         <Link to="/admin/orgs" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" />{t("رجوع للوحة الأدمن", "Back to admin")}
         </Link>
-        <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-          <Building2 className="h-5 w-5 text-primary" />{summary.name}
+        <h1 className="text-foreground flex items-center gap-3" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+          {summary.logoUrl ? <img src={summary.logoUrl} alt="" className="h-12 w-12 rounded-xl border border-border bg-white object-contain" /> : <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#0B1B49]/10 text-[#0B1B49]"><Building2 className="h-6 w-6" /></span>}
+          {summary.name}
+          <OriginBadge via={summary.createdVia} size="sm" />
           {(summary as any).suspendedAt ? <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[11px] font-semibold text-warning">{t("موقوفة", "Suspended")}</span> : null}
           {(summary as any).deletedAt ? <span className="rounded-full bg-danger-subtle px-2 py-0.5 text-[11px] font-semibold text-danger">{t("محذوفة", "Deleted")}</span> : null}
         </h1>
@@ -185,6 +191,12 @@ export function AdminOrganizationWorkspace() {
 
       {tab === "overview" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <AdminOrgUsagePanel orgId={summary.id} subscription={workspace.subscription.availability === "available" ? workspace.subscription.data : null} onManage={() => { setManageOpen(true); navigate("?tab=subscription"); }} />
+          </div>
+          <div className="md:col-span-2">
+            <AdminOrgNotes orgId={summary.id} push={push} />
+          </div>
           <div className="md:col-span-2">
             <AdminOrgManageCard org={summary as any} push={push} onChanged={() => void load()} />
           </div>
@@ -252,12 +264,24 @@ export function AdminOrganizationWorkspace() {
             ) : !workspace.subscription.data ? (
               <EmptySection text={t("لا يوجد اشتراك مرتبط بهذه المنشأة.", "No subscription is linked to this organization.")} />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.status}</div></div>
-                <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الخطة", "Plan")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.plan?.name || "—"}</div></div>
-                <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">Stripe sub</div><div className="text-foreground font-english text-xs" dir="ltr">{workspace.subscription.data.maskedStripeSubscriptionId || "—"}</div></div>
-                <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">Stripe customer</div><div className="text-foreground font-english text-xs" dir="ltr">{workspace.subscription.data.maskedStripeCustomerId || "—"}</div></div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
+                  <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div><div className="flex items-center gap-2 text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.status} <SubscriptionSourceBadge lifetime={workspace.subscription.data.lifetime} sponsored={workspace.subscription.data.sponsored} source={workspace.subscription.data.maskedStripeSubscriptionId ? "stripe" : undefined} /></div></div>
+                  <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الخطة", "Plan")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.plan?.name || "—"}</div><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{workspace.subscription.data.plan ? `${workspace.subscription.data.plan.tier} · ${workspace.subscription.data.plan.interval} · ${(workspace.subscription.data.plan.price / 100).toLocaleString("en-US")} ${workspace.subscription.data.plan.currency.toUpperCase()}` : ""}</div></div>
+                  <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الفترة", "Period")}</div><div className="mt-1"><SubscriptionProgress start={workspace.subscription.data.currentPeriodStart} end={workspace.subscription.data.currentPeriodEnd || workspace.subscription.data.trialEndsAt} status={workspace.subscription.data.status} lifetime={workspace.subscription.data.lifetime} sponsored={workspace.subscription.data.sponsored} /></div><div className="mt-1 text-[11px] text-muted-foreground font-english" dir="ltr">{fmtDate(workspace.subscription.data.currentPeriodStart)} → {workspace.subscription.data.currentPeriodEnd ? fmtDate(workspace.subscription.data.currentPeriodEnd) : "∞"}</div></div>
+                  <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">Stripe</div><div className="text-foreground font-english text-xs" dir="ltr">{workspace.subscription.data.maskedStripeSubscriptionId || "—"}</div><div className="text-muted-foreground font-english text-[11px]" dir="ltr">{workspace.subscription.data.maskedStripeCustomerId || ""}</div></div>
+                </div>
+                {workspace.subscription.data.note ? <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-900">📝 {workspace.subscription.data.note}</div> : null}
+                {!manageOpen ? (
+                  <Button onClick={() => setManageOpen(true)}><CreditCard className="h-4 w-4 me-2" />{t("تغيير الاشتراك", "Change subscription")}</Button>
+                ) : (
+                  <SubscriptionManagePanel orgId={summary.id} currency={summary.baseCurrency} currentPlanId={workspace.subscription.data.plan?.id} currentMode={workspace.subscription.data.sponsored ? "sponsored" : workspace.subscription.data.lifetime ? "lifetime" : null} currentNote={workspace.subscription.data.note}
+                    onDone={(msg) => { push("success", msg); setManageOpen(false); void load(); }} onCancel={() => setManageOpen(false)} />
+                )}
               </div>
+            )}
+            {workspace.subscription.availability === "available" && !workspace.subscription.data && (
+              <div className="mt-3">{!manageOpen ? <Button onClick={() => setManageOpen(true)}><CreditCard className="h-4 w-4 me-2" />{t("إنشاء اشتراك", "Create subscription")}</Button> : <SubscriptionManagePanel orgId={summary.id} currency={summary.baseCurrency} onDone={(msg) => { push("success", msg); setManageOpen(false); void load(); }} onCancel={() => setManageOpen(false)} />}</div>
             )}
           </CardContent>
         </Card>
