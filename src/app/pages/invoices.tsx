@@ -222,7 +222,9 @@ export function Invoices() {
   useEffect(() => {
     const m = location.pathname.match(/\/app\/(?:sales\/)?invoices\/([^/]+)/);
     const id = m?.[1];
-    if (!id || editingInvoice?.id === id || createOpen) return;
+    // "/new" is the create route, not an id — the deep-link loader used to fire
+    // GET /api/invoices/new (404 + console error) on every open of the form.
+    if (!id || id === "new" || editingInvoice?.id === id || createOpen) return;
     const row = items.find((x) => x.id === id);
     if (row) { openEdit(row); return; }
     api.invoices.get(id)
