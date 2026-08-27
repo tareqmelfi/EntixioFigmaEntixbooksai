@@ -5,7 +5,8 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer } from "lucide-react";
+import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -92,6 +93,11 @@ export function Quotes() {
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [pendingConvert, setPendingConvert] = useState<string | null>(null);
+  // SPEC-04 · award / decline actions
+  const [pendingAccept, setPendingAccept] = useState<string | null>(null);
+  const [rejectFor, setRejectFor] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const navigate = useNavigate();
   const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
@@ -205,6 +211,45 @@ export function Quotes() {
       setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: "CONVERTED", convertedInvoiceId: r.invoice.id } : x));
     } catch (e: any) {
       push("error", e instanceof ApiError ? (e.message === "already_converted" ? t("هذا العرض محوّل سابقاً", "This quote has already been converted") : e.message) : t("فشل التحويل", "Conversion failed"));
+    }
+  };
+
+  // SPEC-04 · public accept link: generate (+email) then copy to clipboard
+  const handleSendLink = async (q: Quote) => {
+    try {
+      const r = await api.quotes.send(q.id);
+      try { await navigator.clipboard.writeText(r.url); } catch { /* clipboard may be blocked */ }
+      push("success", r.emailed
+        ? t(`أُرسل الرابط للعميل بالبريد ونُسخ: ${r.url}`, `Link emailed to the customer and copied: ${r.url}`)
+        : t(`نُسخ رابط الاعتماد: ${r.url}`, `Accept link copied: ${r.url}`));
+      setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: x.status === "DRAFT" ? "SENT" : x.status, acceptToken: r.token } : x));
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل إنشاء الرابط", "Failed to create the link"));
+    }
+  };
+
+  // SPEC-04 · manual award (bank transfer / phone) → ACCEPTED + auto project
+  const handleManualAccept = async (q: Quote) => {
+    setPendingAccept(null);
+    try {
+      await api.quotes.decision(q.id, { action: "accept", source: t("موافقة يدوية من الشاشة", "Manual approval") });
+      push("success", t(`ترسية ${q.quoteNumber} ✓ · تم إنشاء المشروع تلقائيًا`, `${q.quoteNumber} awarded ✓ · project created`));
+      setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: "ACCEPTED" } : x));
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل التسجيل", "Failed"));
+    }
+  };
+
+  // SPEC-04 · decline with a mandatory reason (feeds the loss-reasons analysis)
+  const handleReject = async (q: Quote) => {
+    if (!rejectReason.trim()) { push("error", t("سبب الرفض إلزامي", "A reason is required")); return; }
+    try {
+      await api.quotes.decision(q.id, { action: "reject", reason: rejectReason.trim() });
+      push("success", t("سُجّل الاعتذار والسبب", "Declination recorded"));
+      setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: "REJECTED", rejectReason: rejectReason.trim() } : x));
+      setRejectFor(null); setRejectReason("");
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل التسجيل", "Failed"));
     }
   };
 
@@ -473,7 +518,12 @@ export function Quotes() {
           <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("عروض الأسعار", "Quotes")}</h1>
           <p className="text-muted-foreground mt-1">{t("إدارة عروض الأسعار للعملاء", "Manage customer quotes")}</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("عرض سعر جديد", "New quote")}</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/5" onClick={() => navigate("/app/quotes/import")}>
+            <FileSpreadsheet className="me-2 h-4 w-4" />{t("استيراد BOQ", "Import BOQ")}
+          </Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("عرض سعر جديد", "New quote")}</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -525,9 +575,39 @@ export function Quotes() {
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{q.issueDate?.slice(0, 10)}</td>
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground">{q.validUntil?.slice(0, 10)}</td>
                     <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(q.total).toLocaleString()} {q.currency}</td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`}>{STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status}</span></td>
+                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`} title={q.status === "REJECTED" && q.rejectReason ? t(`السبب: ${q.rejectReason}`, `Reason: ${q.rejectReason}`) : undefined}>{STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 flex-wrap">
+                        <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="rounded-md px-2 py-1 text-xs text-foreground/70 hover:bg-muted flex items-center gap-1" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
+                          <Printer className="h-3.5 w-3.5" /> {t("العرض", "Proposal")}
+                        </a>
+                        {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
+                          <button onClick={() => handleSendLink(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إنشاء رابط اعتماد عام + إرساله للعميل", "Create a public accept link + email it")}>
+                            <Link2 className="h-3.5 w-3.5" /> {t("رابط القبول", "Accept link")}
+                          </button>
+                        )}
+                        {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
+                          pendingAccept === q.id ? (
+                            <InlineConfirm onConfirm={() => handleManualAccept(q)} onCancel={() => setPendingAccept(null)} label={t("تسجيل موافقة العميل وإنشاء المشروع؟", "Record approval + create project?")} />
+                          ) : (
+                            <button onClick={() => setPendingAccept(q.id)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1" title={t("موافقة يدوية (حوالة/هاتف) → مشروع تلقائي", "Manual approval → auto project")}>
+                              <CheckCircle2 className="h-3.5 w-3.5" /> {t("ترسية", "Award")}
+                            </button>
+                          )
+                        )}
+                        {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
+                          rejectFor === q.id ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب الخسارة (إلزامي)...", "Loss reason (required)...")} className="h-7 w-44 border-red-300 text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
+                              <button onClick={() => handleReject(q)} className="rounded-md px-2 py-1 text-xs bg-red-600 text-white">{t("تأكيد", "OK")}</button>
+                              <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
+                            </span>
+                          ) : (
+                            <button onClick={() => { setRejectFor(q.id); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1" title={t("اعتذار/خسارة مع تسجيل السبب", "Decline with a reason")}>
+                              <XCircle className="h-3.5 w-3.5" /> {t("رفض", "Decline")}
+                            </button>
+                          )
+                        )}
                         {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
                           <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
                             <FileSignature className="h-3.5 w-3.5" /> {t("توقيع", "Sign")}

@@ -17,7 +17,7 @@ const API_PATHS = (p) =>
 
 // SPA shell prefixes (app + auth + portal + print) and public marketing routes.
 // Must stay in sync with src/app/routes.tsx public paths.
-const SHELL_PREFIXES = ['/app', '/admin', '/portal', '/print']
+const SHELL_PREFIXES = ['/app', '/admin', '/portal', '/print', '/q']
 const LOCALIZED_ROUTES = new Set(['/sa/ar', '/sa/en', '/us/ar', '/us/en'])
 const LOCALIZED_PREFIX = /^\/(?:sa|us)\/(?:ar|en)(?:\/|$)/
 const MARKETING_ROUTES = new Set([

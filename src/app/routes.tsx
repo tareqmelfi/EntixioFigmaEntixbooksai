@@ -229,6 +229,7 @@ export const router = createBrowserRouter([
       { path: "sales/quotes", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "sales/quotes/new", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "sales/quotes/:id", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
+      { path: "quotes/import", element: lazyElement(() => import("./pages/quotes-import"), "QuotesImport"), errorElement: <ErrorBoundary /> },
       { path: "quotes", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "quotes/new", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "quotes/:id", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
@@ -351,6 +352,8 @@ export const router = createBrowserRouter([
   { path: "/portal/login", element: lazyElement(() => import("./pages/portal-login"), "PortalLogin"), errorElement: <ErrorBoundary /> },
   { path: "/portal/:token", element: lazyElement(() => import("./pages/portal-home"), "PortalHome"), errorElement: <ErrorBoundary /> },
   { path: "/portal", element: lazyElement(() => import("./pages/portal-home"), "PortalHome"), errorElement: <ErrorBoundary /> },
+  { path: "/print/proposal/:id", element: lazyElement(() => import("./pages/quote-proposal-print"), "QuoteProposalPrint"), errorElement: <ErrorBoundary /> },
+  { path: "/q/:token", element: lazyElement(() => import("./pages/quote-public"), "QuotePublic"), errorElement: <ErrorBoundary /> },
   { path: "/print/invoice/:id", element: lazyElement(() => import("./pages/invoice-print-view"), "InvoicePrintView"), errorElement: <ErrorBoundary /> },
   { path: "/print/voucher/:id", element: lazyElement(() => import("./pages/voucher-print-view"), "VoucherPrintView"), errorElement: <ErrorBoundary /> },
   // Error handling

@@ -699,6 +699,32 @@ export const api = {
       request<void>(`/api/quotes/${id}`, { method: 'DELETE' }),
     convertToInvoice: (id: string) =>
       request<{ invoice: Invoice; quoteId: string }>(`/api/quotes/${id}/convert-to-invoice`, { method: 'POST' }),
+    /** SPEC-04 · upload a BOQ workbook → parse preview (multipart · nothing written) */
+    importBoq: async (file: File): Promise<BoqPreview> => {
+      const form = new FormData()
+      form.append('file', file)
+      const headers: Record<string, string> = {}
+      const oid = getOrgId()
+      if (oid) headers['X-Org-Id'] = oid
+      try {
+        const raw = localStorage.getItem('entix_act_as')
+        if (raw) { const v = JSON.parse(raw); if (v?.orgId && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+      } catch { /* ignore */ }
+      const res = await fetch(`${API_BASE}/api/quotes/import-boq`, { method: 'POST', headers, body: form, credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'import_failed', undefined, { body: data })
+      return data as BoqPreview
+    },
+    /** SPEC-04 · generate public accept link (+ email the customer unless email:false) */
+    send: (id: string, opts?: { email?: boolean }) =>
+      request<{ token: string; url: string; emailed: boolean }>(`/api/quotes/${id}/send`, { method: 'POST', body: opts || {} }),
+    /** SPEC-04 · manual accept (bank transfer / phone) or reject with a reason */
+    decision: (id: string, body: { action: 'accept'; source?: string } | { action: 'reject'; reason: string }) =>
+      request<{ quote?: Quote; projectId?: string; created?: boolean }>(`/api/quotes/${id}/decision`, { method: 'POST', body }),
+    /** SPEC-04 · public accept page (token only · no auth) */
+    publicGet: (token: string) => request<Quote & { org?: { name: string; logoUrl?: string | null } }>(`/api/q/${token}`, { skipOrg: true }),
+    publicAccept: (token: string, name: string) => request<{ ok: boolean; projectCreated?: boolean }>(`/api/q/${token}/accept`, { method: 'POST', body: { name }, skipOrg: true }),
+    publicReject: (token: string, reason: string) => request<{ ok: boolean }>(`/api/q/${token}/reject`, { method: 'POST', body: { reason }, skipOrg: true }),
   },
 
   // Dashboard — real org-scoped numbers
@@ -2553,6 +2579,15 @@ export interface Quote {
   notes?: string | null
   termsConditions?: string | null
   convertedInvoiceId?: string | null
+  /** SPEC-04 · BOQ → Proposal → Award */
+  title?: string | null
+  acceptToken?: string | null
+  sentAt?: string | null
+  acceptedAt?: string | null
+  acceptedBy?: string | null
+  rejectedAt?: string | null
+  rejectReason?: string | null
+  sourceFileName?: string | null
   contact?: { id: string; displayName: string; email?: string | null }
   lines?: Array<{
     id?: string
@@ -2563,7 +2598,29 @@ export interface Quote {
     discount?: string | number
     taxRateId?: string | null
     subtotal?: string | number
+    /** SPEC-04 · BOQ sections */
+    sectionLabel?: string | null
+    unit?: string | null
+    isOptional?: boolean
+    included?: boolean
+    sortOrder?: number
   }>
+}
+
+/** SPEC-04 · BOQ import preview (parse only · nothing written) */
+export interface BoqPreviewLine {
+  no: string
+  description: string
+  unit: string | null
+  qty: number | null
+  unitPrice: number | null
+  subtotal: number | null
+  isHeading: boolean
+}
+export interface BoqPreview {
+  fileName: string
+  sheets: Array<{ name: string; lineCount: number; total: number; lines: BoqPreviewLine[] }>
+  warnings: string[]
 }
 
 export interface QuoteInput {
@@ -2580,6 +2637,9 @@ export interface QuoteInput {
   exchangeRate?: number
   notes?: string | null
   termsConditions?: string | null
+  /** SPEC-04 */
+  title?: string | null
+  sourceFileName?: string | null
   lines: Array<{
     productId?: string | null
     description: string
@@ -2587,6 +2647,12 @@ export interface QuoteInput {
     unitPrice: number
     discount?: number
     taxRateId?: string | null
+    /** SPEC-04 · BOQ sections */
+    sectionLabel?: string | null
+    unit?: string | null
+    isOptional?: boolean
+    included?: boolean
+    sortOrder?: number
   }>
 }
 

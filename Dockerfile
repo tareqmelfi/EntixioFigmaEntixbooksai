@@ -102,7 +102,8 @@ server {
   # the honest-404 rule, breaking every invite + verification link 2026-08-21).
   # /admin is the standalone platform console shell (Z2.1) — direct load 404'd
   # 2026-08-26 because the prefix was missing here.
-  location ~ ^/(?:app|admin|portal|print|invite|verify-email|welcome|buy|claim)(?:/|$) { try_files $uri /index.html; }
+  # /q = public quote-accept links (SPEC-04)
+  location ~ ^/(?:app|admin|portal|print|invite|verify-email|welcome|buy|claim|q)(?:/|$) { try_files $uri /index.html; }
 
   # Unknown extensionless paths are honest 404s rather than SPA fake-200s.
   location / { try_files $uri =404; }
