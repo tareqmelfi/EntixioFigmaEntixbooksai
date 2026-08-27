@@ -11,7 +11,8 @@
  */
 import { useEffect, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
-import { LayoutDashboard, Building2, Users, CreditCard, MessageSquare, Server, ShieldCheck, LogOut, Languages, Menu, X, Loader2, Tags, ScrollText } from "lucide-react";
+import { LayoutDashboard, Building2, Users, CreditCard, MessageSquare, Server, ShieldCheck, LogOut, Languages, Menu, X, Loader2, Tags, ScrollText, UserCog } from "lucide-react";
+import { useAdminMe, SECTION_PERMISSION } from "../lib/use-admin-me";
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
 import { SessionExpiredBanner } from "../components/session-expired-banner";
@@ -25,6 +26,7 @@ export const ADMIN_SECTIONS = [
   { key: "support", path: "/admin/support", ar: "الدعم", en: "Support", icon: MessageSquare },
   { key: "system", path: "/admin/system", ar: "النظام", en: "System", icon: Server },
   { key: "audit", path: "/admin/audit", ar: "سجل الأثر", en: "Audit trail", icon: ScrollText },
+  { key: "team", path: "/admin/team", ar: "الفريق والصلاحيات", en: "Team & roles", icon: UserCog },
 ] as const;
 
 export function AdminRoot() {
@@ -33,6 +35,7 @@ export function AdminRoot() {
   const location = useLocation();
   const [auth, setAuth] = useState(authStore.getState());
   const [menuOpen, setMenuOpen] = useState(false);
+  const adminMe = useAdminMe();
   useEffect(() => authStore.subscribe(setAuth), []);
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
@@ -42,7 +45,7 @@ export function AdminRoot() {
 
   const nav = (
     <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-      {ADMIN_SECTIONS.map((s) => (
+      {ADMIN_SECTIONS.filter((s) => { const p = SECTION_PERMISSION[s.key]; return !p || adminMe.loading || adminMe.can(p); }).map((s) => (
         <NavLink
           key={s.key}
           to={s.path}
@@ -65,7 +68,7 @@ export function AdminRoot() {
       {nav}
       <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
         <div className="truncate font-english" dir="ltr">{auth.user?.email}</div>
-        <div className="mt-0.5">{t("حساب داخلي · لا ينتمي لأي شركة", "Internal account · belongs to no company")}</div>
+        <div className="mt-0.5">{adminMe.me?.roleName ? (language === "ar" ? adminMe.me.roleName.ar : adminMe.me.roleName.en) : t("حساب داخلي", "Internal account")}{adminMe.me?.scopeAssigned ? ` · ${t("نطاق محدد", "scoped")} (${adminMe.me.assignedOrgIds?.length ?? 0})` : ""}</div>
       </div>
     </aside>
   );

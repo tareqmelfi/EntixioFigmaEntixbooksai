@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Building2, Loader2, RefreshCw, Users, CreditCard, MessageSquare, Activity } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Building2, Loader2, RefreshCw, Users, CreditCard, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type AdminOrganizationWorkspace } from "../lib/api";
@@ -8,7 +8,8 @@ import { useLanguage } from "../components/LanguageContext";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { AdminOrgManageCard } from "../components/admin-manage-cards";
 import { SubscriptionProgress, SubscriptionManagePanel, SubscriptionSourceBadge, OriginBadge } from "../components/admin-subscription-tools";
-import { AdminOrgUsagePanel, AdminOrgNotes } from "../components/admin-org-panels";
+import { AdminOrgUsagePanel, AdminOrgNotes, AdminOrgInbox } from "../components/admin-org-panels";
+import { useAdminMe } from "../lib/use-admin-me";
 
 type WorkspaceTab = "overview" | "people" | "subscription" | "support" | "activity";
 type ViewState = "loading" | "ready" | "session" | "forbidden" | "notFound" | "failed";
@@ -48,6 +49,7 @@ export function AdminOrganizationWorkspace() {
   const [viewState, setViewState] = useState<ViewState>("loading");
   const [workspace, setWorkspace] = useState<AdminOrganizationWorkspace | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const adminMe = useAdminMe();
   const { toasts, push, dismiss } = useToasts();
 
   const load = useCallback(async () => {
@@ -194,12 +196,12 @@ export function AdminOrganizationWorkspace() {
           <div className="md:col-span-2">
             <AdminOrgUsagePanel orgId={summary.id} subscription={workspace.subscription.availability === "available" ? workspace.subscription.data : null} onManage={() => { setManageOpen(true); navigate("?tab=subscription"); }} />
           </div>
-          <div className="md:col-span-2">
+          {adminMe.can("notes.read") && <div className="md:col-span-2">
             <AdminOrgNotes orgId={summary.id} push={push} />
-          </div>
-          <div className="md:col-span-2">
+          </div>}
+          {adminMe.can("orgs.write") && <div className="md:col-span-2">
             <AdminOrgManageCard org={summary as any} push={push} onChanged={() => void load()} />
-          </div>
+          </div>}
           <Card className="border-border">
             <CardHeader><CardTitle className="text-base text-foreground">{t("ملخص المنشأة", "Organization summary")}</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
@@ -288,35 +290,9 @@ export function AdminOrganizationWorkspace() {
       )}
 
       {tab === "support" && (
-        <Card className="border-border">
-          <CardHeader><CardTitle className="text-base text-foreground flex items-center gap-2"><MessageSquare className="h-4 w-4" />{t("محادثات الدعم", "Support threads")}</CardTitle></CardHeader>
-          <CardContent>
-            {workspace.support.availability !== "available" ? (
-              <UnavailableSection title={t("الدعم", "Support")} reason={workspace.support.unavailableReason} />
-            ) : workspace.support.data.items.length === 0 ? (
-              <EmptySection text={t("لا توجد محادثات دعم.", "No support threads yet.")} />
-            ) : (
-              <div className="space-y-2">
-                {workspace.support.data.items.map((thread) => (
-                  <div key={thread.id} className="rounded-lg border border-border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <Link
-                        to={`/admin/support/${thread.id}`}
-                        data-testid={`org-support-thread-link-${thread.id}`}
-                        className="text-sm text-foreground hover:underline"
-                        style={{ fontWeight: 600 }}
-                      >
-                        {thread.title || t("محادثة", "Thread")}
-                      </Link>
-                      <div className="text-[11px] text-muted-foreground font-english" dir="ltr">{fmtDate(thread.lastMessageAt)}</div>
-                    </div>
-                    <div className="text-xs text-muted-foreground font-english" dir="ltr">{thread.user.email} · {thread.messageCount} msgs</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        workspace.support.availability !== "available"
+          ? <UnavailableSection title={t("الدعم", "Support")} reason={workspace.support.unavailableReason} />
+          : <AdminOrgInbox orgId={summary.id} threads={workspace.support.data.items as any} canWrite={adminMe.can("support.write")} push={push} />
       )}
 
       {tab === "activity" && (

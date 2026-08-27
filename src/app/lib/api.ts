@@ -1440,7 +1440,25 @@ export const api = {
     deleteNote: (noteId: string) => request<{ ok: true }>(`/api/admin/notes/${noteId}`, { method: 'DELETE', skipOrg: true }),
     orgUsage: (orgId: string) => request<AdminOrgUsage>(`/api/admin/orgs/${orgId}/usage`, { skipOrg: true }),
     // Z2.2 · Admin Console CRUD
-    me: () => request<{ isInternal: boolean; internalRole: string; email: string; userId: string }>('/api/admin/me', { skipOrg: true }),
+    me: () => request<AdminMe>('/api/admin/me', { skipOrg: true }),
+    // Admin v3 R2 · team / roles / invites
+    roles: () => request<{ catalogue: string[]; items: AdminRoleRecord[] }>('/api/admin/roles', { skipOrg: true }),
+    createRole: (body: { key: string; nameAr: string; nameEn: string; permissions: string[]; scopeAssigned?: boolean }) => request<AdminRoleRecord>('/api/admin/roles', { method: 'POST', body, skipOrg: true }),
+    updateRole: (id: string, body: { nameAr?: string; nameEn?: string; permissions?: string[]; scopeAssigned?: boolean }) => request<AdminRoleRecord>(`/api/admin/roles/${id}`, { method: 'PATCH', body, skipOrg: true }),
+    deleteRole: (id: string) => request<{ ok: true }>(`/api/admin/roles/${id}`, { method: 'DELETE', skipOrg: true }),
+    team: () => request<{ items: AdminTeamMember[]; invites: AdminTeamInvite[] }>('/api/admin/team', { skipOrg: true }),
+    inviteTeam: (body: { email: string; roleId: string; language?: 'ar' | 'en' }) => request<{ ok: true; inviteId: string; link: string; emailSent: boolean; expiresAt: string }>('/api/admin/team/invite', { method: 'POST', body, skipOrg: true }),
+    revokeInvite: (id: string) => request<{ ok: true }>(`/api/admin/team/invites/${id}`, { method: 'DELETE', skipOrg: true }),
+    updateTeamMember: (userId: string, body: { roleId?: string; disabled?: boolean; assignedOrgIds?: string[] }) => request<{ ok: true }>(`/api/admin/team/${userId}`, { method: 'PATCH', body, skipOrg: true }),
+    removeTeamMember: (userId: string) => request<{ ok: true }>(`/api/admin/team/${userId}`, { method: 'DELETE', skipOrg: true }),
+    inviteInfo: (token: string) => request<{ email: string; role: { key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; accepted: boolean; expired: boolean }>(`/api/admin/invites/${token}`, { skipOrg: true }),
+    acceptInvite: (token: string) => request<{ ok: true; role: { key: string; nameAr: string; nameEn: string } }>(`/api/admin/invites/${token}/accept`, { method: 'POST', body: {}, skipOrg: true }),
+    // tickets (existing API · W37) — used by the company inbox
+    tickets: (params?: { status?: string; orgId?: string }) => request<{ tickets: AdminTicketRow[] }>('/api/admin/tickets', { query: params, skipOrg: true }),
+    ticket: (id: string) => request<{ ticket: AdminTicketDetail }>(`/api/admin/tickets/${id}`, { skipOrg: true }),
+    createTicket: (body: { orgId?: string; subject: string; priority?: string; message?: string }) => request<AdminTicketRow>('/api/admin/tickets', { method: 'POST', body, skipOrg: true }),
+    updateTicket: (id: string, body: { status?: string; priority?: string; assignedAgentEmail?: string | null }) => request<AdminTicketRow>(`/api/admin/tickets/${id}`, { method: 'PATCH', body, skipOrg: true }),
+    replyTicket: (id: string, body: string) => request<{ ok: true }>(`/api/admin/tickets/${id}/messages`, { method: 'POST', body: { body }, skipOrg: true }),
     updateOrg: (orgId: string, data: { name?: string; legalName?: string | null; country?: string; baseCurrency?: string; industry?: string | null; suspended?: boolean; reason?: string | null }) =>
       request<AdminOrgRecord>(`/api/admin/orgs/${orgId}`, { method: 'PATCH', body: data, skipOrg: true }),
     deleteOrg: (orgId: string, reason: string) => request<{ ok: true; deletedAt: string; restoreUntil: string; graceDays: number }>(`/api/admin/orgs/${orgId}`, { method: 'DELETE', body: { reason }, skipOrg: true }),
@@ -2806,3 +2824,11 @@ export type AdminMetrics = {
   recentAudit: Array<{ id: string; action: string; targetType: string; targetLabel: string | null; adminEmail: string; createdAt: string }>
   latestOrgs: Array<{ id: string; name: string; country: string; createdAt: string; ownerEmail: string | null; plan: string | null; tier: string | null; status: string }>
 }
+
+/** Admin v3 R2 · team & roles */
+export interface AdminMe { isInternal: boolean; internalRole: string; roleName?: { ar: string; en: string }; permissions: string[]; isSuper: boolean; scopeAssigned: boolean; assignedOrgIds: string[] | null; email: string; userId: string }
+export interface AdminRoleRecord { id: string; key: string; nameAr: string; nameEn: string; permissions: string[]; scopeAssigned: boolean; isSystem: boolean; members?: number; pendingInvites?: number; createdAt: string }
+export interface AdminTeamMember { id: string; email: string; name: string | null; disabledAt: string | null; createdAt: string; bootstrap: boolean; role: { id: string | null; key: string; nameAr: string; nameEn: string; scopeAssigned: boolean } | null; assignments: Array<{ orgId: string; orgName: string }> }
+export interface AdminTeamInvite { id: string; email: string; role: { id: string; key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; createdAt: string }
+export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null }
+export interface AdminTicketDetail extends AdminTicketRow { messages: Array<{ id: string; authorType: string; authorEmail: string | null; body: string; createdAt: string }> }

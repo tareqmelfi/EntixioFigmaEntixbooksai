@@ -10,6 +10,9 @@ import { Activity, Database, Users, Store, GitBranch, FileText, Pin, PinOff, Tra
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { api, ApiError, type AdminOrgUsage, type AdminNoteRecord, type AdminOrganizationWorkspaceSubscription } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
+import type { AdminTicketRow, AdminTicketDetail } from "../lib/api";
+import { Link } from "react-router";
+import { MessageSquare, Bot as BotIcon, Send, CircleDot, CheckCircle2, Clock as ClockIcon, Plus as PlusIcon } from "lucide-react";
 import { InlineConfirm } from "./side-panel";
 import { SubscriptionProgress, SubscriptionSourceBadge } from "./admin-subscription-tools";
 
@@ -134,5 +137,99 @@ export function AdminOrgNotes({ orgId, push }: { orgId: string; push: (kind: "su
         )}
       </div>
     </section>
+  );
+}
+
+// ── Inbox · tickets + AI threads for one company (Admin v3 R2 · CEO 27/08) ───
+
+const STATUS_TONE: Record<string, string> = { OPEN: "bg-amber-50 text-amber-800", PENDING: "bg-blue-50 text-blue-700", RESOLVED: "bg-emerald-50 text-emerald-700", CLOSED: "bg-muted text-muted-foreground" };
+
+export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: string; threads: Array<{ id: string; title: string | null; lastMessageAt: string; messageCount: number; user: { email: string } }>; canWrite: boolean; push: (kind: "success" | "error", msg: string) => void }) {
+  const { t } = useLanguage();
+  const [tickets, setTickets] = useState<AdminTicketRow[]>([]);
+  const [open, setOpen] = useState<AdminTicketDetail | null>(null);
+  const [reply, setReply] = useState("");
+  const [newSubject, setNewSubject] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => api.admin.tickets({ orgId }).then((r) => setTickets(r.tickets)).catch(() => {}), [orgId]);
+  useEffect(() => { void load(); }, [load]);
+  const openTicket = async (id: string) => { try { const r = await api.admin.ticket(id); setOpen(r.ticket); } catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } };
+  const send = async () => {
+    if (!open || !reply.trim()) return;
+    setBusy(true);
+    try { await api.admin.replyTicket(open.id, reply.trim()); setReply(""); await openTicket(open.id); await load(); push("success", t("أُرسل الرد", "Reply sent")); }
+    catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } finally { setBusy(false); }
+  };
+  const setStatus = async (status: string) => { if (!open) return; try { await api.admin.updateTicket(open.id, { status }); await openTicket(open.id); await load(); } catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } };
+  const create = async () => {
+    if (!newSubject.trim()) return;
+    setBusy(true);
+    try { const r = await api.admin.createTicket({ orgId, subject: newSubject.trim(), message: newBody.trim() || undefined }); setNewSubject(""); setNewBody(""); setCreating(false); await load(); await openTicket(r.id); push("success", t("أُنشئت التذكرة", "Ticket created")); }
+    catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } finally { setBusy(false); }
+  };
+  return (
+    <div className="grid gap-4 xl:grid-cols-5">
+      <section className="xl:col-span-2 rounded-2xl border border-border bg-white">
+        <header className="flex items-center justify-between border-b border-border/70 px-4 py-3"><h2 className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><MessageSquare className="h-4 w-4 text-primary" />{t("التذاكر", "Tickets")} <span className="text-xs text-muted-foreground">{tickets.length}</span></h2>{canWrite && <button onClick={() => setCreating(!creating)} className="inline-flex items-center gap-1 text-xs text-primary"><PlusIcon className="h-3.5 w-3.5" />{t("تذكرة جديدة", "New ticket")}</button>}</header>
+        {creating && (
+          <div className="border-b border-border/70 p-3 space-y-2 bg-primary/5">
+            <input value={newSubject} onChange={(e) => setNewSubject(e.target.value)} placeholder={t("الموضوع", "Subject")} className="w-full rounded-md border border-border px-2 py-1.5 text-sm" />
+            <textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={2} placeholder={t("أول رسالة (اختياري)", "First message (optional)")} className="w-full rounded-md border border-border px-2 py-1.5 text-sm" />
+            <div className="flex gap-2"><button onClick={() => void create()} disabled={busy || !newSubject.trim()} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-50" style={{ fontWeight: 600 }}>{t("إنشاء", "Create")}</button><button onClick={() => setCreating(false)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button></div>
+          </div>
+        )}
+        <ul className="divide-y divide-border/60 max-h-[420px] overflow-auto">
+          {tickets.length === 0 && <li className="p-4 text-xs text-muted-foreground">{t("لا تذاكر لهذه الشركة.", "No tickets for this company.")}</li>}
+          {tickets.map((tk) => (
+            <li key={tk.id}><button onClick={() => void openTicket(tk.id)} className={`w-full px-4 py-2.5 text-start hover:bg-muted/30 ${open?.id === tk.id ? "bg-primary/5" : ""}`}>
+              <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] ${STATUS_TONE[tk.status] || ""}`} style={{ fontWeight: 700 }}>{tk.status}</span><span className="truncate text-sm text-foreground" style={{ fontWeight: 600 }}>{tk.subject}</span></div>
+              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{tk.lastMessage ? `${tk.lastMessage.authorType === "ADMIN" ? "↩ " : ""}${tk.lastMessage.body}` : "—"} · <span className="font-english" dir="ltr">{new Date(tk.updatedAt).toLocaleString("en-GB")}</span>{tk.assignedAgentEmail ? ` · ${tk.assignedAgentEmail}` : ""}</div>
+            </button></li>
+          ))}
+        </ul>
+        <header className="flex items-center gap-2 border-t border-b border-border/70 px-4 py-3"><h2 className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><BotIcon className="h-4 w-4 text-primary" />{t("محادثات الوكيل", "Agent conversations")} <span className="text-xs text-muted-foreground">{threads.length}</span></h2></header>
+        <ul className="divide-y divide-border/60 max-h-[260px] overflow-auto">
+          {threads.length === 0 && <li className="p-4 text-xs text-muted-foreground">{t("لا محادثات.", "No conversations.")}</li>}
+          {threads.map((th) => (
+            <li key={th.id} className="px-4 py-2.5"><Link to={`/admin/support/${th.id}`} className="text-sm text-foreground hover:underline" style={{ fontWeight: 600 }}>{th.title || t("محادثة", "Thread")}</Link><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{th.user.email} · {th.messageCount} msgs · {new Date(th.lastMessageAt).toLocaleString("en-GB")}</div></li>
+          ))}
+        </ul>
+      </section>
+      <section className="xl:col-span-3 rounded-2xl border border-border bg-white flex flex-col min-h-[420px]">
+        {!open ? <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t("اختر تذكرة لعرض المحادثة والرد", "Pick a ticket to read and reply")}</div> : (
+          <>
+            <header className="flex flex-wrap items-center gap-2 border-b border-border/70 px-4 py-3">
+              <span className={`rounded-full px-2 py-0.5 text-[10px] ${STATUS_TONE[open.status] || ""}`} style={{ fontWeight: 700 }}>{open.status}</span>
+              <span className="text-sm text-foreground" style={{ fontWeight: 700 }}>{open.subject}</span>
+              <span className="text-[11px] text-muted-foreground font-english" dir="ltr">{open.priority} · {open.createdByEmail || "—"}</span>
+              {canWrite && <div className="ms-auto flex gap-1">
+                {open.status !== "OPEN" && <button onClick={() => void setStatus("OPEN")} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px]"><CircleDot className="h-3 w-3" />{t("فتح", "Open")}</button>}
+                {open.status !== "PENDING" && <button onClick={() => void setStatus("PENDING")} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px]"><ClockIcon className="h-3 w-3" />{t("بانتظار العميل", "Pending")}</button>}
+                {open.status !== "RESOLVED" && <button onClick={() => void setStatus("RESOLVED")} className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700"><CheckCircle2 className="h-3 w-3" />{t("حُلّت", "Resolve")}</button>}
+              </div>}
+            </header>
+            <div className="flex-1 space-y-2 overflow-auto p-4">
+              {open.messages.length === 0 && <p className="text-xs text-muted-foreground">{t("لا رسائل بعد.", "No messages yet.")}</p>}
+              {open.messages.map((m) => (
+                <div key={m.id} className={`flex ${m.authorType === "ADMIN" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.authorType === "ADMIN" ? "bg-[#0B1B49] text-white" : "bg-muted text-foreground"}`}>
+                    <div className="whitespace-pre-wrap">{m.body}</div>
+                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-white/60" : "text-muted-foreground"}`} dir="ltr">{m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString("en-GB")}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {canWrite && (
+              <div className="flex gap-2 border-t border-border/70 p-3">
+                <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("اكتب الرد للعميل…", "Write a reply to the customer…")} className="flex-1 rounded-lg border border-border px-3 py-2 text-sm" />
+                <button onClick={() => void send()} disabled={busy || !reply.trim()} className="self-end inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-white disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{t("إرسال", "Send")}</button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+    </div>
   );
 }
