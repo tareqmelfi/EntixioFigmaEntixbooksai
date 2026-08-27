@@ -89,7 +89,9 @@ server {
   # Controlled application surfaces remain client-rendered. invite/verify-email
   # are emailed auth-flow landings — they must serve the shell (they 404'd on
   # the honest-404 rule, breaking every invite + verification link 2026-08-21).
-  location ~ ^/(?:app|portal|print|invite|verify-email|welcome|buy|claim)(?:/|$) { try_files $uri /index.html; }
+  # /admin is the standalone platform console shell (Z2.1) — direct load 404'd
+  # 2026-08-26 because the prefix was missing here.
+  location ~ ^/(?:app|admin|portal|print|invite|verify-email|welcome|buy|claim)(?:/|$) { try_files $uri /index.html; }
 
   # Unknown extensionless paths are honest 404s rather than SPA fake-200s.
   location / { try_files $uri =404; }
