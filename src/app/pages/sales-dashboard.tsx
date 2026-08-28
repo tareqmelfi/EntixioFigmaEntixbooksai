@@ -10,6 +10,7 @@
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { KpiCard } from "../components/kpi-card";
 import {
   Loader2, FileText, TrendingUp, AlertTriangle, DollarSign,
   Plus, Download, Trophy, Briefcase, ArrowLeft, Search, MoreHorizontal,
@@ -122,44 +123,38 @@ export function SalesDashboard() {
         </div>
       </div>
 
-      {/* 4 KPI cards */}
+      {/* 4 KPI cards — each opens the invoice list it summarises (2026-08-28) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("إجمالي الفواتير", "Total Invoices")}</span>
-              <FileText className="h-4 w-4 text-primary" />
-            </div>
-            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{data.allTime.count}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("إجمالي المبالغ", "Total Amount")}</span>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </div>
-            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(data.allTime.total)}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("المحصّل", "Collected")}</span>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="text-green-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(data.allTime.paid)}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("المتأخر", "Overdue")}</span>
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </div>
-            <div className="text-red-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(totalOverdue || data.allTime.outstanding)}</div>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label={t("إجمالي الفواتير", "Total Invoices")}
+          value={data.allTime.count}
+          icon={<FileText className="h-4 w-4 text-primary" />}
+          to="/app/invoices"
+          title={t("افتح قائمة الفواتير", "Open the invoice list")}
+        />
+        <KpiCard
+          label={t("إجمالي المبالغ", "Total Amount")}
+          value={fmt(data.allTime.total)}
+          icon={<DollarSign className="h-4 w-4 text-primary" />}
+          to="/app/invoices"
+          title={t("افتح قائمة الفواتير", "Open the invoice list")}
+        />
+        <KpiCard
+          label={t("المحصّل", "Collected")}
+          value={fmt(data.allTime.paid)}
+          tone="text-green-600"
+          icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+          to="/app/invoices?status=PAID"
+          title={t("افتح الفواتير المدفوعة", "Open paid invoices")}
+        />
+        <KpiCard
+          label={t("المتأخر", "Overdue")}
+          value={fmt(totalOverdue || data.allTime.outstanding)}
+          tone="text-red-600"
+          icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
+          to="/app/invoices?status=OVERDUE"
+          title={t("افتح الفواتير المتأخرة", "Open overdue invoices")}
+        />
       </div>
 
       {/* 3 insight cards · top customer · most overdue · most credit */}

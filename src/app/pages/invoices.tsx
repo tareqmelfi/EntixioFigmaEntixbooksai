@@ -102,7 +102,13 @@ export function Invoices() {
   const { isUS, currency: orgCurrency } = useOrgRegion();
   const defaultTaxRate = isUS ? 0 : 0.15; // US orgs default to 0% sales tax
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  // Deep-link support (2026-08-28): dashboard KPI tiles link here with
+  // ?status=PAID / ?status=OVERDUE, so the list opens already filtered to the
+  // number the user clicked instead of dumping every invoice on them.
+  const [filterStatus, setFilterStatus] = useState<string>(() => {
+    const s = new URLSearchParams(window.location.search).get("status");
+    return s ? s.toUpperCase() : "ALL";
+  });
 
   // Side-panel state for create + sign capture (NO Dialog)
   const [createOpen, setCreateOpen] = useState(false);

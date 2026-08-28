@@ -10,6 +10,7 @@
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { KpiCard } from "../components/kpi-card";
 import {
   Loader2, FileText, ShoppingCart, TrendingUp, AlertTriangle,
   Plus, Download, Trophy, Building2, ArrowLeft, Search, MoreHorizontal, Receipt,
@@ -189,44 +190,38 @@ export function PurchasesDashboard() {
         </div>
       </div>
 
-      {/* 4 KPI cards */}
+      {/* 4 KPI cards — each drills into the list that answers it (2026-08-28) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("عدد الفواتير", "Bills Count")}</span>
-              <FileText className="h-4 w-4 text-primary" />
-            </div>
-            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{data.ytd.billCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("إجمالي المشتريات", "Total Purchases")}</span>
-              <ShoppingCart className="h-4 w-4 text-primary" />
-            </div>
-            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(totalAllTime)}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("المصروفات النقدية", "Cash Expenses")}</span>
-              <Receipt className="h-4 w-4 text-amber-500" />
-            </div>
-            <div className="text-amber-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(Number(data.ytd.expenses))}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("هذا الشهر", "This Month")}</span>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="text-green-600 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{fmt(Number(data.thisMonth.bills))}</div>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label={t("عدد الفواتير", "Bills Count")}
+          value={data.ytd.billCount}
+          icon={<FileText className="h-4 w-4 text-primary" />}
+          to="/app/purchases/bills"
+          title={t("افتح قائمة فواتير المشتريات", "Open the bills list")}
+        />
+        <KpiCard
+          label={t("إجمالي المشتريات", "Total Purchases")}
+          value={fmt(totalAllTime)}
+          icon={<ShoppingCart className="h-4 w-4 text-primary" />}
+          to="/app/purchases/bills"
+          title={t("افتح قائمة فواتير المشتريات", "Open the bills list")}
+        />
+        <KpiCard
+          label={t("المصروفات النقدية", "Cash Expenses")}
+          value={fmt(Number(data.ytd.expenses))}
+          tone="text-amber-600"
+          icon={<Receipt className="h-4 w-4 text-amber-500" />}
+          to="/app/expenses"
+          title={t("افتح المصروفات النقدية", "Open cash expenses")}
+        />
+        <KpiCard
+          label={t("هذا الشهر", "This Month")}
+          value={fmt(Number(data.thisMonth.bills))}
+          tone="text-green-600"
+          icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+          to="/app/purchases/bills"
+          title={t("افتح فواتير هذا الشهر", "Open this month's bills")}
+        />
       </div>
 
       {/* 3 insight cards */}

@@ -407,14 +407,17 @@ export function JournalEntries() {
                         <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{e.number}</td>
                         <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{e.date.slice(0, 10)}</td>
                         <td className="px-4 py-3">
-                          <div className="text-foreground truncate" style={{ fontWeight: 500 }}>{e.description}</div>
+                          {/* dir="auto" isolates LTR descriptions ("Invoice EN-…") inside the
+                              RTL row — without it the text hugged the debit column and read as
+                              overlapping (CEO screenshot 2026-08-28). title = full text on hover. */}
+                          <div className="text-foreground truncate" dir="auto" title={e.description} style={{ fontWeight: 500 }}>{e.description}</div>
                           <div className="text-xs text-muted-foreground/60 mt-0.5">
                             {e.lineCount} {t("سطر", "lines")}
                             {(e.attachmentCount || 0) > 0 && <span className="ms-2"><Paperclip className="inline h-3 w-3" /> {e.attachmentCount}</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground" dir="ltr">{e.totalDebit.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground" dir="ltr">{e.totalCredit.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString()}</td>
                         <td className="px-2 py-3 text-center">
                           <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
                         </td>

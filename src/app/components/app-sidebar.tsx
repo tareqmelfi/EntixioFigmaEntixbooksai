@@ -50,6 +50,7 @@ const EN_TEXT: Record<string, string> = {
   "القيود اليدوية": "Journal entries",
   "شجرة الحسابات": "Chart of accounts",
   "الضرائب": "Taxes",
+  "البنوك": "Banking",
   "الحسابات البنكية": "Bank accounts",
   "تسوية البنوك": "Bank reconciliation",
   "الفترات المالية": "Fiscal periods",
@@ -178,16 +179,27 @@ const sections: MenuSection[] = [
         // The parent itself navigates to the accounting home — it was
         // pathless before, so clicking it felt «stuck» (2026-08-18 report).
         path: "/app/accounting",
+        // Everything that lives in the ledger belongs under one roof (CEO
+        // 2026-08-28: «بديهيًا في أشياء تكون كلها تحت المحاسبة — حتى الأصول
+        // ما تكون برّه كذا»). Fixed assets and fiscal periods used to sit as
+        // siblings of «المحاسبة», so an accountant had to hunt for them.
         children: [
           { title: "القيود اليدوية", icon: CalculatorIcon, path: "/app/journal-entries" },
           { title: "شجرة الحسابات", icon: BookOpen, path: "/app/chart-of-accounts" },
+          { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
           { title: "الضرائب", icon: FolderOpen, path: "/app/taxes" },
+          { title: "الفترات المالية", icon: CalendarDays, path: "/app/fiscal-periods" },
         ],
       },
-      { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
-      { title: "تسوية البنوك", icon: Landmark, path: "/app/bank-reconciliation" },
-      { title: "الفترات المالية", icon: CalendarDays, path: "/app/fiscal-periods" },
-      { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
+      {
+        title: "البنوك",
+        icon: Landmark,
+        path: "/app/bank-accounts",
+        children: [
+          { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
+          { title: "تسوية البنوك", icon: Landmark, path: "/app/bank-reconciliation" },
+        ],
+      },
       {
         title: "الملاك والمجلس",
         icon: Crown,
