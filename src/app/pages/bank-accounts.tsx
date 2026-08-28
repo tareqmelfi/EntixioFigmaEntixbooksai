@@ -169,7 +169,7 @@ export function BankAccounts() {
                           onClick={() => navigate(detailPath)}
                           className="border-b border-border/50 hover:bg-primary/5 cursor-pointer"
                         >
-                          <td className="py-3 px-4 text-sm text-muted-foreground font-english">{v.date ? new Date(v.date).toLocaleDateString("en-GB") : "—"}</td>
+                          <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-sm text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{v.date ? new Date(v.date).toLocaleDateString("en-GB") : "—"}</span></td>
                           <td className="py-3 px-4 text-sm">
                             <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                               {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
@@ -177,7 +177,7 @@ export function BankAccounts() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-sm font-english text-foreground">{v.number}</td>
-                          <td className="py-3 px-4 text-sm text-foreground/80">{v.contact?.displayName || "—"}</td>
+                          <td className="py-3 px-4 text-sm text-foreground/80 max-w-[200px] truncate" dir="auto" title={v.contact?.displayName || ""}>{v.contact?.displayName || "—"}</td>
                           <td className="py-3 px-4 text-xs text-muted-foreground max-w-[220px] truncate" title={v.notes || v.reference || ""}>
                             {v.reference || v.notes || "—"}
                           </td>
@@ -253,9 +253,9 @@ export function BankAccounts() {
                     <td className="py-3 px-4 text-sm" style={{ fontWeight: 500 }}>
                       <Link to={`/app/bank-accounts/${b.id}`} className="text-foreground hover:text-primary hover:underline">{b.name}</Link>
                     </td>
-                    <td className="py-3 px-4 text-sm text-foreground/80">{b.bankName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{accountIdentifier(b)}</td>
-                    <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.balance).toLocaleString()} {b.currency}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[200px] truncate" dir="auto" title={b.bankName || ""}>{b.bankName || "—"}</td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{accountIdentifier(b)}</span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.balance).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       {pendingDelete === b.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />

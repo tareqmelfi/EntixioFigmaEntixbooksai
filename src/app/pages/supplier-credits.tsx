@@ -322,10 +322,10 @@ export function SupplierCredits() {
                 {filtered.map((item) => (
                   <tr key={item.id} className="border-b border-border/50 hover:bg-primary/5">
                     <td className="py-3 px-4 font-english text-sm text-primary font-semibold">{item.creditNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80">{item.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{item.issueDate?.slice(0, 10)}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={item.contact?.displayName || ""}>{item.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{item.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find((reason) => reason.value === item.reason); return r ? t(r.label.ar, r.label.en) : item.reason; })()}</td>
-                    <td className="py-3 px-4 font-english text-sm text-amber-600 font-semibold"><span className="inline-flex items-center gap-1"><ArrowDownLeft className="h-3 w-3" />{Number(item.total).toLocaleString()} {item.currency}</span></td>
+                    <td className="py-3 px-4 font-english text-sm text-amber-600 font-semibold"><span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(item.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{item.currency}</span></span></span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status]}`}>{STATUS_LABELS[item.status] ? t(STATUS_LABELS[item.status].ar, STATUS_LABELS[item.status].en) : item.status}</span></td>
                     <td className="py-3 px-4">
                       {pendingDelete === item.id ? (

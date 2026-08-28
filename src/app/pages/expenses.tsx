@@ -2107,14 +2107,14 @@ export function Expenses() {
                   <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer">
                     <td className="py-3 px-4"><span className="font-english text-sm text-primary" style={{ fontWeight: 600 }}>{e.number}</span></td>
                     <td className="py-3 px-4">
-                      <div className="truncate text-sm text-foreground/80">{e.contact?.displayName || e.vendorName || "—"}</div>
+                      <div className="truncate text-sm text-foreground/80" dir="auto" title={e.contact?.displayName || e.vendorName || ""}>{e.contact?.displayName || e.vendorName || "—"}</div>
                       <div className="truncate text-xs text-muted-foreground">{e.category}</div>
                     </td>
-                    <td className="py-3 px-4"><span className="font-english text-sm text-muted-foreground">{e.documentNumber || e.reference || "—"}</span></td>
-                    <td className="py-3 px-4"><span className="font-english text-sm text-muted-foreground">{e.date.slice(0, 10)}</span></td>
+                    <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{e.documentNumber || e.reference || "—"}</span></td>
+                    <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{e.date.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
-                      <span className="font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{money(e.total, e.currency)}</span>
-                      {Number(e.taxAmount) > 0 && <div className="font-english text-[11px] text-muted-foreground">VAT {money(e.taxAmount, e.currency)}</div>}
+                      <span dir="ltr" className="font-english text-sm text-foreground whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{money(e.total, e.currency)}</span>
+                      {Number(e.taxAmount) > 0 && <div dir="ltr" className="font-english text-[11px] text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>VAT {money(e.taxAmount, e.currency)}</div>}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1" onClick={(ev) => ev.stopPropagation()}>

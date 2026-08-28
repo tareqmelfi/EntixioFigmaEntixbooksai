@@ -901,11 +901,11 @@ export function PurchaseBills() {
                 {filtered.map(b => (
                   <tr key={b.id} onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{b.billNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80">{b.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{b.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{b.dueDate?.slice(0, 10)}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={b.contact?.displayName || ""}>{b.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.issueDate?.slice(0, 10)}</span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{statusLabels(t)[b.status] || b.status}</span></td>
-                    <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()} {b.currency}</td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
                     <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
                         <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>

@@ -571,10 +571,10 @@ export function Quotes() {
                 {filtered.map(q => (
                   <tr key={q.id} className="border-b border-border/50 hover:bg-primary/5">
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{q.quoteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80">{q.contact?.displayName || "—"}</td>
-                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{q.issueDate?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 font-english text-xs text-muted-foreground">{q.validUntil?.slice(0, 10)}</td>
-                    <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(q.total).toLocaleString()} {q.currency}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={q.contact?.displayName || ""}>{q.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{q.issueDate?.slice(0, 10)}</span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{q.validUntil?.slice(0, 10)}</span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(q.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{q.currency}</span></span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`} title={q.status === "REJECTED" && q.rejectReason ? t(`السبب: ${q.rejectReason}`, `Reason: ${q.rejectReason}`) : undefined}>{STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 flex-wrap">

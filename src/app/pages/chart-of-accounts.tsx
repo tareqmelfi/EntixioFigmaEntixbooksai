@@ -940,15 +940,15 @@ export function ChartOfAccounts() {
                     <tbody>
                       {txPanel.data.transactions.map((t) => (
                         <tr key={t.id} className="border-t border-border/50 hover:bg-primary/5">
-                          <td className="px-3 py-2 font-english text-foreground/80">{t.date.slice(0, 10)}</td>
+                          <td className="px-3 py-2 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-foreground/80" style={{ fontVariantNumeric: "tabular-nums" }}>{t.date.slice(0, 10)}</span></td>
                           <td className="px-3 py-2 font-english font-semibold text-primary">{t.journalNumber}</td>
                           <td className="px-3 py-2">
-                            <div className="text-foreground">{t.description}</div>
+                            <div className="text-foreground max-w-[320px] truncate" dir="auto" title={t.description}>{t.description}</div>
                             {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{t.lineDescription}</div>}
                           </td>
-                          <td className="px-3 py-2 text-end font-english text-foreground">{t.debit > 0 ? t.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english text-foreground">{t.credit > 0 ? t.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground">{t.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.credit > 0 ? t.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
                     </tbody>
