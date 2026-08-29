@@ -66,6 +66,8 @@ type FormState = {
   projectId?: string | null;
 };
 
+const PAGE_SIZE = 200;
+
 export function JournalEntries() {
   const { toasts, push, dismiss } = useToasts();
   const { t } = useLanguage();
@@ -79,6 +81,9 @@ export function JournalEntries() {
     return { text: "", tone: null };
   }
   const [items, setItems] = useState<JournalEntryRow[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -104,10 +109,12 @@ export function JournalEntries() {
     setLoading(true);
     try {
       const [j, a] = await Promise.all([
-        api.journals.list(statusFilter || undefined),
+        api.journals.list(statusFilter || undefined, { limit: PAGE_SIZE, offset: 0 }),
         api.accounts.list(),
       ]);
       setItems(j.items);
+      setTotalCount(j.total ?? j.items.length);
+      setHasMore(!!j.hasMore);
       setAccounts(a.items);
       api.journals.coverage().then(setCoverage).catch(() => setCoverage(null));
     } catch (e: any) {
@@ -115,6 +122,18 @@ export function JournalEntries() {
     } finally { setLoading(false); }
   }, [push, statusFilter]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  const loadMore = useCallback(async () => {
+    setLoadingMore(true);
+    try {
+      const j = await api.journals.list(statusFilter || undefined, { limit: PAGE_SIZE, offset: items.length });
+      setItems((prev) => [...prev, ...j.items]);
+      setTotalCount(j.total ?? 0);
+      setHasMore(!!j.hasMore);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("فشل تحميل المزيد", "Failed to load more"));
+    } finally { setLoadingMore(false); }
+  }, [items.length, statusFilter, push, t]);
 
   const totalDebit = form.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
   const totalCredit = form.lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
@@ -337,7 +356,7 @@ export function JournalEntries() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي القيود", "Total Entries")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }}>{items.length}</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalCount || items.length}</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("المرحّلة", "Posted")}</div>
@@ -442,6 +461,19 @@ export function JournalEntries() {
                     ))}
                   </tbody>
                 </table>
+                {hasMore && (
+                  <div className="flex items-center justify-center py-4">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted/50 disabled:opacity-60"
+                    >
+                      {loadingMore
+                        ? t("جارٍ التحميل...", "Loading...")
+                        : t(`عرض المزيد · ${items.length} من ${totalCount}`, `Load more · ${items.length} of ${totalCount}`)}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

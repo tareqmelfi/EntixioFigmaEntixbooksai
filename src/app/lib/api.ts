@@ -601,8 +601,14 @@ export const api = {
 
   // Journal Entries
   journals: {
-    list: (status?: 'POSTED' | 'DRAFT') =>
-      request<{ items: JournalEntryRow[]; total: number }>('/api/journals', { query: status ? { status } : undefined }),
+    list: (status?: 'POSTED' | 'DRAFT', opts?: { limit?: number; offset?: number }) =>
+      request<{ items: JournalEntryRow[]; total: number; limit: number; offset: number; hasMore: boolean }>('/api/journals', {
+        query: {
+          ...(status ? { status } : {}),
+          ...(opts?.limit != null ? { limit: String(opts.limit) } : {}),
+          ...(opts?.offset ? { offset: String(opts.offset) } : {}),
+        },
+      }),
     get: (id: string) => request<JournalEntryRow>(`/api/journals/${id}`),
     create: (data: JournalEntryInput) => request<JournalEntryRow>('/api/journals', { method: 'POST', body: data }),
     update: (id: string, data: Partial<JournalEntryInput>) =>
