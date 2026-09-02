@@ -155,7 +155,7 @@ export function InvoicePrintView() {
           padding: 28,
           textAlign: "center",
         }}>
-          <div style={{ fontWeight: 900, fontSize: 24, letterSpacing: 0, marginBottom: 18 }}>
+          <div dir="ltr" lang="en" className="font-english" style={{ fontWeight: 900, fontSize: 24, letterSpacing: 0, marginBottom: 18 }}>
             ENTIX<span style={{ color: "#1276E3" }}>.IO</span>
           </div>
           <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>{title}</h1>

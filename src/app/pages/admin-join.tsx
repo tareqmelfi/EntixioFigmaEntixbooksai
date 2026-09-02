@@ -31,7 +31,7 @@ export function AdminJoinPage() {
   return (
     <div className="min-h-dvh bg-canvas flex items-center justify-center p-6" dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-[0_8px_24px_rgba(11,27,73,0.08)]">
-        <div className="flex items-center gap-2 mb-4"><span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0B1B49] text-white"><ShieldCheck className="h-5 w-5" /></span><div><div className="text-foreground" style={{ fontWeight: 800 }}>ENTIX<span className="text-primary">.IO</span> · Admin</div><div className="text-xs text-muted-foreground">{t("دعوة للانضمام إلى فريق المنصة", "Invitation to the platform team")}</div></div></div>
+        <div className="flex items-center gap-2 mb-4"><span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0B1B49] text-white"><ShieldCheck className="h-5 w-5" /></span><div><div dir="ltr" lang="en" className="font-english text-foreground" style={{ fontWeight: 800 }}>ENTIX<span className="text-primary">.IO</span> · Admin</div><div className="text-xs text-muted-foreground">{t("دعوة للانضمام إلى فريق المنصة", "Invitation to the platform team")}</div></div></div>
         {err ? <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertTriangle className="h-4 w-4 mt-0.5" />{err}</div>
         : !info ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-8" />
         : done ? <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-4 w-4" />{t("تم القبول — جارٍ فتح لوحة الإدارة…", "Accepted — opening the console…")}</div>

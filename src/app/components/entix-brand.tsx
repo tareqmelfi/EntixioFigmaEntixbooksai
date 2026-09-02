@@ -18,6 +18,11 @@ export function EntixWordmark({ className, size = 20, light = false }: EntixWord
     <span
       className={cn("font-english inline-flex items-baseline select-none", className)}
       dir="ltr"
+      /* lang="en" is load-bearing: with <html lang="ar"> Chrome resolves the
+       * Latin run against the Arabic-locale face even though font-family is
+       * identical, so the wordmark rendered with different letterforms in the
+       * Arabic UI. Pinning the run's locale keeps AR and EN pixel-identical. */
+      lang="en"
       aria-label="ENTIX.IO"
       style={{ fontSize: size, fontWeight: 850, letterSpacing: 0, lineHeight: 1 }}
     >
@@ -46,7 +51,7 @@ export function EntixAvatarMark({ className, sizeClass = "h-10 w-10", light = fa
       aria-hidden="true"
     >
       <span className="absolute inset-x-0 bottom-0 h-1" style={{ backgroundColor: brandCyan }} />
-      <span style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 800, letterSpacing: 0, lineHeight: 1 }}>
+      <span dir="ltr" lang="en" style={{ color: "#FFFFFF", fontSize: 13, fontWeight: 800, letterSpacing: 0, lineHeight: 1 }}>
         E<span style={{ color: brandBlue }}>.IO</span>
       </span>
     </span>

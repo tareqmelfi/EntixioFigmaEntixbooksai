@@ -61,7 +61,7 @@ export function AdminRoot() {
   const sidebar = (
     <aside className="flex h-full w-64 shrink-0 flex-col border-e border-border bg-white">
       <div className="flex items-center gap-2 px-4 py-4 border-b border-border">
-        <Link to="/admin" className="text-foreground" style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.01em" }}>ENTIX<span className="text-primary">.IO</span></Link>
+        <Link to="/admin" dir="ltr" lang="en" className="font-english text-foreground" style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.01em" }}>ENTIX<span className="text-primary">.IO</span></Link>
         <span className="inline-flex items-center gap-1 rounded-full bg-[#0B1B49] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"><ShieldCheck className="h-3 w-3" />Admin</span>
         <button type="button" className="ms-auto lg:hidden text-muted-foreground" onClick={() => setMenuOpen(false)} aria-label="close"><X className="h-4 w-4" /></button>
       </div>
