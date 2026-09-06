@@ -1,8 +1,9 @@
 import { cn } from "./ui/utils";
+import { ENTIX_BRAND } from "../lib/entix-brand-tokens";
 
-const brandNavy = "#0B1B49";
-const brandBlue = "#1276E3";
-const brandCyan = "#05B6FA";
+const brandNavy = ENTIX_BRAND.navy;
+const brandBlue = ENTIX_BRAND.blue;
+const brandCyan = ENTIX_BRAND.cyan;
 
 type EntixWordmarkProps = {
   className?: string;
@@ -24,7 +25,7 @@ export function EntixWordmark({ className, size = 20, light = false }: EntixWord
        * Arabic UI. Pinning the run's locale keeps AR and EN pixel-identical. */
       lang="en"
       aria-label="ENTIX.IO"
-      style={{ fontSize: size, fontWeight: 850, letterSpacing: 0, lineHeight: 1 }}
+      style={{ fontFamily: ENTIX_BRAND.fontFamily, fontSize: size, fontWeight: ENTIX_BRAND.fontWeight, letterSpacing: 0, lineHeight: 1 }}
     >
       <span style={{ color: baseColor }}>ENTIX</span>
       <span style={{ color: accentColor }}>.</span>

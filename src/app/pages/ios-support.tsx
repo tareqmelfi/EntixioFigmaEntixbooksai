@@ -1,3 +1,4 @@
+import { EntixWordmark } from "../components/entix-brand";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import {
@@ -325,7 +326,7 @@ export function IosSupport() {
       <footer dir={isAr ? "rtl" : "ltr"} className="bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-lg font-extrabold">ENTIX.IO</p>
+            <p><EntixWordmark size={18} /></p>
             <p className="mt-1 text-sm text-slate-400">{isAr ? "الدعم الرسمي لتطبيق iPhone وiPad" : "Official iPhone and iPad app support"}</p>
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-slate-300">

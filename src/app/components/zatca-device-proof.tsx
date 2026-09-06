@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Download, ExternalLink, FileDown, ShieldCheck } from "lucide-react";
+import { Check, CircleAlert, Download, ExternalLink, FileDown, ShieldCheck } from "lucide-react";
+import { deviceProofReviewReason, deviceProofStages, isDeviceProofCurrent } from "../lib/zatca-proof-presentation";
 import { deviceProofReference, FATOORA_DEVICE_PORTAL, renderDeviceProofDocument } from "../lib/zatca-proof-document";
 import { Button } from "./ui/button";
 import { useLanguage } from "./LanguageContext";
@@ -13,7 +14,7 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
   const proof = status.raw?.deviceProof;
   const previewKey = proof?.certificate ? `${proof.orgId}:${proof.certificate.fingerprint}:${proof.checkedAt}:${t("ar", "en")}` : "";
   useEffect(() => {
-    if (status.loading || !proof?.deviceLinked || proof.certificateState !== "valid") return;
+    if (status.loading || !proof || !isDeviceProofCurrent(proof)) return;
     let cancelled = false;
     let url: string | undefined;
     setError("");
@@ -26,11 +27,12 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
     }).catch(() => { if (!cancelled) setError(t("تعذر تجهيز معاينة السجل؛ حدّث الحالة للمحاولة مجددًا.", "Unable to prepare the record preview. Refresh the status to retry.")); });
     return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
   }, [proof, previewKey, status.loading, t]);
-  if (!proof || !proof.certificate) return <p className="text-sm text-muted-foreground">{t("جارٍ التحقق من سجل شهادة الجهاز…", "Checking the device certificate record…")}</p>;
-  const previewReady = !status.loading && proof.deviceLinked && proof.certificateState === "valid" && preview?.key === previewKey;
+  if (!proof || !proof.certificate) return <p role="status" className="text-sm text-muted-foreground">{status.loading ? t("جارٍ التحقق من سجل شهادة الجهاز…", "Checking the device certificate record…") : t("لا تتوفر حاليًا أدلة شهادة قابلة للعرض؛ حدّث حالة الربط أو راجع إعداداته.", "No certificate evidence is currently available to display. Refresh the connection status or review its settings.")}</p>;
+  const current = isDeviceProofCurrent(proof);
+  const previewReady = !status.loading && current && preview?.key === previewKey;
   const cert = proof.certificate;
   const date = (value: string) => new Date(value).toLocaleDateString("en-GB", { timeZone: "Asia/Riyadh" });
-  const title = proof.deviceLinked ? t("تم ربط جهاز المنشأة في بيئة الإنتاج", "Organization device onboarded in production") : t("سجل شهادة الجهاز · يحتاج مراجعة", "Device certificate record · review required");
+  const title = current ? t("تم ربط جهاز المنشأة في بيئة الإنتاج", "Organization device onboarded in production") : t("سجل شهادة الجهاز · يحتاج مراجعة", "Device certificate record · review required");
   const rows = [
     [t("مرجع سجل Entix", "Entix record reference"), deviceProofReference(proof)],
     [t("المنشأة", "Organization"), proof.companyName],
@@ -62,12 +64,15 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
     } catch { setError(t("تعذر تنزيل الملخص؛ أعد المحاولة.", "Unable to download the record. Please retry.")); }
     finally { setBusy(false); }
   };
-  return <section className={`space-y-4 rounded-xl border p-5 ${proof.deviceLinked ? "border-emerald-200 bg-emerald-50/40" : "border-amber-200 bg-amber-50"}`} aria-label={t("سجل ربط جهاز المنشأة", "Organization device onboarding record")}>
-    <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 shrink-0" /><h3 className="font-semibold">{title}</h3></div>
+  return <section className={`space-y-4 rounded-xl border p-5 ${current ? "border-emerald-200 bg-emerald-50/40" : "border-amber-200 bg-amber-50"}`} aria-label={t("سجل ربط جهاز المنشأة", "Organization device onboarding record")}>
+    <div className="flex items-center gap-2" aria-live="polite">{current ? <ShieldCheck className="h-5 w-5 shrink-0" /> : <CircleAlert className="h-5 w-5 shrink-0 text-amber-700" />}<h3 className="font-semibold">{title}</h3></div>
+    {!current && <p role="status" className="text-sm text-amber-900">{deviceProofReviewReason(proof, t)}</p>}
     {previewReady && <a href={preview.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg focus-visible:outline-2 focus-visible:outline-primary" aria-label={t("فتح سجل الربط بالحجم الكامل", "Open the full-size onboarding record")}><img src={preview.url} width={2480} height={1754} alt={t("سجل ربط جهاز المنشأة مع رمز QR ومرجع السجل وبصمة الشهادة", "Device onboarding record with QR, record reference and certificate fingerprint")} className="w-full rounded-lg border border-border bg-white shadow-sm" /></a>}
-    {!previewReady && proof.deviceLinked && !error && <div role="status" className="flex aspect-[297/210] items-center justify-center rounded-lg border border-border bg-white text-sm text-muted-foreground">{t("جارٍ تجهيز سجل الربط…", "Preparing the onboarding record…")}</div>}
+    {!previewReady && current && !error && <div role="status" className="flex aspect-[297/210] items-center justify-center rounded-lg border border-border bg-white text-sm text-muted-foreground">{t("جارٍ تجهيز سجل الربط…", "Preparing the onboarding record…")}</div>}
+    <p className="text-xs text-muted-foreground">{t("آخر تحديث للحالة", "Status last updated")}: <bdi>{new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })}</bdi> · {t("بتوقيت الرياض", "Riyadh time")}</p>
     <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{t("إرسال الفواتير غير مفعّل بعد. يظهر قبول الفاتورة عند استلام رد الهيئة على فاتورة فعلية.", "Invoice submission is not active yet. Invoice acceptance requires an authority response to an actual invoice.")}</p>
-    <details className="space-y-3 text-sm"><summary className="cursor-pointer font-medium">{t("بيانات الشهادة ومصدر التحقق", "Certificate details and verification source")}</summary>
+    <details open={!current || undefined} className="space-y-3 text-sm"><summary className="cursor-pointer font-medium">{t("بيانات الشهادة ومصدر التحقق", "Certificate details and verification source")}</summary>
+    <ol className="grid gap-3 sm:grid-cols-2" aria-label={t("مراحل ربط الجهاز", "Device onboarding stages")}>{deviceProofStages(proof, t).map(stage => <li key={stage.label} className="flex items-center gap-2">{stage.complete ? <Check aria-label={t("مكتمل", "Complete")} className="h-5 w-5 rounded-full bg-emerald-100 p-0.5 text-emerald-700" /> : <CircleAlert aria-label={t("يحتاج تحقق", "Verification required")} className="h-5 w-5 text-amber-700" />}<span>{stage.label}</span></li>)}</ol>
     <dl className="grid gap-4 sm:grid-cols-2">{rows.map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 break-words text-sm font-semibold"><bdi>{value}</bdi></dd></div>)}</dl>
     <p className="text-xs text-muted-foreground">{note}</p>
     <p className="text-xs text-muted-foreground">{t("يمكنك الدخول من جهاز آخر بالحساب المخوّل نفسه. مفاتيح الربط محفوظة على الخادم ولا تظهر في هذا الملخص.", "Use the same authorized account on another device. Linking keys remain on the server and are excluded from this record.")}</p>
@@ -75,7 +80,7 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
     <p className="text-xs text-muted-foreground">{t("آخر تحقق", "Last checked")}: <bdi>{new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })}</bdi> · {t("بتوقيت الرياض", "Riyadh time")}</p>
     <p className="break-all text-xs text-muted-foreground">SHA-256: <bdi>{cert.fingerprint}</bdi></p>
     </details>
-    <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={busy || status.loading || !proof.deviceLinked} onClick={() => download("png")}><Download className="me-2 h-4 w-4" />{t("تنزيل ملخص الربط كصورة", "Download onboarding record")}</Button><Button variant="outline" size="sm" disabled={busy || status.loading || !proof.deviceLinked} onClick={() => download("pdf")}><FileDown className="me-2 h-4 w-4" />{t("تنزيل PDF · A4 أفقي", "Download PDF · A4 landscape")}</Button><Button variant="outline" size="sm" onClick={invalidateZatcaStatus}>{t("تحديث الحالة", "Refresh status")}</Button><a className="inline-flex items-center gap-1 text-sm text-primary underline" href={FATOORA_DEVICE_PORTAL} target="_blank" rel="noopener noreferrer">{t("مراجعة الجهاز في بوابة فاتورة", "Review device in Fatoora")}<ExternalLink className="h-3 w-3" /></a></div>
+    <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={busy || status.loading || !current} onClick={() => download("png")}><Download className="me-2 h-4 w-4" />{t("تنزيل ملخص الربط كصورة", "Download onboarding record")}</Button><Button variant="outline" size="sm" disabled={busy || status.loading || !current} onClick={() => download("pdf")}><FileDown className="me-2 h-4 w-4" />{t("تنزيل PDF · A4 أفقي", "Download PDF · A4 landscape")}</Button><Button variant="outline" size="sm" onClick={invalidateZatcaStatus}>{t("تحديث الحالة", "Refresh status")}</Button><a className="inline-flex items-center gap-1 text-sm text-primary underline" href={FATOORA_DEVICE_PORTAL} target="_blank" rel="noopener noreferrer">{t("مراجعة الجهاز في بوابة فاتورة", "Review device in Fatoora")}<ExternalLink className="h-3 w-3" /></a></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
   </section>;
 }

@@ -403,7 +403,7 @@ export function PortalHome() {
 
       <div className="text-center py-6 border-t border-border mt-12">
         <span className="text-xs text-muted-foreground/60">{t("مقدم من", "Powered by")} </span>
-        <span className="text-xs text-muted-foreground/60 font-english" style={{ fontWeight: 600 }}>ENTIX.IO</span>
+        <EntixWordmark size={12} />
       </div>
     </div>
   );

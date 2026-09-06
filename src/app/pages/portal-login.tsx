@@ -156,7 +156,7 @@ export function PortalLogin() {
         <div className="text-center mt-6 flex items-center justify-center gap-2">
           <Shield className="h-3.5 w-3.5 text-muted-foreground/60" />
           <span className="text-xs text-muted-foreground/60">{t("هذا الرابط آمن ومقدم من", "This link is secure and provided by")}</span>
-          <span className="text-xs text-muted-foreground/60 font-english" style={{ fontWeight: 600 }}>ENTIX.IO — entix.io</span>
+          <EntixWordmark size={12} />
         </div>
       </div>
     </div>

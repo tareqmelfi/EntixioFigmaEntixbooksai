@@ -1,3 +1,4 @@
+import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
 /**
  * Invoice print view · Wafeq-style branded template (UX-180)
@@ -157,7 +158,7 @@ export function InvoicePrintView() {
           textAlign: "center",
         }}>
           <div dir="ltr" lang="en" className="font-english" style={{ fontWeight: 900, fontSize: 24, letterSpacing: 0, marginBottom: 18 }}>
-            ENTIX<span style={{ color: "#1276E3" }}>.IO</span>
+            <EntixWordmark size={24} />
           </div>
           <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>{title}</h1>
           <p style={{ margin: "0 0 22px", color: "#607089", lineHeight: 1.6 }}>{message}</p>

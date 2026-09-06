@@ -1,3 +1,4 @@
+import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
 /**
  * Settings · org info + members + auth · wired to /orgs · /orgs/:id/members
@@ -2434,7 +2435,7 @@ function PlansTab({ org }: { org: Org }) {
               <tr className="border-b border-border text-start">
                 <th className="text-start py-2.5 pe-3 text-muted-foreground font-medium">{t("المقارنة", "Benchmark")}</th>
                 <th className="py-2.5 px-3 text-center">
-                  <div className="inline-flex flex-col items-center"><span className="text-primary font-bold">ENTIX.IO</span><span className="text-[10px] text-green-800 bg-green-100 rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
+                  <div className="inline-flex flex-col items-center"><EntixWordmark size={14} /><span className="text-[10px] text-green-800 bg-green-100 rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
                 </th>
                 <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wafeq {t("وفق", "")}</th>
                 <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wave</th>

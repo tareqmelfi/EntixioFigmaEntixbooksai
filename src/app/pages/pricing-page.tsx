@@ -1,3 +1,4 @@
+import { EntixWordmark } from "../components/entix-brand";
 import { motion } from "motion/react";
 import { CheckCircle2, X, Sparkles, ArrowLeft, ArrowRight, HelpCircle, Rocket, ArrowLeftRight, Gift, AlertCircle, Mail } from "lucide-react";
 import { SharedNavbar } from "../components/shared-navbar";
@@ -717,7 +718,7 @@ export function PricingPage() {
                   <th className="text-start py-4 px-5 text-muted-foreground" style={{ fontWeight: 600 }}>{t("وجه المقارنة", "Benchmark")}</th>
                   <th className="py-4 px-5 text-center">
                     <div className="inline-flex flex-col items-center">
-                      <span className="text-primary" style={{ fontWeight: 800 }}>ENTIX.IO</span>
+                      <EntixWordmark size={14} />
                       <span className="text-green-800 bg-green-100 rounded-full px-2.5 py-0.5 mt-1" style={{ fontSize: "10px", fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span>
                     </div>
                   </th>
