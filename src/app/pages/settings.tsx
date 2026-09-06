@@ -1797,7 +1797,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
 // ── ZATCA TAB ───────────────────────────────────────────────────────────────
 // CSID onboarding wizard (Gate-0 outbound freeze documented in-product):
 //   NONE → prepare (local keypair + CSR) → CSR_READY → compliance (Fatoora OTP)
-//   → COMPLIANCE → compliance-check (6 sample docs vs simulation) → production
+//   → COMPLIANCE → compliance-check (6 samples in the selected environment) → production
 //   → PRODUCTION. Invoice clearance/reporting stay frozen until the explicit
 //   Gate-0 unfreeze — this wizard never submits a real invoice.
 const ZATCA_DOC_TYPES: Array<{ id: string; ar: string; en: string }> = [
@@ -1834,6 +1834,10 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
   ];
 
   const act = async (key: string, fn: () => Promise<any>, okMsg: string) => {
+    if (localStorage.getItem("entix_org_id") !== org.id) {
+      push("error", t("تغيّرت المنشأة المختارة؛ أعد فتح إعدادات الربط للمنشأة المطلوبة.", "The selected organization changed. Reopen onboarding settings for the intended organization."));
+      return null;
+    }
     setBusy(key);
     try {
       const out = await fn();
@@ -1898,7 +1902,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
             </p>
             <div className="grid gap-3 md:grid-cols-2">
               {([['branchName', t('الفرع / الرقم المميز لعضو المجموعة', 'Branch / VAT group member TIN')], ['location', t('عنوان موقع الجهاز', 'Device location address')], ['industry', t('النشاط', 'Business activity')]] as const).map(([field, label]) => <label key={field} className="text-sm">{label}<Input value={csrFields[field]} onChange={e => setCsrFields({ ...csrFields, [field]: e.target.value })} /></label>)}
-              <label className="text-sm">{t('بيئة الاختبار', 'Test environment')}<select className="w-full border border-border rounded-md p-2 bg-background" value={csrFields.mode} onChange={e => setCsrFields({ ...csrFields, mode: e.target.value as 'sandbox' | 'simulation' })}><option value="simulation">Simulation</option><option value="sandbox">Sandbox</option></select></label>
+              <label className="text-sm">{t('بيئة الربط', 'Onboarding environment')}<select className="w-full border border-border rounded-md p-2 bg-background" value={csrFields.mode} onChange={e => setCsrFields({ ...csrFields, mode: e.target.value as 'sandbox' | 'simulation' | 'production' })}><option value="simulation">{t('المحاكاة · للاختبار', 'Simulation · testing')}</option><option value="sandbox">{t('بيئة المطورين · للاختبار', 'Sandbox · testing')}</option><option value="production">{t('الإنتاج · جهاز المنشأة الفعلي', 'Production · live organization device')}</option></select></label>
               <label className="text-sm">{t('أنواع الفواتير', 'Invoice types')}<select className="w-full border border-border rounded-md p-2 bg-background" value={csrFields.invoiceType} onChange={e => setCsrFields({ ...csrFields, invoiceType: e.target.value as '1000' | '0100' | '1100' })}><option value="1100">{t('قياسية ومبسطة', 'Standard and simplified')}</option><option value="1000">{t('قياسية', 'Standard')}</option><option value="0100">{t('مبسطة', 'Simplified')}</option></select></label>
             </div>
             <Button
@@ -1925,7 +1929,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
             )}
             <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
               <li>{t("ادخل بوابة فاتورة (Fatoora) وسجّل الدخول بحساب المنشأة.", "Sign in to the Fatoora portal with the organization account.")}</li>
-              <li>{t("من «خدماتي» → «إدارة أجهزة الفوترة» اطلب رمز تحقق (OTP) لجهاز جديد.", "Under My services → E-invoicing device management, request an OTP for a new device.")}</li>
+              <li>{t("اختر «تهيئة وحدة / جهاز جديد» في البيئة نفسها الموضحة أعلاه، ثم أنشئ رمز تفعيل واحدًا.", "Choose Onboard new solution unit/device in the same environment shown above, then generate one activation code.")}</li>
               <li>{t("أدخل الرمز هنا خلال ساعة من إصداره.", "Enter the code here within one hour of issuance.")}</li>
             </ol>
             <div className="flex items-center gap-2">
@@ -1949,7 +1953,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         {status === "COMPLIANCE" && (
           <div className="rounded-lg border border-border p-4 space-y-3">
             <p className="text-sm text-muted-foreground">
-              {t("ترسل المنصة 6 مستندات تجريبية موقّعة (فاتورة قياسية ومبسطة + إشعارات دائنة ومدينة) إلى بيئة المحاكاة للتحقق من التوقيع والتسلسل والصيغة.", "The platform submits 6 signed sample documents (standard + simplified invoices, credit/debit notes) to the simulation environment to validate signature, chain, and format.")}
+              {t("ترسل المنصة 6 مستندات اختبار موقّعة إلى خدمة فحص الامتثال في البيئة الموضحة أعلاه، للتحقق من التوقيع والتسلسل والصيغة. هذه الخطوة تفحص قبول الجهاز ولا ترحّل فواتير عملائك.", "The platform sends 6 signed test documents to the compliance-check service in the environment shown above to validate signature, chain, and format. This checks device compliance without submitting your customer invoices.")}
             </p>
             <Button
               disabled={busy === "checks"}
