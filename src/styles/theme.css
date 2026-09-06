@@ -3,45 +3,49 @@
 :root {
   --font-size: 15px;
 
-  --brand-navy-950: #0b1b49;
-  --brand-blue-600: #1276e3;
-  --brand-blue-700: #0f62c3;
-  --brand-teal-600: #179fc5;
-  --neutral-0: #ffffff;
-  --neutral-25: #fafbfd;
-  --neutral-50: #f7f9fc;
-  --neutral-100: #f1f4f8;
-  --neutral-200: #e2e8f0;
-  --neutral-300: #cbd5e1;
-  --neutral-600: #5f6b7a;
-  --neutral-900: #172033;
+  /* Ledger design system (2026-09) · paper ground, ink text, logo-blue accent.
+   * Token names are kept; only values changed so every consumer re-themes at once. */
+  --brand-navy-950: #1a1e48;   /* ink */
+  --brand-blue-600: #5875db;   /* accent (decorative, fills, focus) */
+  --brand-blue-700: #4661c7;   /* accent-dark (text + buttons · AA on paper) */
+  --brand-teal-600: #8fa3f0;   /* accent-lift (charts, on dark grounds) */
+  --neutral-0: #fffdf9;        /* card */
+  --neutral-25: #fbf8f2;       /* paper-2 */
+  --neutral-50: #f6f1e8;       /* paper */
+  --neutral-100: #efe8da;      /* line-2 / hover */
+  --neutral-200: #e3dacb;      /* line */
+  --neutral-300: #c9c0b0;      /* line-strong */
+  --neutral-600: #5c6480;      /* muted */
+  --neutral-900: #1a1e48;
 
   --canvas: var(--neutral-50);
   --surface: var(--neutral-0);
   --surface-subtle: var(--neutral-25);
   --surface-hover: var(--neutral-100);
-  --overlay-scrim: rgb(11 27 73 / 0.48);
+  --overlay-scrim: rgb(26 30 72 / 0.48);
   --content: var(--brand-navy-950);
   --content-secondary: var(--neutral-600);
   --border-subtle: var(--neutral-200);
   --border-strong: var(--neutral-300);
   --action-primary: var(--brand-blue-700);
-  --action-primary-hover: #0b52a4;
-  --action-secondary: #0e7490;
+  --action-primary-hover: #3d55b5;
+  --action-secondary: #1a1e48;
   --focus-ring: color-mix(in srgb, var(--brand-blue-600) 24%, transparent);
 
-  --success: #126c4a;
-  --success-subtle: #eef9f4;
-  --success-border: #bce8d4;
-  --warning: #815200;
-  --warning-subtle: #fff8e6;
-  --warning-border: #f2d58a;
-  --danger: #b4233e;
-  --danger-subtle: #fff1f3;
-  --danger-border: #f3c0c9;
+  /* Semantic states (Ledger): ok = blue (never green) · attention = copper · loss/delete = brick.
+   * Colour never carries meaning alone — pair with a mark and a word. */
+  --success: #4661c7;
+  --success-subtle: #edf0fb;
+  --success-border: #c9d3f3;
+  --warning: #8a5f14;
+  --warning-subtle: #f7eedc;
+  --warning-border: #e6d2a6;
+  --danger: #9e3b2e;
+  --danger-subtle: #fbefec;
+  --danger-border: #ebc8c0;
   --info: var(--brand-blue-700);
-  --info-subtle: #eff6ff;
-  --info-border: #bfdbfe;
+  --info-subtle: #edf0fb;
+  --info-border: #c9d3f3;
 
   --background: var(--canvas);
   --foreground: var(--content);
@@ -68,17 +72,17 @@
   --chart-1: var(--brand-navy-950);
   --chart-2: var(--brand-blue-600);
   --chart-3: var(--brand-teal-600);
-  --chart-4: #4a90e2;
-  --chart-5: #82c3d7;
+  --chart-4: #b8862b;
+  --chart-5: #c9d3f3;
 
   --geometry-radius-xs: 4px;
   --geometry-radius-sm: 6px;
   --geometry-radius-md: 8px;
-  --geometry-radius-lg: 10px;
-  --geometry-radius-xl: 12px;
+  --geometry-radius-lg: 8px;
+  --geometry-radius-xl: 8px;
   --radius: var(--geometry-radius-lg);
-  --elevation-raised: 0 1px 2px rgb(11 27 73 / 0.06);
-  --elevation-popover: 0 8px 24px rgb(11 27 73 / 0.12);
+  --elevation-raised: 0 1px 2px rgb(26 30 72 / 0.06);
+  --elevation-popover: 0 8px 24px rgb(26 30 72 / 0.12);
 
   --control-sm: 32px;
   --control-md: 36px;
@@ -93,7 +97,7 @@
   --type-section: clamp(1.125rem, 1.05rem + 0.25vw, 1.25rem);
   --type-page: clamp(1.5rem, 1.35rem + 0.5vw, 1.875rem);
 
-  --sidebar: var(--surface);
+  --sidebar: var(--surface-subtle);
   --sidebar-foreground: var(--content-secondary);
   --sidebar-primary: var(--action-primary);
   --sidebar-primary-foreground: var(--neutral-0);

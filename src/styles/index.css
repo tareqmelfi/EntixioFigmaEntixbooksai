@@ -4,9 +4,13 @@
 @import './print-documents.css';
 
 :root {
-  --entix-font-ui: 'Plus Jakarta Sans', 'Noto Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --entix-font-ar: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --entix-font-en: 'Plus Jakarta Sans', 'Noto Sans Arabic', system-ui, sans-serif;
+  /* Ledger design system (2026-09) · one family across AR/EN so mixed lines share rhythm.
+   * Arabic is never rendered in a serif: the display face falls back to Plex Arabic. */
+  --entix-font-ui: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --entix-font-ar: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+  --entix-font-en: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --entix-font-display: 'Instrument Serif', 'IBM Plex Sans Arabic', Georgia, serif;
+  --entix-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
@@ -24,6 +28,18 @@ body {
 
 .font-english {
   font-family: var(--entix-font-en);
+}
+
+/* Large EN numerals / EN display only. Arabic glyphs fall through to Plex Arabic (never serif). */
+.font-display {
+  font-family: var(--entix-font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.font-code {
+  font-family: var(--entix-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .font-english-block {

@@ -1,6 +1,9 @@
 /** Shared by the UI wordmark and exported documents. Never use the Arabic face for the logo. */
 export const ENTIX_BRAND = {
-  navy: "#0B1B49", blue: "#1276E3", cyan: "#05B6FA",
+  /* Ledger design system (2026-09): logo ink + logo blue, taken from the production logo. */
+  navy: "#1A1E48", blue: "#5B75DC", cyan: "#8FA3F0",
+  /* On dark grounds (cover cards, dark headers) the wordmark flips to paper + lifted blue. */
+  navyOnDark: "#F6F1E8", blueOnDark: "#8FA3F0",
   fontFamily: "Plus Jakarta Sans", fontWeight: 850,
 } as const;
 

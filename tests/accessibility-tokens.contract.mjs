@@ -11,11 +11,12 @@ function contrast(foreground, background) {
 }
 
 for (const [name, foreground, background] of [
-  ['primary on white', '0f62c3', 'ffffff'],
-  ['info on subtle', '0f62c3', 'eff6ff'],
-  ['success on subtle', '126c4a', 'eef9f4'],
-  ['warning on subtle', '815200', 'fff8e6'],
-  ['danger on subtle', 'b4233e', 'fff1f3'],
+  ['primary on card', '4661c7', 'fffdf9'],
+  ['primary on paper', '4661c7', 'f6f1e8'],
+  ['info on subtle', '4661c7', 'edf0fb'],
+  ['success on subtle', '4661c7', 'edf0fb'],
+  ['warning on subtle', '8a5f14', 'f7eedc'],
+  ['danger on subtle', '9e3b2e', 'fbefec'],
 ]) {
   assert.ok(contrast(foreground, background) >= 4.5, `${name}: ${contrast(foreground, background).toFixed(2)}:1`)
 }

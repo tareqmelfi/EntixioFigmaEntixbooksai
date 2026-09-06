@@ -3,13 +3,12 @@ import { Link, useNavigate } from "react-router";
 import {
   Bell, Settings, LogOut, Building2,
   CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu, CheckCheck,
-  Shield,
   ShieldCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { authStore } from "./auth-store";
 import { useOrgRegion } from "../lib/use-org-region";
-import { useZatcaStatus } from "../lib/use-zatca-status";
+import { useZatcaStatus, type ZatcaStatus } from "../lib/use-zatca-status";
 import { zatcaStatusLabel } from "./zatca-status-badge";
 import { api, NotificationItem } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
@@ -24,6 +23,24 @@ function timeAgo(iso: string, language: "ar" | "en"): string {
   if (h < 24) return language === "ar" ? `منذ ${h} ساعة` : `${h}h ago`;
   const d = Math.floor(h / 24);
   return language === "ar" ? `منذ ${d} يوم` : `${d}d ago`;
+}
+
+/** Secondary ZATCA facts that used to occupy the strip now live in the pill tooltip. */
+function zatcaPillDetail(zatca: ZatcaStatus, t: (ar: string, en: string) => string): string {
+  const parts: string[] = [];
+  if (zatca.raw?.deviceProof?.companyName) parts.push(zatca.raw.deviceProof.companyName);
+  if (zatca.connection === "connected" && zatca.submission === "live") {
+    parts.push(zatca.raw?.deviceProof?.delivery?.needsReview
+      ? t("الإرسال مفعّل · توجد فواتير تحتاج معالجة", "Submission active · invoices need attention")
+      : t("الإرسال التلقائي مفعّل · حالة كل فاتورة محفوظة", "Automatic submission active · each invoice has a saved status"));
+  }
+  if (zatca.connection === "connected" && zatca.submission === "frozen") {
+    parts.push(zatca.raw?.deviceProof?.lastAcceptedInvoice
+      ? t("تم قبول فاتورة إنتاجية · راجع حالة الإرسال", "Production invoice accepted · review submission status")
+      : t("إرسال الفواتير غير مفعّل بعد · شهادة الجهاز مستقلة عن قبول الفواتير", "Invoice submission is not active yet · device onboarding is separate from invoice acceptance"));
+  }
+  parts.push(zatca.connection === "connected" ? t("التفاصيل", "Details") : zatca.connection === "in_progress" ? t("إكمال الربط", "Continue linking") : t("ابدأ الربط", "Start linking"));
+  return parts.join(" · ");
 }
 
 export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
@@ -90,25 +107,6 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      {/* ZATCA strip · per-org truth (CEO 26/08): green when the production CSID is
-          issued, amber while linking, neutral when not started. Country only selects
-          relevance; the label comes from /api/zatca/onboarding/status. */}
-      {isSA && (
-      <div className={`border-b px-4 py-2 sm:px-6 ${zatca.connection === "connected" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : zatca.connection === "in_progress" ? "border-warning-border bg-warning-subtle text-warning" : "border-border bg-muted/40 text-muted-foreground"}`} data-zatca-connection={zatca.connection}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {zatca.connection === "connected" ? <ShieldCheck className="h-4 w-4 shrink-0" /> : <Shield className="h-4 w-4 shrink-0" />}
-            <span className="text-sm">ZATCA Phase 2 — {zatcaStatusLabel(zatca, t)}{zatca.raw?.deviceProof?.companyName && <span className="block text-xs">{zatca.raw.deviceProof.companyName}</span>}</span>
-          </div>
-          <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold hover:underline">
-            {zatca.connection === "connected" ? t("التفاصيل", "Details") : zatca.connection === "in_progress" ? t("إكمال الربط", "Continue linking") : t("ابدأ الربط", "Start linking")}
-          </Link>
-        </div>
-        {zatca.connection === "connected" && zatca.submission === "live" && <p className={`mt-1 text-xs ${zatca.raw?.deviceProof?.delivery?.needsReview ? "text-amber-900" : "text-emerald-800"}`}>{zatca.raw?.deviceProof?.delivery?.needsReview ? t("الإرسال مفعّل · توجد فواتير تحتاج معالجة", "Submission active · invoices need attention") : t("الإرسال التلقائي مفعّل · حالة كل فاتورة محفوظة", "Automatic submission active · each invoice has a saved status")}</p>}
-        {zatca.connection === "connected" && zatca.submission === "frozen" && <p className="mt-1 text-xs text-amber-900">{zatca.raw?.deviceProof?.lastAcceptedInvoice ? t("تم قبول فاتورة إنتاجية · راجع حالة الإرسال", "Production invoice accepted · review submission status") : t("إرسال الفواتير غير مفعّل بعد · شهادة الجهاز مستقلة عن قبول الفواتير", "Invoice submission is not active yet · device onboarding is separate from invoice acceptance")}</p>}
-      </div>
-      )}
-
       <header className="border-b border-border bg-card px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between gap-3">
           {/* START side (right in RTL) · mobile menu only */}
@@ -120,7 +118,32 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="hidden lg:block text-sm text-muted-foreground" />
+            {/* ZATCA pill (Ledger, 2026-09) · replaces the full-width strip. Per-org truth
+                unchanged: dot + word from /api/zatca/onboarding/status. Colour never carries
+                the meaning alone — ok = blue, linking = copper, not started = muted. */}
+            {isSA && (
+              <Link
+                to="/app/settings?tab=zatca"
+                data-zatca-connection={zatca.connection}
+                title={zatcaPillDetail(zatca, t)}
+                className={`inline-flex h-7 max-w-[60vw] items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors ${
+                  zatca.connection === "connected"
+                    ? "border-success-border bg-success-subtle text-success hover:bg-success-subtle/70"
+                    : zatca.connection === "in_progress"
+                      ? "border-warning-border bg-warning-subtle text-warning hover:bg-warning-subtle/70"
+                      : "border-border bg-muted text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    zatca.connection === "connected" ? "bg-success" : zatca.connection === "in_progress" ? "bg-warning" : "bg-muted-foreground/60"
+                  }`}
+                />
+                <span className="font-code shrink-0" dir="ltr" lang="en">ZATCA</span>
+                <span className="truncate">{zatcaStatusLabel(zatca, t)}</span>
+              </Link>
+            )}
           </div>
 
           {/* END side (left in RTL) · actions only */}
@@ -234,10 +257,10 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                       </button>
                     </Link>
                     <Link to="/app/billing" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-start transition-colors bg-emerald-50 hover:bg-emerald-100 border-y border-emerald-200/60 text-emerald-900">
-                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-start transition-colors bg-info-subtle hover:bg-accent border-y border-info-border text-info">
+                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-info" />
                         <span className="min-w-0 flex-1 whitespace-normal" style={{ fontWeight: 700 }}>{t("الباقة والاشتراك", "Plan & billing")}</span>
-                        <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] text-white" style={{ fontWeight: 700 }}>
+                        <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground" style={{ fontWeight: 700 }}>
                           {t("وفّر حتى 20% سنويًا", "Save up to 20% yearly")}
                         </span>
                       </button>
