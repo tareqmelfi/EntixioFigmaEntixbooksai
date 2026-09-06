@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, ExternalLink, ShieldCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { useLanguage } from "./LanguageContext";
@@ -8,6 +8,8 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
   const { t } = useLanguage();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
   const proof = status.raw?.deviceProof;
   if (!proof || !proof.certificate) return <p className="text-sm text-muted-foreground">{t("جارٍ التحقق من سجل شهادة الجهاز…", "Checking the device certificate record…")}</p>;
   const cert = proof.certificate;
@@ -48,7 +50,7 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
       ctx.fillText(`SHA-256: ${cert.fingerprint}`, 120, 1550, 1360);
       const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("image_failed")), "image/png"));
       const url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = `Entix-ZATCA-${proof.vatNumber || proof.orgId}.png`; a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setPreview(url);
     } catch { setError(t("تعذر تنزيل الملخص؛ أعد المحاولة.", "Unable to download the record. Please retry.")); }
     finally { setBusy(false); }
   };
@@ -62,5 +64,6 @@ export function ZatcaDeviceProof({ status }: { status: ZatcaStatus }) {
     <p className="text-xs text-muted-foreground">{t("آخر تحقق", "Last checked")}: <bdi>{new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })}</bdi> · {t("بتوقيت الرياض", "Riyadh time")}</p>
     <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={busy || status.loading || !proof.deviceLinked} onClick={download}><Download className="me-2 h-4 w-4" />{t("تنزيل ملخص الربط كصورة", "Download onboarding record")}</Button><Button variant="outline" size="sm" onClick={invalidateZatcaStatus}>{t("تحديث الحالة", "Refresh status")}</Button><a className="inline-flex items-center gap-1 text-sm text-primary underline" href="https://fatoora.zatca.gov.sa/" target="_blank" rel="noopener noreferrer">{t("مراجعة الجهاز في بوابة فاتورة", "Review device in Fatoora")}<ExternalLink className="h-3 w-3" /></a></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    {preview && <img src={preview} alt={t("معاينة ملخص ربط جهاز المنشأة", "Organization device onboarding record preview")} className="w-full max-w-xl rounded-lg border border-border" />}
   </section>;
 }
