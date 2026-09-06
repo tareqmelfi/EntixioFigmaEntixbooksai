@@ -55,7 +55,7 @@ export function AdminSubscriptions() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.6rem", fontWeight: 700 }}><CreditCard className="h-5 w-5 text-primary" />{t("الاشتراكات", "Subscriptions")}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{t("كل الشركات في جدول واحد · MRR يحتسب المدفوع النشط فقط (لا المجاملات ولا Lifetime)", "Every company in one table · MRR counts paying active rows only (no comps · no lifetime)")}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{t("الاشتراكات الفعالة أولًا، والأحدث داخل كل مجموعة · MRR يحتسب المدفوع النشط فقط", "Active subscriptions first, newest first within each group · MRR counts paying active subscriptions")}</p>
         </div>
         <Button variant="outline" className="border-border" onClick={() => void load()} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
       </div>
@@ -71,7 +71,6 @@ export function AdminSubscriptions() {
         ))}
       </div>
 
-      <AdminBillingLedger />
       <Card className="border-border">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -129,6 +128,7 @@ export function AdminSubscriptions() {
           )}
         </CardContent>
       </Card>
+      <AdminBillingLedger />
     </div>
   );
 }
