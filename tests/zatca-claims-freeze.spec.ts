@@ -341,9 +341,10 @@ test('app header never infers a connected ZATCA state from Saudi country', async
   expect(source).not.toMatch(/isSA[\s\S]{0,500}(?:connected|متصل)/i)
 })
 
-test('Gate 0 settings force ZATCA disabled in organization save payload', async () => {
+test('company profile save does not overwrite ZATCA activation', async () => {
   const source = await readFile(path.resolve('src/app/pages/settings.tsx'), 'utf8')
-  expect(source).toMatch(/api\.orgs\.update\(org\.id,[\s\S]{0,700}zatcaEnabled:\s*false/)
+  const profileSave = source.slice(source.indexOf('const handleSave ='), source.indexOf('const handleSave =') + 2100)
+  expect(profileSave).not.toMatch(/zatcaEnabled:/)
   expect(source).not.toContain('zatcaEnabled: form.zatcaEnabled')
   expect(source).toMatch(/Gate 0|بوابة المرحلة صفر/)
 })

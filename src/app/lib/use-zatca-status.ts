@@ -38,7 +38,7 @@ function derive(raw: ZatcaStatus["raw"]): Omit<ZatcaStatus, "loading" | "raw"> {
   const status = (raw?.status || "NONE") as ZatcaOnboardingStatus;
   let step = STEP[status] ?? 0;
   if (status === "COMPLIANCE" && raw?.complianceResult?.ok) step = 3;
-  const connected = status === "PRODUCTION" && !!raw?.hasCsid && !!raw?.hasCertificate;
+  const connected = raw?.productionReady === true && raw?.mode === "production" && raw?.environmentVerified === true;
   const connection: ZatcaConnection = connected ? "connected" : status === "NONE" ? "not_connected" : "in_progress";
   return { connection, status, step, submission: "frozen", vatConfigured: !!raw?.vatConfigured };
 }
@@ -46,7 +46,8 @@ function derive(raw: ZatcaStatus["raw"]): Omit<ZatcaStatus, "loading" | "raw"> {
 const EMPTY: ZatcaStatus = { loading: true, connection: "not_connected", status: "NONE", step: 0, submission: "frozen", vatConfigured: false, raw: null };
 
 let cached: { orgId: string; value: ZatcaStatus } | null = null;
-let inflight: Promise<ZatcaStatus> | null = null;
+const inflight = new Map<string, Promise<ZatcaStatus>>();
+let generation = 0;
 const listeners = new Set<() => void>();
 
 function activeOrgId(): string {
@@ -54,15 +55,16 @@ function activeOrgId(): string {
 }
 
 async function load(orgId: string): Promise<ZatcaStatus> {
+  const requestedGeneration = generation;
   let raw: ZatcaStatus["raw"] = null;
-  try { raw = await api.zatca.onboarding.status(); } catch { raw = null; }
+  try { raw = await api.zatca.onboarding.status(orgId); } catch { raw = null; }
   const value: ZatcaStatus = { loading: false, raw, ...derive(raw) };
-  cached = { orgId, value };
-  listeners.forEach((fn) => fn());
+  if (requestedGeneration === generation && orgId === activeOrgId()) cached = { orgId, value };
   return value;
 }
 
 export function invalidateZatcaStatus() {
+  generation += 1;
   cached = null;
   listeners.forEach((fn) => fn());
 }
@@ -80,7 +82,9 @@ export function useZatcaStatus(enabled = true): ZatcaStatus {
       const id = activeOrgId();
       if (cached && cached.orgId === id) { setState(cached.value); return; }
       setState(EMPTY);
-      inflight = inflight || load(id).finally(() => { inflight = null; });
+      if (!inflight.has(id)) {
+        inflight.set(id, load(id).finally(() => { inflight.delete(id); listeners.forEach(fn => fn()); }));
+      }
     };
     listeners.add(sync);
     sync();

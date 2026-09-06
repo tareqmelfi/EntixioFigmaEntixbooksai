@@ -1208,6 +1208,10 @@ export const api = {
   },
 
   // ZATCA Phase 2 · CSID + processing + status
+  vatRegistration: {
+    get: (orgId: string) => request<{ registration: Record<string, any> | null }>("/api/vat-registration", { skipOrg: true, headers: { "X-Org-Id": orgId } }),
+    save: (orgId: string, data: Record<string, unknown>) => request<{ registration: { revision: number } }>("/api/vat-registration", { skipOrg: true, method: "PUT", headers: { "X-Org-Id": orgId }, body: data }),
+  },
   zatca: {
     status: () => request<{
       enabled: boolean; mode: 'sandbox' | 'simulation' | 'production';
@@ -1225,13 +1229,13 @@ export const api = {
     getQr: (invoiceId: string) => request<{ qr: string }>(`/api/zatca/invoices/${invoiceId}/qr`),
     // CSID onboarding wizard (prepare → compliance → production) · SA orgs only
     onboarding: {
-      status: () => request<{
+      status: (orgId?: string) => request<{
         zatcaEnabled: boolean; mode: string; status: 'NONE' | 'CSR_READY' | 'COMPLIANCE' | 'PRODUCTION';
         hasCsr: boolean; hasCertificate: boolean; hasCsid: boolean; hasSigningMaterial: boolean;
-        vatConfigured: boolean;
+        vatConfigured: boolean; environmentVerified?: boolean; productionReady?: boolean;
         complianceResult: { ok: boolean; passed: number; failed: number; ranAt: string; results: Array<{ docType: string; ok: boolean; status: string | null; errors: string[]; warnings: string[] }> } | null;
-      }>('/api/zatca/onboarding/status'),
-      prepare: (data?: { deviceName?: string; branchName?: string }) =>
+      }>('/api/zatca/onboarding/status', orgId ? { skipOrg: true, headers: { 'X-Org-Id': orgId } } : {}),
+      prepare: (data: { deviceName?: string; branchName: string; location: string; industry: string; invoiceType: "1000" | "0100" | "1100"; mode: "sandbox" | "simulation" | "production" }) =>
         request<{ ok: true; csrBase64: string; deviceName: string; deviceId: string; status: string }>(
           '/api/zatca/onboarding/prepare', { method: 'POST', body: data || {} }),
       compliance: (otp: string) =>
@@ -1634,6 +1638,7 @@ export interface OrgSubscriptionSummary {
   lifetime?: boolean // ACTIVE with no period/trial end — granted without expiry
 }
 export interface Org {
+  role?: "OWNER" | "ADMIN" | "ACCOUNTANT" | "VIEWER";
   id: string
   slug: string
   createdAt?: string

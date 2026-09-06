@@ -15,6 +15,7 @@ import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types"
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 import { ApiKeysTab } from "../components/api-keys-tab";
+import { VatRegistrationPanel } from "../components/vat-registration-panel";
 import { LedgerMappingTab } from "../components/ledger-mapping-tab";
 import { DeletedCompanies } from "../components/deleted-companies";
 import { useZatcaStatus, invalidateZatcaStatus } from "../lib/use-zatca-status";
@@ -132,8 +133,7 @@ export function Settings() {
         vatNumber: form.vatNumber || null, crNumber: form.crNumber || null,
         fiscalYearEnd: form.fiscalYearEnd,
         fiscalYearStart: yearStart,
-        // Gate 0 · country and legacy local state must never enable the unverified pipeline.
-        zatcaEnabled: false,
+        // Company profile updates do not change e-invoicing activation.
         logoUrl: form.logoUrl || null,
         stampUrl: form.stampUrl || null,
         signatureUrl: form.signatureUrl || null,
@@ -658,7 +658,7 @@ export function Settings() {
       {tab === "numbering" && org && <NumberingTab orgId={org.id} push={push} />}
       {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
       {tab === "catalog" && org && <CatalogTab push={push} />}
-      {tab === "zatca" && org && <ZatcaTab org={org} push={push} />}
+      {tab === "zatca" && org && <div className="space-y-6">{org.country === "SA" && (org.role === "OWNER" || org.role === "ADMIN") && <VatRegistrationPanel key={`vat-${org.id}`} orgId={org.id} />}<ZatcaTab key={org.id} org={org} push={push} /></div>}
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
 
@@ -1809,7 +1809,7 @@ const ZATCA_DOC_TYPES: Array<{ id: string; ar: string; en: string }> = [
   { id: "simplified-debit-note", ar: "إشعار مدين مبسط", en: "Simplified debit note" },
 ];
 
-function ZatcaTab({ push }: { org: Org; push: any }) {
+function ZatcaTab({ org, push }: { org: Org; push: any }) {
   const { t } = useLanguage();
   const [st, setSt] = useState<any>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -1817,12 +1817,13 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
   const [csr, setCsr] = useState<{ csrBase64: string; deviceName: string } | null>(null);
   const [run, setRun] = useState<any>(null);
 
+  const [csrFields, setCsrFields] = useState({ branchName: "", location: org.addressLine || "", industry: org.industry || "", invoiceType: "1100" as "1000" | "0100" | "1100", mode: "simulation" as "sandbox" | "simulation" | "production" });
   const live = useZatcaStatus();
   const refresh = async () => {
-    try { setSt(await api.zatca.onboarding.status()); } catch { /* gated/unauth */ }
+    try { setSt(await api.zatca.onboarding.status(org.id)); } catch { /* gated/unauth */ }
     invalidateZatcaStatus(); // header strip + company row follow the wizard without a reload
   };
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { let active = true; api.zatca.onboarding.status(org.id).then(value => { if (active) setSt(value); }).catch(() => { if (active) setSt(null); }); return () => { active = false; }; }, [org.id]);
 
   const status: string = st?.status || "NONE";
   const steps = [
@@ -1847,7 +1848,7 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
 
   const downloadCsr = () => {
     if (!csr) return;
-    const blob = new Blob([atob(csr.csrBase64)], { type: "application/pkcs10" });
+    const blob = new Blob([Uint8Array.from(atob(csr.csrBase64), char => char.charCodeAt(0))], { type: "application/pkcs10" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${csr.deviceName}.csr`;
@@ -1862,6 +1863,7 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
         <CardDescription>{t("تهيئة شهادة الجهاز (CSID) عبر مسار فاتورة الرسمي: مفاتيح محلية → OTP → امتثال → إنتاج.", "Device certificate (CSID) onboarding via the official Fatoora path: local keys → OTP → compliance → production.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
+        <p className="text-sm">{t("البيئة", "Environment")}: {st?.mode || "—"}. {t("حالة الشهادة تخص هذه البيئة فقط.", "Certificate status applies only to this environment.")}</p>
         {/* Stepper */}
         <ol className="space-y-2">
           {steps.map((s2, i) => (
@@ -1892,12 +1894,17 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
               </p>
             )}
             <p className="text-sm text-muted-foreground">
-              {t("نولّد مفتاح secp256k1 وطلب توقيع شهادة (CSR) محليًا على جهازك — لا يغادر المفتاح الخاص الخادم ولا نرسل شيئًا للهيئة في هذه الخطوة.", "We generate a secp256k1 key and certificate signing request (CSR) locally — the private key never leaves the server and nothing is sent to ZATCA at this step.")}
+              {t("نولّد مفتاح secp256k1 وطلب توقيع شهادة (CSR) على الخادم — لا يغادر المفتاح الخاص الخادم ولا نرسل شيئًا للهيئة في هذه الخطوة.", "We generate a secp256k1 key and certificate signing request (CSR) locally — the private key never leaves the server and nothing is sent to ZATCA at this step.")}
             </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {([['branchName', t('الفرع / الرقم المميز لعضو المجموعة', 'Branch / VAT group member TIN')], ['location', t('عنوان موقع الجهاز', 'Device location address')], ['industry', t('النشاط', 'Business activity')]] as const).map(([field, label]) => <label key={field} className="text-sm">{label}<Input value={csrFields[field]} onChange={e => setCsrFields({ ...csrFields, [field]: e.target.value })} /></label>)}
+              <label className="text-sm">{t('بيئة الاختبار', 'Test environment')}<select className="w-full border border-border rounded-md p-2 bg-background" value={csrFields.mode} onChange={e => setCsrFields({ ...csrFields, mode: e.target.value as 'sandbox' | 'simulation' })}><option value="simulation">Simulation</option><option value="sandbox">Sandbox</option></select></label>
+              <label className="text-sm">{t('أنواع الفواتير', 'Invoice types')}<select className="w-full border border-border rounded-md p-2 bg-background" value={csrFields.invoiceType} onChange={e => setCsrFields({ ...csrFields, invoiceType: e.target.value as '1000' | '0100' | '1100' })}><option value="1100">{t('قياسية ومبسطة', 'Standard and simplified')}</option><option value="1000">{t('قياسية', 'Standard')}</option><option value="0100">{t('مبسطة', 'Simplified')}</option></select></label>
+            </div>
             <Button
-              disabled={busy === "prepare" || !st?.vatConfigured}
+              disabled={busy === "prepare" || !st?.vatConfigured || !csrFields.branchName || !csrFields.location || !csrFields.industry}
               onClick={() => act("prepare", async () => {
-                const out = await api.zatca.onboarding.prepare({});
+                const out = await api.zatca.onboarding.prepare(csrFields);
                 if (out) setCsr({ csrBase64: out.csrBase64, deviceName: out.deviceName });
                 return out;
               }, t("تم توليد المفاتيح و CSR", "Keys and CSR generated"))}
@@ -1970,9 +1977,9 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
         {/* Done */}
         {status === "PRODUCTION" && (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <div className="text-sm font-semibold text-emerald-900">{t("شهادة الإنتاج فعّالة", "Production certificate active")}</div>
+            <div className="text-sm font-semibold text-emerald-900">{t("شهادة جهاز محفوظة — يلزم التحقق", "Device certificate stored — verification required")}</div>
             <p className="mt-1 text-xs text-emerald-800">
-              {t("الفواتير الجديدة تُوقَّع محليًا وتُختم بسلسلة ICV/PIH تلقائيًا عند اعتمادها.", "New invoices are signed locally and chained (ICV/PIH) automatically on approval.")}
+              {t("وجود شهادة الجهاز لا يثبت التسجيل الضريبي أو جاهزية إصدار الفواتير وإرسالها.", "A stored device certificate does not establish VAT registration or invoice issuance and submission readiness.")}
             </p>
           </div>
         )}
@@ -1981,11 +1988,11 @@ function ZatcaTab({ push }: { org: Org; push: any }) {
             version; the rest keep the honest freeze note. */}
         {status === "PRODUCTION" ? (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-900">
-            {t("الربط مكتمل ✅ · الإرسال الحي للفواتير إلى الهيئة (التخليص/الإبلاغ) يُفعَّل لمنشأتك من فريق Entix بعد التحقق النهائي — لا يلزمك أي إجراء إضافي، وسيصلك إشعار عند التفعيل.", "Linking complete ✅ · live submission to ZATCA (clearance/reporting) is switched on for your organization by the Entix team after final validation — nothing more is needed from you; you will be notified when it goes live.")}
+            {t("شهادة الجهاز محفوظة؛ إرسال الفواتير مجمّد إلى حين اكتمال التحقق الفني واعتماد التفعيل.", "Device certificate stored; invoice submission remains frozen pending technical validation and activation approval.")}
           </div>
         ) : (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            {t("ملاحظة: الإرسال الفعلي للفواتير إلى الهيئة (التخليص/الإبلاغ) ما زال مجمّدًا قيد التحقق النهائي — كل فاتورة تُوقَّع وتُخزَّن محليًا وستُرفع فور فتح المسار.", "Note: live invoice submission to ZATCA (clearance/reporting) remains frozen pending final validation — every invoice is signed and stored locally and will be submitted as soon as the path opens.")}
+            {t("إرسال الفواتير إلى الهيئة مجمّد قيد التحقق. المخرجات المحلية لا تثبت قبول الهيئة ولا تُرسل تلقائيًا.", "Invoice submission remains frozen pending validation. Local output does not prove authority acceptance and is not submitted automatically.")}
           </div>
         )}
       </CardContent>
