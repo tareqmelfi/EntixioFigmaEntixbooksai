@@ -75,7 +75,7 @@ export function CostCenterDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات مركز التكلفة", "Cost center details")}</div>
@@ -98,11 +98,11 @@ export function CostCenterDetail() {
   const detailView = cc && (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الرمز", "Code")}</div>
           <div className="font-english text-primary mt-1" style={{ fontWeight: 700 }} dir="ltr">{cc.code}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الاسم", "Name")}</div>
           <div className="text-foreground mt-1" style={{ fontWeight: 600 }}>{cc.name}</div>
         </div>
@@ -110,11 +110,11 @@ export function CostCenterDetail() {
 
       <div className="flex gap-2 pt-2 border-t border-border/60">
         <Button type="button" variant="outline" onClick={() => setEditMode(true)} className="flex-1 border-border"><Edit2 className="me-2 h-4 w-4" />{t("تعديل", "Edit")}</Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("إيقاف مركز التكلفة؟ القيود التاريخية تحتفظ بربطها.", "Deactivate this cost center? Historical entries keep their link.")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{t("إيقاف مركز التكلفة؟ القيود التاريخية تحتفظ بربطها.", "Deactivate this cost center? Historical entries keep their link.")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -133,7 +133,7 @@ export function CostCenterDetail() {
         </h1>
         {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><Target className="h-4 w-4" />{t("تتبع المصاريف والإيرادات حسب مركز التكلفة", "Track expenses and revenue by cost center")}</p>}
       </div>
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
     </div>
   );

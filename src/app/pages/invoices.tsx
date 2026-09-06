@@ -7,9 +7,9 @@ import { displayDigits, displayLocale } from "../lib/number-display";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer, LockKeyhole, Eye } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { EmptyState, InlineAlert, Metric, MetricStrip, PageHeader, PageToolbar } from "../components/product";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -39,16 +39,29 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, APPROVED: { ar: "معتمدة", en: "Approved" }, SENT: { ar: "مرسلة", en: "Sent" }, VIEWED: { ar: "مُشاهَدة", en: "Viewed" }, PAID: { ar: "مدفوعة", en: "Paid" },
   PARTIAL: { ar: "مدفوعة جزئياً", en: "Partially paid" }, OVERDUE: { ar: "متأخرة", en: "Overdue" }, CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
-const STATUS_TONES: Record<Invoice["status"], "neutral" | "info" | "success" | "warning" | "critical"> = {
-  DRAFT: "neutral",
-  APPROVED: "success",
-  SENT: "info",
-  VIEWED: "info",
-  PAID: "success",
-  PARTIAL: "warning",
-  OVERDUE: "critical",
-  CANCELLED: "neutral",
-};
+/** Ledger status colour · paid/approved = blue (success) · overdue/partial = copper (warning) · draft = muted */
+function statusToneClass(status: string, lateDays = 0) {
+  if (lateDays > 0 && status !== "PAID" && status !== "CANCELLED") return "text-warning";
+  if (status === "PAID" || status === "APPROVED") return "text-success";
+  if (status === "OVERDUE" || status === "PARTIAL") return "text-warning";
+  if (status === "DRAFT" || status === "CANCELLED") return "text-muted-foreground";
+  return "text-content-secondary";
+}
+
+/** Days past the due date for a still-unpaid invoice (0 = not late). */
+function overdueDays(inv: Invoice) {
+  if (!inv.dueDate || inv.status === "PAID" || inv.status === "CANCELLED" || inv.status === "DRAFT") return 0;
+  const due = new Date(String(inv.dueDate).slice(0, 10)).getTime();
+  if (Number.isNaN(due)) return 0;
+  const days = Math.floor((Date.now() - due) / 86400000);
+  return days > 0 ? days : 0;
+}
+
+/** Ledger figure: large integer part, small muted fraction (never a serif for Arabic). */
+function Figure({ value }: { value: number }) {
+  const [int, frac] = Math.abs(value).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split(".");
+  return <>{value < 0 ? "-" : ""}{int}<small>.{frac}</small></>;
+}
 
 const EMPTY_FORM = {
   contactId: "",
@@ -265,6 +278,20 @@ export function Invoices() {
     acc[i.status] = (acc[i.status] || 0) + 1;
     return acc;
   }, {});
+  // Ledger figures strip · derived from the same list, no extra API call.
+  const overdueAmount = items.reduce((s, i) => (overdueDays(i) > 0 || i.status === "OVERDUE" ? s + (Number(i.total) - Number(i.amountPaid || 0)) : s), 0);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const collectedThisMonth = items.reduce((s, i) => (String(i.issueDate || "").slice(0, 7) === thisMonth ? s + Number(i.amountPaid || 0) : s), 0);
+  // Filter chips · always the core five, plus any other status actually present.
+  const chipStatuses = ["DRAFT", "SENT", "OVERDUE", "PAID", ...Object.keys(counts).filter((s) => !["DRAFT", "SENT", "OVERDUE", "PAID"].includes(s) && counts[s] > 0)];
+  const chips = [
+    { value: "ALL", label: t("الكل", "All"), count: items.length },
+    ...chipStatuses.map((s) => ({
+      value: s,
+      label: STATUS_LABELS[s] ? t(STATUS_LABELS[s].ar, STATUS_LABELS[s].en) : s,
+      count: counts[s] || 0,
+    })),
+  ];
 
   const openCreate = () => {
     const prefillContact = searchParams.get("contactId") || "";
@@ -627,23 +654,21 @@ export function Invoices() {
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
+                <Button type="button" variant="secondary" onClick={closeCreate}>{t("إلغاء", "Cancel")}</Button>
                 {editingInvoice && (
                   <>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant={previewOpen ? "outline" : "secondary"}
                       onClick={() => setPreviewOpen((v) => !v)}
-                      className={previewOpen ? "border-primary text-primary bg-blue-50/60" : "border-border"}
                       title={t("معاينة الفاتورة كمستند (يسار)", "Preview invoice as document (left)")}
                     >
                       {t("معاينة", "Preview")}
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}
-                      className="border-border"
                       title={t("فتح نسخة الطباعة في تبويب جديد", "Open print version in a new tab")}
                     >
                       {t("طباعة", "Print")}
@@ -652,13 +677,13 @@ export function Invoices() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
+                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")}>
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-blue-50" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
                   {busy ? "..." : t("اعتماد", "Approve")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
                   {busy ? "..." : t("اعتماد + إرسال", "Approve + send")}
                 </Button>
               </div>
@@ -666,13 +691,13 @@ export function Invoices() {
           }
         >
           <div className={editingInvoice && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
-          <div className="w-full max-w-none mx-auto space-y-3">
-            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+          <div className="w-full max-w-none mx-auto space-y-5">
+            {createError && <InlineAlert tone="critical">{createError}</InlineAlert>}
 
-            {/* Top row · 6 fields per Wafeq screenshot · 2026-05-05 */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("جهة الاتصال", "Contact")} *</Label>
+            {/* Header fields · one labelled grid (contact · dates · number · reference · dimensions) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("جهة الاتصال", "Contact")} *</Label>
                 <div className="flex items-center gap-1.5">
                   <div className="flex-1 min-w-0">
                     <SearchableCombobox
@@ -698,7 +723,7 @@ export function Invoices() {
                     <button
                       type="button"
                       onClick={() => navigate(`/app/contacts/${form.contactId}`)}
-                      className="h-8 px-2 rounded-md border border-border text-xs text-primary hover:bg-blue-50 shrink-0"
+                      className="h-10 px-2.5 rounded-lg border border-border text-xs text-primary hover:border-border-strong shrink-0"
                       title={t("فتح ملف العميل", "Open contact profile")}
                     >
                       ↗
@@ -706,34 +731,34 @@ export function Invoices() {
                   )}
                 </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("تاريخ الإصدار", "Issue date")} *</Label>
-                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required inputClassName="h-8 text-xs" />
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("تاريخ الإصدار", "Issue date")} *</Label>
+                <DateInput value={form.issueDate} onChange={(iso) => setForm({ ...form, issueDate: iso })} required />
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("تاريخ الاستحقاق", "Due date")} *</Label>
-                <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required inputClassName="h-8 text-xs" />
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("تاريخ الاستحقاق", "Due date")} *</Label>
+                <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required />
               </div>
-              {!isUS && <div><Label className="text-xs text-muted-foreground">{t("تاريخ التوريد الفعلي — للفاتورة القياسية", "Actual supply date — standard invoice")}</Label><DateInput value={form.supplyDate} onChange={iso => setForm({...form,supplyDate:iso})} inputClassName="h-8 text-xs" /></div>}
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("رقم الفاتورة", "Invoice number")}</Label>
+              {!isUS && <div className="space-y-1.5"><Label className="text-content-secondary text-xs">{t("تاريخ التوريد الفعلي — للفاتورة القياسية", "Actual supply date — standard invoice")}</Label><DateInput value={form.supplyDate} onChange={iso => setForm({...form,supplyDate:iso})} /></div>}
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("رقم الفاتورة", "Invoice number")}</Label>
                 <Input value={form.invoiceNumber} onChange={(e) => { setForm({ ...form, invoiceNumber: e.target.value }); setNumberEdited(true); }}
-                  placeholder={t("# تلقائي", "# Auto")} dir="ltr" className="border-border font-english h-8 text-xs" />
+                  placeholder={t("# تلقائي", "# Auto")} dir="ltr" className="font-code" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("المرجع", "Reference")}</Label>
-                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم مرجع العميل", "Customer reference number")} className="border-border h-8 text-xs" />
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("المرجع", "Reference")}</Label>
+                <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={t("رقم مرجع العميل", "Customer reference number")}  />
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("الدفع الإلكتروني", "Online payment")}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("الدفع الإلكتروني", "Online payment")}</Label>
                 <button
                   type="button"
                   onClick={() => { window.location.href = "/app/settings?tab=payments"; }}
-                  className="w-full h-8 rounded-md border border-border bg-white px-2.5 text-xs flex items-center justify-between hover:border-primary"
+                  className="w-full h-10 rounded-lg border border-border bg-card px-3 text-sm flex items-center justify-between hover:border-border-strong"
                 >
-                  <span className="flex items-center gap-1">
-                    <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded">MC</span>
-                    <span className="bg-blue-600 text-white text-[10px] font-bold px-1 rounded">VISA</span>
+                  <span className="flex items-center gap-1.5 text-[10px] font-semibold text-content-secondary">
+                    <span className="rounded-full border border-border px-1.5 py-0.5">MC</span>
+                    <span className="rounded-full border border-border px-1.5 py-0.5">VISA</span>
                   </span>
                   <span className="text-primary">{t("إعداد الدفع", "Set up payments")}</span>
                 </button>
@@ -741,38 +766,38 @@ export function Invoices() {
             </div>
 
             {/* Second row · currency + tax mode + brand template + payment terms + branch (B1) */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("العملة", "Currency")}</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("العملة", "Currency")}</Label>
                 <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                  <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger ><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{t(c.label.ar, c.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("المبالغ", "Amounts")}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("المبالغ", "Amounts")}</Label>
                 <Select value={taxMode} onValueChange={(v) => setTaxMode(v as TaxMode)}>
-                  <SelectTrigger className="h-8 border-border text-xs leading-tight"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="leading-tight"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all-exclusive" className="text-xs">{t("غير شاملة الضريبة", "Exclusive of tax")}</SelectItem>
-                    <SelectItem value="all-inclusive" className="text-xs">{t("شاملة الضريبة", "Inclusive of tax")}</SelectItem>
-                    <SelectItem value="custom" className="text-xs">{t("مخصصة لكل بند", "Custom per line")}</SelectItem>
+                    <SelectItem value="all-exclusive">{t("غير شاملة الضريبة", "Exclusive of tax")}</SelectItem>
+                    <SelectItem value="all-inclusive">{t("شاملة الضريبة", "Inclusive of tax")}</SelectItem>
+                    <SelectItem value="custom">{t("مخصصة لكل بند", "Custom per line")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("قالب العلامة التجارية", "Brand template")}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("قالب العلامة التجارية", "Brand template")}</Label>
                 <Select value={form.brandTemplate} onValueChange={(v) => setForm({ ...form, brandTemplate: v })}>
-                  <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger ><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {BRAND_TEMPLATES.map((bt) => <SelectItem key={bt.value} value={bt.value}>{t(bt.label.ar, bt.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("شروط الدفع", "Payment terms")}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("شروط الدفع", "Payment terms")}</Label>
                 <Select value={form.paymentTerms} onValueChange={(v) => {
                   const pt = PAYMENT_TERMS.find((p) => p.value === v);
                   if (pt) {
@@ -783,18 +808,18 @@ export function Invoices() {
                     setForm({ ...form, paymentTerms: v });
                   }
                 }}>
-                  <SelectTrigger className="h-8 border-border text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger ><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PAYMENT_TERMS.map((pt) => <SelectItem key={pt.value} value={pt.value}>{t(pt.label.ar, pt.label.en)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("الفرع", "Branch")}</Label>
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
               </div>
-              <div className="space-y-1">
-                <Label className="text-foreground/80 text-xs">{t("المشروع", "Project")}</Label>
+              <div className="space-y-1.5">
+                <Label className="text-content-secondary text-xs">{t("المشروع", "Project")}</Label>
                 <ProjectField compact value={form.projectId} onChange={(id) => setForm((f) => ({ ...f, projectId: id }))} />
               </div>
             </div>
@@ -869,35 +894,35 @@ export function Invoices() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-foreground/80 text-xs">{t("شروط الدفع · ملاحظة للعميل", "Payment terms · note to customer")}</Label>
+                  <Label className="text-content-secondary text-xs">{t("شروط الدفع · ملاحظة للعميل", "Payment terms · note to customer")}</Label>
                   <textarea
-                    rows={3}
+                    rows={4}
                     placeholder={t("مثلاً: الدفع خلال 30 يوم من تاريخ الفاتورة عبر تحويل بنكي...", "e.g.: Payment within 30 days of invoice date via bank transfer...")}
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-foreground/80 text-xs">{t("الإجمالي", "Total")}</Label>
-                <div className="rounded-lg border border-border bg-white p-4 space-y-2">
+                <Label className="text-content-secondary text-xs">{t("الإجمالي", "Total")}</Label>
+                <div className="rounded-lg border border-border bg-card p-5 space-y-2">
                   {(() => {
                     const totals = computeTotals(lines);
                     return (
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
-                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
+                          <span className="text-content-secondary min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
+                          <span dir="ltr" className="font-english tabular-nums text-foreground text-end whitespace-nowrap shrink-0">{displayDigits(totals.subtotal.toFixed(2))} <span className="text-xs text-muted-foreground">{form.currency}</span></span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">{isUS ? t("ضريبة المبيعات", "Sales tax") : t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
-                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.tax.toFixed(2))}</span>
+                          <span className="text-content-secondary min-w-0 break-words">{isUS ? t("ضريبة المبيعات", "Sales tax") : t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
+                          <span dir="ltr" className="font-english tabular-nums text-foreground text-end whitespace-nowrap shrink-0">{displayDigits(totals.tax.toFixed(2))} <span className="text-xs text-muted-foreground">{form.currency}</span></span>
                         </div>
-                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
-                          <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>{t("الإجمالي:", "Total:")}</span>
-                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
-                            {form.currency} {displayDigits(totals.total.toFixed(2))}
+                        <div className="flex items-end justify-between gap-3 pt-3 mt-1 border-t border-foreground">
+                          <span className="text-foreground min-w-0 break-words font-semibold">{t("الإجمالي:", "Total:")}</span>
+                          <span dir="ltr" className="ledger-figure-value text-end whitespace-nowrap shrink-0" style={{ fontSize: "26px" }}>
+                            {displayDigits(totals.total.toFixed(2))} <span className="text-xs text-muted-foreground">{form.currency}</span>
                           </span>
                         </div>
                       </>
@@ -909,23 +934,28 @@ export function Invoices() {
           </div>
           {editingInvoice && previewOpen && (
             <aside className="hidden xl:block sticky top-4">
-              <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
-                  <span className="text-xs text-muted-foreground">{t("معاينة المستند · آخر نسخة محفوظة", "Document preview · last saved version")}</span>
-                  <button
-                    type="button"
-                    onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}
-                    className="text-[11px] text-primary hover:underline"
-                  >
-                    {t("فتح في تبويب ←", "Open in tab ←")}
-                  </button>
+              <div className="rounded-lg bg-surface-subtle p-4 space-y-3">
+                {/* Action bar above the document · ink + outline pills */}
+                <div className="flex items-center justify-between gap-2">
+                  <span dir="ltr" className="font-code text-sm font-semibold text-foreground">{editingInvoice.invoiceNumber}</span>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => window.open(`/print/invoice/${editingInvoice.id}`, "_blank", "noopener")}>
+                      {t("فتح في تبويب ←", "Open in tab ←")}
+                    </Button>
+                    <Button type="button" size="sm" onClick={() => handleSubmit("send")} disabled={busy}>
+                      {t("إرسال", "Send")}
+                    </Button>
+                  </div>
                 </div>
-                <iframe
-                  title={t(`معاينة ${editingInvoice.invoiceNumber}`, `Preview ${editingInvoice.invoiceNumber}`)}
-                  src={`/print/invoice/${editingInvoice.id}?embed=1&noprint=1`}
-                  className="w-full bg-white"
-                  style={{ height: "calc(100vh - 150px)", border: 0 }}
-                />
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  <div className="border-b border-border px-4 py-2 ledger-eyebrow">{t("معاينة المستند · آخر نسخة محفوظة", "Document preview · last saved version")}</div>
+                  <iframe
+                    title={t(`معاينة ${editingInvoice.invoiceNumber}`, `Preview ${editingInvoice.invoiceNumber}`)}
+                    src={`/print/invoice/${editingInvoice.id}?embed=1&noprint=1`}
+                    className="w-full bg-card"
+                    style={{ height: "calc(100vh - 200px)", border: 0 }}
+                  />
+                </div>
               </div>
             </aside>
           )}
@@ -1023,7 +1053,7 @@ export function Invoices() {
           }
         >
           <div className="max-w-2xl mx-auto space-y-4">
-            {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
+            {signError && <InlineAlert tone="critical">{signError}</InlineAlert>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("اسم الموقّع", "Signer name")} *</Label>
                 <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder={t("الاسم الكامل", "Full name")} /></div>
@@ -1044,201 +1074,242 @@ export function Invoices() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("فواتير المبيعات", "Sales Invoices")}
-        description={t("إدارة فواتير العملاء", "Manage customer invoices")}
+        eyebrow={t("المبيعات", "Sales")}
+        title={t("الفواتير", "Sales Invoices")}
         actions={<Button onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة جديدة", "New invoice")}</Button>}
       />
 
       {contactFilterId && (
-        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-          <span>{t("عرض فواتير عميل واحد", "Showing invoices for one customer")}{contactFilterName ? `: ${contactFilterName}` : ""}</span>
-          <button
-            onClick={() => setSearchParams({}, { replace: true })}
-            className="ms-auto rounded px-2 py-0.5 text-xs text-primary hover:bg-primary/10 border border-primary/30"
-          >
-            {t("إظهار الكل", "Show all")} ×
-          </button>
-        </div>
+        <InlineAlert tone="info">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>{t("عرض فواتير عميل واحد", "Showing invoices for one customer")}{contactFilterName ? `: ${contactFilterName}` : ""}</span>
+            <button
+              onClick={() => setSearchParams({}, { replace: true })}
+              className="ms-auto rounded-full border border-border px-2.5 py-0.5 text-xs text-primary hover:border-border-strong"
+            >
+              {t("إظهار الكل", "Show all")} ×
+            </button>
+          </div>
+        </InlineAlert>
       )}
 
-      <MetricStrip>
-        <Metric label={t("إجمالي الفواتير", "Total invoiced")} value={<span className="font-english">{total.toLocaleString(displayLocale())}</span>} />
-        <Metric label={t("المُحصَّل", "Collected")} value={<span className="font-english">{paid.toLocaleString(displayLocale())}</span>} tone="success" />
-        <Metric label={t("المستحق", "Outstanding")} value={<span className="font-english">{outstanding.toLocaleString(displayLocale())}</span>} tone="warning" />
-        <Metric label={t("عدد الفواتير", "Invoice count")} value={<span className="font-english">{items.length}</span>} />
+      <MetricStrip className="sm:grid-cols-3 xl:grid-cols-3">
+        <Metric label={t("مستحقة", "Outstanding")} value={<Figure value={outstanding} />} />
+        <Metric label={t("متأخرة", "Overdue")} value={<span className="text-warning"><Figure value={overdueAmount} /></span>} />
+        <Metric label={t("محصّلة هذا الشهر", "Collected this month")} value={<span className="text-primary"><Figure value={collectedThisMonth} /></span>} />
       </MetricStrip>
 
-      <div className="grid grid-cols-1 gap-4">
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <CardTitle className="text-foreground">{t("قائمة الفواتير", "Invoice list")}</CardTitle>
-            <PageToolbar aria-label={t("مرشحات الفواتير", "Invoice filters")} className="border-0 bg-transparent p-0">
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40 border-border text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">{t("الكل", "All")} · {items.length}</SelectItem>
-                  {Object.entries(STATUS_LABELS).map(([s, label]) => (
-                    <SelectItem key={s} value={s}>{t(label.ar, label.en)} · {counts[s] || 0}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-56 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-            </PageToolbar>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
-           filtered.length === 0 ? (
-            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد فواتير", "No invoices")}</p></div>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[1120px] table-auto">
-              <colgroup>
-                <col style={{ width: "15%" }} />{/* الرقم */}
-                <col style={{ width: "20%", minWidth: "180px" }} />{/* العميل */}
-                <col style={{ width: "10%" }} />{/* التاريخ */}
-                <col style={{ width: "10%" }} />{/* الاستحقاق */}
-                <col style={{ width: "11%" }} />{/* الحالة */}
-                <col style={{ width: "11%" }} />{/* الإجمالي */}
-                <col style={{ width: "10%" }} />{/* المتبقي */}
-                <col style={{ width: "13%" }} />{/* إجراءات */}
-              </colgroup>
-              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("العميل", "Customer")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الاستحقاق", "Due")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المتبقي", "Remaining")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
-              </tr></thead>
-              <tbody>
-                {filtered.map(i => (
-                  <tr
-                    key={i.id}
+      <PageToolbar aria-label={t("مرشحات الفواتير", "Invoice filters")} className="gap-2">
+        {chips.map((chip) => (
+          <button
+            key={chip.value}
+            type="button"
+            onClick={() => setFilterStatus(chip.value)}
+            aria-pressed={filterStatus === chip.value}
+            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+              filterStatus === chip.value
+                ? "bg-foreground font-semibold text-background"
+                : "border border-border text-foreground hover:border-border-strong"
+            }`}
+          >
+            {chip.label} <span className="font-english tabular-nums">{chip.count}</span>
+          </button>
+        ))}
+        <div className="relative ms-auto min-w-[200px]">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder={t("بحث برقم أو عميل...", "Search by number or customer...")} className="w-56 ps-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+      </PageToolbar>
+
+      {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
+       filtered.length === 0 ? (
+        <EmptyState icon={<FileText className="h-8 w-8" strokeWidth={1.75} />} title={t("لا توجد فواتير", "No invoices")} />
+      ) : (
+        <>
+        {/* Compact stacked list on phones · the wide ledger table from md up */}
+        <ul className="md:hidden">
+          {filtered.map((i) => {
+            const late = overdueDays(i);
+            return (
+              <li key={i.id}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/invoices/${i.id}`)}
+                  className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start"
+                  title={t("فتح الفاتورة", "Open invoice")}
+                >
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate text-sm font-semibold text-foreground">{i.contact?.displayName || "—"}</span>
+                    <span dir="ltr" className="font-code text-xs text-content-secondary">{i.invoiceNumber} · {i.dueDate?.slice(0, 10)}</span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-0.5">
+                    <span dir="ltr" className="font-display text-[17px] leading-5 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${statusToneClass(i.status, late)}`}>
+                      <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
+                      {late > 0 && i.status !== "PAID" && i.status !== "CANCELLED"
+                        ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
+                        : STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="ledger-table hidden md:block">
+        <Table className="min-w-[1040px] table-auto">
+          <colgroup>
+            <col style={{ width: "13%" }} />{/* الرقم */}
+            <col style={{ width: "24%", minWidth: "220px" }} />{/* العميل */}
+            <col style={{ width: "10%" }} />{/* التاريخ */}
+            <col style={{ width: "10%" }} />{/* الاستحقاق */}
+            <col style={{ width: "14%" }} />{/* المبلغ */}
+            <col style={{ width: "14%" }} />{/* الحالة */}
+            <col style={{ width: "15%" }} />{/* إجراءات */}
+          </colgroup>
+          <TableHeader><TableRow className="hover:bg-transparent">
+            <TableHead>{t("الرقم", "Number")}</TableHead>
+            <TableHead>{t("العميل", "Customer")}</TableHead>
+            <TableHead>{t("التاريخ", "Date")}</TableHead>
+            <TableHead>{t("الاستحقاق", "Due")}</TableHead>
+            <TableHead className="text-end">{t("المبلغ", "Amount")}</TableHead>
+            <TableHead>{t("الحالة", "Status")}</TableHead>
+            <TableHead>{t("إجراءات", "Actions")}</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {filtered.map(i => {
+              const remaining = Number(i.total) - Number(i.amountPaid || 0);
+              const late = overdueDays(i);
+              return (
+              <TableRow
+                key={i.id}
+                onClick={() => navigate(`/app/invoices/${i.id}`)}
+                className="h-12 cursor-pointer"
+                title={t("فتح الفاتورة", "Open invoice")}
+              >
+                <TableCell className="text-start whitespace-nowrap">
+                  <button
                     onClick={() => navigate(`/app/invoices/${i.id}`)}
-                    className="border-b border-border/40 transition-colors hover:bg-primary/5 cursor-pointer"
                     title={t("فتح الفاتورة", "Open invoice")}
+                    className="hover:underline underline-offset-4 cursor-pointer"
                   >
-                    <td className="py-3 px-4 text-start whitespace-nowrap">
-                      <button
-                        onClick={() => navigate(`/app/invoices/${i.id}`)}
-                        title={t("فتح الفاتورة", "Open invoice")}
-                        className="hover:underline underline-offset-4 decoration-primary/50 cursor-pointer"
-                      >
-                        <span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span>{(i.zatcaDelivery?.state || i.zatcaStatus) && <span className={`block text-[11px] ${["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? "text-emerald-700" : "text-amber-800"}`} title={i.zatcaDelivery?.message || undefined}>{["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("✓ مقبولة لدى الهيئة", "✓ Accepted by ZATCA") : ["REVIEW","REJECTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("تحتاج معالجة", "Needs attention") : t("بانتظار قبول الهيئة", "Awaiting ZATCA")}</span>}
-                      </button>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}>
-                      {i.contactId ? (
+                    <span dir="ltr" className="font-code text-sm font-semibold text-foreground inline-block">{i.invoiceNumber}</span>{(i.zatcaDelivery?.state || i.zatcaStatus) && <span className={`block text-[11px] ${["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? "text-success" : "text-warning"}`} title={i.zatcaDelivery?.message || undefined}>{["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("✓ مقبولة لدى الهيئة", "✓ Accepted by ZATCA") : ["REVIEW","REJECTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("تحتاج معالجة", "Needs attention") : t("بانتظار قبول الهيئة", "Awaiting ZATCA")}</span>}
+                  </button>
+                </TableCell>
+                <TableCell className="text-sm text-foreground" title={i.contact?.displayName || ""}>
+                  {i.contactId ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/app/contacts/${i.contactId}`);
+                      }}
+                      className="block w-full min-w-0 text-start hover:underline underline-offset-4"
+                      title={t("فتح ملف العميل", "Open contact profile")}
+                    >
+                      <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
+                        {i.contact?.displayName || "—"}
+                      </BidiText>
+                    </button>
+                  ) : (
+                    <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
+                      {i.contact?.displayName || "—"}
+                    </BidiText>
+                  )}
+                </TableCell>
+                <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{i.issueDate?.slice(0, 10)}</span></TableCell>
+                <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{i.dueDate?.slice(0, 10)}</span></TableCell>
+                <TableCell className="text-end">
+                  <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="font-english text-[10px] text-muted-foreground">{i.currency}</span></span>
+                  {remaining > 0 && Number(i.amountPaid || 0) > 0 && (
+                    <span dir="ltr" className="block text-[11px] text-content-secondary tabular-nums">{t("متبقي", "Remaining")} {remaining.toLocaleString(displayLocale())}</span>
+                  )}
+                </TableCell>
+                <TableCell className="align-middle">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${statusToneClass(i.status, late)}`}>
+                      <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
+                      {late > 0 && i.status !== "PAID" && i.status !== "CANCELLED"
+                        ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
+                        : STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}
+                    </span>
+                    {i.status === "DRAFT" && (
+                      pendingApprove === i.id ? (
+                        <InlineConfirm
+                          label={t("اعتماد الفاتورة؟", "Approve invoice?")}
+                          onConfirm={() => { setPendingApprove(null); handleApprove(i); }}
+                          onCancel={() => setPendingApprove(null)}
+                        />
+                      ) : (
                         <button
-                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/app/contacts/${i.contactId}`);
+                            setPendingApprove(i.id);
                           }}
-                          className="block w-full min-w-0 text-start text-primary hover:underline underline-offset-4 decoration-primary/40"
-                          title={t("فتح ملف العميل", "Open contact profile")}
+                          className="rounded-full border border-border px-1.5 py-0.5 text-[10px] text-success hover:border-border-strong"
+                          title={t("اعتماد الفاتورة", "Approve invoice")}
                         >
-                          <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
-                            {i.contact?.displayName || "—"}
-                          </BidiText>
+                          ✓
                         </button>
-                      ) : (
-                        <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
-                          {i.contact?.displayName || "—"}
-                        </BidiText>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.issueDate?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{i.dueDate?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <StatusBadge tone={STATUS_TONES[i.status]}>{STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}</StatusBadge>
-                        {i.status === "DRAFT" && (
-                          pendingApprove === i.id ? (
-                            <InlineConfirm
-                              label={t("اعتماد الفاتورة؟", "Approve invoice?")}
-                              onConfirm={() => { setPendingApprove(null); handleApprove(i); }}
-                              onCancel={() => setPendingApprove(null)}
-                            />
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPendingApprove(i.id);
-                              }}
-                              className="rounded-md px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-50 border border-green-200"
-                              title={t("اعتماد الفاتورة", "Approve invoice")}
-                            >
-                              ✓
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString(displayLocale())}</span></td>
-                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex w-max min-w-full items-center gap-1 whitespace-nowrap">
-                        {/* SENT/APPROVED → Sign button */}
-                        {i.status === "DRAFT" && (
-                          <button
-                            onClick={() => handleSplitByCategory(i)}
-                            disabled={splittingId === i.id}
-                            className="rounded-md px-2 py-1 text-xs text-foreground hover:bg-muted border border-border flex items-center gap-1"
-                            title={t("تفكيك الفاتورة إلى فواتير حسب القسم", "Split the invoice into invoices by category")}
-                          >
-                            {splittingId === i.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Split className="h-3.5 w-3.5" />}
-                            {t("تفكيك", "Split")}
-                          </button>
-                        )}
-                        {i.status !== "DRAFT" && <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground" aria-label={t("فاتورة صادرة ومقفلة", "Issued and locked")} />}
-                        {i.status !== "PAID" && i.status !== "CANCELLED" && (
-                          <button
-                            onClick={() => openRecordPayment(i)}
-                            className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200"
-                            title={t("تسجيل دفعة عبر صفحة سندات القبض", "Record a payment via the receipt vouchers page")}
-                          >
-                            💰 {t("دفعة", "Payment")}
-                          </button>
-                        )}
-                        {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
-                          <button onClick={() => openSign(i)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
-                            <FileSignature className="h-3.5 w-3.5" /> {t("توقيع", "Sign")}
-                          </button>
-                        )}
-                        {/* فتح/تعديل — always available; backend locks number + guards integrity */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
-                          className="rounded-md p-1.5 text-primary hover:bg-blue-50"
-                          title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض الفاتورة ورد الهيئة", "View invoice and authority response")}
-                        >{i.status === "DRAFT" ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                        {/* طباعة — always available */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); window.open(`/print/invoice/${i.id}`, "_blank"); }}
-                          className="rounded-md p-1.5 text-foreground/70 hover:bg-gray-100"
-                          title={t("طباعة الفاتورة", "Print invoice")}
-                        ><Printer className="h-4 w-4" /></button>
-                        {i.status === "DRAFT" && (pendingDelete === i.id ? (
-                          <InlineConfirm onConfirm={() => handleDelete(i.id)} onCancel={() => setPendingDelete(null)} />
-                        ) : (
-                          <button onClick={(e) => { e.stopPropagation(); setPendingDelete(i.id); }} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      </div>
+                      )
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex w-max min-w-full items-center gap-1 whitespace-nowrap">
+                    {/* SENT/APPROVED → Sign button */}
+                    {i.status === "DRAFT" && (
+                      <button
+                        onClick={() => handleSplitByCategory(i)}
+                        disabled={splittingId === i.id}
+                        className="rounded-full border border-border px-2 py-1 text-xs text-foreground hover:border-border-strong flex items-center gap-1"
+                        title={t("تفكيك الفاتورة إلى فواتير حسب القسم", "Split the invoice into invoices by category")}
+                      >
+                        {splittingId === i.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Split className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                        {t("تفكيك", "Split")}
+                      </button>
+                    )}
+                    {i.status !== "DRAFT" && <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} aria-label={t("فاتورة صادرة ومقفلة", "Issued and locked")} />}
+                    {i.status !== "PAID" && i.status !== "CANCELLED" && (
+                      <button
+                        onClick={() => openRecordPayment(i)}
+                        className="rounded-full border border-border px-2 py-1 text-xs text-success hover:border-border-strong flex items-center gap-1"
+                        title={t("تسجيل دفعة عبر صفحة سندات القبض", "Record a payment via the receipt vouchers page")}
+                      >
+                        {t("دفعة", "Payment")}
+                      </button>
+                    )}
+                    {i.status !== "PAID" && i.status !== "CANCELLED" && i.status !== "DRAFT" && (
+                      <button onClick={() => openSign(i)} className="rounded-full px-2 py-1 text-xs text-primary hover:bg-surface-hover flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
+                        <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}
+                      </button>
+                    )}
+                    {/* فتح/تعديل — always available; backend locks number + guards integrity */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
+                      className="rounded-full p-1.5 text-primary hover:bg-surface-hover"
+                      title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض الفاتورة ورد الهيئة", "View invoice and authority response")}
+                    >{i.status === "DRAFT" ? <Pencil className="h-4 w-4" strokeWidth={1.75} /> : <Eye className="h-4 w-4" strokeWidth={1.75} />}</button>
+                    {/* طباعة — always available */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); window.open(`/print/invoice/${i.id}`, "_blank"); }}
+                      className="rounded-full p-1.5 text-content-secondary hover:bg-surface-hover"
+                      title={t("طباعة الفاتورة", "Print invoice")}
+                    ><Printer className="h-4 w-4" strokeWidth={1.75} /></button>
+                    {i.status === "DRAFT" && (pendingDelete === i.id ? (
+                      <InlineConfirm onConfirm={() => handleDelete(i.id)} onCancel={() => setPendingDelete(null)} />
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); setPendingDelete(i.id); }} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                    ))}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );})}
+          </TableBody>
+        </Table>
+        </div>
+        </>
+      )}
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

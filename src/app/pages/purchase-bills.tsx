@@ -47,8 +47,8 @@ const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-muted text-muted-foreground",
   RECEIVED: "bg-primary/10 text-primary",
   DUE: "bg-secondary/80 text-secondary-foreground",
-  PAID: "bg-emerald-500/10 text-emerald-600",
-  PARTIAL: "bg-amber-500/10 text-amber-600",
+  PAID: "bg-success/10 text-success",
+  PARTIAL: "bg-warning/10 text-warning",
   OVERDUE: "bg-destructive/10 text-destructive",
   CANCELLED: "bg-muted text-muted-foreground",
 };
@@ -779,11 +779,11 @@ export function PurchaseBills() {
 
         {/* Duplicate detection dialog */}
         {duplicate.open && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/40 p-4">
             <div className="w-full max-w-xl rounded-2xl bg-card p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-amber-500/10 p-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <div className="rounded-full bg-warning/10 p-2">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">{t("فاتورة محتملة مكررة", "Possible duplicate invoice")}</h3>
@@ -911,7 +911,7 @@ export function PurchaseBills() {
                       <div className="flex items-center gap-1 flex-wrap">
                         <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
                         {b.status === "DRAFT" && (
-                          <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-500/10 flex items-center gap-1 border border-emerald-500/20" title={t("اعتماد الفاتورة", "Approve invoice")}>
+                          <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success/10 flex items-center gap-1 border border-success/20" title={t("اعتماد الفاتورة", "Approve invoice")}>
                             {t("✓ اعتماد", "✓ Approve")}
                           </button>
                         )}

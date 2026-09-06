@@ -30,12 +30,12 @@ export function ActingAsBanner() {
     window.location.replace(`/admin/orgs/${act.orgId}`);
   };
   return (
-    <div className="shrink-0 flex flex-wrap items-center gap-2 border-b border-red-700 bg-red-600 px-4 py-1.5 text-xs text-white">
+    <div className="shrink-0 flex flex-wrap items-center gap-2 border-b border-danger bg-danger px-4 py-1.5 text-xs text-primary-foreground">
       <ShieldAlert className="h-4 w-4 shrink-0" />
       <span style={{ fontWeight: 700 }}>{t("تعمل بالنيابة عن", "Acting on behalf of")} «{act.orgName}»</span>
-      <span className="text-white/80 truncate max-w-[40ch]">· {act.reason}</span>
-      <span className="font-english tabular-nums text-white/90" dir="ltr">· {mm}:{ss}</span>
-      <button type="button" onClick={() => void end()} className="ms-auto inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-1 hover:bg-white/25" style={{ fontWeight: 600 }}>
+      <span className="text-primary-foreground/80 truncate max-w-[40ch]">· {act.reason}</span>
+      <span className="font-english tabular-nums text-primary-foreground/90" dir="ltr">· {mm}:{ss}</span>
+      <button type="button" onClick={() => void end()} className="ms-auto inline-flex items-center gap-1 rounded-md bg-card/15 px-2 py-1 hover:bg-card/25" style={{ fontWeight: 600 }}>
         <LogOut className="h-3.5 w-3.5" />{t("إنهاء", "End")}
       </button>
     </div>

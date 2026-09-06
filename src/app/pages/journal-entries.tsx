@@ -329,17 +329,17 @@ export function JournalEntries() {
             entry. Silent poster skips (missing COA account) surface HERE. */}
         {coverage && (
           coverage.linked ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 flex items-center gap-2">
+            <div className="rounded-lg border border-success-border bg-success-subtle px-4 py-2.5 text-sm text-success flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               {t("كل المستندات المعتمدة مترابطة مع الدفتر — لا فجوات.", "Every posted document is linked to the ledger — no gaps.")}
             </div>
           ) : (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+            <div className="rounded-lg border border-warning-border bg-warning-subtle px-4 py-2.5 text-sm text-warning">
               <div className="flex items-center gap-2 font-semibold">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {t("مستندات معتمدة بلا قيد محاسبي", "Posted documents without a journal entry")}
               </div>
-              <div className="mt-1 text-xs leading-5 text-amber-800">
+              <div className="mt-1 text-xs leading-5 text-warning">
                 {[
                   coverage.unposted.invoices > 0 ? t("فواتير مبيعات", "Sales invoices") + `: ${coverage.unposted.invoices}` : null,
                   coverage.unposted.bills > 0 ? t("فواتير مشتريات", "Purchase bills") + `: ${coverage.unposted.bills}` : null,
@@ -361,11 +361,11 @@ export function JournalEntries() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("المرحّلة", "Posted")}</div>
-            <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }}>{items.filter(e => e.status === "POSTED").length}</div>
+            <div className="font-english font-bold text-success mt-1" style={{ fontSize: "1.5rem" }}>{items.filter(e => e.status === "POSTED").length}</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("المسودات", "Drafts")}</div>
-            <div className="font-english font-bold text-amber-700 mt-1" style={{ fontSize: "1.5rem" }}>{totalDraft}</div>
+            <div className="font-english font-bold text-warning mt-1" style={{ fontSize: "1.5rem" }}>{totalDraft}</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المبالغ المرحّلة", "Total Posted Amount")}</div>
@@ -379,7 +379,7 @@ export function JournalEntries() {
             <div className="flex gap-1">
               {(["", "POSTED", "DRAFT"] as const).map(s => (
                 <button key={s} onClick={() => setStatusFilter(s)}
-                  className={`text-xs px-3 py-1.5 rounded-md ${statusFilter === s ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
+                  className={`text-xs px-3 py-1.5 rounded-md ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-surface-hover text-foreground hover:bg-border"}`}>
                   {s === "" ? t("الكل", "All") : s === "POSTED" ? t("مرحّل", "Posted") : t("مسودة", "Draft")}
                 </button>
               ))}
@@ -439,10 +439,10 @@ export function JournalEntries() {
                         <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString(displayLocale())}</td>
                         <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString(displayLocale())}</td>
                         <td className="px-2 py-3 text-center">
-                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-surface-hover text-foreground whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
                         </td>
                         <td className="px-2 py-3 text-center">
-                          <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${e.status === "POSTED" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${e.status === "POSTED" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                             {e.status === "POSTED" ? t("مرحّل", "Posted") : t("مسودة", "Draft")}
                           </span>
                         </td>
@@ -450,11 +450,11 @@ export function JournalEntries() {
                           {e.source === "manual" && e.status === "DRAFT" && (
                             pendingDelete === e.id ? (
                               <span className="flex items-center gap-1 text-xs">
-                                <button onClick={() => handleDelete(e.id)} className="px-2 py-1 rounded bg-red-600 text-white">{t("تأكيد", "Confirm")}</button>
+                                <button onClick={() => handleDelete(e.id)} className="px-2 py-1 rounded bg-danger text-primary-foreground">{t("تأكيد", "Confirm")}</button>
                                 <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-border">{t("إلغاء", "Cancel")}</button>
                               </span>
                             ) : (
-                              <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                              <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
                             )
                           )}
                         </td>
@@ -489,7 +489,7 @@ export function JournalEntries() {
               <div className="font-english font-bold text-primary" dir="ltr">{selected.number}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{selected.description}</div>
             </div>
-            <button onClick={() => setSelected(null)} className="p-1 hover:bg-gray-100 rounded">
+            <button onClick={() => setSelected(null)} className="p-1 hover:bg-surface-hover rounded">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </CardHeader>
@@ -502,7 +502,7 @@ export function JournalEntries() {
               <div>
                 <div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div>
                 <div className="mt-0.5">
-                  <span className={`text-xs px-2 py-0.5 rounded ${selected.status === "POSTED" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded ${selected.status === "POSTED" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                     {selected.status === "POSTED" ? t("مرحّل", "Posted") : t("مسودة", "Draft")}
                   </span>
                 </div>
@@ -585,8 +585,8 @@ export function JournalEntries() {
                       <Paperclip className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0 truncate">{a.filename}</div>
                       <span className="font-english text-muted-foreground/60" dir="ltr">{displayDigits((a.sizeBytes / 1024).toFixed(0))} KB</span>
-                      <a href={a.url} download={a.filename} className="text-primary hover:bg-blue-50 p-1 rounded"><Download className="h-3 w-3" /></a>
-                      <button onClick={() => handleRemoveAttachment(a.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 className="h-3 w-3" /></button>
+                      <a href={a.url} download={a.filename} className="text-primary hover:bg-info-subtle p-1 rounded"><Download className="h-3 w-3" /></a>
+                      <button onClick={() => handleRemoveAttachment(a.id)} className="text-danger hover:bg-danger-subtle p-1 rounded"><Trash2 className="h-3 w-3" /></button>
                     </div>
                   ))}
                 </div>
@@ -597,7 +597,7 @@ export function JournalEntries() {
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
               {selected.source === "manual" && selected.status === "DRAFT" && (
                 <>
-                  <Button onClick={() => handlePost(selected.id)} className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button onClick={() => handlePost(selected.id)} className="bg-success hover:bg-success text-primary-foreground">
                     <Send className="h-4 w-4 me-1" /> {t("ترحيل", "Post")}
                   </Button>
                   <Button onClick={() => openEdit(selected)} variant="outline" className="border-border">
@@ -607,16 +607,16 @@ export function JournalEntries() {
               )}
               {selected.source === "manual" && selected.status === "POSTED" && (
                 <>
-                  <Button onClick={() => unpostAndEdit(selected)} className="bg-amber-500 hover:bg-amber-600 text-white">
+                  <Button onClick={() => unpostAndEdit(selected)} className="bg-warning hover:bg-warning text-primary-foreground">
                     <Pencil className="h-4 w-4 me-1" /> {t("إلغاء ترحيل وتعديل", "Unpost & Edit")}
                   </Button>
-                  <Button onClick={() => handleUnpost(selected.id)} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                  <Button onClick={() => handleUnpost(selected.id)} variant="outline" className="border-warning-border text-warning hover:bg-warning-subtle">
                     <Undo2 className="h-4 w-4 me-1" /> {t("إلغاء الترحيل فقط", "Unpost only")}
                   </Button>
                 </>
               )}
               {selected.source !== "manual" && (
-                <div className="w-full rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                <div className="w-full rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info">
                   {t("هذا القيد أُنشئ تلقائياً من", "This entry was auto-created from")} <span style={{fontWeight: 600}}>{selected.source === "invoice" ? t("فاتورة مبيعات", "a sales invoice") : selected.source === "bill" ? t("فاتورة شراء", "a purchase invoice") : selected.source === "expense" ? t("مصروف", "an expense") : selected.source === "voucher" ? t("سند", "a voucher") : t("مستند آخر", "another document")}</span>.
                   <br/>
                   {t("للتعديل · افتح المستند الأصلي وعدّل من هناك.", "To edit, open the source document and edit from there.")}
@@ -625,11 +625,11 @@ export function JournalEntries() {
               {selected.source === "manual" && selected.status === "DRAFT" && (
                 pendingDelete === selected.id ? (
                   <span className="flex items-center gap-1">
-                    <Button onClick={() => handleDelete(selected.id)} className="bg-red-600 hover:bg-red-700">{t("تأكيد الحذف", "Confirm delete")}</Button>
+                    <Button onClick={() => handleDelete(selected.id)} className="bg-danger hover:bg-danger">{t("تأكيد الحذف", "Confirm delete")}</Button>
                     <Button onClick={() => setPendingDelete(null)} variant="outline" className="border-border">{t("إلغاء", "Cancel")}</Button>
                   </span>
                 ) : (
-                  <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                  <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-danger-border text-danger hover:bg-danger-subtle">
                     <Trash2 className="h-4 w-4 me-1" /> {t("حذف", "Delete")}
                   </Button>
                 )
@@ -641,8 +641,8 @@ export function JournalEntries() {
 
       {/* ── CREATE / EDIT MODAL ──────────────────────────────────────────── */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { if (draft.dirty) { draft.flush(); push("info", t("حُفظت مسودتك تلقائيًا — ترجع لها عند فتح النموذج", "Your draft was saved — it comes back when you reopen the form")); } setOpen(false); }}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => { if (draft.dirty) { draft.flush(); push("info", t("حُفظت مسودتك تلقائيًا — ترجع لها عند فتح النموذج", "Your draft was saved — it comes back when you reopen the form")); } setOpen(false); }}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-5 border-b border-border/50">
                 <h2 className="text-lg text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
@@ -708,7 +708,7 @@ export function JournalEntries() {
                         <tr key={i} className="border-t border-border/50">
                           <td className="px-2 py-1.5">
                             <select value={l.accountId} onChange={(e) => updateLine(i, { accountId: e.target.value })}
-                              className="w-full text-sm rounded border border-border px-2 py-1.5 bg-white">
+                              className="w-full text-sm rounded border border-border px-2 py-1.5 bg-card">
                               <option value="">— {t("اختر حساباً", "Select an account")} —</option>
                               {accounts.map(a => (
                                 <option key={a.id} value={a.id}>{a.code} · {displayName(a)}</option>
@@ -724,7 +724,7 @@ export function JournalEntries() {
                               const { text, tone } = impactLabel(acc.type, Number(l.debit) || 0, Number(l.credit) || 0);
                               if (!text) return null;
                               return (
-                                <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded ${tone === "up" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                                <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded ${tone === "up" ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger"}`}>
                                   {(acc.nameAr || acc.name)} {text}
                                 </span>
                               );
@@ -742,7 +742,7 @@ export function JournalEntries() {
                           </td>
                           <td className="px-1 py-1.5 text-center">
                             {form.lines.length > 2 && (
-                              <button type="button" onClick={() => removeLine(i)} className="p-1 text-red-600 hover:bg-red-50 rounded">
+                              <button type="button" onClick={() => removeLine(i)} className="p-1 text-danger hover:bg-danger-subtle rounded">
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             )}
@@ -766,7 +766,7 @@ export function JournalEntries() {
                     <Plus className="h-3.5 w-3.5" /> {t("إضافة سطر", "Add line")}
                   </button>
 
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${balanced ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${balanced ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                     {balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                     {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString(displayLocale())}`)}
                   </div>

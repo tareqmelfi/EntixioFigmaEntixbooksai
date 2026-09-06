@@ -33,12 +33,12 @@ export function ErrorBoundary() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-card p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl border border-border p-8 text-center">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-8 text-center">
           {/* Icon */}
-          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
+          <div className="w-16 h-16 rounded-full bg-danger-subtle flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="h-8 w-8 text-danger" />
           </div>
 
           {/* Status Code */}
@@ -68,7 +68,7 @@ export function ErrorBoundary() {
 
           {/* Actions */}
           <div className="flex flex-col gap-3">
-            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white">
+            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
               <Link to="/app" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
                 <span>{t("العودة للرئيسية", "Back to home")}</span>
@@ -108,11 +108,11 @@ export function ErrorBoundary() {
 export function NotFound() {
   const { t } = useLanguage();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-card p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl border border-border p-8 text-center">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-8 text-center">
           {/* Icon */}
-          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 rounded-full bg-info-subtle flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="h-8 w-8 text-primary" />
           </div>
 
@@ -135,7 +135,7 @@ export function NotFound() {
 
           {/* Actions */}
           <div className="flex flex-col gap-3">
-            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white">
+            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
               <Link to="/app" className="flex items-center justify-center gap-2">
                 <Home className="h-4 w-4" />
                 <span>{t("العودة للرئيسية", "Back to home")}</span>

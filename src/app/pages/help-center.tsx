@@ -106,7 +106,7 @@ export function HelpCenter() {
       </div>
 
       {/* escalation — direct line first (product requirement: يرتبط فيني مباشرة) */}
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
+      <div className="rounded-xl border border-success-border bg-success-subtle/60 p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-foreground" style={{ fontWeight: 700 }}>{t("تحتاج إنسانًا؟ كلمنا مباشرة", "Need a human? Talk to us directly")}</div>
@@ -115,13 +115,13 @@ export function HelpCenter() {
           <div className="flex flex-wrap gap-2">
             {cfg?.whatsapp && (
               <a href={`https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent("مرحبًا، أحتاج مساعدة في ENTIX Books")}`} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2.5 text-sm text-white hover:opacity-90" style={{ fontWeight: 700 }}>
+                className="inline-flex items-center gap-2 rounded-lg bg-success px-4 py-2.5 text-sm text-primary-foreground hover:opacity-90" style={{ fontWeight: 700 }}>
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm5.2 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.3.6-.6.8-.4 1.1.6 1.1 1.4 1.9 2.5 2.5.3.2.5.1.7-.1l.9-1c.2-.2.4-.2.6-.1l1.9.9c.2.1.4.2.4.3.1.2.1.7-.3 1.3Z"/></svg>
                 {t("واتساب الدعم", "Support WhatsApp")}
               </a>
             )}
             <a href={`mailto:${cfg?.email || "support@entix.io"}?subject=${encodeURIComponent("دعم ENTIX Books")}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-foreground hover:bg-muted/50" style={{ fontWeight: 600 }}>
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-foreground hover:bg-muted/50" style={{ fontWeight: 600 }}>
               ✉️ {cfg?.email || "support@entix.io"}
             </a>
           </div>
@@ -129,7 +129,7 @@ export function HelpCenter() {
       </div>
 
       {/* support agent */}
-      <div className="rounded-xl border border-border bg-white">
+      <div className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-5 py-4">
           <div className="text-foreground" style={{ fontWeight: 700 }}>{t("اسأل وكيل الدعم", "Ask the support agent")}</div>
           <p className="text-xs text-muted-foreground mt-0.5">{t("يعرف التطبيق فعلًا — جرّب سؤالًا جاهزًا أو اكتب سؤالك", "It actually knows the app — try a suggested question or type yours")}</p>
@@ -148,11 +148,11 @@ export function HelpCenter() {
           )}
           {msgs.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-primary text-white" : "bg-muted/60 text-foreground"}`}>{m.content}</div>
+              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"}`}>{m.content}</div>
             </div>
           ))}
           {busy && <div className="flex justify-start"><div className="rounded-2xl bg-muted/60 px-3.5 py-2.5 text-sm text-muted-foreground">…</div></div>}
-          {chatErr && <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">{chatErr}</div>}
+          {chatErr && <div className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2.5 text-xs text-warning">{chatErr}</div>}
         </div>
         <div className="border-t border-border p-4">
           <form onSubmit={(e) => { e.preventDefault(); ask(input); }} className="flex gap-2">
@@ -160,7 +160,7 @@ export function HelpCenter() {
               placeholder={t("اكتب سؤالك هنا…", "Type your question…")}
               className="flex-1 rounded-lg border border-border px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none" />
             <button type="submit" disabled={busy || !input.trim()}
-              className="rounded-lg bg-primary px-5 py-2.5 text-sm text-white hover:bg-primary/90 disabled:opacity-50" style={{ fontWeight: 700 }}>
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50" style={{ fontWeight: 700 }}>
               {t("إرسال", "Send")}
             </button>
           </form>
@@ -168,7 +168,7 @@ export function HelpCenter() {
       </div>
 
       {/* FAQ */}
-      <div className="rounded-xl border border-border bg-white">
+      <div className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-5 py-4 flex items-center justify-between">
           <div className="text-foreground" style={{ fontWeight: 700 }}>{t("الأسئلة الشائعة", "Frequently asked questions")}</div>
           <button onClick={() => setOpenFaq(openFaq === -1 ? null : -1)} className="text-xs text-primary hover:underline">

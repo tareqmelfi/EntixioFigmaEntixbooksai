@@ -142,7 +142,7 @@ export function QuotesImport() {
         }
       >
         <div className="w-full max-w-none mx-auto space-y-4">
-          {err && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
+          {err && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{err}</div>}
 
           {!preview && (
             <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 py-16 cursor-pointer hover:bg-primary/10 transition-colors">
@@ -193,7 +193,7 @@ export function QuotesImport() {
                 <div className="flex items-center gap-1 flex-wrap ms-2">
                   {preview.sheets.map((s, i) => (
                     <button key={s.name} onClick={() => setActiveSheet(i)}
-                      className={`rounded-full px-3 py-1 text-xs transition-colors ${i === activeSheet ? "bg-primary text-white" : "bg-muted text-foreground/70 hover:bg-primary/10"}`}>
+                      className={`rounded-full px-3 py-1 text-xs transition-colors ${i === activeSheet ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/70 hover:bg-primary/10"}`}>
                       {s.name} <span className="font-english">({s.lineCount})</span>
                     </button>
                   ))}
@@ -228,10 +228,10 @@ export function QuotesImport() {
                         return (
                           <tr key={li} className={`border-b border-border/40 ${!st.included && !st.isOptional ? "opacity-40" : ""}`}>
                             <td className="py-1.5 px-3">
-                              <input type="checkbox" checked={st.included} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked, isOptional: e.target.checked ? false : s[key]?.isOptional || false } }))} className="h-4 w-4 accent-[#1276E3]" />
+                              <input type="checkbox" checked={st.included} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked, isOptional: e.target.checked ? false : s[key]?.isOptional || false } }))} className="h-4 w-4 accent-[#5875DB]" />
                             </td>
                             <td className="py-1.5 px-3">
-                              <input type="checkbox" checked={st.isOptional} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked ? false : s[key]?.included ?? true, isOptional: e.target.checked } }))} className="h-4 w-4 accent-[#179FC5]" title={t("يظهر في العرض كبند اختياري غير مشمول في الإجمالي", "Shown as optional · excluded from the total")} />
+                              <input type="checkbox" checked={st.isOptional} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked ? false : s[key]?.included ?? true, isOptional: e.target.checked } }))} className="h-4 w-4 accent-[#8FA3F0]" title={t("يظهر في العرض كبند اختياري غير مشمول في الإجمالي", "Shown as optional · excluded from the total")} />
                             </td>
                             <td className="py-1.5 px-3 text-foreground/90">{l.no && <span className="font-english text-muted-foreground me-1">{l.no}</span>}{l.description}</td>
                             <td className="py-1.5 px-3 text-xs text-muted-foreground">{l.unit || "—"}</td>

@@ -22,8 +22,8 @@ export function PublicPreferenceSelector({ variant = "light" }: { variant?: "lig
   const activeRegion = REGIONS.find((item) => item.id === region) ?? REGIONS[0];
   const dark = variant === "dark";
   const buttonClass = dark
-    ? "border-white/20 bg-white/5 text-white hover:bg-white/10"
-    : "border-gray-100 text-foreground/80 hover:border-primary/30 hover:bg-primary/5";
+    ? "border-card/20 bg-card/5 text-primary-foreground hover:bg-card/10"
+    : "border-border text-foreground/80 hover:border-primary/30 hover:bg-primary/5";
 
   useEffect(() => {
     if (!countriesOpen) return;
@@ -109,9 +109,9 @@ export function PublicPreferenceSelector({ variant = "light" }: { variant?: "lig
             aria-label={t("اختيار الدولة", "Select country")}
             aria-activedescendant={`${listboxId}-option-${REGIONS[focusedIndex].id}`}
             onKeyDown={handleListboxKeyDown}
-            className={`absolute top-full end-0 z-50 mt-2 w-[220px] overflow-hidden rounded-xl border shadow-2xl ${dark ? "border-white/10 bg-slate-900" : "border-gray-100 bg-white"}`}
+            className={`absolute top-full end-0 z-50 mt-2 w-[220px] overflow-hidden rounded-xl border shadow-2xl ${dark ? "border-card/10 bg-foreground" : "border-border bg-card"}`}
           >
-            <div className={`border-b px-4 py-2.5 text-xs ${dark ? "border-white/10 text-white/60" : "border-gray-50 text-muted-foreground"}`}>
+            <div className={`border-b px-4 py-2.5 text-xs ${dark ? "border-card/10 text-primary-foreground/60" : "border-border text-muted-foreground"}`}>
               {t("المزايا والأسعار حسب الدولة", "Features & pricing by country")}
             </div>
             {REGIONS.map((item, index) => (
@@ -125,7 +125,7 @@ export function PublicPreferenceSelector({ variant = "light" }: { variant?: "lig
                 key={item.id}
                 onFocus={() => setFocusedIndex(index)}
                 onClick={() => changeRegion(item.id)}
-                className={`flex w-full items-center gap-2.5 px-4 py-3 text-start transition-colors ${dark ? "text-white hover:bg-white/10" : "text-foreground hover:bg-gray-50"} ${item.id === region ? "bg-primary/10" : ""}`}
+                className={`flex w-full items-center gap-2.5 px-4 py-3 text-start transition-colors ${dark ? "text-primary-foreground hover:bg-card/10" : "text-foreground hover:bg-surface-subtle"} ${item.id === region ? "bg-primary/10" : ""}`}
               >
                 <span>{item.flag}</span>
                 <span className="font-semibold">{t(item.ar, item.en)}</span>

@@ -35,11 +35,11 @@ import { humanizeError } from "../lib/error-messages";
 type StatusFilter = "ALL" | "RECEIVED" | "EXTRACTED" | "APPROVED" | "REJECTED";
 
 const STATUS_LABEL: Record<string, { label: { ar: string; en: string }; bg: string; text: string }> = {
-  RECEIVED:  { label: { ar: "وصل", en: "Received" },       bg: "bg-blue-50",   text: "text-blue-700" },
-  EXTRACTED: { label: { ar: "تم الاستخراج", en: "Extracted" }, bg: "bg-amber-50",  text: "text-amber-700" },
-  APPROVED:  { label: { ar: "معتمد", en: "Approved" },     bg: "bg-green-50",  text: "text-green-700" },
-  REJECTED:  { label: { ar: "مرفوض", en: "Rejected" },     bg: "bg-gray-100",  text: "text-gray-600" },
-  ERROR:     { label: { ar: "فشل", en: "Failed" },       bg: "bg-red-50",    text: "text-red-700" },
+  RECEIVED:  { label: { ar: "وصل", en: "Received" },       bg: "bg-info-subtle",   text: "text-info" },
+  EXTRACTED: { label: { ar: "تم الاستخراج", en: "Extracted" }, bg: "bg-warning-subtle",  text: "text-warning" },
+  APPROVED:  { label: { ar: "معتمد", en: "Approved" },     bg: "bg-success-subtle",  text: "text-success" },
+  REJECTED:  { label: { ar: "مرفوض", en: "Rejected" },     bg: "bg-surface-hover",  text: "text-muted-foreground" },
+  ERROR:     { label: { ar: "فشل", en: "Failed" },       bg: "bg-danger-subtle",    text: "text-danger" },
 };
 
 export function InboxPage() {
@@ -237,7 +237,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
       </div>
 
       {/* Forwarding address banner */}
-      <Card className={mailboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-primary/5 to-white" : "border-amber-200 bg-amber-50"}>
+      <Card className={mailboxStatus?.configured ? "border-info-border bg-gradient-to-l from-primary/5 to-card" : "border-warning-border bg-warning-subtle"}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Mail className="h-5 w-5 text-primary shrink-0" />
@@ -255,7 +255,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
               <Copy className="h-3.5 w-3.5" /> {t("نسخ", "Copy")}
             </button>
           </div>
-          <p className={`text-xs mt-2 ${mailboxStatus?.configured ? "text-muted-foreground" : "text-amber-800"}`}>
+          <p className={`text-xs mt-2 ${mailboxStatus?.configured ? "text-muted-foreground" : "text-warning"}`}>
             {mailboxStatus?.configured
               ? t("اطلب من مورّديك إرسال فواتيرهم لهذا العنوان · أو انسخ بريدك إلى هذا العنوان (CC) عند تلقّي الفواتير", "Ask your suppliers to send their invoices to this address · or CC your email to this address when receiving invoices")
               : t("العنوان غير جاهز للاستلام بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه مع الموردين.", "The address is not ready to receive yet. Mail routing and INBOX_WEBHOOK_TOKEN must be configured on the server before using it with suppliers.")}
@@ -268,7 +268,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
         <button
           onClick={handleApproveAll}
           disabled={approveAllBusy || !items.some((m) => m.status === "EXTRACTED")}
-          className="px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap bg-success text-primary-foreground hover:bg-success disabled:opacity-40 flex items-center gap-1.5"
         >
           {approveAllBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
           {t("اعتماد الكل", "Approve all")} ({items.filter((m) => m.status === "EXTRACTED").length})
@@ -280,8 +280,8 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
             onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${
               filter === s
-                ? "bg-primary text-white"
-                : "bg-white border border-border text-muted-foreground hover:border-primary/40"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card border border-border text-muted-foreground hover:border-primary/40"
             }`}
           >
             {s === "ALL" ? t("الكل", "All") : STATUS_LABEL[s] ? t(STATUS_LABEL[s].label.ar, STATUS_LABEL[s].label.en) : s}
@@ -307,14 +307,14 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
             ) : (
               <ul>
                 {items.map((m) => {
-                  const sl = STATUS_LABEL[m.status] || { label: { ar: m.status, en: m.status }, bg: "bg-gray-100", text: "text-gray-600" };
+                  const sl = STATUS_LABEL[m.status] || { label: { ar: m.status, en: m.status }, bg: "bg-surface-hover", text: "text-muted-foreground" };
                   const active = detail?.id === m.id;
                   return (
                     <li
                       key={m.id}
                       onClick={() => loadDetail(m.id)}
                       className={`px-4 py-3 cursor-pointer border-b border-border/50 last:border-0 transition ${
-                        active ? "bg-primary/5 border-l-4 border-l-[#1276E3]" : "hover:bg-muted/40"
+                        active ? "bg-primary/5 border-l-4 border-l-[#5875DB]" : "hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -387,7 +387,7 @@ function DetailPane({
   const { t } = useLanguage();
   const ex = detail.extractedJson || null;
   const lines: any[] = ex?.lines || [];
-  const sl = STATUS_LABEL[detail.status] || { label: { ar: detail.status, en: detail.status }, bg: "bg-gray-100", text: "text-gray-600" };
+  const sl = STATUS_LABEL[detail.status] || { label: { ar: detail.status, en: detail.status }, bg: "bg-surface-hover", text: "text-muted-foreground" };
   const isFinal = detail.status === "APPROVED" || detail.status === "REJECTED";
 
   // Proactive duplicate check · when a message is EXTRACTED, look for an existing
@@ -457,7 +457,7 @@ function DetailPane({
 
           {/* Lines table */}
           {lines.length > 0 && (
-            <div className="mt-4 rounded-lg border border-border bg-white overflow-x-auto">
+            <div className="mt-4 rounded-lg border border-border bg-card overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted text-muted-foreground">
                   <tr>
@@ -484,7 +484,7 @@ function DetailPane({
           )}
 
           {ex.warnings && ex.warnings.length > 0 && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 flex items-start gap-2">
+            <div className="mt-3 rounded-lg border border-warning-border bg-warning-subtle px-3 py-2 text-xs text-warning flex items-start gap-2">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <ul className="space-y-0.5">
                 {ex.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
@@ -496,20 +496,20 @@ function DetailPane({
 
       {/* Possible Duplicate warning · proactive check before approve */}
       {dupInfo?.possibleDuplicate && !isFinal && (
-        <div className="p-4 bg-amber-50 border-t border-amber-200">
-          <div className="flex items-start gap-2 text-sm text-amber-800">
+        <div className="p-4 bg-warning-subtle border-t border-warning-border">
+          <div className="flex items-start gap-2 text-sm text-warning">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <div style={{ fontWeight: 700 }}>{t("⚠️ قد يكون مكرراً", "⚠️ Possible duplicate")}</div>
               {dupInfo.match && (
-                <div className="text-xs text-amber-700">
+                <div className="text-xs text-warning">
                   {t("يوجد فاتورة شراء مطابقة:", "A matching purchase bill exists:")} <span className="font-english">{dupInfo.match.billNumber}</span>
                   {" · "}{t("الإجمالي", "Total")} <span className="font-english">{Number(dupInfo.match.total).toLocaleString(displayLocale())}</span>
                   {" · "}{t("المورّد", "Supplier")} {dupInfo.match.supplierName || "—"}
                   {" · "}{t("بتاريخ", "dated")} <span className="font-english">{String(dupInfo.match.issueDate).slice(0, 10)}</span>
                 </div>
               )}
-              <div className="text-xs text-amber-700">{t("راجع البيانات بعناية قبل الاعتماد · يمكنك الاعتماد (تجاوز التحذير) أو الرفض.", "Review the data carefully before approving · you can approve (override the warning) or reject.")}</div>
+              <div className="text-xs text-warning">{t("راجع البيانات بعناية قبل الاعتماد · يمكنك الاعتماد (تجاوز التحذير) أو الرفض.", "Review the data carefully before approving · you can approve (override the warning) or reject.")}</div>
             </div>
           </div>
         </div>
@@ -523,7 +523,7 @@ function DetailPane({
               <button
                 onClick={onApprove}
                 disabled={busy}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700 transition flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-success text-primary-foreground text-sm hover:bg-success transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                 {t("اعتماد · إنشاء فاتورة شراء", "Approve · create purchase bill")}
@@ -538,7 +538,7 @@ function DetailPane({
               <button
                 onClick={onReject}
                 disabled={busy}
-                className="px-4 py-2 rounded-lg border border-red-200 text-red-700 text-sm hover:bg-red-50 transition flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-danger-border text-danger text-sm hover:bg-danger-subtle transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <XCircle className="h-3.5 w-3.5" /> {t("رفض", "Reject")}
               </button>
@@ -555,7 +555,7 @@ function DetailPane({
             <button
               onClick={onReprocess}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm hover:bg-primary transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               {t("استخراج بالذكاء", "Extract with AI")}
@@ -576,7 +576,7 @@ function DetailPane({
       )}
 
       {detail.billId && (
-        <div className="p-5 bg-green-50 flex items-center gap-2 text-sm text-green-700">
+        <div className="p-5 bg-success-subtle flex items-center gap-2 text-sm text-success">
           <CheckCircle2 className="h-4 w-4" />
           {t("تم إنشاء فاتورة شراء من هذه الرسالة ·", "A purchase bill was created from this message ·")} <a href={`/app/purchases/bills/${detail.billId}`} className="underline">{t("عرض الفاتورة", "View bill")}</a>
         </div>

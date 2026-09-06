@@ -14,14 +14,14 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
   const { language, t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-white" dir={language === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-card" dir={language === "ar" ? "rtl" : "ltr"}>
       <SharedNavbar />
       <main>
 
       <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center">
           <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-2xl">
-            <Construction className="w-10 h-10 text-white" />
+            <Construction className="w-10 h-10 text-primary-foreground" />
           </div>
           <h1 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
             {title}
@@ -31,7 +31,7 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
           </p>
           <button
             onClick={() => navigate("/")}
-            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/80 text-white px-8 py-3.5 rounded-xl transition-all hover:shadow-xl cursor-pointer"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/80 text-primary-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl cursor-pointer"
             style={{ fontSize: "15px", fontWeight: 600 }}
           >
             {t("العودة للرئيسية", "Back home")}

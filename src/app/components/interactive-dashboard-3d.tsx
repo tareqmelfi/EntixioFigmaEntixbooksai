@@ -43,7 +43,7 @@ export function InteractiveDashboard3D() {
   // Initialize particles
   useEffect(() => {
     const newParticles: AIParticle[] = [];
-    const colors = ["#1276E3", "#349FC4", "#0B1B49", "#60A5FA"];
+    const colors = ["#5875DB", "#349FC4", "#1A1E48", "#60A5FA"];
     
     for (let i = 0; i < 30; i++) {
       newParticles.push({
@@ -184,7 +184,7 @@ export function InteractiveDashboard3D() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5, duration: 0.5 }}
-        className="absolute -top-3 -left-3 z-20 bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2"
+        className="absolute -top-3 -left-3 z-20 bg-gradient-to-r from-primary to-secondary text-primary-foreground px-4 py-2 rounded-xl shadow-lg flex items-center gap-2"
         style={{ fontSize: "12px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
       >
         <Sparkles className="w-4 h-4" />

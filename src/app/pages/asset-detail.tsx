@@ -159,7 +159,7 @@ export function AssetDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -174,7 +174,7 @@ export function AssetDetail() {
                       type="button"
                       onClick={async () => { try { const { code } = await api.fixedAssets.nextCode(); setForm((f) => ({ ...f, code })); } catch { /* keep manual */ } }}
                       title={t("توليد تلقائي", "Auto-generate")}
-                      className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-blue-50"
+                      className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-info-subtle"
                     ><Sparkles className="h-4 w-4" /></button>
                   )}
                 </div>
@@ -234,7 +234,7 @@ export function AssetDetail() {
         <button
           type="button"
           onClick={() => navigate(asset.purchaseBillId ? `/app/purchases/bills` : `/app/expenses`)}
-          className="flex w-full items-center justify-between rounded-lg border border-primary/30 bg-blue-50/50 px-3 py-2 text-sm text-primary hover:bg-blue-50"
+          className="flex w-full items-center justify-between rounded-lg border border-primary/30 bg-info-subtle/50 px-3 py-2 text-sm text-primary hover:bg-info-subtle"
         >
           <span>{asset.purchaseBillId ? t("مرتبط بفاتورة مشتريات · عرض", "Linked to a purchase bill · view") : t("مرتبط بمصروف · عرض", "Linked to an expense · view")}</span>
           <ExternalLink className="h-3.5 w-3.5" />
@@ -242,25 +242,25 @@ export function AssetDetail() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("التكلفة", "Cost")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(asset.acquisitionCost)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("القيمة المتبقية", "Salvage Value")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(asset.salvageValue)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("تاريخ الاقتناء", "Acquisition Date")}</div>
           <div className="font-english text-foreground mt-1" dir="ltr">{asset.acquisitionDate?.slice(0, 10)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("العمر الإنتاجي", "Useful Life")}</div>
           <div className="text-foreground mt-1" style={{ fontWeight: 700 }}>{asset.usefulLifeYears} {t("سنة", "years")}</div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-4 space-y-2 text-sm">
+      <div className="rounded-lg border border-border bg-card p-4 space-y-2 text-sm">
         <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("الربط المحاسبي", "Accounting links")}</div>
         <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t("حساب الأصل", "Asset account")}</span><span className="font-english text-foreground" dir="ltr">{accountLabel(asset.accountId)}</span></div>
         <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t("مصروف الإهلاك", "Depreciation expense")}</span><span className="font-english text-foreground" dir="ltr">{accountLabel(asset.depreciationExpenseAccountId)}</span></div>
@@ -268,7 +268,7 @@ export function AssetDetail() {
       </div>
 
       {asset.status === "DISPOSED" && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1 text-sm">
+        <div className="rounded-lg border border-border bg-surface-subtle p-3 space-y-1 text-sm">
           <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("بيانات الإخراج", "Disposal details")}</div>
           <div className="flex justify-between"><span className="text-muted-foreground">{t("التاريخ", "Date")}</span><span className="font-english" dir="ltr">{asset.disposalDate?.slice(0, 10) || "—"}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">{t("مبلغ التصرف", "Disposal amount")}</span><span className="font-english" dir="ltr">{formatMoney(asset.disposalAmount)}</span></div>
@@ -277,14 +277,14 @@ export function AssetDetail() {
       )}
 
       {asset.status === "ACTIVE" ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-xs text-amber-800" style={{ fontWeight: 600 }}><Archive className="h-3.5 w-3.5" />{t("إخراج الأصل (بيع/تخلص)", "Dispose asset (sell/write-off)")}</div>
+        <div className="rounded-lg border border-warning-border bg-warning-subtle/50 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-xs text-warning" style={{ fontWeight: 600 }}><Archive className="h-3.5 w-3.5" />{t("إخراج الأصل (بيع/تخلص)", "Dispose asset (sell/write-off)")}</div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1"><Label className="text-xs">{t("تاريخ الإخراج", "Disposal date")}</Label><DateInput value={disposeForm.disposalDate} onChange={(iso) => setDisposeForm({ ...disposeForm, disposalDate: iso })} inputClassName="" /></div>
             <div className="space-y-1"><Label className="text-xs">{t("مبلغ التصرف", "Disposal amount")}</Label><Input type="number" step="0.01" min="0" value={disposeForm.disposalAmount} onChange={(e) => setDisposeForm({ ...disposeForm, disposalAmount: e.target.value })} dir="ltr" className="font-english" placeholder="0" /></div>
           </div>
           <div className="space-y-1"><Label className="text-xs">{t("السبب", "Reason")}</Label><Input value={disposeForm.disposalReason} onChange={(e) => setDisposeForm({ ...disposeForm, disposalReason: e.target.value })} placeholder={t("بيع · تلف · استبدال", "Sale · Damage · Replacement")} /></div>
-          <Button type="button" variant="outline" onClick={handleDispose} disabled={disposeBusy} className="w-full border-amber-300 text-amber-800 hover:bg-amber-100">{disposeBusy ? "..." : t("تأكيد الإخراج", "Confirm disposal")}</Button>
+          <Button type="button" variant="outline" onClick={handleDispose} disabled={disposeBusy} className="w-full border-warning-border text-warning hover:bg-warning-subtle">{disposeBusy ? "..." : t("تأكيد الإخراج", "Confirm disposal")}</Button>
         </div>
       ) : (
         <Button type="button" variant="outline" onClick={handleRestore} className="w-full border-border"><RotateCcw className="me-2 h-4 w-4" />{t("إعادة إلى نشط (الإخراج كان بالخطأ)", "Restore to active (disposal was a mistake)")}</Button>
@@ -292,11 +292,11 @@ export function AssetDetail() {
 
       <div className="flex gap-2 pt-2 border-t border-border/60">
         <Button type="button" variant="outline" onClick={() => setEditMode(true)} className="flex-1 border-border"><Edit2 className="me-2 h-4 w-4" />{t("تعديل", "Edit")}</Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("حذف الأصل نهائياً؟ يُستخدم عند تسجيله بالخطأ.", "Delete this asset permanently? Use when it was registered by mistake.")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{t("حذف الأصل نهائياً؟ يُستخدم عند تسجيله بالخطأ.", "Delete this asset permanently? Use when it was registered by mistake.")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -318,7 +318,7 @@ export function AssetDetail() {
           {!isNew && asset && (
             <div className="flex items-center gap-2 mt-1">
               <span className="font-english text-xs text-primary" dir="ltr">{asset.code}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${asset.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${asset.status === "ACTIVE" ? "bg-success-subtle text-success" : "bg-surface-hover text-muted-foreground"}`}>
                 {asset.status === "ACTIVE" ? t("نشط", "Active") : t("مُخرج", "Disposed")}
               </span>
               <span className="text-xs text-muted-foreground">{asset.category || t("بدون تصنيف", "Uncategorized")}</span>
@@ -333,7 +333,7 @@ export function AssetDetail() {
         </div>
       </div>
 
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       {(isNew || editMode) ? formView : detailView}
     </div>

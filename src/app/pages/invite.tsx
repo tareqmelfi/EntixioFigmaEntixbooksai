@@ -186,7 +186,7 @@ export function InvitePage() {
 
         {phase === "error" && (
           <>
-            <MailWarning className="mx-auto h-10 w-10 text-amber-500 mb-3" />
+            <MailWarning className="mx-auto h-10 w-10 text-warning mb-3" />
             {mismatchEmail ? (
               <>
                 <h1 className="text-lg font-bold text-foreground mb-2">{t("هذه الدعوة ليست لهذا الحساب", "This invite is for a different account")}</h1>

@@ -9,34 +9,34 @@ import { displayLocale } from "../lib/number-display";
 /** Very faint grid — almost invisible guide lines */
 export const gridStyle = {
   strokeDasharray: "3 3",
-  stroke: "#ECEEF1",
+  stroke: "#E3DACB",
   strokeOpacity: 0.8,
 } as const;
 
 /** X-axis (category labels like months) — small, muted */
 export const xAxisStyle = {
-  style: { fontSize: "10px", fontFamily: "Noto Sans Arabic", fill: "#B0B7C3" },
+  style: { fontSize: "10px", fontFamily: "IBM Plex Sans Arabic", fill: "#8A93A6" },
   tickLine: false as const,
   axisLine: false as const,
 } as const;
 
 /** X-axis for English / numeric values */
 export const xAxisNumericStyle = {
-  style: { fontSize: "10px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fill: "#B0B7C3" },
+  style: { fontSize: "10px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fill: "#8A93A6" },
   tickLine: false as const,
   axisLine: false as const,
 } as const;
 
 /** Y-axis (numeric scale) — very light so numbers don't compete with data */
 export const yAxisStyle = {
-  style: { fontSize: "10px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fill: "#C4CAD4" },
+  style: { fontSize: "10px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fill: "#8A93A6" },
   tickLine: false as const,
   axisLine: false as const,
 } as const;
 
 /** Y-axis for Arabic category labels (horizontal bar charts) */
 export const yAxisCategoryStyle = {
-  style: { fontSize: "10px", fontFamily: "Noto Sans Arabic", fill: "#B0B7C3" },
+  style: { fontSize: "10px", fontFamily: "IBM Plex Sans Arabic", fill: "#8A93A6" },
   tickLine: false as const,
   axisLine: false as const,
 } as const;
@@ -44,7 +44,7 @@ export const yAxisCategoryStyle = {
 /** Tooltip — stays readable, subtle border */
 export const tooltipStyle = {
   contentStyle: {
-    fontFamily: "Noto Sans Arabic",
+    fontFamily: "IBM Plex Sans Arabic",
     fontSize: "12px",
     backgroundColor: "rgba(255,255,255,0.96)",
     border: "1px solid #ECEEF1",
@@ -66,7 +66,7 @@ export const tooltipStyle = {
 /** Legend — small and quiet */
 export const legendStyle = {
   wrapperStyle: {
-    fontFamily: "Noto Sans Arabic",
+    fontFamily: "IBM Plex Sans Arabic",
     fontSize: "11px",
     color: "#9CA3AF",
     paddingTop: "8px",
@@ -80,15 +80,15 @@ export const formatSARShort = (value: number) => `${value.toLocaleString(display
 
 /** Muted bar colors with slight transparency for softer look */
 export const chartColors = {
-  navy: "#0B1B49",
+  navy: "#1A1E48",
   navySoft: "rgba(11,27,73,0.85)",
-  blue: "#1276E3",
+  blue: "#5875DB",
   blueSoft: "rgba(18,118,227,0.8)",
-  teal: "#179FC5",
+  teal: "#8FA3F0",
   tealSoft: "rgba(23,159,197,0.75)",
-  green: "#22C55E",
+  green: "#4661C7",
   /** Official loss / danger color — use for losses, overdue, critical states */
-  red: "#EF4444",
+  red: "#9E3B2E",
   redSoft: "rgba(239,68,68,0.80)",
 } as const;
 
@@ -100,9 +100,9 @@ export const chartColors = {
  * gray   = draft / inactive
  */
 export const statusColors = {
-  green:     { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
-  blue:      { text: "#1276E3", bg: "#EFF6FF", border: "#BFDBFE" },
-  red:       { text: "#EF4444", bg: "#FEF2F2", border: "#FECACA" },
-  amber:     { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+  green:     { text: "#4661C7", bg: "#F0FDF4", border: "#BBF7D0" },
+  blue:      { text: "#5875DB", bg: "#EFF6FF", border: "#BFDBFE" },
+  red:       { text: "#9E3B2E", bg: "#FEF2F2", border: "#FECACA" },
+  amber:     { text: "#8A5F14", bg: "#FFFBEB", border: "#FDE68A" },
   gray:      { text: "#6B7280", bg: "#F9FAFB", border: "#E5E7EB" },
 } as const;

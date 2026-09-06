@@ -36,11 +36,11 @@ interface FeatureModule {
 }
 
 const statusConfig: Record<FeatureStatus, { label: string; labelEn: string; color: string; bg: string; icon: LucideIcon }> = {
-  live: { label: "مفعّل", labelEn: "Active", color: "text-green-800", bg: "bg-green-100", icon: CheckCircle },
-  partial: { label: "جزئي", labelEn: "Partial", color: "text-amber-800", bg: "bg-amber-100", icon: AlertCircle },
-  planned: { label: "مخطط", labelEn: "Planned", color: "text-primary", bg: "bg-blue-100", icon: Clock },
+  live: { label: "مفعّل", labelEn: "Active", color: "text-success", bg: "bg-success-subtle", icon: CheckCircle },
+  partial: { label: "جزئي", labelEn: "Partial", color: "text-warning", bg: "bg-warning-subtle", icon: AlertCircle },
+  planned: { label: "مخطط", labelEn: "Planned", color: "text-primary", bg: "bg-info-subtle", icon: Clock },
   phase2: { label: "المرحلة 2", labelEn: "Phase 2", color: "text-primary", bg: "bg-primary/5", icon: Target },
-  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-destructive", bg: "bg-pink-50", icon: Sparkles },
+  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-destructive", bg: "bg-danger-subtle", icon: Sparkles },
 };
 
 // ── Feature Modules ──
@@ -81,8 +81,8 @@ const modules: FeatureModule[] = [
     title: "المشتريات",
     titleEn: "Purchases",
     icon: Package,
-    color: "text-green-800",
-    bgColor: "bg-green-800/10",
+    color: "text-success",
+    bgColor: "bg-success/10",
     features: [
       { name: "فواتير المشتريات", nameEn: "Purchase invoices", status: "live", description: "إدارة فواتير الموردين مع ربط المورد", descEn: "Manage supplier invoices with supplier linking", details: ["إنشاء / عرض / حذف", "ربط بالمورد مع بحث ذكي", "بنود مع ضريبة"], detailsEn: ["Create / view / delete", "Link to supplier with smart search", "Line items with tax"] },
       { name: "سندات الصرف", nameEn: "Payment vouchers", status: "live", description: "تسجيل المبالغ المصروفة للموردين", descEn: "Record amounts paid to suppliers" },
@@ -94,8 +94,8 @@ const modules: FeatureModule[] = [
     title: "الفوترة الإلكترونية (ZATCA)",
     titleEn: "E-Invoicing",
     icon: Shield,
-    color: "text-green-800",
-    bgColor: "bg-green-800/10",
+    color: "text-success",
+    bgColor: "bg-success/10",
     features: [
       { name: "UUID 128-bit لكل فاتورة", nameEn: "128-bit UUID per invoice", status: "planned", description: "مخطط وغير منفذ كمعرّف ZATCA متحقق منه.", descEn: "Planned and not implemented as a verified ZATCA identifier.", critical: true },
       { name: "ربط تسلسلي مشفر (Sequential Hash)", nameEn: "Encrypted sequential linking (Sequential Hash)", status: "planned", description: "مخطط وغير منفذ كربط ZATCA متحقق منه.", descEn: "Planned and not implemented as verified ZATCA sequential linking.", critical: true },
@@ -149,8 +149,8 @@ const modules: FeatureModule[] = [
     title: "الأصول والمخزون",
     titleEn: "Assets & Inventory",
     icon: Building2,
-    color: "text-amber-800",
-    bgColor: "bg-amber-800/10",
+    color: "text-warning",
+    bgColor: "bg-warning/10",
     features: [
       { name: "الأصول الثابتة", nameEn: "Fixed assets", status: "live", description: "إدارة الأصول مع الإهلاك والقيمة الدفترية", descEn: "Manage assets with depreciation and book value", details: ["جدول الإهلاك", "رسوم بيانية", "حالات: نشط / مستبعد / قيد الصيانة"], detailsEn: ["Depreciation schedule", "Charts", "Statuses: active / disposed / under maintenance"] },
       { name: "المخزون", nameEn: "Inventory", status: "live", description: "إدارة المنتجات والمستودعات مع حد إعادة الطلب", descEn: "Manage products and warehouses with reorder point" },
@@ -336,11 +336,11 @@ export function FeatureRoadmap() {
           );
         })}
         <button onClick={() => setFilterStatus("all")} className="text-start">
-          <Card className="border-amber-100 bg-amber-100/20 hover:shadow-md transition-all">
+          <Card className="border-warning-border bg-warning-subtle/20 hover:shadow-md transition-all">
             <CardContent className="p-4">
-              <p className="text-xs text-amber-800" style={{ fontWeight: 600 }}>{t("حرجة", "Critical")}</p>
-              <p className="font-english text-amber-800 mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.criticalDone}/{stats.critical}</p>
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 bg-amber-100 text-amber-800" style={{ fontWeight: 500 }}>
+              <p className="text-xs text-warning" style={{ fontWeight: 600 }}>{t("حرجة", "Critical")}</p>
+              <p className="font-english text-warning mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.criticalDone}/{stats.critical}</p>
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 bg-warning-subtle text-warning" style={{ fontWeight: 500 }}>
                 <Star className="h-3 w-3" />{t("أساسية", "Essential")}
               </span>
             </CardContent>
@@ -375,7 +375,7 @@ export function FeatureRoadmap() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-muted-foreground font-english">{liveCount}/{totalCount} {t("مفعّل", "active")}</span>
                       <div className="w-16 bg-muted rounded-full h-1">
-                        <div className="bg-green-500 h-1 rounded-full" style={{ width: `${(liveCount / totalCount) * 100}%` }} />
+                        <div className="bg-success h-1 rounded-full" style={{ width: `${(liveCount / totalCount) * 100}%` }} />
                       </div>
                     </div>
                   </div>
@@ -396,12 +396,12 @@ export function FeatureRoadmap() {
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>{t(cfg.label, cfg.labelEn)}</span>
                             <button
                               onClick={async (e) => { e.stopPropagation(); if (reported.has(feature.name)) return; try { await api.notifications.create({ type: "feature_report", title: `${t("بلاغ على ميزة:", "Feature report:")} ${t(feature.name, feature.nameEn)}`, body: `${t("قسم:", "Module:")} ${t(mod.title, mod.titleEn)} · ${t("الحالة:", "Status:")} ${t(cfg.label, cfg.labelEn)}`, link: "/app/roadmap", refType: "feature", refId: feature.name }); setReported(prev => new Set(prev).add(feature.name)); push("success", `${t("تم استلام بلاغك على", "We received your report on")} «${t(feature.name, feature.nameEn)}»`); } catch { push("error", t("تعذر إرسال البلاغ", "Could not send the report")); } }}
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-green-200 bg-green-50 text-green-700" : "border-border text-muted-foreground/60 hover:text-destructive hover:border-destructive/40 opacity-0 group-hover:opacity-100"}`}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${reported.has(feature.name) ? "border-success-border bg-success-subtle text-success" : "border-border text-muted-foreground/60 hover:text-destructive hover:border-destructive/40 opacity-0 group-hover:opacity-100"}`}
                               title={t("أبلغ عن مشكلة في هذه الميزة — يصل البلاغ لفريق التطوير", "Report an issue with this feature — the report reaches the dev team")}>
                               {reported.has(feature.name) ? t("✓ وصل البلاغ", "✓ Report received") : t("⚑ بلاغ", "⚑ Report")}
                             </button>
                             {feature.critical && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800" style={{ fontWeight: 600 }}>
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-subtle px-2 py-0.5 text-xs text-warning" style={{ fontWeight: 600 }}>
                                 <Star className="h-3 w-3" />{t("حرج", "Critical")}
                               </span>
                             )}
@@ -440,8 +440,8 @@ export function FeatureRoadmap() {
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-amber-800" />
-              <span className="text-sm text-amber-800" style={{ fontWeight: 500 }}>{t("حرج — أساسي للإطلاق", "Critical — essential for launch")}</span>
+              <Star className="h-4 w-4 text-warning" />
+              <span className="text-sm text-warning" style={{ fontWeight: 500 }}>{t("حرج — أساسي للإطلاق", "Critical — essential for launch")}</span>
             </div>
           </div>
         </CardContent>

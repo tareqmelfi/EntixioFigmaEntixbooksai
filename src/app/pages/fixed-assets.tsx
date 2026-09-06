@@ -58,15 +58,15 @@ export function FixedAssets() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("الإهلاك المتراكم", "Accumulated Depreciation")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString(displayLocale())}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString(displayLocale())}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("صافي القيمة الدفترية", "Net Book Value")}</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString(displayLocale())}</div>
+          <div className="font-english text-success" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString(displayLocale())}</div>
         </CardContent></Card>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("قائمة الأصول", "Assets List")} · {items.length}</CardTitle></CardHeader>
@@ -116,7 +116,7 @@ export function FixedAssets() {
                     <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{a.acquisitionDate?.slice(0, 10)}</td>
                     <td className="py-3 px-4 font-english text-sm text-foreground" style={{ fontWeight: 600 }} dir="ltr">{formatMoney(a.acquisitionCost)}</td>
                     <td className="py-3 px-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${a.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${a.status === "ACTIVE" ? "bg-success-subtle text-success" : "bg-surface-hover text-muted-foreground"}`}>
                         {a.status === "ACTIVE" ? t("نشط", "Active") : a.status === "DISPOSED" ? t("مُخرج", "Disposed") : t("مشطوب", "Written off")}
                       </span>
                     </td>

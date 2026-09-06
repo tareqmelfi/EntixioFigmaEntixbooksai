@@ -65,7 +65,7 @@ export function AdminDashboard({ section = "overview" }: { section?: AdminSectio
         <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
           {([["email", t("البريد", "Email")], ["backups", t("النسخ الاحتياطي", "Backups")], ["agent", t("وكيل الأدمن", "Admin agent")], ["ai", t("الذكاء", "AI usage")]] as [Tab, string][]).filter(([id]) => SYSTEM_TABS.includes(id)).map(([id, label]) => (
             <button key={id} onClick={() => setSystemTab(id)}
-              className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
           ))}
         </div>
@@ -138,7 +138,7 @@ function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
                   </td>
                   <td className="px-4 py-2.5 relative">
                     <Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
-                    <div className="relative z-20 pointer-events-none"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : o.status === "TRIALING" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>{o.status}</span></div>
+                    <div className="relative z-20 pointer-events-none"><span className={`text-xs px-2 py-0.5 rounded-full ${o.status === "ACTIVE" ? "bg-success-subtle text-success" : o.status === "TRIALING" ? "bg-info-subtle text-info" : "bg-muted text-muted-foreground"}`}>{o.status}</span></div>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs relative">
                     <Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" />
@@ -218,14 +218,14 @@ function OrgsTab({ guard, push, t }: any) {
                     <div className="relative z-20 pointer-events-none"><span className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</span></div><div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div>
                   </td>
                   <td className="px-3 py-2.5 text-xs font-english text-muted-foreground relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.owner?.email || "—"}</div></td>
-                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}{o.subscription.status === "ACTIVE" && !o.subscription.currentPeriodEnd ? ` · ${t("بدون انتهاء", "no expiry")}` : ""}</div></>) : "—"}</div></td>
+                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-success-subtle text-success" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}{o.subscription.status === "ACTIVE" && !o.subscription.currentPeriodEnd ? ` · ${t("بدون انتهاء", "no expiry")}` : ""}</div></>) : "—"}</div></td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.members} / {o.invoices}</div></td>
                   <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
-                      <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
-                      <button disabled={!!busyId} onClick={() => act(o.id, "lifetime")} title={t("أعلى باقة · بدون تاريخ انتهاء", "Highest plan · no expiry")} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 disabled:opacity-50"><Crown className="inline h-3 w-3 me-0.5" />{t("مدى الحياة", "Lifetime")}</button>
-                      <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
-                      <button disabled={!!busyId} onClick={() => act(o.id, "cancel")} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
+                      <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-success-subtle text-success border border-success-border hover:bg-success-subtle disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
+                      <button disabled={!!busyId} onClick={() => act(o.id, "lifetime")} title={t("أعلى باقة · بدون تاريخ انتهاء", "Highest plan · no expiry")} className="text-[11px] px-2 py-1 rounded bg-warning-subtle text-warning border border-warning-border hover:bg-warning-subtle disabled:opacity-50"><Crown className="inline h-3 w-3 me-0.5" />{t("مدى الحياة", "Lifetime")}</button>
+                      <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-info-subtle text-info border border-info-border hover:bg-info-subtle disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
+                      <button disabled={!!busyId} onClick={() => act(o.id, "cancel")} className="text-[11px] px-2 py-1 rounded bg-danger-subtle text-danger border border-danger-border hover:bg-danger-subtle disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
                       <button onClick={() => openMembers(o.id)} className="text-[11px] px-2 py-1 rounded bg-muted text-foreground border border-border hover:bg-accent"><Users className="inline h-3 w-3 me-0.5" />{t("الأعضاء", "Members")}</button>
                     </div>
                     {membersFor === o.id && (
@@ -235,21 +235,21 @@ function OrgsTab({ guard, push, t }: any) {
                           <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
                             <span className="font-english text-foreground/80" dir="ltr">{m.user.email}</span>
                             <span className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 rounded bg-white border border-border text-[10px]">{m.role}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-card border border-border text-[10px]">{m.role}</span>
                               {pendingMemberRemove === m.user.id ? (
                                 <InlineConfirm label={t("إزالة العضو؟", "Remove member?")} onCancel={() => setPendingMemberRemove(null)} onConfirm={async () => {
                                   setPendingMemberRemove(null);
                                   try { await api.admin.removeOrgMember(o.id, m.user.id); push("success", t("أُزيل العضو", "Member removed")); setMembers((await api.admin.orgMembers(o.id)).items); } catch (e) { guard(e); }
                                 }} />
                               ) : (
-                                <button onClick={() => setPendingMemberRemove(m.user.id)} className="text-red-600 hover:bg-red-50 rounded p-0.5"><X className="h-3 w-3" /></button>
+                                <button onClick={() => setPendingMemberRemove(m.user.id)} className="text-danger hover:bg-danger-subtle rounded p-0.5"><X className="h-3 w-3" /></button>
                               )}
                             </span>
                           </div>
                         ))}
                         <div className="flex gap-1.5 pt-1 border-t border-border">
                           <Input value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)} placeholder={t("بريد مستخدم موجود", "Existing user email")} dir="ltr" className="font-english h-8 text-xs border-border" />
-                          <select value={memberRole} onChange={(e) => setMemberRole(e.target.value)} className="h-8 text-xs rounded-md border border-border bg-white px-1.5">
+                          <select value={memberRole} onChange={(e) => setMemberRole(e.target.value)} className="h-8 text-xs rounded-md border border-border bg-card px-1.5">
                             <option value="VIEWER">VIEWER</option><option value="ACCOUNTANT">ACCOUNTANT</option><option value="ADMIN">ADMIN</option><option value="OWNER">OWNER</option>
                           </select>
                           <Button size="sm" disabled={memberBusy || !memberEmail.includes("@")} onClick={async () => {
@@ -324,7 +324,7 @@ function UsersTab({ guard, push, t }: any) {
               <Button variant="outline" onClick={() => { setCreateOpen(false); setGenerated(null); }}>{t("إغلاق", "Close")}</Button>
             </div>
             {generated && (
-              <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+              <div className="rounded-md border border-success-border bg-success-subtle px-3 py-2 text-xs text-success">
                 {t("كلمة السر المولّدة (تظهر مرة واحدة فقط — انسخها الآن):", "Generated password (shown once — copy it now):")}{" "}
                 <span className="font-english select-all" dir="ltr" style={{ fontWeight: 700 }}>{generated}</span>
               </div>
@@ -366,14 +366,14 @@ function UsersTab({ guard, push, t }: any) {
                   </td>
                   <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
-                      <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
-                      {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">{t("توثيق", "Verify")}</button>}
-                      <button onClick={() => setPendingUserDelete(pendingUserDelete === u.id ? null : u.id)} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
+                      <button onClick={() => { setResetFor(u); setNewPass(""); }} className="text-[11px] px-2 py-1 rounded bg-warning-subtle text-warning border border-warning-border hover:bg-warning-subtle"><KeyRound className="inline h-3 w-3 me-0.5" />{t("كلمة سر", "Password")}</button>
+                      {!u.emailVerified && <button onClick={async () => { try { await api.admin.verifyEmail(u.email); push("success", t("تم التوثيق", "Verified")); load(q || undefined); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-info-subtle text-info border border-info-border hover:bg-info-subtle">{t("توثيق", "Verify")}</button>}
+                      <button onClick={() => setPendingUserDelete(pendingUserDelete === u.id ? null : u.id)} className="text-[11px] px-2 py-1 rounded bg-danger-subtle text-danger border border-danger-border hover:bg-danger-subtle"><Trash2 className="inline h-3 w-3 me-0.5" />{t("حذف", "Delete")}</button>
                     </div>
                   </td>
                 </tr>
                 {pendingUserDelete === u.id && (
-                  <tr className="bg-red-50/40"><td colSpan={4} className="px-3 py-3">
+                  <tr className="bg-danger-subtle/40"><td colSpan={4} className="px-3 py-3">
                     <UserDeletePlanner userId={u.id} email={u.email} t={t} onCancel={() => setPendingUserDelete(null)} onDone={(msg) => { setPendingUserDelete(null); push("success", msg); load(q || undefined); }} onError={guard} />
                   </td></tr>
                 )}
@@ -383,10 +383,10 @@ function UsersTab({ guard, push, t }: any) {
           </table>
         )}
         {resetFor && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+          <div className="rounded-lg border border-warning-border bg-warning-subtle p-4 space-y-2">
             <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("كلمة سر جديدة لـ", "New password for")} <span className="font-english">{resetFor.email}</span></div>
             <div className="flex gap-2">
-              <Input type="text" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder={t("8+ أحرف", "8+ chars")} className="border-amber-300 font-english" dir="ltr" />
+              <Input type="text" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder={t("8+ أحرف", "8+ chars")} className="border-warning-border font-english" dir="ltr" />
               <Button disabled={busy || newPass.length < 8} onClick={async () => {
                 setBusy(true);
                 try { await api.admin.resetPassword(resetFor.email, newPass); push("success", t("عُيّنت كلمة السر", "Password set")); setResetFor(null); } catch (e) { guard(e); } finally { setBusy(false); }
@@ -442,7 +442,7 @@ function SupportTab({ guard, push, t }: any) {
               <div className="max-h-[380px] overflow-y-auto space-y-2 pe-1">
                 {thread.messages.map((m: any) => (
                   <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs whitespace-pre-wrap ${m.role === "user" ? "bg-muted/60 text-foreground" : m.metadata?.source === "admin-human" ? "bg-emerald-600 text-white" : "bg-primary/90 text-white"}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs whitespace-pre-wrap ${m.role === "user" ? "bg-muted/60 text-foreground" : m.metadata?.source === "admin-human" ? "bg-success text-primary-foreground" : "bg-primary/90 text-primary-foreground"}`}>
                       {m.metadata?.source === "admin-human" && <div className="text-[9px] opacity-80 mb-0.5">{t("فريق الدعم — رد بشري", "Support team — human reply")}</div>}
                       {m.content}
                     </div>
@@ -456,7 +456,7 @@ function SupportTab({ guard, push, t }: any) {
                 try { await api.admin.supportReply(openId!, reply.trim()); setReply(""); await openThread(openId!); push("success", t("أُرسل الرد للعميل", "Reply sent to the customer")); } catch (err) { guard(err); } finally { setBusy(false); }
               }} className="flex gap-2">
                 <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("ردك كإنسان من فريق الدعم…", "Your human reply as the support team…")} className="border-border" />
-                <Button type="submit" disabled={busy || !reply.trim()} className="bg-emerald-600 hover:bg-emerald-700">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button>
+                <Button type="submit" disabled={busy || !reply.trim()} className="bg-success hover:bg-success">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button>
               </form>
             </>
           )}
@@ -497,10 +497,10 @@ function AiTab({ guard }: { guard: (e: any) => boolean }) {
                     {topupFor?.orgId === o.orgId ? (
                       <div className="flex gap-1.5">
                         <Input value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} className="w-16 h-7 text-xs border-border" dir="ltr" />
-                        <button onClick={async () => { try { await api.aiBilling.admin.topup({ orgId: o.orgId, amountUsd: Number(topupAmount) || 10 }); setTopupFor(null); load(); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">✓</button>
+                        <button onClick={async () => { try { await api.aiBilling.admin.topup({ orgId: o.orgId, amountUsd: Number(topupAmount) || 10 }); setTopupFor(null); load(); } catch (e) { guard(e); } }} className="text-[11px] px-2 py-1 rounded bg-success-subtle text-success border border-success-border">✓</button>
                       </div>
                     ) : (
-                      <button onClick={() => setTopupFor(o)} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">+ $</button>
+                      <button onClick={() => setTopupFor(o)} className="text-[11px] px-2 py-1 rounded bg-info-subtle text-info border border-info-border hover:bg-info-subtle">+ $</button>
                     )}
                   </td>
                 </tr>
@@ -538,12 +538,12 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
     <div className="space-y-4">
       <Card className="border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2"><MailWarning className="h-4 w-4 text-amber-600" />{t("قائمة المنع (Suppression List)", "Suppression list")}</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><MailWarning className="h-4 w-4 text-warning" />{t("قائمة المنع (Suppression List)", "Suppression list")}</CardTitle>
           <p className="text-xs text-muted-foreground">{t("أي عنوان هنا لا تصله رسائلنا إطلاقًا — أُضيف تلقائيًا بعد ارتداد سابق. الإرسال من:", "Addresses here never receive our emails — auto-added after a past bounce. Sending from:")} <span dir="ltr" className="font-english">{data.from || "—"}</span></p>
         </CardHeader>
         <CardContent>
           {data.suppressions.length === 0 ? (
-            <p className="text-sm text-emerald-700">{t("لا يوجد أي عنوان محظور — مسار البريد نظيف ✓", "No suppressed addresses — the mail path is clean ✓")}</p>
+            <p className="text-sm text-success">{t("لا يوجد أي عنوان محظور — مسار البريد نظيف ✓", "No suppressed addresses — the mail path is clean ✓")}</p>
           ) : (
             <div className="divide-y divide-border">
               {data.suppressions.map((sp) => (
@@ -553,7 +553,7 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
                     <div className="text-[11px] text-muted-foreground">{sp.origin} · {fmtDate(sp.since)}</div>
                   </div>
                   <button onClick={() => unsuppress(sp.email)} disabled={busy === sp.email}
-                    className="text-[11px] px-2.5 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50">
+                    className="text-[11px] px-2.5 py-1.5 rounded bg-danger-subtle text-danger border border-danger-border hover:bg-danger-subtle disabled:opacity-50">
                     {busy === sp.email ? <Loader2 className="h-3 w-3 animate-spin" /> : t("إزالة من المنع", "Unsuppress")}
                   </button>
                 </div>
@@ -578,7 +578,7 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
                     <div className="text-sm font-english truncate" dir="ltr">{r.to.join(", ")}</div>
                     <div className="text-[11px] text-muted-foreground truncate">{r.subject}</div>
                   </div>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 shrink-0">{r.event}</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-danger-subtle text-danger shrink-0">{r.event}</span>
                 </div>
               ))}
             </div>
@@ -609,10 +609,10 @@ function BackupsTab({ guard, push, t }: any) {
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("الحالة", "State")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{data.enabled ? t("مفعّل", "Enabled") : t("معطّل (env ناقص)", "Disabled (missing env)")}</div></div>
             <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("آخر تشغيل", "Last run")}</div><div className="text-foreground text-xs" style={{ fontWeight: 600 }} dir="ltr">{st.lastRunAt ? new Date(st.lastRunAt).toLocaleString(displayLocale("en-GB")) : "—"}</div></div>
-            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("نتيجة آخر تشغيل", "Last result")}</div><div className={st.lastOk ? "text-emerald-700" : "text-red-700"} style={{ fontWeight: 700 }}>{st.lastRunAt ? (st.lastOk ? "✓ OK" : "✗ FAILED") : "—"}</div></div>
+            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("نتيجة آخر تشغيل", "Last result")}</div><div className={st.lastOk ? "text-success" : "text-danger"} style={{ fontWeight: 700 }}>{st.lastRunAt ? (st.lastOk ? "✓ OK" : "✗ FAILED") : "—"}</div></div>
             <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("الملف", "File")}</div><div className="text-foreground text-xs font-english truncate" dir="ltr">{st.lastFileName || "—"}</div></div>
           </div>
-          {st.lastError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 font-english" dir="ltr">{st.lastError}</div>}
+          {st.lastError && <div className="rounded-md border border-danger-border bg-danger-subtle px-3 py-2 text-xs text-danger font-english" dir="ltr">{st.lastError}</div>}
           <Button disabled={busy || !data.enabled} onClick={async () => {
             setBusy(true);
             try {
@@ -671,7 +671,7 @@ function AgentTab({ guard, push, t }: any) {
           )}
           {messages.map((m, i) => (
             <div key={i} className={`text-sm ${m.role === "user" ? "text-start" : "text-start"}`}>
-              <div className={`inline-block max-w-[90%] rounded-xl px-3 py-2 ${m.role === "user" ? "bg-primary text-white" : "bg-white border border-border text-foreground"}`}>
+              <div className={`inline-block max-w-[90%] rounded-xl px-3 py-2 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
                 <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
                 {m.tools && m.tools.length > 0 && <div className="mt-1.5 text-[10px] text-muted-foreground font-english" dir="ltr">tools: {m.tools.join(", ")}</div>}
               </div>
@@ -710,19 +710,19 @@ function UserDeletePlanner({ userId, email, t, onCancel, onDone, onError }: { us
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">{t("اختر الشركات التي تُحذف معه (حذف مؤقت · تُستعاد خلال 30 يوم). غير المختارة تبقى وتحتاج مالكًا جديدًا.", "Tick the companies to delete with the user (soft delete · restorable for 30 days). Unticked ones stay and need a new owner.")}</p>
           {owned.map((o) => (
-            <label key={o.id} className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-xs">
+            <label key={o.id} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
               <input type="checkbox" checked={!!picked[o.id]} onChange={(e) => setPicked({ ...picked, [o.id]: e.target.checked })} className="h-4 w-4" />
               <span className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</span>
               <span className="text-muted-foreground font-english" dir="ltr">{o.country} · {o.members} {t("عضو", "members")} · {o.invoices} {t("فاتورة", "inv")} · {o.plan || "—"} {o.status || ""}</span>
-              {!o.soleOwner ? <span className="ms-auto rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-800">{t("فيها أعضاء آخرون", "has other members")}</span> : null}
+              {!o.soleOwner ? <span className="ms-auto rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] text-warning">{t("فيها أعضاء آخرون", "has other members")}</span> : null}
             </label>
           ))}
         </div>
       )}
-      {blocked.length > 0 && <p className="text-xs text-amber-800">⚠️ {t("شركات فيها أعضاء آخرون والمستخدم مالكها الوحيد — إمّا احذفها معه أو انقل الملكية أولًا:", "Companies with other members where this user is the sole owner — delete them too or transfer ownership first:")} {blocked.map((b) => b.name).join(" · ")}</p>}
+      {blocked.length > 0 && <p className="text-xs text-warning">⚠️ {t("شركات فيها أعضاء آخرون والمستخدم مالكها الوحيد — إمّا احذفها معه أو انقل الملكية أولًا:", "Companies with other members where this user is the sole owner — delete them too or transfer ownership first:")} {blocked.map((b) => b.name).join(" · ")}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t("اكتب DELETE للتأكيد", "Type DELETE to confirm")} className="h-8 rounded-md border border-border px-2 text-xs font-english" dir="ltr" />
-        <button disabled={busy || typed !== "DELETE" || blocked.length > 0} onClick={async () => { setBusy(true); try { const r = await api.admin.deleteUser(userId, chosen); onDone(t(`حُذف ${r.deleted}${r.deletedOrgs?.length ? ` + ${r.deletedOrgs.length} شركة (تُستعاد خلال 30 يوم)` : ""}`, `Deleted ${r.deleted}${r.deletedOrgs?.length ? ` + ${r.deletedOrgs.length} companies (restorable 30d)` : ""}`)); } catch (e) { onError(e); } finally { setBusy(false); } }} className="rounded-md bg-red-600 px-3 py-1.5 text-xs text-white disabled:opacity-40" style={{ fontWeight: 600 }}>{busy ? "…" : t(`حذف المستخدم${chosen.length ? ` + ${chosen.length} شركة` : ""}`, `Delete user${chosen.length ? ` + ${chosen.length} companies` : ""}`)}</button>
+        <button disabled={busy || typed !== "DELETE" || blocked.length > 0} onClick={async () => { setBusy(true); try { const r = await api.admin.deleteUser(userId, chosen); onDone(t(`حُذف ${r.deleted}${r.deletedOrgs?.length ? ` + ${r.deletedOrgs.length} شركة (تُستعاد خلال 30 يوم)` : ""}`, `Deleted ${r.deleted}${r.deletedOrgs?.length ? ` + ${r.deletedOrgs.length} companies (restorable 30d)` : ""}`)); } catch (e) { onError(e); } finally { setBusy(false); } }} className="rounded-md bg-danger px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-40" style={{ fontWeight: 600 }}>{busy ? "…" : t(`حذف المستخدم${chosen.length ? ` + ${chosen.length} شركة` : ""}`, `Delete user${chosen.length ? ` + ${chosen.length} companies` : ""}`)}</button>
         <button onClick={onCancel} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
       </div>
     </div>

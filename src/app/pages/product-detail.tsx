@@ -169,14 +169,14 @@ export function ProductDetail() {
           </p>
         </div>
         {!isNew && (
-          <Button type="button" variant="outline" onClick={handleDelete} disabled={deleting} className="border-red-200 text-red-600 hover:bg-red-50">
+          <Button type="button" variant="outline" onClick={handleDelete} disabled={deleting} className="border-danger-border text-danger hover:bg-danger-subtle">
             {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="me-2 h-4 w-4" />{t("حذف الصنف", "Delete item")}</>}
           </Button>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* ── Identity column ── */}
@@ -193,7 +193,7 @@ export function ProductDetail() {
                     <div className="flex-1 space-y-2">
                       <input id="product-image-upload" type="file" accept="image/*" hidden onChange={(e) => handleImageFile(e.target.files?.[0])} />
                       <div className="flex flex-wrap gap-2">
-                        <label htmlFor="product-image-upload" className="cursor-pointer rounded-md border border-primary px-3 py-2 text-xs text-primary hover:bg-blue-50">{t("اختيار صورة", "Choose image")}</label>
+                        <label htmlFor="product-image-upload" className="cursor-pointer rounded-md border border-primary px-3 py-2 text-xs text-primary hover:bg-info-subtle">{t("اختيار صورة", "Choose image")}</label>
                         {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:bg-muted"><X className="inline h-3.5 w-3.5 me-1" />{t("إزالة", "Remove")}</button>}
                       </div>
                       <Input value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder={t("أو ألصق رابط الصورة", "Or paste image URL")} dir="ltr" className="font-english text-xs" />
@@ -221,7 +221,7 @@ export function ProductDetail() {
                         role="radio"
                         aria-checked={form.type === val}
                         onClick={() => setForm({ ...form, type: val })}
-                        className={`flex-1 rounded-md px-2 py-1.5 text-xs transition-colors ${form.type === val ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                        className={`flex-1 rounded-md px-2 py-1.5 text-xs transition-colors ${form.type === val ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                         style={{ fontWeight: form.type === val ? 700 : 500 }}
                       >{label}</button>
                     ))}
@@ -266,7 +266,7 @@ export function ProductDetail() {
                     placeholder={t("اختر حساب الإيراد...", "Choose income account...")}
                   />
                   {form.type === "SERVICE" && !form.incomeAccountId && (
-                    <p className="text-[11px] text-amber-700">{t("خدمة بيع؟ اربطها بحساب إيراد البيع/الخدمات ليترحّل البيع صحيحاً.", "Selling service? Link it to the sales/services revenue account so sales post correctly.")}</p>
+                    <p className="text-[11px] text-warning">{t("خدمة بيع؟ اربطها بحساب إيراد البيع/الخدمات ليترحّل البيع صحيحاً.", "Selling service? Link it to the sales/services revenue account so sales post correctly.")}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -278,11 +278,11 @@ export function ProductDetail() {
                     placeholder={t("اختر حساب المصروف...", "Choose expense account...")}
                   />
                   {expenseAccount?.type === "ASSET" && (
-                    <p className="text-[11px] text-blue-700">{t("حساب أصل: شراء هذا الصنف يسجَّل أصلاً ثابتاً تلقائياً.", "Asset account: purchasing this item auto-registers a fixed asset.")}</p>
+                    <p className="text-[11px] text-info">{t("حساب أصل: شراء هذا الصنف يسجَّل أصلاً ثابتاً تلقائياً.", "Asset account: purchasing this item auto-registers a fixed asset.")}</p>
                   )}
                 </div>
                 {(incomeAccount || expenseAccount) && (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800 space-y-0.5">
+                  <div className="rounded-lg border border-success-border bg-success-subtle px-3 py-2 text-[11px] text-success space-y-0.5">
                     {incomeAccount && <div>{t("البيع →", "Sale →")} <span className="font-english font-semibold" dir="ltr">{incomeAccount.code} · {displayName(incomeAccount)}</span></div>}
                     {expenseAccount && <div>{t("الشراء →", "Purchase →")} <span className="font-english font-semibold" dir="ltr">{expenseAccount.code} · {displayName(expenseAccount)}</span></div>}
                   </div>

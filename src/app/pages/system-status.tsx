@@ -17,10 +17,10 @@ type CheckItem = {
 };
 
 function stateClasses(state: CheckState) {
-  if (state === "ok") return "border-green-200 bg-green-50 text-green-700";
-  if (state === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
-  if (state === "error") return "border-red-200 bg-red-50 text-red-700";
-  return "border-blue-200 bg-blue-50 text-blue-700";
+  if (state === "ok") return "border-success-border bg-success-subtle text-success";
+  if (state === "warning") return "border-warning-border bg-warning-subtle text-warning";
+  if (state === "error") return "border-danger-border bg-danger-subtle text-danger";
+  return "border-info-border bg-info-subtle text-info";
 }
 
 function stateLabel(state: CheckState, language: "ar" | "en") {
@@ -162,10 +162,10 @@ export function SystemStatus() {
         </Button>
       </div>
 
-      <Card className={hasIssues ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50"}>
+      <Card className={hasIssues ? "border-warning-border bg-warning-subtle" : "border-success-border bg-success-subtle"}>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm text-foreground">
-            {hasIssues ? <AlertTriangle className="h-4 w-4 text-amber-600" /> : <CheckCircle2 className="h-4 w-4 text-green-600" />}
+            {hasIssues ? <AlertTriangle className="h-4 w-4 text-warning" /> : <CheckCircle2 className="h-4 w-4 text-success" />}
             {hasIssues ? t("يوجد عناصر تحتاج مراجعة", "Some services need review") : t("الخدمات الأساسية تعمل", "Core services are operational")}
           </CardTitle>
         </CardHeader>

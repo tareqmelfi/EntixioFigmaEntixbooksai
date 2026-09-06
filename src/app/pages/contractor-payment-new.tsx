@@ -73,7 +73,7 @@ export function ContractorPaymentNew() {
     return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
   if (!person) {
-    return <div className="max-w-3xl"><div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error || "not found"}</div></div>;
+    return <div className="max-w-3xl"><div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error || "not found"}</div></div>;
   }
 
   const outstanding = Number(person.stats?.outstanding || 0);
@@ -115,22 +115,22 @@ export function ContractorPaymentNew() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("مستحقاته المكتسبة", "Earned")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(person.stats?.totalEarned)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("المدفوع سابقاً", "Already paid")}</div>
-          <div className="font-english text-emerald-600 mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(person.stats?.totalPaid)}</div>
+          <div className="font-english text-success mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(person.stats?.totalPaid)}</div>
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div className="text-xs text-amber-800">{t("المتبقي له", "Outstanding")}</div>
-          <div className="font-english text-amber-700 mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(outstanding)}</div>
+        <div className="rounded-lg border border-warning-border bg-warning-subtle p-3">
+          <div className="text-xs text-warning">{t("المتبقي له", "Outstanding")}</div>
+          <div className="font-english text-warning mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(outstanding)}</div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -138,7 +138,7 @@ export function ContractorPaymentNew() {
               <div className="space-y-2"><Label>{t("المبلغ *", "Amount *")}</Label>
                 <Input type="number" step="0.01" min="0" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} dir="ltr" className="font-english" />
                 {outstanding > 0 && Number(form.amount) > outstanding && (
-                  <p className="text-[11px] text-amber-700">{t("أكبر من المستحق له — سيسجل كسلفة", "Above outstanding — records as an advance")}</p>
+                  <p className="text-[11px] text-warning">{t("أكبر من المستحق له — سيسجل كسلفة", "Above outstanding — records as an advance")}</p>
                 )}
               </div>
             </div>
@@ -148,7 +148,7 @@ export function ContractorPaymentNew() {
               <div className="flex flex-wrap gap-2">
                 {METHODS.map((m) => (
                   <button key={m} type="button" onClick={() => setForm({ ...form, method: m })}
-                    className={`rounded-full px-3.5 py-1.5 text-sm border transition-colors ${form.method === m ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>
+                    className={`rounded-full px-3.5 py-1.5 text-sm border transition-colors ${form.method === m ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>
                     {t(METHOD_LABELS[m].ar, METHOD_LABELS[m].en)}
                   </button>
                 ))}
@@ -158,7 +158,7 @@ export function ContractorPaymentNew() {
             <div className="space-y-2">
               <Label>{t("من حساب *", "From account *")}</Label>
               <SearchableCombobox value={form.offsetAccountId} onChange={(offsetAccountId) => setForm({ ...form, offsetAccountId })} items={cashAccounts} placeholder={t("البنك أو الصندوق الذي خرج منه المال...", "The bank or cash the money left...")} />
-              {cashAccounts.length === 0 && <p className="text-[11px] text-amber-700">{t("لا توجد حسابات بنكية — أنشئ واحداً أولاً", "No bank accounts — create one first")}</p>}
+              {cashAccounts.length === 0 && <p className="text-[11px] text-warning">{t("لا توجد حسابات بنكية — أنشئ واحداً أولاً", "No bank accounts — create one first")}</p>}
             </div>
 
             {projectItems.length > 0 && (

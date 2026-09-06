@@ -145,9 +145,9 @@ export function InvoicePrintView() {
         alignItems: "center",
         justifyContent: "center",
         background: "#F4F7FB",
-        color: "#0B1B49",
+        color: "#1A1E48",
         // Arabic-first typography baseline for all invoice error/loading states.
-        fontFamily: "'Noto Sans Arabic','Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic','IBM Plex Sans', ui-sans-serif, system-ui, sans-serif",
         padding: 24,
       }}>
         <div style={{
@@ -168,14 +168,14 @@ export function InvoicePrintView() {
             <button
               type="button"
               onClick={() => window.history.back()}
-              style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #D8E1EE", background: "white", color: "#0B1B49", fontWeight: 700, cursor: "pointer" }}
+              style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #D8E1EE", background: "white", color: "#1A1E48", fontWeight: 700, cursor: "pointer" }}
             >
               Go back
             </button>
             <a
               href="/login"
               target="_top"
-              style={{ padding: "10px 16px", borderRadius: 8, background: "#1276E3", color: "white", textDecoration: "none", fontWeight: 800 }}
+              style={{ padding: "10px 16px", borderRadius: 8, background: "#5875DB", color: "white", textDecoration: "none", fontWeight: 800 }}
             >
               Sign in
             </a>
@@ -192,8 +192,8 @@ export function InvoicePrintView() {
   const isKsa = lang === "ar"; // keep variable name for minimum-diff
   const branding = (org as any).paymentSettings?.branding || {};
   // Default INVOICE template (templates page) takes precedence over org branding
-  const primary = docTpl?.accentColor || branding.primaryColor || "#1276E3";
-  const accent = docTpl?.primaryColor || branding.accentColor || "#0B1B49";
+  const primary = docTpl?.accentColor || branding.primaryColor || "#5875DB";
+  const accent = docTpl?.primaryColor || branding.accentColor || "#1A1E48";
 
   const total = safeNum(invoice.total);
   const subtotal = safeNum(invoice.subtotal);
@@ -257,7 +257,7 @@ export function InvoicePrintView() {
     <>
       <style>{`
         /* Reset · standalone route · no app chrome */
-        body { margin: 0; background: #F4F5F7; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'Noto Sans Arabic','Plus Jakarta Sans',system-ui,sans-serif; }
+        body { margin: 0; background: #F6F1E8; font-family: ${branding.fontFamily ? `'${branding.fontFamily}', ` : ''}'IBM Plex Sans Arabic','IBM Plex Sans',system-ui,sans-serif; }
         .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
         .print-wrap-any { overflow-wrap: anywhere; word-break: break-word; }
         .print-table th, .print-table td { white-space: normal !important; vertical-align: top; }
@@ -299,7 +299,7 @@ export function InvoicePrintView() {
               <h1 className="document-title" style={{ margin: "0 0 4px 0", color: primary }}>{isKsa ? "فاتورة ضريبية" : "Invoice"}</h1>
               <div style={{ fontSize: 13, color: "#6B7280" }}>{isKsa ? "Tax Invoice" : "Sales Invoice"}</div>
               <div style={{ marginTop: 8 }}>
-                <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 9999, fontSize: 11, fontWeight: 600, background: "#F4FCFF", color: primary, border: `1px solid ${primary}33` }}>
+                <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 9999, fontSize: 11, fontWeight: 600, background: "#F6F1E8", color: primary, border: `1px solid ${primary}33` }}>
                   {String(invoice.status || "DRAFT").toUpperCase()}
                 </span>
               </div>

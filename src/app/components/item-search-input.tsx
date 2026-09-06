@@ -97,11 +97,11 @@ export function ItemSearchInput({ value, onChange, placeholder, className }: Ite
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder || t("ابحث أو أنشئ صنف...", "Search or create an item...")}
-        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
+        className="w-full rounded border border-border bg-card px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       />
 
       {isOpen && (query.length > 0 || true) && (
-        <div className="absolute z-50 mt-1 w-[280px] rounded-lg border border-border bg-white shadow-lg overflow-hidden" style={{ maxHeight: "300px" }}>
+        <div className="absolute z-50 mt-1 w-[280px] rounded-lg border border-border bg-card shadow-lg overflow-hidden" style={{ maxHeight: "300px" }}>
           {/* Create new item option */}
           {query.trim() && !hasExact && (
             <button

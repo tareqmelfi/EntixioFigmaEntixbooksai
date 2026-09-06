@@ -102,7 +102,7 @@ export function StockCounts() {
               </select>
             </label>
           ) : (
-            <label className="flex h-10 items-center gap-2 text-sm text-foreground/80"><input type="checkbox" checked={form.blind} onChange={(e) => setForm({ ...form, blind: e.target.checked })} className="h-4 w-4 accent-[#1276E3]" />{t("عدّ أعمى (إخفاء رصيد النظام)", "Blind count (hide system qty)")}</label>
+            <label className="flex h-10 items-center gap-2 text-sm text-foreground/80"><input type="checkbox" checked={form.blind} onChange={(e) => setForm({ ...form, blind: e.target.checked })} className="h-4 w-4 accent-[#5875DB]" />{t("عدّ أعمى (إخفاء رصيد النظام)", "Blind count (hide system qty)")}</label>
           )}
           <Button onClick={start} disabled={starting || !warehouses.length} className="bg-primary hover:bg-primary/90">{starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="me-1 h-4 w-4" />}{t("بدء جلسة جرد", "Start stocktake")}</Button>
           {!warehouses.length && !loading && <div className="text-xs text-warning md:col-span-4">{t("لا يوجد مستودع — أنشئ مستودعًا أولًا من صفحة المخزون.", "No warehouse yet — create one from the Inventory page first.")}</div>}
@@ -239,7 +239,7 @@ export function StockCountDetail() {
           {sc.status === "REVIEW" && <Button variant="outline" onClick={() => act("reopen")} disabled={busy}><RotateCcw className="me-1 h-4 w-4" />{t("إعادة فتح العدّ", "Reopen counting")}</Button>}
           {(sc.status === "REVIEW" || counting) && (confirm === "post"
             ? <InlineConfirm label={t(`ترحيل ${sc.summary.variances} تسوية؟`, `Post ${sc.summary.variances} adjustment(s)?`)} onConfirm={() => act("post")} onCancel={() => setConfirm(null)} />
-            : <Button onClick={() => setConfirm("post")} disabled={busy || sc.summary.counted === 0} className="bg-[#0B1B49] text-white hover:bg-[#0B1B49]/90"><Lock className="me-1 h-4 w-4" />{t("اعتماد وترحيل", "Approve & post")}</Button>)}
+            : <Button onClick={() => setConfirm("post")} disabled={busy || sc.summary.counted === 0} className="bg-[#1A1E48] text-primary-foreground hover:bg-[#1A1E48]/90"><Lock className="me-1 h-4 w-4" />{t("اعتماد وترحيل", "Approve & post")}</Button>)}
           {sc.status !== "POSTED" && sc.status !== "CANCELLED" && (confirm === "cancel"
             ? <InlineConfirm label={t("إلغاء الجلسة؟", "Cancel session?")} onConfirm={() => act("cancel")} onCancel={() => setConfirm(null)} />
             : <Button variant="ghost" onClick={() => setConfirm("cancel")} disabled={busy} className="text-danger"><X className="me-1 h-4 w-4" />{t("إلغاء", "Cancel")}</Button>)}

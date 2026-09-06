@@ -393,7 +393,7 @@ export function Payments() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المصروف", "Total spent")}</div>
-            <div className="font-english font-bold text-red-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalDisplay}</div>
+            <div className="font-english font-bold text-danger mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalDisplay}</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("متوسط السند", "Average voucher")}</div>
@@ -438,10 +438,10 @@ export function Payments() {
                       <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
                       <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
                       <td className="px-4 py-3 truncate text-foreground">{v.contact?.displayName || "—"}</td>
-                      <td className="px-4 py-3 text-end font-english font-semibold text-red-700" dir="ltr">{Number(v.amount).toLocaleString(displayLocale())}</td>
+                      <td className="px-4 py-3 text-end font-english font-semibold text-danger" dir="ltr">{Number(v.amount).toLocaleString(displayLocale())}</td>
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">{METHOD_LABELS[v.paymentMethod]}</td>
                       <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
-                        <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-blue-50 rounded"><Printer className="h-4 w-4" /></button>
+                        <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-info-subtle rounded"><Printer className="h-4 w-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -459,15 +459,15 @@ export function Payments() {
               <div className="font-english font-bold text-primary" dir="ltr">{selected.number}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{selected.contact?.displayName || "—"}</div>
             </div>
-            <button onClick={() => setSelected(null)} className="p-1 hover:bg-gray-100 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
+            <button onClick={() => setSelected(null)} className="p-1 hover:bg-surface-hover rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
-            <div className="text-center bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="text-xs text-red-700">{t("المبلغ المصروف", "Amount spent")}</div>
-              <div className="font-english font-bold text-red-700 mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
+            <div className="text-center bg-danger-subtle border border-danger-border rounded-lg p-4">
+              <div className="text-xs text-danger">{t("المبلغ المصروف", "Amount spent")}</div>
+              <div className="font-english font-bold text-danger mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
                 {Number(selected.amount).toLocaleString(displayLocale())} {selected.currency}
               </div>
-              <div className="text-xs text-red-600 mt-1">{METHOD_LABELS[selected.paymentMethod]}</div>
+              <div className="text-xs text-danger mt-1">{METHOD_LABELS[selected.paymentMethod]}</div>
             </div>
 
             <div className="text-sm space-y-1.5">
@@ -490,10 +490,10 @@ export function Payments() {
                     <div key={a.id} className="flex items-center gap-2 p-2 rounded border border-border text-xs">
                       <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 truncate">{a.filename}</div>
-                      <a href={a.url} download={a.filename} className="text-primary p-1 hover:bg-blue-50 rounded"><Download className="h-3 w-3" /></a>
+                      <a href={a.url} download={a.filename} className="text-primary p-1 hover:bg-info-subtle rounded"><Download className="h-3 w-3" /></a>
                       <button onClick={async () => {
                         try { await api.vouchers.attachments.remove(selected.id, a.id); setAttachments((prev) => prev.filter((x) => x.id !== a.id)); } catch {}
-                      }} className="text-red-600 p-1 hover:bg-red-50 rounded"><Trash2 className="h-3 w-3" /></button>
+                      }} className="text-danger p-1 hover:bg-danger-subtle rounded"><Trash2 className="h-3 w-3" /></button>
                     </div>
                   ))}
                 </div>
@@ -501,7 +501,7 @@ export function Payments() {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
-              <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-white">
+              <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Printer className="h-4 w-4 me-1" /> {t("طباعة / PDF", "Print / PDF")}
               </Button>
               <Button onClick={() => openEdit(selected)} variant="outline" className="border-border">
@@ -512,11 +512,11 @@ export function Payments() {
               </Button>
               {pendingDelete === selected.id ? (
                 <span className="flex items-center gap-1">
-                  <Button onClick={() => handleDelete(selected.id)} className="bg-red-600 hover:bg-red-700">{t("تأكيد", "Confirm")}</Button>
+                  <Button onClick={() => handleDelete(selected.id)} className="bg-danger hover:bg-danger">{t("تأكيد", "Confirm")}</Button>
                   <Button onClick={() => setPendingDelete(null)} variant="outline">{t("إلغاء", "Cancel")}</Button>
                 </span>
               ) : (
-                <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-red-300 text-red-700">
+                <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-danger-border text-danger">
                   <Trash2 className="h-4 w-4 me-1" /> {t("حذف", "Delete")}
                 </Button>
               )}
@@ -541,7 +541,7 @@ export function Payments() {
                     type="button"
                     variant="outline"
                     onClick={() => setPreviewOpen((v) => !v)}
-                    className={previewOpen ? "border-primary text-primary bg-blue-50/60" : "border-border"}
+                    className={previewOpen ? "border-primary text-primary bg-info-subtle/60" : "border-border"}
                     title={t("معاينة السند كمستند (يسار)", "Preview voucher as document (left)")}
                   >
                     {t("معاينة", "Preview")}
@@ -590,7 +590,7 @@ export function Payments() {
                       <select value={form.billId} onChange={(e) => {
                         const bill = bills.find((b) => b.id === e.target.value);
                         setForm({ ...form, billId: e.target.value, amount: bill ? String(Number(bill.total) - Number(bill.amountPaid || 0)) : form.amount });
-                      }} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+                      }} className="w-full text-sm rounded border border-border px-3 py-2 bg-card">
                         <option value="">{t("— غير مرتبط —", "— Not linked —")}</option>
                         {bills.map((bill) => {
                           const remaining = Math.max(0, Number(bill.total) - Number(bill.amountPaid || 0));
@@ -689,7 +689,7 @@ export function Payments() {
                   <div>
                     <Label className="text-xs">{t("الحساب البنكي المسحوب منه", "Bank account debited")}</Label>
                     <select value={form.bankAccountId} onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
-                      className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+                      className="w-full text-sm rounded border border-border px-3 py-2 bg-card">
                       <option value="">{t("— اختر —", "— Select —")}</option>
                       {bankAccounts.map((b) => (
                         <option key={b.id} value={b.id}>{b.bankName || b.name} · {b.accountNumber || b.iban}</option>
@@ -717,7 +717,7 @@ export function Payments() {
 
           {editingPayment && previewOpen && (
             <aside className="hidden xl:block sticky top-4">
-              <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
+              <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/40">
                   <span className="text-xs text-muted-foreground">{t("معاينة السند · آخر نسخة محفوظة", "Voucher preview · last saved version")}</span>
                   <button
@@ -731,7 +731,7 @@ export function Payments() {
                 <iframe
                   title={t(`معاينة ${editingPayment.number}`, `Preview ${editingPayment.number}`)}
                   src={`/print/voucher/${editingPayment.id}?embed=1&noprint=1`}
-                  className="w-full bg-white"
+                  className="w-full bg-card"
                   style={{ height: "calc(100vh - 150px)", border: 0 }}
                 />
               </div>
@@ -742,11 +742,11 @@ export function Payments() {
       )}
 
       {emailDialog && selected && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setEmailDialog(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setEmailDialog(false)}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-border/50">
               <h2 className="text-lg text-foreground font-bold">{t("إرسال السند للمورد", "Send voucher to supplier")}</h2>
-              <button onClick={() => setEmailDialog(false)} className="p-1 hover:bg-gray-100 rounded"><X className="h-4 w-4" /></button>
+              <button onClick={() => setEmailDialog(false)} className="p-1 hover:bg-surface-hover rounded"><X className="h-4 w-4" /></button>
             </div>
             <div className="p-5 space-y-3">
               <div><Label className="text-xs">{t("إلى", "To")} *</Label><Input type="email" value={emailForm.to} onChange={(e) => setEmailForm({ ...emailForm, to: e.target.value })} dir="ltr" className="font-english" /></div>

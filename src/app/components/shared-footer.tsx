@@ -57,16 +57,16 @@ export function SharedFooter() {
   };
 
   return (
-    <footer className="bg-foreground text-white" dir={language === "ar" ? "rtl" : "ltr"}>
+    <footer className="bg-surface-subtle text-foreground border-t border-border" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Main footer content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
             <div className="flex items-center mb-4">
-              <EntixWordmark size={30} light />
+              <EntixWordmark size={24} />
             </div>
-            <p className="text-muted-foreground max-w-sm mb-6" style={{ fontSize: "14px", lineHeight: 1.8 }}>
+            <p className="text-content-secondary max-w-sm mb-6" style={{ fontSize: "13px", lineHeight: 1.8 }}>
               {isSA
                 ? t(
                     "نظام محاسبة سحابي للسوق السعودي مع نسخ احتياطي يومي. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
@@ -80,15 +80,15 @@ export function SharedFooter() {
             
             {/* Contact info */}
             <div className="space-y-2.5 mb-6">
-              <a href="mailto:support@entix.io" className="flex items-center gap-2.5 text-muted-foreground hover:text-white transition-colors group cursor-pointer">
-                <Mail className="w-4 h-4 text-primary group-hover:text-secondary transition-colors" />
+              <a href="mailto:support@entix.io" className="flex items-center gap-2.5 text-content-secondary hover:text-foreground transition-colors group cursor-pointer">
+                <Mail className="w-4 h-4 text-primary transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>support@entix.io</span>
               </a>
-              <a href="tel:+1442444410" className="flex items-center gap-2.5 text-muted-foreground hover:text-white transition-colors group cursor-pointer">
-                <Phone className="w-4 h-4 text-primary group-hover:text-secondary transition-colors" />
+              <a href="tel:+1442444410" className="flex items-center gap-2.5 text-content-secondary hover:text-foreground transition-colors group cursor-pointer">
+                <Phone className="w-4 h-4 text-primary transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr" }}>+1 (442) 444-410</span>
               </a>
-              <div className="flex items-start gap-2.5 text-muted-foreground">
+              <div className="flex items-start gap-2.5 text-content-secondary">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span style={{ fontSize: "13px" }}>{t("وايومنغ، الولايات المتحدة الأمريكية · ENSIDEX LLC", "Wyoming, United States · ENSIDEX LLC")}</span>
               </div>
@@ -98,14 +98,14 @@ export function SharedFooter() {
 
           {/* Product */}
           <div>
-            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("المنتج", "Product")}</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("المنتج", "Product")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
                   <Link 
                     to={href(link.href)}
-                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
-                    style={{ fontSize: "14px" }}
+                    className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
+                    style={{ fontSize: "13px" }}
                   >
                     {t(link.label, link.labelEn)}
                   </Link>
@@ -116,14 +116,14 @@ export function SharedFooter() {
 
           {/* Solutions */}
           <div>
-            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الحلول", "Solutions")}</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الحلول", "Solutions")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.solutions.map((link) => (
                 <li key={link.label}>
                   <Link 
                     to={href(link.href)}
-                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
-                    style={{ fontSize: "14px" }}
+                    className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
+                    style={{ fontSize: "13px" }}
                   >
                     {t(link.label, link.labelEn)}
                   </Link>
@@ -134,14 +134,14 @@ export function SharedFooter() {
 
           {/* Resources */}
           <div>
-            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الموارد", "Resources")}</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الموارد", "Resources")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
                   <Link 
                     to={href(link.href)}
-                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
-                    style={{ fontSize: "14px" }}
+                    className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
+                    style={{ fontSize: "13px" }}
                   >
                     {t(link.label, link.labelEn)}
                   </Link>
@@ -152,14 +152,14 @@ export function SharedFooter() {
 
           {/* Company */}
           <div>
-            <h2 className="text-white mb-4" style={{ fontSize: "15px", fontWeight: 600 }}>{t("الشركة", "Company")}</h2>
+            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الشركة", "Company")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
                   <Link 
                     to={href(link.href)}
-                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
-                    style={{ fontSize: "14px" }}
+                    className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
+                    style={{ fontSize: "13px" }}
                   >
                     {t(link.label, link.labelEn)}
                   </Link>
@@ -170,10 +170,10 @@ export function SharedFooter() {
         </div>
 
         {/* Download apps section */}
-        <div className="bg-white/5 rounded-2xl p-6 mb-12 border border-white/10">
+        <div className="bg-card rounded-lg p-5 mb-12 border border-border">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-white" style={{ fontSize: "16px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h2>
-            <Link to={href("/support/ios")} className="text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200">
+            <h2 className="text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>{t("تطبيقات الجوال", "Mobile apps")}</h2>
+            <Link to={href("/support/ios")} className="text-sm font-semibold text-primary transition-colors hover:text-foreground">
               {t("دعم تطبيق iOS", "iOS app support")}
             </Link>
           </div>
@@ -181,30 +181,30 @@ export function SharedFooter() {
             {appStores.map((app) => (
               <button
                 key={app.store}
-                className={`flex items-center gap-2.5 border px-4 py-2.5 rounded-xl transition-all ${
+                className={`flex items-center gap-2.5 border px-4 py-2.5 rounded-md transition-colors ${
                   app.available
-                    ? "bg-white/10 hover:bg-white/20 border-white/20 cursor-pointer group"
-                    : "bg-white/5 border-white/10 cursor-not-allowed opacity-70"
+                    ? "bg-surface-subtle hover:bg-surface-hover border-border cursor-pointer group"
+                    : "bg-surface-subtle border-border cursor-not-allowed opacity-70"
                 }`}
                 disabled={!app.available}
               >
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                  <span className="text-white" style={{ fontSize: "11px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                <div className="w-8 h-8 rounded-md bg-info-subtle flex items-center justify-center">
+                  <span className="text-primary font-display" style={{ fontSize: "12px", fontWeight: 700 }}>
                     {app.store[0]}
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="text-muted-foreground group-hover:text-white transition-colors" style={{ fontSize: "10px" }}>
+                  <div className="text-content-secondary transition-colors" style={{ fontSize: "10px" }}>
                     {app.available ? t("متوفر على", "Available on") : t("قريباً", "Coming soon")}
                   </div>
-                  <div className="text-white" style={{ fontSize: "13px", fontWeight: 600 }}>
+                  <div className="text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>
                     {app.name}
                   </div>
                 </div>
               </button>
             ))}
           </div>
-          <p className="mt-3 text-muted-foreground" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+          <p className="mt-3 text-content-secondary" style={{ fontSize: "12px", lineHeight: 1.7 }}>
             {t(
               "للمساعدة في تطبيق ENTIX.IO على iPhone وiPad، راجع صفحة دعم iOS الرسمية.",
               "For help with ENTIX.IO on iPhone and iPad, visit the official iOS support page."
@@ -214,52 +214,52 @@ export function SharedFooter() {
 
         {/* Payment methods — above the bottom bar. Honest set: cards + mada +
             Apple Pay run through Stripe; no PayPal (not supported). */}
-        <div className="pt-8 mt-2 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-muted-foreground" style={{ fontSize: "12px", fontWeight: 600 }}>
-            <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div className="pt-8 mt-2 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-content-secondary" style={{ fontSize: "12px", fontWeight: 600 }}>
+            <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             {t("دفع آمن ومشفّر", "Secure encrypted checkout")}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2" dir="ltr">
             {/* Visa */}
-            <span className="inline-flex items-center justify-center rounded-md bg-white px-2.5 h-7" title="Visa">
-              <span style={{ color: "#1A1F71", fontSize: "13px", fontWeight: 900, fontStyle: "italic", letterSpacing: "0.02em" }}>VISA</span>
+            <span className="inline-flex items-center justify-center rounded-md border border-border bg-card px-2.5 h-7 text-foreground" title="Visa">
+              <span style={{ fontSize: "13px", fontWeight: 800, fontStyle: "italic", letterSpacing: "0.02em" }}>VISA</span>
             </span>
             {/* Mastercard */}
-            <span className="inline-flex items-center justify-center rounded-md bg-white px-2.5 h-7" title="Mastercard">
-              <svg width="30" height="18" viewBox="0 0 30 18"><circle cx="11" cy="9" r="7" fill="#EB001B"/><circle cx="19" cy="9" r="7" fill="#F79E1B" fillOpacity="0.9"/><path d="M15 3.8a7 7 0 0 1 0 10.4 7 7 0 0 1 0-10.4z" fill="#FF5F00"/></svg>
+            <span className="inline-flex items-center justify-center rounded-md border border-border bg-card px-2.5 h-7 text-foreground" title="Mastercard">
+              <svg width="30" height="18" viewBox="0 0 30 18" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="11" cy="9" r="6.2"/><circle cx="19" cy="9" r="6.2"/></svg>
             </span>
             {isSA && (
-              <span className="inline-flex items-center justify-center gap-1 rounded-md bg-white px-2.5 h-7" title="mada">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z" fill="#00A19A"/><path d="M12 6.5l4.5 2.5v5L12 16.5 7.5 14v-5L12 6.5z" fill="#fff"/></svg>
-                <span style={{ color: "#00205B", fontSize: "12px", fontWeight: 800 }}>mada</span>
+              <span className="inline-flex items-center justify-center gap-1 rounded-md border border-border bg-card px-2.5 h-7 text-foreground" title="mada">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 2.8l7.6 4.3v8.6L12 20l-7.6-4.3V7.1L12 2.8z"/></svg>
+                <span style={{ fontSize: "12px", fontWeight: 800 }}>mada</span>
               </span>
             )}
             {/* Apple Pay */}
-            <span className="inline-flex items-center justify-center rounded-md bg-white px-2.5 h-7" title="Apple Pay">
-              <span style={{ color: "#000", fontSize: "12px", fontWeight: 600, fontFamily: "-apple-system, system-ui, sans-serif" }}>Apple&nbsp;Pay</span>
+            <span className="inline-flex items-center justify-center rounded-md border border-border bg-card px-2.5 h-7 text-foreground" title="Apple Pay">
+              <span style={{ fontSize: "12px", fontWeight: 600 }}>Apple&nbsp;Pay</span>
             </span>
             {/* Stripe */}
-            <span className="inline-flex items-center justify-center rounded-md bg-white px-2.5 h-7" title="Powered by Stripe">
-              <span style={{ color: "#635BFF", fontSize: "13px", fontWeight: 800, letterSpacing: "0.01em" }}>stripe</span>
+            <span className="inline-flex items-center justify-center rounded-md border border-border bg-card px-2.5 h-7 text-foreground" title="Powered by Stripe">
+              <span style={{ fontSize: "13px", fontWeight: 800, letterSpacing: "0.01em" }}>stripe</span>
             </span>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-white/10">
+        <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-muted-foreground text-center md:text-right" style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+            <p className="text-content-secondary text-center md:text-start" style={{ fontSize: "13px" }}>
               &copy; 2026 ENTIX.IO · {t("يعمل بواسطة", "Powered by")}{" "}
-              <span className="text-secondary" style={{ fontWeight: 800, letterSpacing: "0.03em" }}>ENSIDEX</span>{" "}
+              <span className="text-foreground" style={{ fontWeight: 700, letterSpacing: "0.03em" }}>ENSIDEX</span>{" "}
               <span>LLC · {t("وايومنغ، الولايات المتحدة", "Wyoming, USA")}</span>
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
-              <PublicPreferenceSelector variant="dark" />
+              <PublicPreferenceSelector />
               {footerLinks.legal.map((link) => (
                 <Link 
                   key={link.label}
                   to={href(link.href)}
-                  className="text-muted-foreground hover:text-white transition-colors cursor-pointer" 
+                  className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
                   style={{ fontSize: "13px" }}
                 >
                     {t(link.label, link.labelEn)}
@@ -267,7 +267,7 @@ export function SharedFooter() {
               ))}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("entix:cookie-preferences"))}
-                className="text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
                 style={{ fontSize: "13px" }}
               >
                 {t("تفضيلات الكوكيز", "Cookie preferences")}
@@ -277,7 +277,7 @@ export function SharedFooter() {
           
           {/* Development notice */}
           <div className="mt-6 text-center">
-            <p className="text-amber-500/80 max-w-2xl mx-auto" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+            <p className="text-content-secondary max-w-2xl mx-auto" style={{ fontSize: "12px", lineHeight: 1.7 }}>
               {t("الاشتراك متاح الآن — دفع آمن عبر Stripe.", "Subscriptions are open — secure payment via Stripe.")}
             </p>
           </div>

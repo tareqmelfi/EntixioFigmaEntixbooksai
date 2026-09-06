@@ -65,7 +65,7 @@ export function CookieConsent() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[90] pointer-events-none px-3 pb-3 sm:px-6 sm:pb-5" dir={isAr ? "rtl" : "ltr"}>
-      <div className="pointer-events-auto mx-auto max-w-3xl bg-white border border-gray-200 rounded-2xl shadow-2xl shadow-foreground/15 overflow-hidden">
+      <div className="pointer-events-auto mx-auto max-w-3xl bg-card border border-border rounded-2xl shadow-2xl shadow-foreground/15 overflow-hidden">
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-3.5">
             <span className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center shrink-0">
@@ -95,9 +95,9 @@ export function CookieConsent() {
           </div>
 
           {customizing && (
-            <div className="mt-4 space-y-2.5 border-t border-gray-100 pt-4">
+            <div className="mt-4 space-y-2.5 border-t border-border pt-4">
               <PreferenceRow
-                icon={<ShieldCheck className="w-4 h-4 text-green-500" />}
+                icon={<ShieldCheck className="w-4 h-4 text-success" />}
                 title={t("ضرورية — تسجيل الدخول والأمان", "Essential — sign-in & security")}
                 desc={t("مطلوبة لتشغيل الموقع ولا يمكن إيقافها", "Required for the site to work; cannot be disabled")}
                 locked
@@ -111,7 +111,7 @@ export function CookieConsent() {
                 onToggle={() => setAnalytics(!analytics)}
               />
               <PreferenceRow
-                icon={<Megaphone className="w-4 h-4 text-amber-500" />}
+                icon={<Megaphone className="w-4 h-4 text-warning" />}
                 title={t("تسويقية — إعلانات مخصصة", "Marketing — tailored ads")}
                 desc={t("لا نستخدمها حاليًا — ولو استخدمناها ستكون بموافقتك", "Not in use today — and only ever with your consent")}
                 on={marketing}
@@ -123,14 +123,14 @@ export function CookieConsent() {
           <div className="flex flex-wrap items-center gap-2.5 mt-5">
             <button
               onClick={() => persist({ choice: "all", analytics: true, marketing: true })}
-              className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-primary/20"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-primary/20"
               style={{ fontSize: "14px", fontWeight: 700 }}
             >
               {t("قبول الكل", "Accept all")}
             </button>
             <button
               onClick={() => persist({ choice: "essential", analytics: false, marketing: false })}
-              className="bg-gray-100 hover:bg-gray-200 text-foreground px-6 py-2.5 rounded-xl transition-all cursor-pointer"
+              className="bg-surface-hover hover:bg-border text-foreground px-6 py-2.5 rounded-xl transition-all cursor-pointer"
               style={{ fontSize: "14px", fontWeight: 600 }}
             >
               {t("الضرورية فقط", "Essential only")}
@@ -169,14 +169,14 @@ function PreferenceRow({ icon, title, desc, on, locked, onToggle }: {
 }) {
   const { t } = useLanguage();
   return (
-    <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-3.5 py-3">
+    <div className="flex items-center gap-3 bg-surface-subtle rounded-xl px-3.5 py-3">
       {icon}
       <div className="flex-1 min-w-0">
         <div className="text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>{title}</div>
         <div className="text-muted-foreground" style={{ fontSize: "12px", lineHeight: 1.6 }}>{desc}</div>
       </div>
       {locked ? (
-        <span className="text-green-800 bg-green-100 rounded-full px-2.5 py-1 shrink-0" style={{ fontSize: "11px", fontWeight: 700 }}>
+        <span className="text-success bg-success-subtle rounded-full px-2.5 py-1 shrink-0" style={{ fontSize: "11px", fontWeight: 700 }}>
           {t("دائمًا", "Always on")}
         </span>
       ) : (
@@ -184,9 +184,9 @@ function PreferenceRow({ icon, title, desc, on, locked, onToggle }: {
           onClick={onToggle}
           role="switch"
           aria-checked={on}
-          className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${on ? "bg-primary" : "bg-gray-300"}`}
+          className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${on ? "bg-primary" : "bg-border"}`}
         >
-          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${on ? "start-5" : "start-1"}`} />
+          <span className={`absolute top-1 w-4 h-4 rounded-full bg-card shadow transition-all ${on ? "start-5" : "start-1"}`} />
         </button>
       )}
     </div>

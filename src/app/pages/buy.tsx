@@ -115,7 +115,7 @@ export function BuyPage() {
                 <ul className="mt-4 space-y-1.5 border-t border-border pt-4">
                   {plan.features.map((f) => (
                     <li key={f.key} className="text-sm text-foreground/80 flex items-center gap-2">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <ShieldCheck className="h-3.5 w-3.5 text-success shrink-0" />
                       {isAr ? f.label : f.labelEn || f.label}
                     </li>
                   ))}
@@ -136,13 +136,13 @@ export function BuyPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
               dir="ltr"
-              className="w-full rounded-md border border-border bg-white px-3 py-2.5 text-sm font-english"
+              className="w-full rounded-md border border-border bg-card px-3 py-2.5 text-sm font-english"
             />
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-danger">{error}</p>}
             <button
               onClick={pay}
               disabled={busy || !plan}
-              className="w-full rounded-xl bg-primary py-3 text-white hover:bg-primary/90 disabled:opacity-60 transition"
+              className="w-full rounded-xl bg-primary py-3 text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition"
               style={{ fontWeight: 700 }}
             >
               {busy ? t("جارٍ تحويلك إلى الدفع الآمن...", "Taking you to secure checkout...") : t("ادفع الآن عبر Stripe الآمنة", "Pay now via secure Stripe")}

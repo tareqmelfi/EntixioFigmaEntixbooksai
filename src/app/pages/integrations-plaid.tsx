@@ -58,14 +58,14 @@ export function IntegrationsPlaid() {
       )}
 
       {!loading && configError && (
-        <Card className="border-amber-500/40 bg-amber-50">
+        <Card className="border-warning/40 bg-warning-subtle">
           <CardHeader>
-            <CardTitle className="text-amber-800 flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4" />{t("مفاتيح Plaid غير مهيأة في الخادم", "Plaid keys are not configured on the server")}</CardTitle>
+            <CardTitle className="text-warning flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4" />{t("مفاتيح Plaid غير مهيأة في الخادم", "Plaid keys are not configured on the server")}</CardTitle>
             <CardDescription>{t("التكامل جاهز بالكامل — ينقصه فقط اعتماد المورّد.", "The integration is fully built — it only needs the vendor credentials.")}</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-amber-800 space-y-2">
+          <CardContent className="text-sm text-warning space-y-2">
             <p>{t("لتفعيله: أنشئ حسابًا على dashboard.plaid.com ثم أضف هذه المتغيرات في بيئة الخادم (Coolify) وأعد النشر:", "To enable: create an account at dashboard.plaid.com, then add these variables to the server environment (Coolify) and redeploy:")}</p>
-            <div className="rounded-lg bg-white/70 border border-amber-500/30 p-3 font-english text-xs space-y-1" dir="ltr">
+            <div className="rounded-lg bg-card/70 border border-warning/30 p-3 font-english text-xs space-y-1" dir="ltr">
               <div>PLAID_CLIENT_ID=…</div>
               <div>PLAID_SECRET=…</div>
               <div>PLAID_ENV=production</div>
@@ -94,10 +94,10 @@ export function IntegrationsPlaid() {
       )}
 
       {linked && (
-        <Card className="border-green-700/40 bg-green-50">
+        <Card className="border-success/40 bg-success-subtle">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-green-700 p-2"><CheckCircle2 className="h-5 w-5 text-white" /></span>
+              <span className="rounded-full bg-success p-2"><CheckCircle2 className="h-5 w-5 text-primary-foreground" /></span>
               <div>
                 <div className="text-foreground" style={{ fontWeight: 700 }}>{t("تم الربط بنجاح", "Bank linked successfully")}</div>
                 <div className="text-sm text-muted-foreground">{t(`${linked.institution} · ${linked.accountsCount} حساب`, `${linked.institution} · ${linked.accountsCount} accounts`)}</div>

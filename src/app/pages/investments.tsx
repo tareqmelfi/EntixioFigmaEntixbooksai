@@ -59,11 +59,11 @@ export function Investments() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("الربح المحقق", "Realized P&L")}</div>
-          <div className={`font-english ${totalRealized >= 0 ? "text-emerald-600" : "text-red-600"}`} style={{ fontSize: "1.5rem", fontWeight: 700 }} dir="ltr">{money(totalRealized)}</div>
+          <div className={`font-english ${totalRealized >= 0 ? "text-success" : "text-danger"}`} style={{ fontSize: "1.5rem", fontWeight: 700 }} dir="ltr">{money(totalRealized)}</div>
         </CardContent></Card>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("المحافظ", "Wallets")} · {items.length}</CardTitle></CardHeader>
@@ -97,16 +97,16 @@ export function Investments() {
                         <div className="text-xs text-muted-foreground">{w.kind === "FUNDED_PROP" ? (w.fundedProvider || "—") : (w.broker || "—")} · {w.currency}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${w.kind === "FUNDED_PROP" ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700"}`}>
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${w.kind === "FUNDED_PROP" ? "bg-info-subtle text-info" : "bg-info-subtle text-info"}`}>
                           {w.kind === "FUNDED_PROP" ? <Landmark className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
                           {w.kind === "FUNDED_PROP" ? t("ممولة", "Funded") : t("تداول", "Trading")}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-english text-foreground" style={{ fontWeight: 600 }} dir="ltr">{money(w.stats?.bookValue)}</td>
-                      <td className={`py-3 px-4 font-english ${Number(w.stats?.realizedPnl || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`} dir="ltr">{money(w.stats?.realizedPnl)}</td>
+                      <td className={`py-3 px-4 font-english ${Number(w.stats?.realizedPnl || 0) >= 0 ? "text-success" : "text-danger"}`} dir="ltr">{money(w.stats?.realizedPnl)}</td>
                       <td className="py-3 px-4 font-english text-muted-foreground">{w.stats?.txnCount || 0}</td>
                       <td className="py-3 px-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${w.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${w.status === "ACTIVE" ? "bg-success-subtle text-success" : "bg-surface-hover text-muted-foreground"}`}>
                           {w.status === "ACTIVE" ? t("نشطة", "Active") : t("مغلقة", "Closed")}
                         </span>
                       </td>

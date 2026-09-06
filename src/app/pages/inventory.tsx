@@ -140,7 +140,7 @@ export function Inventory() {
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-4">
         <Metric label={t("المستودعات", "Warehouses")} value={warehouses.length.toString()} />
@@ -167,7 +167,7 @@ export function Inventory() {
               </tr></thead>
               <tbody>
                 {reorder.slice(0, 20).map((r) => (
-                  <tr key={r.product.id} className="border-b border-border/40 hover:bg-white/60 cursor-pointer" onClick={() => navigate(`/app/products/${r.product.id}`)}>
+                  <tr key={r.product.id} className="border-b border-border/40 hover:bg-card/60 cursor-pointer" onClick={() => navigate(`/app/products/${r.product.id}`)}>
                     <td className="px-4 py-2 text-foreground">{displayName(r.product as any)}{r.product.sku ? <span className="ms-2 font-english text-xs text-muted-foreground" dir="ltr">{r.product.sku}</span> : null}</td>
                     <td className="px-4 py-2 text-end font-english">{qty(r.onHand)}</td>
                     <td className="px-4 py-2 text-end font-english">{qty(r.reorderQty)}</td>
@@ -216,7 +216,7 @@ export function Inventory() {
 
 function Metric({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "warn" }) {
   return (
-    <div className={`rounded-lg border px-4 py-3 ${tone === "warn" ? "border-amber-200 bg-amber-50" : "border-border bg-white"}`}>
+    <div className={`rounded-lg border px-4 py-3 ${tone === "warn" ? "border-warning-border bg-warning-subtle" : "border-border bg-card"}`}>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>
@@ -225,7 +225,7 @@ function Metric({ label, value, tone = "default" }: { label: string; value: stri
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-primary bg-primary/5 text-primary" : "border-border bg-white text-muted-foreground hover:bg-muted"}`}>
+    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}>
       {children}
     </button>
   );
@@ -274,13 +274,13 @@ function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {rows.map((row) => (
-        <div key={row.id} className="rounded-lg border border-border bg-white p-4">
+        <div key={row.id} className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="font-semibold text-foreground">{row.name}</div>
               <div className="text-xs text-muted-foreground font-english">{row.code}</div>
             </div>
-            {row.isPrimary && <span className="rounded bg-blue-50 px-2 py-1 text-xs text-primary">{t("رئيسي", "Primary")}</span>}
+            {row.isPrimary && <span className="rounded bg-info-subtle px-2 py-1 text-xs text-primary">{t("رئيسي", "Primary")}</span>}
           </div>
           {row.address && <div className="mt-3 text-sm text-muted-foreground">{row.address}</div>}
         </div>
@@ -314,7 +314,7 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
               <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
                 <td className="px-4 py-3 text-sm text-muted-foreground font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString(displayLocale("en-GB")) : "—"}</td>
                 <td className="px-4 py-3 text-sm">
-                  <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                  <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                     {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
                     {label ? t(label.ar, label.en) : row.type}
                   </span>

@@ -19,7 +19,7 @@ import { TemplatePreview, TYPE_META, LAYOUT_META, type DocType, type Layout } fr
 
 const EMPTY_FORM = {
   name: "", nameEn: "", type: "INVOICE" as DocType, layout: "classic" as Layout,
-  isDefault: false, primaryColor: "#0B1B49", accentColor: "#1276E3",
+  isDefault: false, primaryColor: "#1A1E48", accentColor: "#5875DB",
   showLogo: true, showTaxBreakdown: true, showTerms: true, terms: "", notes: "",
 };
 
@@ -95,7 +95,7 @@ export function TemplateDetail() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
           {/* Form column */}
           <div className="space-y-5">
-            {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
             <Card className="border-border">
               <CardContent className="p-5 space-y-4">
@@ -110,7 +110,7 @@ export function TemplateDetail() {
                   <div className="flex gap-1 flex-wrap rounded-lg bg-muted/50 p-1" role="radiogroup">
                     {(Object.keys(TYPE_META) as DocType[]).map(k => (
                       <button key={k} type="button" role="radio" aria-checked={form.type === k} onClick={() => setForm({ ...form, type: k })}
-                        className={`rounded-md px-2.5 py-1.5 text-xs transition-colors ${form.type === k ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                        className={`rounded-md px-2.5 py-1.5 text-xs transition-colors ${form.type === k ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                         style={{ fontWeight: form.type === k ? 700 : 500 }}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
                     ))}
                   </div>
@@ -122,7 +122,7 @@ export function TemplateDetail() {
                     {(Object.keys(LAYOUT_META) as Layout[]).map(k => (
                       <button key={k} type="button" role="radio" aria-checked={form.layout === k} onClick={() => setForm({ ...form, layout: k })}
                         className={`rounded-lg border p-2.5 text-start transition-colors ${form.layout === k ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:bg-muted/40"}`}>
-                        <div className="text-xs" style={{ fontWeight: 700, color: form.layout === k ? "#1276E3" : "inherit" }}>{isAr ? LAYOUT_META[k].ar : LAYOUT_META[k].en}</div>
+                        <div className="text-xs" style={{ fontWeight: 700, color: form.layout === k ? "#5875DB" : "inherit" }}>{isAr ? LAYOUT_META[k].ar : LAYOUT_META[k].en}</div>
                         <div className="text-[10px] text-muted-foreground mt-0.5 leading-4">{isAr ? LAYOUT_META[k].hintAr : LAYOUT_META[k].hintEn}</div>
                       </button>
                     ))}
@@ -135,8 +135,8 @@ export function TemplateDetail() {
               <CardContent className="p-5 space-y-4">
                 <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("الألوان والخيارات", "Colors & options")}</div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label>{t("اللون الأساسي", "Primary color")}</Label><input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-white p-1" /></div>
-                  <div className="space-y-2"><Label>{t("لون التمييز", "Accent color")}</Label><input type="color" value={form.accentColor} onChange={(e) => setForm({ ...form, accentColor: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-white p-1" /></div>
+                  <div className="space-y-2"><Label>{t("اللون الأساسي", "Primary color")}</Label><input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-card p-1" /></div>
+                  <div className="space-y-2"><Label>{t("لون التمييز", "Accent color")}</Label><input type="color" value={form.accentColor} onChange={(e) => setForm({ ...form, accentColor: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-card p-1" /></div>
                 </div>
 
                 <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
@@ -147,12 +147,12 @@ export function TemplateDetail() {
                   ] as const).map(([key, label]) => (
                     <label key={key} className="flex items-center justify-between gap-3 py-1 text-sm cursor-pointer">
                       <span>{label}</span>
-                      <input type="checkbox" checked={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked } as any)} className="h-4 w-4 accent-[#1276E3]" />
+                      <input type="checkbox" checked={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked } as any)} className="h-4 w-4 accent-[#5875DB]" />
                     </label>
                   ))}
                   <label className="flex items-center justify-between gap-3 py-1 text-sm cursor-pointer border-t border-border/50 mt-1 pt-2">
                     <span style={{ fontWeight: 600 }}>{t("افتراضي لهذا النوع", "Default for this type")}</span>
-                    <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="h-4 w-4 accent-[#1276E3]" />
+                    <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="h-4 w-4 accent-[#5875DB]" />
                   </label>
                 </div>
 
@@ -168,7 +168,7 @@ export function TemplateDetail() {
           {/* Live preview column */}
           <div className="xl:sticky xl:top-4 space-y-2">
             <Label>{t("معاينة حية", "Live preview")}</Label>
-            <div className="rounded-lg bg-slate-100 p-3">
+            <div className="rounded-lg bg-surface-hover p-3">
               <TemplatePreview tpl={{ ...form, name: form.name || "—" }} language={language} />
             </div>
           </div>

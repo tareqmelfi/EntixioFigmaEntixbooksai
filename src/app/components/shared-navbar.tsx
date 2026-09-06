@@ -92,28 +92,26 @@ export function SharedNavbar() {
     <>
     <nav
       dir={language === "en" ? "ltr" : "rtl"}
-      className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/98 backdrop-blur-xl shadow-md shadow-black/5"
-          : "bg-white/90 backdrop-blur-md"
-      } border-b border-gray-100/80`}
+      className={`fixed top-0 right-0 left-0 z-50 transition-colors duration-300 ${
+        scrolled ? "bg-background/95 backdrop-blur" : "bg-background/90 backdrop-blur"
+      } border-b border-border`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between gap-6">
         {/* Logo */}
-        <Link to={publicHref("")} className="flex items-center hover:opacity-90 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
-          <EntixWordmark size={34} />
+        <Link to={publicHref("")} className="flex items-center hover:opacity-80 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
+          <EntixWordmark size={22} />
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-1" ref={dropdownRef}>
+        <div className="hidden lg:flex items-center gap-1 me-auto" ref={dropdownRef}>
           {navItems.map((item) => (
             <div key={item.label} className="relative">
               {item.dropdown ? (
                 <>
                   <button
                     onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
-                    className="flex items-center gap-1.5 px-4 py-2 text-foreground/80 hover:text-foreground hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
-                    style={{ fontSize: "15px", fontWeight: 500 }}
+                    className="flex items-center gap-1.5 px-3 py-2 text-content-secondary hover:text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
+                    style={{ fontSize: "14px", fontWeight: 500 }}
                   >
                     {t(item.label, item.labelEn)}
                     <ChevronDown 
@@ -129,14 +127,14 @@ export function SharedNavbar() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full end-0 mt-2 w-[280px] bg-white rounded-xl shadow-2xl shadow-black/10 border border-gray-100 overflow-hidden"
+                        className="absolute top-full end-0 mt-2 w-[280px] bg-card rounded-lg shadow-popover border border-border overflow-hidden"
                       >
                         {item.dropdown.map((subItem, i) => (
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className={`w-full text-start px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer ${
-                              i !== item.dropdown!.length - 1 ? "border-b border-gray-50" : ""
+                            className={`w-full text-start px-5 py-3 hover:bg-surface-hover transition-colors cursor-pointer ${
+                              i !== item.dropdown!.length - 1 ? "border-b border-border" : ""
                             }`}
                           >
                             <div className="text-foreground" style={{ fontSize: "14px", fontWeight: 600 }}>
@@ -156,8 +154,8 @@ export function SharedNavbar() {
               ) : (
                 <Link
                   to={publicHref(item.href!)}
-                  className="block px-4 py-2 text-foreground/80 hover:text-foreground hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
-                  style={{ fontSize: "15px", fontWeight: 500 }}
+                  className="block px-3 py-2 text-content-secondary hover:text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
+                  style={{ fontSize: "14px", fontWeight: 500 }}
                 >
                   {t(item.label, item.labelEn)}
                 </Link>
@@ -171,14 +169,14 @@ export function SharedNavbar() {
           <PublicPreferenceSelector />
           <button 
             onClick={() => navigate(publicHref("/login"))}
-            className="text-foreground hover:text-primary transition-colors cursor-pointer px-4 py-2.5" 
+            className="text-foreground hover:text-primary transition-colors cursor-pointer px-2 py-2.5"
             style={{ fontSize: "14px", fontWeight: 500 }}
           >
             {t("تسجيل الدخول", "Sign in")}
           </button>
           <button
             onClick={() => navigate(publicHref("/register"))}
-            className="bg-primary hover:bg-primary text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25 cursor-pointer"
+            className="inline-flex h-10 items-center rounded-full bg-foreground px-5 text-background transition-colors hover:bg-primary cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
             {t("ابدأ مجاناً", "Start free")}
@@ -190,7 +188,7 @@ export function SharedNavbar() {
           onClick={() => setMobileNav(!mobileNav)}
           aria-label={mobileNav ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
           aria-expanded={mobileNav}
-          className="lg:hidden p-2 text-foreground hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+          className="lg:hidden p-2 text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
         >
           {mobileNav ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -203,7 +201,7 @@ export function SharedNavbar() {
             initial={{ opacity: 0, height: 0 }} 
             animate={{ opacity: 1, height: "auto" }} 
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-t border-gray-100 shadow-xl overflow-hidden"
+            className="lg:hidden bg-card border-t border-border shadow-popover overflow-hidden"
           >
             <div className="px-4 py-4 space-y-2 max-h-[calc(100vh-68px)] overflow-y-auto">
               {navItems.map((item) => (
@@ -218,8 +216,8 @@ export function SharedNavbar() {
                           <button
                             key={subItem.label}
                             onClick={() => handleNavigate(subItem.href)}
-                            className="w-full text-start px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
-                            style={{ fontSize: "15px", fontWeight: 500 }}
+                            className="w-full text-start px-3 py-2.5 text-content-secondary hover:bg-surface-hover hover:text-foreground rounded-md transition-colors cursor-pointer"
+                            style={{ fontSize: "14px", fontWeight: 500 }}
                           >
                             {t(subItem.label, subItem.labelEn)}
                           </button>
@@ -229,26 +227,26 @@ export function SharedNavbar() {
                   ) : (
                     <button
                       onClick={() => handleNavigate(item.href!)}
-                      className="w-full text-start px-3 py-2.5 text-foreground/80 hover:bg-gray-50 hover:text-foreground rounded-lg transition-colors cursor-pointer"
-                      style={{ fontSize: "15px", fontWeight: 500 }}
+                      className="w-full text-start px-3 py-2.5 text-content-secondary hover:bg-surface-hover hover:text-foreground rounded-md transition-colors cursor-pointer"
+                      style={{ fontSize: "14px", fontWeight: 500 }}
                     >
                       {t(item.label, item.labelEn)}
                     </button>
                   )}
                 </div>
               ))}
-              <hr className="border-gray-100 my-4" />
+              <hr className="border-border my-4" />
               <div className="px-3 py-2.5"><PublicPreferenceSelector /></div>
               <button 
                 onClick={() => handleNavigate("/login")} 
-                className="w-full text-start text-foreground px-3 py-2.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                style={{ fontSize: "15px", fontWeight: 500 }}
+                className="w-full text-start text-foreground px-3 py-2.5 hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
+                style={{ fontSize: "14px", fontWeight: 500 }}
               >
                 {t("تسجيل الدخول", "Sign in")}
               </button>
               <button
                 onClick={() => handleNavigate("/register")}
-                className="w-full bg-primary text-white py-3 rounded-xl cursor-pointer hover:bg-primary transition-colors"
+                className="w-full bg-foreground text-background py-3 rounded-full cursor-pointer hover:bg-primary transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {t("ابدأ مجاناً", "Start free")}
@@ -261,10 +259,10 @@ export function SharedNavbar() {
 
     {/* Mobile fixed-bottom CTA · outside fixed nav so it stays anchored to viewport bottom */}
     {!mobileNav && (
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border px-4 py-3 safe-area-inset-bottom">
         <button
           onClick={() => navigate(publicHref("/register"))}
-          className="w-full bg-primary text-white py-3 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary transition-colors cursor-pointer"
+          className="w-full bg-foreground text-background py-3 rounded-full hover:bg-primary transition-colors cursor-pointer"
           style={{ fontSize: "15px", fontWeight: 600 }}
         >
           {t("ابدأ مجاناً", "Start free")}

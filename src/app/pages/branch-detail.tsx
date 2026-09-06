@@ -88,7 +88,7 @@ export function BranchDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات الفرع", "Branch details")}</div>
@@ -101,7 +101,7 @@ export function BranchDetail() {
             <div className="space-y-2"><Label>{isSa ? t("رقم الفرع الضريبي (اختياري)", "Tax branch number (optional)") : t("رقم التسجيل بالولاية (اختياري)", "State registration no. (optional)")}</Label><Input value={form.vatBranchNo} onChange={(e) => setForm({ ...form, vatBranchNo: e.target.value })} dir="ltr" className="font-english" /></div>
             <div className="space-y-2">
               <Label>{t("المستودع الافتراضي", "Default warehouse")}</Label>
-              <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })} className="h-9 w-full rounded-md border border-border bg-white px-2 text-sm">
+              <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })} className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm">
                 <option value="">{t("— بدون —", "— none —")}</option>
                 {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
@@ -127,27 +127,27 @@ export function BranchDetail() {
   const detailView = branch && (
     <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الاسم", "Name")}</div>
           <div className="text-foreground mt-1 flex items-center gap-2" style={{ fontWeight: 600 }}>{branch.name}{branch.isHQ ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{t("المركز الرئيسي", "HQ")}</span> : null}</div>
           {branch.nameAr ? <div className="text-xs text-muted-foreground mt-0.5">{branch.nameAr}</div> : null}
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الرمز", "Code")}</div>
           <div className="font-english text-foreground mt-1" dir="ltr">{branch.code || "—"}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("العنوان", "Address")}</div>
           <div className="text-foreground mt-1">{branch.address || "—"}</div>
           {branch.phone ? <div className="font-english text-xs text-muted-foreground mt-0.5" dir="ltr">{branch.phone}</div> : null}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("المستودع الافتراضي", "Default warehouse")}</div>
           <div className="text-foreground mt-1">{warehouses.find((w: any) => w.id === branch.warehouseId)?.name || "—"}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("فرعي الافتراضي", "My default branch")}</div>
           <div className="mt-1 flex items-center justify-between gap-2">
             <span className="text-sm text-foreground">{defaultBranchId === branch.id ? t("يُختار تلقائيًا في كل مستند جديد أنشئه", "Pre-selected on every new document I create") : t("غير مفعّل", "Not set")}</span>
@@ -161,11 +161,11 @@ export function BranchDetail() {
 
       <div className="flex gap-2 pt-2 border-t border-border/60">
         <Button type="button" variant="outline" onClick={() => setEditMode(true)} className="flex-1 border-border"><Edit2 className="me-2 h-4 w-4" />{t("تعديل", "Edit")}</Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("إيقاف الفرع؟ القيود التاريخية تحتفظ بربطها.", "Deactivate this branch? Historical entries keep their link.")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{t("إيقاف الفرع؟ القيود التاريخية تحتفظ بربطها.", "Deactivate this branch? Historical entries keep their link.")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -184,7 +184,7 @@ export function BranchDetail() {
         </h1>
         {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><GitBranch className="h-4 w-4" />{t("أضف فرعاً جديداً للشركة", "Add a new company branch")}</p>}
       </div>
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
     </div>
   );

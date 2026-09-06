@@ -68,11 +68,11 @@ function buildTypeLabelsPlural(t: TFunc): Record<AccountType, string> {
   };
 }
 const TYPE_COLORS: Record<AccountType, string> = {
-  ASSET: "bg-blue-100 text-blue-700",
-  LIABILITY: "bg-red-100 text-red-700",
-  EQUITY: "bg-purple-100 text-purple-700",
-  REVENUE: "bg-green-100 text-green-700",
-  EXPENSE: "bg-amber-100 text-amber-700",
+  ASSET: "bg-info-subtle text-info",
+  LIABILITY: "bg-danger-subtle text-danger",
+  EQUITY: "bg-info-subtle text-info",
+  REVENUE: "bg-success-subtle text-success",
+  EXPENSE: "bg-warning-subtle text-warning",
 };
 
 // Code prefix per type
@@ -722,7 +722,7 @@ export function ChartOfAccounts() {
             <button
               key={typeKey}
               onClick={() => setFilterType(isActive ? "ALL" : typeKey)}
-              className={`rounded-lg border bg-white text-start transition p-3.5 hover:border-primary ${isActive ? "border-primary ring-1 ring-ring/20" : "border-border"}`}
+              className={`rounded-lg border bg-card text-start transition p-3.5 hover:border-primary ${isActive ? "border-primary ring-1 ring-ring/20" : "border-border"}`}
             >
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs text-muted-foreground">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></span>
@@ -745,7 +745,7 @@ export function ChartOfAccounts() {
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
               <Input placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-white border-primary" : "bg-white border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
+            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
             <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">{t("+ توسيع", "+ Expand")}</button>
             <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">{t("طيّ", "Collapse")}</button>
             <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
@@ -848,7 +848,7 @@ export function ChartOfAccounts() {
                             {/* Balance */}
                             <div className="font-english text-xs shrink-0 text-end" style={{ minWidth: "80px" }}>
                               {(node.balance ?? 0) !== 0 ? (
-                                <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-amber-700"}`}>
+                                <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-warning"}`}>
                                   {(node.balance ?? 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
@@ -859,20 +859,20 @@ export function ChartOfAccounts() {
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
                               <button
                                 onClick={() => { setForm(defaultForm(node.type as AccountType, node.id, node)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
-                                className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary"
+                                className="rounded-md p-1 text-muted-foreground hover:bg-card hover:text-primary"
                                 title={t("إضافة حساب فرعي تحت هذا", "Add sub-account under this")}
                               >
                                 <PlusCircle className="h-3.5 w-3.5" />
                               </button>
-                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-primary" title={t("العمليات", "Transactions")}><History className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openEdit(node)} className="rounded-md p-1 text-muted-foreground hover:bg-card hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => openTransactions(node.id)} className="rounded-md p-1 text-muted-foreground hover:bg-card hover:text-primary" title={t("العمليات", "Transactions")}><History className="h-3.5 w-3.5" /></button>
                               {pendingDelete === node.id ? (
                                 <span className="flex items-center gap-0.5 text-[10px]">
-                                  <button onClick={() => handleDelete(node.id)} className="px-1.5 py-0.5 rounded bg-red-600 text-white">{t("تأكيد", "Confirm")}</button>
+                                  <button onClick={() => handleDelete(node.id)} className="px-1.5 py-0.5 rounded bg-danger text-primary-foreground">{t("تأكيد", "Confirm")}</button>
                                   <button onClick={() => setPendingDelete(null)} className="px-1.5 py-0.5 rounded border border-border">x</button>
                                 </span>
                               ) : (
-                                <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
+                                <button onClick={() => setPendingDelete(node.id)} className="rounded-md p-1 text-danger hover:bg-danger-subtle" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
                               )}
                             </div>
                           </div>
@@ -896,9 +896,9 @@ export function ChartOfAccounts() {
 
       {/* Transactions slide-over panel */}
       {txPanel && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={() => setTxPanel(null)}>
-          <div className="bg-white shadow-xl w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-border/50 p-5 flex items-center justify-between z-10">
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex justify-end" onClick={() => setTxPanel(null)}>
+          <div className="bg-card shadow-xl w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-card border-b border-border/50 p-5 flex items-center justify-between z-10">
               <div>
                 <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                   <History className="h-5 w-5 text-primary" />
@@ -907,7 +907,7 @@ export function ChartOfAccounts() {
                 {txPanel.data && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {txPanel.data.total} {t("عملية", "transactions")}
-                    <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-amber-700"}`}>
+                    <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-warning"}`}>
                       {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
                     </span>
                   </p>
@@ -963,8 +963,8 @@ export function ChartOfAccounts() {
 
       {/* Import preview modal */}
       {importPreview && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3" onClick={() => setImportPreview(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-3" onClick={() => setImportPreview(null)}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                 <FileSpreadsheet className="h-5 w-5 text-primary" /> {t("معاينة الاستيراد", "Import Preview")}
@@ -974,7 +974,7 @@ export function ChartOfAccounts() {
             </div>
 
             <div className="p-4 space-y-3 overflow-y-auto flex-1">
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+              <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info">
                 ✓ {t("تم اكتشاف", "Detected")} <span className="font-english font-bold">{importPreview.rows.length}</span> {t("صف من", "rows from")} {importPreview.source === "csv" ? "CSV" : t("تحليل ذكي للملف", "smart file analysis")}
                 <span className="ms-2">· {t("جديد:", "New:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "new").length}</span></span>
                 <span className="ms-2">· {t("مكرر بالرمز:", "Code duplicate:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "code_duplicate").length}</span></span>
@@ -982,18 +982,18 @@ export function ChartOfAccounts() {
                 {(Object.entries(importPreview.mapping).some(([_, v]) => v) || (importPreview.warnings || []).length > 0) && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {Object.entries(importPreview.mapping).filter(([_, v]) => v).map(([k, v]) => (
-                      <span key={k} className="text-[10px] px-2 py-0.5 rounded bg-white border border-blue-200 font-english">
+                      <span key={k} className="text-[10px] px-2 py-0.5 rounded bg-card border border-info-border font-english">
                         <strong>{k}</strong> ← {v}
                       </span>
                     ))}
                     {(importPreview.warnings || []).slice(0, 3).map((warning, i) => (
-                      <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700">
+                      <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-warning-subtle border border-warning-border text-warning">
                         {warning}
                       </span>
                     ))}
                   </div>
                 )}
-                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-blue-700/80">
+                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-info/80">
                   <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                   {t("الأخضر جاهز للإضافة، الأحمر موجود مسبقاً ولن يستورد، والبرتقالي يحتاج مراجعة حتى لا يتكرر دليل الحسابات أو يركب تحت أب خطأ.", "Green is ready to add, red already exists and wont be imported, orange needs review to avoid duplicates or wrong parent.")}
                 </div>
@@ -1014,18 +1014,18 @@ export function ChartOfAccounts() {
                     {importPreview.rows.map((r, i) => {
                       const inferredType = r.type || (r.code ? (r.code.charAt(0) === '1' ? 'ASSET' : r.code.charAt(0) === '2' ? 'LIABILITY' : r.code.charAt(0) === '3' ? 'EQUITY' : r.code.charAt(0) === '4' ? 'REVENUE' : 'EXPENSE') : '?');
                       return (
-                        <tr key={i} className={`border-t border-border/50 ${r.rowStatus === "code_duplicate" ? "bg-red-50/70" : r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review" ? "bg-amber-50/80" : "bg-emerald-50/55"}`}>
+                        <tr key={i} className={`border-t border-border/50 ${r.rowStatus === "code_duplicate" ? "bg-danger-subtle/70" : r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review" ? "bg-warning-subtle/80" : "bg-success-subtle/55"}`}>
                           <td className="px-3 py-1.5 font-english font-semibold text-primary">{r.code}</td>
                           <td className="px-3 py-1.5 font-english">
                             {r.name || '—'}
-                            {r.rowStatus === "new" && <span className="ms-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">{t("سيضاف", "Will add")}</span>}
-                            {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">{t("رمز موجود", "Code exists")}</span>}
-                            {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">t("اسم مشابه:", "Similar name:") {r.duplicateNameCode}</span>}
-                            {r.rowStatus === "needs_review" && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{r.needsReviewReason}</span>}
+                            {r.rowStatus === "new" && <span className="ms-2 rounded bg-success-subtle px-1.5 py-0.5 text-[10px] text-success">{t("سيضاف", "Will add")}</span>}
+                            {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-danger-subtle px-1.5 py-0.5 text-[10px] text-danger">{t("رمز موجود", "Code exists")}</span>}
+                            {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] text-warning">t("اسم مشابه:", "Similar name:") {r.duplicateNameCode}</span>}
+                            {r.rowStatus === "needs_review" && <span className="ms-2 rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] text-warning">{r.needsReviewReason}</span>}
                           </td>
                           <td className="px-3 py-1.5">{r.nameAr || '—'}</td>
                           <td className="px-3 py-1.5">
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${TYPE_COLORS[inferredType as AccountType] || 'bg-gray-100'}`}>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${TYPE_COLORS[inferredType as AccountType] || 'bg-surface-hover'}`}>
                               {TYPE_LABELS[inferredType as AccountType] || inferredType}
                               {!r.type && <span className="text-[9px] ms-1 opacity-60">t("(تلقائي)", "(auto)")</span>}
                             </span>
@@ -1052,17 +1052,17 @@ export function ChartOfAccounts() {
       )}
 
       {mergeSource && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setMergeSource(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setMergeSource(null)}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
-                <ArrowRightLeft className="h-5 w-5 text-amber-600" />
+                <ArrowRightLeft className="h-5 w-5 text-warning" />
                 {t("نقل ودمج الحساب", "Move & Merge Account")}
               </h2>
               <button type="button" onClick={() => setMergeSource(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
             </div>
             <div className="p-4 space-y-3">
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex gap-2">
+              <div className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2 text-xs text-warning flex gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <div>
                   {t("لا أحذف الحساب إذا عليه قيود أو حسابات فرعية. اختر حساباً من نفس التصنيف ليتم نقل القيود والحسابات الفرعية إليه ثم تعطيل الحساب القديم.", "Wont delete the account if it has entries or sub-accounts. Choose an account of the same type to move entries and sub-accounts to, then deactivate the old account.")}
@@ -1078,7 +1078,7 @@ export function ChartOfAccounts() {
                 <select
                   value={mergeTargetId}
                   onChange={(e) => setMergeTargetId(e.target.value)}
-                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card font-english"
                 >
                   <option value="">{t("اختر حساباً من نفس التصنيف", "Select an account of the same type")}</option>
                   {items.filter(a => a.id !== mergeSource.id && a.type === mergeSource.type).map(a => (
@@ -1089,7 +1089,7 @@ export function ChartOfAccounts() {
             </div>
             <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
               <Button type="button" variant="outline" onClick={() => setMergeSource(null)} className="border-border" disabled={mergeBusy}>{t("إلغاء", "Cancel")}</Button>
-              <Button type="button" onClick={confirmMerge} disabled={mergeBusy || !mergeTargetId} className="bg-amber-600 hover:bg-amber-700">
+              <Button type="button" onClick={confirmMerge} disabled={mergeBusy || !mergeTargetId} className="bg-warning hover:bg-warning">
                 {mergeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("نقل القيود وتعطيل القديم", "Move entries & deactivate old")}
               </Button>
             </div>
@@ -1098,8 +1098,8 @@ export function ChartOfAccounts() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-4 border-b border-border/50">
                 <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>{editingId ? t("تعديل حساب", "Edit Account") : t("حساب جديد", "New Account")}</h2>
@@ -1119,7 +1119,7 @@ export function ChartOfAccounts() {
                       ...usage,
                     }));
                   }}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
                     {(["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"] as AccountType[]).map(t => (
                       <option key={t} value={t}>{TYPE_LABELS[t]} · {t} ({TYPE_PREFIX[t]}xxxx)</option>
                     ))}
@@ -1139,7 +1139,7 @@ export function ChartOfAccounts() {
                       ...(cashFlowManuallyEdited ? {} : { cashFlowType: inferCashFlowType(prev.type, `${prev.name} ${prev.nameAr}`, parent) }),
                     }));
                   }}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-english">
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card font-english">
                     <option value="">{t("— لا يوجد · حساب رئيسي —", "— None · Parent account —")}</option>
                     {parentOptions.map(p => (
                       <option key={p.id} value={p.id}>{p.code} · {displayName(p)}</option>
@@ -1197,7 +1197,7 @@ export function ChartOfAccounts() {
                 </div>
 
                 {aiSuggestion && (
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 flex items-start gap-2">
+                  <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info flex items-start gap-2">
                     <Sparkles className="h-3.5 w-3.5 shrink-0 mt-0.5" /> <span>{aiSuggestion}</span>
                   </div>
                 )}
@@ -1211,7 +1211,7 @@ export function ChartOfAccounts() {
                   <Label className="text-xs text-muted-foreground">{t("نوع التدفق النقدي *", "Cash flow type *")}</Label>
                   <select value={form.cashFlowType}
                     onChange={(e) => { setCashFlowManuallyEdited(true); setForm({ ...form, cashFlowType: e.target.value as CashFlowType }); }}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
                     {(Object.keys(CASH_FLOW_META) as CashFlowType[]).map((key) => (
                       <option key={key} value={key}>{CASH_FLOW_META[key].label}</option>
                     ))}

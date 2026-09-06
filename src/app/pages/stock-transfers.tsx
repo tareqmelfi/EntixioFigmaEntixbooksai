@@ -216,13 +216,13 @@ export function StockTransferDetail() {
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" className="border-border" onClick={() => window.print()}><Printer className="me-1 h-4 w-4" />{t("طباعة", "Print")}</Button>
           {tr.status === "DRAFT" && (confirm === "send" ? <InlineConfirm label={t("إرسال؟ البضاعة تخرج من المصدر الآن", "Send? Goods leave the source now")} onConfirm={() => void act("send")} onCancel={() => setConfirm(null)} /> : <Button className="bg-primary hover:bg-primary/90" disabled={busy} onClick={() => setConfirm("send")}><Send className="me-1 h-4 w-4" />{t("إرسال", "Send")}</Button>)}
-          {tr.status === "SENT" && (confirm === "receive" ? <InlineConfirm label={t("تأكيد الاستلام بالكميات أدناه؟", "Confirm receipt with the quantities below?")} onConfirm={() => void act("receive")} onCancel={() => setConfirm(null)} /> : <Button className="bg-[#0B1B49] text-white hover:bg-[#0B1B49]/90" disabled={busy} onClick={() => setConfirm("receive")}><PackageCheck className="me-1 h-4 w-4" />{t("استلام", "Receive")}</Button>)}
+          {tr.status === "SENT" && (confirm === "receive" ? <InlineConfirm label={t("تأكيد الاستلام بالكميات أدناه؟", "Confirm receipt with the quantities below?")} onConfirm={() => void act("receive")} onCancel={() => setConfirm(null)} /> : <Button className="bg-[#1A1E48] text-primary-foreground hover:bg-[#1A1E48]/90" disabled={busy} onClick={() => setConfirm("receive")}><PackageCheck className="me-1 h-4 w-4" />{t("استلام", "Receive")}</Button>)}
           {(tr.status === "DRAFT" || tr.status === "SENT") && (confirm === "cancel" ? <InlineConfirm label={tr.status === "SENT" ? t("إلغاء؟ تعود البضاعة للمصدر", "Cancel? Goods return to the source") : t("إلغاء المسودة؟", "Cancel the draft?")} onConfirm={() => void act("cancel")} onCancel={() => setConfirm(null)} /> : <Button variant="outline" className="border-danger-border text-danger hover:bg-danger-subtle" disabled={busy} onClick={() => setConfirm("cancel")}><X className="me-1 h-4 w-4" />{t("إلغاء", "Cancel")}</Button>)}
         </div>
       </div>
 
       {/* Printable document */}
-      <div className="print-doc rounded-xl border border-border bg-white p-6">
+      <div className="print-doc rounded-xl border border-border bg-card p-6">
         <div className="mb-4 hidden print:block"><div style={{ fontWeight: 800, fontSize: "1.1rem" }}>{t("مستند تحويل مخزون", "Stock transfer note")} · <span dir="ltr">{tr.number}</span></div></div>
         <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
           <div><div className="text-xs text-muted-foreground">{t("من", "From")}</div><div className="text-foreground" style={{ fontWeight: 600 }}>{tr.fromWarehouse.code} · {tr.fromWarehouse.name}</div></div>
@@ -261,9 +261,9 @@ export function StockTransferDetail() {
           <div className="mt-3 flex items-center gap-2 print:hidden"><span className="text-xs text-muted-foreground">{t("اسم المستلم", "Received by")}</span><Input value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} className="h-8 w-56" /></div>
         )}
         <div className="mt-8 hidden grid-cols-3 gap-6 text-xs print:grid">
-          <div><div className="border-t border-black pt-1">{t("المرسِل", "Sender")}</div></div>
-          <div><div className="border-t border-black pt-1">{t("السائق / الناقل", "Driver / carrier")}</div></div>
-          <div><div className="border-t border-black pt-1">{t("المستلم", "Receiver")}</div></div>
+          <div><div className="border-t border-foreground pt-1">{t("المرسِل", "Sender")}</div></div>
+          <div><div className="border-t border-foreground pt-1">{t("السائق / الناقل", "Driver / carrier")}</div></div>
+          <div><div className="border-t border-foreground pt-1">{t("المستلم", "Receiver")}</div></div>
         </div>
       </div>
 

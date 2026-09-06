@@ -16,9 +16,9 @@ const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), 
 const hrs = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 1 });
 
 const KIND_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
-  FREELANCER: { ar: "فريلانسر", en: "Freelancer", bg: "bg-blue-100 text-blue-700" },
-  CONTRACTOR: { ar: "مقاول", en: "Contractor", bg: "bg-amber-100 text-amber-700" },
-  AGENCY: { ar: "وكالة", en: "Agency", bg: "bg-violet-100 text-violet-700" },
+  FREELANCER: { ar: "فريلانسر", en: "Freelancer", bg: "bg-info-subtle text-info" },
+  CONTRACTOR: { ar: "مقاول", en: "Contractor", bg: "bg-warning-subtle text-warning" },
+  AGENCY: { ar: "وكالة", en: "Agency", bg: "bg-info-subtle text-info" },
 };
 
 export function Contractors() {
@@ -66,7 +66,7 @@ export function Contractors() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("مستحق لهم", "Outstanding")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{money(totalOutstanding)}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{money(totalOutstanding)}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("متوسط سعر الساعة (السوق الداخلي)", "Avg hourly rate (peer)")}</div>
@@ -75,13 +75,13 @@ export function Contractors() {
       </div>
 
       <div className="flex gap-1 flex-wrap">
-        <button onClick={() => setKindFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!kindFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+        <button onClick={() => setKindFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!kindFilter ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
         {Object.entries(KIND_LABELS).map(([k, v]) => (
-          <button key={k} onClick={() => setKindFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${kindFilter === k ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t(v.ar, v.en)}</button>
+          <button key={k} onClick={() => setKindFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${kindFilter === k ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t(v.ar, v.en)}</button>
         ))}
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("السجل", "Register")} · {filtered.length}</CardTitle></CardHeader>
@@ -117,7 +117,7 @@ export function Contractors() {
                       <tr key={x.id} onClick={() => navigate(`/app/contractors/${x.id}`)} className={`border-b border-border/50 hover:bg-primary/5 cursor-pointer ${!x.isActive ? "opacity-50" : ""}`}>
                         <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 700 }} dir="ltr">{x.code}</td>
                         <td className="py-3 px-4">
-                          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{x.name} {!x.isActive && <span className="text-[10px] text-gray-500">({t("موقوف", "inactive")})</span>}</div>
+                          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>{x.name} {!x.isActive && <span className="text-[10px] text-muted-foreground">({t("موقوف", "inactive")})</span>}</div>
                           <div className="text-xs text-muted-foreground">{x.specialty || "—"} · {x.stats?.projectsCount || 0} {t("مشروع", "projects")}</div>
                         </td>
                         <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${kind.bg}`}>{t(kind.ar, kind.en)}</span></td>
@@ -125,15 +125,15 @@ export function Contractors() {
                         <td className="py-3 px-4 font-english text-foreground" dir="ltr">{avgRate != null ? money(avgRate) : "—"}</td>
                         <td className="py-3 px-4 font-english text-xs" dir="ltr">
                           {vsPeers == null ? "—" : (
-                            <span className={vsPeers > 5 ? "text-amber-600" : vsPeers < -5 ? "text-emerald-600" : "text-muted-foreground"}>
+                            <span className={vsPeers > 5 ? "text-warning" : vsPeers < -5 ? "text-success" : "text-muted-foreground"}>
                               {vsPeers > 0 ? "+" : ""}{displayDigits(vsPeers.toFixed(0))}%
                             </span>
                           )}
                         </td>
-                        <td className={`py-3 px-4 font-english ${Number(x.stats?.outstanding || 0) > 0 ? "text-amber-600" : "text-muted-foreground"}`} style={{ fontWeight: 600 }} dir="ltr">{money(x.stats?.outstanding)}</td>
+                        <td className={`py-3 px-4 font-english ${Number(x.stats?.outstanding || 0) > 0 ? "text-warning" : "text-muted-foreground"}`} style={{ fontWeight: 600 }} dir="ltr">{money(x.stats?.outstanding)}</td>
                         <td className="py-3 px-4">
                           {x.rating != null ? (
-                            <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-english"><Star className="h-3 w-3 fill-current" />{displayDigits(Number(x.rating).toFixed(1))}</span>
+                            <span className="inline-flex items-center gap-0.5 text-warning text-xs font-english"><Star className="h-3 w-3 fill-current" />{displayDigits(Number(x.rating).toFixed(1))}</span>
                           ) : "—"}
                         </td>
                         <td className="py-3 px-2 text-muted-foreground/50"><ChevronLeft className="h-4 w-4" /></td>

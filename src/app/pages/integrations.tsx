@@ -43,7 +43,7 @@ const CATEGORY_LABELS: Record<CategoryKey, { ar: string; en: string }> = {
 const statusConfig: Record<IntegrationStatus, { label: { ar: string; en: string }; color: string; bg: string }> = {
   connected: { label: { ar: "متصل", en: "Connected" }, color: "text-foreground", bg: "bg-muted" },
   available: { label: { ar: "متاح", en: "Available" }, color: "text-primary", bg: "bg-primary/5" },
-  coming: { label: { ar: "قريباً", en: "Coming soon" }, color: "text-amber-800", bg: "bg-amber-100" },
+  coming: { label: { ar: "قريباً", en: "Coming soon" }, color: "text-warning", bg: "bg-warning-subtle" },
 };
 
 export function Integrations() {
@@ -74,10 +74,10 @@ export function Integrations() {
   const stripeConnected = !!oauth?.stripe?.connected;
   const moyasarConnected = !!oauth?.moyasar?.connected;
   const integrations: Integration[] = [
-    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "ZATCA Phase 2 — قيد التحقق · غير مفعّل للاعتماد الإنتاجي", en: "ZATCA Phase 2 — Under validation · not enabled for production reliance" }, category: "government", icon: Shield, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "coming", action: { kind: "route", to: "/app/settings?tab=zatca" } },
-    { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "#0B1B49", iconBg: "#ECEEF5", status: "coming" },
-    { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "available", action: { kind: "route", to: "/app/integrations/plaid" } },
-    { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "#1276E3", iconBg: "#EFF6FF", status: "coming" },
+    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "ZATCA Phase 2 — قيد التحقق · غير مفعّل للاعتماد الإنتاجي", en: "ZATCA Phase 2 — Under validation · not enabled for production reliance" }, category: "government", icon: Shield, iconColor: "#1A1E48", iconBg: "#ECEEF5", status: "coming", action: { kind: "route", to: "/app/settings?tab=zatca" } },
+    { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "#1A1E48", iconBg: "#ECEEF5", status: "coming" },
+    { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "#5875DB", iconBg: "#EFF6FF", status: "available", action: { kind: "route", to: "/app/integrations/plaid" } },
+    { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "#5875DB", iconBg: "#EFF6FF", status: "coming" },
     { id: "stripe", name: "Stripe", nameAr: "بوابة الدفع", description: { ar: "قبول المدفوعات عبر الإنترنت", en: "Accept online payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: stripeConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
     { id: "moyasar", name: "Moyasar", nameAr: "ميسّر", description: { ar: "بوابة دفع سعودية (مدى + فيزا)", en: "Saudi payment gateway (mada + Visa)" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: moyasarConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
     { id: "paypal", name: "PayPal", nameAr: "باي بال", description: { ar: "قبول المدفوعات الدولية", en: "Accept international payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: "coming" },
@@ -129,8 +129,8 @@ export function Integrations() {
         </Card>
         <Card className="border-border">
           <CardContent className="pt-5 pb-4 px-5 text-center">
-            <div className="flex justify-center mb-3"><div className="rounded-xl bg-amber-100 p-2.5"><Clock className="h-5 w-5 text-amber-800" /></div></div>
-            <div className="text-amber-800 font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "coming").length}</div>
+            <div className="flex justify-center mb-3"><div className="rounded-xl bg-warning-subtle p-2.5"><Clock className="h-5 w-5 text-warning" /></div></div>
+            <div className="text-warning font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "coming").length}</div>
             <p className="text-xs text-muted-foreground mt-1">{t("قريباً", "Coming soon")}</p>
           </CardContent>
         </Card>
@@ -142,9 +142,9 @@ export function Integrations() {
           <Input placeholder={t("بحث عن تكامل...", "Search integrations...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
         <div className="flex gap-1 flex-wrap">
-          <button onClick={() => setCategoryFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!categoryFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+          <button onClick={() => setCategoryFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!categoryFilter ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
           {categories.map(c => (
-            <button key={c} onClick={() => setCategoryFilter(c)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${categoryFilter === c ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? CATEGORY_LABELS[c].ar : CATEGORY_LABELS[c].en}</button>
+            <button key={c} onClick={() => setCategoryFilter(c)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${categoryFilter === c ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? CATEGORY_LABELS[c].ar : CATEGORY_LABELS[c].en}</button>
           ))}
         </div>
       </div>

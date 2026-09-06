@@ -20,15 +20,15 @@ const section = renderToStaticMarkup(element(SectionHeader, {
   title: 'Recent activity', actions: element('button', null, 'Export'),
 }))
 assert.match(page, /<h1/)
-assert.match(page, /\btext-page\b/)
+assert.match(page, /\bfont-bold\b/) // Ledger: large bold page title
 assert.match(page, /\bflex-wrap\b/)
 assert.match(section, /<h2/)
 assert.match(section, /\btext-section\b/)
 
 const metric = renderToStaticMarkup(element(Metric, { label: 'Revenue', value: '12,500.00', tone: 'success' }))
 const badge = renderToStaticMarkup(element(StatusBadge, { tone: 'warning' }, 'Needs review'))
-assert.match(metric, /^<div class="[^"]*\bbg-surface\b[^"]*">/)
-assert.match(metric, /\btabular-nums\b/)
+assert.match(metric, /^<div class="[^"]*\bledger-figure\b[^"]*"/) // Ledger: figure strip cell, no boxed surface
+assert.match(metric, /\bledger-figure-value\b/)
 assert.doesNotMatch(metric, /^<div class="[^"]*\bbg-success\b/)
 assert.doesNotMatch(badge, /role="status"/)
 assert.match(badge, /Needs review/)

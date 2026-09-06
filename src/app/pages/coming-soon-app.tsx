@@ -29,7 +29,7 @@ export function ComingSoonApp({
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="max-w-xl w-full text-center">
         <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-          <Construction className="w-10 h-10 text-white" />
+          <Construction className="w-10 h-10 text-primary-foreground" />
         </div>
 
         <h1 className="text-foreground mb-3" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
@@ -40,7 +40,7 @@ export function ComingSoonApp({
         </p>
 
         {features && features.length > 0 && (
-          <div className="mb-8 rounded-xl border border-border bg-white p-5 text-start">
+          <div className="mb-8 rounded-xl border border-border bg-card p-5 text-start">
             <div className="flex items-center gap-2 mb-3 text-primary">
               <Sparkles className="h-4 w-4" />
               <span className="text-sm" style={{ fontWeight: 600 }}>المتوقع في الإطلاق</span>
@@ -59,14 +59,14 @@ export function ComingSoonApp({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
             href={ctaHref}
-            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all hover:shadow-md text-sm"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg transition-all hover:shadow-md text-sm"
             style={{ fontWeight: 600 }}
           >
             {ctaLabel}
           </a>
           <Link
             to="/app"
-            className="inline-flex items-center gap-2 border border-border bg-white text-foreground hover:bg-muted px-6 py-3 rounded-lg transition-all text-sm"
+            className="inline-flex items-center gap-2 border border-border bg-card text-foreground hover:bg-muted px-6 py-3 rounded-lg transition-all text-sm"
             style={{ fontWeight: 500 }}
           >
             <ArrowRight className="h-4 w-4" />

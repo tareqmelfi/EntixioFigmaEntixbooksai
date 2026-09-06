@@ -135,7 +135,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md rounded-2xl bg-card shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-border/50">
           <div>
             <h2 className="text-foreground" style={{ fontSize: "1rem", fontWeight: 700 }}>
@@ -153,7 +153,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
           <button
             onClick={() => setMode("camera")}
             className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 transition-colors ${
-              mode === "camera" ? "bg-white text-primary border-b-2 border-primary" : "text-muted-foreground"
+              mode === "camera" ? "bg-card text-primary border-b-2 border-primary" : "text-muted-foreground"
             }`}
           >
             <Camera className="h-3.5 w-3.5" /> {t("الكاميرا", "Camera")}
@@ -161,7 +161,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
           <button
             onClick={() => setMode("manual")}
             className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 transition-colors ${
-              mode === "manual" ? "bg-white text-primary border-b-2 border-primary" : "text-muted-foreground"
+              mode === "manual" ? "bg-card text-primary border-b-2 border-primary" : "text-muted-foreground"
             }`}
           >
             <Barcode className="h-3.5 w-3.5" /> {t("إدخال يدوي", "Manual entry")}
@@ -170,13 +170,13 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
 
         <div className="p-5">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 mb-3">
+            <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger mb-3">
               {error}
             </div>
           )}
 
           {mode === "camera" ? (
-            <div className="relative rounded-lg overflow-hidden bg-black aspect-square">
+            <div className="relative rounded-lg overflow-hidden bg-foreground aspect-square">
               <video
                 ref={videoRef}
                 playsInline
@@ -188,7 +188,7 @@ function BarcodeScannerModal({ onClose, onScanned }: { onClose: () => void; onSc
                 <div className="w-3/4 h-1/3 border-2 border-primary rounded-lg shadow-lg" />
               </div>
               {scanning && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 text-white px-3 py-1.5 rounded-full text-xs">
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-foreground/70 text-primary-foreground px-3 py-1.5 rounded-full text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" /> {t("جارٍ المسح...", "Scanning...")}
                 </div>
               )}

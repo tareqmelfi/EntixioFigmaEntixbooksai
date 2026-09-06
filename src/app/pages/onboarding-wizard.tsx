@@ -155,9 +155,9 @@ export function OnboardingWizard() {
           const active = step === s.id;
           return (
             <div key={s.id} className="flex items-center gap-1.5 sm:gap-3">
-              {i > 0 && <div className={`w-6 sm:w-10 h-[2px] rounded ${step > s.id - 1 ? "bg-green-500" : "bg-gray-200"}`} />}
+              {i > 0 && <div className={`w-6 sm:w-10 h-[2px] rounded ${step > s.id - 1 ? "bg-success" : "bg-border"}`} />}
               <div className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl border transition-all ${
-                active ? "border-primary bg-primary/5 text-primary" : done ? "border-green-500/40 bg-green-50 text-green-700" : "border-gray-200 text-muted-foreground"
+                active ? "border-primary bg-primary/5 text-primary" : done ? "border-success/40 bg-success-subtle text-success" : "border-border text-muted-foreground"
               }`} style={{ fontSize: "12px", fontWeight: 600 }}>
                 {done && !active ? <CheckCircle2 className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
                 <span className="hidden sm:inline">{t(s.ar, s.en)}</span>
@@ -168,7 +168,7 @@ export function OnboardingWizard() {
       </div>
 
       {error && (
-        <div className="mb-5 flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3" role="alert">
+        <div className="mb-5 flex items-center gap-2.5 bg-danger-subtle border border-danger-border text-danger rounded-xl px-4 py-3" role="alert">
           <AlertCircle className="w-4.5 h-4.5 shrink-0" />
           <p style={{ fontSize: "13px" }}>{error}</p>
         </div>
@@ -259,7 +259,7 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
   if (alreadyDone) {
     return (
       <Card>
-        <div className="flex items-center gap-3 text-green-700">
+        <div className="flex items-center gap-3 text-success">
           <CheckCircle2 className="w-5 h-5" />
           <p style={{ fontSize: "14px", fontWeight: 600 }}>{t("الأرصدة الافتتاحية مسجّلة مسبقًا ✓", "Opening balances already posted ✓")}</p>
         </div>
@@ -302,7 +302,7 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
               value={form[f.key]}
               onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
               placeholder="0.00"
-              className="w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             />
             <p className="text-muted-foreground/70 mt-0.5" style={{ fontSize: "11px" }}>{t(f.hintAr, f.hintEn)}</p>
           </div>
@@ -390,10 +390,10 @@ function StepProducts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
         {t("ارفع CSV من برنامجك السابق (name, sku, price, cost, qty) — أو صورة/ملف قائمة أسعار ويستخرجها الذكاء الاصطناعي.", "Upload a CSV from your old software (name, sku, price, cost, qty) — or a price-list file and let AI extract it.")}
       </p>
       <div className="flex flex-wrap gap-2.5 mb-4">
-        <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
+        <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
           <Upload className="w-4 h-4" /> {t("رفع CSV", "Upload CSV")}
         </button>
-        <button onClick={downloadTemplate} className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
+        <button onClick={downloadTemplate} className="inline-flex items-center gap-2 bg-surface-hover hover:bg-border text-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
           <Download className="w-4 h-4" /> {t("القالب", "Template")}
         </button>
         <label className={`inline-flex items-center gap-2 border border-primary/40 text-primary hover:bg-primary/90/5 px-4 py-2.5 rounded-xl cursor-pointer ${aiBusy ? "opacity-60 pointer-events-none" : ""}`} style={{ fontSize: "13px", fontWeight: 600 }}>
@@ -411,16 +411,16 @@ function StepProducts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
             total={rows.length}
           />
           <label className="flex items-center gap-2 mt-3 cursor-pointer">
-            <input type="checkbox" checked={openingStock} onChange={(e) => setOpeningStock(e.target.checked)} className="w-4 h-4 rounded accent-[#1276E3]" />
+            <input type="checkbox" checked={openingStock} onChange={(e) => setOpeningStock(e.target.checked)} className="w-4 h-4 rounded accent-[#5875DB]" />
             <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{t("أدخل الكميات كرصيد افتتاحي للمستودع", "Post quantities as opening warehouse stock")}</span>
           </label>
         </>
       )}
 
       {result && (
-        <div className="rounded-xl bg-green-50 border border-green-500/30 px-4 py-3 text-green-700" style={{ fontSize: "13px", lineHeight: 1.8 }}>
+        <div className="rounded-xl bg-success-subtle border border-success/30 px-4 py-3 text-success" style={{ fontSize: "13px", lineHeight: 1.8 }}>
           ✓ {t("أُنشئ", "Created")} <b className="font-english">{result.created}</b> · {t("تخطّى (موجود)", "Skipped")} <b className="font-english">{result.skipped}</b> · {t("رصيد مخزون", "Stock posted")} <b className="font-english">{result.stockApplied}</b>
-          {result.errors.length > 0 && <span className="text-amber-700 block">{t("أخطاء:", "Errors:")} {result.errors.length}</span>}
+          {result.errors.length > 0 && <span className="text-warning block">{t("أخطاء:", "Errors:")} {result.errors.length}</span>}
         </div>
       )}
 
@@ -475,10 +475,10 @@ function StepContacts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
         {t("ارفع CSV (name, type, email, phone, taxId) — type: customer أو supplier أو both.", "Upload a CSV (name, type, email, phone, taxId) — type: customer, supplier or both.")}
       </p>
       <div className="flex flex-wrap gap-2.5 mb-4">
-        <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
+        <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
           <Upload className="w-4 h-4" /> {t("رفع CSV", "Upload CSV")}
         </button>
-        <button onClick={downloadTemplate} className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
+        <button onClick={downloadTemplate} className="inline-flex items-center gap-2 bg-surface-hover hover:bg-border text-foreground px-4 py-2.5 rounded-xl cursor-pointer" style={{ fontSize: "13px", fontWeight: 600 }}>
           <Download className="w-4 h-4" /> {t("القالب", "Template")}
         </button>
         <input ref={fileRef} type="file" className="hidden" accept=".csv,text/csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
@@ -493,9 +493,9 @@ function StepContacts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
       )}
 
       {result && (
-        <div className="rounded-xl bg-green-50 border border-green-500/30 px-4 py-3 text-green-700" style={{ fontSize: "13px", lineHeight: 1.8 }}>
+        <div className="rounded-xl bg-success-subtle border border-success/30 px-4 py-3 text-success" style={{ fontSize: "13px", lineHeight: 1.8 }}>
           ✓ {t("أُنشئ", "Created")} <b className="font-english">{result.created}</b> · {t("تخطّى (موجود)", "Skipped")} <b className="font-english">{result.skipped}</b>
-          {result.errors.length > 0 && <span className="text-amber-700 block">{t("أخطاء:", "Errors:")} {result.errors.length}</span>}
+          {result.errors.length > 0 && <span className="text-warning block">{t("أخطاء:", "Errors:")} {result.errors.length}</span>}
         </div>
       )}
 
@@ -560,8 +560,8 @@ function StepDone({ status, onCompleted, onGo, setError }: {
   return (
     <Card>
       <div className="text-center py-4">
-        <span className="inline-flex w-16 h-16 rounded-full bg-green-50 items-center justify-center mb-4">
-          <PartyPopper className="w-8 h-8 text-green-500" />
+        <span className="inline-flex w-16 h-16 rounded-full bg-success-subtle items-center justify-center mb-4">
+          <PartyPopper className="w-8 h-8 text-success" />
         </span>
         <h2 className="text-foreground mb-2" style={{ fontSize: "20px", fontWeight: 800 }}>{t("شركتك جاهزة للعمل 🎉", "Your company is ready 🎉")}</h2>
         <p className="text-muted-foreground mb-5" style={{ fontSize: "14px", lineHeight: 1.8 }}>
@@ -569,10 +569,10 @@ function StepDone({ status, onCompleted, onGo, setError }: {
           {t("الأصناف:", "Items:")} <b className="font-english">{status?.productsCount ?? 0}</b> · {t("جهات الاتصال:", "Contacts:")} <b className="font-english">{status?.contactsCount ?? 0}</b>
         </p>
         <div className="flex flex-wrap justify-center gap-2.5">
-          <button onClick={() => go("/app/invoices/new")} disabled={busy} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontSize: "14px", fontWeight: 700 }}>
+          <button onClick={() => go("/app/invoices/new")} disabled={busy} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontSize: "14px", fontWeight: 700 }}>
             <FileText className="w-4 h-4" /> {t("أنشئ أول فاتورة", "Create your first invoice")}
           </button>
-          <button onClick={() => go("/app")} disabled={busy} className="bg-gray-100 hover:bg-gray-200 text-foreground px-5 py-3 rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontSize: "14px", fontWeight: 600 }}>
+          <button onClick={() => go("/app")} disabled={busy} className="bg-surface-hover hover:bg-border text-foreground px-5 py-3 rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontSize: "14px", fontWeight: 600 }}>
             {t("لوحة التحكم", "Dashboard")}
           </button>
         </div>
@@ -583,7 +583,7 @@ function StepDone({ status, onCompleted, onGo, setError }: {
 
 // ── shared bits ──────────────────────────────────────────────────────────────
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="bg-white border border-border rounded-2xl shadow-sm p-6 sm:p-7">{children}</div>;
+  return <div className="bg-card border border-border rounded-2xl shadow-sm p-6 sm:p-7">{children}</div>;
 }
 
 function NavButtons({ nextLabel, onNext, onSkip, busy, hideSkip, skipLabel }: {
@@ -594,7 +594,7 @@ function NavButtons({ nextLabel, onNext, onSkip, busy, hideSkip, skipLabel }: {
   const Arrow = isAr ? ChevronLeft : ChevronRight;
   return (
     <div className="flex items-center gap-2.5 mt-6">
-      <button onClick={onNext} disabled={busy} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-60" style={{ fontSize: "14px", fontWeight: 700 }}>
+      <button onClick={onNext} disabled={busy} className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-60" style={{ fontSize: "14px", fontWeight: 700 }}>
         {nextLabel} <Arrow className="w-4 h-4" />
       </button>
       {!hideSkip && (
@@ -612,7 +612,7 @@ function PreviewTable({ head, rows, total }: { head: string[]; rows: string[][];
     <div className="rounded-xl border border-border overflow-hidden mb-1">
       <div className="overflow-x-auto">
         <table className="w-full" style={{ fontSize: "12.5px" }}>
-          <thead className="bg-gray-50">
+          <thead className="bg-surface-subtle">
             <tr>{head.map((h) => <th key={h} className="text-start px-3 py-2 text-muted-foreground" style={{ fontWeight: 600 }}>{h}</th>)}</tr>
           </thead>
           <tbody>
@@ -625,7 +625,7 @@ function PreviewTable({ head, rows, total }: { head: string[]; rows: string[][];
         </table>
       </div>
       {total > rows.length && (
-        <div className="bg-gray-50 px-3 py-1.5 text-muted-foreground border-t border-border/60" style={{ fontSize: "11.5px" }}>
+        <div className="bg-surface-subtle px-3 py-1.5 text-muted-foreground border-t border-border/60" style={{ fontSize: "11.5px" }}>
           + {t(`${total - rows.length} صفًا آخر`, `${total - rows.length} more rows`)}
         </div>
       )}

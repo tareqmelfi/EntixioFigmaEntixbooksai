@@ -45,17 +45,17 @@ export function MarketLocaleChooser() {
   }, []);
 
   return (
-    <main data-page="market-locale-chooser" className="min-h-screen bg-white px-5 py-14" dir="ltr">
+    <main data-page="market-locale-chooser" className="min-h-screen bg-background px-5 py-14" dir="ltr">
       <div className="mx-auto max-w-4xl">
-        <div className="flex justify-center"><EntixWordmark size={42} /></div>
-        <p className="mt-10 text-center text-sm font-medium text-slate-500">
+        <div className="flex justify-center"><EntixWordmark size={30} /></div>
+        <p className="mt-10 text-center text-sm font-medium text-content-secondary">
           Taking you to your market… · جاري تحويلك لسوقك…
         </p>
         <div className="mt-8 flex justify-center gap-3 text-sm font-semibold">
-          <Link to={localizedPath("sa", "ar")} className="rounded-xl border border-slate-200 px-5 py-3 text-slate-900 transition hover:border-primary hover:bg-primary/5">
+          <Link to={localizedPath("sa", "ar")} className="rounded-full border border-border bg-card px-5 py-3 text-foreground transition hover:border-foreground hover:bg-surface-hover">
             السعودية — العربية
           </Link>
-          <Link to={localizedPath("us", "en")} className="rounded-xl border border-slate-200 px-5 py-3 text-slate-900 transition hover:border-primary hover:bg-primary/5">
+          <Link to={localizedPath("us", "en")} className="rounded-full border border-border bg-card px-5 py-3 text-foreground transition hover:border-foreground hover:bg-surface-hover">
             United States — English
           </Link>
         </div>

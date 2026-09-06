@@ -91,12 +91,12 @@ export function InvoicePreviewPane({
   const paid = Number(doc.amountPaid || 0);
   const outstanding = total - paid;
   const statusLabel = statusLabels[doc.status] || doc.status;
-  const statusColor = statusColors[doc.status] || "bg-gray-100 text-gray-700";
+  const statusColor = statusColors[doc.status] || "bg-surface-hover text-foreground";
 
   return (
-    <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden flex flex-col h-[calc(100vh-10rem)]">
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col h-[calc(100vh-10rem)]">
       {/* Header bar · sticky */}
-      <div className="border-b border-border bg-white px-5 py-3 flex items-center justify-between gap-3">
+      <div className="border-b border-border bg-card px-5 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onClose}
@@ -119,17 +119,17 @@ export function InvoicePreviewPane({
         <div className="flex items-center gap-1 flex-wrap">
           {extraActions}
           {onApprove && doc.status === "DRAFT" && (
-            <button onClick={onApprove} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 border border-green-200" title={t("اعتماد", "Approve")}>
+            <button onClick={onApprove} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success-subtle border border-success-border" title={t("اعتماد", "Approve")}>
               ✓ {t("اعتماد", "Approve")}
             </button>
           )}
           {onRecordPayment && doc.status !== "PAID" && doc.status !== "CANCELLED" && (
-            <button onClick={onRecordPayment} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1 border border-green-200" title={t("تسجيل دفعة على الفاتورة", "Record payment on invoice")}>
+            <button onClick={onRecordPayment} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success-subtle flex items-center gap-1 border border-success-border" title={t("تسجيل دفعة على الفاتورة", "Record payment on invoice")}>
               💰 {t("دفعة", "Payment")}
             </button>
           )}
           {onSign && doc.status !== "DRAFT" && doc.status !== "PAID" && doc.status !== "CANCELLED" && doc.status !== "CONVERTED" && (
-            <button onClick={onSign} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signature")}>
+            <button onClick={onSign} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-info-subtle flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signature")}>
               <FileSignature className="h-3.5 w-3.5" /> {t("توقيع", "Sign")}
             </button>
           )}
@@ -157,7 +157,7 @@ export function InvoicePreviewPane({
             </button>
           )}
           {onDelete && (
-            <button onClick={onDelete} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}>
+            <button onClick={onDelete} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle" title={t("حذف", "Delete")}>
               <Trash2 className="h-4 w-4" />
             </button>
           )}
@@ -169,7 +169,7 @@ export function InvoicePreviewPane({
         <iframe key={`${doc.id}-${language}`} src={`/print/invoice/${doc.id}?lang=${language}&noprint=1&embed=1`} title={t("معاينة الفاتورة", "Invoice preview")} style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
       </div>
       <div className="hidden flex-1 overflow-y-auto p-6 bg-primary/5">
-        <div className="bg-white rounded-lg border border-border p-6 max-w-3xl mx-auto">
+        <div className="bg-card rounded-lg border border-border p-6 max-w-3xl mx-auto">
           {/* Document head */}
           <div className="flex items-start justify-between mb-6 pb-4 border-b border-border">
             <div>
@@ -242,11 +242,11 @@ export function InvoicePreviewPane({
                 <>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t("المُحصَّل:", "Collected:")}</span>
-                    <span className="font-english text-green-600" style={{ fontWeight: 600 }}>{paid.toLocaleString(displayLocale())}</span>
+                    <span className="font-english text-success" style={{ fontWeight: 600 }}>{paid.toLocaleString(displayLocale())}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm pt-1 border-t border-border">
                     <span className="text-muted-foreground">{t("المتبقي:", "Outstanding:")}</span>
-                    <span className="font-english text-amber-600" style={{ fontWeight: 600 }}>{outstanding.toLocaleString(displayLocale())}</span>
+                    <span className="font-english text-warning" style={{ fontWeight: 600 }}>{outstanding.toLocaleString(displayLocale())}</span>
                   </div>
                 </>
               )}

@@ -31,9 +31,9 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
         <div><p className="font-semibold">{t('فاتورة صادرة ومقفلة', 'Issued invoice · locked')}</p>
           <p className="text-sm text-muted-foreground mt-1">{t('لا يمكن تعديلها أو حذفها أو إرجاعها لمسودة. التصحيح بإشعار دائن أو مدين مرتبط بالفاتورة الأصلية. يمكنك تسجيل التحصيل بشكل مستقل.', 'This invoice cannot be edited, deleted or returned to draft. Corrections require a credit/debit note linked to the original. Receipts can be recorded separately.')}</p></div>
       </div>
-      {(delivery?.state || invoice.zatcaStatus) && <section className={`rounded-lg border p-4 space-y-3 ${accepted ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/60'}`}>
+      {(delivery?.state || invoice.zatcaStatus) && <section className={`rounded-lg border p-4 space-y-3 ${accepted ? 'border-success-border bg-success-subtle/60' : 'border-warning-border bg-warning-subtle/60'}`}>
         <div className="flex justify-between items-center gap-3">
-          <h2 className="font-semibold flex items-center gap-2">{accepted ? <CheckCircle2 className="h-5 w-5 text-emerald-700" /> : <Clock3 className="h-5 w-5 text-amber-700" />}{accepted ? t('تم قبول الفاتورة لدى الهيئة', 'Invoice accepted by ZATCA') : t('متابعة إرسال الفاتورة للهيئة', 'ZATCA invoice delivery')}</h2>
+          <h2 className="font-semibold flex items-center gap-2">{accepted ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Clock3 className="h-5 w-5 text-warning" />}{accepted ? t('تم قبول الفاتورة لدى الهيئة', 'Invoice accepted by ZATCA') : t('متابعة إرسال الفاتورة للهيئة', 'ZATCA invoice delivery')}</h2>
           <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => { setRefreshing(true); try { await onRefresh(); } finally { setRefreshing(false); } }}>{t('تحديث الحالة', 'Refresh status')}</Button>
         </div>
         <p className="text-sm"><span dir="ltr" className="font-english">{delivery?.state || invoice.zatcaStatus}</span>{evidence?.mode && ` · ${evidence.mode === 'production' ? t('بيئة الإنتاج', 'Production') : evidence.mode}`}</p>
@@ -50,7 +50,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
           {[...(evidence.errors || []), ...(evidence.warnings || [])].map((message, index) => <p key={index} className="text-sm">{message}</p>)}
         </> : <p className="text-sm">{delivery?.message || t('لم يُحفظ رد نهائي من الهيئة بعد. الاعتماد داخل Entix يختلف عن قبول الهيئة.', 'No final authority response is stored yet. Approval in Entix is separate from ZATCA acceptance.')}</p>}
       </section>}
-      <section className="rounded-lg border border-border bg-white p-4 space-y-4">
+      <section className="rounded-lg border border-border bg-card p-4 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div><p className="text-muted-foreground">{t('تاريخ الإصدار', 'Issue date')}</p><p dir="ltr">{displayDigits(invoice.issueDate?.slice(0, 10) || '')}</p></div>
           <div><p className="text-muted-foreground">{t('الإجمالي', 'Total')}</p><p><bdi dir="ltr">{amount(invoice.total)} {invoice.currency}</bdi></p></div>

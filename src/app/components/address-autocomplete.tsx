@@ -144,7 +144,7 @@ export function AddressAutocomplete({
       {!busy && value.trim().length >= 3 && <MapPin className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />}
 
       {open && suggestions.length > 0 && (
-        <div className="absolute z-30 inset-x-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-border max-h-72 overflow-y-auto">
+        <div className="absolute z-30 inset-x-0 top-full mt-1 bg-card rounded-lg shadow-lg border border-border max-h-72 overflow-y-auto">
           {suggestions.map((s) => {
             const place = nominatimToPlace(s);
             return (

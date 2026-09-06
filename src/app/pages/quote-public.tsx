@@ -71,12 +71,12 @@ export function QuotePublic() {
     } finally { setBusy(false); }
   };
 
-  if (loading) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4FCFF" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#1276E3" }} /></div>;
+  if (loading) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F6F1E8" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
   if (error || !quote) return (
-    <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4FCFF", padding: 24 }}>
+    <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F6F1E8", padding: 24 }}>
       <div style={{ background: "#fff", border: "1px solid #D6E4EE", borderRadius: 14, padding: "28px 32px", textAlign: "center", maxWidth: 420 }}>
         <XCircle style={{ width: 40, height: 40, color: "#E84B4B", margin: "0 auto 10px" }} />
-        <div style={{ fontWeight: 700, color: "#0B1B49" }}>{error || "—"}</div>
+        <div style={{ fontWeight: 700, color: "#1A1E48" }}>{error || "—"}</div>
         <div style={{ fontSize: 12, color: "#6B7280", marginTop: 6 }}>تواصل مع الجهة المرسلة للحصول على رابط جديد</div>
       </div>
     </div>
@@ -85,7 +85,7 @@ export function QuotePublic() {
   const expired = quote.validUntil && new Date(quote.validUntil) < new Date() && !done;
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: "#F4FCFF", fontFamily: "'Noto Sans Arabic', 'Inter', sans-serif" }}>
+    <div dir="rtl" style={{ minHeight: "100vh", background: "#F6F1E8", fontFamily: "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif" }}>
       <style>{`
         .num { font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: embed; }
         @media print {
@@ -96,10 +96,10 @@ export function QuotePublic() {
       `}</style>
 
       {/* Status / action bar */}
-      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 10, background: "#0B1B49", color: "#fff", padding: "10px 16px" }}>
+      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 10, background: "#1A1E48", color: "#fff", padding: "10px 16px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
-            <BadgeCheck style={{ width: 18, height: 18, color: "#05B6FA" }} />
+            <BadgeCheck style={{ width: 18, height: 18, color: "#8FA3F0" }} />
             {quote.org?.name} · <span className="num">{quote.quoteNumber}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -111,7 +111,7 @@ export function QuotePublic() {
                 <button onClick={() => { setMode("reject"); setFormError(null); }} style={{ background: "transparent", border: "1px solid rgba(255,255,255,.35)", color: "#fff", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, cursor: "pointer" }}>
                   {t("اعتذار عن العرض", "Decline")}
                 </button>
-                <button onClick={() => { setMode("accept"); setFormError(null); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#1276E3", border: "none", color: "#fff", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={() => { setMode("accept"); setFormError(null); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#5875DB", border: "none", color: "#fff", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   <CheckCircle2 style={{ width: 15, height: 15 }} /> {t("موافق على العرض", "Approve")}
                 </button>
               </>
@@ -140,8 +140,8 @@ export function QuotePublic() {
 
         {/* Accept / Reject inline panels */}
         {mode === "accept" && !done && (
-          <div className="no-print" style={{ background: "#fff", border: "2px solid #1276E3", borderRadius: 14, padding: 18, marginBottom: 14 }}>
-            <div style={{ fontWeight: 800, color: "#0B1B49", marginBottom: 8 }}>{t("تأكيد الموافقة على العرض", "Confirm approval")}</div>
+          <div className="no-print" style={{ background: "#fff", border: "2px solid #5875DB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+            <div style={{ fontWeight: 800, color: "#1A1E48", marginBottom: 8 }}>{t("تأكيد الموافقة على العرض", "Confirm approval")}</div>
             <div style={{ fontSize: 12.5, color: "#4A5A6E", marginBottom: 10 }}>
               {t(`بالضغط على «تأكيد الموافقة» فإنكم توافقون على عرض السعر ${quote.quoteNumber} بقيمة ${Number(quote.total).toLocaleString(displayLocale())} ${quote.currency}.`,
                  `By confirming you approve proposal ${quote.quoteNumber} for ${Number(quote.total).toLocaleString(displayLocale())} ${quote.currency}.`)}
@@ -150,7 +150,7 @@ export function QuotePublic() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("الاسم الكامل + الصفة (مثال: م. خالد — مدير المشاريع)", "Full name + role")}
                 style={{ flex: 1, minWidth: 220, border: "1px solid #D6E4EE", borderRadius: 8, padding: "9px 12px", fontSize: 13 }} />
-              <button disabled={busy} onClick={submitAccept} style={{ background: "#1276E3", color: "#fff", border: "none", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+              <button disabled={busy} onClick={submitAccept} style={{ background: "#5875DB", color: "#fff", border: "none", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
                 {busy ? "..." : t("تأكيد الموافقة ✓", "Confirm ✓")}
               </button>
               <button disabled={busy} onClick={() => setMode("view")} style={{ background: "transparent", color: "#4A5A6E", border: "1px solid #D6E4EE", borderRadius: 8, padding: "9px 14px", fontSize: 13, cursor: "pointer" }}>
@@ -161,7 +161,7 @@ export function QuotePublic() {
         )}
         {mode === "reject" && !done && (
           <div className="no-print" style={{ background: "#fff", border: "2px solid #E84B4B", borderRadius: 14, padding: 18, marginBottom: 14 }}>
-            <div style={{ fontWeight: 800, color: "#0B1B49", marginBottom: 8 }}>{t("الاعتذار عن العرض", "Decline this proposal")}</div>
+            <div style={{ fontWeight: 800, color: "#1A1E48", marginBottom: 8 }}>{t("الاعتذار عن العرض", "Decline this proposal")}</div>
             {formError && <div style={{ background: "#FDECEC", color: "#8A1F1F", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{formError}</div>}
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
               placeholder={t("سبب الاعتذار (إلزامي) — مثال: السعر أعلى من الميزانية · تم اختيار مورد آخر...", "Reason (required)")}
@@ -183,7 +183,7 @@ export function QuotePublic() {
         </div>
 
         <div className="no-print" style={{ textAlign: "center", marginTop: 18, fontSize: 11, color: "#8CA0B3" }}>
-          Powered by <a href="https://entix.io" style={{ color: "#1276E3", textDecoration: "none", fontWeight: 700 }}>Entix Books</a> · entix.io
+          Powered by <a href="https://entix.io" style={{ color: "#5875DB", textDecoration: "none", fontWeight: 700 }}>Entix Books</a> · entix.io
         </div>
       </div>
     </div>

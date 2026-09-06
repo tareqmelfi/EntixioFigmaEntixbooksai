@@ -1,23 +1,19 @@
-import { displayLocale } from "../lib/number-display";
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Dashboard · org-scoped financial overview
  * All numbers from /api/dashboard/summary · zero mock data
  *
- * Layout (Wave-style):
- *   Row 1 · KPI strip (4 cards): Revenue · Expenses · VAT · Cash on hand
- *   Row 2 · Cash Flow chart (combo: in/out bars + net line) · P&L bars
- *   Row 3 · AR/AP cards · Period compare card · Connected accounts
- *   Row 4 · Expense breakdown donut · Overdue invoices list
- *   Row 5 · Quick stats footer
+ * Layout (Ledger · Direction A):
+ *   Row 0 · eyebrow date + greeting + action pills
+ *   Row 1 · overdue alert line (only when there is one)
+ *   Row 2 · ledger figures strip (revenue · net · expenses · VAT)
+ *   Row 3 · P&L bars (span 2) + today's activity
+ *   Row 4+ · income breakdown · revenue vs expenses · cash flow · AR/AP ·
+ *            period compare · banks · expense donut · overdue · quick stats
  */
 import {
-  DollarSign,
-  ShoppingBag,
-  Gauge,
   Loader2,
   TrendingUp,
-  TrendingDown,
-  AlertCircle,
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
@@ -33,21 +29,26 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { BidiText } from "../components/bidi-text";
 import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
-import { PageHeader } from "../components/product";
+import { EmptyState, Metric, MetricStrip } from "../components/product";
+import { useSession } from "../lib/auth-client";
 import { readActAs } from "../lib/act-as";
 
-// Unified palette (user directive): navy/blue family only — no rainbow scatter
-const DONUT_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
+// Ledger palette · every series colour is a CSS variable (never a literal hex)
+const DONUT_COLORS = [
+  "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-5)",
+  "var(--chart-4)", "var(--brand-teal-600)", "var(--success)", "var(--content-secondary)",
+];
 
 // ── Industry strip · per-category landing row (P2) ──────────────────────────
 // The org's industry (picked at company creation) tailors one dashboard row:
@@ -132,74 +133,45 @@ const INDUSTRY_STRIP: Record<string, IndustryStrip> = {
   },
 };
 
-// UX-205 · Locked chart-styles per Figma spec ("Data is the Hero")
-const chartColors = {
-  navy: "#0B1B49",                       // Entix logo deep navy · primary positive (UX-213 · full saturation)
-  navySoft: "#0B1B49",                   // same · NO dusty version (matches Figma · solid bars)
-  blue: "#1276E3",                       // brand interaction
-  teal: "#1276E3",                       // unified: brand blue (color-unification pass)
-  tealSoft: "#93C5FD",                   // light blue · paired secondary series
-  green: "#10B981",                      // success
-  red: "#E84B4B",                        // Figma red · slightly muted (UX-213 · brighter than dusty)
-  redSoft: "#FCA5A5",                    // lightest rose
+// Chart series · CSS variables only (recharts accepts var() in fill/stroke)
+const series = {
+  ink: "var(--chart-1)",       // profit / done
+  accent: "var(--chart-2)",    // current period
+  lift: "var(--chart-3)",      // secondary line
+  pale: "var(--chart-5)",      // revenue / totals
+  loss: "var(--danger)",       // negative profit only
 };
-const gridStyle = { stroke: "#ECEEF1", strokeDasharray: "3 3", opacity: 0.8 };
-const xAxisStyle = { fontSize: 10, fill: "#B0B7C3" };
-const yAxisStyle = { fontSize: 10, fill: "#C4CAD4" };
+const gridStyle = { stroke: "var(--border)", strokeDasharray: "3 3" };
+const axisStyle = { fontSize: 11, fill: "var(--content-secondary)" };
 const tooltipStyle = {
-  contentStyle: { backgroundColor: "rgba(255,255,255,0.96)", border: "1px solid #ECEEF1", borderRadius: 10, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" },
-  cursor: { fill: "rgba(11,27,73,0.04)" },
-  labelStyle: { color: "#0B1B49", fontWeight: 600, marginBottom: 4 },
+  contentStyle: { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 },
+  labelStyle: { color: "var(--foreground)", fontWeight: 600, marginBottom: 4 },
 };
 
-// VATGauge · split horizontal bar showing collected vs paid VAT
-function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; paid: number; currency?: string }) {
-  const { t } = useLanguage();
-  const net = collected - paid;
-  const total = Math.max(collected + paid, 1);
-  const collectedPct = (collected / total) * 100;
-  const paidPct = (paid / total) * 100;
-  const isOwed = net > 0;
+/** Big ledger numeral: large integer part, small muted fraction. */
+function Numeral({ value, fraction = true }: { value: number; fraction?: boolean }) {
+  const abs = Math.abs(value);
+  const int = Math.trunc(abs).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 });
+  const frac = displayDigits((abs - Math.trunc(abs)).toFixed(2).slice(1));
   return (
-    <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => (window.location.href = "/app/taxes")} title={t("فتح الضرائب", "Open taxes")}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <span className="text-xs text-muted-foreground">{t("ضريبة القيمة المضافة", "VAT")}</span>
-          <Gauge className="h-4 w-4 text-muted-foreground/60" />
-        </div>
-        {/* split bar */}
-        <div className="flex h-2 rounded-full overflow-hidden mb-3 bg-background">
-          <div style={{ width: `${collectedPct}%`, backgroundColor: chartColors.teal }} />
-          <div style={{ width: `${paidPct}%`, backgroundColor: chartColors.navy }} />
-        </div>
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> {t("لصالح الضريبة", "Collected")} <span className="font-english font-semibold text-foreground ms-1">{collected.toLocaleString(displayLocale())}</span></span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> {t("لصالحنا", "Owed to us")} <span className="font-english font-semibold text-foreground ms-1">{paid.toLocaleString(displayLocale())}</span></span>
-        </div>
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <span className="text-[11px] text-muted-foreground">{t("صافي المستحق", "Net Due")}</span>
-          <div className="flex items-center gap-2">
-            <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#E84B4B" : "#10B981" }}>{Math.abs(net).toLocaleString(displayLocale())} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
-            <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>{isOwed ? t("علينا", "We owe") : t("لصالحنا ✓", "Owed to us ✓")}</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      {value < 0 ? "−" : ""}{int}{fraction && <small>{frac}</small>}
+    </>
   );
 }
 
 function ChartLegend({ items }: { items: { label: string; color: string; type?: "rect" | "line" }[] }) {
   return (
-    <div className="flex justify-center gap-4 pt-2" style={{ fontFamily: "Noto Sans Arabic", fontSize: "11px", color: "#9CA3AF" }}>
+    <div className="flex flex-wrap gap-5 pt-3 text-xs text-content-secondary">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-1.5">
-          {item.type === "line" ? (
-            <span style={{ width: 16, height: 2, backgroundColor: item.color, display: "inline-block", borderRadius: 1 }} />
-          ) : (
-            <span style={{ width: 8, height: 8, backgroundColor: item.color, display: "inline-block", borderRadius: 1 }} />
-          )}
+        <span key={item.label} className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className={item.type === "line" ? "inline-block h-0.5 w-4 rounded-full" : "inline-block size-2.5 rounded-[2px]"}
+            style={{ backgroundColor: item.color }}
+          />
           <span>{item.label}</span>
-        </div>
+        </span>
       ))}
     </div>
   );
@@ -212,7 +184,8 @@ function pct(curr: number, prev: number): { value: number; up: boolean } {
 }
 
 export function Dashboard() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const session = useSession();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [chartPeriod, setChartPeriod] = useState<"months" | "years">("months");
@@ -283,14 +256,14 @@ useEffect(() => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={1.75} />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="rounded-lg border border-border border-s-[3px] border-s-danger bg-card px-4 py-3 text-sm text-foreground" role="alert">
         {error || t("تعذّر تحميل بيانات لوحة التحكم", "Failed to load dashboard data")}
       </div>
     );
@@ -313,59 +286,119 @@ useEffect(() => {
   const industryId = (data.org as any).industry as string | undefined;
   const strip = industryId ? INDUSTRY_STRIP[industryId] : undefined;
 
+  // ── Masthead · real date, fiscal year, time-of-day greeting ───────────────
+  const now = new Date();
+  const dateLocale = displayLocale(language === "ar" ? "ar-SA-u-ca-gregory" : "en-US");
+  const todayLabel = now.toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const fiscalYear = String(now.getFullYear());
+  const hour = now.getHours();
+  const greetWord = hour < 12
+    ? t("صباح الخير", "Good morning")
+    : hour < 18
+      ? t("مساء الخير", "Good afternoon")
+      : t("مساء الخير", "Good evening");
+  const sessionName = (session as any)?.data?.user?.name as string | undefined;
+  const greetName = (sessionName && sessionName.trim().split(/\s+/)[0]) || data.org.name;
+  const lastMonthLabel = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    .toLocaleDateString(dateLocale, { month: "long" });
+
+  const overdueTotal = data.overdueInvoices.reduce((s, i) => s + i.remaining, 0);
+  const netIncome = k.revenue - (k.expenses + k.purchases);
+  const marginPct = k.revenue > 0 ? Math.round((netIncome / k.revenue) * 100) : 0;
+  const vatNet = k.vatOutput - k.vatInput;
+  const hasRevDelta = data.periodCompare.lastMonth.revenue !== 0;
+
+  // P&L series · revenue bar + profit bar (current period accent, loss brick)
+  const plRows = chartPeriod === "years"
+    ? (data.yearlyTrend || []).map((y) => ({ month: String(y.year), revenue: y.revenue, profit: y.net }))
+    : data.profitLoss.map((p) => ({ month: p.month, revenue: p.revenue, profit: p.net }));
+
+  // Today's activity · built from what the summary actually exposes
+  const activity: { key: string; label: ReactNode; to: string; amount?: number }[] = [
+    ...data.overdueInvoices.slice(0, 3).map((inv) => ({
+      key: `inv-${inv.id}`,
+      to: `/app/invoices/${inv.id}`,
+      label: (<><span className="font-code">{inv.number}</span> · {inv.contact}</>),
+      amount: inv.remaining,
+    })),
+    ...data.bankAccounts.slice(0, 2).map((b) => ({
+      key: `bank-${b.id}`,
+      to: `/app/bank-accounts/${b.id}`,
+      label: (<>{t("حساب بنكي", "Bank account")} · <BidiText>{b.bankName || b.name}</BidiText></>),
+      amount: b.balance,
+    })),
+  ].slice(0, 5);
+
   return (
-    <div className="space-y-3">
-      <PageHeader
-        title={t("لوحة التحكم", "Dashboard")}
-        description={<><BidiText>{data.org.name}</BidiText> · <span className="font-english">{cur}</span></>}
-        actions={(
-          <>
-            <Link to="/app/invoices?new=1" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90">{t("+ فاتورة", "+ Invoice")}</Link>
-            <Link to="/app/expenses/new" className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-surface-hover">{t("+ مصروف", "+ Expense")}</Link>
-            <Link to="/app/vouchers/new" className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-surface-hover">{t("+ سند", "+ Voucher")}</Link>
-          </>
-        )}
-      />
+    <div className="space-y-6">
+      {/* Masthead · eyebrow date + greeting + primary actions */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-sm text-content-secondary">
+            {todayLabel} · {t("السنة المالية", "Fiscal year")} <span className="tabular-nums">{fiscalYear}</span>
+          </div>
+          <h1 className="ledger-greeting mt-1.5">
+            {greetWord}{t("، ", ", ")}<BidiText>{greetName}</BidiText>.
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button asChild><Link to="/app/invoices?new=1">{t("+ فاتورة", "+ Invoice")}</Link></Button>
+          <Button asChild variant="outline"><Link to="/app/expenses/new">{t("+ مصروف", "+ Expense")}</Link></Button>
+          <Button asChild variant="secondary">
+            <Link to="/app/vouchers/new" title={t("+ سند", "+ Voucher")}>{t("+ قيد", "+ Entry")}</Link>
+          </Button>
+        </div>
+      </header>
 
       {onb && !onbDismissed && !onb.completed && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <div className="text-sm text-primary" style={{ lineHeight: 1.7 }}>
-            <strong>{t("أكمل إعداد شركتك", "Finish setting up your company")}</strong> — {t("انقل أرصدتك الافتتاحية وأصنافك وعملاءك من برنامجك السابق في دقائق، بدون إدخال يدوي.", "Move your opening balances, items and contacts from your previous software in minutes — no manual entry.")}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link to="/app/onboarding" className="px-3.5 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary transition" style={{ fontWeight: 600 }}>{t("ابدأ النقل ←", "Start migration →")}</Link>
-            <button onClick={() => { if (orgId) { try { localStorage.setItem(`entix_onb_dismissed:${orgId}`, "1"); } catch {} } setOnbDismissed(true); }} className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 cursor-pointer">{t("لاحقًا", "Later")}</button>
-          </div>
-        </div>
+        <Card className="border-s-[3px] border-s-primary">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div className="text-sm leading-7 text-foreground">
+              <strong>{t("أكمل إعداد شركتك", "Finish setting up your company")}</strong> — {t("انقل أرصدتك الافتتاحية وأصنافك وعملاءك من برنامجك السابق في دقائق، بدون إدخال يدوي.", "Move your opening balances, items and contacts from your previous software in minutes — no manual entry.")}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button asChild size="sm"><Link to="/app/onboarding">{t("ابدأ النقل ←", "Start migration →")}</Link></Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => { if (orgId) { try { localStorage.setItem(`entix_onb_dismissed:${orgId}`, "1"); } catch {} } setOnbDismissed(true); }}
+              >
+                {t("لاحقًا", "Later")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-
-
-      {/* Overdue alert banner */}
-      {data.overdueInvoices.length > 0 && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <div className="text-sm">
-              <span className="font-semibold text-red-700">{data.overdueInvoices.length} {t("فاتورة متأخرة", "overdue invoice(s)")}</span>
-              <span className="text-red-600 mx-2">·</span>
-              <span className="text-red-600 font-english">
-                {data.overdueInvoices.reduce((s, i) => s + i.remaining, 0).toLocaleString(displayLocale())} {cur}
+      {/* Overdue alert line */}
+      {k.overdueCount > 0 && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+            <span className="flex items-center gap-3 text-sm text-foreground">
+              <span className="ledger-dot text-warning" aria-hidden="true" />
+              <span>
+                <span className="tabular-nums">{data.overdueInvoices.length || k.overdueCount}</span>{" "}
+                {t("فاتورة متأخرة", "overdue invoice(s)")}
+                <span className="mx-1.5 text-content-secondary">·</span>
+                {t("قيد التحصيل", "pending collection")}
+                <span className="mx-1.5 text-content-secondary">·</span>
+                <span className="font-display tabular-nums text-base">{overdueTotal.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>{" "}
+                <span className="text-xs text-content-secondary">{cur}</span>
               </span>
-              <span className="text-red-600 mx-1">{t("قيد التحصيل", "pending collection")}</span>
-            </div>
-          </div>
-          <Link to="/app/invoices?status=OVERDUE" className="text-sm text-red-700 hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
-        </div>
+            </span>
+            <Link to="/app/invoices?status=OVERDUE" className="text-sm font-semibold text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
+          </CardContent>
+        </Card>
       )}
 
       {/* Industry strip · per-category landing row (P2) */}
       {strip && (
-        <div className="rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3">
-          <div className="flex items-center gap-2 mb-2.5">
-            <strip.icon className="h-4 w-4 text-secondary" />
-            <span className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t(strip.ar, strip.en)}</span>
-            <span className="text-[11px] text-muted-foreground">{t("· لوحة مخصصة لنشاط شركتك", "· tailored to your industry")}</span>
+        <section>
+          <div className="mb-2.5 flex items-center gap-2">
+            <strip.icon className="size-4 text-content-secondary" strokeWidth={1.75} />
+            <span className="text-sm font-semibold text-foreground">{t(strip.ar, strip.en)}</span>
+            <span className="text-xs text-content-secondary">{t("· لوحة مخصصة لنشاط شركتك", "· tailored to your industry")}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {strip.chips.map((chip) => {
@@ -374,143 +407,163 @@ useEffect(() => {
                 <Link
                   key={chip.href + chip.en}
                   to={chip.href}
-                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-sm hover:border-primary/40 hover:shadow-sm transition"
+                  className="ledger-hoverable inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm transition"
                 >
-                  <span className="text-muted-foreground">{t(chip.ar, chip.en)}</span>
-                  <span className="font-english text-foreground" style={{ fontWeight: 700 }}>{v}</span>
+                  <span className="text-content-secondary">{t(chip.ar, chip.en)}</span>
+                  <span className="font-semibold tabular-nums text-foreground">{v}</span>
                 </Link>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* KPI Cards · Row 1 (UX-212 · revenue · net income · expenses · VAT · smaller numbers + distinct colors) */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
-        {/* Revenue · rightmost · navy */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/invoices")} title={t("فتح فواتير المبيعات", "Open sales invoices")}>
-          <CardContent className="p-3.5">
-            <div className="flex items-start justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</span>
-              <DollarSign className="h-3.5 w-3.5 text-muted-foreground/60" />
-            </div>
-            <div className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15 }}>
-              <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
-              {k.revenue.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}
-            </div>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5"><span className="font-english font-semibold text-foreground">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoice · cash ")}<span className="font-english">{k.cashOnHand.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></p>
-          </CardContent>
-        </Card>
+      {/* Ledger figures strip */}
+      <MetricStrip>
+        <Metric
+          label={t("إجمالي الإيرادات", "Total Revenue")}
+          value={<><Numeral value={k.revenue} /> <small className="text-content-secondary">{cur}</small></>}
+          hint={hasRevDelta
+            ? <span className="text-primary">{revCompare.up ? "▲" : "▼"} <span className="tabular-nums">{revCompare.value}%</span> {t("عن", "vs")} {lastMonthLabel}</span>
+            : <><span className="tabular-nums">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoice · cash ")}<span className="tabular-nums">{k.cashOnHand.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></>}
+        />
+        <Metric
+          label={t("صافي الدخل", "Net Income")}
+          value={<><Numeral value={netIncome} /> <small className="text-content-secondary">{cur}</small></>}
+          tone={netIncome >= 0 ? "neutral" : "critical"}
+          hint={<>{netIncome >= 0 ? t("ربح", "Profit") : t("خسارة", "Loss")} · {t("هامش", "margin")} <span className="tabular-nums">{marginPct}%</span></>}
+        />
+        <Metric
+          label={t("إجمالي المصروفات", "Total Expenses")}
+          value={<><Numeral value={k.expenses + k.purchases} /> <small className="text-content-secondary">{cur}</small></>}
+          hint={<>{t("مباشرة", "Direct")} <span className="tabular-nums">{k.purchases.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span> · {t("عمومية", "General")} <span className="tabular-nums">{k.expenses.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></>}
+        />
+        <Metric
+          label={t("ضريبة القيمة المضافة المستحقة", "VAT due")}
+          value={<><Numeral value={vatNet} /> <small className="text-content-secondary">{cur}</small></>}
+          hint={
+            <span className="inline-flex items-center gap-1.5">
+              <span className={vatNet > 0 ? "inline-flex items-center gap-1.5 text-warning" : "inline-flex items-center gap-1.5 text-success"}>
+                <span className="ledger-dot" aria-hidden="true" />
+                {vatNet > 0 ? t("علينا", "We owe") : t("لصالحنا", "Owed to us")}
+              </span>
+              <span>· {t("مخرجات", "Output")} <span className="tabular-nums">{k.vatOutput.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span> · {t("مدخلات", "Input")} <span className="tabular-nums">{k.vatInput.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></span>
+            </span>
+          }
+        />
+      </MetricStrip>
 
-        {/* Net Income · highlighted with sign · green/amber */}
-        {(() => {
-          const net = k.revenue - (k.expenses + k.purchases);
-          const positive = net >= 0;
-          return (
-            <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-              <CardContent className="p-3.5">
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">{t("صافي الدخل", "Net Income")}</span>
-                  {positive ? <TrendingUp className="h-3.5 w-3.5" style={{ color: "#10B981" }} /> : <TrendingDown className="h-3.5 w-3.5" style={{ color: "#D97474" }} />}
-                </div>
-                <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: positive ? "#0B1B49" : "#D97474" }}>
-                  <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
-                  {Math.abs(net).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}
-                </div>
-                <p className="text-[10.5px] mt-1.5">
-                  <span className={positive ? "text-emerald-700" : "text-rose-700"} style={{ fontWeight: 600 }}>{positive ? t("ربح", "Profit") : t("خسارة", "Loss")}</span>
-                  <span className="text-muted-foreground/60">{t(" · هامش ", " · margin ")}</span>
-                  <span className="font-english" style={{ color: positive ? "#10B981" : "#D97474" }}>{k.revenue > 0 ? Math.round((net / k.revenue) * 100) : 0}%</span>
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
-        {/* Total Expenses · blue (unified) */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/expenses")} title={t("فتح المصروفات", "Open expenses")}>
-          <CardContent className="p-3.5">
-            <div className="flex items-start justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</span>
-              <ShoppingBag className="h-3.5 w-3.5" style={{ color: chartColors.teal }} />
-            </div>
-            <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: chartColors.teal }}>
-              <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
-              {(k.expenses + k.purchases).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}
-            </div>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5">{t("مباشرة ", "Direct ")}<span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span>{t(" · عمومية ", " · General ")}<span className="font-english">{k.expenses.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></p>
-          </CardContent>
-        </Card>
-
-        {/* VAT Gauge · leftmost */}
-        <VATGauge collected={k.vatOutput} paid={k.vatInput} currency={cur} />
-      </div>
-
-      {/* Charts grid 2x2 · Figma spec UX-205 */}
-      {(data.yearlyTrend?.length ?? 0) > 0 && (
-        <div className="flex items-center justify-end gap-1 text-xs">
-          <span className="text-muted-foreground me-1">{t("فترة الرسوم:", "Chart period:")}</span>
-          <button
-            type="button"
-            onClick={() => setChartPeriod("months")}
-            className={`px-2.5 py-1 rounded-md border ${chartPeriod === "months" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
-          >
-            {t("شهري · 6 أشهر", "Monthly · 6m")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setChartPeriod("years")}
-            className={`px-2.5 py-1 rounded-md border ${chartPeriod === "years" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
-          >
-            {t("سنوي", "Yearly")}
-          </button>
-        </div>
-      )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* P&L · vertical bars · navy + red */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح تقرير الأرباح والخسائر", "Open P&L report")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الأرباح والخسائر", "Profit & Loss")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{chartPeriod === "years" ? t("ملخص الأرباح والخسائر حسب السنة", "P&L by year") : t("ملخص الأرباح والخسائر لآخر 6 أشهر", "P&L summary for the last 6 months")}</CardDescription>
+      {/* P&L (span 2) + today's activity */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+            <CardTitle className="text-base font-semibold text-foreground">
+              {chartPeriod === "years"
+                ? t("الأرباح والخسائر · حسب السنة", "Profit & Loss · by year")
+                : t("الأرباح والخسائر · آخر 6 أشهر", "Profit & Loss · last 6 months")}
+            </CardTitle>
+            {(data.yearlyTrend?.length ?? 0) > 0 && (
+              <div
+                role="group"
+                aria-label={t("فترة الرسوم:", "Chart period:")}
+                className="flex shrink-0 items-center gap-0.5 rounded-full border border-border p-[3px] text-xs font-semibold"
+              >
+                <button
+                  type="button"
+                  title={t("شهري · 6 أشهر", "Monthly · 6m")}
+                  aria-pressed={chartPeriod === "months"}
+                  onClick={() => setChartPeriod("months")}
+                  className={`rounded-full px-3 py-1 transition ${chartPeriod === "months" ? "bg-foreground text-background" : "text-content-secondary hover:text-foreground"}`}
+                >
+                  {t("شهري", "Monthly")}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={chartPeriod === "years"}
+                  onClick={() => setChartPeriod("years")}
+                  className={`rounded-full px-3 py-1 transition ${chartPeriod === "years" ? "bg-foreground text-background" : "text-content-secondary hover:text-foreground"}`}
+                >
+                  {t("سنوي", "Yearly")}
+                </button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div dir="ltr">
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartPeriod === "years" ? (data.yearlyTrend || []).map(y => ({ month: String(y.year), profit: y.revenue, loss: y.expenses })) : data.profitLoss.map(p => ({ month: p.month, profit: p.revenue, loss: p.expenses }))}>
-                  <CartesianGrid {...gridStyle} />
-                  <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
-                  <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={plRows} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                  <CartesianGrid {...gridStyle} vertical={false} />
+                  <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
+                  <YAxis orientation="right" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} width={44} />
                   <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
-                  <Bar dataKey="profit" fill={chartColors.navySoft} radius={[8, 8, 0, 0]} maxBarSize={40} />
-                  <Bar dataKey="loss" fill={chartColors.red} radius={[8, 8, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="revenue" name={t("الإيرادات", "Revenue")} fill={series.pale} radius={[4, 4, 0, 0]} maxBarSize={34} />
+                  <Bar dataKey="profit" name={t("الربح", "Profit")} radius={[4, 4, 0, 0]} maxBarSize={34}>
+                    {plRows.map((row, i) => (
+                      <Cell key={i} fill={row.profit < 0 ? series.loss : i === plRows.length - 1 ? series.accent : series.ink} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <ChartLegend items={[
-              { label: t("الأرباح", "Profit"), color: chartColors.navy },
-              { label: t("الخسائر", "Loss"), color: chartColors.red },
+              { label: t("الإيرادات", "Revenue"), color: series.pale },
+              { label: t("الربح", "Profit"), color: series.ink },
+              { label: chartPeriod === "years" ? t("السنة الحالية", "Current year") : t("الشهر الحالي", "Current month"), color: series.accent },
+              { label: t("خسارة", "Loss"), color: series.loss },
             ]} />
           </CardContent>
         </Card>
 
-        {/* Revenue Breakdown · horizontal bars */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("تفصيل الإيرادات", "Revenue Breakdown")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{t("توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة", "Revenue distribution by branches, projects and cost centers")}</CardDescription>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">{t("نشاط اليوم", "Today's activity")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activity.length === 0 ? (
+              <EmptyState
+                className="border-0 px-0 py-8"
+                title={t("لا يوجد نشاط بعد", "No activity yet")}
+                description={t("ستظهر هنا آخر الفواتير والمصروفات والتسويات البنكية.", "Recent invoices, expenses and bank matches will appear here.")}
+              />
+            ) : (
+              <div className="text-sm">
+                {activity.map((row, i) => (
+                  <Link
+                    key={row.key}
+                    to={row.to}
+                    className={`flex items-center justify-between gap-3 py-2.5 ${i < activity.length - 1 ? "border-b border-border" : ""}`}
+                  >
+                    <span className="min-w-0 truncate text-foreground">{row.label}</span>
+                    <span className="shrink-0 font-display tabular-nums text-base text-foreground">
+                      {(row.amount ?? 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Breakdowns · income · revenue vs expenses · cash flow */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">{t("تفصيل الإيرادات", "Revenue Breakdown")}</CardTitle>
+            <CardDescription className="text-xs">{t("توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة", "Revenue distribution by branches, projects and cost centers")}</CardDescription>
           </CardHeader>
           <CardContent>
             {data.incomeBreakdown.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground/60">{t("لا توجد إيرادات بعد", "No revenue yet")}</div>
+              <EmptyState className="border-0 px-0 py-10" title={t("لا توجد إيرادات بعد", "No revenue yet")} />
             ) : (
               <div dir="ltr">
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={230}>
                   <BarChart layout="vertical" data={data.incomeBreakdown.slice(0, 6).map(r => ({ category: r.category, value: r.total }))}>
                     <CartesianGrid {...gridStyle} horizontal={false} />
-                    <XAxis type="number" tick={xAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
-                    <YAxis type="category" dataKey="category" orientation="right" width={100} tick={{ ...yAxisStyle, fontFamily: "Noto Sans Arabic" }} tickLine={false} axisLine={false} />
+                    <XAxis type="number" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+                    <YAxis type="category" dataKey="category" orientation="right" width={110} tick={axisStyle} tickLine={false} axisLine={false} />
                     <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
-                    <Bar dataKey="value" fill={chartColors.navySoft} radius={[0, 8, 8, 0]} maxBarSize={22} />
+                    <Bar dataKey="value" fill={series.ink} radius={[0, 4, 4, 0]} maxBarSize={22} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -518,140 +571,179 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        {/* Revenue vs Expenses · grouped bars */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("الإيرادات مقابل المصروفات", "Revenue vs Expenses")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{chartPeriod === "years" ? t("مقارنة الإيرادات بالمصروفات حسب السنة", "Revenue vs expenses by year") : t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
+        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">{t("الإيرادات مقابل المصروفات", "Revenue vs Expenses")}</CardTitle>
+            <CardDescription className="text-xs">{chartPeriod === "years" ? t("مقارنة الإيرادات بالمصروفات حسب السنة", "Revenue vs expenses by year") : t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div dir="ltr">
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={230}>
                 <BarChart data={chartPeriod === "years" ? (data.yearlyTrend || []).map(y => ({ month: String(y.year), revenue: y.revenue, expenses: y.expenses })) : data.monthlyTrend}>
-                  <CartesianGrid {...gridStyle} />
-                  <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
-                  <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
+                  <CartesianGrid {...gridStyle} vertical={false} />
+                  <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
+                  <YAxis orientation="right" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} width={44} />
                   <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
-                  <Bar dataKey="revenue" fill={chartColors.navySoft} radius={[8, 8, 0, 0]} maxBarSize={28} />
-                  <Bar dataKey="expenses" fill={chartColors.tealSoft} radius={[8, 8, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="revenue" fill={series.pale} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="expenses" fill={series.ink} radius={[4, 4, 0, 0]} maxBarSize={28} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <ChartLegend items={[
-              { label: t("الإيرادات", "Revenue"), color: chartColors.navy },
-              { label: t("المصروفات", "Expenses"), color: chartColors.teal },
+              { label: t("الإيرادات", "Revenue"), color: series.pale },
+              { label: t("المصروفات", "Expenses"), color: series.ink },
             ]} />
           </CardContent>
         </Card>
 
-        {/* Cash Flow · line chart */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/bank-accounts")} title={t("فتح الحسابات البنكية", "Open bank accounts")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("التدفق النقدي", "Cash Flow")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{t("تحليل التدفقات النقدية الداخلة والخارجة", "Analysis of cash inflows and outflows")}</CardDescription>
+        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/bank-accounts")} title={t("فتح الحسابات البنكية", "Open bank accounts")}>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">{t("التدفق النقدي", "Cash Flow")}</CardTitle>
+            <CardDescription className="text-xs">{t("تحليل التدفقات النقدية الداخلة والخارجة", "Analysis of cash inflows and outflows")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div dir="ltr">
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={data.cashFlowTrend.map(c => ({ month: c.month, inflow: c.in, outflow: c.out }))}>
-                  <CartesianGrid {...gridStyle} />
-                  <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
-                  <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
-                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
-                  <Line type="monotone" dataKey="inflow" stroke={chartColors.navy} strokeWidth={2} dot={{ r: 3, fill: chartColors.navy }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="outflow" stroke={chartColors.teal} strokeWidth={2} dot={{ r: 3, fill: chartColors.teal }} activeDot={{ r: 5 }} />
-                </LineChart>
+            {data.cashFlowTrend.length === 0 ? (
+              <EmptyState className="border-0 px-0 py-10" title={t("لا توجد حركة نقدية بعد", "No cash movement yet")} />
+            ) : (
+              <>
+                <div dir="ltr">
+                  <ResponsiveContainer width="100%" height={230}>
+                    <LineChart data={data.cashFlowTrend.map(c => ({ month: c.month, inflow: c.in, outflow: c.out }))}>
+                      <CartesianGrid {...gridStyle} vertical={false} />
+                      <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
+                      <YAxis orientation="right" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} width={44} />
+                      <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                      <Line type="monotone" dataKey="inflow" stroke={series.ink} strokeWidth={2} dot={{ r: 3, fill: series.ink }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="outflow" stroke={series.accent} strokeWidth={2} dot={{ r: 3, fill: series.accent }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <ChartLegend items={[
+                  { label: t("تدفق داخل", "Inflow"), color: series.ink, type: "line" },
+                  { label: t("تدفق خارج", "Outflow"), color: series.accent, type: "line" },
+                ]} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">{t("تصنيف المصروفات", "Expense Breakdown")}</CardTitle>
+            <CardDescription className="text-xs">{t("حسب الفئة · هذا العام", "By category · this year")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.expenseBreakdown.length === 0 ? (
+              <EmptyState
+                className="border-0 px-0 py-10"
+                title={t("لا توجد مصروفات بعد", "No expenses yet")}
+                action={<Button asChild size="sm" variant="secondary"><Link to="/app/expenses/new">{t("+ إضافة مصروف", "+ Add expense")}</Link></Button>}
+              />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={data.expenseBreakdown}
+                    dataKey="total"
+                    nameKey="category"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={52}
+                    outerRadius={88}
+                    paddingAngle={2}
+                    stroke="var(--card)"
+                  >
+                    {data.expenseBreakdown.map((_, i) => (
+                      <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip {...tooltipStyle} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+                </PieChart>
               </ResponsiveContainer>
-            </div>
-            <ChartLegend items={[
-              { label: t("تدفق داخل", "Inflow"), color: chartColors.navy, type: "line" },
-              { label: t("تدفق خارج", "Outflow"), color: chartColors.teal, type: "line" },
-            ]} />
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* AR/AP + Period Compare + Connected Accounts · Row 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* AR/AP card */}
-        <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-              <Banknote className="h-4 w-4" /> {t("الذمم المدينة والدائنة", "Receivables & Payables")}
+      {/* AR/AP + period compare + banks */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <Banknote className="size-5 text-content-secondary" strokeWidth={1.75} /> {t("الذمم المدينة والدائنة", "Receivables & Payables")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-surface p-3 transition-colors hover:border-primary/50 hover:bg-surface-hover" onClick={() => navigate("/app/invoices")} title={t("عرض فواتير المبيعات", "View sales invoices")}>
+          <CardContent className="space-y-2">
+            <div className="ledger-hoverable flex cursor-pointer items-center justify-between rounded-lg border border-border p-3 transition" onClick={() => navigate("/app/invoices")} title={t("عرض فواتير المبيعات", "View sales invoices")}>
               <div>
-                <div className="text-xs text-muted-foreground">{t("يستحقون لي (AR)", "Receivable (AR)")}</div>
-                <div className="mt-0.5 font-english text-lg font-bold tabular-nums text-foreground">{fmt(k.accountsReceivable)}</div>
+                <div className="text-xs text-content-secondary">{t("يستحقون لي (AR)", "Receivable (AR)")}</div>
+                <div className="mt-0.5 font-display text-lg tabular-nums text-foreground">{fmt(k.accountsReceivable)}</div>
               </div>
-              <ArrowUpRight className="h-5 w-5 text-info" />
+              <ArrowUpRight className="size-5 text-success" strokeWidth={1.75} />
             </div>
-            <div className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-surface p-3 transition-colors hover:border-primary/50 hover:bg-surface-hover" onClick={() => navigate("/app/purchases/bills")} title={t("عرض فواتير المشتريات", "View purchase invoices")}>
+            <div className="ledger-hoverable flex cursor-pointer items-center justify-between rounded-lg border border-border p-3 transition" onClick={() => navigate("/app/purchases/bills")} title={t("عرض فواتير المشتريات", "View purchase invoices")}>
               <div>
-                <div className="text-xs text-muted-foreground">{t("أستحق عليهم (AP)", "Payable (AP)")}</div>
-                <div className="mt-0.5 font-english text-lg font-bold tabular-nums text-foreground">{fmt(k.accountsPayable)}</div>
+                <div className="text-xs text-content-secondary">{t("أستحق عليهم (AP)", "Payable (AP)")}</div>
+                <div className="mt-0.5 font-display text-lg tabular-nums text-foreground">{fmt(k.accountsPayable)}</div>
               </div>
-              <ArrowDownRight className="h-5 w-5 text-danger" />
+              <ArrowDownRight className="size-5 text-warning" strokeWidth={1.75} />
             </div>
-            <div className="pt-2 border-t border-border flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">{t("صافي الذمم", "Net balance")}</span>
-              <span className={`font-english font-bold ${k.accountsReceivable - k.accountsPayable >= 0 ? "text-green-700" : "text-red-700"}`}>
+            <div className="flex items-center justify-between border-t border-border pt-3">
+              <span className="text-xs text-content-secondary">{t("صافي الذمم", "Net balance")}</span>
+              <span className={`font-display tabular-nums ${k.accountsReceivable - k.accountsPayable >= 0 ? "text-foreground" : "text-danger"}`}>
                 {fmt(k.accountsReceivable - k.accountsPayable)}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Period Compare · paired bars (UX-214) */}
-        <Card className="border-border cursor-pointer hover:border-primary/50 hover:shadow-sm transition" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-              <TrendingUp className="h-4 w-4" /> {t("هذا الشهر", "This month")} vs {t("الشهر الماضي", "Last month")}
+        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <TrendingUp className="size-5 text-content-secondary" strokeWidth={1.75} /> {t("هذا الشهر", "This month")} vs {t("الشهر الماضي", "Last month")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3.5">
+          <CardContent className="space-y-4">
             {(() => {
               const rows = [
-                { label: t("الإيرادات", "Revenue"), curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, ya: yearAgo.revenue, color: chartColors.navy, prevColor: chartColors.navy + "40", upGood: true, cmp: revCompare },
-                { label: t("المصروفات", "Expenses"), curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, ya: yearAgo.expenses, color: chartColors.teal, prevColor: chartColors.teal + "40", upGood: false, cmp: expCompare },
-                { label: t("صافي الدخل", "Net Income"), curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, ya: yearAgo.net, color: data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B", prevColor: (data.periodCompare.thisMonth.net >= 0 ? "#10B981" : "#E84B4B") + "40", upGood: true, cmp: netCompare },
+                { label: t("الإيرادات", "Revenue"), curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, ya: yearAgo.revenue, color: series.ink, upGood: true, cmp: revCompare },
+                { label: t("المصروفات", "Expenses"), curr: data.periodCompare.thisMonth.expenses, prev: data.periodCompare.lastMonth.expenses, ya: yearAgo.expenses, color: series.accent, upGood: false, cmp: expCompare },
+                { label: t("صافي الدخل", "Net Income"), curr: data.periodCompare.thisMonth.net, prev: data.periodCompare.lastMonth.net, ya: yearAgo.net, color: data.periodCompare.thisMonth.net >= 0 ? series.ink : series.loss, upGood: true, cmp: netCompare },
               ];
               const max = Math.max(1, ...rows.flatMap(r => [Math.abs(r.curr), Math.abs(r.prev), Math.abs(r.ya)]));
+              const bars = [
+                { key: "curr", label: t("الحالي", "Current") },
+                { key: "prev", label: t("الشهر الماضي", "Last month") },
+                { key: "ya", label: t("السنة الماضية", "Last year") },
+              ] as const;
               return rows.map((r, i) => {
                 const positiveTrend = r.upGood ? r.cmp.up : !r.cmp.up;
                 return (
                   <div key={i}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">{r.label}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-english font-semibold text-foreground">{fmtCompact(r.curr)}</span>
-                        <span className="font-english text-[10px]" style={{ color: positiveTrend ? "#10B981" : "#E84B4B" }}>{r.cmp.up ? "▲" : "▼"} {r.cmp.value}%</span>
-                      </div>
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                      <span className="text-content-secondary">{r.label}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-display tabular-nums text-sm text-foreground">{fmtCompact(r.curr)}</span>
+                        <span className={`tabular-nums ${positiveTrend ? "text-success" : "text-warning"}`}>{r.cmp.up ? "▲" : "▼"} {r.cmp.value}%</span>
+                      </span>
                     </div>
-                    {/* Three stacked thin bars · current / previous month / year-ago (UX-216) */}
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("الحالي", "Current")}</span>
-                        <div className="flex-1 h-1.5 bg-background rounded">
-                          <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.curr) / max) * 100}%`, backgroundColor: r.color }} />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("الشهر الماضي", "Last month")}</span>
-                        <div className="flex-1 h-1.5 bg-background rounded">
-                          <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.prev) / max) * 100}%`, backgroundColor: r.prevColor }} />
-                        </div>
-                        <span className="font-english text-[10px] text-muted-foreground/60 shrink-0 w-9 text-end">{fmtCompact(r.prev)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-muted-foreground/60 w-12 shrink-0">{t("السنة الماضية", "Last year")}</span>
-                        <div className="flex-1 h-1.5 bg-background rounded">
-                          <div className="h-1.5 rounded" style={{ width: `${(Math.abs(r.ya || 0) / max) * 100}%`, backgroundColor: r.prevColor }} />
-                        </div>
-                        <span className="font-english text-[10px] text-muted-foreground/60 shrink-0 w-9 text-end">{fmtCompact(r.ya || 0)}</span>
-                      </div>
+                      {bars.map((b, bi) => {
+                        const v = Math.abs((r as any)[b.key] || 0);
+                        return (
+                          <div key={b.key} className="flex items-center gap-2">
+                            <span className="w-16 shrink-0 text-[10px] text-content-secondary">{b.label}</span>
+                            <span className="h-1.5 flex-1 rounded-full bg-surface-subtle">
+                              <span
+                                className="block h-1.5 rounded-full"
+                                style={{ width: `${(v / max) * 100}%`, backgroundColor: r.color, opacity: bi === 0 ? 1 : 0.35 }}
+                              />
+                            </span>
+                            <span className="w-10 shrink-0 text-end text-[10px] tabular-nums text-content-secondary">{fmtCompact((r as any)[b.key] || 0)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -660,53 +752,45 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        {/* Bank Accounts · Wave-style cards · UX-209 */}
-        <Card className="border-border">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
-                <Wallet className="h-4 w-4" /> {t("الحسابات البنكية", "Bank accounts")}
-              </CardTitle>
-              <Link to="/app/bank-accounts" className="text-xs text-primary hover:underline">{t("إدارة ←", "Manage ←")}</Link>
-            </div>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <Wallet className="size-5 text-content-secondary" strokeWidth={1.75} /> {t("الحسابات البنكية", "Bank accounts")}
+            </CardTitle>
+            <Link to="/app/bank-accounts" className="shrink-0 text-xs font-semibold text-primary hover:underline">{t("إدارة ←", "Manage ←")}</Link>
           </CardHeader>
           <CardContent>
             {data.bankAccounts.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground mb-2">{t("لا توجد حسابات بنكية مربوطة", "No bank accounts connected")}</p>
-                <Link to="/app/bank-accounts/new" className="text-xs text-primary hover:underline">{t("+ ربط بنك جديد", "+ Connect new bank")}</Link>
-              </div>
+              <EmptyState
+                className="border-0 px-0 py-8"
+                title={t("لا توجد حسابات بنكية مربوطة", "No bank accounts connected")}
+                action={<Button asChild size="sm" variant="secondary"><Link to="/app/bank-accounts/new">{t("+ ربط بنك جديد", "+ Connect new bank")}</Link></Button>}
+              />
             ) : (
               <div className="space-y-2">
-                <p className="text-[10px] text-muted-foreground/60 mb-1">{t("هذا الشهر مقابل الشهر الماضي", "This month vs last month")}</p>
+                <p className="text-xs text-content-secondary">{t("هذا الشهر مقابل الشهر الماضي", "This month vs last month")}</p>
                 {data.bankAccounts.slice(0, 4).map((b: any) => {
-                  // Compute trend % vs last month (mocked +4% if not provided · UX-215 Opus design)
                   const trendPct = (b as any).trendPct ?? 4;
                   const trendUp = trendPct >= 0;
                   return (
-                    <Link key={b.id} to={`/app/bank-accounts/${b.id}`} className="block group">
-                      <div className="rounded-lg border border-border hover:border-primary transition p-2.5 bg-white">
-                        <div className="flex items-center justify-between gap-2">
-                          {/* Right side · name + logo placeholder */}
-                          <div className="flex items-center gap-2 min-w-0">
-                            {(b as any).logoUrl ? (
-                              <img src={(b as any).logoUrl} alt="" className="w-7 h-7 rounded-md object-contain p-0.5 border border-border/50" />
-                            ) : (
-                              <div className="w-7 h-7 rounded-md bg-primary/5 border border-border flex items-center justify-center">
-                                <Wallet className="h-3.5 w-3.5" style={{ color: chartColors.navy }} />
-                              </div>
-                            )}
-                            <span className="text-xs text-foreground truncate" style={{ fontWeight: 600 }}>{b.bankName || b.name} · {b.currency}</span>
-                          </div>
-                          {/* Left side · trend chip */}
-                          <span className={`flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded font-english shrink-0 ${trendUp ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-                            <span style={{ fontSize: "0.7rem" }}>{trendUp ? "↗" : "↘"}</span> {trendUp ? "+" : ""}{trendPct}%
-                          </span>
-                        </div>
-                        {/* Big balance number */}
-                        <div className="font-english text-foreground mt-1.5" style={{ fontSize: "0.95rem", fontWeight: 700 }}>
-                          {b.balance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-[10px] text-muted-foreground/60">{b.currency}</span>
-                        </div>
+                    <Link key={b.id} to={`/app/bank-accounts/${b.id}`} className="ledger-hoverable block rounded-lg border border-border p-3 transition">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 items-center gap-2">
+                          {(b as any).logoUrl ? (
+                            <img src={(b as any).logoUrl} alt="" className="size-7 rounded-md border border-border object-contain p-0.5" />
+                          ) : (
+                            <span className="flex size-7 items-center justify-center rounded-md border border-border bg-surface-subtle">
+                              <Wallet className="size-3.5 text-content-secondary" strokeWidth={1.75} />
+                            </span>
+                          )}
+                          <span className="truncate text-xs font-semibold text-foreground"><BidiText>{b.bankName || b.name}</BidiText> · {b.currency}</span>
+                        </span>
+                        <span className={`flex shrink-0 items-center gap-1 text-[11px] font-semibold tabular-nums ${trendUp ? "text-success" : "text-warning"}`}>
+                          <span className="ledger-dot" aria-hidden="true" />{trendUp ? "+" : ""}{trendPct}%
+                        </span>
+                      </div>
+                      <div className="mt-1.5 font-display text-base tabular-nums text-foreground">
+                        {b.balance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <small className="text-xs text-content-secondary">{b.currency}</small>
                       </div>
                     </Link>
                   );
@@ -717,158 +801,81 @@ useEffect(() => {
         </Card>
       </div>
 
-      {/* Expense Breakdown + Overdue · Row 4 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Donut */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground" style={{ fontSize: "1rem", fontWeight: 600 }}>{t("تصنيف المصروفات", "Expense Breakdown")}</CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">{t("حسب الفئة · هذا العام", "By category · this year")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {data.expenseBreakdown.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-sm text-muted-foreground">{t("لا توجد مصروفات بعد", "No expenses yet")}</p>
-                <Link to="/app/expenses/new" className="text-xs text-primary hover:underline">{t("+ إضافة مصروف", "+ Add expense")}</Link>
+      {/* Overdue AR/AP */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Clock className="size-5 text-warning" strokeWidth={1.75} /> {t("الفواتير المتأخرة", "Overdue Invoices")}
+          </CardTitle>
+          <Link to="/app/invoices?status=OVERDUE" className="shrink-0 text-xs font-semibold text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <div className="mb-2 flex items-center justify-between border-b border-foreground pb-1.5">
+                <span className="text-xs text-content-secondary">{t("متأخرة عليهم (AR)", "Overdue to us (AR)")}</span>
+                <span className="text-xs font-semibold tabular-nums text-warning">{data.overdueInvoices.length}</span>
               </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={data.expenseBreakdown}
-                    dataKey="total"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={90}
-                    paddingAngle={2}
-                  >
-                    {data.expenseBreakdown.map((_, i) => (
-                      <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }}
-                    formatter={(v: any) => Number(v).toLocaleString(displayLocale())}
-                  />
-                  <Legend
-                    wrapperStyle={{ fontSize: 11, fontFamily: "Noto Sans Arabic" }}
-                    iconType="circle"
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Overdue · 2 columns: AR (متأخرة لي) + AP (متأخرة عليّ) (UX-214) */}
-        <Card className="border-border">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center gap-2" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                <Clock className="h-4 w-4" style={{ color: chartColors.red }} /> {t("الفواتير المتأخرة", "Overdue Invoices")}
-              </CardTitle>
-              <Link to="/app/invoices?status=OVERDUE" className="text-xs text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* AR overdue · invoices customers haven't paid */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-muted-foreground">{t("متأخرة عليهم (AR)", "Overdue to us (AR)")}</span>
-                  <span className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{data.overdueInvoices.length}</span>
+              {data.overdueInvoices.length === 0 ? (
+                <p className="py-4 text-xs text-content-secondary">{t("🎉 لا توجد", "🎉 None")}</p>
+              ) : (
+                <div>
+                  {data.overdueInvoices.slice(0, 3).map((inv, i) => (
+                    <Link key={inv.id} to={`/app/invoices/${inv.id}`} className={`flex items-center justify-between gap-2 py-2.5 ${i < 2 ? "border-b border-border" : ""}`}>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate font-code text-xs text-foreground">{inv.number}</span>
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-warning">
+                            <span className="ledger-dot" aria-hidden="true" />{inv.daysOverdue}{t("ي", "d")}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-content-secondary">{inv.contact}</span>
+                      </span>
+                      <span className="shrink-0 font-display text-sm tabular-nums text-foreground">{(inv.remaining || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span>
+                    </Link>
+                  ))}
                 </div>
-                {data.overdueInvoices.length === 0 ? (
-                  <div className="text-center py-6 rounded-lg bg-emerald-50 border border-emerald-100">
-                    <p className="text-[11px] text-emerald-700">{t("🎉 لا توجد", "🎉 None")}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {data.overdueInvoices.slice(0, 3).map((inv) => (
-                      <Link key={inv.id} to={`/app/invoices/${inv.id}`} className="block p-2 rounded-md hover:bg-rose-50 border border-border/50 hover:border-rose-100 transition">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-english text-[11px] text-foreground font-semibold truncate">{inv.number}</span>
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-english shrink-0">{inv.daysOverdue}{t("ي", "d")}</span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate mt-0.5">{inv.contact}</div>
-                          </div>
-                          <div className="text-end shrink-0">
-                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{(inv.remaining || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* AP overdue · bills we haven't paid */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-muted-foreground">{t("متأخرة علينا (AP)", "Overdue by us (AP)")}</span>
-                  <span className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(data as any).overdueBills?.length || 0}</span>
-                </div>
-                {(!(data as any).overdueBills || (data as any).overdueBills.length === 0) ? (
-                  <div className="text-center py-6 rounded-lg bg-emerald-50 border border-emerald-100">
-                    <p className="text-[11px] text-emerald-700">{t("🎉 لا توجد", "🎉 None")}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {((data as any).overdueBills as any[]).slice(0, 3).map((bill) => (
-                      <Link key={bill.id} to={`/app/purchases/bills`} className="block p-2 rounded-md hover:bg-cyan-50 border border-border/50 hover:border-cyan-100 transition">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-english text-[11px] text-foreground font-semibold truncate">{bill.number || bill.billNumber}</span>
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-cyan-100 text-cyan-700 font-english shrink-0">{bill.daysOverdue}{t("ي", "d")}</span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate mt-0.5">{bill.contact}</div>
-                          </div>
-                          <div className="text-end shrink-0">
-                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(bill.remaining || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Quick stats footer · Row 5 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">{t("عدد العملاء/الموردين", "Customers/Vendors count")}</div>
-            <div className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.contactCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">{t("فواتير متأخرة", "Overdue invoices")}</div>
-            <div className={`font-english ${k.overdueCount > 0 ? "text-red-600" : "text-foreground"}`} style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.overdueCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">{t("إجمالي القبض", "Total receipts")}</div>
-            <div className="font-english text-green-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.receipts.toLocaleString(displayLocale())}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="text-muted-foreground text-xs mb-1">{t("إجمالي الصرف", "Total payments")}</div>
-            <div className="font-english text-amber-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.payments.toLocaleString(displayLocale())}</div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <div className="mb-2 flex items-center justify-between border-b border-foreground pb-1.5">
+                <span className="text-xs text-content-secondary">{t("متأخرة علينا (AP)", "Overdue by us (AP)")}</span>
+                <span className="text-xs font-semibold tabular-nums text-warning">{(data as any).overdueBills?.length || 0}</span>
+              </div>
+              {(!(data as any).overdueBills || (data as any).overdueBills.length === 0) ? (
+                <p className="py-4 text-xs text-content-secondary">{t("🎉 لا توجد", "🎉 None")}</p>
+              ) : (
+                <div>
+                  {((data as any).overdueBills as any[]).slice(0, 3).map((bill, i) => (
+                    <Link key={bill.id} to={`/app/purchases/bills`} className={`flex items-center justify-between gap-2 py-2.5 ${i < 2 ? "border-b border-border" : ""}`}>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate font-code text-xs text-foreground">{bill.number || bill.billNumber}</span>
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-warning">
+                            <span className="ledger-dot" aria-hidden="true" />{bill.daysOverdue}{t("ي", "d")}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-content-secondary">{bill.contact}</span>
+                      </span>
+                      <span className="shrink-0 font-display text-sm tabular-nums text-foreground">{(bill.remaining || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick stats footer */}
+      <MetricStrip>
+        <Metric label={t("عدد العملاء/الموردين", "Customers/Vendors count")} value={<Numeral value={k.contactCount} fraction={false} />} />
+        <Metric label={t("فواتير متأخرة", "Overdue invoices")} tone={k.overdueCount > 0 ? "warning" : "neutral"} value={<Numeral value={k.overdueCount} fraction={false} />} />
+        <Metric label={t("إجمالي القبض", "Total receipts")} value={<><Numeral value={k.receipts} /> <small className="text-content-secondary">{cur}</small></>} />
+        <Metric label={t("إجمالي الصرف", "Total payments")} value={<><Numeral value={k.payments} /> <small className="text-content-secondary">{cur}</small></>} />
+      </MetricStrip>
+
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );

@@ -364,14 +364,14 @@ export function Payroll() {
             {t("حساب المسير", "Calculate payroll")}
           </Button>
           {/* Secondary: Approve → locks the last-saved DRAFT → APPROVED */}
-          <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={approveRun} disabled={busy || loading || !lastSavedRunId}>
+          <Button variant="outline" className="border-success-border text-success hover:bg-success-subtle" onClick={approveRun} disabled={busy || loading || !lastSavedRunId}>
             {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="me-2 h-4 w-4" />}
             {t("اعتماد المسير", "Approve payroll run")}
           </Button>
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Metric label={t("الموظفون", "Employees")} value={employees.length.toString()} />
@@ -485,11 +485,11 @@ export function Payroll() {
                         </td>
                         <td className="px-3 py-2 text-end min-w-[190px]">
                           <div className="text-[11px] text-muted-foreground">{t("الإجمالي قبل الاستقطاع:", "Gross before deductions:")} <span className="font-english text-foreground">{money(preview.grossSalary)}</span></div>
-                          <div className="text-[11px] text-red-600">{t("الاستقطاعات:", "Deductions:")} <span className="font-english">{money(preview.totalDeductions)}</span></div>
-                          <div className="text-sm font-semibold text-emerald-700">{t("الصافي:", "Net:")} <span className="font-english">{money(preview.netSalary)}</span></div>
+                          <div className="text-[11px] text-danger">{t("الاستقطاعات:", "Deductions:")} <span className="font-english">{money(preview.totalDeductions)}</span></div>
+                          <div className="text-sm font-semibold text-success">{t("الصافي:", "Net:")} <span className="font-english">{money(preview.netSalary)}</span></div>
                         </td>
                         <td className="px-3 py-2">
-                          <button onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                          <button onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
@@ -524,10 +524,10 @@ export function Payroll() {
                       <tr key={result.employeeId} className="border-b border-border/50 hover:bg-primary/5">
                         <td className="px-4 py-3 text-sm text-foreground">{employee?.displayName || result.employeeId}</td>
                         <td className="px-4 py-3 text-sm font-english text-end">{money(result.grossSalary)}</td>
-                        <td className="px-4 py-3 text-sm font-english text-end text-amber-700">{money(result.employeeGosi)}</td>
-                        <td className="px-4 py-3 text-sm font-english text-end text-red-700">{money(result.totalDeductions)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-end text-warning">{money(result.employeeGosi)}</td>
+                        <td className="px-4 py-3 text-sm font-english text-end text-danger">{money(result.totalDeductions)}</td>
                         <td className="px-4 py-3 text-sm font-english text-end">{money(result.employerGosi)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-emerald-700 font-english text-end">{money(result.netSalary)}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-success font-english text-end">{money(result.netSalary)}</td>
                       </tr>
                     );
                   })}
@@ -561,14 +561,14 @@ export function Payroll() {
                         <button onClick={() => navigate(`/app/payroll/${run.id}`)} className="hover:underline">{run.runNumber}</button>
                       </td>
                       <td className="px-4 py-3 text-sm font-english">{run.period}</td>
-                      <td className="px-4 py-3 text-xs"><span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700">{run.status}</span></td>
+                      <td className="px-4 py-3 text-xs"><span className="rounded bg-info-subtle px-2 py-0.5 text-info">{run.status}</span></td>
                       <td className="px-4 py-3 text-sm font-english text-foreground font-semibold">{money(run.netSalary)} {run.currency}</td>
                       <td className="px-4 py-3 text-sm font-english text-end">{run.lines?.length || 0}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank", "noopener,noreferrer")}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50"
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-info-subtle"
                           >
                             <Download className="h-3.5 w-3.5" /> SIF
                           </button>
@@ -576,7 +576,7 @@ export function Payroll() {
                             <button
                               onClick={() => deleteRun(run.id)}
                               disabled={busy}
-                              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-subtle disabled:opacity-50"
                               title={t("حذف المسير (مسودة)", "Delete payroll run (draft)")}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -606,7 +606,7 @@ function MoneyInput({ value, onChange }: { value: string; onChange: (value: stri
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-white px-4 py-3">
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>

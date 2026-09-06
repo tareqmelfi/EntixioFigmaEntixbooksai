@@ -17,12 +17,12 @@ import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
-  TRIALING: { ar: "تجربة مجانية", en: "Free trial", bg: "bg-blue-100 text-blue-700" },
-  ACTIVE: { ar: "نشط", en: "Active", bg: "bg-emerald-100 text-emerald-700" },
-  PAST_DUE: { ar: "متأخر الدفع", en: "Past due", bg: "bg-amber-100 text-amber-700" },
-  INCOMPLETE: { ar: "غير مكتمل", en: "Incomplete", bg: "bg-gray-100 text-gray-600" },
-  CANCELED: { ar: "ملغي", en: "Canceled", bg: "bg-red-100 text-red-700" },
-  EXPIRED: { ar: "منتهٍ", en: "Expired", bg: "bg-red-100 text-red-700" },
+  TRIALING: { ar: "تجربة مجانية", en: "Free trial", bg: "bg-info-subtle text-info" },
+  ACTIVE: { ar: "نشط", en: "Active", bg: "bg-success-subtle text-success" },
+  PAST_DUE: { ar: "متأخر الدفع", en: "Past due", bg: "bg-warning-subtle text-warning" },
+  INCOMPLETE: { ar: "غير مكتمل", en: "Incomplete", bg: "bg-surface-hover text-muted-foreground" },
+  CANCELED: { ar: "ملغي", en: "Canceled", bg: "bg-danger-subtle text-danger" },
+  EXPIRED: { ar: "منتهٍ", en: "Expired", bg: "bg-danger-subtle text-danger" },
 };
 
 const money = (cents: number, currency = "sar", isEn = false) =>
@@ -126,7 +126,7 @@ export function Billing() {
         <p className="text-muted-foreground mt-1">{t("حالة اشتراكك · إدارة الدفع · الترقية بين الباقات", "Your subscription status · payment management · plan upgrades")}</p>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       {/* Current status */}
       <Card className="border-border">
@@ -174,7 +174,7 @@ export function Billing() {
                   <button
                     key={c}
                     onClick={() => setPlanCurrency(c)}
-                    className={`rounded-md px-3 py-1.5 text-sm transition-colors ${planCurrency === c ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`}
+                    className={`rounded-md px-3 py-1.5 text-sm transition-colors ${planCurrency === c ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
                     style={{ fontWeight: planCurrency === c ? 700 : 500 }}
                   >
                     {c === "sar" ? t("ر.س", "SAR") : "$ USD"}
@@ -182,8 +182,8 @@ export function Billing() {
                 ))}
               </div>
               <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
-                <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
-                <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "year" ? "bg-emerald-500 text-white shadow-sm" : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300/60"}`} style={{ fontWeight: 700 }}>
+                <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
+                <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "year" ? "bg-success text-primary-foreground shadow-sm" : "text-success bg-success-subtle hover:bg-success-subtle border border-success-border/60"}`} style={{ fontWeight: 700 }}>
                   {t("سنوي · وفّر", "Yearly · save")}
                   {cycle === "year" && <span className="ms-1 text-[10px] opacity-90">{planCurrency === "usd" ? t("حتى $118", "up to $118") : t("حتى 598 ر.س", "up to 598 SAR")}</span>}
                 </button>
@@ -200,7 +200,7 @@ export function Billing() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-foreground text-base">{t(p.nameAr || p.name, p.name)}</CardTitle>
-                      {isCurrent && <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full"><BadgeCheck className="h-3 w-3" />{t("باقتك", "Current")}</span>}
+                      {isCurrent && <span className="inline-flex items-center gap-1 text-[10px] text-success bg-success-subtle px-2 py-0.5 rounded-full"><BadgeCheck className="h-3 w-3" />{t("باقتك", "Current")}</span>}
                     </div>
                     <p className="text-xs text-muted-foreground">{p.description || ""}</p>
                   </CardHeader>
@@ -211,7 +211,7 @@ export function Billing() {
                     </div>
                     <ul className="space-y-1.5 text-xs text-foreground/80">
                       {(Array.isArray(p.features) ? p.features : []).slice(0, 5).map((f: any, i: number) => (
-                        <li key={i} className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />{typeof f === "string" ? f : (isEn ? (f.labelEn || f.label) : f.label)}</li>
+                        <li key={i} className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-success shrink-0" />{typeof f === "string" ? f : (isEn ? (f.labelEn || f.label) : f.label)}</li>
                       ))}
                     </ul>
                     {isPaid && (

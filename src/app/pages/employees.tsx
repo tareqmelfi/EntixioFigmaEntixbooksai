@@ -86,7 +86,7 @@ export function Employees() {
         </Button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-4">
         <Metric label={t("إجمالي الموظفين", "Total employees")} value={items.length.toString()} />
@@ -142,7 +142,7 @@ export function Employees() {
                           {pendingDelete === item.id ? (
                             <InlineConfirm onConfirm={() => removeEmployee(item.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />
                           ) : (
-                            <button disabled={busy} onClick={() => setPendingDelete(item.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50" title={t("حذف الموظف", "Delete employee")}>
+                            <button disabled={busy} onClick={() => setPendingDelete(item.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle disabled:opacity-50" title={t("حذف الموظف", "Delete employee")}>
                               <Trash2 className="h-4 w-4" />
                             </button>
                           )}
@@ -163,7 +163,7 @@ export function Employees() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-white px-4 py-3">
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
     </div>

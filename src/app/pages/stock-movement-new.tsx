@@ -110,7 +110,7 @@ export function StockMovementNew() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -121,7 +121,7 @@ export function StockMovementNew() {
                   const Icon = modeMeta[m].icon;
                   return (
                     <button key={m} type="button" onClick={() => setForm({ ...form, mode: m })}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm border transition-colors ${form.mode === m ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>
+                      className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm border transition-colors ${form.mode === m ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>
                       <Icon className="h-3.5 w-3.5" />{t(modeMeta[m].ar, modeMeta[m].en)}
                     </button>
                   );
@@ -178,7 +178,7 @@ export function StockMovementNew() {
                   <div className="flex gap-2">
                     {COST_METHODS.map((m) => (
                       <button key={m} type="button" onClick={() => setForm({ ...form, method: m })}
-                        className={`rounded-full px-4 py-1.5 text-sm border font-english transition-colors ${form.method === m ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>{m}</button>
+                        className={`rounded-full px-4 py-1.5 text-sm border font-english transition-colors ${form.method === m ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>{m}</button>
                     ))}
                   </div>
                 </div>

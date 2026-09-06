@@ -82,14 +82,14 @@ export function Templates() {
           <Input placeholder={t("بحث في القوالب...", "Search templates...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
         <div className="flex gap-1 flex-wrap">
-          <button onClick={() => setTypeFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!typeFilter ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+          <button onClick={() => setTypeFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!typeFilter ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
           {(Object.keys(TYPE_META) as DocType[]).map(k => (
-            <button key={k} onClick={() => setTypeFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${typeFilter === k ? "bg-primary text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
+            <button key={k} onClick={() => setTypeFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${typeFilter === k ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
           ))}
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="h-7 w-7 animate-spin mx-auto text-primary" /></div>
@@ -134,16 +134,16 @@ export function Templates() {
                   <div className="flex items-center justify-between pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
                     <span className="text-xs text-muted-foreground/60 font-english">{(tpl.updatedAt || "").slice(0, 10)}</span>
                     <div className="flex gap-1">
-                      <button onClick={() => setPreviewTpl(tpl)} className="rounded-md p-1.5 text-primary hover:bg-blue-50 transition-colors" title={t("معاينة حية", "Live preview")}><Eye className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => setPreviewTpl(tpl)} className="rounded-md p-1.5 text-primary hover:bg-info-subtle transition-colors" title={t("معاينة حية", "Live preview")}><Eye className="h-3.5 w-3.5" /></button>
                       <button onClick={() => navigate(`/app/templates/${tpl.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 transition-colors" title={t("تعديل", "Edit")}><Edit2 className="h-3.5 w-3.5" /></button>
                       <button onClick={() => handleDuplicate(tpl)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 transition-colors" title={t("نسخ", "Duplicate")}><Copy className="h-3.5 w-3.5" /></button>
                       {!tpl.isDefault && (
-                        <button onClick={() => handleSetDefault(tpl)} className="rounded-md p-1.5 text-amber-500 hover:bg-amber-50 transition-colors" title={t("تعيين كافتراضي", "Set as default")}><Star className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => handleSetDefault(tpl)} className="rounded-md p-1.5 text-warning hover:bg-warning-subtle transition-colors" title={t("تعيين كافتراضي", "Set as default")}><Star className="h-3.5 w-3.5" /></button>
                       )}
                       {pendingDelete === tpl.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(tpl.id)} onCancel={() => setPendingDelete(null)} />
                       ) : (
-                        <button onClick={() => setPendingDelete(tpl.id)} className="rounded-md p-1.5 text-red-500 hover:bg-red-50 transition-colors" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => setPendingDelete(tpl.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle transition-colors" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
                       )}
                     </div>
                   </div>
@@ -156,8 +156,8 @@ export function Templates() {
 
       {/* Read-only preview lightbox (kept · it's a viewer, not a form) */}
       {previewTpl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreviewTpl(null)}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={() => setPreviewTpl(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-border">
               <div className="text-sm" style={{ fontWeight: 700 }}>{isAr ? previewTpl.name : (previewTpl.nameEn || previewTpl.name)} · {t("معاينة", "Preview")}</div>
               <div className="flex gap-1">
@@ -165,7 +165,7 @@ export function Templates() {
                 <button className="rounded-md p-1.5 text-muted-foreground hover:bg-muted" onClick={() => setPreviewTpl(null)}><X className="h-4 w-4" /></button>
               </div>
             </div>
-            <div className="p-5 bg-slate-100"><TemplatePreview tpl={previewTpl} language={language} /></div>
+            <div className="p-5 bg-surface-hover"><TemplatePreview tpl={previewTpl} language={language} /></div>
           </div>
         </div>
       )}

@@ -40,13 +40,13 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   REJECTED: { ar: "مرفوض", en: "Rejected" }, CONVERTED: { ar: "محوّل لفاتورة", en: "Converted to invoice" }, EXPIRED: { ar: "منتهي", en: "Expired" },
 };
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  SENT: "bg-amber-100 text-amber-700",
-  VIEWED: "bg-blue-100 text-blue-700",
-  ACCEPTED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
-  CONVERTED: "bg-blue-100 text-blue-700",
-  EXPIRED: "bg-gray-100 text-gray-500",
+  DRAFT: "bg-surface-hover text-foreground",
+  SENT: "bg-warning-subtle text-warning",
+  VIEWED: "bg-info-subtle text-info",
+  ACCEPTED: "bg-success-subtle text-success",
+  REJECTED: "bg-danger-subtle text-danger",
+  CONVERTED: "bg-info-subtle text-info",
+  EXPIRED: "bg-surface-hover text-muted-foreground",
 };
 
 const EMPTY_FORM = {
@@ -309,7 +309,7 @@ export function Quotes() {
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-green-500 text-green-700 hover:bg-green-50" title={t("إرسال للعميل", "Send to customer")}>
+                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-success text-success hover:bg-success-subtle" title={t("إرسال للعميل", "Send to customer")}>
                   {busy ? "..." : t("حفظ + إرسال", "Save + send")}
                 </Button>
               </div>
@@ -317,7 +317,7 @@ export function Quotes() {
           }
         >
           <div className="w-full max-w-none mx-auto space-y-4">
-            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+            {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
 
             {/* Top fields row */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -444,7 +444,7 @@ export function Quotes() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("الإجمالي", "Total")}</Label>
-                <div className="rounded-lg border border-border bg-white p-4 space-y-2">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-2">
                   {(() => {
                     const totals = computeTotals(lines);
                     return (
@@ -495,7 +495,7 @@ export function Quotes() {
           }
         >
           <div className="max-w-2xl mx-auto space-y-4">
-            {signError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{signError}</div>}
+            {signError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{signError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("اسم الموقّع", "Signer name")} *</Label>
                 <Input value={signForm.name} onChange={(e) => setSignForm({ ...signForm, name: e.target.value })} placeholder={t("الاسم الكامل", "Full name")} /></div>
@@ -534,11 +534,11 @@ export function Quotes() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("معلقة (في انتظار الرد)", "Pending (awaiting response)")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{pending}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{pending}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("مقبولة", "Accepted")}</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{accepted}</div>
+          <div className="font-english text-success" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{accepted}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("القيمة الإجمالية", "Total value")}</div>
@@ -583,7 +583,7 @@ export function Quotes() {
                           <Printer className="h-3.5 w-3.5" /> {t("العرض", "Proposal")}
                         </a>
                         {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
-                          <button onClick={() => handleSendLink(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إنشاء رابط اعتماد عام + إرساله للعميل", "Create a public accept link + email it")}>
+                          <button onClick={() => handleSendLink(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-info-subtle flex items-center gap-1" title={t("إنشاء رابط اعتماد عام + إرساله للعميل", "Create a public accept link + email it")}>
                             <Link2 className="h-3.5 w-3.5" /> {t("رابط القبول", "Accept link")}
                           </button>
                         )}
@@ -591,7 +591,7 @@ export function Quotes() {
                           pendingAccept === q.id ? (
                             <InlineConfirm onConfirm={() => handleManualAccept(q)} onCancel={() => setPendingAccept(null)} label={t("تسجيل موافقة العميل وإنشاء المشروع؟", "Record approval + create project?")} />
                           ) : (
-                            <button onClick={() => setPendingAccept(q.id)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1" title={t("موافقة يدوية (حوالة/هاتف) → مشروع تلقائي", "Manual approval → auto project")}>
+                            <button onClick={() => setPendingAccept(q.id)} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success-subtle flex items-center gap-1" title={t("موافقة يدوية (حوالة/هاتف) → مشروع تلقائي", "Manual approval → auto project")}>
                               <CheckCircle2 className="h-3.5 w-3.5" /> {t("ترسية", "Award")}
                             </button>
                           )
@@ -599,18 +599,18 @@ export function Quotes() {
                         {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
                           rejectFor === q.id ? (
                             <span className="inline-flex items-center gap-1">
-                              <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب الخسارة (إلزامي)...", "Loss reason (required)...")} className="h-7 w-44 border-red-300 text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
-                              <button onClick={() => handleReject(q)} className="rounded-md px-2 py-1 text-xs bg-red-600 text-white">{t("تأكيد", "OK")}</button>
+                              <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب الخسارة (إلزامي)...", "Loss reason (required)...")} className="h-7 w-44 border-danger-border text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
+                              <button onClick={() => handleReject(q)} className="rounded-md px-2 py-1 text-xs bg-danger text-primary-foreground">{t("تأكيد", "OK")}</button>
                               <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
                             </span>
                           ) : (
-                            <button onClick={() => { setRejectFor(q.id); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1" title={t("اعتذار/خسارة مع تسجيل السبب", "Decline with a reason")}>
+                            <button onClick={() => { setRejectFor(q.id); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-subtle flex items-center gap-1" title={t("اعتذار/خسارة مع تسجيل السبب", "Decline with a reason")}>
                               <XCircle className="h-3.5 w-3.5" /> {t("رفض", "Decline")}
                             </button>
                           )
                         )}
                         {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
-                          <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-blue-50 flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
+                          <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-info-subtle flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
                             <FileSignature className="h-3.5 w-3.5" /> {t("توقيع", "Sign")}
                           </button>
                         )}
@@ -618,7 +618,7 @@ export function Quotes() {
                           pendingConvert === q.id ? (
                             <InlineConfirm onConfirm={() => handleConvert(q)} onCancel={() => setPendingConvert(null)} label={t("تحويل لفاتورة؟", "Convert to invoice?")} />
                           ) : (
-                            <button onClick={() => setPendingConvert(q.id)} className="rounded-md px-2 py-1 text-xs text-green-700 hover:bg-green-50 flex items-center gap-1" title={t("تحويل لفاتورة", "Convert to invoice")}>
+                            <button onClick={() => setPendingConvert(q.id)} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success-subtle flex items-center gap-1" title={t("تحويل لفاتورة", "Convert to invoice")}>
                               <ArrowLeftRight className="h-3.5 w-3.5" /> {t("تحويل", "Convert")}
                             </button>
                           )
@@ -626,7 +626,7 @@ export function Quotes() {
                         {pendingDelete === q.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={() => setPendingDelete(q.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => setPendingDelete(q.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>

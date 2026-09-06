@@ -67,7 +67,7 @@ export function ForgotPassword() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 sm:px-8 bg-white"
+      className="min-h-screen flex items-center justify-center px-4 sm:px-8 bg-card"
       dir={isArabic ? "rtl" : "ltr"}
       style={{
         fontFamily: isArabic ? "var(--entix-font-ar)" : "var(--entix-font-en)",
@@ -93,8 +93,8 @@ export function ForgotPassword() {
         </div>
 
         {sent ? (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
-            <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
+          <div className="bg-success-subtle border border-success-border rounded-2xl p-6 text-center">
+            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
             <h1 className="text-foreground mb-2" style={{ fontSize: "22px", fontWeight: 700 }}>
               {t("تحقق من بريدك", "Check your email")}
             </h1>
@@ -129,7 +129,7 @@ export function ForgotPassword() {
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6"
+                className="bg-danger-subtle border border-danger-border text-danger px-4 py-3 rounded-xl mb-6"
                 style={{ fontSize: "14px" }}
               >
                 {error}
@@ -148,7 +148,7 @@ export function ForgotPassword() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
-                    className={`w-full px-4 py-3.5 ${isArabic ? "pe-12" : "ps-12"} rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all`}
+                    className={`w-full px-4 py-3.5 ${isArabic ? "pe-12" : "ps-12"} rounded-xl border border-border bg-muted/40 focus:bg-card focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all`}
                     style={{
                       fontSize: "14px",
                       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -170,12 +170,12 @@ export function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading || (isTurnstileRequired && !captchaToken)}
-                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25"
+                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-primary-foreground py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-card/30 border-t-white rounded-full animate-spin" />
                     {t("جارٍ الإرسال...", "Sending...")}
                   </span>
                 ) : (

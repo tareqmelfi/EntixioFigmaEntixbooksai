@@ -348,7 +348,7 @@ export function AppSidebar({
   // Static sidebar (pinned mode, desktop only)
   if (isStatic) {
     return (
-      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-card transition-all duration-300 ${collapsed ? "w-16" : "w-64 xl:w-72"}`}>
+      <aside className={`flex h-full shrink-0 flex-col border-e border-border bg-surface-subtle transition-all duration-300 ${collapsed ? "w-16" : "w-[248px]"}`}>
         <SidebarContent
           cycleMode={cycleMode}
           modeLabel={modeLabel}
@@ -377,7 +377,7 @@ export function AppSidebar({
   return (
     <aside
       className={`
-        flex h-full w-64 xl:w-72 shrink-0 flex-col border-e border-border bg-card
+        flex h-full w-[248px] shrink-0 flex-col border-e border-border bg-surface-subtle
         fixed inset-y-0 start-0 z-50 transition-transform duration-300 shadow-popover
         ${isOpen ? "translate-x-0" : "rtl:translate-x-full ltr:-translate-x-full"}
         ${className}
@@ -439,29 +439,29 @@ function SidebarContent({
   const { language, toggleLanguage, t } = useLanguage();
   const tr = useSidebarText();
 
-  const ModeIconTyped = ModeIcon as React.ComponentType<{ className?: string }>;
+  const ModeIconTyped = ModeIcon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
 
   return (
     <>
-      {/* ── Sidebar header · ENTIX.IO right-aligned · collapse toggle top-right ── */}
-      <div className="border-b border-border p-4">
-        <div className="mb-3 flex items-center justify-between">
+      {/* ── Sidebar header · vector wordmark · workspace card · quiet search ── */}
+      <div className="flex flex-col gap-3.5 px-4 pb-3 pt-5">
+        <div className="flex items-center justify-between">
           <Link
             to="/app"
             onClick={onClose}
-            className={`select-none hover:opacity-80 transition-opacity ${collapsed ? "mx-auto" : ""}`}
+            className={`select-none transition-opacity hover:opacity-80 ${collapsed ? "mx-auto" : ""}`}
             title={tr("الرئيسية · ENTIX")}
           >
-            {!collapsed && <EntixWordmark size={18} />}
+            {!collapsed && <EntixWordmark size={22} />}
           </Link>
           {setCollapsed && (
             <button
               type="button"
               onClick={() => setCollapsed!(!collapsed)}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
               title={collapsed ? "توسيع" : "طي"}
             >
-              <PanelRightClose className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} />
+              <PanelRightClose className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} strokeWidth={1.75} />
             </button>
           )}
         </div>
@@ -474,11 +474,11 @@ function SidebarContent({
 
         {!collapsed && (
         <div className="relative" ref={searchRef}>
-          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} />
           <input
             type="text"
             placeholder={tr("اذهب إلى صفحة...")}
-            className="w-full rounded-md border border-border bg-card ps-9 pe-8 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+            className="h-10 w-full rounded-lg border border-border bg-card ps-9 pe-8 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -489,12 +489,12 @@ function SidebarContent({
             </button>
           )}
           {searchFocused && searchResults.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg py-1 max-h-60 overflow-y-auto">
+            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-popover">
               {searchResults.map((r) => (
                 <button
                   key={r.path}
                   onClick={() => { navigate(r.path); setSearchQuery(""); setSearchFocused(false); onClose?.(); }}
-                  className="w-full text-start px-3 py-2 text-sm text-foreground/80 hover:bg-primary/5 hover:text-primary transition-colors"
+                  className="w-full px-3 py-2 text-start text-[13px] text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground"
                 >
                   {tr(r.label)}
                 </button>
@@ -506,15 +506,15 @@ function SidebarContent({
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
+      <nav className="flex-1 overflow-y-auto px-4 pb-2">
         {sections.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-3" : ""}>
+          <div key={si} className={si > 0 ? "mt-2.5" : ""}>
             {!collapsed && section.label && (
-              <div className="mb-1.5 px-3 text-[11px] tracking-wider text-muted-foreground text-start" style={{ fontWeight: 600 }}>
+              <div className="ledger-eyebrow px-2.5 pb-1 pt-2.5 text-start text-[10px]">
                 {tr(section.label)}
               </div>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-px">
               {section.items.map((item) => {
                 if (item.children) {
                   return (
@@ -540,44 +540,44 @@ function SidebarContent({
       </nav>
 
       {/* ── Bottom ── */}
-      <div className="border-t border-border p-3 space-y-0.5">
+      <div className="mt-auto space-y-px border-t border-border px-4 pb-4 pt-2.5">
         {!collapsed && (
           <>
             <Link to="/app/roadmap" onClick={onClose}>
-              <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/roadmap") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
-                <Map className="h-5 w-5 shrink-0" />
-                <span className="flex-1 min-w-0 truncate text-start">{tr("خارطة المزايا")}</span>
+              <button className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${isActive("/app/roadmap") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
+                <Map className={`h-4 w-4 shrink-0 ${isActive("/app/roadmap") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+                <span className="min-w-0 flex-1 truncate text-start">{tr("خارطة المزايا")}</span>
               </button>
             </Link>
             <Link to="/app/settings" onClick={onClose}>
-              <button className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${isActive("/app/settings") ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"}`}>
-                <Settings className="h-5 w-5 shrink-0" />
-                <span className="flex-1 min-w-0 truncate text-start">{tr("الإعدادات")}</span>
+              <button className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${isActive("/app/settings") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
+                <Settings className={`h-4 w-4 shrink-0 ${isActive("/app/settings") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+                <span className="min-w-0 flex-1 truncate text-start">{tr("الإعدادات")}</span>
               </button>
             </Link>
 
-            <div className="flex items-center gap-1 pt-1">
-              <Link to="/app/help" className="flex flex-1 items-center gap-2 rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors">
-                <HelpCircle className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-1">
+              <Link to="/app/help" className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] text-content-secondary transition-colors hover:bg-surface-hover hover:text-foreground">
+                <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                 <span className="min-w-0 truncate">{tr("مركز المساعدة")}</span>
               </Link>
               <button
                 onClick={toggleLanguage}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors"
+                className="flex items-center gap-1.5 rounded-lg px-2 py-[7px] text-xs text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
                 aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
               >
-                <Globe className="h-4 w-4 shrink-0" />
-                <span className="font-english">{language === "ar" ? "EN" : "AR"}</span>
+                <Globe className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                <span className="font-english font-semibold text-foreground">{language === "ar" ? "EN" : "AR"}</span>
               </button>
             </div>
           </>
         )}
 
         {/* Mode indicator */}
-        <div className="hidden lg:flex items-center justify-center pt-1">
+        <div className="hidden items-center justify-center pt-1 lg:flex">
           <button
             onClick={cycleMode}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-muted-foreground hover:bg-accent transition-colors"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] text-muted-foreground transition-colors hover:bg-surface-hover"
           >
             <ModeIconTyped className="h-3 w-3" />
             {!collapsed && <span>{tr(modeLabel)}</span>}
@@ -590,18 +590,21 @@ function SidebarContent({
 
 /* ─── Link item ─── */
 function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; active: boolean; onClick?: () => void; collapsed?: boolean }) {
-  const Icon = item.icon as React.ComponentType<{ className?: string }>;
+  const Icon = item.icon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
   const tr = useSidebarText();
   return (
     <Link to={item.path!} onClick={onClick}>
       <button
-        className={`flex w-full items-center rounded-md text-sm transition-colors ${
-          active ? "border-s-2 border-primary bg-primary/5 text-primary" : "border-s-2 border-transparent text-foreground/80 hover:bg-accent hover:text-foreground"
-        } ${collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"}`}
+        className={`flex w-full items-center rounded-lg text-[13px] transition-colors ${
+          active ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
+        } ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-[7px]"}`}
         title={tr(item.title)}
       >
-        <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
-        {!collapsed && <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>}
+        <Icon className={`h-4 w-4 shrink-0 ${active ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+        {!collapsed && <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(item.title)}</span>}
+        {!collapsed && item.badge && (
+          <span className="shrink-0 rounded-full bg-info-subtle px-1.5 py-0.5 text-[10px] font-semibold text-info">{tr(item.badge)}</span>
+        )}
       </button>
     </Link>
   );
@@ -619,7 +622,7 @@ function CollapsibleMenu({
   onNavigate?: () => void;
   collapsed?: boolean;
 }) {
-  const Icon = item.icon as React.ComponentType<{ className?: string }>;
+  const Icon = item.icon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
   const navigate = useNavigate();
   const tr = useSidebarText();
 
@@ -636,12 +639,12 @@ function CollapsibleMenu({
       <div>
         <button
           onClick={handleMainClick}
-          className={`flex w-full items-center justify-center rounded-md px-2 py-2 text-sm transition-colors ${
-            isParentActive ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-accent hover:text-foreground"
+          className={`flex w-full items-center justify-center rounded-lg px-2 py-2 text-[13px] transition-colors ${
+            isParentActive ? "bg-foreground text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
           title={tr(item.title)}
         >
-          <Icon className="h-5 w-5 shrink-0" />
+          <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
         </button>
       </div>
     );
@@ -652,29 +655,29 @@ function CollapsibleMenu({
       <div className="flex">
         <button
           onClick={handleMainClick}
-          className={`flex flex-1 items-center gap-3 rounded-s-md px-3 py-2 text-sm transition-colors ${
-            isParentActive && !isOpen
-              ? "bg-primary/10 text-primary"
-              : isParentActive && isOpen
-              ? "bg-foreground/5 text-foreground"
-              : "text-foreground/80 hover:bg-accent hover:text-foreground"
+          className={`flex flex-1 items-center gap-2.5 rounded-s-lg ps-2.5 pe-1 py-[7px] text-[13px] transition-colors ${
+            isParentActive
+              ? "bg-foreground font-semibold text-background"
+              : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
         >
-          <Icon className={`h-5 w-5 shrink-0 ${isParentActive ? "text-primary" : "text-muted-foreground"}`} />
-          <span className="flex-1 min-w-0 whitespace-normal break-words text-start">{tr(item.title)}</span>
+          <Icon className={`h-4 w-4 shrink-0 ${isParentActive ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+          <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(item.title)}</span>
+          {item.badge && (
+            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isParentActive ? "bg-background/15 text-background" : "bg-info-subtle text-info"}`}>{tr(item.badge)}</span>
+          )}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          className={`rounded-e-md px-2 py-2 text-sm transition-colors ${
-            isParentActive && isOpen
-              ? "bg-foreground/5 text-foreground"
-              : isParentActive && !isOpen
-              ? "bg-primary/10 text-primary"
-              : "text-foreground/80 hover:bg-accent hover:text-foreground"
+          className={`rounded-e-lg px-2 py-[7px] text-[13px] transition-colors ${
+            isParentActive
+              ? "bg-foreground text-background"
+              : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
         >
           <ChevronLeft
-            className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? "-rotate-90" : ""}`}
+            className={`h-3 w-3 shrink-0 transition-transform duration-200 ${isOpen ? "-rotate-90" : ""} ${isParentActive ? "text-background" : "text-muted-foreground"}`}
+            strokeWidth={2}
           />
         </button>
       </div>
@@ -689,16 +692,16 @@ function CollapsibleMenu({
       >
         <div className="mt-0.5 space-y-0.5">
           {item.children!.map((child) => {
-            const ChildIcon = child.icon as React.ComponentType<{ className?: string }>;
+            const ChildIcon = child.icon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
             const active = isActive(child.path);
             return (
               <Link key={child.path + child.title} to={child.path} onClick={onNavigate}>
                 <button
-                  className={`flex w-full items-center gap-3 rounded-md ps-10 pe-3 py-2 text-sm transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-foreground/75 hover:bg-accent hover:text-foreground"
+                  className={`flex w-full items-center gap-2.5 rounded-lg ps-8 pe-2.5 py-[7px] text-[13px] transition-colors ${
+                    active ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
                   }`}
                 >
-                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                   <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(child.title)}</span>
                 </button>
               </Link>

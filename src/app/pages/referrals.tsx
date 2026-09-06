@@ -43,14 +43,14 @@ export function Referrals() {
   ];
 
   return (
-    <div className="min-h-screen bg-white" dir={language === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-card" dir={language === "ar" ? "rtl" : "ltr"}>
       <SharedNavbar />
 
       <main>
         {/* Hero */}
         <section className="pt-28 sm:pt-32 pb-14 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <span className="inline-flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-full mb-5" style={{ fontSize: "13px", fontWeight: 700 }}>
+            <span className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-1.5 rounded-full mb-5" style={{ fontSize: "13px", fontWeight: 700 }}>
               <Gift className="w-4 h-4" />
               {t("برنامج الإحالة", "Referral program")}
             </span>
@@ -73,7 +73,7 @@ export function Referrals() {
               <motion.div
                 key={s.title}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                className="bg-white rounded-2xl border border-gray-100 p-6 text-center hover:border-primary/20 hover:shadow-lg transition-all"
+                className="bg-card rounded-2xl border border-border p-6 text-center hover:border-primary/20 hover:shadow-lg transition-all"
               >
                 <div className="w-12 h-12 mx-auto rounded-xl bg-primary/5 flex items-center justify-center mb-4">
                   <s.icon className="w-5 h-5 text-primary" />
@@ -104,14 +104,14 @@ export function Referrals() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("مثال: طارق أو شركة الأفق", "e.g. Tareq or Horizon Co.")}
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
                 style={{ fontSize: "15px" }}
                 onKeyDown={(e) => { if (e.key === "Enter") generate(); }}
               />
               <button
                 onClick={generate}
                 disabled={!name.trim()}
-                className="bg-primary hover:bg-primary/80 disabled:opacity-50 text-white px-7 py-3 rounded-xl transition-all cursor-pointer"
+                className="bg-primary hover:bg-primary/80 disabled:opacity-50 text-primary-foreground px-7 py-3 rounded-xl transition-all cursor-pointer"
                 style={{ fontSize: "14px", fontWeight: 700 }}
               >
                 {t("أنشئ الكود", "Generate code")}
@@ -119,7 +119,7 @@ export function Referrals() {
             </div>
             {code && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-5">
-                <div className="flex items-center gap-2 bg-white border border-primary/30 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 bg-card border border-primary/30 rounded-xl px-4 py-3">
                   <code className="flex-1 text-primary font-bold tracking-wide" style={{ fontSize: "16px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, monospace" }} dir="ltr">
                     {code}
                   </code>
@@ -128,7 +128,7 @@ export function Referrals() {
                     className="flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors cursor-pointer"
                     style={{ fontSize: "13px", fontWeight: 600 }}
                   >
-                    {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    {copied ? <CheckCircle2 className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                     {copied ? t("تم النسخ", "Copied") : t("نسخ", "Copy")}
                   </button>
                 </div>
@@ -145,7 +145,7 @@ export function Referrals() {
 
         {/* Terms */}
         <section className="pb-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mx-auto bg-muted/40 rounded-2xl border border-gray-100 p-6 sm:p-8">
+          <div className="max-w-2xl mx-auto bg-muted/40 rounded-2xl border border-border p-6 sm:p-8">
             <div className="flex items-center gap-2.5 mb-4">
               <ShieldCheck className="w-5 h-5 text-primary" />
               <h3 className="text-foreground" style={{ fontSize: "16px", fontWeight: 700 }}>{t("شروط البرنامج باختصار", "Program terms in brief")}</h3>
@@ -158,7 +158,7 @@ export function Referrals() {
                 t("يلزم توقيع عقد المسوّق المعتمد قبل أول تحويل.", "An approved-marketer agreement is signed before the first payout."),
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5 text-muted-foreground" style={{ fontSize: "13px", lineHeight: 1.8 }}>
-                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
                   {line}
                 </li>
               ))}
@@ -170,19 +170,19 @@ export function Referrals() {
         <section className="pb-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
             <div className="bg-gradient-to-br from-foreground to-primary rounded-3xl p-10 sm:p-12 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-56 h-56 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+              <div className="absolute top-0 left-0 w-56 h-56 bg-card/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
               <div className="relative z-10">
-                <Users className="w-8 h-8 text-white/80 mx-auto mb-4" />
-                <h2 className="text-white mb-3" style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800 }}>
+                <Users className="w-8 h-8 text-primary-foreground/80 mx-auto mb-4" />
+                <h2 className="text-primary-foreground mb-3" style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800 }}>
                   {t("جاهز تبدأ تكسب معنا؟", "Ready to start earning with us?")}
                 </h2>
-                <p className="text-white/70 mb-7" style={{ fontSize: "15px" }}>
+                <p className="text-primary-foreground/70 mb-7" style={{ fontSize: "15px" }}>
                   {t("أنشئ كودك اليوم وشاركه — أو سجّل حسابك المجاني أولاً لتجربة المنصة بنفسك.", "Generate your code today and share it — or create your free account first to try the platform yourself.")}
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Link
                     to="/register"
-                    className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2"
+                    className="bg-card hover:bg-surface-subtle text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2"
                     style={{ fontSize: "15px", fontWeight: 700 }}
                   >
                     {t("سجّل مجاناً", "Sign up free")}
@@ -190,7 +190,7 @@ export function Referrals() {
                   </Link>
                   <a
                     href="mailto:support@entix.io?subject=Referral%20Program"
-                    className="border border-white/20 hover:border-white/40 text-white px-8 py-3.5 rounded-xl transition-all"
+                    className="border border-card/20 hover:border-card/40 text-primary-foreground px-8 py-3.5 rounded-xl transition-all"
                     style={{ fontSize: "15px", fontWeight: 500 }}
                   >
                     {t("تواصل معنا", "Contact us")}

@@ -64,7 +64,7 @@ export function VerifyEmail() {
     <div className="min-h-dvh bg-canvas flex items-center justify-center p-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-raised p-8 text-center">
         {signedOutOther && (
-          <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-start text-xs text-amber-800 flex gap-2">
+          <div className="mb-5 rounded-lg border border-warning-border bg-warning-subtle px-4 py-3 text-start text-xs text-warning flex gap-2">
             <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
               {t("حمايةً لك، سجّلنا خروج الحساب السابق على هذا الجهاز", "For your safety, the previous account on this device was signed out")}
@@ -97,7 +97,7 @@ export function VerifyEmail() {
         {/* Consumed/expired/invalid link */}
         {errorParam && (
           <>
-            <MailWarning className="mx-auto h-12 w-12 text-amber-500 mb-4" />
+            <MailWarning className="mx-auto h-12 w-12 text-warning mb-4" />
             <h1 className="text-xl font-bold text-foreground mb-2">{t("هذا الرابط لم يعد صالحًا", "This link is no longer valid")}</h1>
             <p className="text-sm text-muted-foreground mb-6">
               {t("روابط التفعيل تعمل مرة واحدة وتنتهي خلال 24 ساعة. إن كان بريدك مفعلًا مسبقًا سجّل دخولك مباشرة، وإلا اطلب رابطًا جديدًا.", "Verification links work once and expire within 24 hours. If your email is already verified just sign in, otherwise request a new link.")}

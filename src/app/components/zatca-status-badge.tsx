@@ -1,12 +1,11 @@
 /**
  * ZatcaStatusBadge · one truthful label for the org's ZATCA Phase 2 link.
- *   🟢 connected      → «مربوط بالهيئة · شهادة الإنتاج فعّالة»
- *   🟡 in_progress    → «قيد الربط · الخطوة N من 4»
- *   ⚪ not_connected  → «غير مربوط»
+ *   connected      → «مربوط بالهيئة · شهادة الإنتاج فعّالة»
+ *   in_progress    → «قيد الربط · الخطوة N من 4»
+ *   not_connected  → «غير مربوط»
  * Sized for the header strip, the company tab row and the ZATCA tab title.
  */
 import { Link } from "react-router";
-import { CheckCircle2, CircleDashed, Loader2 } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import type { ZatcaStatus } from "../lib/use-zatca-status";
 
@@ -22,18 +21,20 @@ export function zatcaStatusLabel(s: ZatcaStatus, t: (ar: string, en?: string) =>
 
 export function ZatcaStatusBadge({ status, size = "sm", className = "" }: { status: ZatcaStatus; size?: "sm" | "xs"; className?: string }) {
   const { t } = useLanguage();
+  /* Ledger status: a dot and a word. Blue when the production certificate is issued,
+     copper while linking, muted (hollow dot) before it starts. Colour never alone. */
   const tone = status.loading
-    ? "bg-muted text-muted-foreground border-border"
+    ? "border-border bg-card text-muted-foreground"
     : status.connection === "connected"
-      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+      ? "border-success-border bg-success-subtle text-success"
       : status.connection === "in_progress"
-        ? "bg-amber-50 text-amber-900 border-amber-200"
-        : "bg-muted text-muted-foreground border-border";
-  const Icon = status.loading ? Loader2 : status.connection === "connected" ? CheckCircle2 : CircleDashed;
-  const pad = size === "xs" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs";
+        ? "border-warning-border bg-warning-subtle text-warning"
+        : "border-border bg-card text-muted-foreground";
+  const dot = status.loading || status.connection === "not_connected" ? "ledger-dot hollow" : "ledger-dot";
+  const pad = size === "xs" ? "px-2.5 py-0.5 text-[11px]" : "px-3 py-1 text-xs";
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border ${pad} ${tone} ${className}`} style={{ fontWeight: 600 }} data-zatca-connection={status.connection}>
-      <Icon className={`h-3.5 w-3.5 shrink-0 ${status.loading ? "animate-spin" : ""}`} />
+    <span className={`inline-flex w-fit items-center gap-2 rounded-full border font-semibold ${pad} ${tone} ${className}`} data-zatca-connection={status.connection}>
+      <span className={dot} aria-hidden="true" />
       <span>{zatcaStatusLabel(status, t)}</span>
     </span>
   );
@@ -47,18 +48,13 @@ export function ZatcaStatusRow({ status }: { status: ZatcaStatus }) {
     : status.connection === "in_progress"
       ? t("إكمال الربط", "Continue linking")
       : t("ابدأ الربط", "Start linking");
-  const box = status.connection === "connected"
-    ? "bg-emerald-50 border-emerald-200"
-    : status.connection === "in_progress"
-      ? "bg-amber-50 border-amber-200"
-      : "bg-muted/40 border-border";
   return (
-    <div className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${box}`}>
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")}</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-subtle p-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+        <span className="text-sm font-semibold text-foreground">{t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")}</span>
         <ZatcaStatusBadge status={status} size="xs" />
       </div>
-      <Link to="/app/settings?tab=zatca" className="text-xs text-primary hover:underline" style={{ fontWeight: 600 }}>{action}</Link>
+      <Link to="/app/settings?tab=zatca" className="text-xs font-semibold text-primary hover:underline">{action}</Link>
     </div>
   );
 }

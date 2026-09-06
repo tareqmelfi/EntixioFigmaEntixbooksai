@@ -60,7 +60,7 @@ export function Products() {
           {loading ? (
             <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : error ? (
-            <div className="py-8 text-center text-sm text-red-600">{error}</div>
+            <div className="py-8 text-center text-sm text-danger">{error}</div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center">
               <Package className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" />
@@ -107,15 +107,15 @@ export function Products() {
                         <td className="py-3 px-4 font-english text-sm text-muted-foreground truncate" dir="ltr">{p.sku || "—"}</td>
                         <td className="py-3 px-4 text-sm text-foreground truncate" title={p.nameAr || p.name}>{p.nameAr || p.name}</td>
                         <td className="py-3 px-4 text-xs">
-                          <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                          <span className="px-2 py-0.5 rounded bg-info-subtle text-info">
                             {p.type === "SERVICE" ? t("خدمة", "Service") : p.type === "GOOD" ? t("بضاعة", "Good") : p.type === "INVENTORY" ? t("مخزون", "Inventory") : t("آخر", "Other")}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{Number(p.unitPrice).toLocaleString(displayLocale())}</span></td>
                         <td className="py-3 px-4 text-xs truncate" dir="ltr">
                           {p.incomeAccountId
-                            ? <span className="font-english text-emerald-700">{t("مربوط", "linked")} ✓</span>
-                            : <span className="text-amber-600">{t("غير مربوط", "not linked")}</span>}
+                            ? <span className="font-english text-success">{t("مربوط", "linked")} ✓</span>
+                            : <span className="text-warning">{t("غير مربوط", "not linked")}</span>}
                         </td>
                       </tr>
                     );

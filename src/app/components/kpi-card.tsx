@@ -17,7 +17,7 @@ export type KpiCardProps = {
   label: string;
   value: React.ReactNode;
   icon?: React.ReactNode;
-  /** Tailwind text colour for the value (e.g. "text-amber-600"). */
+  /** Tailwind text colour for the value (e.g. "text-warning"). */
   tone?: string;
   /** Destination for the drill-down. Omit for a display-only tile. */
   to?: string;

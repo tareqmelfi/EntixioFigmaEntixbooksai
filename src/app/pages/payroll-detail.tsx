@@ -54,7 +54,7 @@ export function PayrollDetail() {
   };
 
   if (loading) return <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>;
-  if (error) return <div className="py-8 text-center text-red-600">{error}</div>;
+  if (error) return <div className="py-8 text-center text-danger">{error}</div>;
   if (!run) return <div className="py-8 text-center text-muted-foreground">{t("لم يتم العثور على المسير", "Payroll run not found")}</div>;
 
   const currency = run.currency || run.org?.baseCurrency || "SAR";
@@ -82,7 +82,7 @@ export function PayrollDetail() {
             <Download className="me-2 h-4 w-4" /> {t("تحميل SIF / WPS", "Download SIF / WPS")}
           </Button>
           {isApproved && run.status !== "PAID" && (
-            <Button onClick={executePayment} disabled={busy} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button onClick={executePayment} disabled={busy} className="bg-success hover:bg-success text-primary-foreground">
               {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Wallet className="me-2 h-4 w-4" />}
               {t("تنفيذ المسير", "Execute run")}
             </Button>
@@ -93,31 +93,31 @@ export function PayrollDetail() {
       {/* Status badge */}
       <div className="flex items-center gap-2">
         <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-          run.status === "DRAFT" ? "bg-blue-50 text-blue-700" :
-          run.status === "APPROVED" ? "bg-amber-50 text-amber-700" :
-          run.status === "PAID" ? "bg-emerald-50 text-emerald-700" :
-          "bg-gray-100 text-gray-600"
+          run.status === "DRAFT" ? "bg-info-subtle text-info" :
+          run.status === "APPROVED" ? "bg-warning-subtle text-warning" :
+          run.status === "PAID" ? "bg-success-subtle text-success" :
+          "bg-surface-hover text-muted-foreground"
         }`}>{run.status}</span>
-        {run.status === "PAID" && <span className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> {t("تم التنفيذ", "Executed")}</span>}
+        {run.status === "PAID" && <span className="text-sm text-success flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> {t("تم التنفيذ", "Executed")}</span>}
       </div>
 
       {/* Summary tiles */}
       <div className="grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-border bg-white px-4 py-3">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
           <div className="text-xs text-muted-foreground">{t("إجمالي الرواتب", "Gross salaries")}</div>
           <div className="mt-1 text-lg font-semibold text-foreground font-english" dir="ltr">{money(run.grossSalary)} {currency}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white px-4 py-3">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
           <div className="text-xs text-muted-foreground">{t("GOSI الموظف", "Employee GOSI")}</div>
-          <div className="mt-1 text-lg font-semibold text-amber-700 font-english" dir="ltr">{money(run.employeeGosi)} {currency}</div>
+          <div className="mt-1 text-lg font-semibold text-warning font-english" dir="ltr">{money(run.employeeGosi)} {currency}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white px-4 py-3">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
           <div className="text-xs text-muted-foreground">{t("GOSI الشركة", "Employer GOSI")}</div>
-          <div className="mt-1 text-lg font-semibold text-amber-700 font-english" dir="ltr">{money(run.employerGosi)} {currency}</div>
+          <div className="mt-1 text-lg font-semibold text-warning font-english" dir="ltr">{money(run.employerGosi)} {currency}</div>
         </div>
-        <div className="rounded-lg border border-border bg-emerald-50 px-4 py-3">
+        <div className="rounded-lg border border-border bg-success-subtle px-4 py-3">
           <div className="text-xs text-muted-foreground">{t("صافي الرواتب", "Net salaries")}</div>
-          <div className="mt-1 text-lg font-bold text-emerald-700 font-english" dir="ltr">{money(run.netSalary)} {currency}</div>
+          <div className="mt-1 text-lg font-bold text-success font-english" dir="ltr">{money(run.netSalary)} {currency}</div>
         </div>
       </div>
 
@@ -150,9 +150,9 @@ export function PayrollDetail() {
                     <td className="px-4 py-3 text-end font-english" dir="ltr">{money(line.basicSalary)}</td>
                     <td className="px-4 py-3 text-end font-english" dir="ltr">{money(Number(line.housingAllowance) + Number(line.transportAllowance) + Number(line.otherAllowances))}</td>
                     <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">{money(line.grossSalary)}</td>
-                    <td className="px-4 py-3 text-end font-english text-amber-700" dir="ltr">{money(line.employeeGosi)}</td>
-                    <td className="px-4 py-3 text-end font-english text-red-700" dir="ltr">{money(line.totalDeductions)}</td>
-                    <td className="px-4 py-3 text-end font-english font-bold text-emerald-700" dir="ltr">{money(line.netSalary)}</td>
+                    <td className="px-4 py-3 text-end font-english text-warning" dir="ltr">{money(line.employeeGosi)}</td>
+                    <td className="px-4 py-3 text-end font-english text-danger" dir="ltr">{money(line.totalDeductions)}</td>
+                    <td className="px-4 py-3 text-end font-english font-bold text-success" dir="ltr">{money(line.netSalary)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -162,9 +162,9 @@ export function PayrollDetail() {
                   <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">{money(run.grossSalary)}</td>
                   <td className="px-4 py-3"></td>
                   <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">{money(run.grossSalary)}</td>
-                  <td className="px-4 py-3 text-end font-english font-semibold text-amber-700" dir="ltr">{money(run.employeeGosi)}</td>
-                  <td className="px-4 py-3 text-end font-english font-semibold text-red-700" dir="ltr">{money(Number(run.employeeGosi))}</td>
-                  <td className="px-4 py-3 text-end font-english font-bold text-emerald-700" dir="ltr">{money(run.netSalary)} {currency}</td>
+                  <td className="px-4 py-3 text-end font-english font-semibold text-warning" dir="ltr">{money(run.employeeGosi)}</td>
+                  <td className="px-4 py-3 text-end font-english font-semibold text-danger" dir="ltr">{money(Number(run.employeeGosi))}</td>
+                  <td className="px-4 py-3 text-end font-english font-bold text-success" dir="ltr">{money(run.netSalary)} {currency}</td>
                 </tr>
               </tfoot>
             </table>

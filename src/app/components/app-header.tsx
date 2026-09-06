@@ -54,6 +54,16 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { isSA } = useOrgRegion();
   const zatca = useZatcaStatus(isSA);
 
+  // "آخر تحقق 12:33" only when the status hook actually carries a checked-at
+  // stamp — never a fabricated time.
+  const checkedAtIso = zatca.raw?.deviceProof?.checkedAt;
+  const checkedAtLabel = (() => {
+    if (!checkedAtIso) return "";
+    const d = new Date(checkedAtIso);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  })();
+
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -107,16 +117,16 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      <header className="border-b border-border bg-card px-4 sm:px-6 py-3">
-        <div className="flex items-center justify-between gap-3">
+      <header className="h-16 shrink-0 border-b border-border bg-background px-4 sm:px-8">
+        <div className="flex h-full items-center justify-between gap-3">
           {/* START side (right in RTL) · mobile menu only */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button
               onClick={onMenuClick}
-              className="lg:hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
               title={t("القائمة", "Menu")}
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5" strokeWidth={1.75} />
             </button>
             {/* ZATCA pill (Ledger, 2026-09) · replaces the full-width strip. Per-org truth
                 unchanged: dot + word from /api/zatca/onboarding/status. Colour never carries
@@ -126,31 +136,42 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                 to="/app/settings?tab=zatca"
                 data-zatca-connection={zatca.connection}
                 title={zatcaPillDetail(zatca, t)}
-                className={`inline-flex h-7 max-w-[60vw] items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors ${
+                className={`inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-full ps-2 pe-3 text-xs font-semibold transition-colors ${
                   zatca.connection === "connected"
-                    ? "border-success-border bg-success-subtle text-success hover:bg-success-subtle/70"
+                    ? "bg-info-subtle text-info hover:bg-info-subtle/70"
                     : zatca.connection === "in_progress"
-                      ? "border-warning-border bg-warning-subtle text-warning hover:bg-warning-subtle/70"
-                      : "border-border bg-muted text-muted-foreground hover:bg-accent"
+                      ? "bg-warning-subtle text-warning hover:bg-warning-subtle/70"
+                      : "bg-muted text-muted-foreground hover:bg-surface-hover"
                 }`}
               >
                 <span
                   aria-hidden="true"
-                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                    zatca.connection === "connected" ? "bg-success" : zatca.connection === "in_progress" ? "bg-warning" : "bg-muted-foreground/60"
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    zatca.connection === "connected"
+                      ? "bg-info shadow-[0_0_0_3px_var(--focus-ring)]"
+                      : zatca.connection === "in_progress"
+                        ? "bg-warning"
+                        : "bg-muted-foreground/60"
                   }`}
                 />
                 <span className="font-code shrink-0" dir="ltr" lang="en">ZATCA</span>
-                <span className="truncate">{zatcaStatusLabel(zatca, t)}</span>
+                {/* On phones the reference shows the mark + dot only — the word
+                    lives in the tooltip and on /app/settings?tab=zatca. */}
+                <span className="hidden truncate sm:inline">{zatcaStatusLabel(zatca, t)}</span>
               </Link>
+            )}
+            {isSA && checkedAtLabel && (
+              <span className="hidden text-[13px] text-muted-foreground sm:inline">
+                {t("آخر تحقق", "Last check")} <span className="font-english" dir="ltr">{checkedAtLabel}</span>
+              </span>
             )}
           </div>
 
           {/* END side (left in RTL) · actions only */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <button
               onClick={toggleLanguage}
-              className="hidden sm:flex items-center gap-1.5 rounded-md px-2 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="hidden items-center gap-1.5 rounded-lg px-2 py-2 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground sm:flex"
               aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
             >
               <span className={language === "ar" ? "font-english text-xs font-semibold" : "text-xs font-semibold"}>
@@ -158,19 +179,24 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               </span>
             </button>
 
+            {/* Inbox */}
+            <button className="relative rounded-lg p-2 text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground">
+              <Mail className="h-5 w-5" strokeWidth={1.75} />
+            </button>
+
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-                className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="relative rounded-lg p-2 text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5" strokeWidth={1.75} />
                 {unreadCount > 0 && (
                   <span className="absolute end-1 top-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-english" style={{ fontWeight: 700 }}>{unreadCount}</span>
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute start-0 z-50 mt-1 w-80 rounded-lg border border-border bg-popover shadow-popover">
+                <div className="absolute start-0 z-50 mt-2 w-80 rounded-lg border border-border bg-card shadow-popover">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <span className="text-sm text-foreground" style={{ fontWeight: 600 }}>
                       {t("الإشعارات", "Notifications")}{unreadCount > 0 && <span className="ms-2 text-xs text-primary font-english">({unreadCount})</span>}
@@ -189,7 +215,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                         <div
                           key={n.id}
                           onClick={() => handleNotifClick(n)}
-                          className={`flex gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-accent transition-colors cursor-pointer ${!n.readAt ? "bg-primary/5" : ""}`}
+                          className={`flex gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-surface-hover transition-colors cursor-pointer ${!n.readAt ? "bg-primary/5" : ""}`}
                         >
                           <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-primary" : "bg-transparent"}`} />
                           <div className="flex-1 min-w-0">
@@ -210,29 +236,24 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               )}
             </div>
 
-            {/* Inbox */}
-            <button className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground">
-              <Mail className="h-5 w-5" />
-            </button>
-
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
-                className="flex items-center gap-3 rounded-md border border-transparent px-2 py-1 hover:bg-accent transition-colors"
+                className="flex items-center gap-2.5 rounded-lg border border-transparent px-2 py-1 transition-colors hover:bg-surface-hover"
               >
-                <div className="text-end">
-                  <BidiText compact className="block max-w-48 text-sm font-medium leading-5 text-foreground">{authState.user?.name || t("مستخدم", "User")}</BidiText>
-                  <div className="text-xs text-muted-foreground font-english">{authState.user?.email || "user@entix.io"}</div>
-                </div>
-                <Avatar>
-                  <AvatarFallback className="bg-primary text-primary-foreground">{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-foreground text-background" style={{ fontWeight: 600 }}>{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="hidden text-end sm:block">
+                  <BidiText compact className="block max-w-48 text-[13px] font-semibold leading-5 text-foreground">{authState.user?.name || t("مستخدم", "User")}</BidiText>
+                  <div className="font-english text-[11px] leading-4 text-muted-foreground">{authState.user?.email || "user@entix.io"}</div>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
               </button>
 
               {showProfile && (
-                <div className="absolute end-0 z-50 mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-popover shadow-popover">
+                <div className="absolute end-0 z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-border bg-card shadow-popover">
                   {/* User Info */}
                   <div className="px-4 py-3 border-b border-border">
                     <div className="flex items-center gap-3">
@@ -252,12 +273,12 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   {/* Menu Items */}
                   <div className="py-1">
                     <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إعدادات المنشأة", "Company settings")}</span>
                       </button>
                     </Link>
                     <Link to="/app/billing" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-start transition-colors bg-info-subtle hover:bg-accent border-y border-info-border text-info">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-start transition-colors bg-info-subtle hover:bg-info-subtle/70 border-y border-info-border text-info">
                         <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-info" />
                         <span className="min-w-0 flex-1 whitespace-normal" style={{ fontWeight: 700 }}>{t("الباقة والاشتراك", "Plan & billing")}</span>
                         <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground" style={{ fontWeight: 700 }}>
@@ -266,12 +287,12 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                       </button>
                     </Link>
                     <Link to="/app/settings?tab=members" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Users className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة ودعوة المستخدمين", "Manage users")}</span>
                       </button>
                     </Link>
                     <Link to="/app/fiscal-periods" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إقفال الفترات", "Close periods")}</span>
                       </button>
                     </Link>
@@ -279,12 +300,12 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
                   <div className="border-t border-border py-1">
                     <Link to="/app/billing" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Settings className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إدارة جميع اشتراكاتي", "Manage subscriptions")}</span>
                       </button>
                     </Link>
                     <Link to="/app/roadmap" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Star className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("الطلب أو التصويت على ميزة", "Request or vote on a feature")}</span>
                       </button>
                     </Link>
@@ -292,7 +313,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
                   <div className="border-t border-border py-1">
                     <Link to="/app/system-status" onClick={() => setShowProfile(false)}>
-                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors">
+                      <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Activity className="mt-0.5 h-4 w-4 shrink-0 text-success" /><span className="min-w-0 flex-1 whitespace-normal">{t("حالة النظام", "System status")}</span>
                       </button>
                     </Link>
@@ -304,7 +325,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                         await authStore.logoutEverywhere();
                         navigate("/login", { replace: true });
                       }}
-                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-foreground hover:bg-accent text-start transition-colors cursor-pointer"
+                      className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors cursor-pointer"
                     >
                       <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج من كل الأجهزة", "Sign out of all devices")}</span>
                     </button>
@@ -313,7 +334,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                         await authStore.logout();
                         navigate("/login", { replace: true });
                       }}
-                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm leading-5 text-destructive hover:bg-destructive/10 text-start transition-colors cursor-pointer"
+                      className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-destructive hover:bg-destructive/10 text-start transition-colors cursor-pointer"
                     >
                       <LogOut className="mt-0.5 h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 whitespace-normal">{t("تسجيل الخروج", "Sign out")}</span>
                     </button>

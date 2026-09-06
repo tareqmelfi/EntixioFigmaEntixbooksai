@@ -202,32 +202,32 @@ export function IosSupport() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-950">
+    <div className="min-h-screen overflow-x-hidden bg-surface-subtle text-foreground">
       <SharedNavbar />
       <main data-page="support-ios" dir={isAr ? "rtl" : "ltr"} className="overflow-x-hidden pt-24 sm:pt-28">
         <section className="px-4 pb-12 pt-10 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-12 text-white shadow-2xl sm:px-10 lg:px-14">
+          <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-foreground px-6 py-12 text-primary-foreground shadow-2xl sm:px-10 lg:px-14">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-3xl">
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold">
-                  <Smartphone className="h-4 w-4 text-cyan-300" />
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-card/15 bg-card/10 px-4 py-2 text-sm font-semibold">
+                  <Smartphone className="h-4 w-4 text-info" />
                   <span>{isAr ? "الدعم الرسمي لتطبيق iPhone وiPad" : "Official iPhone and iPad support"}</span>
                 </div>
                 <h1 className="text-balance text-3xl font-extrabold leading-tight sm:text-5xl">
                   {isAr ? "دعم ENTIX.IO لنظام iOS" : "ENTIX.IO for iOS Support"}
                 </h1>
-                <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+                <p className="mt-5 max-w-2xl text-base leading-8 text-primary-foreground sm:text-lg">
                   {isAr
                     ? "معلومات مباشرة لمستخدمي تطبيق ENTIX.IO على iPhone وiPad بنظام iOS 17 أو أحدث: الوصول للحساب، الأذونات، معالجة المستندات، الخصوصية، وحذف الحساب."
                     : "Straightforward help for the ENTIX.IO app on iPhone and iPad running iOS 17 or later: account access, permissions, document processing, privacy, and account deletion."}
                 </p>
               </div>
               <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-72 lg:grid-cols-1">
-                <a href="mailto:support@entix.io" className="flex min-w-0 items-center gap-3 rounded-2xl bg-cyan-400 px-5 py-4 font-bold text-slate-950 transition hover:bg-cyan-300">
+                <a href="mailto:support@entix.io" className="flex min-w-0 items-center gap-3 rounded-2xl bg-info px-5 py-4 font-bold text-foreground transition hover:bg-info">
                   <Mail className="h-5 w-5 shrink-0" />
                   <span className="min-w-0 break-all font-english">support@entix.io</span>
                 </a>
-                <Link to="/privacy" className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 font-bold text-white transition hover:bg-white/15">
+                <Link to="/privacy" className="flex items-center gap-3 rounded-2xl border border-card/15 bg-card/10 px-5 py-4 font-bold text-primary-foreground transition hover:bg-card/15">
                   <ShieldCheck className="h-5 w-5 shrink-0" />
                   <span>{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</span>
                 </Link>
@@ -237,22 +237,22 @@ export function IosSupport() {
         </section>
 
         <section data-section="app-review-samples" aria-labelledby="app-review-samples-title" className="mx-auto max-w-6xl px-4 pb-6 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm sm:p-8">
+          <div className="rounded-3xl border border-warning-border bg-warning-subtle p-6 shadow-sm sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-sm font-bold text-amber-950">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-warning-subtle px-3 py-1.5 text-sm font-bold text-warning">
                   <Download className="h-4 w-4" />
                   <span>{isAr ? "ملفات عامة لمراجعة التطبيق" : "Public App Review files"}</span>
                 </div>
-                <h2 id="app-review-samples-title" className="text-2xl font-extrabold leading-9 text-slate-950">
+                <h2 id="app-review-samples-title" className="text-2xl font-extrabold leading-9 text-foreground">
                   {isAr ? "عينات إيصال اصطناعية" : "Synthetic receipt samples"}
                 </h2>
-                <p className="mt-3 text-base font-extrabold leading-8 text-red-800">
+                <p className="mt-3 text-base font-extrabold leading-8 text-danger">
                   {isAr
                     ? "عينة اصطناعية لمراجعة التطبيق — ليست معاملة حقيقية"
                     : "SYNTHETIC APP REVIEW SAMPLE — NOT A REAL TRANSACTION"}
                 </p>
-                <p className="mt-2 text-[0.95rem] leading-7 text-slate-700">
+                <p className="mt-2 text-[0.95rem] leading-7 text-foreground">
                   {isAr
                     ? "استخدم هذه الملفات فقط لاختبار استيراد الإيصالات واستخراج OCR وشاشات المراجعة. جميع الأسماء والمعرّفات والتواريخ والبنود ومبالغ الضريبة والإجماليات مختلقة، ولا تتضمن بيانات شخصية أو حسابات أو أرقام ضريبة/سجل تجاري أو بيانات بنكية حقيقية."
                     : "Use these files only to test receipt import, OCR extraction, and review screens. Every name, identifier, date, line item, tax amount, and total is fabricated; no real PII, account details, VAT/CR identifiers, or bank data are included."}
@@ -274,9 +274,9 @@ export function IosSupport() {
                       href={sample.href}
                       download={sample.filename}
                       aria-label={label}
-                      className="inline-flex min-w-0 items-center gap-3 rounded-2xl border border-amber-300 bg-white px-4 py-3 font-bold text-slate-950 transition hover:border-amber-500 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+                      className="inline-flex min-w-0 items-center gap-3 rounded-2xl border border-warning-border bg-card px-4 py-3 font-bold text-foreground transition hover:border-warning hover:bg-warning-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning focus-visible:ring-offset-2"
                     >
-                      <Icon className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+                      <Icon className="h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
                       <span className="min-w-0 break-words">{label}</span>
                     </a>
                   );
@@ -290,29 +290,29 @@ export function IosSupport() {
           {sections.map((section) => {
             const Icon = section.icon;
             return (
-              <section key={section.id} data-section={section.id} className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <section key={section.id} data-section={section.id} className="min-w-0 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
                 <div className="mb-5 flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info-subtle text-info">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h2 className="pt-1 text-xl font-extrabold leading-8 text-slate-950">{section.title}</h2>
+                  <h2 className="pt-1 text-xl font-extrabold leading-8 text-foreground">{section.title}</h2>
                 </div>
-                <p className="text-[0.95rem] leading-8 text-slate-700">{section.body}</p>
-                <ul className="mt-4 space-y-3 text-[0.93rem] leading-7 text-slate-700">
+                <p className="text-[0.95rem] leading-8 text-foreground">{section.body}</p>
+                <ul className="mt-4 space-y-3 text-[0.93rem] leading-7 text-foreground">
                   {section.items.map((item) => (
                     <li key={item} className="flex min-w-0 items-start gap-3">
-                      <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-600" />
+                      <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-info" />
                       <span className="min-w-0 break-words">{item}</span>
                     </li>
                   ))}
                 </ul>
                 {section.id === "contact" && (
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <a href="mailto:support@entix.io" className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+                    <a href="mailto:support@entix.io" className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-3 text-sm font-bold text-primary-foreground transition hover:bg-foreground">
                       <Mail className="h-4 w-4" />
                       <span className="font-english">support@entix.io</span>
                     </a>
-                    <Link to="/privacy" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50">
+                    <Link to="/privacy" className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-bold text-foreground transition hover:bg-surface-subtle">
                       <ShieldCheck className="h-4 w-4" />
                       {isAr ? "الخصوصية" : "Privacy"}
                     </Link>
@@ -323,16 +323,16 @@ export function IosSupport() {
           })}
         </div>
       </main>
-      <footer dir={isAr ? "rtl" : "ltr"} className="bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
+      <footer dir={isAr ? "rtl" : "ltr"} className="bg-foreground px-4 py-10 text-primary-foreground sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p><EntixWordmark size={18} /></p>
-            <p className="mt-1 text-sm text-slate-400">{isAr ? "الدعم الرسمي لتطبيق iPhone وiPad" : "Official iPhone and iPad app support"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{isAr ? "الدعم الرسمي لتطبيق iPhone وiPad" : "Official iPhone and iPad app support"}</p>
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-slate-300">
-            <a href="mailto:support@entix.io" className="break-all transition hover:text-white font-english">support@entix.io</a>
-            <Link to="/privacy" className="transition hover:text-white">{isAr ? "الخصوصية" : "Privacy"}</Link>
-            <Link to="/help" className="transition hover:text-white">{isAr ? "مركز المساعدة" : "General Help"}</Link>
+          <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold text-primary-foreground">
+            <a href="mailto:support@entix.io" className="break-all transition hover:text-primary-foreground font-english">support@entix.io</a>
+            <Link to="/privacy" className="transition hover:text-primary-foreground">{isAr ? "الخصوصية" : "Privacy"}</Link>
+            <Link to="/help" className="transition hover:text-primary-foreground">{isAr ? "مركز المساعدة" : "General Help"}</Link>
           </div>
         </div>
       </footer>

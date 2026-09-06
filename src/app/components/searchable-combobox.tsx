@@ -218,7 +218,7 @@ export function SearchableCombobox({
         className={`w-full flex items-center justify-between rounded-md ${
           borderless
             ? "border-0 bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
-            : "border border-border bg-white hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
+            : "border border-border bg-card hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
         } px-3 py-2 text-sm text-start disabled:opacity-50 ${buttonClassName}`}
         title={selected?.label || placeholder}
       >
@@ -241,7 +241,7 @@ export function SearchableCombobox({
       {open && panelStyle && typeof document !== "undefined" && createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[120] rounded-md border border-primary bg-white shadow-lg"
+          className="fixed z-[120] rounded-md border border-primary bg-card shadow-lg"
           style={{
             top: `${panelStyle.top}px`,
             left: `${panelStyle.left}px`,

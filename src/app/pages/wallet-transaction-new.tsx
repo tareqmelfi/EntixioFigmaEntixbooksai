@@ -85,7 +85,7 @@ export function WalletTransactionNew() {
     return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
   if (!wallet) {
-    return <div className="max-w-3xl space-y-4"><div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error || "not found"}</div></div>;
+    return <div className="max-w-3xl space-y-4"><div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error || "not found"}</div></div>;
   }
 
   const KINDS: Array<{ kind: TxnKind; ar: string; en: string; show: boolean }> = [
@@ -158,7 +158,7 @@ export function WalletTransactionNew() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -167,7 +167,7 @@ export function WalletTransactionNew() {
               <div className="flex flex-wrap gap-2">
                 {KINDS.filter((k) => k.show).map((k) => (
                   <button key={k.kind} type="button" onClick={() => setForm({ ...form, kind: k.kind, amount: isTrade && !(k.kind === "TRADE_BUY" || k.kind === "TRADE_SELL") ? "" : form.amount })}
-                    className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.kind === k.kind ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>
+                    className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.kind === k.kind ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>
                     {t(k.ar, k.en)}
                   </button>
                 ))}
@@ -183,7 +183,7 @@ export function WalletTransactionNew() {
             </div>
 
             {isTrade && (
-              <div className="grid grid-cols-3 gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+              <div className="grid grid-cols-3 gap-3 rounded-lg border border-info-border bg-info-subtle/50 p-3">
                 <div className="space-y-2"><Label>{t("الرمز *", "Symbol *")}</Label><Input value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })} placeholder="AAPL · 1120.SE" dir="ltr" className="font-english" /></div>
                 <div className="space-y-2"><Label>{t("الكمية *", "Qty *")}</Label><Input type="number" step="0.000001" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="ltr" className="font-english" /></div>
                 <div className="space-y-2"><Label>{t("السعر *", "Price *")}</Label><Input type="number" step="0.000001" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} dir="ltr" className="font-english" /></div>
@@ -198,7 +198,7 @@ export function WalletTransactionNew() {
               <div className="space-y-2">
                 <Label>{t("حساب البنك / الصندوق المقابل *", "Bank / cash offset account *")}</Label>
                 <SearchableCombobox value={form.offsetAccountId} onChange={(offsetAccountId) => setForm({ ...form, offsetAccountId })} items={cashAccounts} placeholder={t("اختر الحساب الذي خرج منه أو دخل إليه المال...", "Choose the account the money left or entered...")} />
-                {cashAccounts.length === 0 && <p className="text-[11px] text-amber-700">{t("لا توجد حسابات بنكية في الشجرة — أنشئ حساباً بنكياً أولاً من صفحة الحسابات البنكية", "No bank accounts in the chart — create one from the Bank accounts page first")}</p>}
+                {cashAccounts.length === 0 && <p className="text-[11px] text-warning">{t("لا توجد حسابات بنكية في الشجرة — أنشئ حساباً بنكياً أولاً من صفحة الحسابات البنكية", "No bank accounts in the chart — create one from the Bank accounts page first")}</p>}
               </div>
             )}
 

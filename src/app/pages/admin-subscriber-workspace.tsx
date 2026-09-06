@@ -153,7 +153,7 @@ export function AdminSubscriberWorkspacePage() {
               </div>
               <Button variant="outline" onClick={() => void refreshBilling()} disabled={billingRefreshing}>{billingRefreshing ? t("جاري التحديث…", "Refreshing…") : t("إعادة محاولة الفوترة", "Retry billing")}</Button>
               {billingRetryError ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700" data-testid="subscriber-retry-error">
+                <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-xs text-danger" data-testid="subscriber-retry-error">
                   {billingRetryError}
                 </div>
               ) : null}

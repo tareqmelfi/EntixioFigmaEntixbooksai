@@ -76,14 +76,14 @@ export function QuickContactDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={onCancel}>
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>{t("إضافة جهة جديدة", "Add new contact")}</h2>
           <button onClick={onCancel} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
         </div>
         <div className="p-4 space-y-3">
-          {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
           <div className="grid grid-cols-2 gap-2">
             {(["INDIVIDUAL", "COMPANY"] as const).map(k => {
@@ -130,7 +130,7 @@ export function QuickContactDialog({
           <div>
             <Label className="text-xs text-muted-foreground">{t("الدولة", "Country")}</Label>
             <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+              className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
               <option value="SA">{t("السعودية", "Saudi Arabia")}</option>
               <option value="AE">{t("الإمارات", "UAE")}</option>
               <option value="KW">{t("الكويت", "Kuwait")}</option>

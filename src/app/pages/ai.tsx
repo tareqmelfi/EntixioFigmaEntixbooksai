@@ -772,7 +772,7 @@ export function AI() {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
-      <aside className="hidden xl:flex w-72 shrink-0 flex-col rounded-lg border border-border bg-white overflow-hidden">
+      <aside className="hidden xl:flex w-72 shrink-0 flex-col rounded-lg border border-border bg-card overflow-hidden">
         <div className="border-b border-border p-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-foreground text-sm" style={{ fontWeight: 700 }}>{t("المحادثات", "Conversations")}</p>
@@ -780,7 +780,7 @@ export function AI() {
           </div>
           <button
             onClick={startNewConversation}
-            className="h-8 w-8 shrink-0 rounded-md bg-primary text-white flex items-center justify-center hover:bg-primary/80"
+            className="h-8 w-8 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/80"
             title={t("محادثة جديدة", "New conversation")}
           >
             <Plus className="h-4 w-4" />
@@ -876,11 +876,11 @@ export function AI() {
           {!loadingMessages && messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
               <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${m.role === "user" ? "bg-foreground" : "bg-primary/10"}`}>
-                {m.role === "user" ? <User className="h-4 w-4 text-white" /> : <Bot className="h-4 w-4 text-primary" />}
+                {m.role === "user" ? <User className="h-4 w-4 text-primary-foreground" /> : <Bot className="h-4 w-4 text-primary" />}
               </div>
-              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-foreground text-white ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
+              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-foreground text-primary-foreground ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
                 {m.attachment && (
-                  <div className="mb-2 rounded-lg border border-border/40 p-2 bg-white/10 flex items-center gap-2">
+                  <div className="mb-2 rounded-lg border border-border/40 p-2 bg-card/10 flex items-center gap-2">
                     <FileText className="h-4 w-4 shrink-0" />
                     <span className="text-xs">{m.attachment.name}</span>
                   </div>
@@ -890,7 +890,7 @@ export function AI() {
                 {/* Batch summary table */}
                 {m.batchSummary && (
                   <div className="mt-3 space-y-3">
-                    <div className="rounded-lg border border-border overflow-hidden bg-white">
+                    <div className="rounded-lg border border-border overflow-hidden bg-card">
                       <div className="overflow-x-auto">
                       <table className="min-w-[920px] w-full text-xs">
                         <thead className="bg-muted"><tr>
@@ -942,17 +942,17 @@ export function AI() {
                                   )}
                                   {r.actionLabel && <span className="text-[10px] text-muted-foreground">{r.actionLabel}</span>}
                                   {r.blockedMessage ? (
-                                    <div className="flex items-start gap-1 text-amber-700">
+                                    <div className="flex items-start gap-1 text-warning">
                                       <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                                       <span className="text-[10px] leading-4">{r.blockedMessage}</span>
                                     </div>
                                   ) : r.ok ? (
-                                    <div className="flex items-center gap-1 text-green-700">
+                                    <div className="flex items-center gap-1 text-success">
                                       <CheckCircle2 className="h-3.5 w-3.5" />
                                       <span className="text-[10px]">{t("تمت القراءة", "Read")}</span>
                                     </div>
-                                  ) : <span className="text-red-600 text-xs">{r.error || t("فشل", "Failed")}</span>}
-                                  {r.duplicateNumber && <span className="font-english text-[10px] text-amber-700">{t("مكرر", "Duplicate")}: {r.duplicateNumber}</span>}
+                                  ) : <span className="text-danger text-xs">{r.error || t("فشل", "Failed")}</span>}
+                                  {r.duplicateNumber && <span className="font-english text-[10px] text-warning">{t("مكرر", "Duplicate")}: {r.duplicateNumber}</span>}
                                 </div>
                               </td>
                             </tr>
@@ -965,7 +965,7 @@ export function AI() {
                     {/* Classification chips */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                       {Object.entries(m.batchSummary.index.byDocType).slice(0, 8).map(([k, v]) => (
-                        <div key={`d-${k}`} className="rounded border border-border bg-white px-2 py-1 flex justify-between"><span className="text-muted-foreground">{k}</span><span className="font-english text-primary">{v}</span></div>
+                        <div key={`d-${k}`} className="rounded border border-border bg-card px-2 py-1 flex justify-between"><span className="text-muted-foreground">{k}</span><span className="font-english text-primary">{v}</span></div>
                       ))}
                     </div>
                     {Object.keys(m.batchSummary.index.byVendor).length > 0 && (
@@ -987,17 +987,17 @@ export function AI() {
                       const href = toolResultHref(tr.tool, tr.result);
                       const inner = (
                         <>
-                          {tr.result?.error ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
+                          {tr.result?.error ? <AlertCircle className="h-3.5 w-3.5 text-danger" /> : <CheckCircle2 className="h-3.5 w-3.5 text-success" />}
                           <span className="font-english text-muted-foreground">{tr.tool}</span>
                           {tr.result?.id && <span className="font-english text-primary">→ {tr.result.number || tr.result.billNumber || tr.result.invoiceNumber || tr.result.id}</span>}
                         </>
                       );
                       return href ? (
-                        <Link key={j} to={href} className="rounded border border-border bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-white hover:underline">
+                        <Link key={j} to={href} className="rounded border border-border bg-card/40 px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-card hover:underline">
                           {inner}
                         </Link>
                       ) : (
-                        <div key={j} className="rounded border border-border bg-white/40 px-3 py-1.5 text-xs flex items-center gap-2">
+                        <div key={j} className="rounded border border-border bg-card/40 px-3 py-1.5 text-xs flex items-center gap-2">
                           {inner}
                         </div>
                       );
@@ -1044,11 +1044,11 @@ export function AI() {
             </div>
             <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
               {pending.map((f) => (
-                <div key={f.id} className="flex items-center gap-1.5 rounded-md border border-border bg-white px-2 py-1 text-xs">
+                <div key={f.id} className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
                   <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
                   <span className="truncate max-w-[160px]" title={f.name}>{f.name}</span>
                   <span className="font-english text-muted-foreground/60">{fmtSize(f.size)}</span>
-                  <button onClick={() => removePending(f.id)} className="text-muted-foreground/60 hover:text-red-600"><X className="h-3 w-3" /></button>
+                  <button onClick={() => removePending(f.id)} className="text-muted-foreground/60 hover:text-danger"><X className="h-3 w-3" /></button>
                 </div>
               ))}
             </div>
@@ -1061,7 +1061,7 @@ export function AI() {
           onDragOver={(e) => { e.preventDefault(); }}
           onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files); }}
         >
-          {error && <div className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error && <div className="mb-2 rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
           <div className="flex items-end gap-2">
             <input
               ref={fileRef}

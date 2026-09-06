@@ -157,9 +157,9 @@ export function FiscalPeriods() {
                     <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{p.endDate.slice(0, 10)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded ${
-                        p.status === "CLOSED" ? "bg-gray-100 text-gray-700" :
-                        p.status === "LOCKED" ? "bg-amber-50 text-amber-700" :
-                        "bg-green-50 text-green-700"
+                        p.status === "CLOSED" ? "bg-surface-hover text-foreground" :
+                        p.status === "LOCKED" ? "bg-warning-subtle text-warning" :
+                        "bg-success-subtle text-success"
                       }`}>
                         {p.status === "CLOSED" ? t("مُغلقة", "Closed") : p.status === "LOCKED" ? t("مقفلة", "Locked") : t("مفتوحة", "Open")}
                       </span>
@@ -170,7 +170,7 @@ export function FiscalPeriods() {
                     <td className="px-4 py-3 text-end">
                       {p.status === "OPEN" && (
                         <Button size="sm" variant="outline" onClick={() => handleLock(p.id)} disabled={busy === p.id}
-                          className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                          className="border-warning-border text-warning hover:bg-warning-subtle">
                           <Lock className="h-3 w-3 me-1" /> {t("قفل", "Lock")}
                         </Button>
                       )}
@@ -181,7 +181,7 @@ export function FiscalPeriods() {
                             <Unlock className="h-3 w-3 me-1" /> {t("فتح", "Reopen")}
                           </Button>
                           <Button size="sm" onClick={() => handlePreview(p.id)} disabled={busy === p.id}
-                            className="bg-red-600 hover:bg-red-700 text-white">
+                            className="bg-danger hover:bg-danger text-primary-foreground">
                             <CheckCircle2 className="h-3 w-3 me-1" /> {t("إغلاق", "Close")}
                           </Button>
                         </span>
@@ -200,27 +200,27 @@ export function FiscalPeriods() {
 
       {/* Preview Close modal */}
       {preview && pendingClose && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { setPreview(null); setPendingClose(null); }}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => { setPreview(null); setPendingClose(null); }}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg text-foreground font-bold mb-3">{t("تأكيد إغلاق الفترة", "Confirm Period Close")}</h2>
-            <p className="text-xs text-muted-foreground mb-4">{t("سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية", "An automatic closing entry will be created that zeroes the revenue and expense accounts and posts the net to retained earnings. This action is")} <span className="font-bold text-red-600">{t("غير قابلة للتراجع", "irreversible")}</span>.</p>
+            <p className="text-xs text-muted-foreground mb-4">{t("سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية", "An automatic closing entry will be created that zeroes the revenue and expense accounts and posts the net to retained earnings. This action is")} <span className="font-bold text-danger">{t("غير قابلة للتراجع", "irreversible")}</span>.</p>
             <div className="rounded-lg border border-border divide-y divide-[#F3F4F6]">
               <div className="flex justify-between p-3 text-sm">
                 <span className="text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</span>
-                <span className="font-english font-semibold text-green-700" dir="ltr">{preview.combinedRevenue.toLocaleString(displayLocale())}</span>
+                <span className="font-english font-semibold text-success" dir="ltr">{preview.combinedRevenue.toLocaleString(displayLocale())}</span>
               </div>
               <div className="flex justify-between p-3 text-sm">
                 <span className="text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</span>
-                <span className="font-english font-semibold text-red-700" dir="ltr">{preview.combinedExpense.toLocaleString(displayLocale())}</span>
+                <span className="font-english font-semibold text-danger" dir="ltr">{preview.combinedExpense.toLocaleString(displayLocale())}</span>
               </div>
               <div className="flex justify-between p-3 text-sm bg-muted">
                 <span className="text-foreground font-bold">{t("صافي الدخل", "Net Income")}</span>
-                <span className={`font-english font-bold ${preview.netIncome >= 0 ? "text-green-700" : "text-red-700"}`} dir="ltr">{preview.netIncome.toLocaleString(displayLocale())}</span>
+                <span className={`font-english font-bold ${preview.netIncome >= 0 ? "text-success" : "text-danger"}`} dir="ltr">{preview.netIncome.toLocaleString(displayLocale())}</span>
               </div>
             </div>
             <div className="flex gap-2 justify-end mt-4">
               <Button variant="outline" onClick={() => { setPreview(null); setPendingClose(null); }} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button onClick={handleClose} disabled={busy === pendingClose} className="bg-red-600 hover:bg-red-700 text-white">
+              <Button onClick={handleClose} disabled={busy === pendingClose} className="bg-danger hover:bg-danger text-primary-foreground">
                 {busy === pendingClose ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
                 {t("تأكيد الإغلاق", "Confirm Close")}
               </Button>

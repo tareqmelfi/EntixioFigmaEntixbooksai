@@ -8,8 +8,8 @@ import { api, ApiError, type Org, type ReportPayload, type ReportPrintSettings }
 import { useLanguage } from "../components/LanguageContext";
 
 const defaultColors = {
-  primaryColor: "#0B1B49",
-  accentColor: "#1276E3",
+  primaryColor: "#1A1E48",
+  accentColor: "#5875DB",
 };
 
 export function ReportPrintDesigner() {
@@ -56,7 +56,7 @@ export function ReportPrintDesigner() {
   }, [id, from, to]);
 
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
-  const selectClass = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary";
+  const selectClass = "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary";
 
   const update = <K extends keyof ReportPrintSettings>(key: K, value: ReportPrintSettings[K]) => {
     setSaved(false);
@@ -132,7 +132,7 @@ export function ReportPrintDesigner() {
         }
       `}</style>
 
-      <div className="report-designer-chrome flex flex-col gap-3 rounded-xl border border-border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="report-designer-chrome flex flex-col gap-3 rounded-xl border border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <button onClick={() => navigate(`/app/reports/${id}${window.location.search}`)} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowRight className="h-4 w-4" /> {t("الرجوع للتقرير", "Back to report")}
@@ -151,11 +151,11 @@ export function ReportPrintDesigner() {
         </div>
       </div>
 
-      {saved && <div className="report-designer-chrome rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{t("تم حفظ قالب التقارير للشركة.", "Report template saved for the company.")}</div>}
-      {error && <div className="report-designer-chrome rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {saved && <div className="report-designer-chrome rounded-lg border border-success-border bg-success-subtle px-3 py-2 text-sm text-success">{t("تم حفظ قالب التقارير للشركة.", "Report template saved for the company.")}</div>}
+      {error && <div className="report-designer-chrome rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       {loading ? (
-        <div className="rounded-xl border border-border bg-white py-20 text-center">
+        <div className="rounded-xl border border-border bg-card py-20 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <div className="mt-3 text-sm text-muted-foreground">{t("جاري تجهيز المعاينة...", "Preparing preview...")}</div>
         </div>
@@ -220,10 +220,10 @@ export function ReportPrintDesigner() {
                 </Control>
                 <div className="grid grid-cols-2 gap-3">
                   <Control label={t("اللون الأساسي", "Primary color")}>
-                    <input value={resolved.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-white p-1" />
+                    <input value={resolved.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-card p-1" />
                   </Control>
                   <Control label={t("لون التمييز", "Accent color")}>
-                    <input value={resolved.accentColor} onChange={(e) => update("accentColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-white p-1" />
+                    <input value={resolved.accentColor} onChange={(e) => update("accentColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-card p-1" />
                   </Control>
                 </div>
                 <Toggle label={t("معلومات الشركة", "Company info")} checked={resolved.showCompanyInfo} onChange={(value) => update("showCompanyInfo", value)} />
@@ -232,7 +232,7 @@ export function ReportPrintDesigner() {
                 <Toggle label={t("عمود الملاحظات", "Notes column")} checked={resolved.showNotes} onChange={(value) => update("showNotes", value)} />
                 <Toggle label={t("تذييل التقرير", "Report footer")} checked={resolved.showFooter} onChange={(value) => update("showFooter", value)} />
                 <Control label={t("نص التذييل (إخلاء مسؤولية · أساس الإعداد…)", "Footer note (disclaimer · basis of preparation…)")}>
-                  <textarea value={resolved.footerNote || ""} onChange={(e) => update("footerNote", e.target.value)} rows={3} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary" placeholder={t("مثال: هذه القوائم غير مدققة وتُستبدل بالأرقام المعتمدة عند الإصدار الرسمي.", "e.g. These statements are unaudited and will be replaced by audited figures.")} />
+                  <textarea value={resolved.footerNote || ""} onChange={(e) => update("footerNote", e.target.value)} rows={3} className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary" placeholder={t("مثال: هذه القوائم غير مدققة وتُستبدل بالأرقام المعتمدة عند الإصدار الرسمي.", "e.g. These statements are unaudited and will be replaced by audited figures.")} />
                 </Control>
                 <Control label={t("أُعدّ بواسطة", "Prepared by")}>
                   <input value={resolved.preparedBy || ""} onChange={(e) => update("preparedBy", e.target.value)} className={selectClass} placeholder={t("الاسم · المسمى", "Name · title")} />
@@ -242,7 +242,7 @@ export function ReportPrintDesigner() {
             </Card>
           </aside>
 
-          <div className="entix-print-zone overflow-x-auto rounded-xl bg-muted p-5 print:overflow-visible print:bg-white print:p-0">
+          <div className="entix-print-zone overflow-x-auto rounded-xl bg-muted p-5 print:overflow-visible print:bg-card print:p-0">
             <ReportDocument report={report} settings={resolved} mode="print" />
           </div>
         </div>
@@ -264,7 +264,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   return (
     <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm text-foreground/80">
       <span>{label}</span>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-[#1276E3]" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-[#5875DB]" />
     </label>
   );
 }

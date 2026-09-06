@@ -402,11 +402,11 @@ export function PosPage() {
     <Shell dir={isRtl ? "rtl" : "ltr"}>
       <div className="flex h-screen flex-col overflow-hidden">
         {/* ── top bar ── */}
-        <header className="flex h-14 shrink-0 items-center gap-3 bg-[#0B1B49] px-3 text-white sm:px-4">
-          <Link to="/app/dashboard" title={t("الخروج من الكاشير", "Exit the cashier")} className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"><LogOut className="h-5 w-5 rtl:rotate-180" /></Link>
+        <header className="flex h-14 shrink-0 items-center gap-3 bg-[#1A1E48] px-3 text-primary-foreground sm:px-4">
+          <Link to="/app/dashboard" title={t("الخروج من الكاشير", "Exit the cashier")} className="flex h-9 w-9 items-center justify-center rounded-lg text-primary-foreground/70 hover:bg-card/10 hover:text-primary-foreground"><LogOut className="h-5 w-5 rtl:rotate-180" /></Link>
           <div className="flex min-w-0 items-center gap-2">
-            <Store className="h-4 w-4 text-[#05B6FA]" />
-            <div className="truncate text-sm font-bold">{store?.name || "ENTIX"}<span className="mx-1.5 text-white/40">·</span><span className="font-normal text-white/80">{branchName || t("الكاشير", "Cashier")}</span>{(shift as any)?.cashierName ? <span className="ms-1.5 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-normal text-white/90">{(shift as any).cashierName}</span> : null}</div>
+            <Store className="h-4 w-4 text-[#8FA3F0]" />
+            <div className="truncate text-sm font-bold">{store?.name || "ENTIX"}<span className="mx-1.5 text-primary-foreground/40">·</span><span className="font-normal text-primary-foreground/80">{branchName || t("الكاشير", "Cashier")}</span>{(shift as any)?.cashierName ? <span className="ms-1.5 rounded-full bg-card/10 px-2 py-0.5 text-[11px] font-normal text-primary-foreground/90">{(shift as any).cashierName}</span> : null}</div>
           </div>
           {shift ? (
             <span className="hidden items-center gap-1.5 rounded-full border border-success/40 bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-[#86EFAC] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#4ADE80]" />{t("وردية مفتوحة", "Shift open")} · <span className="font-english">{new Date(shift.openedAt).toLocaleTimeString(displayLocale("en-GB"), { hour: "2-digit", minute: "2-digit" })}</span></span>
@@ -416,13 +416,13 @@ export function PosPage() {
           <div className="ms-auto flex items-center gap-1.5">
             {/* sync status */}
             <button onClick={manualSync} title={t("رفع العمليات المعلّقة الآن", "Upload pending sales now")}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${!online ? "bg-danger/20 text-[#FCA5A5]" : pending.length ? "bg-warning/20 text-[#FCD34D]" : "bg-white/10 text-white/80"}`}>
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${!online ? "bg-danger/20 text-[#FCA5A5]" : pending.length ? "bg-warning/20 text-[#FCD34D]" : "bg-card/10 text-primary-foreground/80"}`}>
               {syncBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : !online ? <CloudOff className="h-3.5 w-3.5" /> : pending.length ? <CloudUpload className="h-3.5 w-3.5" /> : <Cloud className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">{!online ? t("غير متصل", "Offline") : pending.length ? t(`${pending.length} بانتظار الرفع`, `${pending.length} pending`) : t("متزامن", "Synced")}</span>
-              {pending.length > 0 && <span className="rounded-full bg-white/20 px-1.5 font-english sm:hidden">{pending.length}</span>}
+              {pending.length > 0 && <span className="rounded-full bg-card/20 px-1.5 font-english sm:hidden">{pending.length}</span>}
             </button>
-            <button onClick={() => setPanel(panel === "history" ? "none" : "history")} title={t("آخر العمليات · إعادة طباعة", "Recent sales · reprint")} className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 ${panel === "history" ? "bg-white/15" : ""}`}><History className="h-5 w-5" /></button>
-            <button onClick={() => setPanel(panel === "settings" ? "none" : "settings")} title={t("الإعدادات", "Settings")} className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 ${panel === "settings" ? "bg-white/15" : ""}`}><Settings2 className="h-5 w-5" /></button>
+            <button onClick={() => setPanel(panel === "history" ? "none" : "history")} title={t("آخر العمليات · إعادة طباعة", "Recent sales · reprint")} className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-card/10 ${panel === "history" ? "bg-card/15" : ""}`}><History className="h-5 w-5" /></button>
+            <button onClick={() => setPanel(panel === "settings" ? "none" : "settings")} title={t("الإعدادات", "Settings")} className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-card/10 ${panel === "settings" ? "bg-card/15" : ""}`}><Settings2 className="h-5 w-5" /></button>
           </div>
         </header>
 
@@ -478,7 +478,7 @@ export function PosPage() {
                       className={`group relative flex flex-col items-center rounded-2xl border bg-surface p-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-raised active:translate-y-0 ${inCart ? "border-primary/60 ring-2 ring-primary/15" : "border-border"}`}>
                       {inCart != null && <span className="absolute top-2 start-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 font-english text-[11px] font-bold text-primary-foreground">{inCart}</span>}
                       {low && <span className="absolute top-2 end-2 rounded-md bg-warning-subtle px-1.5 py-0.5 text-[10px] font-semibold text-warning">{t("نفد", "Out")}</span>}
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-canvas text-[#0B1B49]/70 group-hover:text-primary">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-canvas text-[#1A1E48]/70 group-hover:text-primary">
                         {p.imageUrl ? <img src={p.imageUrl} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <I className="h-6 w-6" strokeWidth={1.75} />}
                       </div>
                       <div className="mt-2 line-clamp-2 min-h-[2.4em] text-[13px] font-semibold leading-tight text-foreground">{displayName(p)}</div>
@@ -503,7 +503,7 @@ export function PosPage() {
                 <input value={closeCount} onChange={(e) => setCloseCount(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" dir="ltr" autoFocus placeholder="0.00"
                   className="mt-4 w-full rounded-xl border-2 border-primary/60 bg-canvas px-4 py-3 text-center text-2xl font-bold text-foreground outline-none focus:border-primary" />
                 {pending.length > 0 && <div className="mt-2 text-xs text-warning">{t(`${pending.length} عملية بانتظار الرفع — ستُرفع الآن`, `${pending.length} pending sale(s) will upload now`)}</div>}
-                <button onClick={closeShift} disabled={!closeCount || !online} className="mt-4 h-12 w-full rounded-xl bg-[#0B1B49] font-bold text-white hover:bg-[#0B1B49]/90 disabled:opacity-50"><Lock className="me-1.5 inline h-4 w-4" />{t("إغلاق الوردية", "Close shift")}</button>
+                <button onClick={closeShift} disabled={!closeCount || !online} className="mt-4 h-12 w-full rounded-xl bg-[#1A1E48] font-bold text-primary-foreground hover:bg-[#1A1E48]/90 disabled:opacity-50"><Lock className="me-1.5 inline h-4 w-4" />{t("إغلاق الوردية", "Close shift")}</button>
                 {!online && <div className="mt-2 text-xs text-danger">{t("إغلاق الوردية يحتاج اتصالًا", "Closing a shift needs a connection")}</div>}
               </div>
             ) : done ? (
@@ -517,7 +517,7 @@ export function PosPage() {
                   </button>
                   {customer && <button onClick={() => setCustomer(null)} className="rounded-md p-1 text-muted-foreground hover:text-danger"><X className="h-4 w-4" /></button>}
                   {cart.length > 0 && (confirmClear
-                    ? <div className="flex items-center gap-1 text-xs"><button onClick={clearSale} className="rounded-md bg-danger px-2 py-1 font-semibold text-white">{t("مسح", "Clear")}</button><button onClick={() => setConfirmClear(false)} className="rounded-md border border-border px-2 py-1">{t("لا", "No")}</button></div>
+                    ? <div className="flex items-center gap-1 text-xs"><button onClick={clearSale} className="rounded-md bg-danger px-2 py-1 font-semibold text-primary-foreground">{t("مسح", "Clear")}</button><button onClick={() => setConfirmClear(false)} className="rounded-md border border-border px-2 py-1">{t("لا", "No")}</button></div>
                     : <button onClick={() => setConfirmClear(true)} className="text-xs font-semibold text-danger hover:underline">{t("مسح الكل", "Clear all")}</button>)}
                   <button onClick={() => setMobileCart(false)} className="rounded-md p-1 text-muted-foreground lg:hidden"><X className="h-5 w-5" /></button>
                 </div>
@@ -554,14 +554,14 @@ export function PosPage() {
                 <div className="border-t border-border px-4 pt-3">
                   <div className="flex justify-between text-xs text-muted-foreground"><span>{t("قبل الضريبة", "Subtotal")}</span><span className="font-english">{money(totals.net)}</span></div>
                   <div className="flex justify-between text-xs text-muted-foreground"><span>{t("ضريبة القيمة المضافة", "VAT")}</span><span className="font-english">{money(totals.vat)}</span></div>
-                  <div className="mt-1 flex items-baseline justify-between"><span className="text-base font-bold text-foreground">{t("الإجمالي", "Total")}</span><span className="font-english text-2xl font-extrabold text-[#0B1B49]">{money(totals.grand)} <span className="text-xs font-semibold text-muted-foreground">{currency}</span></span></div>
+                  <div className="mt-1 flex items-baseline justify-between"><span className="text-base font-bold text-foreground">{t("الإجمالي", "Total")}</span><span className="font-english text-2xl font-extrabold text-[#1A1E48]">{money(totals.grand)} <span className="text-xs font-semibold text-muted-foreground">{currency}</span></span></div>
                 </div>
 
                 {/* method + tender */}
                 <div className="px-4 pt-3">
                   <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-canvas p-1">
                     {([["CASH", Banknote, t("نقد", "Cash")], ["MADA", Wallet, t("مدى", "Mada")], ["CARD", CreditCard, t("بطاقة", "Card")]] as const).map(([m, I, lb]) => (
-                      <button key={m} onClick={() => { setMethod(m); if (m !== "CASH") setTendered(""); }} className={`flex h-11 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all ${method === m ? "bg-surface text-[#0B1B49] shadow-sm" : "text-muted-foreground hover:text-foreground"}`}><I className="h-4 w-4" />{lb}</button>
+                      <button key={m} onClick={() => { setMethod(m); if (m !== "CASH") setTendered(""); }} className={`flex h-11 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all ${method === m ? "bg-surface text-[#1A1E48] shadow-sm" : "text-muted-foreground hover:text-foreground"}`}><I className="h-4 w-4" />{lb}</button>
                     ))}
                   </div>
                   {method === "CASH" && (
@@ -583,12 +583,12 @@ export function PosPage() {
 
                 {/* actions */}
                 <div className="p-4 pt-3">
-                  <button onClick={pay} disabled={!canPay} className={`flex h-16 w-full items-center justify-center gap-3 rounded-2xl text-lg font-extrabold text-white transition-all ${canPay ? "bg-[#16A34A] shadow-[0_8px_24px_rgba(22,163,74,.35)] hover:bg-[#15803D]" : "bg-muted text-muted-foreground"}`}>
-                    {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-6 w-6" />}{t("دفع", "Pay")}<span className="rounded-lg bg-white/20 px-3 py-1 font-english text-base">{money(totals.grand)}</span>
-                    <kbd className="hidden rounded bg-white/15 px-1.5 py-0.5 font-english text-[10px] font-semibold sm:inline">F9</kbd>
+                  <button onClick={pay} disabled={!canPay} className={`flex h-16 w-full items-center justify-center gap-3 rounded-2xl text-lg font-extrabold text-primary-foreground transition-all ${canPay ? "bg-[#4661C7] shadow-[0_8px_24px_rgba(22,163,74,.35)] hover:bg-[#4661C7]" : "bg-muted text-muted-foreground"}`}>
+                    {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-6 w-6" />}{t("دفع", "Pay")}<span className="rounded-lg bg-card/20 px-3 py-1 font-english text-base">{money(totals.grand)}</span>
+                    <kbd className="hidden rounded bg-card/15 px-1.5 py-0.5 font-english text-[10px] font-semibold sm:inline">F9</kbd>
                   </button>
                   <div className="mt-2 grid grid-cols-3 gap-1.5">
-                    <button onClick={holdCurrent} disabled={!cart.length} className="flex h-10 items-center justify-center gap-1 rounded-xl border border-warning-border bg-warning-subtle text-xs font-semibold text-foreground disabled:opacity-40"><Pause className="h-3.5 w-3.5" />{t("تعليق", "Hold")}{holds.length > 0 && <span className="rounded-full bg-warning px-1.5 font-english text-[10px] text-white">{holds.length}</span>}</button>
+                    <button onClick={holdCurrent} disabled={!cart.length} className="flex h-10 items-center justify-center gap-1 rounded-xl border border-warning-border bg-warning-subtle text-xs font-semibold text-foreground disabled:opacity-40"><Pause className="h-3.5 w-3.5" />{t("تعليق", "Hold")}{holds.length > 0 && <span className="rounded-full bg-warning px-1.5 font-english text-[10px] text-primary-foreground">{holds.length}</span>}</button>
                     <button onClick={() => holds.length && resumeHold(holds[holds.length - 1])} disabled={!holds.length} className="flex h-10 items-center justify-center gap-1 rounded-xl border border-border bg-surface text-xs font-semibold text-foreground disabled:opacity-40"><Play className="h-3.5 w-3.5" />{t("استرجاع", "Resume")}</button>
                     <button onClick={() => setPanel("close")} disabled={!shift} className="flex h-10 items-center justify-center gap-1 rounded-xl border border-border bg-surface text-xs font-semibold text-foreground disabled:opacity-40"><Lock className="h-3.5 w-3.5" />{t("إغلاق الوردية", "Close shift")}</button>
                   </div>
@@ -614,16 +614,16 @@ export function PosPage() {
         {/* mobile bottom bar */}
         {!mobileCart && (
           <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-border bg-surface p-3 lg:hidden">
-            <button onClick={() => setMobileCart(true)} className="flex h-12 flex-1 items-center justify-between rounded-xl bg-[#0B1B49] px-4 text-white">
+            <button onClick={() => setMobileCart(true)} className="flex h-12 flex-1 items-center justify-between rounded-xl bg-[#1A1E48] px-4 text-primary-foreground">
               <span className="text-sm font-semibold">{t(`السلة · ${cart.reduce((a, l) => a + l.qty, 0)} صنف`, `Cart · ${cart.reduce((a, l) => a + l.qty, 0)} items`)}</span><span className="font-english text-base font-bold">{money(totals.grand)}</span>
             </button>
-            <button onClick={() => { setMobileCart(true); }} disabled={!cart.length} className="h-12 rounded-xl bg-[#16A34A] px-5 text-sm font-bold text-white disabled:opacity-40">{t("دفع", "Pay")}</button>
+            <button onClick={() => { setMobileCart(true); }} disabled={!cart.length} className="h-12 rounded-xl bg-[#4661C7] px-5 text-sm font-bold text-primary-foreground disabled:opacity-40">{t("دفع", "Pay")}</button>
           </div>
         )}
 
         {/* toast */}
         {toast && (
-          <div className={`pointer-events-none fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-raised lg:bottom-6 ${toast.kind === "err" ? "bg-danger" : toast.kind === "ok" ? "bg-[#16A34A]" : "bg-[#0B1B49]"}`}>{toast.msg}</div>
+          <div className={`pointer-events-none fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-raised lg:bottom-6 ${toast.kind === "err" ? "bg-danger" : toast.kind === "ok" ? "bg-[#4661C7]" : "bg-[#1A1E48]"}`}>{toast.msg}</div>
         )}
       </div>
     </Shell>
@@ -632,7 +632,7 @@ export function PosPage() {
 
 // ── small building blocks ─────────────────────────────────────────────────────
 function Shell({ dir, children }: { dir: "rtl" | "ltr"; children: React.ReactNode }) {
-  return <div dir={dir} className="min-h-screen bg-canvas text-foreground" style={{ fontFamily: dir === "rtl" ? "'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif" : "'Plus Jakarta Sans', 'Noto Sans Arabic', system-ui, sans-serif" }}>{children}</div>;
+  return <div dir={dir} className="min-h-screen bg-canvas text-foreground" style={{ fontFamily: dir === "rtl" ? "'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif" : "'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif" }}>{children}</div>;
 }
 function PanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return <div className="flex items-center justify-between"><h2 className="text-base font-bold text-foreground">{title}</h2><button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"><X className="h-5 w-5" /></button></div>;
@@ -642,22 +642,22 @@ function ReceiptDone({ sale, store, currency, t, lang, paper, onPrint, onNew }: 
   const html = useMemo(() => receiptHtml(sale, store, { paper, lang, currency }), [sale, store, paper, lang, currency]);
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 bg-[#16A34A] px-4 py-4 text-white">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20"><Check className="h-6 w-6" /></div>
+      <div className="flex items-center gap-3 bg-[#4661C7] px-4 py-4 text-primary-foreground">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-card/20"><Check className="h-6 w-6" /></div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold">{t("تمت العملية", "Sale completed")}</div>
-          <div className="truncate font-english text-xs text-white/85">{sale.invoiceNumber || sale.provisionalNumber}{!sale.invoiceNumber && <span className="ms-1 rounded bg-white/20 px-1">{t("سيُرقّم عند الرفع", "numbered on upload")}</span>}</div>
+          <div className="truncate font-english text-xs text-primary-foreground/85">{sale.invoiceNumber || sale.provisionalNumber}{!sale.invoiceNumber && <span className="ms-1 rounded bg-card/20 px-1">{t("سيُرقّم عند الرفع", "numbered on upload")}</span>}</div>
         </div>
         {sale.paymentMethod === "CASH" && sale.totals.change > 0 && (
-          <div className="text-end"><div className="text-[10px] uppercase tracking-wide text-white/80">{t("الباقي", "Change")}</div><div className="font-english text-2xl font-extrabold">{money(sale.totals.change)}</div></div>
+          <div className="text-end"><div className="text-[10px] uppercase tracking-wide text-primary-foreground/80">{t("الباقي", "Change")}</div><div className="font-english text-2xl font-extrabold">{money(sale.totals.change)}</div></div>
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto bg-canvas p-4">
-        <iframe title="receipt" srcDoc={html} className="mx-auto block h-[520px] rounded-lg border border-border bg-white shadow-sm" style={{ width: paper === "58" ? 230 : 320 }} />
+        <iframe title="receipt" srcDoc={html} className="mx-auto block h-[520px] rounded-lg border border-border bg-card shadow-sm" style={{ width: paper === "58" ? 230 : 320 }} />
       </div>
       <div className="grid grid-cols-2 gap-2 border-t border-border p-4">
         <button onClick={onPrint} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-surface text-sm font-bold text-foreground hover:bg-muted/40"><Printer className="h-4 w-4" />{t("طباعة", "Print")}</button>
-        <button onClick={onNew} autoFocus className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground hover:bg-primary/90"><Plus className="h-4 w-4" />{t("بيع جديد", "New sale")} <kbd className="rounded bg-white/20 px-1 font-english text-[10px]">Esc</kbd></button>
+        <button onClick={onNew} autoFocus className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground hover:bg-primary/90"><Plus className="h-4 w-4" />{t("بيع جديد", "New sale")} <kbd className="rounded bg-card/20 px-1 font-english text-[10px]">Esc</kbd></button>
       </div>
     </div>
   );
@@ -734,7 +734,7 @@ function SettingsPanel({ settings, update, branches, onClose, t, device, testPri
   const Seg = <T extends string>({ value, options, onChange }: { value: T; options: Array<[T, string]>; onChange: (v: T) => void }) => (
     <div className="flex rounded-lg bg-canvas p-0.5">{options.map(([v, l]) => <button key={v} onClick={() => onChange(v)} className={`rounded-md px-3 py-1 text-xs font-semibold ${value === v ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"}`}>{l}</button>)}</div>
   );
-  const Toggle = ({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) => <button onClick={() => onChange(!on)} className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted"}`}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "start-[22px]" : "start-0.5"}`} /></button>;
+  const Toggle = ({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) => <button onClick={() => onChange(!on)} className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted"}`}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-all ${on ? "start-[22px]" : "start-0.5"}`} /></button>;
   return (
     <div className="flex h-full flex-col p-4">
       <PanelHeader title={t("إعدادات الكاشير", "Cashier settings")} onClose={onClose} />

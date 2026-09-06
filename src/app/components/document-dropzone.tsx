@@ -263,7 +263,7 @@ export function DocumentDropZone({
             {busy ? (
               <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
             ) : success ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
             ) : error ? (
               <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             ) : (
@@ -317,7 +317,7 @@ export function DocumentDropZone({
           </div>
         ) : success ? (
           <div className="flex flex-col items-center gap-3 py-2">
-            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            <CheckCircle2 className="h-8 w-8 text-success" />
             <p className="text-sm text-foreground">{success}</p>
             <button onClick={(e) => { e.stopPropagation(); setSuccess(null); }} className="text-xs text-primary hover:underline">
               {t("رفع ملف آخر", "Upload another file")}

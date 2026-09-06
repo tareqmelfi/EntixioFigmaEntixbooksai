@@ -20,12 +20,12 @@ export function Integration() {
   ];
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
+    <div className="min-h-screen bg-card" dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif" }}>
       <SharedNavbar />
       <main>
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-white relative overflow-hidden">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-primary-foreground relative overflow-hidden">
         <div className="absolute top-0 left-0 w-96 h-96 bg-secondary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
         
@@ -35,18 +35,18 @@ export function Integration() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
+            <div className="inline-flex items-center gap-2 bg-card/10 backdrop-blur-sm border border-card/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-secondary" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("ZATCA Phase 2 • قيد التحقق الفني والتنظيمي", "ZATCA Phase 2 • Under technical and regulatory validation")}</span>
             </div>
-            <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
+            <h1 className="text-primary-foreground mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               {t("تكامل سلس وأمان", "Seamless integration and security")}
               <br />
-              <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
+              <span className="bg-gradient-to-l from-secondary to-info bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
                 {t("يمكنك الوثوق به", "you can trust")}
               </span>
             </h1>
-            <p className="text-white/80 text-lg max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
+            <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
               {t("تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي، مع بنية سحابية محمية بممارسات أمان قياسية", "ZATCA Phase 2 integration is under technical and regulatory validation and not enabled for production reliance, on a cloud architecture protected by standard security practices")}
             </p>
           </motion.div>
@@ -54,7 +54,7 @@ export function Integration() {
       </section>
 
       {/* Section Tabs */}
-      <div className="sticky top-[68px] z-40 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-[68px] z-40 bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 overflow-x-auto py-4">
             {sections.map((section) => (
@@ -66,8 +66,8 @@ export function Integration() {
                 }}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
                   activeSection === section.id
-                    ? "bg-primary text-white shadow-lg shadow-primary/25"
-                    : "bg-gray-50 text-muted-foreground hover:bg-gray-100"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "bg-surface-subtle text-muted-foreground hover:bg-surface-hover"
                 }`}
                 style={{ fontSize: "14px", fontWeight: 500 }}
               >
@@ -80,7 +80,7 @@ export function Integration() {
       </div>
 
       {/* Sync Section */}
-      <section id="sync" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="sync" className="py-20 px-4 sm:px-6 lg:px-8 bg-card">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -107,7 +107,7 @@ export function Integration() {
                 icon: Cloud,
                 title: t("سحابي بالكامل", "Fully cloud"),
                 desc: t("لا حاجة لأي تثبيت — افتح المتصفح وابدأ العمل من أي جهاز.", "No installation needed — open the browser and start working from any device."),
-                color: "#0B1B49",
+                color: "#1A1E48",
                 features: [
                   t("وصول من أي جهاز ومتصفح", "Access from any device and browser"),
                   t("تحديثات تلقائية بدون توقف", "Automatic updates with no downtime"),
@@ -119,7 +119,7 @@ export function Integration() {
                 icon: Database,
                 title: t("نسخ احتياطي يومي", "Daily backups"),
                 desc: t("نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا.", "Automatic backups every day with 14-day retention."),
-                color: "#1276E3",
+                color: "#5875DB",
                 features: [
                   t("نسخ تلقائي يومي", "Automatic daily copies"),
                   t("احتفاظ 14 يومًا", "14-day retention"),
@@ -149,13 +149,13 @@ export function Integration() {
                 transition={{ delay: i * 0.1 }}
                 className={`rounded-2xl p-8 ${
                   mode.highlighted
-                    ? "bg-gradient-to-br from-foreground to-primary text-white shadow-2xl shadow-primary/20 scale-105"
-                    : "bg-gray-50 border border-gray-200"
+                    ? "bg-gradient-to-br from-foreground to-primary text-primary-foreground shadow-2xl shadow-primary/20 scale-105"
+                    : "bg-surface-subtle border border-border"
                 }`}
               >
                 <div 
                   className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 ${
-                    mode.highlighted ? "bg-white/20" : ""
+                    mode.highlighted ? "bg-card/20" : ""
                   }`}
                   style={{ backgroundColor: mode.highlighted ? "" : mode.color + "15" }}
                 >
@@ -165,13 +165,13 @@ export function Integration() {
                   />
                 </div>
                 <h3 
-                  className={`mb-3 ${mode.highlighted ? "text-white" : "text-foreground"}`}
+                  className={`mb-3 ${mode.highlighted ? "text-primary-foreground" : "text-foreground"}`}
                   style={{ fontSize: "19px", fontWeight: 600 }}
                 >
                   {mode.title}
                 </h3>
                 <p 
-                  className={`mb-5 ${mode.highlighted ? "text-white/80" : "text-muted-foreground"}`}
+                  className={`mb-5 ${mode.highlighted ? "text-primary-foreground/80" : "text-muted-foreground"}`}
                   style={{ fontSize: "14px", lineHeight: 1.7 }}
                 >
                   {mode.desc}
@@ -181,10 +181,10 @@ export function Integration() {
                     <li key={feature} className="flex items-start gap-2" style={{ fontSize: "13px" }}>
                       <CheckCircle2 
                         className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                          mode.highlighted ? "text-sky-400" : "text-green-500"
+                          mode.highlighted ? "text-info" : "text-success"
                         }`} 
                       />
-                      <span className={mode.highlighted ? "text-white/90" : "text-muted-foreground"}>
+                      <span className={mode.highlighted ? "text-primary-foreground/90" : "text-muted-foreground"}>
                         {feature}
                       </span>
                     </li>
@@ -199,7 +199,7 @@ export function Integration() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 border border-gray-100"
+            className="bg-gradient-to-br from-surface-subtle to-card rounded-2xl p-8 border border-border"
           >
             <h3 className="text-foreground mb-8 text-center" style={{ fontSize: "22px", fontWeight: 600 }}>
               {t("كيف تعمل المزامنة؟", "How does sync work?")}
@@ -234,9 +234,9 @@ export function Integration() {
                 <div key={step.step} className="relative">
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-                      <step.icon className="w-7 h-7 text-white" />
+                      <step.icon className="w-7 h-7 text-primary-foreground" />
                     </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-foreground text-white flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-foreground text-primary-foreground flex items-center justify-center" style={{ fontSize: "14px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {step.step}
                     </div>
                     <h4 className="text-foreground mb-2" style={{ fontSize: "15px", fontWeight: 600 }}>
@@ -257,7 +257,7 @@ export function Integration() {
       </section>
 
       {/* Compliance Section */}
-      <section id="compliance" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section id="compliance" className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-subtle">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -265,7 +265,7 @@ export function Integration() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 bg-green-50 text-green-500 px-4 py-2 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-success-subtle text-success px-4 py-2 rounded-full mb-4">
               <FileCheck className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("جاهزية نظامية", "Regulatory readiness")}</span>
             </div>
@@ -284,7 +284,7 @@ export function Integration() {
                 icon: Award,
                 title: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — under validation"),
                 subtitle: t("غير مفعّل للاعتماد الإنتاجي", "Not enabled for production reliance"),
-                color: "#F59E0B",
+                color: "#B8862B",
                 features: [
                   t("التحقق الفني والتنظيمي مستمر", "Technical and regulatory validation is ongoing"),
                   t("QR محلي يحتوي بيانات الفاتورة الأساسية", "Local QR containing core invoice data"),
@@ -296,7 +296,7 @@ export function Integration() {
                 icon: Globe,
                 title: t("المعايير الدولية", "International standards"),
                 subtitle: t("توافق مع IFRS و GAAP", "IFRS and GAAP alignment"),
-                color: "#1276E3",
+                color: "#5875DB",
                 features: [
                   t("معايير المحاسبة الدولية IFRS", "International Financial Reporting Standards (IFRS)"),
                   t("مبادئ المحاسبة المقبولة عموماً GAAP", "Generally Accepted Accounting Principles (GAAP)"),
@@ -315,7 +315,7 @@ export function Integration() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-8 border-2 shadow-xl"
+                className="bg-card rounded-2xl p-8 border-2 shadow-xl"
                 style={{ borderColor: compliance.color + "30" }}
               >
                 <div 
@@ -358,7 +358,7 @@ export function Integration() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                className="bg-white rounded-xl p-6 text-center border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all"
+                className="bg-card rounded-xl p-6 text-center border border-border hover:border-primary/30 hover:shadow-lg transition-all"
               >
                 <stat.icon className="w-8 h-8 mx-auto mb-3 text-primary" />
                 <div className="text-foreground mb-1" style={{ fontSize: "28px", fontWeight: 700, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
@@ -374,7 +374,7 @@ export function Integration() {
       </section>
 
       {/* Security Section */}
-      <section id="security" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="security" className="py-20 px-4 sm:px-6 lg:px-8 bg-card">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -382,7 +382,7 @@ export function Integration() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 bg-red-50 text-red-500 px-4 py-2 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-danger-subtle text-danger px-4 py-2 rounded-full mb-4">
               <Shield className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("أمان متقدم", "Advanced security")}</span>
             </div>
@@ -400,7 +400,7 @@ export function Integration() {
               {
                 icon: Lock,
                 title: t("تشفير متقدم", "Advanced encryption"),
-                color: "#EF4444",
+                color: "#9E3B2E",
                 features: [
                   t("تشفير AES-256-GCM لمفاتيح التكامل", "AES-256-GCM encryption for integration keys"),
                   t("تشفير الاتصال عبر TLS", "TLS connection encryption"),
@@ -411,7 +411,7 @@ export function Integration() {
               {
                 icon: Key,
                 title: t("التحكم بالوصول", "Access control"),
-                color: "#F59E0B",
+                color: "#B8862B",
                 features: [
                   t("صلاحيات حسب أدوار المستخدمين", "Role-based user permissions"),
                   t("جلسات آمنة محدودة المدة بكوكي HttpOnly", "Time-limited secure sessions with HttpOnly cookies"),
@@ -444,7 +444,7 @@ export function Integration() {
               {
                 icon: Fingerprint,
                 title: t("الخصوصية", "Privacy"),
-                color: "#10B981",
+                color: "#4661C7",
                 features: [
                   t("بياناتك ملكك — لا نبيعها ولا نشاركها", "Your data is yours — we never sell or share it"),
                   t("إخفاء الأسرار والمفاتيح في الواجهة", "Secrets and keys are masked in the UI"),
@@ -470,7 +470,7 @@ export function Integration() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-gray-50 rounded-2xl p-6 border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all group"
+                className="bg-surface-subtle rounded-2xl p-6 border border-border hover:border-border hover:shadow-lg transition-all group"
               >
                 <div 
                   className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
@@ -498,16 +498,16 @@ export function Integration() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-foreground to-primary rounded-2xl p-10 text-center text-white"
+            className="bg-gradient-to-br from-foreground to-primary rounded-2xl p-10 text-center text-primary-foreground"
           >
-            <h3 className="text-white mb-6" style={{ fontSize: "24px", fontWeight: 700 }}>
+            <h3 className="text-primary-foreground mb-6" style={{ fontSize: "24px", fontWeight: 700 }}>
               {t("ممارسات الأمان لدينا", "Our security practices")}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {["تشفير TLS أثناء النقل", t("نسخ احتياطي يومي تلقائي", "Automatic daily backups"), "جلسات HttpOnly مشفّرة"].map((cert) => (
-                <div key={cert} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-colors">
-                  <Award className="w-10 h-10 mx-auto mb-3 text-sky-400" />
-                  <div className="text-white" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+                <div key={cert} className="bg-card/10 backdrop-blur-sm border border-card/20 rounded-xl p-6 hover:bg-card/20 transition-colors">
+                  <Award className="w-10 h-10 mx-auto mb-3 text-info" />
+                  <div className="text-primary-foreground" style={{ fontSize: "15px", fontWeight: 600, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                     {cert}
                   </div>
                 </div>
@@ -518,7 +518,7 @@ export function Integration() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-subtle">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -533,7 +533,7 @@ export function Integration() {
             </p>
             <button 
               onClick={() => navigate("/register")}
-              className="bg-primary hover:bg-primary/80 text-white px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-primary/25 flex items-center gap-2 mx-auto cursor-pointer"
+              className="bg-primary hover:bg-primary/80 text-primary-foreground px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-primary/25 flex items-center gap-2 mx-auto cursor-pointer"
               style={{ fontSize: "16px", fontWeight: 600 }}
             >
               {t("ابدأ تجربتك المجانية", "Start your free trial")}

@@ -26,8 +26,8 @@ export function PageHeader({ title, description, eyebrow, leading, actions, clas
       <div className="flex min-w-0 flex-1 items-start gap-3">
         {leading && <div className="mt-1 shrink-0">{leading}</div>}
         <div className="min-w-0 flex-1">
-        {eyebrow && <div className="mb-1 text-label font-medium text-primary">{eyebrow}</div>}
-        <h1 className="text-page font-semibold tracking-tight text-foreground">{title}</h1>
+        {eyebrow && <div className="mb-1 text-xs text-content-secondary">{eyebrow}</div>}
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">{title}</h1>
         {description && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>}
         </div>
       </div>
@@ -54,7 +54,7 @@ export function PageToolbar({ className, ...props }: ToolbarProps) {
   return (
     <div
       role="toolbar"
-      className={cn("flex flex-wrap items-center gap-2 rounded-lg border bg-surface p-2", className)}
+      className={cn("flex flex-wrap items-center gap-2", className)}
       {...props}
     />
   );
@@ -83,6 +83,14 @@ const toneClasses: Record<Tone, string> = {
   critical: "border-danger-border bg-danger-subtle text-danger",
 };
 
+const indicatorClasses: Record<Tone, string> = {
+  neutral: "bg-content-secondary",
+  info: "bg-info",
+  success: "bg-success",
+  warning: "bg-warning",
+  critical: "bg-danger",
+};
+
 type StatusBadgeProps = React.ComponentProps<"span"> & {
   tone?: Tone;
   icon?: React.ReactNode;
@@ -93,10 +101,10 @@ export function StatusBadge({ tone = "neutral", icon, live = false, className, c
   return (
     <span
       role={live ? "status" : undefined}
-      className={cn("inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium", toneClasses[tone], className)}
+      className={cn("inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold", toneClasses[tone], className)}
       {...props}
     >
-      {icon}
+      {icon ?? <span className={cn("size-1.5 shrink-0 rounded-full", indicatorClasses[tone])} aria-hidden="true" />}
       <span>{children}</span>
     </span>
   );
@@ -110,30 +118,21 @@ type MetricProps = React.ComponentProps<"div"> & {
   icon?: React.ReactNode;
 };
 
-const indicatorClasses: Record<Tone, string> = {
-  neutral: "bg-content-secondary",
-  info: "bg-info",
-  success: "bg-success",
-  warning: "bg-warning",
-  critical: "bg-danger",
-};
-
 export function Metric({ label, value, hint, tone = "neutral", icon, className, ...props }: MetricProps) {
   return (
-    <div className={cn("min-w-0 rounded-lg border bg-surface p-4", className)} {...props}>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className={cn("size-1.5 rounded-full", indicatorClasses[tone])} aria-hidden="true" />
+    <div className={cn("ledger-figure min-w-0", className)} data-tone={tone} {...props}>
+      <div className="flex items-center gap-2 text-xs text-content-secondary">
         {icon}
         <span className="min-w-0 truncate">{label}</span>
       </div>
-      <div dir="auto" className="mt-2 text-xl font-semibold tabular-nums text-foreground">{value}</div>
+      <div dir="auto" className={cn("ledger-figure-value mt-2", tone === "warning" && "text-warning", tone === "critical" && "text-danger", tone === "success" && "text-success", tone === "info" && "text-info")}>{value}</div>
       {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
     </div>
   );
 }
 
 export function MetricStrip({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", className)} {...props} />;
+  return <div className={cn("ledger-figures grid sm:grid-cols-2 xl:grid-cols-4", className)} {...props} />;
 }
 
 type InlineAlertProps = React.ComponentProps<"div"> & {
@@ -144,7 +143,7 @@ type InlineAlertProps = React.ComponentProps<"div"> & {
 
 export function InlineAlert({ tone = "neutral", title, icon, children, className, ...props }: InlineAlertProps) {
   return (
-    <div role={tone === "critical" ? "alert" : "status"} className={cn("flex gap-3 rounded-lg border p-3 text-sm", toneClasses[tone], className)} {...props}>
+    <div role={tone === "critical" ? "alert" : "status"} className={cn("flex gap-3 rounded-lg border bg-card p-3 text-sm", toneBarClasses[tone], className)} {...props}>
       {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
       <div className="min-w-0">
         {title && <div className="font-medium text-foreground">{title}</div>}
@@ -156,6 +155,15 @@ export function InlineAlert({ tone = "neutral", title, icon, children, className
 
 export const FeedbackBanner = InlineAlert;
 
+/* Ledger alerts sit on a card with a 3px tone bar on the start edge — no tinted fills. */
+const toneBarClasses: Record<Tone, string> = {
+  neutral: "border-border border-s-[3px] border-s-content-secondary text-foreground",
+  info: "border-border border-s-[3px] border-s-info text-foreground",
+  success: "border-border border-s-[3px] border-s-success text-foreground",
+  warning: "border-border border-s-[3px] border-s-warning text-foreground",
+  critical: "border-border border-s-[3px] border-s-danger text-foreground",
+};
+
 type EmptyStateProps = React.ComponentProps<"div"> & {
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -165,7 +173,7 @@ type EmptyStateProps = React.ComponentProps<"div"> & {
 
 export function EmptyState({ title, description, icon, action, className, ...props }: EmptyStateProps) {
   return (
-    <div role="status" className={cn("flex flex-col items-center justify-center rounded-lg border border-dashed bg-surface px-6 py-10 text-center", className)} {...props}>
+    <div role="status" className={cn("flex flex-col items-center justify-center rounded-lg border border-dashed border-border-strong bg-card px-6 py-12 text-center", className)} {...props}>
       {icon && <div className="mb-3 text-muted-foreground">{icon}</div>}
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {description && <p className="mt-1 max-w-lg text-sm text-muted-foreground">{description}</p>}
@@ -230,7 +238,7 @@ type DataTableProps<Row> = {
 export function DataTable<Row>({ columns, rows, rowKey, density = "default", stickyHeader, loading, error, empty, className }: DataTableProps<Row>) {
   const message = loading ? "Loading…" : empty ?? "No records";
   return (
-    <div className={cn("overflow-hidden rounded-lg border bg-surface", className)} aria-busy={loading || undefined}>
+    <div className={cn("ledger-table overflow-hidden", className)} aria-busy={loading || undefined}>
       {error && <InlineAlert tone="critical" className="m-3">{error}</InlineAlert>}
       <Table>
         <TableHeader className={cn(stickyHeader && "sticky top-0 z-10 bg-surface")}>
@@ -246,7 +254,7 @@ export function DataTable<Row>({ columns, rows, rowKey, density = "default", sti
               <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">{message}</TableCell>
             </TableRow>
           ) : rows.map((row) => (
-            <TableRow key={rowKey(row)} className={density === "dense" ? "h-9" : "h-11"}>
+            <TableRow key={rowKey(row)} className={density === "dense" ? "h-9" : "h-12"}>
               {columns.map((column) => (
                 <TableCell key={column.key} className={cn(column.numeric && "text-end", column.className)}>
                   {column.numeric ? <TableNumericCell>{column.cell(row)}</TableNumericCell> : column.cell(row)}
@@ -266,7 +274,7 @@ export function TableNumericCell({ className, ...props }: React.ComponentProps<"
 
 export function SettingsSection({ title, description, actions, children, className }: HeaderProps & { children?: React.ReactNode }) {
   return (
-    <section className={cn("rounded-lg border bg-surface", className)}>
+    <section className={cn("rounded-lg border bg-card", className)}>
       <div className="border-b p-4 sm:p-5"><SectionHeader title={title} description={description} actions={actions} /></div>
       {children && <div className="p-4 sm:p-5">{children}</div>}
     </section>

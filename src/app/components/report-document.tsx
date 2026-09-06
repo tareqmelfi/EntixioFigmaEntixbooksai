@@ -14,8 +14,8 @@ const defaultSettings: Omit<Required<ReportPrintSettings>, "language"> = {
   orientation: "portrait",
   fontScale: "normal",
   density: "standard",
-  primaryColor: "#0B1B49",
-  accentColor: "#1276E3",
+  primaryColor: "#1A1E48",
+  accentColor: "#5875DB",
   showCompanyInfo: true,
   showTaxInfo: true,
   showFooter: true,
@@ -58,15 +58,15 @@ function EquationStrip({ report, currency }: { report: ReportPayload; currency: 
   const net = amount("net-income");
   if (revenue === null || expenses === null || net === null) return null;
   return (
-    <div className="report-equation mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-md border border-slate-200 bg-slate-50/70 px-4 py-3 text-center" dir="ltr">
-      <span className="text-xs text-slate-500">{t("الإيرادات", "Revenue")}</span>
-      <NumericText className="text-base font-bold text-slate-900">{fmt(revenue, currency)}</NumericText>
-      <span className="text-lg font-bold text-slate-400">−</span>
-      <span className="text-xs text-slate-500">{t("المصروفات", "Expenses")}</span>
-      <NumericText className="text-base font-bold text-slate-900">{fmt(expenses, currency)}</NumericText>
-      <span className="text-lg font-bold text-slate-400">=</span>
-      <span className="text-xs text-slate-500">{t("صافي الربح / الخسارة", "Net income / (loss)")}</span>
-      <NumericText className={`text-lg font-bold ${net < 0 ? "text-red-700" : "text-emerald-700"}`}>{fmt(net, currency)}</NumericText>
+    <div className="report-equation mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-md border border-border bg-surface-subtle/70 px-4 py-3 text-center" dir="ltr">
+      <span className="text-xs text-muted-foreground">{t("الإيرادات", "Revenue")}</span>
+      <NumericText className="text-base font-bold text-foreground">{fmt(revenue, currency)}</NumericText>
+      <span className="text-lg font-bold text-muted-foreground">−</span>
+      <span className="text-xs text-muted-foreground">{t("المصروفات", "Expenses")}</span>
+      <NumericText className="text-base font-bold text-foreground">{fmt(expenses, currency)}</NumericText>
+      <span className="text-lg font-bold text-muted-foreground">=</span>
+      <span className="text-xs text-muted-foreground">{t("صافي الربح / الخسارة", "Net income / (loss)")}</span>
+      <NumericText className={`text-lg font-bold ${net < 0 ? "text-danger" : "text-success"}`}>{fmt(net, currency)}</NumericText>
     </div>
   );
 }
@@ -134,7 +134,7 @@ export function ReportDocument({
 
   return (
     <article
-      className="entix-report-paper document-paper overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none"
+      className="entix-report-paper document-paper overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none"
       dir={dir}
       style={style}
     >
@@ -147,10 +147,10 @@ export function ReportDocument({
             <h1 className="document-title" style={{ color: "var(--report-primary)" }}>
               <BidiText mode="plaintext">{reportTitle}</BidiText>
             </h1>
-            <div className="mt-0.5 text-sm font-semibold text-slate-800">
+            <div className="mt-0.5 text-sm font-semibold text-foreground">
               <BidiText mode="plaintext">{report.org.legalName || report.org.name}</BidiText>
             </div>
-            <div className="mt-1.5 text-xs leading-5 text-slate-500">
+            <div className="mt-1.5 text-xs leading-5 text-muted-foreground">
               <div>
                 {t("الفترة", "Date Range")}: <NumericText>{report.period.from}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
                 {" · "}
@@ -171,7 +171,7 @@ export function ReportDocument({
 
       <main className="space-y-5 px-6 py-5" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+          <div className="rounded-lg border border-warning-border bg-warning-subtle px-4 py-3 text-sm leading-6 text-warning">
             {report.notices.join(" · ")}
           </div>
         ) : null}
@@ -186,7 +186,7 @@ export function ReportDocument({
           <section key={section.id} className="document-keep-together break-inside-avoid">
             <div className="mb-1.5">
               <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{one(section.title)}</BidiText></h2>
-              {section.description && <p className="mt-0.5 text-xs text-slate-500"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
+              {section.description && <p className="mt-0.5 text-xs text-muted-foreground"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
             <table className="document-table w-full border-collapse">
               <thead>
@@ -194,7 +194,7 @@ export function ReportDocument({
                   {columns.map((column) => (
                     <th
                       key={column.key}
-                      className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-slate-500"
+                      className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
                       style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
                     >
                       {one(column.label)}
@@ -208,7 +208,7 @@ export function ReportDocument({
                   return (
                     <tr
                       key={row.id}
-                      className={`${rowIndex % 2 === 1 && !totalRow ? "bg-slate-50/70" : ""}${onRowClick ? " cursor-pointer transition hover:bg-slate-100/70" : ""}`}
+                      className={`${rowIndex % 2 === 1 && !totalRow ? "bg-surface-subtle/70" : ""}${onRowClick ? " cursor-pointer transition hover:bg-surface-hover/70" : ""}`}
                       onClick={() => onRowClick?.(row)}
                     >
                       {columns.map((column) => {
@@ -219,7 +219,7 @@ export function ReportDocument({
                         return (
                         <td
                           key={`${row.id}-${column.key}`}
-                          className={`${totalRow ? "border-t border-slate-300 font-bold text-slate-900" : "text-slate-700"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}${depth > 0 && column.key === "label" ? " text-slate-500" : ""}`}
+                          className={`${totalRow ? "border-t border-border font-bold text-foreground" : "text-foreground"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}${depth > 0 && column.key === "label" ? " text-muted-foreground" : ""}`}
                           style={{
                             padding: "var(--report-cell-padding)",
                             textAlign: alignToCss(column.align),
@@ -235,7 +235,7 @@ export function ReportDocument({
                   );
                 }) : (
                   <tr>
-                    <td colSpan={columns.length} className="px-4 py-6 text-center text-sm text-slate-500">
+                    <td colSpan={columns.length} className="px-4 py-6 text-center text-sm text-muted-foreground">
                       {t("لا توجد بيانات في هذا القسم خلال الفترة المحددة.", "No data in this section for the selected period.")}
                     </td>
                   </tr>
@@ -248,7 +248,7 @@ export function ReportDocument({
       </main>
 
       {resolved.showFooter && (
-        <footer className="flex items-center justify-between gap-4 border-t border-slate-200 px-6 py-3 text-[11px] text-slate-400">
+        <footer className="flex items-center justify-between gap-4 border-t border-border px-6 py-3 text-[11px] text-muted-foreground">
           <span className="min-w-0 truncate"><BidiText mode="plaintext">{reportTitle}</BidiText> · <BidiText mode="plaintext">{report.org.name}</BidiText> · <NumericText>{report.id}</NumericText></span>
           <span className="hidden sm:inline">
             {t("أُنشئ في", "Created on")} <NumericText>{new Date(report.generatedAt).toLocaleDateString(displayLocale(isEn ? "en-GB" : "ar-SA"))}</NumericText>
@@ -269,12 +269,12 @@ function alignToCss(align?: "start" | "end" | "center") {
 }
 
 function CellValue({ value, keyName, kind, currency, strong }: { value: string | number | null | undefined; keyName: string; kind?: string; currency: string; strong?: boolean }) {
-  if (value === null || value === undefined || value === "") return <span className="text-slate-400">—</span>;
+  if (value === null || value === undefined || value === "") return <span className="text-muted-foreground">—</span>;
   if (kind === "money" || moneyKeys.has(keyName)) {
     const amount = Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return <NumericText className={Number(value) < 0 ? "font-semibold text-red-700" : strong ? "font-bold text-slate-900" : "font-semibold text-slate-900"}>{amount} {currency}</NumericText>;
+    return <NumericText className={Number(value) < 0 ? "font-semibold text-danger" : strong ? "font-bold text-foreground" : "font-semibold text-foreground"}>{amount} {currency}</NumericText>;
   }
   if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString(displayLocale("en-US"))}</NumericText>;
-  if (kind === "status") return <BidiText className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{String(value)}</BidiText>;
+  if (kind === "status") return <BidiText className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-semibold text-foreground">{String(value)}</BidiText>;
   return <BidiText mode="plaintext">{String(value)}</BidiText>;
 }

@@ -16,8 +16,8 @@ export function ClaimPage() {
     <div className="min-h-screen bg-background">
       <SharedNavbar />
       <main className="max-w-md mx-auto px-4 py-20 text-center">
-        <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
-          <MailCheck className="h-7 w-7 text-emerald-700" />
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-success-subtle flex items-center justify-center mb-5">
+          <MailCheck className="h-7 w-7 text-success" />
         </div>
         <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 800 }}>
           {t("تم الدفع — شركتك جاهزة", "Payment received — your company is ready")}

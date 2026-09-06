@@ -135,7 +135,7 @@ export function AdminUserWorkspacePage() {
               key={id}
               to={`?tab=${id}`}
               aria-current={active ? "page" : undefined}
-              className={`px-4 py-2 rounded-md text-sm transition ${active ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-2 rounded-md text-sm transition ${active ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               style={{ fontWeight: active ? 700 : 500 }}
             >
               {label}

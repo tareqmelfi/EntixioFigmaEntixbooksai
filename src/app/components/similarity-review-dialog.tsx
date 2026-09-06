@@ -30,16 +30,16 @@ export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose,
 
   const actions: Array<{ action: DuplicateDecisionAction; className: string }> = [
     { action: "USE_EXISTING", className: "bg-primary hover:bg-primary/80" },
-    { action: "UPDATE_DRAFT", className: "bg-amber-600 hover:bg-amber-700 text-white" },
+    { action: "UPDATE_DRAFT", className: "bg-warning hover:bg-warning text-primary-foreground" },
     { action: "CREATE_SEPARATE", className: "" },
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/40 p-4">
       <div className="w-full max-w-xl rounded-2xl bg-card p-6 shadow-xl space-y-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-full bg-amber-500/10 p-2">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <div className="rounded-full bg-warning/10 p-2">
+            <AlertTriangle className="h-5 w-5 text-warning" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-foreground">{t("مستند مشابه يحتاج مراجعة", "Similar document needs review")}</h3>
@@ -61,7 +61,7 @@ export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose,
           <div className="mt-2 space-y-1">
             {review.matchedSignals.length > 0 && (
               <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
                 <span>
                   {t("متطابق:", "Matching:")}{" "}
                   {review.matchedSignals.map((s) => similaritySignalLabel(s, lang)).join(t(" · ", " · "))}
@@ -70,7 +70,7 @@ export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose,
             )}
             {review.differingSignals.length > 0 && (
               <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                <XCircle className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                <XCircle className="h-3.5 w-3.5 text-danger mt-0.5 shrink-0" />
                 <span>
                   {t("مختلف:", "Differing:")}{" "}
                   {review.differingSignals.map((s) => similaritySignalLabel(s, lang)).join(t(" · ", " · "))}

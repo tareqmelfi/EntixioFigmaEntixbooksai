@@ -134,14 +134,14 @@ export function WorkLogNew() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t("المشروع *", "Project *")}</Label>
                 <SearchableCombobox value={form.projectId} onChange={(projectId) => setForm({ ...form, projectId })} items={projectItems} placeholder={t("اختر المشروع...", "Choose the project...")} />
-                {projects.length === 0 && <p className="text-[11px] text-amber-700">{t("أنشئ مشروعاً أولاً", "Create a project first")}</p>}
+                {projects.length === 0 && <p className="text-[11px] text-warning">{t("أنشئ مشروعاً أولاً", "Create a project first")}</p>}
               </div>
               <div className="space-y-2">
                 <Label>{t("جهة العمل (من قائمة الاتصال) *", "Worker (from contacts) *")}</Label>
@@ -152,7 +152,7 @@ export function WorkLogNew() {
                     {creatingContact ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("إنشاء", "Create")}
                   </Button>
                 </div>
-                {contacts.length === 0 && <p className="text-[11px] text-amber-700">{t("أضف جهة اتصال أولاً أو أنشئها هنا", "Add a contact first or create one here")}</p>}
+                {contacts.length === 0 && <p className="text-[11px] text-warning">{t("أضف جهة اتصال أولاً أو أنشئها هنا", "Add a contact first or create one here")}</p>}
               </div>
             </div>
 
@@ -176,15 +176,15 @@ export function WorkLogNew() {
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setForm({ ...form, billable: true })}
-                  className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.billable ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border"}`}>{t("نعم", "Yes")}</button>
+                  className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.billable ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"}`}>{t("نعم", "Yes")}</button>
                 <button type="button" onClick={() => setForm({ ...form, billable: false })}
-                  className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${!form.billable ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border"}`}>{t("لا", "No")}</button>
+                  className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${!form.billable ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"}`}>{t("لا", "No")}</button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 flex items-center justify-between">
-              <span className="text-sm text-emerald-800">{t("قيمة السجل", "Log value")}</span>
-              <span className="font-english text-emerald-700" style={{ fontWeight: 700, fontSize: "1.1rem" }} dir="ltr">{money(amount)}</span>
+            <div className="rounded-lg border border-success-border bg-success-subtle px-3 py-2.5 flex items-center justify-between">
+              <span className="text-sm text-success">{t("قيمة السجل", "Log value")}</span>
+              <span className="font-english text-success" style={{ fontWeight: 700, fontSize: "1.1rem" }} dir="ltr">{money(amount)}</span>
             </div>
           </CardContent>
         </Card>

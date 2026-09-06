@@ -48,7 +48,7 @@ export function PortalLogin() {
   return (
     <div className="min-h-screen bg-primary/5 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-[400px]">
-        <div className="rounded-2xl bg-white border border-border p-8" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
+        <div className="rounded-2xl bg-card border border-border p-8" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="mt-2"><EntixWordmark size={30} /></h1>
@@ -75,7 +75,7 @@ export function PortalLogin() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-white hover:bg-primary/90 transition-colors"
+                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
                   {t("إرسال رمز الدخول", "Send sign-in code")}
@@ -133,7 +133,7 @@ export function PortalLogin() {
                 <button
                   type="submit"
                   disabled={!otp.every((d) => d)}
-                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg bg-primary px-4 py-3.5 text-sm text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ fontWeight: 600 }}
                 >
                   {t("دخول", "Sign in")}

@@ -22,7 +22,7 @@ const fmtDateTime = (d?: string | null) => (d ? new Date(d).toLocaleString(displ
 const money = (cents: number, cur: string) => `${(cents / 100).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
 
 function StatusPill({ status, lifetime }: { status: string; lifetime?: boolean }) {
-  const cls = lifetime ? "bg-[#0B1B49] text-white" : status === "ACTIVE" ? "bg-success-subtle text-success" : status === "TRIALING" ? "bg-primary/10 text-primary" : status === "PAST_DUE" ? "bg-warning-subtle text-warning" : "bg-muted text-muted-foreground";
+  const cls = lifetime ? "bg-[#1A1E48] text-primary-foreground" : status === "ACTIVE" ? "bg-success-subtle text-success" : status === "TRIALING" ? "bg-primary/10 text-primary" : status === "PAST_DUE" ? "bg-warning-subtle text-warning" : "bg-muted text-muted-foreground";
   return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{lifetime ? <Crown className="h-3 w-3" /> : null}{lifetime ? "LIFETIME" : status}</span>;
 }
 
@@ -74,8 +74,8 @@ export function AdminSubscriptions() {
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]"><Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("بحث باسم الشركة", "Search by company")} className="ps-8 h-9" /></div>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-9 rounded-md border border-border bg-white px-2 text-sm"><option value="">{t("كل الحالات", "All statuses")}</option>{["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "EXPIRED", "INCOMPLETE"].map((s) => <option key={s} value={s}>{s}</option>)}</select>
-            <select value={country} onChange={(e) => setCountry(e.target.value)} className="h-9 rounded-md border border-border bg-white px-2 text-sm"><option value="">{t("كل الدول", "All countries")}</option><option value="SA">SA</option><option value="US">US</option></select>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الحالات", "All statuses")}</option>{["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "EXPIRED", "INCOMPLETE"].map((s) => <option key={s} value={s}>{s}</option>)}</select>
+            <select value={country} onChange={(e) => setCountry(e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الدول", "All countries")}</option><option value="SA">SA</option><option value="US">US</option></select>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -98,7 +98,7 @@ export function AdminSubscriptions() {
                   <tr className={`border-b border-border/50 hover:bg-primary/5 ${editing === r.orgId ? "bg-primary/5" : ""}`}>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        {r.logoUrl ? <img src={r.logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-md border border-border object-contain bg-white" /> : <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] text-muted-foreground" style={{ fontWeight: 700 }}>{r.orgName.slice(0, 1)}</span>}
+                        {r.logoUrl ? <img src={r.logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-md border border-border object-contain bg-card" /> : <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] text-muted-foreground" style={{ fontWeight: 700 }}>{r.orgName.slice(0, 1)}</span>}
                         <div className="min-w-0">
                           <Link to={`/admin/orgs/${r.orgId}`} className="text-foreground hover:text-primary" style={{ fontWeight: 600 }}>{r.orgName}</Link>
                           <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground font-english" dir="ltr">{r.country} · {r.currency}{r.suspended ? <span className="ms-1 inline-flex items-center gap-0.5 text-warning"><Ban className="h-3 w-3" />{t("موقوفة", "suspended")}</span> : null} <OriginBadge via={r.createdVia} /></div>
@@ -106,7 +106,7 @@ export function AdminSubscriptions() {
                       </div>
                     </td>
                     <td className="px-3 py-2 font-english text-xs" dir="ltr">{r.owner || "—"}</td>
-                    <td className="px-3 py-2">{language === "ar" ? (r.plan.nameAr || r.plan.name) : r.plan.name}<div className="text-[11px] text-muted-foreground font-english" dir="ltr">{r.plan.tier} · {r.plan.interval}</div>{r.note ? <div className="mt-0.5 max-w-[26ch] truncate text-[11px] text-amber-800" title={r.note}>📝 {r.note}</div> : null}</td>
+                    <td className="px-3 py-2">{language === "ar" ? (r.plan.nameAr || r.plan.name) : r.plan.name}<div className="text-[11px] text-muted-foreground font-english" dir="ltr">{r.plan.tier} · {r.plan.interval}</div>{r.note ? <div className="mt-0.5 max-w-[26ch] truncate text-[11px] text-warning" title={r.note}>📝 {r.note}</div> : null}</td>
                     <td className="px-3 py-2"><StatusPill status={r.status} lifetime={r.lifetime} />{r.cancelAtPeriodEnd ? <div className="text-[11px] text-warning">{t("يُلغى نهاية الفترة", "cancels at period end")}</div> : null}</td>
                     <td className="px-3 py-2 text-xs" dir="ltr"><SubscriptionSourceBadge source={r.source} lifetime={r.lifetime} sponsored={r.sponsored} />{r.stripeSubscriptionId ? <div className="mt-0.5 text-[10px] text-muted-foreground font-english">{r.stripeSubscriptionId.slice(0, 12)}…</div> : null}</td>
                     <td className="px-3 py-2"><SubscriptionProgress compact start={r.currentPeriodStart} end={r.currentPeriodEnd || r.trialEndsAt} status={r.status} lifetime={r.lifetime} sponsored={r.sponsored} />{!r.lifetime && !r.sponsored && (r.currentPeriodEnd || r.trialEndsAt) ? <div className="text-[10px] text-muted-foreground font-english" dir="ltr">{fmtDate(r.currentPeriodEnd || r.trialEndsAt)}</div> : null}</td>
@@ -226,7 +226,7 @@ export function AdminAudit() {
           <p className="text-sm text-muted-foreground mt-0.5">{t("كل إجراء إداري: من · على من · ماذا · قبل/بعد · السبب · IP", "Every admin action: who · on what · before/after · reason · IP")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <select value={targetType} onChange={(e) => setTargetType(e.target.value)} className="h-9 rounded-md border border-border bg-white px-2 text-sm"><option value="">{t("كل الأهداف", "All targets")}</option>{["ORG", "USER", "SUBSCRIPTION", "PLAN", "SYSTEM"].map((x) => <option key={x} value={x}>{x}</option>)}</select>
+          <select value={targetType} onChange={(e) => setTargetType(e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الأهداف", "All targets")}</option>{["ORG", "USER", "SUBSCRIPTION", "PLAN", "SYSTEM"].map((x) => <option key={x} value={x}>{x}</option>)}</select>
           <Button variant="outline" className="border-border" onClick={() => void csv()}><Download className="me-2 h-4 w-4" />CSV</Button>
           <Button variant="outline" className="border-border" onClick={() => void load()} disabled={loading}><RefreshCw className="h-4 w-4" /></Button>
         </div>
@@ -253,8 +253,8 @@ export function AdminAudit() {
                       <tr className="border-b border-border/50 bg-muted/30">
                         <td colSpan={6} className="px-3 py-2">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-english" dir="ltr">
-                            <div><div className="text-muted-foreground mb-1">before</div><pre className="whitespace-pre-wrap rounded bg-white p-2 border border-border/60">{JSON.stringify(r.before ?? null, null, 1)}</pre></div>
-                            <div><div className="text-muted-foreground mb-1">after</div><pre className="whitespace-pre-wrap rounded bg-white p-2 border border-border/60">{JSON.stringify(r.after ?? null, null, 1)}</pre></div>
+                            <div><div className="text-muted-foreground mb-1">before</div><pre className="whitespace-pre-wrap rounded bg-card p-2 border border-border/60">{JSON.stringify(r.before ?? null, null, 1)}</pre></div>
+                            <div><div className="text-muted-foreground mb-1">after</div><pre className="whitespace-pre-wrap rounded bg-card p-2 border border-border/60">{JSON.stringify(r.after ?? null, null, 1)}</pre></div>
                           </div>
                         </td>
                       </tr>

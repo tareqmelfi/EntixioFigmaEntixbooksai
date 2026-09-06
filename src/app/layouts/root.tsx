@@ -28,7 +28,7 @@ function UnverifiedEmailBanner() {
   const email = auth.user!.email;
 
   return (
-    <div className="shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-2 flex items-center justify-center gap-2 text-xs text-amber-800">
+    <div className="shrink-0 border-b border-warning-border bg-warning-subtle px-4 py-2 flex items-center justify-center gap-2 text-xs text-warning">
       <MailWarning className="h-4 w-4 shrink-0" />
       <span>
         {t("بريدك غير مفعّل — فعّله لحماية حسابك (تُحذف الحسابات غير المفعّلة بعد 30 يومًا)", "Your email is unverified — verify it to protect your account (unverified accounts are removed after 30 days)")}
@@ -45,7 +45,7 @@ function UnverifiedEmailBanner() {
             } finally { setBusy(false); }
           }}
           disabled={busy}
-          className="font-semibold underline underline-offset-2 hover:text-amber-900 disabled:opacity-60"
+          className="font-semibold underline underline-offset-2 hover:opacity-80 disabled:opacity-60"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin inline" /> : t("إرسال رابط التفعيل", "Send verification link")}
         </button>
@@ -106,7 +106,7 @@ export function Root() {
   if (authState.isAuthenticated && authState.needsOnboarding) return null;
 
   return (
-    <div data-shell="app" className="flex h-dvh w-full bg-canvas" dir={language === "ar" ? "rtl" : "ltr"}>
+    <div data-shell="app" className="flex h-dvh w-full bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
@@ -153,12 +153,14 @@ export function Root() {
         <UnverifiedEmailBanner />
         <SessionExpiredBanner />
         <GlobalToasts />
-        <main ref={mainRef} className="flex-1 overflow-auto p-[var(--page-gutter)]">
-          {gate ? (
-            <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />
-          ) : (
-            <Outlet />
-          )}
+        <main ref={mainRef} className="flex-1 overflow-auto bg-background">
+          <div className="mx-auto w-full max-w-[1440px] p-4 sm:px-8 sm:py-6">
+            {gate ? (
+              <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />
+            ) : (
+              <Outlet />
+            )}
+          </div>
         </main>
       </div>
 
@@ -166,7 +168,7 @@ export function Root() {
       {sidebarMode === "hidden" && (
         <button
           onClick={() => handleModeChange("pinned")}
-          className="fixed end-4 top-4 z-30 hidden items-center gap-1.5 rounded-lg border bg-surface px-3 py-2 text-xs text-muted-foreground shadow-raised transition-colors hover:bg-surface-hover hover:text-foreground lg:flex"
+          className="fixed end-4 top-4 z-30 hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-raised transition-colors hover:bg-surface-hover hover:text-foreground lg:flex"
           title={t("إظهار القائمة", "Show sidebar")}
         >
           <PanelRightOpen className="h-4 w-4" />

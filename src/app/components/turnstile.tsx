@@ -161,7 +161,7 @@ export function Turnstile({ onVerify, onStatusChange, resetKey = 0, language = "
     <div className="my-3">
       <div ref={hostRef} className="flex justify-center" />
       {failed && (
-        <div data-testid="captcha-error" role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700">
+        <div data-testid="captcha-error" role="alert" className="mt-3 rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-center text-sm text-danger">
           <p>
             {errorCode === "110200"
               ? "Turnstile configuration error: this hostname is not authorized. خطأ في إعداد Turnstile: اسم النطاق غير مصرح به."

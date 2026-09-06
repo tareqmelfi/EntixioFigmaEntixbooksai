@@ -25,9 +25,9 @@ const COMMISSION_TIERS = [
 ];
 
 const COMMISSION_STATUS: Record<string, { ar: string; en: string; cls: string }> = {
-  pending: { ar: "قيد التعليق", en: "Pending", cls: "bg-amber-500/10 text-amber-600" },
+  pending: { ar: "قيد التعليق", en: "Pending", cls: "bg-warning/10 text-warning" },
   cleared: { ar: "جاهزة للسحب", en: "Cleared", cls: "bg-primary/10 text-primary" },
-  paid: { ar: "مدفوعة", en: "Paid", cls: "bg-emerald-500/10 text-emerald-600" },
+  paid: { ar: "مدفوعة", en: "Paid", cls: "bg-success/10 text-success" },
 };
 
 const money = (v: any, currency = "SAR") =>
@@ -208,7 +208,7 @@ export function Partners() {
         </Card>
         <Card className="border-border">
           <CardContent className="flex items-center gap-3 p-4">
-            <Wallet className="h-8 w-8 text-emerald-600" />
+            <Wallet className="h-8 w-8 text-success" />
             <div>
               <div className="font-english text-2xl font-bold text-foreground">{money(d.totalPaid)}</div>
               <div className="text-xs text-muted-foreground">{t("عمولات مدفوعة", "Paid out")}</div>
@@ -264,7 +264,7 @@ export function Partners() {
                 {data!.clients.map((c: any) => (
                   <div key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
                     <span className="font-english text-foreground/80" dir="ltr">{c.orgId}</span>
-                    <span className={`rounded px-2 py-0.5 text-xs ${c.status === "active" ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`rounded px-2 py-0.5 text-xs ${c.status === "active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                       {c.status === "active" ? t("نشط", "Active") : c.status}
                     </span>
                   </div>
@@ -350,7 +350,7 @@ export function Partners() {
                     <span className="font-english text-xs text-muted-foreground" dir="ltr">{String(p.requestedAt || "").slice(0, 10)}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-english font-semibold text-foreground" dir="ltr">{money(p.amount, p.currency)}</span>
-                      <span className={`rounded px-2 py-0.5 text-xs ${p.status === "paid" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                      <span className={`rounded px-2 py-0.5 text-xs ${p.status === "paid" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
                         {p.status === "paid" ? t("مدفوع", "Paid") : t("قيد المعالجة", "Processing")}
                       </span>
                     </div>

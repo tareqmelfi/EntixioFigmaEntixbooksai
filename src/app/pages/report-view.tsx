@@ -45,7 +45,7 @@ function ExportMenu({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () =
         <ChevronDown className={`ms-1 h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </Button>
       {open && (
-        <div className="absolute end-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-white py-1 shadow-lg">
+        <div className="absolute end-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg">
           <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={() => { setOpen(false); onPdf(); }}>
             <Printer className="h-4 w-4 text-muted-foreground" />{t("PDF / طباعة", "PDF / Print")}
           </button>
@@ -155,7 +155,7 @@ export function ReportView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <button onClick={() => navigate("/app/reports")} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowRight className="h-4 w-4" /> {t("التقارير", "Reports")}
@@ -200,12 +200,12 @@ export function ReportView() {
             <span className="font-semibold">{t("إلى تاريخ", "To date")}</span>
             <DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" />
           </label>
-          <BranchFilter value={branchId} onChange={setBranchId} className="h-10 rounded-lg border border-border bg-white px-3 text-sm text-foreground" />
-          <ProjectFilter value={projectId} onChange={setProjectId} className="h-10 rounded-lg border border-border bg-white px-3 text-sm text-foreground" />
+          <BranchFilter value={branchId} onChange={setBranchId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
+          <ProjectFilter value={projectId} onChange={setProjectId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
           <button
             type="button"
             onClick={() => setCompare((v) => !v)}
-            className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${compare ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-foreground/80 hover:bg-muted"}`}
+            className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${compare ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-foreground/80 hover:bg-muted"}`}
             title={t("قارن بنفس الفترة من العام الماضي (مثل قوائم آبل)", "Compare to the same window last year (Apple-style)")}
           >
             {t("مقارنة سنوية", "Compare YoY")}
@@ -216,10 +216,10 @@ export function ReportView() {
         </CardContent>
       </Card>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       {loading ? (
-        <div className="rounded-xl border border-border bg-white py-20 text-center">
+        <div className="rounded-xl border border-border bg-card py-20 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <div className="mt-3 text-sm text-muted-foreground">{t("جاري تحميل التقرير...", "Loading report...")}</div>
         </div>

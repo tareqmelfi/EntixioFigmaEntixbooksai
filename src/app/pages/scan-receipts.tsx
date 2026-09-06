@@ -102,14 +102,14 @@ function normalizeCurrencyCode(value: any, fallback = "SAR"): string {
 }
 
 const CURRENCY_BADGE: Record<string, string> = {
-  SAR: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  USD: "bg-blue-50 text-blue-700 border-blue-200",
-  EUR: "bg-violet-50 text-violet-700 border-violet-200",
-  GBP: "bg-rose-50 text-rose-700 border-rose-200",
-  AED: "bg-amber-50 text-amber-700 border-amber-200",
+  SAR: "bg-success-subtle text-success border-success-border",
+  USD: "bg-info-subtle text-info border-info-border",
+  EUR: "bg-info-subtle text-info border-info-border",
+  GBP: "bg-danger-subtle text-danger border-danger-border",
+  AED: "bg-warning-subtle text-warning border-warning-border",
 };
 const currencyBadgeClass = (cur: string) =>
-  CURRENCY_BADGE[cur] || "bg-slate-50 text-slate-700 border-slate-200";
+  CURRENCY_BADGE[cur] || "bg-surface-subtle text-foreground border-border";
 
 /** Totals derived lines-first (same rule as the expense form) — never trust header blindly. */
 function totalsFromResult(data: any): { subtotal: number | null; tax: number | null; total: number | null } {
@@ -621,7 +621,7 @@ export function ScanReceipts() {
             <p className="text-xs text-muted-foreground mt-2 leading-5">
               {t("حمّل تطبيق ENTIX.IO للجوال والتقط الإيصالات بكاميرا الهاتف", "Download the ENTIX.IO mobile app and capture receipts with your phone camera")}
             </p>
-            <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-blue-50 text-primary font-semibold">{t("قريباً", "Coming soon")}</span>
+            <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-info-subtle text-primary font-semibold">{t("قريباً", "Coming soon")}</span>
           </CardContent>
         </Card>
 
@@ -654,7 +654,7 @@ export function ScanReceipts() {
               <p className="text-xs text-muted-foreground mt-2 leading-5">
                 {t("اختر عدة ملفات أو اسحبها هنا · PNG/JPG/WEBP · PDF · CSV", "Choose several files or drag them here · PNG/JPG/WEBP · PDF · CSV")}
               </p>
-              <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">{t("موصى به · دفعات", "Recommended · batch")}</span>
+              <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-success-subtle text-success font-semibold">{t("موصى به · دفعات", "Recommended · batch")}</span>
             </CardContent>
           </Card>
         </div>
@@ -698,7 +698,7 @@ export function ScanReceipts() {
                 <Button
                   onClick={recordAll}
                   disabled={!readyJobs.length || recordBusy}
-                  className="bg-primary hover:bg-primary/90 text-white"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   {recordBusy
                     ? <Loader2 className="h-4 w-4 me-1 animate-spin" />
@@ -712,7 +712,7 @@ export function ScanReceipts() {
 
             {/* company-mismatch banner */}
             {mismatchCount > 0 && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 flex items-start gap-2">
+              <div className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2.5 text-xs text-warning flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
                   <span style={{ fontWeight: 700 }}>
@@ -731,7 +731,7 @@ export function ScanReceipts() {
                   <div
                     key={job.id}
                     className={`rounded-lg border ${
-                      mismatch ? "border-amber-300 bg-amber-50/50" : "border-border bg-white"
+                      mismatch ? "border-warning-border bg-warning-subtle/50" : "border-border bg-card"
                     } ${job.excluded ? "opacity-50" : ""}`}
                   >
                     <div className="flex items-center gap-3 px-3 py-2.5 flex-wrap">
@@ -741,7 +741,7 @@ export function ScanReceipts() {
                           type="checkbox"
                           checked={!job.excluded}
                           onChange={() => patchJob(job.id, { excluded: !job.excluded })}
-                          className="h-4 w-4 accent-[#1276E3] shrink-0"
+                          className="h-4 w-4 accent-[#5875DB] shrink-0"
                           title={t("تضمين في التسجيل الجماعي", "Include in batch recording")}
                         />
                       )}
@@ -750,13 +750,13 @@ export function ScanReceipts() {
                       <span className="shrink-0">
                         {job.status === "analyzing" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                         {job.status === "ready" && (mismatch
-                          ? <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          : <Sparkles className="h-4 w-4 text-emerald-600" />)}
+                          ? <AlertTriangle className="h-4 w-4 text-warning" />
+                          : <Sparkles className="h-4 w-4 text-success" />)}
                         {job.status === "recording" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                        {job.status === "recorded" && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-                        {job.status === "duplicate" && <AlertTriangle className="h-4 w-4 text-amber-600" />}
-                        {job.status === "review" && <AlertTriangle className="h-4 w-4 text-amber-600" />}
-                        {(job.status === "error" || job.status === "failed") && <X className="h-4 w-4 text-red-500" />}
+                        {job.status === "recorded" && <CheckCircle2 className="h-4 w-4 text-success" />}
+                        {job.status === "duplicate" && <AlertTriangle className="h-4 w-4 text-warning" />}
+                        {job.status === "review" && <AlertTriangle className="h-4 w-4 text-warning" />}
+                        {(job.status === "error" || job.status === "failed") && <X className="h-4 w-4 text-danger" />}
                       </span>
 
                       {/* file + vendor/buyer */}
@@ -764,7 +764,7 @@ export function ScanReceipts() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-muted-foreground font-english truncate max-w-[180px]" dir="ltr">{job.fileName}</span>
                           {job.kind && job.kind !== "unknown" && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{job.kind}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-hover text-muted-foreground">{job.kind}</span>
                           )}
                         </div>
                         {job.status === "ready" && (
@@ -776,36 +776,36 @@ export function ScanReceipts() {
                           </div>
                         )}
                         {job.status === "ready" && job.buyer && (
-                          <div className={`text-[11px] mt-0.5 flex items-center gap-1 ${mismatch ? "text-amber-700" : "text-muted-foreground"}`}>
+                          <div className={`text-[11px] mt-0.5 flex items-center gap-1 ${mismatch ? "text-warning" : "text-muted-foreground"}`}>
                             <Building2 className="h-3 w-3" />
                             {t("مُصدَرة إلى:", "Billed to:")} <span style={{ fontWeight: 600 }}>{job.buyer}</span>
                             {mismatch && <span style={{ fontWeight: 700 }}>· {t("ليست شركتك!", "not your company!")}</span>}
                           </div>
                         )}
                         {selfIssued && (
-                          <div className="text-[11px] mt-0.5 text-amber-700 flex items-center gap-1">
+                          <div className="text-[11px] mt-0.5 text-warning flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             {t("هذا المستند صادر من شركتك — قد يكون إيراداً لا مصروفاً", "This document is issued BY your company — it may be revenue, not an expense")}
                           </div>
                         )}
                         {job.status === "error" && (
-                          <div className="text-xs text-red-600 mt-0.5">{job.error || t("فشل التحليل", "Analysis failed")}</div>
+                          <div className="text-xs text-danger mt-0.5">{job.error || t("فشل التحليل", "Analysis failed")}</div>
                         )}
                         {job.status === "failed" && (
-                          <div className="text-xs text-red-600 mt-0.5">{job.error || t("فشل التسجيل", "Recording failed")}</div>
+                          <div className="text-xs text-danger mt-0.5">{job.error || t("فشل التسجيل", "Recording failed")}</div>
                         )}
                         {job.status === "duplicate" && (
-                          <div className="text-xs text-amber-700 mt-0.5">
+                          <div className="text-xs text-warning mt-0.5">
                             {t("يبدو مسجلاً مسبقاً", "Looks already recorded")}{job.duplicateNumber ? ` · ${job.duplicateNumber}` : ""}
                           </div>
                         )}
                         {job.status === "review" && (
-                          <div className="text-xs text-amber-700 mt-0.5">
+                          <div className="text-xs text-warning mt-0.5">
                             {t("مستند مشابه قائم — لم يُحفظ شيء بعد، اختر القرار", "A similar document exists — nothing saved yet, choose the decision")}
                           </div>
                         )}
                         {job.status === "recorded" && (
-                          <div className="text-xs text-emerald-700 mt-0.5">
+                          <div className="text-xs text-success mt-0.5">
                             {t("سُجّل", "Recorded")}{job.recordedNumber ? ` · ${job.recordedNumber}` : ""}
                           </div>
                         )}
@@ -838,7 +838,7 @@ export function ScanReceipts() {
                           {job.confidence != null && (
                             <div className="text-center">
                               <div className="text-[10px] text-muted-foreground">{t("الثقة", "Conf.")}</div>
-                              <div className={`text-xs font-english ${job.confidence >= 0.8 ? "text-emerald-600" : job.confidence >= 0.5 ? "text-amber-600" : "text-red-500"}`}>
+                              <div className={`text-xs font-english ${job.confidence >= 0.8 ? "text-success" : job.confidence >= 0.5 ? "text-warning" : "text-danger"}`}>
                                 {Math.round(job.confidence * 100)}%
                               </div>
                             </div>
@@ -852,7 +852,7 @@ export function ScanReceipts() {
                           <>
                             <button
                               onClick={() => recordJob(job)}
-                              className="px-2.5 py-1.5 rounded-md bg-emerald-600 text-white text-xs hover:bg-emerald-700"
+                              className="px-2.5 py-1.5 rounded-md bg-success text-primary-foreground text-xs hover:bg-success"
                               title={t("تسجيل هذا الإيصال فوراً", "Record this receipt now")}
                             >
                               {t("تسجيل", "Record")}
@@ -876,7 +876,7 @@ export function ScanReceipts() {
                         {job.status === "duplicate" && (
                           <button
                             onClick={() => recordJob(job, true)}
-                            className="px-2.5 py-1.5 rounded-md border border-amber-300 text-amber-700 text-xs hover:bg-amber-50"
+                            className="px-2.5 py-1.5 rounded-md border border-warning-border text-warning text-xs hover:bg-warning-subtle"
                             title={t("تسجيل رغم التكرار", "Record despite duplication")}
                           >
                             {t("تسجيل رغم التكرار", "Record anyway")}
@@ -885,7 +885,7 @@ export function ScanReceipts() {
                         {job.status === "review" && (
                           <button
                             onClick={() => setReviewJob(jobsRef.current.get(job.id) || job)}
-                            className="px-2.5 py-1.5 rounded-md bg-amber-600 text-white text-xs hover:bg-amber-700"
+                            className="px-2.5 py-1.5 rounded-md bg-warning text-primary-foreground text-xs hover:bg-warning"
                             title={t("مراجعة التشابه واختيار القرار", "Review similarity and choose the decision")}
                           >
                             {t("مراجعة التشابه", "Review similarity")}
@@ -901,7 +901,7 @@ export function ScanReceipts() {
                         )}
                         <button
                           onClick={() => removeJob(job.id)}
-                          className="p-1.5 rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                          className="p-1.5 rounded-md text-muted-foreground hover:bg-danger-subtle hover:text-danger"
                           title={t("إزالة من القائمة", "Remove from list")}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -947,9 +947,9 @@ export function ScanReceipts() {
                           <div className="text-xs text-muted-foreground">{t("لا بنود تفصيلية — سيُسجَّل الإجمالي فقط.", "No detailed lines — only the total will be recorded.")}</div>
                         )}
                         {job.warnings.length > 0 && (
-                          <div className="rounded-md bg-amber-50 border border-amber-200 px-2.5 py-2 space-y-0.5">
+                          <div className="rounded-md bg-warning-subtle border border-warning-border px-2.5 py-2 space-y-0.5">
                             {job.warnings.map((w, i) => (
-                              <div key={i} className="text-[11px] text-amber-800 flex items-start gap-1.5">
+                              <div key={i} className="text-[11px] text-warning flex items-start gap-1.5">
                                 <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> {w}
                               </div>
                             ))}
@@ -1006,7 +1006,7 @@ export function ScanReceipts() {
                   key={domain}
                   onClick={() => saveDomain(domain)}
                   disabled={domainBusy}
-                  className={`px-3 py-1.5 rounded-md text-[11px] font-english transition ${activeDomain === domain ? "bg-white text-primary shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-english transition ${activeDomain === domain ? "bg-card text-primary shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   @{domain}
                 </button>
@@ -1015,14 +1015,14 @@ export function ScanReceipts() {
             {domainBusy && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground/80 leading-5 flex items-start gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600" />
+            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success" />
             {t(
               "عنوان استقبال فقط — الدومينان مقفلان بالكامل (SPF + DMARC reject) فلا يقدر أحد يرسل «منه» أو ينتحل شركتك. بريد الموظفين الحقيقي يبقى على @entix.io ولا نخلطه أبداً.",
               "Receive-only address — both domains are fully locked (SPF + DMARC reject), so nobody can send FROM it or impersonate your company. Real employee mail stays on @entix.io and we never mix it.",
             )}
           </p>
           {customLocal && (
-            <p className="mt-1.5 text-[11px] text-emerald-700">{t("عنوان مخصص · الافتراضي:", "Custom address · Default:")} <span className="font-english" dir="ltr">{defaultLocal}@{activeDomain}</span></p>
+            <p className="mt-1.5 text-[11px] text-success">{t("عنوان مخصص · الافتراضي:", "Custom address · Default:")} <span className="font-english" dir="ltr">{defaultLocal}@{activeDomain}</span></p>
           )}
 
           {/* alias editor */}
@@ -1034,7 +1034,7 @@ export function ScanReceipts() {
                   value={editValue}
                   onChange={(e) => { setEditValue(e.target.value); setEditError(null); }}
                   placeholder={defaultLocal || "tareq"}
-                  className="flex-1 min-w-[180px] font-english text-sm rounded-md border border-border bg-white px-3 py-2"
+                  className="flex-1 min-w-[180px] font-english text-sm rounded-md border border-border bg-card px-3 py-2"
                   dir="ltr"
                   autoFocus
                 />
@@ -1043,24 +1043,24 @@ export function ScanReceipts() {
               <p className="text-[11px] text-muted-foreground leading-5">
                 {t("مثال:", "Example:")} <span className="font-english" dir="ltr">bills.tareq</span> · {t("اتركه فاضيًا للرجوع للعنوان الافتراضي", "leave it empty to revert to the default address")} <span className="font-english" dir="ltr">{defaultLocal}</span>
               </p>
-              {editError && <div className="text-xs text-red-600">{editError}</div>}
+              {editError && <div className="text-xs text-danger">{editError}</div>}
               <div className="flex items-center gap-2">
                 <button
                   onClick={saveEdit}
                   disabled={editBusy}
-                  className="px-3 py-1.5 rounded-md bg-primary text-white text-xs hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
                 >
                   {editBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} {t("حفظ العنوان", "Save address")}
                 </button>
                 {customLocal && (
                   <button
                     onClick={() => { setEditValue(""); }}
-                    className="px-3 py-1.5 rounded-md border border-border text-xs hover:bg-white flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-md border border-border text-xs hover:bg-card flex items-center gap-1"
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> {t("رجوع للافتراضي", "Revert to default")}
                   </button>
                 )}
-                <button onClick={() => setEditOpen(false)} className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-white">{t("إلغاء", "Cancel")}</button>
+                <button onClick={() => setEditOpen(false)} className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-card">{t("إلغاء", "Cancel")}</button>
               </div>
             </div>
           )}
@@ -1081,8 +1081,8 @@ export function ScanReceipts() {
 
       {/* FAQ modal */}
       {showFaq && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowFaq(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setShowFaq(false)}>
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-foreground" style={{ fontWeight: 700 }}>{t("فحص الإيصالات الرقمية", "Digital receipt scanning")}</h2>
               <button onClick={() => setShowFaq(false)} className="p-1 hover:bg-muted/50 rounded">

@@ -12,6 +12,9 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { PageHeader, SettingsSection, InlineAlert } from "../components/product";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLogItem } from "../lib/api";
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
@@ -217,12 +220,10 @@ export function Settings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإعدادات", "Settings")}</h1>
-        <p className="text-muted-foreground mt-1">{org?.name}</p>
-      </div>
+      <PageHeader eyebrow={t("المنشأة", "Organization")} title={t("الإعدادات", "Settings")} description={org?.name} />
 
-      <div className="flex gap-1 border-b border-border overflow-x-auto pb-px [scrollbar-width:none]">
+      <Tabs value={tab} onValueChange={(v) => selectTab(v as SettingsTab)}>
+        <TabsList className="gap-1.5">
         {(([
           ["company", "بيانات الشركة", "Company"],
           ["data", "البيانات", "Data"],
@@ -240,16 +241,13 @@ export function Settings() {
           ["control-accounts", "الحسابات الرقابية", "Control accounts"],
           ["account", "حسابي", "Account"],
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
-          <button
-            key={k}
-            onClick={() => selectTab(k as SettingsTab)}
-            className={`shrink-0 min-w-[76px] max-w-[132px] whitespace-normal px-2 sm:px-3 py-2 text-center text-[12px] sm:text-sm leading-4 transition-colors border-b-2 -mb-px ${tab === k ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          >{t(label, labelEn)}</button>
+          <TabsTrigger key={k} value={k}>{t(label, labelEn)}</TabsTrigger>
         ))}
-      </div>
+        </TabsList>
+      </Tabs>
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {saved && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">✅ {t("تم الحفظ", "Saved")}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
+      {saved && <InlineAlert tone="success">{t("تم الحفظ", "Saved")}</InlineAlert>}
 
       {tab === "company" && (
         <Card className="border-border">
@@ -269,7 +267,7 @@ export function Settings() {
                     key={lt.id}
                     type="button"
                     onClick={() => setForm({ ...form, legalType: form.legalType === lt.id ? "" : lt.id, legalSubtype: "" })}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${form.legalType === lt.id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${form.legalType === lt.id ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                     style={{ fontWeight: form.legalType === lt.id ? 600 : 500 }}
                   >
                     {t(lt.ar, lt.en)}
@@ -286,7 +284,7 @@ export function Settings() {
                         key={st.id}
                         type="button"
                         onClick={() => setForm({ ...form, legalSubtype: form.legalSubtype === st.id ? "" : st.id })}
-                        className={`px-3 py-1 rounded-md text-xs border transition-colors ${form.legalSubtype === st.id ? "border-amber-500 bg-amber-50 text-amber-700" : "border-dashed border-border text-muted-foreground hover:border-amber-400"}`}
+                        className={`px-3 py-1 rounded-md text-xs border transition-colors ${form.legalSubtype === st.id ? "border-warning-border bg-warning-subtle text-warning" : "border-dashed border-border text-muted-foreground hover:border-warning-border"}`}
                         style={{ fontWeight: form.legalSubtype === st.id ? 700 : 500 }}
                       >
                         {t(st.ar, st.en)}
@@ -301,13 +299,13 @@ export function Settings() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>{t("الدولة", "Country")}</Label>
-                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
                   <option value="SA">{t("السعودية", "Saudi Arabia")}</option><option value="AE">{t("الإمارات", "UAE")}</option><option value="KW">{t("الكويت", "Kuwait")}</option>
                   <option value="QA">{t("قطر", "Qatar")}</option><option value="BH">{t("البحرين", "Bahrain")}</option><option value="OM">{t("عُمان", "Oman")}</option>
                   <option value="EG">{t("مصر", "Egypt")}</option><option value="US">{t("الولايات المتحدة", "United States")}</option><option value="GB">{t("المملكة المتحدة", "United Kingdom")}</option>
                 </select></div>
               <div className="space-y-2"><Label>{t("العملة الأساسية", "Base currency")}</Label>
-                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                <select value={form.baseCurrency} onChange={(e) => setForm({ ...form, baseCurrency: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
                   <option value="SAR">SAR</option><option value="USD">USD</option><option value="AED">AED</option>
                   <option value="EUR">EUR</option><option value="GBP">GBP</option><option value="KWD">KWD</option>
                 </select></div>
@@ -343,10 +341,10 @@ export function Settings() {
                       }} />
                     {form.logoUrl ? (
                       <div className="flex items-center gap-3">
-                        <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
+                        <img src={form.logoUrl} alt="logo" className="max-w-[160px] max-h-[60px] object-contain bg-card rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
                           <label htmlFor="company-logo" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                          <button type="button" onClick={() => setForm(p => ({ ...p, logoUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, logoUrl: "" }))} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
                         </div>
                       </div>
                     ) : (
@@ -368,10 +366,10 @@ export function Settings() {
                       }} />
                     {form.stampUrl ? (
                       <div className="flex items-center gap-3">
-                        <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
+                        <img src={form.stampUrl} alt="stamp" className="max-w-[120px] max-h-[60px] object-contain bg-card rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
                           <label htmlFor="company-stamp" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                          <button type="button" onClick={() => setForm(p => ({ ...p, stampUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, stampUrl: "" }))} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
                         </div>
                       </div>
                     ) : (
@@ -393,10 +391,10 @@ export function Settings() {
                       }} />
                     {form.signatureUrl ? (
                       <div className="flex items-center gap-3">
-                        <img src={form.signatureUrl} alt="signature" className="max-w-[120px] max-h-[60px] object-contain bg-white rounded border border-border/50" />
+                        <img src={form.signatureUrl} alt="signature" className="max-w-[120px] max-h-[60px] object-contain bg-card rounded border border-border/50" />
                         <div className="flex flex-col gap-1">
                           <label htmlFor="company-signature" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                          <button type="button" onClick={() => setForm(p => ({ ...p, signatureUrl: "" }))} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
+                          <button type="button" onClick={() => setForm(p => ({ ...p, signatureUrl: "" }))} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
                         </div>
                       </div>
                     ) : (
@@ -423,7 +421,7 @@ export function Settings() {
               </div>
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label className="text-xs">{t("الصناعة", "Industry")}</Label>
-                  <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                  <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
                     <option value="">{t("اختر...", "Select...")}</option>
                     <option value="CONSULTING">{t("استشارات", "Consulting")}</option>
                     <option value="RETAIL">{t("تجارة تجزئة", "Retail")}</option>
@@ -436,7 +434,7 @@ export function Settings() {
                   </select>
                 </div>
                 <div className="space-y-2"><Label className="text-xs">{t("اللغة الافتراضية للفواتير", "Default invoice language")}</Label>
-                  <select value={form.defaultInvoiceLanguage} onChange={(e) => setForm({ ...form, defaultInvoiceLanguage: e.target.value as "ar" | "en" })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+                  <select value={form.defaultInvoiceLanguage} onChange={(e) => setForm({ ...form, defaultInvoiceLanguage: e.target.value as "ar" | "en" })} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
                     <option value="ar">{t("عربي · Arabic", "Arabic")}</option>
                     <option value="en">{t("إنجليزي · English", "English")}</option>
                   </select>
@@ -446,7 +444,7 @@ export function Settings() {
             </div>
             {form.country !== "US" && <ZatcaStatusRow status={zatcaStatus} />}
             {form.country === "US" && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900">
+              <div className="rounded-lg bg-info-subtle border border-info-border p-3 text-xs text-primary">
                 {t("🇺🇸 وضع الشركات الأمريكية مفعّل · لا حاجة لـ ZATCA · أنت مرتبط ببوابات أمريكية (Stripe · Plaid · 1099) ولا تحتاج للسوق السعودي", "🇺🇸 US company mode is on · no ZATCA needed · you are linked to US gateways (Stripe · Plaid · 1099) and don't need the Saudi market")}
               </div>
             )}
@@ -456,18 +454,18 @@ export function Settings() {
                 <h3 className="text-sm text-foreground mb-2" style={{ fontWeight: 600 }}>
                   {t("صندوق البريد الوارد · يستلم الفواتير تلقائياً", "Inbound bills mailbox")}
                 </h3>
-                <div className={`rounded-lg border p-3 flex items-center gap-3 ${inboxStatus?.configured ? "border-blue-200 bg-gradient-to-l from-primary/5 to-white" : "border-amber-200 bg-amber-50"}`}>
+                <div className={`rounded-lg border p-3 flex items-center gap-3 ${inboxStatus?.configured ? "border-border bg-surface-subtle" : "border-s-[3px] border-s-warning border-border bg-card"}`}>
                   <div className="flex-1 min-w-0">
                     <code className="text-sm text-foreground font-english font-semibold block truncate" dir="ltr">
                       {inboxStatus?.address || `bills+${(org as any).slug}@entix.io`}
                     </code>
-                    <p className={`text-xs mt-1 ${inboxStatus?.configured ? "text-muted-foreground" : "text-amber-800"}`}>
+                    <p className={`text-xs mt-1 ${inboxStatus?.configured ? "text-muted-foreground" : "text-warning"}`}>
                       {inboxStatus?.configured
                         ? t('أرسل أي فاتورة من المورد إلى هذا الإيميل · يقوم الذكاء بتحليلها وإنشاء مسودة في "البريد الوارد" تلقائياً', 'Forward supplier bills to this mailbox. Entix will parse them into Inbox drafts automatically.')
                         : t("هذا العنوان غير مفعّل كبريد حقيقي بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه.", "This address is not live yet. Configure inbound email routing and INBOX_WEBHOOK_TOKEN on the server before using it.")}
                     </p>
                     {emailStatus && (
-                      <p className={`text-xs mt-1 ${emailStatus.configured ? "text-emerald-700" : "text-amber-800"}`}>
+                      <p className={`text-xs mt-1 ${emailStatus.configured ? "text-success" : "text-warning"}`}>
                         {emailStatus.configured
                           ? t(`إرسال الفواتير مفعّل من ${emailStatus.from}`, `Invoice email delivery is active from ${emailStatus.from}`)
                           : t("إرسال الفواتير غير مفعّل: RESEND_API_KEY أو EMAIL_FROM ناقص.", "Invoice email delivery is not active: RESEND_API_KEY or EMAIL_FROM is missing.")}
@@ -494,14 +492,14 @@ export function Settings() {
               </Button>
             </div>
 
-            <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-800">
+            <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-3 text-sm text-danger">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span>{t("تحتاج حذف هذه الشركة؟ الحذف متاح للمالك فقط ويتطلب كتابة اسم الشركة للتأكيد.", "Need to delete this company? Deletion is available to the owner only and requires typing the company name to confirm.")}</span>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => selectTab("data")}
-                  className="shrink-0 border-red-200 bg-white text-red-700 hover:bg-red-50"
+                  className="shrink-0 border-danger-border bg-card text-danger hover:bg-danger-subtle"
                 >
                   <Trash2 className="me-2 h-4 w-4" /> {t("فتح الحذف", "Open delete")}
                 </Button>
@@ -533,7 +531,7 @@ export function Settings() {
                       <p className="text-xs text-muted-foreground mt-0.5">{t("المخصص", "Allocation")}: {MODE_LABELS[aiConfig.mode].alloc} · {t("السعر", "Price")}: {MODE_LABELS[aiConfig.mode].price}</p>
                     </div>
                     {aiConfig.disabled && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200">
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-danger-subtle text-danger border border-danger-border">
                         <AlertTriangle className="h-3 w-3" /> {t("معطّل من الإدارة", "Disabled by admin")}
                       </span>
                     )}
@@ -546,7 +544,7 @@ export function Settings() {
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full transition-all ${aiConfig.percentUsed >= 1 ? "bg-red-500" : aiConfig.percentUsed >= 0.8 ? "bg-amber-500" : "bg-primary"}`}
+                          className={`h-full transition-all ${aiConfig.percentUsed >= 1 ? "bg-danger" : aiConfig.percentUsed >= 0.8 ? "bg-warning" : "bg-primary"}`}
                           style={{ width: `${Math.min(aiConfig.percentUsed * 100, 100)}%` }}
                         />
                       </div>
@@ -593,7 +591,7 @@ export function Settings() {
 
                   {aiConfig.byokKeyHint ? (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between rounded-md bg-primary/5 border border-blue-100 p-3">
+                      <div className="flex items-center justify-between rounded-md bg-primary/5 border border-info-border p-3">
                         <div>
                           <p className="text-sm text-foreground" style={{ fontWeight: 500 }}>
                             {t("المفتاح النشط", "Active key")}: <span className="font-english">{aiConfig.byokKeyHint}</span>
@@ -612,10 +610,10 @@ export function Settings() {
                             } catch (e: any) {
                               push("error", e?.message || t("فشل الاختبار", "Test failed"));
                             }
-                          }} variant="outline" disabled={aiBusy} className="border-green-300 text-green-700 hover:bg-green-50">
+                          }} variant="outline" disabled={aiBusy} className="border-success-border text-success hover:bg-success-subtle">
                             {t("اختبار الاتصال", "Test connection")}
                           </Button>
-                          <Button onClick={handleClearByok} variant="outline" disabled={aiBusy} className="border-red-200 text-red-600 hover:bg-red-50">
+                          <Button onClick={handleClearByok} variant="outline" disabled={aiBusy} className="border-danger-border text-danger hover:bg-danger-subtle">
                             {t("حذف المفتاح", "Delete key")}
                           </Button>
                         </div>
@@ -625,7 +623,7 @@ export function Settings() {
                     <div className="space-y-3">
                       <div>
                         <Label className="text-foreground/80 text-xs">{t("المزود", "Provider")}</Label>
-                        <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as any)} className="w-full mt-1 rounded-md border border-border px-3 py-2 text-sm bg-white">
+                        <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as any)} className="w-full mt-1 rounded-md border border-border px-3 py-2 text-sm bg-card">
                           <option value="openrouter">{t("OpenRouter (موصى به · أسعار أفضل)", "OpenRouter (recommended · better pricing)")}</option>
                           <option value="anthropic">{t("Anthropic (مباشر)", "Anthropic (direct)")}</option>
                         </select>
@@ -709,7 +707,7 @@ export function Settings() {
             {pendingSignOut ? (
             <InlineConfirm onConfirm={handleSignOut} onCancel={() => setPendingSignOut(false)} label={t("تسجيل الخروج؟", "Sign out?")} />
           ) : (
-            <Button onClick={() => setPendingSignOut(true)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4 me-2" /> {t("تسجيل الخروج", "Sign out")}</Button>
+            <Button onClick={() => setPendingSignOut(true)} variant="outline" className="border-danger-border text-danger hover:bg-danger-subtle"><LogOut className="h-4 w-4 me-2" /> {t("تسجيل الخروج", "Sign out")}</Button>
           )}
           </CardContent>
         </Card>
@@ -837,22 +835,19 @@ function DataResetTab({
 
   return (
     <div className="space-y-4">
-      <Card className="border-red-300 bg-white">
+      <Card className="border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
-            <Database className="h-5 w-5 text-red-600" /> {t("إعادة ضبط البيانات", "Reset data")}
+            <Database className="h-5 w-5 text-danger" /> {t("إعادة ضبط البيانات", "Reset data")}
           </CardTitle>
           <CardDescription>
             {t("هذه الأدوات مخصصة للنسخة الخاصة والتجارب. لا تحذف المستخدم أو عضوية الشركة أو جلسات الدخول.", "These tools are for the self-hosted edition and trials. They do not delete the user, company membership, or login sessions.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>{t("اكتب", "Type")} <span className="font-semibold">{org.name}</span> {t("أو", "or")} <span className="font-english">{org.slug}</span> {t("لتأكيد أي عملية.", "to confirm any operation.")}</p>
-            </div>
-          </div>
+          <InlineAlert tone="warning" icon={<AlertTriangle className="size-4" strokeWidth={1.75} />}>
+            {t("اكتب", "Type")} <span className="font-semibold">{org.name}</span> {t("أو", "or")} <span className="font-code">{org.slug}</span> {t("لتأكيد أي عملية.", "to confirm any operation.")}
+          </InlineAlert>
           <Input value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={org.name} className="border-border" />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -878,9 +873,9 @@ function DataResetTab({
         </CardContent>
       </Card>
 
-      <Card className="border-red-200 bg-white">
+      <Card className="border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-700">
+          <CardTitle className="flex items-center gap-2 text-danger">
             <Trash2 className="h-5 w-5" /> {t("حذف الشركة", "Delete company")}
           </CardTitle>
           <CardDescription>
@@ -888,22 +883,22 @@ function DataResetTab({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-800">
-            {t("للتأكيد اكتب", "To confirm, type")} <span className="font-semibold">{org.name}</span> {t("أو", "or")} <span className="font-english">{org.slug}</span> {t("كما هو.", "as-is.")}
-          </div>
+          <InlineAlert tone="critical">
+            {t("للتأكيد اكتب", "To confirm, type")} <span className="font-semibold">{org.name}</span> {t("أو", "or")} <span className="font-code">{org.slug}</span> {t("كما هو.", "as-is.")}
+          </InlineAlert>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               value={deleteConfirmName}
               onChange={(e) => setDeleteConfirmName(e.target.value)}
               placeholder={org.name}
-              className="border-red-200"
+              className="border-danger-border"
             />
             <Button
               type="button"
               onClick={deleteCompany}
               disabled={deleteDisabled}
               variant="outline"
-              className="shrink-0 border-red-300 text-red-700 hover:bg-red-50"
+              className="shrink-0 border-danger-border text-danger hover:bg-danger-subtle"
             >
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> {t("حذف الشركة", "Delete company")}</>}
             </Button>
@@ -912,10 +907,10 @@ function DataResetTab({
       </Card>
 
       {/* W27 · transfer ownership — hand the company to another account (e.g. a client) */}
-      <Card className="border-amber-200 bg-white">
+      <Card className="border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
-            <ArrowLeftRight className="h-5 w-5 text-amber-600" /> {t("نقل ملكية الشركة", "Transfer company ownership")}
+            <ArrowLeftRight className="h-5 w-5 text-warning" /> {t("نقل ملكية الشركة", "Transfer company ownership")}
           </CardTitle>
           <CardDescription>
             {t("أنشأت الشركة بحسابك لكنها تخص عميلًا؟ انقل الملكية لإيميل حسابه — يصبح هو المالك وتبقى أنت مديرًا (ADMIN). يجب أن يكون مسجلًا أولًا.", "Created the company under your account but it belongs to a client? Transfer ownership to their account email — they become OWNER and you stay an ADMIN. They must be registered first.")}
@@ -927,7 +922,7 @@ function DataResetTab({
               value={transferEmail}
               onChange={(e) => setTransferEmail(e.target.value)}
               placeholder="client@email.com"
-              className="border-amber-200 font-english"
+              className="border-warning-border font-english"
               dir="ltr"
               type="email"
             />
@@ -935,7 +930,7 @@ function DataResetTab({
               type="button"
               disabled={transferBusy || !transferEmail.includes("@") || !isOwner}
               variant="outline"
-              className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="shrink-0 border-warning-border text-warning hover:bg-warning-subtle"
               onClick={async () => {
                 setTransferBusy(true);
                 try {
@@ -957,9 +952,9 @@ function DataResetTab({
         </CardContent>
       </Card>
 
-      <Card className="border-red-300 bg-white">
+      <Card className="border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-700">
+          <CardTitle className="flex items-center gap-2 text-danger">
             <ShieldCheck className="h-5 w-5" /> {t("حذف الحساب نهائياً", "Delete account permanently")}
           </CardTitle>
           <CardDescription>
@@ -970,18 +965,18 @@ function DataResetTab({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
+          <InlineAlert tone="success" className="text-xs">
             {t(
               "حماية الاسترداد: بعد الطلب تدخل مهلة 30 يوماً — سجّل دخولك خلالها واختر «استرداد الحساب» ليُلغى الحذف ويعود كل شيء كما كان. بعد 30 يوماً يُمحى نهائياً.",
               "Recovery protection: after the request a 30-day window starts — sign in during it and choose “Restore account” to cancel and get everything back. After 30 days it's permanently erased.",
             )}
-          </div>
+          </InlineAlert>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               value={accountConfirm}
               onChange={(e) => setAccountConfirm(e.target.value)}
               placeholder={authStore.getState().user?.email || t("بريدك الإلكتروني", "Your email")}
-              className="border-red-200 font-english"
+              className="border-danger-border font-english"
               dir="ltr"
             />
             <Button
@@ -989,7 +984,7 @@ function DataResetTab({
               onClick={deleteAccount}
               disabled={accountDeleting || !accountConfirm.trim() || accountConfirm.trim().toLowerCase() !== (authStore.getState().user?.email || "").toLowerCase()}
               variant="outline"
-              className="shrink-0 border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
+              className="shrink-0 border-danger-border text-danger hover:bg-danger-subtle disabled:opacity-50"
             >
               {accountDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 me-2" /> {t("جدولة حذف الحساب", "Schedule account deletion")}</>}
             </Button>
@@ -1001,18 +996,14 @@ function DataResetTab({
       </Card>
 
       {accountScheduled && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4 text-center">
-            <div className="text-4xl">🗓️</div>
-            <h2 className="text-foreground" style={{ fontWeight: 700 }}>{t("تمت جدولة حذف حسابك", "Account deletion scheduled")}</h2>
-            <p className="text-sm text-foreground/80 leading-6">
-              {t("سيُحذف نهائياً في", "It will be permanently deleted on")}{" "}
-              <span className="font-english font-semibold" dir="ltr">{accountScheduled}</span>.
-              {" "}{t("سجّل دخولك قبلها واختر «استرداد الحساب» لإلغاء الحذف.", "Sign in before then and choose “Restore account” to cancel.")}
-            </p>
-            <p className="text-xs text-muted-foreground">{t("ستُسجَّل خروجك من كل الأجهزة الآن…", "You're being signed out on all devices…")}</p>
-          </div>
-        </div>
+        <InlineAlert tone="critical" title={t("تمت جدولة حذف حسابك", "Account deletion scheduled")}>
+          <p className="leading-6">
+            {t("سيُحذف نهائياً في", "It will be permanently deleted on")}{" "}
+            <span className="font-code font-semibold" dir="ltr">{accountScheduled}</span>.
+            {" "}{t("سجّل دخولك قبلها واختر «استرداد الحساب» لإلغاء الحذف.", "Sign in before then and choose “Restore account” to cancel.")}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("ستُسجَّل خروجك من كل الأجهزة الآن…", "You're being signed out on all devices…")}</p>
+        </InlineAlert>
       )}
 
       <Card className="border-border">
@@ -1027,26 +1018,26 @@ function DataResetTab({
             <div className="py-8 text-center text-sm text-muted-foreground">{t("لا يوجد سجل تدقيق بعد", "No audit log yet")}</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px]">
-                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">{t("العملية", "Operation")}</th>
-                  <th className="px-4 py-3 text-start">{t("النوع", "Type")}</th>
-                  <th className="px-4 py-3 text-start">{t("المستوى", "Level")}</th>
-                  <th className="px-4 py-3 text-start">{t("التاريخ", "Date")}</th>
-                </tr></thead>
-                <tbody>
+              <Table className="w-full min-w-[720px]">
+                <TableHeader><TableRow className="text-xs text-muted-foreground">
+                  <TableHead className="px-4 py-3 text-start">{t("العملية", "Operation")}</TableHead>
+                  <TableHead className="px-4 py-3 text-start">{t("النوع", "Type")}</TableHead>
+                  <TableHead className="px-4 py-3 text-start">{t("المستوى", "Level")}</TableHead>
+                  <TableHead className="px-4 py-3 text-start">{t("التاريخ", "Date")}</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
                   {audit.map((item) => (
-                    <tr key={item.id} className="border-b border-border/50">
-                      <td className="px-4 py-3 text-sm font-english text-foreground">{item.action}</td>
-                      <td className="px-4 py-3 text-sm text-foreground/80">{item.entityType}</td>
-                      <td className="px-4 py-3 text-xs">
-                        <span className={`rounded px-2 py-0.5 ${item.severity === "WARNING" ? "bg-amber-100 text-amber-700" : "bg-blue-50 text-blue-700"}`}>{item.severity}</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-english text-muted-foreground">{new Date(item.createdAt).toLocaleString(displayLocale())}</td>
-                    </tr>
+                    <TableRow key={item.id}>
+                      <TableCell className="px-4 py-3 text-sm font-english text-foreground">{item.action}</TableCell>
+                      <TableCell className="px-4 py-3 text-sm text-foreground/80">{item.entityType}</TableCell>
+                      <TableCell className="px-4 py-3 text-xs">
+                        <span className={`rounded px-2 py-0.5 ${item.severity === "WARNING" ? "bg-warning-subtle text-warning" : "bg-info-subtle text-primary"}`}>{item.severity}</span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-xs font-english text-muted-foreground">{new Date(item.createdAt).toLocaleString(displayLocale())}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -1073,13 +1064,13 @@ function ResetOption({
   action: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-4">
+    <div className="rounded-lg border border-border bg-card p-5">
       <div className="mb-3 flex items-center gap-2">
         <Icon className="h-5 w-5 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       <p className="min-h-14 text-xs leading-6 text-muted-foreground">{description}</p>
-      <Button type="button" disabled={disabled} onClick={onClick} className="mt-4 w-full bg-primary hover:bg-primary/90">
+      <Button type="button" disabled={disabled} onClick={onClick} className="mt-4 w-full">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : action}
       </Button>
     </div>
@@ -1204,16 +1195,16 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
       <CardHeader>
         <CardTitle className="text-foreground">{t("الترقيم التلقائي للمستندات", "Automatic document numbering")}</CardTitle>
         <CardDescription className="leading-7">
-          {t("المتغيرات المدعومة", "Supported tokens")}: <code className="font-english bg-gray-100 px-1 rounded">{"{ENTITY}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{CLIENT}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{VENDOR}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{PROJECT}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{DOC}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{YYYY}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{YY}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{MM}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{DD}"}</code>{" "}
-          <code className="font-english bg-gray-100 px-1 rounded">{"{SEQ}"}</code>
+          {t("المتغيرات المدعومة", "Supported tokens")}: <code className="font-english bg-surface-subtle px-1 rounded">{"{ENTITY}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{CLIENT}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{VENDOR}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{PROJECT}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{DOC}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{YYYY}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{YY}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{MM}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{DD}"}</code>{" "}
+          <code className="font-english bg-surface-subtle px-1 rounded">{"{SEQ}"}</code>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -1343,7 +1334,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   };
 
   const Provider = ({ name, label, fields }: { name: string; label: string; fields: Array<[string, string, "text" | "secret"]> }) => (
-    <div className="rounded-lg border border-border p-4 space-y-3">
+    <div className="rounded-lg border border-border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-foreground font-medium">{label}</div>
@@ -1379,18 +1370,18 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
       <CardContent className="space-y-3">
 
         {/* ── Stripe · OAuth Connect (recommended) ─────────────────────── */}
-        <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="rounded-lg border border-border bg-card p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <div className="text-foreground font-medium flex items-center gap-2">
                 💳 Stripe
                 {oauthStatus?.stripe?.connected && (
-                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                  <span className="text-xs px-2 py-0.5 bg-success-subtle text-success rounded">
                     {oauthStatus?.stripe?.source === "server" ? t("مفعّل من الخادم", "Active on server") : t("مربوط", "Connected")}
                   </span>
                 )}
                 {oauthStatus && !oauthStatus?.stripe?.configured && (
-                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
+                  <span className="text-xs px-2 py-0.5 bg-warning-subtle text-warning rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
                 )}
               </div>
               <div className="text-xs text-muted-foreground/60 mt-0.5">
@@ -1400,13 +1391,13 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
               </div>
             </div>
             {oauthStatus?.stripe?.connected && oauthStatus?.stripe?.source === "oauth" ? (
-              <Button onClick={disconnectStripe} disabled={busy} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+              <Button onClick={disconnectStripe} disabled={busy} variant="outline" className="border-danger-border text-danger hover:bg-danger-subtle">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("فصل", "Disconnect")}
               </Button>
             ) : oauthStatus?.stripe?.connected ? (
               <span className="text-xs text-muted-foreground">{t("يُدار من إعدادات الخادم/Stripe", "Managed from server/Stripe settings")}</span>
             ) : (
-              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.connectConfigured} className="bg-primary hover:bg-primary/90 text-white">
+              <Button onClick={connectStripe} disabled={!oauthStatus?.stripe?.connectConfigured} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <ExternalLink className="h-4 w-4 me-2" /> {t("ربط Stripe", "Connect Stripe")}
               </Button>
             )}
@@ -1414,18 +1405,18 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
         </div>
 
         {/* ── PayPal · Partner Referrals OAuth ─────────────────────────── */}
-        <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="rounded-lg border border-border bg-card p-5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <div className="text-foreground font-medium flex items-center gap-2">
                 🅿️ PayPal
                 {oauthStatus?.paypal?.connected && (
-                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                  <span className="text-xs px-2 py-0.5 bg-success-subtle text-success rounded">
                     {oauthStatus?.paypal?.source === "server" ? t("مفعّل من الخادم", "Active on server") : t("مربوط", "Connected")}
                   </span>
                 )}
                 {oauthStatus && !oauthStatus?.paypal?.configured && (
-                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
+                  <span className="text-xs px-2 py-0.5 bg-warning-subtle text-warning rounded">{t("يحتاج إعداد بالخادم", "Server setup required")}</span>
                 )}
               </div>
               <div className="text-xs text-muted-foreground/60 mt-0.5">
@@ -1437,7 +1428,7 @@ function PaymentsTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
             {oauthStatus?.paypal?.connected ? (
               <span className="text-xs text-muted-foreground">{t("للفصل: استخدم لوحة PayPal أو إعدادات الخادم", "To disconnect: use PayPal dashboard or server settings")}</span>
             ) : (
-              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.connectConfigured} className="bg-primary hover:bg-foreground/90 text-white">
+              <Button onClick={connectPayPal} disabled={!oauthStatus?.paypal?.connectConfigured} className="bg-primary hover:bg-foreground/90 text-primary-foreground">
                 <ExternalLink className="h-4 w-4 me-2" /> {t("ربط PayPal", "Connect PayPal")}
               </Button>
             )}
@@ -1576,15 +1567,15 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-lg border border-warning-border bg-warning-subtle p-4">
           <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <Sparkles className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="text-foreground font-medium">{t("كتالوج ENSIDEX الداخلي", "Internal ENSIDEX catalog")}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 {t("فقط للمنشآت الداخلية المصرح لها · 50+ منتج وخدمة", "For authorized internal organizations only · 50+ products and services")}
               </p>
-              <Button onClick={() => setPendingSeed("ensidex")} disabled={busy === "ensidex"} className="bg-amber-600 hover:bg-amber-700 text-white mt-3">
+              <Button onClick={() => setPendingSeed("ensidex")} disabled={busy === "ensidex"} className="bg-warning hover:bg-warning-subtle text-primary-foreground mt-3">
                 {busy === "ensidex" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Sparkles className="h-4 w-4 me-2" />}
                 {t("زرع كتالوج ENSIDEX", "Seed ENSIDEX catalog")}
               </Button>
@@ -1703,7 +1694,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
             {t("المقاعد:", "Seats:")} <span className="font-semibold text-foreground font-english">{members.length + pendingInvites.filter((i) => i.status === "PENDING").length}{seatInfo.limit ? ` / ${seatInfo.limit}` : ` / ∞`}</span>
             {" · "}{t("الدعوات مجانية ضمن باقتك", "Invites are free within your plan")}
             {seatInfo.limit && members.length + pendingInvites.filter((i) => i.status === "PENDING").length >= seatInfo.limit && (
-              <span className="text-amber-600 font-medium">{" · "}{t("وصلت للحد — رقِّ الباقة لإضافة المزيد", "Limit reached — upgrade to add more")}</span>
+              <span className="text-warning font-medium">{" · "}{t("وصلت للحد — رقِّ الباقة لإضافة المزيد", "Limit reached — upgrade to add more")}</span>
             )}
           </p>
         )}
@@ -1718,7 +1709,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           <div>
             <Label className="text-xs">{t("الدور", "Role")}</Label>
             <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)}
-              className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+              className="w-full text-sm rounded border border-border px-3 py-2 bg-card">
               <option value="OWNER">{t("مالك", "Owner")}</option>
               <option value="ADMIN">{t("مدير", "Admin")}</option>
               <option value="ACCOUNTANT">{t("محاسب", "Accountant")}</option>
@@ -1757,30 +1748,30 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           </div>
         )}
 
-        <table className="w-full">
-          <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-            <th className="py-3 px-4 text-start font-medium">{t("الاسم", "Name")}</th>
-            <th className="py-3 px-4 text-start font-medium">{t("البريد", "Email")}</th>
-            <th className="py-3 px-4 text-start font-medium">{t("الدور", "Role")}</th>
-            <th className="py-3 px-4 text-start font-medium">{t("منذ", "Since")}</th>
-            <th className="py-3 px-4"></th>
-          </tr></thead>
-          <tbody>
+        <Table className="w-full">
+          <TableHeader><TableRow className="text-xs text-muted-foreground">
+            <TableHead className="py-3 px-4 text-start font-medium">{t("الاسم", "Name")}</TableHead>
+            <TableHead className="py-3 px-4 text-start font-medium">{t("البريد", "Email")}</TableHead>
+            <TableHead className="py-3 px-4 text-start font-medium">{t("الدور", "Role")}</TableHead>
+            <TableHead className="py-3 px-4 text-start font-medium">{t("منذ", "Since")}</TableHead>
+            <TableHead className="py-3 px-4"></TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
             {members.map(m => (
-              <tr key={m.id} className="border-b border-border/50">
-                <td className="py-3 px-4 text-sm text-foreground">{m.user.name || "—"}</td>
-                <td className="py-3 px-4 font-english text-sm text-foreground/80" dir="ltr">{m.user.email}</td>
-                <td className="py-3 px-4">
+              <TableRow key={m.id}>
+                <TableCell className="py-3 px-4 text-sm text-foreground">{m.user.name || "—"}</TableCell>
+                <TableCell className="py-3 px-4 font-english text-sm text-foreground/80" dir="ltr">{m.user.email}</TableCell>
+                <TableCell className="py-3 px-4">
                   <select value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                    className="text-xs rounded border border-border px-2 py-1 bg-white">
+                    className="text-xs rounded border border-border px-2 py-1 bg-card">
                     <option value="OWNER">{t("مالك", "Owner")}</option>
                     <option value="ADMIN">{t("مدير", "Admin")}</option>
                     <option value="ACCOUNTANT">{t("محاسب", "Accountant")}</option>
                     <option value="VIEWER">{t("مشاهد", "Viewer")}</option>
                   </select>
-                </td>
-                <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
-                <td className="py-3 px-4 text-end">
+                </TableCell>
+                <TableCell className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{m.createdAt?.slice(0, 10)}</TableCell>
+                <TableCell className="py-3 px-4 text-end">
                   {pendingRemove === m.id ? (
                     <InlineConfirm
                       label={t("حذف العضو؟", "Remove member?")}
@@ -1788,13 +1779,13 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
                       onCancel={() => setPendingRemove(null)}
                     />
                   ) : (
-                    <button onClick={() => setPendingRemove(m.id)} className="text-xs text-red-600 hover:underline">{t("حذف", "Delete")}</button>
+                    <button onClick={() => setPendingRemove(m.id)} className="text-xs text-danger hover:underline">{t("حذف", "Delete")}</button>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -1866,40 +1857,77 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
     URL.revokeObjectURL(a.href);
   };
 
+  const proof = live.raw?.deviceProof;
+  const lastChecked = proof?.checkedAt ? new Date(proof.checkedAt).toLocaleString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" }) : null;
+  const certificate = proof?.certificate;
+  const certDate = (value?: string | null) => value ? new Date(value).toLocaleDateString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" }) : "—";
+  // Key → value facts about the stored device certificate; every value is read evidence, never invented.
+  const facts: Array<[string, string]> = [
+    [t("البيئة", "Environment"), String(st?.mode || "—")],
+    [t("الرقم الضريبي", "VAT number"), proof?.vatNumber || "—"],
+    [t("معرّف الجهاز", "Device identifier"), certificate?.deviceName || "—"],
+    [t("فحوصات قبول الجهاز", "Device compliance checks"), proof ? `${proof.complianceChecksPassed} / 6` : "—"],
+    [t("تاريخ إصدار شهادة الجهاز", "Device certificate issued"), certDate(certificate?.issuedAt)],
+    [t("صالحة حتى", "Valid until"), certDate(certificate?.expiresAt)],
+  ];
+
   return (
-    <Card className="border-border">
-      <CardHeader>
-        <CardTitle className="text-foreground flex flex-wrap items-center gap-2">📋 {t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")} <ZatcaStatusBadge status={live} size="xs" /></CardTitle>
-        <CardDescription>{t("تهيئة شهادة الجهاز (CSID) عبر مسار فاتورة الرسمي: مفاتيح محلية → OTP → امتثال → إنتاج.", "Device certificate (CSID) onboarding via the official Fatoora path: local keys → OTP → compliance → production.")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <p className="text-sm">{t("البيئة", "Environment")}: {st?.mode || "—"}. {t("حالة الشهادة تخص هذه البيئة فقط.", "Certificate status applies only to this environment.")}</p>
-        {/* Stepper */}
-        <ol className="space-y-2">
+    <SettingsSection
+      title={t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")}
+      description={t("تهيئة شهادة الجهاز (CSID) عبر مسار فاتورة الرسمي: مفاتيح محلية → OTP → امتثال → إنتاج.", "Device certificate (CSID) onboarding via the official Fatoora path: local keys → OTP → compliance → production.")}
+      actions={<Button variant="outline" size="sm" onClick={refresh}>{t("تحديث الحالة", "Refresh status")}</Button>}
+    >
+      <div className="space-y-6">
+        {/* Status header · connection pill + last verification, per the approved reference */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <ZatcaStatusBadge status={live} />
+          <p className="text-xs text-muted-foreground">
+            {lastChecked
+              ? <>{t("آخر تحقق", "Last checked")}: <bdi className="font-code">{lastChecked}</bdi></>
+              : t("حالة الشهادة تخص هذه البيئة فقط.", "Certificate status applies only to this environment.")}
+          </p>
+        </div>
+
+        {/* Stepper · one paper card per onboarding stage */}
+        <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("مراحل ربط الجهاز", "Device onboarding stages")}>
           {steps.map((s2, i) => (
-            <li key={s2.id} className="flex items-center gap-3 text-sm">
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${s2.done ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
+            <li key={s2.id} className="rounded-lg border border-border bg-card p-4">
+              <span className={`flex size-7 items-center justify-center rounded-full text-xs font-semibold ${s2.done ? "bg-primary text-primary-foreground" : "bg-foreground text-background"}`} aria-hidden="true">
                 {s2.done ? "✓" : i + 1}
               </span>
-              <span className={s2.done ? "text-foreground" : "text-muted-foreground"}>{s2.label}</span>
+              <h4 className="mt-3 text-sm font-semibold text-foreground">{s2.label}</h4>
+              <p className={`mt-1 inline-flex items-center gap-1.5 text-xs ${s2.done ? "text-success" : "text-muted-foreground"}`}>
+                <span className={`ledger-dot${s2.done ? "" : " hollow"}`} aria-hidden="true" />
+                {s2.done ? t("مكتملة", "Done") : t("بانتظار التنفيذ", "Not started")}
+              </p>
             </li>
           ))}
         </ol>
 
+        {/* Device + certificate facts · two-column key → value list */}
+        <dl className="grid gap-x-8 gap-y-3 border-t border-border pt-4 sm:grid-cols-2">
+          {facts.map(([label, value]) => (
+            <div key={label} className="min-w-0">
+              <dt className="ledger-eyebrow">{label}</dt>
+              <dd className="mt-1 truncate text-lg font-semibold text-foreground"><bdi className="font-code">{value}</bdi></dd>
+            </div>
+          ))}
+        </dl>
+
         {/* Assisted linking · the OTP step needs the taxpayer's own Fatoora login, so
             it can never be fully automatic; everything else is. Offer the managed path. */}
         {status !== "PRODUCTION" && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-            <span>{t("تفضّل أن يربطها فريق Entix لك؟ نكمل الخطوات معك في اتصال قصير — تحتاج فقط تسجيل الدخول لبوابة فاتورة وقت الاتصال.", "Prefer the Entix team to link it for you? We complete the steps with you on a short call — you only need your Fatoora portal login at the time.")}</span>
-            <a href={`mailto:support@entix.io?subject=${encodeURIComponent(t("طلب ربط ZATCA Phase 2", "ZATCA Phase 2 linking request"))}`} className="text-primary hover:underline" style={{ fontWeight: 600 }}>{t("اطلب الربط المُدار", "Request managed linking")}</a>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-subtle p-4 text-xs text-muted-foreground">
+            <span className="max-w-2xl">{t("تفضّل أن يربطها فريق Entix لك؟ نكمل الخطوات معك في اتصال قصير — تحتاج فقط تسجيل الدخول لبوابة فاتورة وقت الاتصال.", "Prefer the Entix team to link it for you? We complete the steps with you on a short call — you only need your Fatoora portal login at the time.")}</span>
+            <Button asChild variant="outline" size="sm"><a href={`mailto:support@entix.io?subject=${encodeURIComponent(t("طلب ربط ZATCA Phase 2", "ZATCA Phase 2 linking request"))}`}>{t("اطلب الربط المُدار", "Request managed linking")}</a></Button>
           </div>
         )}
 
         {/* Step 1 · prepare */}
         {status === "NONE" && (
-          <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
             {!st?.vatConfigured && (
-              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
+              <p className="text-sm text-warning bg-warning-subtle border border-warning-border rounded-md p-3">
                 {t("أضف الرقم الضريبي للمنشأة من تبويب «بيانات الشركة» أولاً — الشهادة تُصدر على هذا الرقم.", "Add the organization VAT number from the Company tab first — the certificate is issued against it.")}
               </p>
             )}
@@ -1926,7 +1954,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
 
         {/* CSR download + Step 2 · OTP */}
         {status === "CSR_READY" && (
-          <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
             {csr && (
               <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 p-3">
                 <span className="text-sm text-foreground">{t("ملف CSR جاهز", "CSR file ready")} · <span className="font-english">{csr.deviceName}</span></span>
@@ -1957,7 +1985,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
 
         {/* Step 3 · compliance checks */}
         {status === "COMPLIANCE" && (
-          <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
             <p className="text-sm text-muted-foreground">
               {t("ترسل المنصة 6 مستندات اختبار موقّعة إلى خدمة فحص الامتثال في البيئة الموضحة أعلاه، للتحقق من التوقيع والتسلسل والصيغة. هذه الخطوة تفحص قبول الجهاز ولا ترحّل فواتير عملائك.", "The platform sends 6 signed test documents to the compliance-check service in the environment shown above to validate signature, chain, and format. This checks device compliance without submitting your customer invoices.")}
             </p>
@@ -1974,7 +2002,6 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
             <ComplianceResults run={run || st?.complianceResult} t={t} />
             {(run?.ok || st?.complianceResult?.ok) && (
               <Button
-                className="bg-emerald-600 hover:bg-emerald-700"
                 disabled={busy === "production"}
                 onClick={() => act("production", () => api.zatca.onboarding.production(), t("صدرت شهادة الإنتاج", "Production certificate issued"))}
               >
@@ -1988,8 +2015,8 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         {status === "PRODUCTION" && <ZatcaDeviceProof status={live} />}
 
         {status !== "PRODUCTION" && <p className="text-xs text-muted-foreground">{t("أكمل شهادة الإنتاج ثم تحقق من تفعيل إرسال فواتير المنشأة.", "Complete the production certificate, then check the organization invoice submission activation.")}</p>}
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }
 
@@ -1997,23 +2024,23 @@ function ComplianceResults({ run, t }: { run: any; t: (ar: string, en?: string) 
   if (!run?.results) return null;
   return (
     <div className="overflow-hidden rounded-md border border-border">
-      <table className="w-full text-xs">
-        <tbody>
+      <Table className="w-full text-xs">
+        <TableBody>
           {run.results.map((r: any) => {
             const label = ZATCA_DOC_TYPES.find((d) => d.id === r.docType);
             return (
-              <tr key={r.docType} className="border-b border-border/50 last:border-0">
-                <td className="px-3 py-2 text-foreground">{label ? t(label.ar, label.en) : r.docType}</td>
-                <td className="px-3 py-2 text-end">
+              <TableRow key={r.docType}>
+                <TableCell className="px-3 py-2 text-foreground">{label ? t(label.ar, label.en) : r.docType}</TableCell>
+                <TableCell className="px-3 py-2 text-end">
                   {r.ok
-                    ? <span className="text-emerald-700 font-semibold">{t("ناجح", "Pass")}</span>
-                    : <span className="text-red-700 font-semibold" title={(r.errors || []).join(" · ")}>{t("فشل", "Fail")}</span>}
-                </td>
-              </tr>
+                    ? <span className="text-success font-semibold">{t("ناجح", "Pass")}</span>
+                    : <span className="text-danger font-semibold" title={(r.errors || []).join(" · ")}>{t("فشل", "Fail")}</span>}
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       <div className="bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
         {t("ناجح", "Passed")}: {run.passed} · {t("فشل", "Failed")}: {run.failed} · <span className="font-english">{run.ranAt?.slice(0, 16).replace("T", " ")}</span>
       </div>
@@ -2022,9 +2049,15 @@ function ComplianceResults({ run, t }: { run: any; t: (ar: string, en?: string) 
 }
 
 // ── BRANDING TAB ────────────────────────────────────────────────────────────
+/** Branding defaults follow the product's own design tokens instead of hardcoded hex. */
+function themeToken(name: string): string {
+  if (typeof window === "undefined") return "";
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void; push: any }) {
-  const [primaryColor, setPrimaryColor] = useState(((org as any).brandingSettings || {}).primaryColor || "#1276E3");
-  const [accentColor, setAccentColor] = useState(((org as any).brandingSettings || {}).accentColor || "#0B1B49");
+  const [primaryColor, setPrimaryColor] = useState(((org as any).brandingSettings || {}).primaryColor || themeToken("--action-primary"));
+  const [accentColor, setAccentColor] = useState(((org as any).brandingSettings || {}).accentColor || themeToken("--content"));
   const initialFont = ((org as any).brandingSettings || {}).fontFamily || "Noto Sans Arabic";
   const [fontFamily, setFontFamily] = useState(initialFont === "Tajawal" ? "Noto Sans Arabic" : initialFont);
   const [logoUrl, setLogoUrl] = useState((org as any).logoUrl || "");
@@ -2075,10 +2108,10 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("logoUrl")(f); }} />
               {logoUrl ? (
                 <div className="flex items-center gap-3">
-                  <img src={logoUrl} alt="logo" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
+                  <img src={logoUrl} alt="logo" className="max-w-[120px] max-h-[80px] object-contain bg-card rounded" />
                   <div className="flex flex-col gap-1">
                     <label htmlFor="brand-logo" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                    <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
+                    <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
                   </div>
                 </div>
               ) : (
@@ -2097,10 +2130,10 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("printLogoUrl")(f); }} />
               {printLogoUrl ? (
                 <div className="flex items-center gap-3">
-                  <img src={printLogoUrl} alt="print logo" className="max-w-[200px] max-h-[80px] object-contain bg-white rounded" />
+                  <img src={printLogoUrl} alt="print logo" className="max-w-[200px] max-h-[80px] object-contain bg-card rounded" />
                   <div className="flex flex-col gap-1">
                     <label htmlFor="brand-print-logo" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                    <button type="button" onClick={() => setPrintLogoUrl("")} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
+                    <button type="button" onClick={() => setPrintLogoUrl("")} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
                   </div>
                 </div>
               ) : (
@@ -2119,10 +2152,10 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("stampUrl")(f); }} />
               {stampUrl ? (
                 <div className="flex items-center gap-3">
-                  <img src={stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-white rounded" />
+                  <img src={stampUrl} alt="stamp" className="max-w-[120px] max-h-[80px] object-contain bg-card rounded" />
                   <div className="flex flex-col gap-1">
                     <label htmlFor="brand-stamp" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
-                    <button type="button" onClick={() => setStampUrl("")} className="text-xs text-red-600 text-start hover:underline">{t("حذف", "Delete")}</button>
+                    <button type="button" onClick={() => setStampUrl("")} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
                   </div>
                 </div>
               ) : (
@@ -2152,7 +2185,7 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
           </div>
           <div>
             <Label className="text-xs mb-2 block">{t("الخط", "Font")}</Label>
-            <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
+            <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full text-sm rounded border border-border px-3 py-2 bg-card">
               <option value="Noto Sans Arabic">Noto Sans Arabic</option>
               <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
             </select>
@@ -2161,7 +2194,7 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
 
         <div className="rounded-lg border border-border p-4 bg-muted">
           <div className="text-xs text-muted-foreground mb-2">{t("معاينة", "Preview")}</div>
-          <div className="bg-white rounded p-4 border" style={{ borderColor: primaryColor, fontFamily }}>
+          <div className="bg-card rounded p-4 border" style={{ borderColor: primaryColor, fontFamily }}>
             <div className="flex items-center justify-between border-b pb-2 mb-2" style={{ borderColor: primaryColor }}>
               {logoUrl ? <img src={logoUrl} alt="" className="max-h-[40px]" /> : <div style={{ color: accentColor, fontWeight: 700 }}>{org.name}</div>}
               <div className="text-xs text-muted-foreground">{t("فاتورة", "Invoice")} · INV-2026-0001</div>
@@ -2303,7 +2336,7 @@ function PlansTab({ org }: { org: Org }) {
         </CardHeader>
         <CardContent className="space-y-4">
           {banner && (
-            <div className={`rounded-lg px-4 py-2.5 text-sm ${banner.kind === "success" ? "bg-green-50 text-green-700 border border-green-700/30" : "bg-primary/5 text-primary border border-primary/20"}`}>
+            <div className={`rounded-lg px-4 py-2.5 text-sm ${banner.kind === "success" ? "bg-success-subtle text-success border border-success-border" : "bg-primary/5 text-primary border border-primary/20"}`}>
               {banner.text}
             </div>
           )}
@@ -2325,13 +2358,13 @@ function PlansTab({ org }: { org: Org }) {
           )}
 
           {isAdmin && (
-            <div className="rounded-lg border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 p-5">
+            <div className="rounded-lg border border-warning-border bg-warning-subtle p-5">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-amber-700 font-bold text-lg">⚡ {adminPlan.name}</div>
-                <div className="font-english font-bold text-2xl text-amber-700" dir="ltr">{adminPlan.price}</div>
+                <div className="text-warning font-bold text-lg">⚡ {adminPlan.name}</div>
+                <div className="font-english font-bold text-2xl text-warning" dir="ltr">{adminPlan.price}</div>
               </div>
               <ul className="text-sm text-foreground/80 space-y-1">
-                {adminPlan.features.map((f, i) => (<li key={i} className="flex items-center gap-2"><span className="text-green-600">✓</span>{f}</li>))}
+                {adminPlan.features.map((f, i) => (<li key={i} className="flex items-center gap-2"><span className="text-success">✓</span>{f}</li>))}
               </ul>
             </div>
           )}
@@ -2340,14 +2373,14 @@ function PlansTab({ org }: { org: Org }) {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
               {(["sar", "usd"] as const).map((c) => (
-                <button key={c} onClick={() => setPlanCurrency(c)} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${planCurrency === c ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: planCurrency === c ? 700 : 500 }}>{c.toUpperCase()}</button>
+                <button key={c} onClick={() => setPlanCurrency(c)} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${planCurrency === c ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: planCurrency === c ? 700 : 500 }}>{c.toUpperCase()}</button>
               ))}
             </div>
             <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
-              <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
-              <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors flex items-center gap-1.5 ${cycle === "year" ? "bg-white text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>
+              <button onClick={() => setCycle("month")} className={`rounded-md px-3 py-1.5 text-sm transition-colors ${cycle === "month" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "month" ? 700 : 500 }}>{t("شهري", "Monthly")}</button>
+              <button onClick={() => setCycle("year")} className={`rounded-md px-3 py-1.5 text-sm transition-colors flex items-center gap-1.5 ${cycle === "year" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`} style={{ fontWeight: cycle === "year" ? 700 : 500 }}>
                 {t("سنوي", "Annual")}
-                <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("شهران مجانًا", "2 months free")}</span>
+                <span className="rounded bg-success-subtle text-success px-1.5 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>{t("شهران مجانًا", "2 months free")}</span>
               </button>
             </div>
           </div>
@@ -2362,7 +2395,7 @@ function PlansTab({ org }: { org: Org }) {
               const feats = tierFeatures[p.tier] || { ar: p.features || [], en: p.features || [] };
               return (
                 <div key={p.id} className={`rounded-lg border p-4 relative flex flex-col ${popular ? "border-primary ring-2 ring-ring/30" : "border-border"}`}>
-                  {popular && <div className="absolute -top-2.5 right-3 bg-primary text-white text-xs px-2 py-0.5 rounded">{t("الأكثر شعبية", "Most popular")}</div>}
+                  {popular && <div className="absolute -top-2.5 right-3 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded">{t("الأكثر شعبية", "Most popular")}</div>}
                   <div className="text-foreground font-bold">{p.name}</div>
 
                   {p.price === 0 ? (
@@ -2374,7 +2407,7 @@ function PlansTab({ org }: { org: Org }) {
                         <span className="text-sm text-muted-foreground line-through font-english" dir="ltr">{cur} {money(p.price + saving.saved)}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="rounded bg-green-100 text-green-800 px-2 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>
+                        <span className="rounded bg-success-subtle text-success px-2 py-0.5 text-[10px]" style={{ fontWeight: 700 }}>
                           {t(`وفّر ${cur} ${money(saving.saved)} · ${saving.months} شهر مجانًا`, `Save ${cur} ${money(saving.saved)} · ${saving.months} months free`)}
                         </span>
                         <span className="text-xs text-muted-foreground font-english" dir="ltr">≈ {cur} {money(monthlyEquivalent!)}/{t("شهر", "mo")}</span>
@@ -2388,8 +2421,8 @@ function PlansTab({ org }: { org: Org }) {
                     {feats.ar.map((f, i) => {
                       const isZatcaValidation = /ZATCA Phase 2/i.test(f);
                       return (
-                        <li key={i} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className={`flex items-start gap-1 ${isZatcaValidation ? "text-amber-800" : ""}`}>
-                          <span className={isZatcaValidation ? "mt-0.5 text-amber-600" : "mt-0.5 text-green-600"}>{isZatcaValidation ? "⚠" : "✓"}</span>
+                        <li key={i} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className={`flex items-start gap-1 ${isZatcaValidation ? "text-warning" : ""}`}>
+                          <span className={isZatcaValidation ? "mt-0.5 text-warning" : "mt-0.5 text-success"}>{isZatcaValidation ? "⚠" : "✓"}</span>
                           <span>{t(f, (feats.en[i] || f))}</span>
                         </li>
                       );
@@ -2423,18 +2456,18 @@ function PlansTab({ org }: { org: Org }) {
           <CardDescription>{t("أسعار المنافسين من مواقعهم الرسمية بتاريخ أغسطس 2026 وقد تتغير — أسعارنا ثابتة هنا", "Competitor list prices from their official sites as of August 2026 — theirs may change; ours are fixed here")}</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr className="border-b border-border text-start">
-                <th className="text-start py-2.5 pe-3 text-muted-foreground font-medium">{t("المقارنة", "Benchmark")}</th>
-                <th className="py-2.5 px-3 text-center">
-                  <div className="inline-flex flex-col items-center"><EntixWordmark size={14} /><span className="text-[10px] text-green-800 bg-green-100 rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
-                </th>
-                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wafeq {t("وفق", "")}</th>
-                <th className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wave</th>
-              </tr>
-            </thead>
-            <tbody className="text-center">
+          <Table className="w-full text-sm min-w-[640px]">
+            <TableHeader>
+              <TableRow className="border-b border-border text-start">
+                <TableHead className="text-start py-2.5 pe-3 text-muted-foreground font-medium">{t("المقارنة", "Benchmark")}</TableHead>
+                <TableHead className="py-2.5 px-3 text-center">
+                  <div className="inline-flex flex-col items-center"><EntixWordmark size={14} /><span className="text-[10px] text-success bg-success-subtle rounded px-1.5 py-0.5 mt-1" style={{ fontWeight: 700 }}>{t("الأفضل قيمة", "Best value")}</span></div>
+                </TableHead>
+                <TableHead className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wafeq {t("وفق", "")}</TableHead>
+                <TableHead className="py-2.5 px-3 text-center text-muted-foreground font-medium">Wave</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="text-center">
               {([
                 { ar: "سعر البداية الشهري", en: "Starting monthly price", us: planCurrency === "usd" ? "$29" : "SAR 99", wafeq: "SAR 99", wave: "$0 · Pro $19" },
                 { ar: "ماذا تشمل باقة البداية؟", en: "What the entry plan includes", us: t("فواتير + مشتريات + رواتب + مخزون + AI", "Invoices + purchases + payroll + inventory + AI"), wafeq: t("فواتير فقط", "Invoices only"), wave: t("فواتير وقيود أساسية", "Basic invoicing & books") },
@@ -2447,15 +2480,15 @@ function PlansTab({ org }: { org: Org }) {
                 { ar: "ربط بنكي أمريكي", en: "US bank feeds", us: "✓ Plaid", wafeq: "✗", wave: "✓ Plaid" },
                 { ar: "الفوترة لكل شركة", en: "Per-company billing", us: t("✓ + خصم 30% للشركات الإضافية", "✓ + 30% off additional companies"), wafeq: t("كيانات متعددة في الباقات الكبرى", "Multi-entity on higher tiers"), wave: "✓ per business" },
               ] as const).map((row, i) => (
-                <tr key={i} className="border-b border-border/50">
-                  <td className="text-start py-2.5 pe-3 text-foreground">{t(row.ar, row.en)}</td>
-                  <td className="py-2.5 px-3 bg-primary/5/60 text-primary font-semibold">{row.us}</td>
-                  <td className="py-2.5 px-3 text-muted-foreground">{row.wafeq}</td>
-                  <td className="py-2.5 px-3 text-muted-foreground">{row.wave}</td>
-                </tr>
+                <TableRow key={i}>
+                  <TableCell className="text-start py-2.5 pe-3 text-foreground">{t(row.ar, row.en)}</TableCell>
+                  <TableCell className="py-2.5 px-3 bg-primary/5 text-primary font-semibold">{row.us}</TableCell>
+                  <TableCell className="py-2.5 px-3 text-muted-foreground">{row.wafeq}</TableCell>
+                  <TableCell className="py-2.5 px-3 text-muted-foreground">{row.wave}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

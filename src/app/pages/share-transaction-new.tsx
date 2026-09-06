@@ -132,13 +132,13 @@ export function ShareTransactionNew() {
       </div>
 
       {shareholders.length === 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2 text-sm text-warning">
           {t("سجّل مساهماً أولاً من صفحة سجل المساهمين", "Register a shareholder first from the Shareholders page")}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -148,7 +148,7 @@ export function ShareTransactionNew() {
                 {KINDS.map((k) => (
                   <button key={k.kind} type="button" onClick={() => setForm({ ...form, kind: k.kind })}
                     className={`rounded-lg border p-3 text-start transition-colors ${form.kind === k.kind ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:bg-muted/40"}`}>
-                    <div className="text-sm" style={{ fontWeight: 700, color: form.kind === k.kind ? "#1276E3" : "inherit" }}>{t(k.ar, k.en)}</div>
+                    <div className="text-sm" style={{ fontWeight: 700, color: form.kind === k.kind ? "#5875DB" : "inherit" }}>{t(k.ar, k.en)}</div>
                     <div className="text-[10px] text-muted-foreground mt-1 leading-4">{k.hint}</div>
                   </button>
                 ))}
@@ -178,21 +178,21 @@ export function ShareTransactionNew() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+            <div className="grid grid-cols-3 gap-3 rounded-lg border border-info-border bg-info-subtle/50 p-3">
               <div className="space-y-2"><Label>{t("عدد الأسهم *", "Shares *")}</Label><Input type="number" step="1" min="1" required value={form.shares} onChange={(e) => setForm({ ...form, shares: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>{t("سعر السهم *", "Price per share *")}</Label><Input type="number" step="0.0001" min="0" required value={form.pricePerShare} onChange={(e) => setForm({ ...form, pricePerShare: e.target.value })} dir="ltr" className="font-english" /></div>
-              <div className="space-y-2"><Label>{t("الإجمالي", "Total")}</Label><div className="rounded-md border border-border bg-white px-3 py-2 font-english text-sm" style={{ fontWeight: 700 }} dir="ltr">{money(amount)}</div></div>
+              <div className="space-y-2"><Label>{t("الإجمالي", "Total")}</Label><div className="rounded-md border border-border bg-card px-3 py-2 font-english text-sm" style={{ fontWeight: 700 }} dir="ltr">{money(amount)}</div></div>
             </div>
 
             {form.kind !== "TRANSFER" && (
               <div className="space-y-2">
                 <Label>{t("حساب البنك *", "Bank account *")}</Label>
                 <SearchableCombobox value={form.offsetAccountId} onChange={(offsetAccountId) => setForm({ ...form, offsetAccountId })} items={cashAccounts} placeholder={t("الحساب الذي دخل منه أو خرج إليه المال...", "The account money entered or left...")} />
-                {cashAccounts.length === 0 && <p className="text-[11px] text-amber-700">{t("لا توجد حسابات بنكية — أنشئ حساباً من صفحة الحسابات البنكية", "No bank accounts — create one from the Bank accounts page")}</p>}
+                {cashAccounts.length === 0 && <p className="text-[11px] text-warning">{t("لا توجد حسابات بنكية — أنشئ حساباً من صفحة الحسابات البنكية", "No bank accounts — create one from the Bank accounts page")}</p>}
               </div>
             )}
             {form.kind === "TRANSFER" && (
-              <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
+              <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info">
                 {t("التنازل بين المساهمين صفقة بينهم هم — الثمن لا يمر عبر الشركة، لذلك لا يُنشأ قيد دفاتر، ويُحدَّث السجل فقط (عدد الأسهم ومتوسط التكلفة لكل طرف).", "A transfer is a deal between the shareholders themselves — the price doesn't flow through the company, so no journal entry is created; only the register updates (each party's share count and average cost).")}
               </div>
             )}

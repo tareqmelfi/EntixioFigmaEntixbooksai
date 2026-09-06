@@ -1,24 +1,50 @@
 import { displayLocale } from "../lib/number-display";
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { Link } from "react-router";
 import {
   BarChart3,
+  BookOpen,
+  Boxes,
   Building2,
   Calculator,
+  CalendarClock,
   ClipboardList,
+  CreditCard,
+  FileSearch,
+  FileSpreadsheet,
   FileText,
   Filter,
+  FolderKanban,
+  Gauge,
+  HardHat,
+  Hourglass,
   Landmark,
+  Layers,
+  ListChecks,
   Loader2,
+  MapPin,
+  Network,
   Package,
+  PackageOpen,
+  PackageSearch,
+  Percent,
+  Receipt,
+  Repeat,
   Scale,
+  ScrollText,
   Search,
   ShieldCheck,
+  ShoppingCart,
+  Store,
+  Target,
+  Timer,
   TrendingUp,
+  Truck,
   Users,
   Wallet,
+  Warehouse,
+  Waves,
 } from "lucide-react";
-import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type DashboardSummary } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
@@ -58,9 +84,10 @@ type CategoryDefinition = {
   id: ReportCategoryId;
   title: string;
   englishTitle: string;
-  icon: ComponentType<{ className?: string }>;
-  accent: string;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
 };
+
+type ReportIcon = ComponentType<{ className?: string; strokeWidth?: number }>;
 
 const money = (value: string | number | null | undefined, currency = "SAR") => {
   const formatted = Number(value || 0).toLocaleString(displayLocale("en-US"), {
@@ -74,16 +101,71 @@ const numberValue = (value: string | number | null | undefined) =>
   Number(value || 0).toLocaleString(displayLocale("en-US"));
 
 const categories: CategoryDefinition[] = [
-  { id: "financial", title: "تقارير مالية", englishTitle: "Financial Reports", icon: BarChart3, accent: "bg-blue-50 text-blue-700 border-blue-100" },
-  { id: "consolidated", title: "التقارير المالية الموحدة", englishTitle: "Consolidated Reports", icon: Building2, accent: "bg-indigo-50 text-indigo-700 border-indigo-100" },
-  { id: "sales", title: "مبيعات", englishTitle: "Sales", icon: Users, accent: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-  { id: "purchases", title: "مشتريات", englishTitle: "Purchases", icon: Wallet, accent: "bg-amber-50 text-amber-700 border-amber-100" },
-  { id: "payroll", title: "الرواتب", englishTitle: "Payroll", icon: ClipboardList, accent: "bg-sky-50 text-sky-700 border-sky-100" },
-  { id: "forecast", title: "توقعات", englishTitle: "Forecasts", icon: TrendingUp, accent: "bg-cyan-50 text-cyan-700 border-cyan-100" },
-  { id: "tax", title: "تقارير الضرائب", englishTitle: "Tax Reports", icon: ShieldCheck, accent: "bg-rose-50 text-rose-700 border-rose-100" },
-  { id: "accountant", title: "للمحاسب", englishTitle: "Accountant", icon: Calculator, accent: "bg-slate-50 text-slate-700 border-slate-200" },
-  { id: "inventory", title: "مخزون", englishTitle: "Inventory", icon: Package, accent: "bg-teal-50 text-teal-700 border-teal-100" },
+  { id: "financial", title: "تقارير مالية", englishTitle: "Financial Reports", icon: BarChart3 },
+  { id: "consolidated", title: "التقارير المالية الموحدة", englishTitle: "Consolidated Reports", icon: Building2 },
+  { id: "sales", title: "مبيعات", englishTitle: "Sales", icon: Users },
+  { id: "purchases", title: "مشتريات", englishTitle: "Purchases", icon: Wallet },
+  { id: "payroll", title: "الرواتب", englishTitle: "Payroll", icon: ClipboardList },
+  { id: "forecast", title: "توقعات", englishTitle: "Forecasts", icon: TrendingUp },
+  { id: "tax", title: "تقارير الضرائب", englishTitle: "Tax Reports", icon: ShieldCheck },
+  { id: "accountant", title: "للمحاسب", englishTitle: "Accountant", icon: Calculator },
+  { id: "inventory", title: "مخزون", englishTitle: "Inventory", icon: Package },
 ];
+
+/** One expressive, distinct icon per report — the card's identity in the grid. */
+const REPORT_ICONS: Record<string, ReportIcon> = {
+  "income-statement": TrendingUp,
+  "income-by-branch": Store,
+  "branch-performance": Gauge,
+  "income-by-cost-center": Target,
+  "income-by-project": FolderKanban,
+  "project-profitability": HardHat,
+  "cash-flow": Waves,
+  "cash-flow-indirect": Repeat,
+  "balance-sheet": Scale,
+  "cash-forecast": CalendarClock,
+  "management-pdf": FileText,
+  "consolidated-income": Layers,
+  "consolidated-cash-flow": Network,
+  "consolidated-balance-sheet": Building2,
+  "customer-balances": Users,
+  "customer-statement": ScrollText,
+  "customer-statement-detail": FileSearch,
+  "ar-aging": Hourglass,
+  "ar-aging-detail": Timer,
+  "sales-by-customer": ShoppingCart,
+  "sales-by-branch": Store,
+  "sales-by-project": FolderKanban,
+  "sales-by-product": Package,
+  "supplier-balances": Truck,
+  "supplier-statement": ScrollText,
+  "supplier-statement-detail": FileSearch,
+  "ap-aging": Hourglass,
+  "ap-aging-detail": Timer,
+  "bills-by-supplier": Receipt,
+  "bills-by-branch": Store,
+  "expenses-by-vendor": CreditCard,
+  "expenses-by-branch": MapPin,
+  "purchases-by-product": PackageSearch,
+  "employee-statement": Wallet,
+  "employee-statement-detail": ClipboardList,
+  "forecast-cash": CalendarClock,
+  "vat-summary": Percent,
+  taxes: Receipt,
+  "taxes-detail": FileSpreadsheet,
+  "trial-balance": ListChecks,
+  "account-statement": ScrollText,
+  "account-statement-detail": FileSearch,
+  "general-ledger": BookOpen,
+  "audit-log": ShieldCheck,
+  "bank-reconciliation-report": Landmark,
+  "inventory-movement": PackageOpen,
+  "inventory-by-warehouse": Warehouse,
+  "inventory-monthly-summary": Boxes,
+};
+
+const iconFor = (report: ReportDefinition): ReportIcon =>
+  REPORT_ICONS[report.id] || categories.find((item) => item.id === report.category)?.icon || FileText;
 
 const reportCatalog: ReportDefinition[] = [
   {
@@ -650,20 +732,23 @@ const EN_DESCRIPTIONS: Record<string, string> = {
   "inventory-monthly-summary": "Opening balance, movement, closing balance, and monthly inventory valuation.",
 };
 
-const statusMeta = (t: TFunc): Record<ReportStatus, { label: string; className: string; help: string }> => ({
+const statusMeta = (t: TFunc): Record<ReportStatus, { label: string; short: string; className: string; help: string }> => ({
   live: {
     label: t("يقرأ من البيانات الآن", "Live from data now"),
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    short: t("مباشر", "Live"),
+    className: "text-success",
     help: t("مرتبط ببيانات الشركة الحالية ويعرض أرقاماً فعلية عند توفرها.", "Linked to the current company data and shows real numbers when available."),
   },
   ready: {
     label: t("جاهز كقالب احترافي", "Ready as a professional template"),
-    className: "border-blue-200 bg-blue-50 text-blue-700",
+    short: t("جاهز", "Ready"),
+    className: "text-muted-foreground",
     help: t("موجود في النظام كتعريف تقرير مع مصادره ومخرجاته، وتظهر أرقامه عند اكتمال بياناته.", "Exists in the system as a report definition with its sources and outputs; numbers appear once its data is complete."),
   },
   needs_data: {
     label: t("يتطلب بيانات المجموعة", "Requires group data"),
-    className: "border-amber-200 bg-amber-50 text-amber-700",
+    short: t("بيانات المجموعة", "Group data"),
+    className: "text-warning",
     help: t("مخصص للشركات المتعددة أو البيانات المتقدمة، وليس مخفياً أو محجوباً بالباقة.", "Designed for multi-company or advanced data, not hidden or gated by the plan."),
   },
 });
@@ -717,6 +802,41 @@ export function Reports() {
 
   const counts = useMemo(() => summarizeReports(catalog), [catalog]);
 
+  const sections = useMemo(
+    () =>
+      categories
+        .map((item) => ({ category: item, reports: filteredReports.filter((report) => report.category === item.id) }))
+        .filter((group) => group.reports.length > 0),
+    [filteredReports],
+  );
+
+  const figures = [
+    {
+      key: "revenue",
+      label: t("الإيرادات · الفترة الحالية", "Revenue · current period"),
+      value: money(summary?.kpi.revenue, currency),
+      hint: t("من الفواتير المعتمدة", "From issued invoices"),
+    },
+    {
+      key: "cash",
+      label: t("النقد المتاح", "Cash on hand"),
+      value: money(summary?.kpi.cashOnHand, currency),
+      hint: t("أرصدة الحسابات البنكية والنقدية", "Bank and cash account balances"),
+    },
+    {
+      key: "ar",
+      label: t("الذمم المدينة", "Accounts receivable"),
+      value: money(summary?.kpi.accountsReceivable, currency),
+      hint: t("مستحق على العملاء", "Owed by customers"),
+    },
+    {
+      key: "vat",
+      label: profile.taxLabel,
+      value: money(summary?.kpi.vatNet, currency),
+      hint: profile.taxSystem,
+    },
+  ];
+
   const exportCatalogCsv = () => {
     const header = "Category,Report,English Title,Status,Formats,Data Sources";
     const csv = [
@@ -732,91 +852,124 @@ export function Reports() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("مركز التقارير", "Reports Center")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
+          <span className="ledger-eyebrow">{t("للمحاسب", "For the accountant")}</span>
+          <h1 className="ledger-greeting mt-1">{t("مركز التقارير", "Reports Center")}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-content-secondary">
             {t("كل التقارير المالية والتشغيلية موجودة بفهرس واحد، مع مصطلحات متوافقة مع ", "All financial and operational reports are in one index, with terminology aligned with ")}{profile.countryLabel}.
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+            <span>
+              {t("إجمالي التقارير", "Total reports")} <span className="font-display text-sm tabular-nums text-foreground">{numberValue(counts.total)}</span>
+            </span>
+            <span>
+              {t("مرتبطة ببيانات فعلية", "Linked to live data")} <span className="font-display text-sm tabular-nums text-foreground">{numberValue(counts.live)}</span>
+            </span>
+            <span>
+              {t("تقارير جديدة", "New reports")} <span className="font-display text-sm tabular-nums text-foreground">{numberValue(counts.newReports)}</span>
+            </span>
+          </div>
         </div>
-        <div className="no-print flex flex-wrap gap-2">
+        <div className="no-print flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full border border-border bg-surface-subtle px-3 py-1.5 text-xs text-content-secondary">
+            {profile.standardLabel}
+          </span>
           <Button variant="outline" onClick={exportCatalogCsv}>
-            <FileText className="me-2 h-4 w-4" />{t("تصدير فهرس التقارير", "Export report index")}
+            <FileText className="me-2 h-4 w-4" strokeWidth={1.75} />{t("تصدير فهرس التقارير", "Export report index")}
           </Button>
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>
+      )}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Metric label={t("إجمالي التقارير", "Total reports")} value={numberValue(counts.total)} tone="info" />
-        <Metric label={t("مرتبطة ببيانات فعلية", "Linked to live data")} value={numberValue(counts.live)} tone="good" />
-        <Metric label={t("تقارير جديدة", "New reports")} value={numberValue(counts.newReports)} tone="warn" />
-        <Metric label={profile.taxLabel} value={summary ? money(summary.kpi.vatNet, currency) : money(0, currency)} tone="info" />
+      <div className="grid gap-6 rounded-lg bg-foreground p-5 text-background sm:grid-cols-2 xl:grid-cols-4">
+        {figures.map((figure) => (
+          <div key={figure.key} className="flex min-w-0 flex-col gap-2">
+            <span className="text-xs text-background/70">{figure.label}</span>
+            <span className="self-start font-display text-[2rem] leading-none tabular-nums text-background" dir="ltr">{figure.value}</span>
+            <span className="truncate text-xs text-background/55">{figure.hint}</span>
+          </div>
+        ))}
       </div>
 
       <CoreStatementsBlock catalog={catalog} />
 
-      <Card className="border-border bg-white">
-        <CardContent className="p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(220px,260px)_1fr]">
-            <aside className="space-y-2">
-              <button
-                onClick={() => setCategory("all")}
-                className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                  category === "all" ? "border-primary bg-primary/5 text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
-                }`}
-              >
-                <span className="flex items-center gap-2"><Filter className="h-4 w-4" />{t("كل التقارير", "All reports")}</span>
-                <span className="font-english text-xs">{catalog.length}</span>
-              </button>
-              {categories.map((item) => {
-                const Icon = item.icon;
-                const itemCount = catalog.filter((report) => report.category === item.id).length;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setCategory(item.id)}
-                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-start text-sm transition ${
-                      category === item.id ? "border-primary bg-primary/5 text-foreground" : "border-border bg-white text-foreground/80 hover:bg-muted"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{language === "en" ? item.englishTitle || item.title : item.title}</span>
-                    <span className="font-english text-xs">{itemCount}</span>
-                  </button>
-                );
-              })}
-            </aside>
+      <div className="flex flex-col gap-3">
+        <label className="relative block max-w-xl">
+          <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة...", "Search by report name, source, branch, project, tax...")}
+            className="h-10 w-full rounded-full border border-border bg-card px-4 pe-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/10"
+          />
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          <FilterChip active={category === "all"} onClick={() => setCategory("all")} count={catalog.length}>
+            <Filter className="h-4 w-4" strokeWidth={1.75} />
+            {t("كل التقارير", "All reports")}
+          </FilterChip>
+          {categories.map((item) => {
+            const Icon = item.icon;
+            const itemCount = catalog.filter((report) => report.category === item.id).length;
+            return (
+              <FilterChip key={item.id} active={category === item.id} onClick={() => setCategory(item.id)} count={itemCount}>
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+                {language === "en" ? item.englishTitle || item.title : item.title}
+              </FilterChip>
+            );
+          })}
+        </div>
+      </div>
 
-            <section className="space-y-4">
-              <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-                <label className="relative block">
-                  <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t("ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة...", "Search by report name, source, branch, project, tax...")}
-                    className="h-11 w-full rounded-lg border border-border bg-white px-4 pe-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/10"
-                  />
-                </label>
-                <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground/80">
-                  <span className="font-semibold text-foreground">{profile.standardLabel}</span>
-                  <span className="mx-2 text-muted-foreground">|</span>
-                  <span>{profile.taxSystem}</span>
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
-              ) : (
-                <ReportCards reports={filteredReports} />
-              )}
+      {loading ? (
+        <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
+      ) : sections.length === 0 ? (
+        <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />
+      ) : (
+        <div className="space-y-8">
+          {sections.map((group) => (
+            <section key={group.category.id} className="space-y-3">
+              <span className="ledger-eyebrow block">
+                {language === "en" ? group.category.englishTitle || group.category.title : group.category.title}
+              </span>
+              <ReportCards reports={group.reports} />
             </section>
-          </div>
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  count,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  count: number;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-card text-content-secondary hover:border-border-strong hover:text-foreground"
+      }`}
+    >
+      {children}
+      <span className={`font-display text-xs tabular-nums ${active ? "text-background/70" : "text-muted-foreground"}`}>{count}</span>
+    </button>
   );
 }
 
@@ -826,10 +979,10 @@ export function Reports() {
  * report itself (numbers/equation live there), not to a preview pane
  * (2026-08-19 simplification wave).
  */
-const CORE_STATEMENTS: Array<{ id: string; icon: ComponentType<{ className?: string }> }> = [
+const CORE_STATEMENTS: Array<{ id: string; icon: ReportIcon }> = [
   { id: "income-statement", icon: TrendingUp },
   { id: "balance-sheet", icon: Scale },
-  { id: "cash-flow", icon: Landmark },
+  { id: "cash-flow", icon: Waves },
 ];
 
 function CoreStatementsBlock({ catalog }: { catalog: ReportDefinition[] }) {
@@ -837,29 +990,29 @@ function CoreStatementsBlock({ catalog }: { catalog: ReportDefinition[] }) {
   const core = CORE_STATEMENTS.map(({ id, icon }) => ({ def: catalog.find((r) => r.id === id), icon })).filter((x) => x.def);
   if (core.length === 0) return null;
   return (
-    <div className="rounded-xl border border-primary/25 bg-primary/[0.03] p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Landmark className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-bold text-foreground">{t("القوائم المالية الأساسية", "Core financial statements")}</h2>
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Landmark className="h-4 w-4 text-content-secondary" strokeWidth={1.75} />
+        <h2 className="ledger-eyebrow">{t("القوائم المالية الأساسية", "Core financial statements")}</h2>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {core.map(({ def, icon: Icon }) => (
           <Link
             key={def!.id}
             to={`/app/reports/${def!.id}`}
-            className="group flex items-center gap-3 rounded-lg border border-border bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
+            className="ledger-hoverable group flex items-start gap-3 rounded-lg border border-border-strong bg-card p-4 transition"
           >
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/5 text-primary">
-              <Icon className="h-5 w-5" />
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info-subtle">
+              <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
-              <div className="font-semibold text-foreground group-hover:text-primary">{language === "en" ? def!.englishTitle || def!.title : def!.title}</div>
-              <p className="mt-0.5 truncate text-xs text-foreground/60">{t(def!.description, EN_DESCRIPTIONS[def!.id] || def!.description)}</p>
+              <div className="text-sm font-semibold text-foreground">{language === "en" ? def!.englishTitle || def!.title : def!.title}</div>
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-content-secondary">{t(def!.description, EN_DESCRIPTIONS[def!.id] || def!.description)}</p>
             </div>
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -868,31 +1021,32 @@ function ReportCards({ reports }: { reports: ReportDefinition[] }) {
   if (reports.length === 0) return <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {reports.map((report) => {
-        const category = categories.find((item) => item.id === report.category)!;
-        const Icon = category.icon;
+        const Icon = iconFor(report);
         return (
           <Link
             key={report.id}
             to={`/app/reports/${report.id}`}
-            className="group rounded-lg border border-border bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
+            className="ledger-hoverable group flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition"
           >
             <div className="flex items-start gap-3">
-              <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${category.accent}`}>
-                <Icon className="h-5 w-5" />
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info-subtle">
+                <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-foreground group-hover:text-primary">{language === "en" ? report.englishTitle || report.title : report.title}</span>
-                  {report.isNew && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">{t("جديد", "New")}</span>}
+                  <span className="text-sm font-semibold text-foreground">{language === "en" ? report.englishTitle || report.title : report.title}</span>
+                  {report.isNew && (
+                    <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold text-background">{t("جديد", "New")}</span>
+                  )}
                 </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-5 text-foreground/70">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <StatusBadge status={report.status} />
-                  {report.formats.map((format) => <span key={format} className="rounded border border-border bg-white px-2 py-0.5 text-[11px] text-muted-foreground">{format}</span>)}
-                </div>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-content-secondary">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
               </div>
+            </div>
+            <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
+              <StatusBadge status={report.status} />
+              <span className="font-code truncate">{report.formats.join(" · ")}</span>
             </div>
           </Link>
         );
@@ -901,31 +1055,24 @@ function ReportCards({ reports }: { reports: ReportDefinition[] }) {
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone: "good" | "warn" | "bad" | "info" }) {
-  const colors =
-    tone === "good"
-      ? "border-emerald-200 bg-emerald-50"
-      : tone === "bad"
-        ? "border-red-200 bg-red-50"
-        : tone === "warn"
-          ? "border-amber-200 bg-amber-50"
-          : "border-blue-100 bg-blue-50";
-  return (
-    <div className={`rounded-lg border px-4 py-3 ${colors}`}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: ReportStatus }) {
   const { t } = useLanguage();
   const meta = statusMeta(t)[status];
-  return <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${meta.className}`}>{meta.label}</span>;
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap ${meta.className}`} title={meta.label}>
+      <span className={`ledger-dot${status === "ready" ? " hollow" : ""}`} />
+      {meta.short}
+    </span>
+  );
 }
 
 function Empty({ text }: { text: string }) {
-  return <div className="py-10 text-center text-sm text-muted-foreground"><BarChart3 className="mx-auto mb-3 h-9 w-9 text-muted-foreground/60" />{text}</div>;
+  return (
+    <div className="rounded-lg border border-border bg-card py-12 text-center text-sm text-content-secondary">
+      <BarChart3 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" strokeWidth={1.75} />
+      {text}
+    </div>
+  );
 }
 
 function downloadCsv(csv: string, filename: string) {

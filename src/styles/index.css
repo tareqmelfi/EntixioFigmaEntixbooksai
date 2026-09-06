@@ -2,6 +2,7 @@
 @import './tailwind.css';
 @import './theme.css';
 @import './print-documents.css';
+@import './ledger.css';
 
 :root {
   /* Ledger design system (2026-09) · one family across AR/EN so mixed lines share rhythm.

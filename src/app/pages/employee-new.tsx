@@ -198,7 +198,7 @@ export function EmployeeNew() {
       </div>
 
       <form onSubmit={createEmployee} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -226,7 +226,7 @@ export function EmployeeNew() {
                 />
               </div>
             </div>
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">{countryComplianceHint(t, form.country)}</div>
+            <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info">{countryComplianceHint(t, form.country)}</div>
           </CardContent>
         </Card>
 
@@ -318,10 +318,10 @@ export function EmployeeNew() {
 
 function PreviewMetric({ label, value, tone }: { label: string; value: string; tone: "green" | "red" | "blue" | "amber" }) {
   const toneClass =
-    tone === "green" ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : tone === "red" ? "border-red-200 bg-red-50 text-red-700"
-    : tone === "amber" ? "border-amber-200 bg-amber-50 text-amber-700"
-    : "border-blue-200 bg-blue-50 text-blue-700";
+    tone === "green" ? "border-success-border bg-success-subtle text-success"
+    : tone === "red" ? "border-danger-border bg-danger-subtle text-danger"
+    : tone === "amber" ? "border-warning-border bg-warning-subtle text-warning"
+    : "border-info-border bg-info-subtle text-info";
   return (
     <div className={`rounded-md border px-3 py-2 ${toneClass}`}>
       <div className="text-[11px]">{label}</div>

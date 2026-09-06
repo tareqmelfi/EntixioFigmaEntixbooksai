@@ -56,12 +56,12 @@ const STATUS_MAP: Record<string, { ar: string; en: string }> = {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    PAID: "bg-green-100 text-green-800",
-    PARTIAL: "bg-amber-100 text-amber-800",
+    PAID: "bg-success-subtle text-success",
+    PARTIAL: "bg-warning-subtle text-warning",
     SENT: "bg-primary/5 text-primary",
-    OVERDUE: "bg-red-100 text-red-800",
+    OVERDUE: "bg-danger-subtle text-danger",
     DRAFT: "bg-muted/50 text-muted-foreground",
-    CANCELLED: "bg-gray-100 text-gray-600",
+    CANCELLED: "bg-surface-hover text-muted-foreground",
   };
   return map[status] || "bg-muted/50 text-muted-foreground";
 };
@@ -186,7 +186,7 @@ export function PortalHome() {
       <div className="min-h-screen bg-muted flex items-center justify-center p-4" dir="rtl">
         <Card className="border-border w-full max-w-lg">
           <CardContent className="p-6 text-center">
-            <AlertCircle className="h-10 w-10 mx-auto text-amber-600" />
+            <AlertCircle className="h-10 w-10 mx-auto text-warning" />
             <h2 className="mt-3 text-lg font-semibold text-foreground">{t("تعذر فتح بوابة العميل", "Unable to open the customer portal")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
           </CardContent>
@@ -197,13 +197,13 @@ export function PortalHome() {
 
   return (
     <div className="min-h-screen bg-muted" dir="rtl">
-      <header className="bg-white border-b border-border px-6 py-3">
+      <header className="bg-card border-b border-border px-6 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <EntixWordmark size={26} />
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-foreground text-white text-xs" style={{ fontWeight: 600 }}>
+                <AvatarFallback className="bg-foreground text-primary-foreground text-xs" style={{ fontWeight: 600 }}>
                   {(profile?.contact?.displayName || t("عميل", "Customer")).slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -212,17 +212,17 @@ export function PortalHome() {
                 <div className="text-[10px] text-muted-foreground font-english">{profile?.contact?.email || "—"}</div>
               </div>
             </div>
-            <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-100 transition-colors">
+            <button className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-subtle transition-colors">
               <LogOut className="h-3.5 w-3.5" /> {t("خروج", "Sign out")}
             </button>
           </div>
         </div>
       </header>
 
-      <div className="bg-white border-b border-border px-6 py-2">
+      <div className="bg-card border-b border-border px-6 py-2">
         <div className="max-w-5xl mx-auto flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{t("بوابة:", "Portal:")}</span>
-          <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-white" style={{ fontWeight: 600 }}>
+          <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground" style={{ fontWeight: 600 }}>
             <Building2 className="h-3.5 w-3.5" /> {profile?.org?.name || "ENTIX"}
           </button>
           <button className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors" style={{ fontWeight: 600 }}>
@@ -231,7 +231,7 @@ export function PortalHome() {
         </div>
       </div>
 
-      <div className="bg-white border-b border-border px-6">
+      <div className="bg-card border-b border-border px-6">
         <div className="max-w-5xl mx-auto flex gap-1">
           {([
             { key: "home" as PortalTab, label: t("الرئيسية", "Home") },
@@ -261,9 +261,9 @@ export function PortalHome() {
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <Card className="border-border"><CardContent className="pt-4 pb-3 px-4 text-center"><div className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalInvoices}</div><p className="text-xs text-muted-foreground mt-0.5">{t("إجمالي الفواتير", "Total invoices")}</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-green-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-green-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-amber-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-amber-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-red-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-red-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-success" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-success font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-warning" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-warning font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-danger" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-danger font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
             </div>
           </>
         )}
@@ -297,7 +297,7 @@ export function PortalHome() {
                     <button
                       onClick={() => handlePayNow(viewingInvoice)}
                       disabled={payBusyFor === viewingInvoice.id}
-                      className="rounded-lg bg-green-500 px-5 py-2.5 text-sm text-white hover:bg-green-600 transition-colors disabled:opacity-60"
+                      className="rounded-lg bg-success px-5 py-2.5 text-sm text-primary-foreground hover:bg-success transition-colors disabled:opacity-60"
                       style={{ fontWeight: 600 }}
                     >
                       <CreditCard className="h-4 w-4 inline-block me-1.5" />
@@ -335,7 +335,7 @@ export function PortalHome() {
                       <td className="py-3 pe-3 text-sm font-english text-muted-foreground">{inv.date}</td>
                       <td className="py-3 pe-3 text-sm font-english text-muted-foreground">{inv.dueDate || "—"}</td>
                       <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{currency} {inv.total.toLocaleString(displayLocale())}</span></td>
-                      <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-amber-700" style={{ fontWeight: 600 }}>{currency} {inv.remaining.toLocaleString(displayLocale())}</span></td>
+                      <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-warning" style={{ fontWeight: 600 }}>{currency} {inv.remaining.toLocaleString(displayLocale())}</span></td>
                       <td className="py-3 pe-3"><span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] ${statusBadge(inv.status)}`} style={{ fontWeight: 600 }}>{statusLabel(inv.status)}</span></td>
                       <td className="py-3"><Eye className="h-4 w-4 text-muted-foreground" /></td>
                     </tr>

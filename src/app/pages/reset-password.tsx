@@ -59,7 +59,7 @@ export function ResetPassword() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 sm:px-8 bg-white"
+      className="min-h-screen flex items-center justify-center px-4 sm:px-8 bg-card"
       dir={isArabic ? "rtl" : "ltr"}
       style={{
         fontFamily: isArabic ? "var(--entix-font-ar)" : "var(--entix-font-en)",
@@ -85,8 +85,8 @@ export function ResetPassword() {
         </div>
 
         {done ? (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
-            <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
+          <div className="bg-success-subtle border border-success-border rounded-2xl p-6 text-center">
+            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
             <h1 className="text-foreground mb-2" style={{ fontSize: "22px", fontWeight: 700 }}>
               {t("تم بنجاح", "Password updated")}
             </h1>
@@ -95,8 +95,8 @@ export function ResetPassword() {
             </p>
           </div>
         ) : !token ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
-            <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto mb-3" />
+          <div className="bg-warning-subtle border border-warning-border rounded-2xl p-6">
+            <AlertTriangle className="w-10 h-10 text-warning mx-auto mb-3" />
             <h1 className="text-foreground mb-2 text-center" style={{ fontSize: "20px", fontWeight: 700 }}>
               {t("رابط غير صالح", "Invalid link")}
             </h1>
@@ -122,7 +122,7 @@ export function ResetPassword() {
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6"
+                className="bg-danger-subtle border border-danger-border text-danger px-4 py-3 rounded-xl mb-6"
                 style={{ fontSize: "14px" }}
               >
                 {error}
@@ -141,7 +141,7 @@ export function ResetPassword() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     minLength={8}
-                    className={`w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all ${isArabic ? "pe-12" : "ps-12"}`}
+                    className={`w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-card focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all ${isArabic ? "pe-12" : "ps-12"}`}
                     style={{
                       fontSize: "14px",
                       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -174,7 +174,7 @@ export function ResetPassword() {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-muted/40 focus:bg-card focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all"
                   style={{
                     fontSize: "14px",
                     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -188,12 +188,12 @@ export function ResetPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-white py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25"
+                className="w-full bg-primary hover:bg-primary/80 disabled:opacity-60 text-primary-foreground py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-primary/25"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-card/30 border-t-white rounded-full animate-spin" />
                     {t("جارٍ الحفظ...", "Saving...")}
                   </span>
                 ) : (

@@ -54,7 +54,7 @@ export function WarehouseNew() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -65,8 +65,8 @@ export function WarehouseNew() {
             <div className="space-y-2">
               <Label>{t("النوع", "Kind")}</Label>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setForm({ ...form, isPrimary: false })} className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${!form.isPrimary ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>{t("فرع تخزين", "Storage branch")}</button>
-                <button type="button" onClick={() => setForm({ ...form, isPrimary: true })} className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.isPrimary ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>{t("مستودع رئيسي", "Primary warehouse")}</button>
+                <button type="button" onClick={() => setForm({ ...form, isPrimary: false })} className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${!form.isPrimary ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>{t("فرع تخزين", "Storage branch")}</button>
+                <button type="button" onClick={() => setForm({ ...form, isPrimary: true })} className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.isPrimary ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>{t("مستودع رئيسي", "Primary warehouse")}</button>
               </div>
             </div>
           </CardContent>

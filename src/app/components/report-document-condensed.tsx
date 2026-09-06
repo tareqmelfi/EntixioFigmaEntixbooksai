@@ -43,7 +43,7 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { v
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
       <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} dir={lang === "ar" ? "rtl" : "ltr"}>{main}</span>
-      {both && alt ? <span className={`${altCls} text-slate-500`} dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</span> : null}
+      {both && alt ? <span className={`${altCls} text-muted-foreground`} dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</span> : null}
     </span>
   );
 }
@@ -80,14 +80,14 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const generated = new Date(report.generatedAt).toLocaleString(displayLocale(isEn ? "en-GB" : "ar-SA-u-nu-latn"), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <article className="entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none" dir={dir} style={style}>
+    <article className="entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none" dir={dir} style={style}>
       {/* ── header ── */}
       <header className="flex items-start justify-between gap-6 px-8 pt-7">
         <div className="min-w-0 text-start">
-          <div className="text-[17px] font-extrabold leading-tight text-slate-900" dir="auto">{nameAr}</div>
-          {nameEn ? <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500" dir="ltr">{nameEn}</div> : null}
-          {taxLine ? <div className="mt-1 text-[10px] text-slate-500"><NumericText>{taxLine}</NumericText></div> : null}
-          {companyLine ? <div className="text-[10px] text-slate-500" dir="auto">{companyLine}</div> : null}
+          <div className="text-[17px] font-extrabold leading-tight text-foreground" dir="auto">{nameAr}</div>
+          {nameEn ? <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground" dir="ltr">{nameEn}</div> : null}
+          {taxLine ? <div className="mt-1 text-[10px] text-muted-foreground"><NumericText>{taxLine}</NumericText></div> : null}
+          {companyLine ? <div className="text-[10px] text-muted-foreground" dir="auto">{companyLine}</div> : null}
         </div>
         {logo ? <img src={logo} alt="" className="max-h-12 max-w-[150px] shrink-0 object-contain" /> : null}
       </header>
@@ -96,19 +96,19 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
       <div className="px-8 pb-2 pt-6 text-center">
         {bilingual ? (
           <>
-            <h1 className="text-[17px] font-extrabold leading-tight text-slate-900" dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
+            <h1 className="text-[17px] font-extrabold leading-tight text-foreground" dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
             <div className="mt-0.5 text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--report-primary)" }} dir={isEn ? "rtl" : "ltr"}>{isEn ? report.title : report.englishTitle}</div>
           </>
         ) : (
           <h1 className="text-[17px] font-extrabold leading-tight" style={{ color: "var(--report-primary)" }} dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
         )}
-        <div className="mt-1 text-[10.5px] text-slate-500"><NumericText>{periodLine}</NumericText> · {currencyLine}</div>
+        <div className="mt-1 text-[10.5px] text-muted-foreground"><NumericText>{periodLine}</NumericText> · {currencyLine}</div>
       </div>
 
       {/* ── body ── */}
       <main className="flex-1 space-y-5 px-8 pb-6 pt-3" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
-          <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-[10.5px] leading-5 text-amber-800">{report.notices.join(" · ")}</div>
+          <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.join(" · ")}</div>
         ) : null}
         {report.sections.map((section) => {
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
@@ -116,13 +116,13 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
             <section key={section.id} className="document-keep-together break-inside-avoid">
               <div className="mb-1.5 text-center">
                 <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />
-                {section.description ? <div className="mt-0.5 text-[10px] text-slate-500"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
+                {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
               <table className="document-table w-full border-collapse">
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (
-                      <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-slate-600" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
+                      <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
                         <Bi value={column.label} lang={lang} size="sm" both={bilingual} />
                       </th>
                     ))}
@@ -133,18 +133,18 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                     const total = isTotalRow(row);
                     const depth = Math.min(Math.max(row.depth ?? 0, 0), 5);
                     return (
-                      <tr key={row.id} className={`${i % 2 === 1 && !total ? "bg-[#F5F7FB]" : ""}${onRowClick ? " cursor-pointer hover:bg-slate-100/70" : ""}`} onClick={() => onRowClick?.(row)} style={{ borderBottom: "1px solid #EEF1F6" }}>
+                      <tr key={row.id} className={`${i % 2 === 1 && !total ? "bg-[#F5F7FB]" : ""}${onRowClick ? " cursor-pointer hover:bg-surface-hover/70" : ""}`} onClick={() => onRowClick?.(row)} style={{ borderBottom: "1px solid #EEF1F6" }}>
                         {columns.map((column) => {
                           const v = row.values[column.key];
                           const money = column.kind === "money" || moneyKeys.has(column.key);
                           const align = column.align === "end" ? "end" : column.align === "center" ? "center" : "start";
                           return (
                             <td key={`${row.id}-${column.key}`}
-                              className={`${total ? "border-t border-slate-400 font-bold text-slate-900" : "text-slate-800"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}`}
+                              className={`${total ? "border-t border-border-strong font-bold text-foreground" : "text-foreground"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}`}
                               style={{ padding: "var(--report-cell-padding)", textAlign: align, ...(column.key === "label" && depth > 0 ? { paddingInlineStart: `${depth * 16 + 10}px`, color: "#475569" } : {}) }}
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>
-                              {v === null || v === undefined || v === "" ? <span className="text-slate-400">—</span>
-                                : money ? <NumericText className={Number(v) < 0 ? "font-semibold text-red-700" : total ? "font-bold" : "font-medium"}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
+                              {v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span>
+                                : money ? <NumericText className={Number(v) < 0 ? "font-semibold text-danger" : total ? "font-bold" : "font-medium"}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
                                 : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString(displayLocale("en-US"))}</NumericText>
                                 : column.key === "label" ? <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />
                                 : <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />}
@@ -154,7 +154,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={columns.length} className="px-4 py-4 text-center text-[11px] text-slate-500">{t("لا توجد بيانات في هذا القسم خلال الفترة المحددة.", "No data in this section for the selected period.")}</td></tr>
+                    <tr><td colSpan={columns.length} className="px-4 py-4 text-center text-[11px] text-muted-foreground">{t("لا توجد بيانات في هذا القسم خلال الفترة المحددة.", "No data in this section for the selected period.")}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -162,14 +162,14 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
           );
         })}
         {resolved.preparedBy ? (
-          <div className="pt-2 text-[10.5px] text-slate-600"><span className="font-semibold">{t("أُعدّ بواسطة", "Prepared by")}:</span> <span dir="auto">{resolved.preparedBy}</span></div>
+          <div className="pt-2 text-[10.5px] text-muted-foreground"><span className="font-semibold">{t("أُعدّ بواسطة", "Prepared by")}:</span> <span dir="auto">{resolved.preparedBy}</span></div>
         ) : null}
       </main>
 
       {/* ── footer · pinned to the page bottom (print: fixed on every page) ── */}
       {resolved.showFooter && (
-        <footer className="report-condensed-footer mt-auto border-t border-slate-200 px-8 py-3 text-[9.5px] leading-4 text-slate-500">
-          {resolved.footerNote ? <div className="mb-1 text-slate-500" dir="auto">{resolved.footerNote}</div> : null}
+        <footer className="report-condensed-footer mt-auto border-t border-border px-8 py-3 text-[9.5px] leading-4 text-muted-foreground">
+          {resolved.footerNote ? <div className="mb-1 text-muted-foreground" dir="auto">{resolved.footerNote}</div> : null}
           <div className="flex items-center justify-between gap-4">
             <span className="min-w-0 truncate">© {year} <span dir="auto">{report.org.legalName || report.org.name}</span> — {t("جميع الحقوق محفوظة", "All rights reserved")}{report.org.website ? ` · ${report.org.website}` : ""}</span>
             <span className="shrink-0"><NumericText>{report.id}</NumericText> · {t("أُنشئ", "Generated")} <NumericText>{generated}</NumericText></span>

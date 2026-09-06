@@ -33,7 +33,7 @@ export function Branches() {
         <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/branches/new")}><Plus className="me-2 h-4 w-4" />{t("فرع جديد", "New Branch")}</Button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("قائمة الفروع", "Branches list")} · {items.length}</CardTitle></CardHeader>

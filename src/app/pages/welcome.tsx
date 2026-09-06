@@ -97,7 +97,7 @@ export function Welcome() {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder={t("مثال: شركة النخبة للتجارة", "e.g. Acme Trading LLC")}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-muted/40 focus:bg-white focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-muted/40 focus:bg-card focus:border-primary focus:ring-2 focus:ring-ring/10 outline-none transition-all text-sm"
                 autoFocus
               />
             </div>

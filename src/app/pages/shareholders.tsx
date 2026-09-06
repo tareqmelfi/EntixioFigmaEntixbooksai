@@ -70,11 +70,11 @@ export function Shareholders() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("أسهم الخزينة", "Treasury shares")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{num(summary?.treasury)}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{num(summary?.treasury)}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("الأسهم القائمة", "Outstanding shares")}</div>
-          <div className="font-english text-emerald-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{num(summary?.outstanding)}</div>
+          <div className="font-english text-success" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{num(summary?.outstanding)}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{isJsc ? t("المساهمون", "Shareholders") : t("الملاك", "Owners")}</div>
@@ -83,7 +83,7 @@ export function Shareholders() {
       </div>
       )}
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("السجل", "Register")} · {items.length}</CardTitle></CardHeader>

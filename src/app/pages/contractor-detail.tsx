@@ -23,9 +23,9 @@ const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), 
 const hrs = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 1 });
 
 const KIND_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
-  FREELANCER: { ar: "فريلانسر", en: "Freelancer", bg: "bg-blue-100 text-blue-700" },
-  CONTRACTOR: { ar: "مقاول", en: "Contractor", bg: "bg-amber-100 text-amber-700" },
-  AGENCY: { ar: "وكالة", en: "Agency", bg: "bg-violet-100 text-violet-700" },
+  FREELANCER: { ar: "فريلانسر", en: "Freelancer", bg: "bg-info-subtle text-info" },
+  CONTRACTOR: { ar: "مقاول", en: "Contractor", bg: "bg-warning-subtle text-warning" },
+  AGENCY: { ar: "وكالة", en: "Agency", bg: "bg-info-subtle text-info" },
 };
 
 const EMPTY_FORM = {
@@ -133,7 +133,7 @@ export function ContractorDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -145,7 +145,7 @@ export function ContractorDetail() {
                   <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CTR-001" dir="ltr" className="font-english" />
                   {isNew && (
                     <button type="button" onClick={async () => { try { const { code } = await api.contractors.nextCode(); setForm((f) => ({ ...f, code })); } catch { /* keep */ } }}
-                      title={t("توليد تلقائي", "Auto-generate")} className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-blue-50">
+                      title={t("توليد تلقائي", "Auto-generate")} className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-info-subtle">
                       <Sparkles className="h-4 w-4" />
                     </button>
                   )}
@@ -159,7 +159,7 @@ export function ContractorDetail() {
               <div className="flex gap-2 flex-wrap">
                 {(Object.keys(KIND_LABELS) as Array<keyof typeof KIND_LABELS>).map((k) => (
                   <button key={k} type="button" onClick={() => setForm({ ...form, kind: k as typeof form.kind })}
-                    className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.kind === k ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}>
+                    className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.kind === k ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}>
                     {t(KIND_LABELS[k].ar, KIND_LABELS[k].en)}
                   </button>
                 ))}
@@ -189,7 +189,7 @@ export function ContractorDetail() {
               <div className="flex gap-1.5">
                 {[1, 2, 3, 4, 5].map((r) => (
                   <button key={r} type="button" onClick={() => setForm({ ...form, rating: form.rating === String(r) ? "" : String(r) })}
-                    className={`rounded-md p-2 transition-colors ${Number(form.rating) >= r ? "text-amber-500" : "text-muted-foreground/30 hover:text-muted-foreground/60"}`}>
+                    className={`rounded-md p-2 transition-colors ${Number(form.rating) >= r ? "text-warning" : "text-muted-foreground/30 hover:text-muted-foreground/60"}`}>
                     <Star className={`h-5 w-5 ${Number(form.rating) >= r ? "fill-current" : ""}`} />
                   </button>
                 ))}
@@ -224,22 +224,22 @@ export function ContractorDetail() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("ساعات العمل", "Hours worked")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.25rem" }} dir="ltr">{hrs(stats?.totalHours)}</div>
           <div className="text-[10px] text-muted-foreground">{t("قابلة للفوترة:", "billable:")} <span className="font-english">{hrs(stats?.billableHours)}</span></div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("مستحقاته (مكتسبة)", "Earned")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.25rem" }} dir="ltr">{money(stats?.totalEarned)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("المدفوع", "Paid")}</div>
-          <div className="font-english text-emerald-600 mt-1" style={{ fontWeight: 700, fontSize: "1.25rem" }} dir="ltr">{money(stats?.totalPaid)}</div>
+          <div className="font-english text-success mt-1" style={{ fontWeight: 700, fontSize: "1.25rem" }} dir="ltr">{money(stats?.totalPaid)}</div>
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div className="text-xs text-amber-800">{t("المتبقي له", "Outstanding")}</div>
-          <div className="font-english text-amber-700 mt-1" style={{ fontWeight: 700, fontSize: "1.25rem" }} dir="ltr">{money(stats?.outstanding)}</div>
+        <div className="rounded-lg border border-warning-border bg-warning-subtle p-3">
+          <div className="text-xs text-warning">{t("المتبقي له", "Outstanding")}</div>
+          <div className="font-english text-warning mt-1" style={{ fontWeight: 700, fontSize: "1.25rem" }} dir="ltr">{money(stats?.outstanding)}</div>
         </div>
       </div>
 
@@ -268,7 +268,7 @@ export function ContractorDetail() {
                   <span style={{ fontWeight: 700 }}>{v != null ? row.fmt(v) : "—"}</span>
                   <span className="text-xs text-muted-foreground">/ {t("الأقران", "peers")} {p != null ? row.fmt(p) : "—"}</span>
                   {diff != null && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${good ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${good ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                       {diff > 0 ? "+" : ""}{displayDigits(diff.toFixed(0))}%
                     </span>
                   )}
@@ -324,13 +324,13 @@ export function ContractorDetail() {
                     <tr key={l.id} className="border-b border-border/50 hover:bg-primary/5">
                       <td className="py-2.5 px-4 font-english text-xs text-muted-foreground" dir="ltr">{l.date?.slice(0, 10)}</td>
                       <td className="py-2.5 px-4 text-xs text-primary">{l.project?.name}</td>
-                      <td className="py-2.5 px-4 text-xs text-foreground/80">{l.description || "—"} {!l.billable && <span className="text-[10px] text-gray-400">({t("غير قابل للفوترة", "non-billable")})</span>}</td>
+                      <td className="py-2.5 px-4 text-xs text-foreground/80">{l.description || "—"} {!l.billable && <span className="text-[10px] text-muted-foreground">({t("غير قابل للفوترة", "non-billable")})</span>}</td>
                       <td className="py-2.5 px-4 font-english" dir="ltr">{hrs(l.hours)}</td>
                       <td className="py-2.5 px-4 font-english" style={{ fontWeight: 600 }} dir="ltr">{money(l.amount)}</td>
                       <td className="py-2.5 px-2">
                         {pendingLogDelete === l.id
                           ? <InlineConfirm onConfirm={() => handleDeleteLog(l.id)} onCancel={() => setPendingLogDelete(null)} />
-                          : <button onClick={() => setPendingLogDelete(l.id)} className="rounded-md p-1 text-red-500 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>}
+                          : <button onClick={() => setPendingLogDelete(l.id)} className="rounded-md p-1 text-danger hover:bg-danger-subtle"><Trash2 className="h-3.5 w-3.5" /></button>}
                       </td>
                     </tr>
                   ))}
@@ -362,12 +362,12 @@ export function ContractorDetail() {
                     <tr key={p.id} className="border-b border-border/50 hover:bg-primary/5">
                       <td className="py-2.5 px-4 font-english text-xs text-muted-foreground" dir="ltr">{p.date?.slice(0, 10)}</td>
                       <td className="py-2.5 px-4 text-xs text-foreground/80">{p.project?.name || t("دفعة عامة", "General payment")}</td>
-                      <td className="py-2.5 px-4 font-english text-emerald-700" style={{ fontWeight: 600 }} dir="ltr">{money(p.amount)}</td>
-                      <td className="py-2.5 px-4 text-xs">{p.journalEntryId ? <span className="text-emerald-700">{t("مقيّد ✓", "posted ✓")}</span> : <span className="text-muted-foreground/50">—</span>}</td>
+                      <td className="py-2.5 px-4 font-english text-success" style={{ fontWeight: 600 }} dir="ltr">{money(p.amount)}</td>
+                      <td className="py-2.5 px-4 text-xs">{p.journalEntryId ? <span className="text-success">{t("مقيّد ✓", "posted ✓")}</span> : <span className="text-muted-foreground/50">—</span>}</td>
                       <td className="py-2.5 px-2">
                         {pendingPayDelete === p.id
                           ? <InlineConfirm onConfirm={() => handleDeletePayment(p.id)} onCancel={() => setPendingPayDelete(null)} />
-                          : <button onClick={() => setPendingPayDelete(p.id)} className="rounded-md p-1 text-red-500 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>}
+                          : <button onClick={() => setPendingPayDelete(p.id)} className="rounded-md p-1 text-danger hover:bg-danger-subtle"><Trash2 className="h-3.5 w-3.5" /></button>}
                       </td>
                     </tr>
                   ))}
@@ -383,11 +383,11 @@ export function ContractorDetail() {
         <Button type="button" variant="outline" onClick={handleDeactivate} className="border-border">
           {person.isActive ? t("إيقاف (يحتفظ بسجله)", "Deactivate (keeps history)") : t("إعادة تفعيل", "Reactivate")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("حذف المقاول نهائياً؟ (يُسمح فقط بلا ساعات ولا مدفوعات)", "Delete permanently? (only with no hours and no payments)")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{t("حذف المقاول نهائياً؟ (يُسمح فقط بلا ساعات ولا مدفوعات)", "Delete permanently? (only with no hours and no payments)")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -408,13 +408,13 @@ export function ContractorDetail() {
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="font-english text-xs text-primary" dir="ltr">{person.code}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${(KIND_LABELS[person.kind] || KIND_LABELS.FREELANCER).bg}`}>{t((KIND_LABELS[person.kind] || KIND_LABELS.FREELANCER).ar, (KIND_LABELS[person.kind] || KIND_LABELS.FREELANCER).en)}</span>
-            {person.rating != null && <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-english"><Star className="h-3 w-3 fill-current" />{displayDigits(Number(person.rating).toFixed(1))}</span>}
+            {person.rating != null && <span className="inline-flex items-center gap-0.5 text-warning text-xs font-english"><Star className="h-3 w-3 fill-current" />{displayDigits(Number(person.rating).toFixed(1))}</span>}
             <span className="text-xs text-muted-foreground">{person.specialty || ""}</span>
           </div>
         )}
         {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><HardHat className="h-4 w-4" />{t("المقاول يختلف عن مورد الشركة: تعاقد مباشر وساعات ودفع فوري بدون دورة فواتير شراء", "A contractor differs from a company supplier: direct engagement, hours and instant payment without a bill cycle")}</p>}
       </div>
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
     </div>
   );

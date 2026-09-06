@@ -112,7 +112,7 @@ export function Notifications() {
         </div>
       </div>
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("آخر الإشعارات", "Latest notifications")}</CardTitle></CardHeader>
@@ -149,7 +149,7 @@ export function Notifications() {
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); setPendingDelete(n.id); }}
-                      className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                      className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"
                     ><Trash2 className="h-4 w-4" /></button>
                   )}
                 </div>

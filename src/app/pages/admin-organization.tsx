@@ -150,7 +150,7 @@ export function AdminOrganizationWorkspace() {
           <ArrowLeft className="h-3.5 w-3.5" />{t("رجوع للوحة الأدمن", "Back to admin")}
         </Link>
         <h1 className="text-foreground flex items-center gap-3" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-          {summary.logoUrl ? <img src={summary.logoUrl} alt="" className="h-12 w-12 rounded-xl border border-border bg-white object-contain" /> : <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#0B1B49]/10 text-[#0B1B49]"><Building2 className="h-6 w-6" /></span>}
+          {summary.logoUrl ? <img src={summary.logoUrl} alt="" className="h-12 w-12 rounded-xl border border-border bg-card object-contain" /> : <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#1A1E48]/10 text-[#1A1E48]"><Building2 className="h-6 w-6" /></span>}
           {summary.name}
           <OriginBadge via={summary.createdVia} size="sm" />
           {(summary as any).suspendedAt ? <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[11px] font-semibold text-warning">{t("موقوفة", "Suspended")}</span> : null}
@@ -183,7 +183,7 @@ export function AdminOrganizationWorkspace() {
               key={id}
               to={`?tab=${id}`}
               aria-current={active ? "page" : undefined}
-              className={`px-4 py-2 rounded-md text-sm transition ${active ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-2 rounded-md text-sm transition ${active ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               style={{ fontWeight: active ? 700 : 500 }}
             >
               {label}
@@ -274,7 +274,7 @@ export function AdminOrganizationWorkspace() {
                   <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الفترة", "Period")}</div><div className="mt-1"><SubscriptionProgress start={workspace.subscription.data.currentPeriodStart} end={workspace.subscription.data.currentPeriodEnd || workspace.subscription.data.trialEndsAt} status={workspace.subscription.data.status} lifetime={workspace.subscription.data.lifetime} sponsored={workspace.subscription.data.sponsored} /></div><div className="mt-1 text-[11px] text-muted-foreground font-english" dir="ltr">{fmtDate(workspace.subscription.data.currentPeriodStart)} → {workspace.subscription.data.currentPeriodEnd ? fmtDate(workspace.subscription.data.currentPeriodEnd) : "∞"}</div></div>
                   <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">Stripe</div><div className="text-foreground font-english text-xs" dir="ltr">{workspace.subscription.data.maskedStripeSubscriptionId || "—"}</div><div className="text-muted-foreground font-english text-[11px]" dir="ltr">{workspace.subscription.data.maskedStripeCustomerId || ""}</div></div>
                 </div>
-                {workspace.subscription.data.note ? <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-900">📝 {workspace.subscription.data.note}</div> : null}
+                {workspace.subscription.data.note ? <div className="rounded-lg border border-warning-border bg-warning-subtle/60 p-3 text-xs text-warning">📝 {workspace.subscription.data.note}</div> : null}
                 {!manageOpen ? (
                   <Button onClick={() => setManageOpen(true)}><CreditCard className="h-4 w-4 me-2" />{t("تغيير الاشتراك", "Change subscription")}</Button>
                 ) : (

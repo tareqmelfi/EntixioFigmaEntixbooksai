@@ -22,7 +22,7 @@ export function Features() {
       icon: FileText,
       title: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — under validation"),
       desc: t("تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.", "ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."),
-      color: "#0B1B49",
+      color: "#1A1E48",
       details: [
         t("حالة التكامل: قيد التحقق الفني والتنظيمي", "Integration status: under technical and regulatory validation"),
         t("توليد QR يحتوي بيانات الفاتورة الأساسية", "QR generation with core invoice data"),
@@ -36,7 +36,7 @@ export function Features() {
       icon: BarChart3,
       title: t("تقارير مالية متقدمة", "Advanced financial reports"),
       desc: t("لوحة تحكم شاملة مع تقارير تفصيلية ورسوم بيانية تفاعلية لمتابعة أداء أعمالك", "A comprehensive dashboard with detailed reports and interactive charts to track your business performance"),
-      color: "#1276E3",
+      color: "#5875DB",
       details: [
         t("تقرير الأرباح والخسائر التفصيلي", "Detailed profit & loss report"),
         t("الميزانية العمومية", "Balance sheet"),
@@ -50,7 +50,7 @@ export function Features() {
       icon: Shield,
       title: t("أمان وحماية متقدمة", "Advanced security"),
       desc: t("تشفير أثناء النقل وجلسات آمنة ونسخ احتياطي يومي لبياناتك المالية", "Encryption in transit, secure sessions, and daily backups for your financial data"),
-      color: "#059669",
+      color: "#4661C7",
       details: [
         t("تشفير الاتصال عبر TLS", "TLS connection encryption"),
         t("جلسات آمنة بكوكي HttpOnly مشفّرة", "Secure sessions with encrypted HttpOnly cookies"),
@@ -92,7 +92,7 @@ export function Features() {
       icon: Receipt,
       title: t("إدارة المصروفات والمشتريات", "Expense & purchase management"),
       desc: t("تتبع دقيق للمصروفات مع تصنيف تلقائي ومراكز تكلفة ومشاريع", "Precise expense tracking with automatic categorization, cost centers, and projects"),
-      color: "#EF4444",
+      color: "#9E3B2E",
       details: [
         t("تسجيل المصروفات بالكاميرا", "Capture expenses with the camera"),
         t("تصنيف تلقائي ذكي", "Smart automatic categorization"),
@@ -106,7 +106,7 @@ export function Features() {
       icon: Calculator,
       title: t("ضريبة القيمة المضافة", "Value-added tax"),
       desc: t("حساب تلقائي للضريبة مع تقارير جاهزة للتقديم لهيئة الزكاة والضريبة", "Automatic tax calculation with filing-ready reports"),
-      color: "#F59E0B",
+      color: "#B8862B",
       details: [
         t("حساب تلقائي لضريبة القيمة المضافة", "Automatic VAT calculation"),
         t("دعم نسب ضريبية متعددة", "Multiple tax-rate support"),
@@ -134,7 +134,7 @@ export function Features() {
       icon: Users,
       title: t("إدارة العملاء والموردين", "Customer & vendor management"),
       desc: t("قاعدة بيانات شاملة للعملاء والموردين مع تتبع المعاملات والأرصدة", "A comprehensive customer and vendor database with transaction and balance tracking"),
-      color: "#10B981",
+      color: "#4661C7",
       details: [
         t("ملفات تفصيلية للعملاء والموردين", "Detailed customer and vendor profiles"),
         t("تتبع الأرصدة والمديونيات", "Balance and receivables tracking"),
@@ -151,10 +151,10 @@ export function Features() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100"
+      className="bg-card rounded-2xl shadow-2xl p-8 border border-border"
     >
       {/* Invoice Header */}
-      <div className="flex items-start justify-between mb-8 pb-6 border-b border-gray-100">
+      <div className="flex items-start justify-between mb-8 pb-6 border-b border-border">
         <div>
           <div className="flex items-center mb-2">
             <EntixWordmark size={30} />
@@ -179,7 +179,7 @@ export function Features() {
       {/* Items table */}
       <div className="mb-6">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-surface-subtle">
             <tr>
               <th className="text-right p-3 text-foreground/80 text-sm font-semibold">{t("البند", "Item")}</th>
               <th className="text-center p-3 text-foreground/80 text-sm font-semibold">{t("الكمية", "Qty")}</th>
@@ -188,13 +188,13 @@ export function Features() {
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-gray-100">
+            <tr className="border-b border-border">
               <td className="p-3 text-foreground">{t("خدمات استشارية محاسبية", "Accounting consulting services")}</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">10</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">500.00</td>
               <td className="text-left p-3 text-foreground" dir="ltr">5,000.00</td>
             </tr>
-            <tr className="border-b border-gray-100">
+            <tr className="border-b border-border">
               <td className="p-3 text-foreground">{t("تدريب على الأنظمة المالية", "Financial systems training")}</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">5</td>
               <td className="text-center p-3 text-muted-foreground" dir="ltr">300.00</td>
@@ -215,7 +215,7 @@ export function Features() {
             <span className="text-muted-foreground">{t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
             <span className="text-foreground" dir="ltr">975.00 SR</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-gray-200">
+          <div className="flex justify-between pt-2 border-t border-border">
             <span className="text-foreground font-bold">{t("الإجمالي", "Total")}</span>
             <span className="text-foreground font-bold text-lg" dir="ltr">7,475.00 SR</span>
           </div>
@@ -223,9 +223,9 @@ export function Features() {
       </div>
 
       {/* QR Code */}
-      <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-6 border-t border-border">
         <div className="flex items-center gap-3">
-          <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+          <div className="w-20 h-20 bg-surface-hover rounded-lg flex items-center justify-center">
             <div className="grid grid-cols-4 gap-0.5">
               {Array.from({ length: 16 }).map((_, i) => (
                 <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-foreground' : 'bg-transparent'}`} />
@@ -238,13 +238,13 @@ export function Features() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+          <button className="p-2.5 bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors">
             <Download className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+          <button className="p-2.5 bg-surface-subtle hover:bg-surface-hover rounded-lg transition-colors">
             <Share2 className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button className="p-2.5 bg-primary hover:bg-primary/80 text-white rounded-lg transition-colors">
+          <button className="p-2.5 bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-colors">
             <Eye className="w-4 h-4" />
           </button>
         </div>
@@ -261,29 +261,29 @@ export function Features() {
     >
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: t("الإيرادات", "Revenue"), value: "245,000", change: "+12.5%", icon: TrendingUp, color: "#22C55E" },
-          { label: t("المصروفات", "Expenses"), value: "89,500", change: "-3.2%", icon: Receipt, color: "#EF4444" },
-          { label: t("صافي الربح", "Net profit"), value: "155,500", change: "+18.7%", icon: DollarSign, color: "#1276E3" },
+          { label: t("الإيرادات", "Revenue"), value: "245,000", change: "+12.5%", icon: TrendingUp, color: "#4661C7" },
+          { label: t("المصروفات", "Expenses"), value: "89,500", change: "-3.2%", icon: Receipt, color: "#9E3B2E" },
+          { label: t("صافي الربح", "Net profit"), value: "155,500", change: "+18.7%", icon: DollarSign, color: "#5875DB" },
         ].map((stat) => (
-          <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+          <div key={stat.label} className="bg-card/10 backdrop-blur-sm rounded-xl p-4 border border-card/20">
             <div className="flex items-center justify-between mb-2">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: stat.color + "20" }}>
                 <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
               </div>
-              <span className="text-white text-xs" style={{ color: stat.change.startsWith('+') ? '#22C55E' : '#EF4444' }}>
+              <span className="text-primary-foreground text-xs" style={{ color: stat.change.startsWith('+') ? '#4661C7' : '#9E3B2E' }}>
                 {stat.change}
               </span>
             </div>
-            <p className="text-white/60 text-xs mb-1">{stat.label}</p>
-            <p className="text-white text-xl font-bold" dir="ltr">{stat.value} SR</p>
+            <p className="text-primary-foreground/60 text-xs mb-1">{stat.label}</p>
+            <p className="text-primary-foreground text-xl font-bold" dir="ltr">{stat.value} SR</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
+      <div className="bg-card/10 backdrop-blur-sm rounded-xl p-5 border border-card/20">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-white font-semibold">{t("المبيعات الشهرية", "Monthly sales")}</h4>
-          <Calendar className="w-4 h-4 text-white/60" />
+          <h4 className="text-primary-foreground font-semibold">{t("المبيعات الشهرية", "Monthly sales")}</h4>
+          <Calendar className="w-4 h-4 text-primary-foreground/60" />
         </div>
         <div className="h-32 flex items-end justify-between gap-2">
           {[45, 60, 55, 70, 65, 80, 75, 90, 85, 95, 88, 100].map((height, i) => (
@@ -297,12 +297,12 @@ export function Features() {
   );
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "'Noto Sans Arabic', sans-serif" }}>
+    <div className="min-h-screen bg-card" dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif" }}>
       <SharedNavbar />
       <main>
 
       {/* Hero Section */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-white relative overflow-hidden">
+      <section className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-foreground via-foreground to-primary text-primary-foreground relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/20 rounded-full blur-3xl" />
@@ -313,24 +313,24 @@ export function Features() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-6">
+            <div className="inline-flex items-center gap-2 bg-card/10 backdrop-blur-sm border border-card/20 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-secondary" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{t("مميزات متقدمة لإدارة مالية احترافية", "Advanced features for professional financial management")}</span>
             </div>
-            <h1 className="text-white mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
+            <h1 className="text-primary-foreground mb-6" style={{ fontSize: "clamp(32px, 5vw, 54px)", fontWeight: 800, lineHeight: 1.2 }}>
               {t("كل ما تحتاجه لإدارة", "Everything you need to manage")}
               <br />
-              <span className="bg-gradient-to-l from-secondary to-sky-400 bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
+              <span className="bg-gradient-to-l from-secondary to-info bg-clip-text" style={{ WebkitTextFillColor: "transparent" }}>
                 {t("حساباتك بذكاء", "your books smarter")}
               </span>
             </h1>
-            <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8" style={{ lineHeight: 1.8 }}>
+            <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto mb-8" style={{ lineHeight: 1.8 }}>
               {t("اكتشف مجموعة شاملة من الأدوات المحاسبية المتقدمة المصممة خصيصاً لتبسيط عملك وزيادة إنتاجيتك وتحسين أدائك المالي", "Discover a comprehensive set of advanced accounting tools designed to simplify your work, boost productivity, and improve your financial performance")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 
                 onClick={() => navigate("/register")}
-                className="bg-white hover:bg-gray-50 text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
+                className="bg-card hover:bg-surface-subtle text-foreground px-8 py-3.5 rounded-xl transition-all hover:shadow-xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 {t("ابدأ شهرك المجاني", "Start your free month")}
@@ -338,7 +338,7 @@ export function Features() {
               </button>
               <button 
                 onClick={() => navigate("/pricing")}
-                className="border border-white/30 hover:border-white/50 hover:bg-white/10 text-white px-8 py-3.5 rounded-xl transition-all cursor-pointer"
+                className="border border-card/30 hover:border-card/50 hover:bg-card/10 text-primary-foreground px-8 py-3.5 rounded-xl transition-all cursor-pointer"
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
                 {t("شاهد الأسعار", "See pricing")}
@@ -349,7 +349,7 @@ export function Features() {
       </section>
 
       {/* Interactive Mockups Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-subtle">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
@@ -371,8 +371,8 @@ export function Features() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all cursor-pointer ${
                   activeTab === tab.id
-                    ? "bg-primary text-white shadow-lg shadow-primary/25"
-                    : "bg-white text-muted-foreground hover:bg-gray-50 border border-gray-200"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "bg-card text-muted-foreground hover:bg-surface-subtle border border-border"
                 }`}
                 style={{ fontSize: "15px", fontWeight: 500 }}
               >
@@ -391,7 +391,7 @@ export function Features() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-card">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 700 }}>
@@ -410,7 +410,7 @@ export function Features() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300 group"
+                className="bg-card rounded-2xl p-6 border border-border hover:border-border hover:shadow-xl transition-all duration-300 group"
               >
                 <div 
                   className="w-14 h-14 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"
@@ -427,7 +427,7 @@ export function Features() {
                 <ul className="space-y-2">
                   {feature.details.slice(0, 4).map((detail) => (
                     <li key={detail} className="flex items-start gap-2 text-muted-foreground" style={{ fontSize: "13px" }}>
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
                       <span>{detail}</span>
                     </li>
                   ))}
@@ -446,23 +446,23 @@ export function Features() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-white mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, lineHeight: 1.3 }}>
+            <h2 className="text-primary-foreground mb-6" style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 700, lineHeight: 1.3 }}>
               {t("جاهز لتجربة أفضل نظام محاسبي؟", "Ready to try a better accounting system?")}
             </h2>
-            <p className="text-white/80 text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
+            <p className="text-primary-foreground/80 text-lg mb-8 max-w-2xl mx-auto" style={{ lineHeight: 1.8 }}>
               {t("ابدأ اليوم واكتشف كيف يمكن لـ ENTIX.IO تحويل طريقة إدارتك لحساباتك المالية", "Start today and discover how ENTIX.IO can transform the way you manage your finances")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button 
                 onClick={() => navigate("/register")}
-                className="bg-white hover:bg-gray-50 text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 cursor-pointer"
+                className="bg-card hover:bg-surface-subtle text-foreground px-8 py-4 rounded-xl transition-all hover:shadow-2xl flex items-center gap-2 cursor-pointer"
                 style={{ fontSize: "16px", fontWeight: 600 }}
               >
                 {t("ابدأ شهرك المجاني — 30 يومًا كاملة", "Start your free month — 30 full days")}
                 <ArrowLeft className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-white/60 mt-4 text-sm">{t("لا حاجة لبطاقة ائتمانية • إلغاء في أي وقت", "No credit card required • Cancel anytime")}</p>
+            <p className="text-primary-foreground/60 mt-4 text-sm">{t("لا حاجة لبطاقة ائتمانية • إلغاء في أي وقت", "No credit card required • Cancel anytime")}</p>
           </motion.div>
         </div>
       </section>

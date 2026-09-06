@@ -107,7 +107,7 @@ export function ContactDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1276E3]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#5875DB]" />
       </div>
     );
   }
@@ -115,7 +115,7 @@ export function ContactDetail() {
   if (error || !data) {
     return (
       <div className="space-y-4">
-        <Link to="/app/contacts" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#1276E3]">
+        <Link to="/app/contacts" className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#5875DB]">
           <ArrowRight className="h-4 w-4" /> العودة
         </Link>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -134,12 +134,12 @@ export function ContactDetail() {
       {/* Header bar */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">
-          <Link to="/app/contacts" className="mt-1 text-[#6B7280] hover:text-[#1276E3]">
+          <Link to="/app/contacts" className="mt-1 text-[#6B7280] hover:text-[#5875DB]">
             <ArrowRight className="h-5 w-5" />
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[#0B1B49] truncate" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+              <h1 className="text-[#1A1E48] truncate" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
                 {contact.displayName}
               </h1>
               {contact.entityKind === "COMPANY" ? <Building2 className="h-4 w-4 text-[#6B7280]" /> : <User className="h-4 w-4 text-[#6B7280]" />}
@@ -163,7 +163,7 @@ export function ContactDetail() {
           </button>
           <Link
             to={`/app/sales/invoices/new?contactId=${contact.id}`}
-            className="px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-lg bg-[#5875DB] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" /> فاتورة جديدة
           </Link>
@@ -177,7 +177,7 @@ export function ContactDetail() {
             <div className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5" /> الفواتير
             </div>
-            <div className="font-english font-bold text-[#0B1B49]" style={{ fontSize: "1.15rem" }}>
+            <div className="font-english font-bold text-[#1A1E48]" style={{ fontSize: "1.15rem" }}>
               {totals.invoices.count}
             </div>
             <div className="text-xs text-[#9CA3AF] font-english mt-0.5">{totals.invoices.total.toLocaleString()} {cur}</div>
@@ -188,7 +188,7 @@ export function ContactDetail() {
             <div className="text-xs text-[#6B7280] mb-1 flex items-center gap-1.5">
               <ShoppingBag className="h-3.5 w-3.5" /> فواتير الشراء
             </div>
-            <div className="font-english font-bold text-[#0B1B49]" style={{ fontSize: "1.15rem" }}>
+            <div className="font-english font-bold text-[#1A1E48]" style={{ fontSize: "1.15rem" }}>
               {totals.bills.count}
             </div>
             <div className="text-xs text-[#9CA3AF] font-english mt-0.5">{totals.bills.total.toLocaleString()} {cur}</div>
@@ -231,7 +231,7 @@ export function ContactDetail() {
                 key={t}
                 onClick={() => setTab(t)}
                 className={`px-4 py-2.5 text-sm flex items-center gap-1.5 border-b-2 transition shrink-0 ${
-                  active ? "border-[#1276E3] text-[#1276E3]" : "border-transparent text-[#6B7280] hover:text-[#0B1B49]"
+                  active ? "border-[#5875DB] text-[#5875DB]" : "border-transparent text-[#6B7280] hover:text-[#1A1E48]"
                 }`}
                 style={{ fontWeight: active ? 600 : 500 }}
               >
@@ -264,19 +264,19 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
       <div className="lg:col-span-1 space-y-4">
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-3">
-            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "0.95rem", fontWeight: 600 }}>معلومات الاتصال</CardTitle>
+            <CardTitle className="text-[#1A1E48]" style={{ fontSize: "0.95rem", fontWeight: 600 }}>معلومات الاتصال</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5 text-sm">
             {contact.email && (
               <div className="flex items-start gap-2">
                 <Mail className="h-4 w-4 text-[#9CA3AF] shrink-0 mt-0.5" />
-                <a href={`mailto:${contact.email}`} className="text-[#1276E3] hover:underline break-all font-english">{contact.email}</a>
+                <a href={`mailto:${contact.email}`} className="text-[#5875DB] hover:underline break-all font-english">{contact.email}</a>
               </div>
             )}
             {contact.phone && (
               <div className="flex items-start gap-2">
                 <Phone className="h-4 w-4 text-[#9CA3AF] shrink-0 mt-0.5" />
-                <a href={`tel:${contact.phone}`} className="text-[#0B1B49] hover:underline font-english">{contact.phone}</a>
+                <a href={`tel:${contact.phone}`} className="text-[#1A1E48] hover:underline font-english">{contact.phone}</a>
               </div>
             )}
             {(contact.addressLine1 || contact.city) && (
@@ -299,7 +299,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
 
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-3">
-            <CardTitle className="text-[#0B1B49]" style={{ fontSize: "0.95rem", fontWeight: 600 }}>الهوية الضريبية</CardTitle>
+            <CardTitle className="text-[#1A1E48]" style={{ fontSize: "0.95rem", fontWeight: 600 }}>الهوية الضريبية</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Row label="الرقم الضريبي" value={contact.vatNumber} mono />
@@ -317,13 +317,13 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         {(contact as any).tags && (
           <Card className="border-[#E5E7EB]">
             <CardHeader className="pb-3">
-              <CardTitle className="text-[#0B1B49] flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+              <CardTitle className="text-[#1A1E48] flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
                 <Tag className="h-4 w-4" /> الوسوم
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-1.5">
               {String((contact as any).tags).split(",").map((t: string, i: number) => (
-                <span key={i} className="text-xs px-2 py-1 rounded-full bg-[#F4FCFF] text-[#1276E3] border border-blue-100">
+                <span key={i} className="text-xs px-2 py-1 rounded-full bg-[#F4FCFF] text-[#5875DB] border border-blue-100">
                   {t.trim()}
                 </span>
               ))}
@@ -334,7 +334,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         {contact.notes && (
           <Card className="border-[#E5E7EB]">
             <CardHeader className="pb-3">
-              <CardTitle className="text-[#0B1B49]" style={{ fontSize: "0.95rem", fontWeight: 600 }}>ملاحظات</CardTitle>
+              <CardTitle className="text-[#1A1E48]" style={{ fontSize: "0.95rem", fontWeight: 600 }}>ملاحظات</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-[#374151] whitespace-pre-wrap">{contact.notes}</p>
@@ -348,7 +348,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-[#0B1B49] flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+              <CardTitle className="text-[#1A1E48] flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
                 <FileText className="h-4 w-4" /> آخر الفواتير
               </CardTitle>
               <span className="text-xs text-[#9CA3AF] font-english">
@@ -379,7 +379,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         <Card className="border-[#E5E7EB]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-[#0B1B49] flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+              <CardTitle className="text-[#1A1E48] flex items-center gap-1.5" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
                 <ShoppingBag className="h-4 w-4" /> آخر فواتير الشراء
               </CardTitle>
               <span className="text-xs text-[#9CA3AF] font-english">
@@ -426,7 +426,7 @@ function EmptyMini({ icon: Icon, text, cta }: { icon: any; text: string; cta?: {
     <div className="text-center py-6">
       <Icon className="h-8 w-8 text-[#E5E7EB] mx-auto mb-2" />
       <p className="text-xs text-[#9CA3AF]">{text}</p>
-      {cta && <Link to={cta.to} className="text-xs text-[#1276E3] hover:underline mt-2 inline-block">{cta.label}</Link>}
+      {cta && <Link to={cta.to} className="text-xs text-[#5875DB] hover:underline mt-2 inline-block">{cta.label}</Link>}
     </div>
   );
 }
@@ -439,17 +439,17 @@ function DocList({ rows }: { rows: Array<{ id: string; number: string; date: str
           <div className="flex items-center gap-3 min-w-0">
             <Hash className="h-3.5 w-3.5 text-[#9CA3AF] shrink-0" />
             <div className="min-w-0">
-              <div className="text-sm font-english font-semibold text-[#0B1B49] group-hover:text-[#1276E3]">{r.number}</div>
+              <div className="text-sm font-english font-semibold text-[#1A1E48] group-hover:text-[#5875DB]">{r.number}</div>
               <div className="text-xs text-[#9CA3AF] font-english">{r.date.slice(0, 10)}</div>
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <StatusPill status={r.status} />
             <div className="text-end">
-              <div className="text-sm font-english font-semibold text-[#0B1B49]">{r.total.toLocaleString()}</div>
+              <div className="text-sm font-english font-semibold text-[#1A1E48]">{r.total.toLocaleString()}</div>
               <div className="text-xs text-[#9CA3AF] font-english">{r.cur}</div>
             </div>
-            <ExternalLink className="h-3.5 w-3.5 text-[#9CA3AF] group-hover:text-[#1276E3]" />
+            <ExternalLink className="h-3.5 w-3.5 text-[#9CA3AF] group-hover:text-[#5875DB]" />
           </div>
         </Link>
       ))}
@@ -489,12 +489,12 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
             onClick={() => setSection(s.key)}
             className={`text-start p-3 rounded-lg border transition ${
               section === s.key
-                ? "border-[#1276E3] bg-[#F4FCFF]"
-                : "border-[#E5E7EB] hover:border-[#1276E3]/40"
+                ? "border-[#5875DB] bg-[#F4FCFF]"
+                : "border-[#E5E7EB] hover:border-[#5875DB]/40"
             }`}
           >
             <div className="text-xs text-[#6B7280]">{s.label}</div>
-            <div className="font-english font-bold text-[#0B1B49] mt-0.5" style={{ fontSize: "1rem" }}>{s.count}</div>
+            <div className="font-english font-bold text-[#1A1E48] mt-0.5" style={{ fontSize: "1rem" }}>{s.count}</div>
             <div className="text-xs text-[#9CA3AF] font-english">{s.total.toLocaleString()} {cur}</div>
           </button>
         ))}
@@ -502,12 +502,12 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
 
       {/* Action bar */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm text-[#0B1B49]" style={{ fontWeight: 600 }}>
+        <h3 className="text-sm text-[#1A1E48]" style={{ fontWeight: 600 }}>
           {sections.find((s) => s.key === section)?.label}
         </h3>
         <Link
           to={newLinks[section]}
-          className="px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-[#5875DB] text-white text-sm hover:bg-[#0F66C7] transition flex items-center gap-1.5"
         >
           <Plus className="h-3.5 w-3.5" /> إضافة جديد
         </Link>
@@ -550,15 +550,15 @@ function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: st
           {rows.map((r) => (
             <tr key={r.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF] transition">
               <td className="px-4 py-2.5">
-                <Link to={r.href} className="font-english font-semibold text-[#1276E3] hover:underline">{r.number}</Link>
+                <Link to={r.href} className="font-english font-semibold text-[#5875DB] hover:underline">{r.number}</Link>
               </td>
               <td className="px-4 py-2.5 text-[#374151] font-english">{r.date.slice(0, 10)}</td>
               <td className="px-4 py-2.5 text-[#6B7280] font-english">{r.due?.slice(0, 10) || "—"}</td>
-              <td className="px-4 py-2.5 text-end font-english font-semibold text-[#0B1B49]">{r.total.toLocaleString()}</td>
+              <td className="px-4 py-2.5 text-end font-english font-semibold text-[#1A1E48]">{r.total.toLocaleString()}</td>
               <td className="px-4 py-2.5 text-end font-english text-green-600">{r.paid.toLocaleString()}</td>
               <td className="px-4 py-2.5 text-end font-english text-amber-600">{(r.total - r.paid).toLocaleString()}</td>
               <td className="px-4 py-2.5 text-center"><StatusPill status={r.status} /></td>
-              <td className="px-2 py-2.5"><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-[#9CA3AF] hover:text-[#1276E3]" /></Link></td>
+              <td className="px-2 py-2.5"><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-[#9CA3AF] hover:text-[#5875DB]" /></Link></td>
             </tr>
           ))}
         </tbody>
@@ -585,7 +585,7 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
         <tbody>
           {rows.map((v) => (
             <tr key={v.id} className="border-t border-[#F3F4F6] hover:bg-[#F4FCFF] transition">
-              <td className="px-4 py-2.5 font-english font-semibold text-[#0B1B49]">{v.number}</td>
+              <td className="px-4 py-2.5 font-english font-semibold text-[#1A1E48]">{v.number}</td>
               <td className="px-4 py-2.5">
                 <span className={`text-xs px-2 py-0.5 rounded ${v.type === "RECEIPT" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
                   {v.type === "RECEIPT" ? "قبض" : "صرف"}
@@ -643,7 +643,7 @@ function DocumentsTab({ contactId }: { contactId: string }) {
         <p className="text-xs text-[#9CA3AF] mt-1">العقود · بطاقات الضريبة · السجلات التجارية · ملفات الهوية</p>
         <Link
           to={`/app/files/upload?contactId=${contactId}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1276E3] text-white text-sm mt-4 hover:bg-[#0F66C7] transition"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5875DB] text-white text-sm mt-4 hover:bg-[#0F66C7] transition"
         >
           <Plus className="h-3.5 w-3.5" /> رفع مستند
         </Link>
@@ -659,7 +659,7 @@ function PortalTab({ contact }: { contact: any }) {
     <div className="space-y-4">
       <Card className="border-[#E5E7EB]">
         <CardHeader>
-          <CardTitle className="text-[#0B1B49] flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+          <CardTitle className="text-[#1A1E48] flex items-center gap-2" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
             <KeyRound className="h-4 w-4" /> بوابة العميل
           </CardTitle>
           <CardDescription className="text-xs text-[#6B7280]">
@@ -671,7 +671,7 @@ function PortalTab({ contact }: { contact: any }) {
             <code className="text-xs text-[#374151] font-english truncate flex-1">{portalUrl}</code>
             <button
               onClick={() => navigator.clipboard.writeText(portalUrl)}
-              className="text-xs text-[#1276E3] hover:underline shrink-0"
+              className="text-xs text-[#5875DB] hover:underline shrink-0"
             >
               نسخ
             </button>
@@ -679,7 +679,7 @@ function PortalTab({ contact }: { contact: any }) {
 
           {contact.email ? (
             <button
-              className="w-full px-3 py-2 rounded-lg bg-[#1276E3] text-white text-sm hover:bg-[#0F66C7] transition flex items-center justify-center gap-2"
+              className="w-full px-3 py-2 rounded-lg bg-[#5875DB] text-white text-sm hover:bg-[#0F66C7] transition flex items-center justify-center gap-2"
             >
               <Send className="h-3.5 w-3.5" /> إرسال دعوة إلى <span className="font-english">{contact.email}</span>
             </button>
@@ -692,11 +692,11 @@ function PortalTab({ contact }: { contact: any }) {
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="p-3 rounded-lg border border-[#E5E7EB]">
               <div className="text-xs text-[#6B7280]">آخر دخول</div>
-              <div className="text-sm text-[#0B1B49] mt-0.5">لم يدخل بعد</div>
+              <div className="text-sm text-[#1A1E48] mt-0.5">لم يدخل بعد</div>
             </div>
             <div className="p-3 rounded-lg border border-[#E5E7EB]">
               <div className="text-xs text-[#6B7280]">حالة البوابة</div>
-              <div className="text-sm text-[#0B1B49] mt-0.5 flex items-center gap-1.5">
+              <div className="text-sm text-[#1A1E48] mt-0.5 flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-[#9CA3AF]" /> غير مُفعّل
               </div>
             </div>

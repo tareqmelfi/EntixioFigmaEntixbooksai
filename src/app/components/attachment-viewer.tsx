@@ -71,7 +71,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
       <iframe
         title={attachment.name}
         src={src}
-        className="w-full rounded-lg bg-white border border-border/50"
+        className="w-full rounded-lg bg-card border border-border/50"
         style={{ height }}
       />
     );
@@ -80,7 +80,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
   if (isImage) {
     // Natural-size image inside a scrollable box · scroll up/down + sideways freely
     return (
-      <div className="w-full overflow-auto rounded-lg bg-white border border-border/50" style={{ maxHeight: height }}>
+      <div className="w-full overflow-auto rounded-lg bg-card border border-border/50" style={{ maxHeight: height }}>
         <img src={src} alt={attachment.name} className="max-w-none w-full h-auto block" style={{ minWidth: "100%" }} />
       </div>
     );
@@ -94,7 +94,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
       <a
         href={src}
         download={attachment.name}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
+        className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
       >
         <Download className="h-3.5 w-3.5" /> تنزيل الملف
       </a>

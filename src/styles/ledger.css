@@ -1,0 +1,67 @@
+/* Ledger design system (Direction A · 2026-09) · shared primitives.
+   Tokens live in theme.css; this file only composes them. Never hardcode hex here. */
+
+/* --- figures: the "ledger rule" strip (ink rule top + bottom, serif numerals) --- */
+.ledger-figures {
+  border-top: 1px solid var(--foreground);
+  border-bottom: 1px solid var(--foreground);
+}
+.ledger-figures > .ledger-figure {
+  padding: 18px 20px;
+  border-inline-start: 1px solid var(--border);
+}
+.ledger-figures > .ledger-figure:first-child { border-inline-start: 0; padding-inline-start: 0; }
+.ledger-figures > .ledger-figure:last-child { padding-inline-end: 0; }
+@media (max-width: 1279px) {
+  .ledger-figures > .ledger-figure:nth-child(odd) { border-inline-start: 0; padding-inline-start: 0; }
+  .ledger-figures > .ledger-figure:nth-child(n + 3) { border-top: 1px solid var(--border); }
+}
+@media (max-width: 639px) {
+  .ledger-figures > .ledger-figure { border-inline-start: 0; padding-inline: 0; }
+  .ledger-figures > .ledger-figure + .ledger-figure { border-top: 1px solid var(--border); }
+}
+.ledger-figure-value {
+  font-family: var(--entix-font-display);
+  font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.5rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+.ledger-figure-value small,
+.ledger-figure-value .fraction { font-size: 0.5em; color: var(--content-secondary); }
+
+/* --- tables: rows on paper, no boxed card, ink rule under the header --- */
+.ledger-table > table thead th { background: transparent; }
+.ledger-table > table tbody tr:last-child { border-bottom: 1px solid var(--border); }
+
+/* --- dense grid (Excel-like line editors) --- */
+.ledger-grid-dense { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.ledger-grid-dense .cell { border-bottom: 1px solid var(--border); border-inline-end: 1px solid var(--border); padding: 0 10px; min-height: 36px; display: flex; align-items: center; font-size: 13px; background: var(--card); }
+.ledger-grid-dense .cell:last-child { border-inline-end: 0; }
+.ledger-grid-dense .cell.h { min-height: 32px; background: var(--surface-hover); font-size: 11px; font-weight: 600; color: var(--content-secondary); }
+.ledger-grid-dense .cell.n { justify-content: flex-end; font-variant-numeric: tabular-nums; direction: ltr; }
+.ledger-grid-dense .cell.idx { justify-content: center; color: var(--content-secondary); background: var(--surface-subtle); font-size: 12px; }
+.ledger-grid-dense .cell input { border: 0; background: transparent; min-height: 34px; height: 34px; width: 100%; padding: 0; box-shadow: none; border-radius: 0; }
+.ledger-grid-dense .cell input:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--brand-blue-600); }
+
+/* --- eyebrow / code labels --- */
+.ledger-eyebrow { font-size: 11px; letter-spacing: 0.12em; font-weight: 600; color: var(--content-secondary); text-transform: uppercase; }
+
+/* --- status dot (always paired with a word) --- */
+.ledger-dot { display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: none; }
+.ledger-dot.hollow { background: transparent; border: 1.5px solid currentColor; }
+
+/* --- greeting / display headline (EN numerals in serif, Arabic never) --- */
+.ledger-greeting { font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: var(--foreground); }
+
+/* --- hover lift for interactive cards / rows --- */
+.ledger-hoverable:hover { transform: translateY(-1px); box-shadow: var(--elevation-popover); border-color: var(--border-strong); }
+@media (prefers-reduced-motion: reduce) { .ledger-hoverable:hover { transform: none; } }
+
+/* --- charts --- */
+.recharts-cartesian-grid line { stroke: var(--border); }
+.recharts-cartesian-axis-tick text { fill: var(--content-secondary); font-size: 11px; }
+.recharts-tooltip-wrapper .recharts-default-tooltip { border-radius: var(--radius) !important; border-color: var(--border) !important; background: var(--card) !important; }

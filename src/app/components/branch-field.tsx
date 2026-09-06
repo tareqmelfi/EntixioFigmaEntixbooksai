@@ -83,7 +83,7 @@ export function BranchFilter({ value, onChange, className }: { value: string; on
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={className || "h-9 rounded-md border border-border bg-white px-2 text-sm text-foreground"}
+      className={className || "h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"}
       aria-label={t("الفرع", "Branch")}
     >
       <option value="">{t("كل الفروع", "All branches")}</option>

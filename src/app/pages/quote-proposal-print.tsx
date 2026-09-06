@@ -44,7 +44,7 @@ export function QuoteProposalPrint() {
   }, [id]);
 
   if (error) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>{error}</div>;
-  if (!quote) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#1276E3" }} /></div>;
+  if (!quote) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
 
   const lang: "ar" | "en" = langOverride === "en" ? "en" : "ar";
 
@@ -54,10 +54,10 @@ export function QuoteProposalPrint() {
         .num { font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: embed; }
         @media print { .no-print { display: none !important; } @page { size: A4; margin: 12mm; } }
       `}</style>
-      <div className="no-print" style={{ position: "sticky", top: 0, background: "#0B1B49", color: "#fff", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 5 }}>
+      <div className="no-print" style={{ position: "sticky", top: 0, background: "#1A1E48", color: "#fff", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 5 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>{quote.quoteNumber} · {quote.title || ""}</span>
         <span style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#1276E3", border: "none", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12.5, cursor: "pointer" }}>
+          <button onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#5875DB", border: "none", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12.5, cursor: "pointer" }}>
             <Printer style={{ width: 14, height: 14 }} /> طباعة / PDF
           </button>
           <button onClick={() => window.close()} style={{ background: "transparent", border: "1px solid rgba(255,255,255,.3)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>
@@ -69,7 +69,7 @@ export function QuoteProposalPrint() {
         <ProposalDoc quote={quote} org={org ? { name: org.name, logoUrl: (org as any).printLogoUrl || org.logoUrl, legalName: org.legalName, vatNumber: org.vatNumber, crNumber: org.crNumber } : null} lang={lang} />
         {/* Acceptance block (print) */}
         <div style={{ marginTop: 22, border: "1px solid #D6E4EE", borderRadius: 10, padding: "12px 16px", breakInside: "avoid-page" }} dir={lang === "ar" ? "rtl" : "ltr"}>
-          <div style={{ fontWeight: 700, fontSize: 12.5, color: "#0B1B49", marginBottom: 10 }}>{lang === "ar" ? "إقرار القبول" : "Acceptance"}</div>
+          <div style={{ fontWeight: 700, fontSize: 12.5, color: "#1A1E48", marginBottom: 10 }}>{lang === "ar" ? "إقرار القبول" : "Acceptance"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, fontSize: 11.5, color: "#4A5A6E" }}>
             <div>{lang === "ar" ? "الاسم:" : "Name:"} ______________________</div>
             <div>{lang === "ar" ? "التوقيع:" : "Signature:"} ______________________</div>

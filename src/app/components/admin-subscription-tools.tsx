@@ -17,7 +17,7 @@ export function SubscriptionProgress({ start, end, status, lifetime, sponsored, 
   if (lifetime || sponsored || (status === "ACTIVE" && !end)) {
     return (
       <div className={compact ? "min-w-[120px]" : ""}>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full w-full rounded-full" style={{ background: "linear-gradient(90deg,#0B1B49,#1276E3)" }} /></div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full w-full rounded-full" style={{ background: "linear-gradient(90deg,#1A1E48,#5875DB)" }} /></div>
         <div className="mt-1 text-[11px] text-muted-foreground">{sponsored ? t("مدعوم · بلا نهاية", "Sponsored · open-ended") : t("مدى الحياة · بلا نهاية", "Lifetime · open-ended")}</div>
       </div>
     );
@@ -29,7 +29,7 @@ export function SubscriptionProgress({ start, end, status, lifetime, sponsored, 
   const total = Math.max(1, e - s);
   const pct = Math.min(100, Math.max(0, Math.round(((now - s) / total) * 100)));
   const daysLeft = Math.ceil((e - now) / 86400000);
-  const tone = daysLeft < 0 ? "#E84B4B" : daysLeft <= 7 ? "#F59E0B" : "#1276E3";
+  const tone = daysLeft < 0 ? "#E84B4B" : daysLeft <= 7 ? "#B8862B" : "#5875DB";
   return (
     <div className={compact ? "min-w-[120px]" : ""}>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: tone }} /></div>
@@ -42,15 +42,15 @@ export function SubscriptionProgress({ start, end, status, lifetime, sponsored, 
 }
 
 const ORIGIN: Record<string, { ar: string; en: string; cls: string }> = {
-  user: { ar: "أنشأها مستخدم", en: "Created by user", cls: "bg-blue-50 text-blue-700" },
-  signup: { ar: "تسجيل جديد", en: "Signup", cls: "bg-blue-50 text-blue-700" },
-  public_checkout: { ar: "دفع ثم تسجيل", en: "Pay-first signup", cls: "bg-emerald-50 text-emerald-700" },
-  agent: { ar: "وكيل الذكاء", en: "AI agent", cls: "bg-violet-50 text-violet-700" },
-  admin: { ar: "الأدمن", en: "Admin", cls: "bg-[#0B1B49]/10 text-[#0B1B49]" },
-  internal: { ar: "داخلي · اختبار", en: "Internal · test", cls: "bg-amber-50 text-amber-800" },
+  user: { ar: "أنشأها مستخدم", en: "Created by user", cls: "bg-info-subtle text-info" },
+  signup: { ar: "تسجيل جديد", en: "Signup", cls: "bg-info-subtle text-info" },
+  public_checkout: { ar: "دفع ثم تسجيل", en: "Pay-first signup", cls: "bg-success-subtle text-success" },
+  agent: { ar: "وكيل الذكاء", en: "AI agent", cls: "bg-info-subtle text-info" },
+  admin: { ar: "الأدمن", en: "Admin", cls: "bg-[#1A1E48]/10 text-[#1A1E48]" },
+  internal: { ar: "داخلي · اختبار", en: "Internal · test", cls: "bg-warning-subtle text-warning" },
   demo: { ar: "ديمو", en: "Demo", cls: "bg-muted text-muted-foreground" },
   seed: { ar: "بيانات أولية", en: "Seed", cls: "bg-muted text-muted-foreground" },
-  import: { ar: "استيراد", en: "Import", cls: "bg-cyan-50 text-cyan-800" },
+  import: { ar: "استيراد", en: "Import", cls: "bg-info-subtle text-info" },
 };
 export function OriginBadge({ via, size = "xs" }: { via?: string | null; size?: "xs" | "sm" }) {
   const { language } = useLanguage();
@@ -61,10 +61,10 @@ export function OriginBadge({ via, size = "xs" }: { via?: string | null; size?: 
 
 export function SubscriptionSourceBadge({ source, lifetime, sponsored }: { source?: string; lifetime?: boolean; sponsored?: boolean }) {
   const { t } = useLanguage();
-  if (sponsored || source === "sponsored") return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] text-white" style={{ fontWeight: 700 }}><HeartHandshake className="h-3 w-3" />{t("مدعوم", "SPONSORED")}</span>;
-  if (lifetime || source === "lifetime") return <span className="inline-flex items-center gap-1 rounded-full bg-[#0B1B49] px-2 py-0.5 text-[10px] text-white" style={{ fontWeight: 700 }}><Crown className="h-3 w-3" />LIFETIME</span>;
-  if (source === "stripe") return <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700" style={{ fontWeight: 700 }}>STRIPE</span>;
-  if (source === "manual") return <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-800" style={{ fontWeight: 700 }}>{t("يدوي", "MANUAL")}</span>;
+  if (sponsored || source === "sponsored") return <span className="inline-flex items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[10px] text-primary-foreground" style={{ fontWeight: 700 }}><HeartHandshake className="h-3 w-3" />{t("مدعوم", "SPONSORED")}</span>;
+  if (lifetime || source === "lifetime") return <span className="inline-flex items-center gap-1 rounded-full bg-[#1A1E48] px-2 py-0.5 text-[10px] text-primary-foreground" style={{ fontWeight: 700 }}><Crown className="h-3 w-3" />LIFETIME</span>;
+  if (source === "stripe") return <span className="rounded-full bg-info-subtle px-2 py-0.5 text-[10px] text-info" style={{ fontWeight: 700 }}>STRIPE</span>;
+  if (source === "manual") return <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] text-warning" style={{ fontWeight: 700 }}>{t("يدوي", "MANUAL")}</span>;
   if (source === "free") return <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground" style={{ fontWeight: 700 }}>{t("مجاني", "FREE")}</span>;
   return null;
 }
@@ -112,12 +112,12 @@ export function SubscriptionManagePanel({ orgId, currency, currentPlanId, curren
   };
 
   return (
-    <div className="rounded-2xl border border-primary/30 bg-white p-4 shadow-[0_8px_24px_rgba(11,27,73,0.08)]">
+    <div className="rounded-2xl border border-primary/30 bg-card p-4 shadow-[0_8px_24px_rgba(11,27,73,0.08)]">
       <div className="mb-3 text-sm text-foreground" style={{ fontWeight: 700 }}>{t("تغيير الاشتراك", "Change subscription")}</div>
       <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {MODES.map((x) => (
           <button key={x.id} type="button" onClick={() => setMode(x.id)} className={`flex flex-col items-start gap-1 rounded-xl border p-2.5 text-start transition ${mode === x.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"}`}>
-            <span className="inline-flex items-center gap-1.5 text-xs text-foreground" style={{ fontWeight: 700 }}><x.icon className={`h-3.5 w-3.5 ${x.id === "cancel" ? "text-red-600" : "text-primary"}`} />{language === "ar" ? x.ar : x.en}</span>
+            <span className="inline-flex items-center gap-1.5 text-xs text-foreground" style={{ fontWeight: 700 }}><x.icon className={`h-3.5 w-3.5 ${x.id === "cancel" ? "text-danger" : "text-primary"}`} />{language === "ar" ? x.ar : x.en}</span>
             <span className="text-[10px] leading-snug text-muted-foreground">{language === "ar" ? x.hintAr : x.hintEn}</span>
           </button>
         ))}
@@ -126,7 +126,7 @@ export function SubscriptionManagePanel({ orgId, currency, currentPlanId, curren
         {mode !== "cancel" && (
           <label className="text-xs text-muted-foreground">
             {t("الباقة", "Plan")}
-            <select value={planId} onChange={(e) => setPlanId(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-white px-2 py-2 text-sm text-foreground">
+            <select value={planId} onChange={(e) => setPlanId(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-card px-2 py-2 text-sm text-foreground">
               <option value="">{t("— الحالية / الأعلى تلقائيًا —", "— current / highest automatically —")}</option>
               {visiblePlans.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.tier} · {p.interval} · {(p.price / 100).toLocaleString(displayLocale("en-US"))} {p.currency.toUpperCase()}</option>)}
             </select>
@@ -149,9 +149,9 @@ export function SubscriptionManagePanel({ orgId, currency, currentPlanId, curren
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("مثال: اتفاق شفوي — يشترك بالمؤسسي وأفتح له البقية", "e.g. verbal deal — pays Enterprise, I open the rest")} className="mt-1 w-full rounded-md border border-border px-2 py-2 text-sm" />
         </label>
       </div>
-      {err && <div className="mt-2 text-xs text-red-700">{err}</div>}
+      {err && <div className="mt-2 text-xs text-danger">{err}</div>}
       <div className="mt-3 flex items-center gap-2">
-        <button type="button" onClick={() => void submit()} disabled={busy} className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm text-white ${mode === "cancel" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"}`} style={{ fontWeight: 600 }}>
+        <button type="button" onClick={() => void submit()} disabled={busy} className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm text-primary-foreground ${mode === "cancel" ? "bg-danger hover:bg-danger" : "bg-primary hover:bg-primary/90"}`} style={{ fontWeight: 600 }}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{t("تطبيق", "Apply")}
         </button>
         <button type="button" onClick={onCancel} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">{t("إغلاق", "Close")}</button>

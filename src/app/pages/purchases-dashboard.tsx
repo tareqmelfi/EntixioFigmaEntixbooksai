@@ -32,18 +32,18 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   OVERDUE: { ar: "متأخرة", en: "Overdue" }, CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  RECEIVED: "bg-blue-100 text-blue-700",
-  PAID: "bg-green-100 text-green-700",
-  PARTIAL: "bg-amber-100 text-amber-700",
-  OVERDUE: "bg-red-100 text-red-700",
-  CANCELLED: "bg-gray-100 text-gray-500",
+  DRAFT: "bg-surface-hover text-foreground",
+  RECEIVED: "bg-info-subtle text-info",
+  PAID: "bg-success-subtle text-success",
+  PARTIAL: "bg-warning-subtle text-warning",
+  OVERDUE: "bg-danger-subtle text-danger",
+  CANCELLED: "bg-surface-hover text-muted-foreground",
 };
 
 const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const CATEGORY_COLORS = ["#0B1B49", "#1276E3", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
+const CATEGORY_COLORS = ["#1A1E48", "#5875DB", "#4A90E8", "#7DD3FC", "#0F3B7A", "#93C5FD", "#1E3A6E", "#BFDBFE"];
 
 export function PurchasesDashboard() {
   const { t, language } = useLanguage();
@@ -141,9 +141,9 @@ export function PurchasesDashboard() {
 
   if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (error || !data) return (
-    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-3">
+    <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger flex items-center justify-between gap-3">
       <span>{error || t("تعذّر التحميل", "Could not load")}</span>
-      <Button type="button" variant="outline" size="sm" onClick={refresh} className="border-red-300 text-red-700 hover:bg-red-100">
+      <Button type="button" variant="outline" size="sm" onClick={refresh} className="border-danger-border text-danger hover:bg-danger-subtle">
         {t("إعادة المحاولة", "Retry")}
       </Button>
     </div>
@@ -164,7 +164,7 @@ export function PurchasesDashboard() {
   return (
     <div className="space-y-5">
       {degraded && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2 text-xs text-warning">
           {language === "en"
             ? "Simplified view — showing data composed from bills & expenses while the dashboard service recovers."
             : "عرض مبسّط — البيانات مركّبة من فواتير الشراء والمصروفات مؤقتًا حتى يتعافى ملخص لوحة المشتريات."}
@@ -210,16 +210,16 @@ export function PurchasesDashboard() {
         <KpiCard
           label={t("المصروفات النقدية", "Cash Expenses")}
           value={fmt(Number(data.ytd.expenses))}
-          tone="text-amber-600"
-          icon={<Receipt className="h-4 w-4 text-amber-500" />}
+          tone="text-warning"
+          icon={<Receipt className="h-4 w-4 text-warning" />}
           to="/app/expenses"
           title={t("افتح المصروفات النقدية", "Open cash expenses")}
         />
         <KpiCard
           label={t("هذا الشهر", "This Month")}
           value={fmt(Number(data.thisMonth.bills))}
-          tone="text-green-600"
-          icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+          tone="text-success"
+          icon={<TrendingUp className="h-4 w-4 text-success" />}
           to="/app/purchases/bills"
           title={t("افتح فواتير هذا الشهر", "Open this month's bills")}
         />
@@ -231,7 +231,7 @@ export function PurchasesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> {t("أكبر مورد", "Top supplier")}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-warning" /> {t("أكبر مورد", "Top supplier")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topSupplier?.name || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
@@ -244,10 +244,10 @@ export function PurchasesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> {t("أكثر تأخر", "Most overdue")}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-danger" /> {t("أكثر تأخر", "Most overdue")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{mostOverdueSupplier?.contact || "—"}</p>
               </div>
-              <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
+              <div className="font-english text-danger text-sm shrink-0" style={{ fontWeight: 700 }}>
                 <span className="text-muted-foreground/60">{cur}</span> {mostOverdueSupplier ? Number(mostOverdueSupplier.total).toLocaleString(displayLocale()) : "0"}
               </div>
             </div>
@@ -342,7 +342,7 @@ export function PurchasesDashboard() {
                     <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6B7280" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} />
                     <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
-                    <Bar dataKey="total" fill="#1276E3" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="total" fill="#5875DB" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

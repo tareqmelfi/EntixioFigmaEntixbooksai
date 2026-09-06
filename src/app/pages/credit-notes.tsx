@@ -31,10 +31,10 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, ISSUED: { ar: "صادر", en: "Issued" }, APPLIED: { ar: "مطبَّق", en: "Applied" }, CANCELLED: { ar: "ملغى", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  ISSUED: "bg-amber-100 text-amber-700",
-  APPLIED: "bg-green-100 text-green-700",
-  CANCELLED: "bg-gray-100 text-gray-500",
+  DRAFT: "bg-surface-hover text-foreground",
+  ISSUED: "bg-warning-subtle text-warning",
+  APPLIED: "bg-success-subtle text-success",
+  CANCELLED: "bg-surface-hover text-muted-foreground",
 };
 
 const REASONS = [
@@ -287,7 +287,7 @@ export function CreditNotes() {
           }
         >
           <div className="max-w-3xl mx-auto space-y-4">
-            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+            {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
             <div className="space-y-2">
               <Label className="text-foreground/80">{t("العميل", "Customer")} *</Label>
               <SearchableCombobox
@@ -334,7 +334,7 @@ export function CreditNotes() {
                 <select
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                  className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
                   {REASONS.map(r => <option key={r.value} value={r.value}>{t(r.label.ar, r.label.en)}</option>)}
                 </select>
@@ -356,7 +356,7 @@ export function CreditNotes() {
                     variant="outline"
                     disabled={sourceLoading}
                     onClick={() => loadInvoiceLines(selectedInvoice.id)}
-                    className="border-primary/20 bg-white"
+                    className="border-primary/20 bg-card"
                   >
                     {sourceLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <FileText className="h-4 w-4 me-2" />}
                     {t("إعادة تعبئة البنود", "Reload line items")}
@@ -432,11 +432,11 @@ export function CreditNotes() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale())}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale())}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
+          <div className="font-english text-success" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
         </CardContent></Card>
       </div>
 
@@ -473,7 +473,7 @@ export function CreditNotes() {
                     <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={c.contact?.displayName || ""}>{c.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{c.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find(r => r.value === c.reason); return r ? t(r.label.ar, r.label.en) : c.reason; })()}</td>
-                    <td className="py-3 px-4 font-english text-sm text-amber-600" style={{ fontWeight: 600 }}>
+                    <td className="py-3 px-4 font-english text-sm text-warning" style={{ fontWeight: 600 }}>
                       <span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(c.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{c.currency}</span></span></span>
                     </td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] ? t(STATUS_LABELS[c.status].ar, STATUS_LABELS[c.status].en) : c.status}</span></td>
@@ -489,7 +489,7 @@ export function CreditNotes() {
                         {pendingDelete === c.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>

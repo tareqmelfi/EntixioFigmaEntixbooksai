@@ -65,10 +65,10 @@ export function AdminTeam() {
       </div>
       <div className="flex gap-1.5 rounded-lg bg-muted/60 p-1 w-fit">
         {([["team", t("الفريق", "Team")], ["roles", t("الأدوار والصلاحيات", "Roles & permissions")]] as const).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`} style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
+          <button key={id} onClick={() => setTab(id)} className={`px-4 py-2 rounded-md text-sm transition ${tab === id ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`} style={{ fontWeight: tab === id ? 700 : 500 }}>{label}</button>
         ))}
       </div>
-      {err && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{err}</div>}
+      {err && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{err}</div>}
       {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-12" /> : tab === "team"
         ? <TeamTab members={members} invites={invites} roles={roles} reload={load} push={push} t={t} language={language} />
         : <RolesTab roles={roles} catalogue={catalogue} reload={load} push={push} t={t} language={language} />}
@@ -96,34 +96,34 @@ function TeamTab({ members, invites, roles, reload, push, t, language }: { membe
   };
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-border bg-white p-4">
+      <section className="rounded-2xl border border-border bg-card p-4">
         <div className="text-sm text-foreground mb-2" style={{ fontWeight: 700 }}>{t("دعوة موظف", "Invite a teammate")}</div>
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted-foreground flex-1 min-w-[220px]">{t("البريد", "Email")}<input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="support@ensidex.com" className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm font-english" dir="ltr" /></label>
-          <label className="text-xs text-muted-foreground min-w-[200px]">{t("الدور", "Role")}<select value={roleId} onChange={(e) => setRoleId(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-white px-2 py-2 text-sm">{roles.map((r) => <option key={r.id} value={r.id}>{language === "ar" ? r.nameAr : r.nameEn} ({r.key}){r.scopeAssigned ? ` · ${t("نطاق محدد", "scoped")}` : ""}</option>)}</select></label>
-          <button onClick={() => void invite()} disabled={busy || !email.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm text-white disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{t("إرسال الدعوة", "Send invite")}</button>
+          <label className="text-xs text-muted-foreground min-w-[200px]">{t("الدور", "Role")}<select value={roleId} onChange={(e) => setRoleId(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-card px-2 py-2 text-sm">{roles.map((r) => <option key={r.id} value={r.id}>{language === "ar" ? r.nameAr : r.nameEn} ({r.key}){r.scopeAssigned ? ` · ${t("نطاق محدد", "scoped")}` : ""}</option>)}</select></label>
+          <button onClick={() => void invite()} disabled={busy || !email.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{t("إرسال الدعوة", "Send invite")}</button>
         </div>
         {lastLink && <div className="mt-2 flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs"><span className="truncate font-english flex-1" dir="ltr">{lastLink}</span><button onClick={() => { navigator.clipboard?.writeText(lastLink); push("success", t("نُسخ", "Copied")); }} className="inline-flex items-center gap-1 text-primary"><Copy className="h-3.5 w-3.5" />{t("نسخ", "Copy")}</button></div>}
         <p className="mt-2 text-[11px] text-muted-foreground">{t("الرابط صالح 72 ساعة · المدعو يسجّل الدخول (أو ينشئ حسابًا بنفس البريد) ثم يقبل — لا صلاحية قبل القبول.", "Link valid 72h · the invitee signs in (or registers with the same email) then accepts — nothing is granted before acceptance.")}</p>
       </section>
 
       {invites.length > 0 && (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+        <section className="rounded-2xl border border-warning-border bg-warning-subtle/40 p-4">
           <div className="text-sm text-foreground mb-2" style={{ fontWeight: 700 }}>{t("دعوات معلّقة", "Pending invitations")} · {invites.length}</div>
-          <ul className="divide-y divide-amber-200/60 text-sm">
+          <ul className="divide-y divide-warning-border/60 text-sm">
             {invites.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center gap-3 py-2">
                 <span className="font-english" dir="ltr">{i.email}</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[11px] text-foreground border border-border">{language === "ar" ? i.role.nameAr : i.role.nameEn}</span>
+                <span className="rounded-full bg-card px-2 py-0.5 text-[11px] text-foreground border border-border">{language === "ar" ? i.role.nameAr : i.role.nameEn}</span>
                 <span className="text-[11px] text-muted-foreground font-english" dir="ltr">{t("بواسطة", "by")} {i.invitedBy} · {t("تنتهي", "expires")} {new Date(i.expiresAt).toLocaleString(displayLocale("en-GB"))}</span>
-                <button onClick={() => api.admin.revokeInvite(i.id).then(reload)} className="ms-auto inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="h-3.5 w-3.5" />{t("إلغاء", "Revoke")}</button>
+                <button onClick={() => api.admin.revokeInvite(i.id).then(reload)} className="ms-auto inline-flex items-center gap-1 text-xs text-danger hover:underline"><Trash2 className="h-3.5 w-3.5" />{t("إلغاء", "Revoke")}</button>
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      <section className="rounded-2xl border border-border bg-white overflow-hidden">
+      <section className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground"><th className="px-4 py-2 text-start font-medium">{t("العضو", "Member")}</th><th className="px-4 py-2 text-start font-medium">{t("الدور", "Role")}</th><th className="px-4 py-2 text-start font-medium">{t("الشركات المسندة", "Assigned companies")}</th><th className="px-4 py-2 text-start font-medium">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-end font-medium">{t("إجراء", "Actions")}</th></tr></thead>
           <tbody>
@@ -149,23 +149,23 @@ function MemberRow({ m, roles, reload, push, t, language, assignOpen, onAssign, 
   return (
     <>
       <tr className="border-b border-border/60 align-top">
-        <td className="px-4 py-2.5"><div className="font-english text-xs text-foreground" style={{ fontWeight: 600 }} dir="ltr">{m.email}</div><div className="text-[11px] text-muted-foreground">{m.name || "—"}{m.bootstrap ? <span className="ms-1 rounded-full bg-[#0B1B49] px-1.5 py-0.5 text-[9px] text-white">ENV</span> : null}</div></td>
+        <td className="px-4 py-2.5"><div className="font-english text-xs text-foreground" style={{ fontWeight: 600 }} dir="ltr">{m.email}</div><div className="text-[11px] text-muted-foreground">{m.name || "—"}{m.bootstrap ? <span className="ms-1 rounded-full bg-[#1A1E48] px-1.5 py-0.5 text-[9px] text-primary-foreground">ENV</span> : null}</div></td>
         <td className="px-4 py-2.5">
           {m.bootstrap ? <span className="inline-flex items-center gap-1 text-xs text-foreground" style={{ fontWeight: 600 }}><ShieldCheck className="h-3.5 w-3.5 text-primary" />{t("مشرف عام", "Super admin")}</span> : (
-            <select value={m.role?.id || ""} onChange={(e) => void change({ roleId: e.target.value })} className="rounded-md border border-border bg-white px-2 py-1 text-xs">{roles.map((r) => <option key={r.id} value={r.id}>{language === "ar" ? r.nameAr : r.nameEn}</option>)}</select>
+            <select value={m.role?.id || ""} onChange={(e) => void change({ roleId: e.target.value })} className="rounded-md border border-border bg-card px-2 py-1 text-xs">{roles.map((r) => <option key={r.id} value={r.id}>{language === "ar" ? r.nameAr : r.nameEn}</option>)}</select>
           )}
         </td>
         <td className="px-4 py-2.5 text-xs">
           {m.role?.scopeAssigned ? (
-            <div className="flex flex-wrap items-center gap-1">{m.assignments.length === 0 ? <span className="text-amber-800">{t("لا شركات — لا يرى شيئًا", "None — sees nothing")}</span> : m.assignments.map((a) => <span key={a.orgId} className="rounded-full bg-muted px-2 py-0.5">{a.orgName}</span>)}<button onClick={onAssign} className="ms-1 inline-flex items-center gap-1 text-primary hover:underline"><Building2 className="h-3 w-3" />{t("تعديل", "Edit")}</button></div>
+            <div className="flex flex-wrap items-center gap-1">{m.assignments.length === 0 ? <span className="text-warning">{t("لا شركات — لا يرى شيئًا", "None — sees nothing")}</span> : m.assignments.map((a) => <span key={a.orgId} className="rounded-full bg-muted px-2 py-0.5">{a.orgName}</span>)}<button onClick={onAssign} className="ms-1 inline-flex items-center gap-1 text-primary hover:underline"><Building2 className="h-3 w-3" />{t("تعديل", "Edit")}</button></div>
           ) : <span className="text-muted-foreground">{t("كل الشركات", "All companies")}</span>}
         </td>
-        <td className="px-4 py-2.5 text-xs">{m.disabledAt ? <span className="rounded-full bg-red-50 px-2 py-0.5 text-red-700">{t("معطّل", "Disabled")}</span> : <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">{t("نشط", "Active")}</span>}</td>
+        <td className="px-4 py-2.5 text-xs">{m.disabledAt ? <span className="rounded-full bg-danger-subtle px-2 py-0.5 text-danger">{t("معطّل", "Disabled")}</span> : <span className="rounded-full bg-success-subtle px-2 py-0.5 text-success">{t("نشط", "Active")}</span>}</td>
         <td className="px-4 py-2.5 text-end">
           {!m.bootstrap && (
             <div className="flex flex-wrap justify-end gap-1.5">
               <button onClick={() => void change({ disabled: !m.disabledAt })} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-muted/50">{m.disabledAt ? <><RotateCcw className="h-3 w-3" />{t("تفعيل", "Enable")}</> : <><Ban className="h-3 w-3" />{t("تعطيل", "Disable")}</>}</button>
-              {pendingRemove ? <InlineConfirm label={t("إزالة من الفريق؟ (الحساب يبقى)", "Remove from team? (account stays)")} onCancel={() => setPendingRemove(false)} onConfirm={() => { void api.admin.removeTeamMember(m.id).then(() => { setPendingRemove(false); void reload(); }); }} /> : <button onClick={() => setPendingRemove(true)} className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-[11px] text-red-700"><Trash2 className="h-3 w-3" />{t("إزالة", "Remove")}</button>}
+              {pendingRemove ? <InlineConfirm label={t("إزالة من الفريق؟ (الحساب يبقى)", "Remove from team? (account stays)")} onCancel={() => setPendingRemove(false)} onConfirm={() => { void api.admin.removeTeamMember(m.id).then(() => { setPendingRemove(false); void reload(); }); }} /> : <button onClick={() => setPendingRemove(true)} className="inline-flex items-center gap-1 rounded border border-danger-border bg-danger-subtle px-2 py-1 text-[11px] text-danger"><Trash2 className="h-3 w-3" />{t("إزالة", "Remove")}</button>}
             </div>
           )}
         </td>
@@ -175,9 +175,9 @@ function MemberRow({ m, roles, reload, push, t, language, assignOpen, onAssign, 
           <div className="text-xs text-foreground mb-2" style={{ fontWeight: 600 }}>{t("الشركات التي يخدمها", "Companies this member serves")} · {picked.length}</div>
           <input value={orgQ} onChange={(e) => setOrgQ(e.target.value)} placeholder={t("ابحث عن شركة…", "Search companies…")} className="mb-2 w-full max-w-md rounded-md border border-border px-3 py-1.5 text-xs" />
           <div className="flex flex-wrap gap-1.5 max-h-48 overflow-auto">
-            {orgOptions.map((o) => { const on = picked.includes(o.id); return <button key={o.id} type="button" onClick={() => setPicked(on ? picked.filter((x) => x !== o.id) : [...picked, o.id])} className={`rounded-full border px-2.5 py-1 text-xs ${on ? "border-primary bg-primary text-white" : "border-border bg-white text-foreground hover:bg-muted/50"}`}>{on ? <Check className="inline h-3 w-3 me-1" /> : null}{o.name} <span className="opacity-70">{o.country}</span></button>; })}
+            {orgOptions.map((o) => { const on = picked.includes(o.id); return <button key={o.id} type="button" onClick={() => setPicked(on ? picked.filter((x) => x !== o.id) : [...picked, o.id])} className={`rounded-full border px-2.5 py-1 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-muted/50"}`}>{on ? <Check className="inline h-3 w-3 me-1" /> : null}{o.name} <span className="opacity-70">{o.country}</span></button>; })}
           </div>
-          <div className="mt-2 flex gap-2"><button onClick={() => void change({ assignedOrgIds: picked }).then(onAssign)} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white" style={{ fontWeight: 600 }}>{t("حفظ الإسناد", "Save assignments")}</button><button onClick={onAssign} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إغلاق", "Close")}</button></div>
+          <div className="mt-2 flex gap-2"><button onClick={() => void change({ assignedOrgIds: picked }).then(onAssign)} className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground" style={{ fontWeight: 600 }}>{t("حفظ الإسناد", "Save assignments")}</button><button onClick={onAssign} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إغلاق", "Close")}</button></div>
         </td></tr>
       )}
     </>
@@ -201,7 +201,7 @@ function RolesTab({ roles, catalogue, reload, push, t, language }: { roles: Admi
   };
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-border bg-white overflow-x-auto">
+      <section className="rounded-2xl border border-border bg-card overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-muted-foreground">
@@ -221,35 +221,35 @@ function RolesTab({ roles, catalogue, reload, push, t, language }: { roles: Admi
                 <tr className="bg-muted/20"><td colSpan={roles.length + 1} className="px-3 py-1.5 text-[11px] text-muted-foreground" style={{ fontWeight: 700 }}>{language === "ar" ? ar : en}</td></tr>
                 {perms.filter((k) => PERM_LABEL[k].group === g).map((k) => (
                   <tr key={k} className="border-b border-border/50">
-                    <td className="sticky start-0 bg-white px-3 py-2 text-foreground">{language === "ar" ? PERM_LABEL[k].ar : PERM_LABEL[k].en}<div className="font-english text-[10px] text-muted-foreground">{k}</div></td>
+                    <td className="sticky start-0 bg-card px-3 py-2 text-foreground">{language === "ar" ? PERM_LABEL[k].ar : PERM_LABEL[k].en}<div className="font-english text-[10px] text-muted-foreground">{k}</div></td>
                     {roles.map((r) => { const on = r.key === "SUPER_ADMIN" || current(r).includes(k); return (
                       <td key={r.id} className="px-3 py-2 text-center">
-                        <button type="button" disabled={r.key === "SUPER_ADMIN"} onClick={() => toggle(r, k)} className={`inline-flex h-5 w-5 items-center justify-center rounded border ${on ? "border-primary bg-primary text-white" : "border-border bg-white"} disabled:opacity-60`} aria-pressed={on}>{on ? <Check className="h-3 w-3" /> : null}</button>
+                        <button type="button" disabled={r.key === "SUPER_ADMIN"} onClick={() => toggle(r, k)} className={`inline-flex h-5 w-5 items-center justify-center rounded border ${on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"} disabled:opacity-60`} aria-pressed={on}>{on ? <Check className="h-3 w-3" /> : null}</button>
                       </td>); })}
                   </tr>
                 ))}
               </Fragment>
             ))}
             <tr>
-              <td className="sticky start-0 bg-white px-3 py-2" />
+              <td className="sticky start-0 bg-card px-3 py-2" />
               {roles.map((r) => (
                 <td key={r.id} className="px-3 py-2 text-center">
-                  {draft[r.id] ? <button onClick={() => void save(r)} className="rounded-md bg-primary px-2.5 py-1 text-[11px] text-white" style={{ fontWeight: 600 }}>{t("حفظ", "Save")}</button> : null}
-                  {!r.isSystem && !draft[r.id] ? (pendingDelete === r.id ? <InlineConfirm label={t("حذف الدور؟", "Delete role?")} onCancel={() => setPendingDelete(null)} onConfirm={() => { void api.admin.deleteRole(r.id).then(() => { setPendingDelete(null); void reload(); }).catch((e) => push("error", e instanceof ApiError ? e.message : "failed")); }} /> : <button onClick={() => setPendingDelete(r.id)} className="text-[11px] text-red-700 hover:underline">{t("حذف", "Delete")}</button>) : null}
+                  {draft[r.id] ? <button onClick={() => void save(r)} className="rounded-md bg-primary px-2.5 py-1 text-[11px] text-primary-foreground" style={{ fontWeight: 600 }}>{t("حفظ", "Save")}</button> : null}
+                  {!r.isSystem && !draft[r.id] ? (pendingDelete === r.id ? <InlineConfirm label={t("حذف الدور؟", "Delete role?")} onCancel={() => setPendingDelete(null)} onConfirm={() => { void api.admin.deleteRole(r.id).then(() => { setPendingDelete(null); void reload(); }).catch((e) => push("error", e instanceof ApiError ? e.message : "failed")); }} /> : <button onClick={() => setPendingDelete(r.id)} className="text-[11px] text-danger hover:underline">{t("حذف", "Delete")}</button>) : null}
                 </td>
               ))}
             </tr>
           </tbody>
         </table>
       </section>
-      <section className="rounded-2xl border border-border bg-white p-4">
+      <section className="rounded-2xl border border-border bg-card p-4">
         <div className="text-sm text-foreground mb-2" style={{ fontWeight: 700 }}>{t("دور مخصص جديد", "New custom role")}</div>
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted-foreground">KEY<input value={newRole.key} onChange={(e) => setNewRole({ ...newRole, key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })} placeholder="SALES_DESK" className="mt-1 w-40 rounded-md border border-border px-2 py-1.5 text-xs font-english" dir="ltr" /></label>
           <label className="text-xs text-muted-foreground">{t("الاسم عربي", "Name (AR)")}<input value={newRole.nameAr} onChange={(e) => setNewRole({ ...newRole, nameAr: e.target.value })} className="mt-1 w-40 rounded-md border border-border px-2 py-1.5 text-xs" /></label>
           <label className="text-xs text-muted-foreground">{t("الاسم إنجليزي", "Name (EN)")}<input value={newRole.nameEn} onChange={(e) => setNewRole({ ...newRole, nameEn: e.target.value })} className="mt-1 w-40 rounded-md border border-border px-2 py-1.5 text-xs font-english" dir="ltr" /></label>
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground pb-2"><input type="checkbox" checked={newRole.scopeAssigned} onChange={(e) => setNewRole({ ...newRole, scopeAssigned: e.target.checked })} />{t("نطاق محدد (يرى المسند له فقط)", "Scoped (sees assigned companies only)")}</label>
-          <button onClick={() => void create()} disabled={newRole.key.length < 3 || !newRole.nameAr || !newRole.nameEn} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-white disabled:opacity-50" style={{ fontWeight: 600 }}><Plus className="h-3.5 w-3.5" />{t("إنشاء", "Create")}</button>
+          <button onClick={() => void create()} disabled={newRole.key.length < 3 || !newRole.nameAr || !newRole.nameEn} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground disabled:opacity-50" style={{ fontWeight: 600 }}><Plus className="h-3.5 w-3.5" />{t("إنشاء", "Create")}</button>
         </div>
       </section>
     </div>

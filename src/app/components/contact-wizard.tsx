@@ -28,11 +28,11 @@ import { useLanguage } from "./LanguageContext";
 export type RoleKey = "isCustomer" | "isSupplier" | "isEmployee" | "isShareholder" | "isFreelancer";
 
 export const ROLES: Array<{ key: RoleKey; label: string; icon: any; bg: string; text: string }> = [
-  { key: "isCustomer",    label: "عميل",       icon: Users,      bg: "bg-blue-100",   text: "text-blue-700" },
-  { key: "isSupplier",    label: "مورد",       icon: Building2,  bg: "bg-green-100",  text: "text-green-700" },
-  { key: "isEmployee",    label: "موظف",       icon: Briefcase,  bg: "bg-purple-100", text: "text-purple-700" },
-  { key: "isShareholder", label: "مساهم",      icon: Landmark,   bg: "bg-pink-100",   text: "text-pink-700" },
-  { key: "isFreelancer",  label: "فري لانسر",  icon: UserCheck,  bg: "bg-cyan-100",   text: "text-cyan-700" },
+  { key: "isCustomer",    label: "عميل",       icon: Users,      bg: "bg-info-subtle",   text: "text-info" },
+  { key: "isSupplier",    label: "مورد",       icon: Building2,  bg: "bg-success-subtle",  text: "text-success" },
+  { key: "isEmployee",    label: "موظف",       icon: Briefcase,  bg: "bg-info-subtle", text: "text-info" },
+  { key: "isShareholder", label: "مساهم",      icon: Landmark,   bg: "bg-danger-subtle",   text: "text-danger" },
+  { key: "isFreelancer",  label: "فري لانسر",  icon: UserCheck,  bg: "bg-info-subtle",   text: "text-info" },
 ];
 
 // English counterparts for ROLES labels (rendered via t(role.label, ROLE_LABEL_EN[role.key]))
@@ -184,8 +184,8 @@ function WizardModal(props: {
   const { t } = useLanguage();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border/50">
           <h2 className="text-lg text-foreground" style={{ fontWeight: 700 }}>{isEditing ? t("تعديل جهة اتصال", "Edit contact") : t("إضافة جهة اتصال", "Add contact")}</h2>
@@ -197,7 +197,7 @@ function WizardModal(props: {
           <div className="flex items-center gap-2 text-xs">
             {[1, 2, 3, 4].map(s => (
               <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`h-7 w-7 rounded-full flex items-center justify-center font-english font-semibold ${step === s ? "bg-primary text-white" : step > s ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/60"}`}>{s}</div>
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center font-english font-semibold ${step === s ? "bg-primary text-primary-foreground" : step > s ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/60"}`}>{s}</div>
                 <span className={step === s ? "text-foreground font-semibold" : "text-muted-foreground/60"}>
                   {s === 1 ? t("النوع", "Type") : s === 2 ? t("البيانات", "Details") : s === 3 ? t("الأدوار", "Roles") : t("التفاصيل", "More info")}
                 </span>
@@ -339,7 +339,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           <select value={form.country} onChange={(e) => {
             const c = COUNTRY_OPTIONS.find(o => o.code === e.target.value);
             setForm({ ...form, country: e.target.value, defaultCurrency: c?.currency || "SAR", isForeign: e.target.value !== "SA" });
-          }} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white">
+          }} className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card">
             {COUNTRY_OPTIONS.map(o => <option key={o.code} value={o.code}>{t(o.label.ar, o.label.en)}</option>)}
           </select>
         </div>
@@ -423,14 +423,14 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 {t(r.label, ROLE_LABEL_EN[r.key])}
               </span>
               <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? "border-primary bg-primary" : "border-border"}`}>
-                {active && <span className="text-white text-xs">✓</span>}
+                {active && <span className="text-primary-foreground text-xs">✓</span>}
               </span>
             </button>
           );
         })}
       </div>
       {!(form.isCustomer || form.isSupplier || form.isEmployee || form.isShareholder || form.isFreelancer) && (
-        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-warning bg-warning-subtle border border-warning-border rounded-lg px-3 py-2">
           <AlertCircle className="h-3.5 w-3.5" /> {t("اختر دوراً واحداً على الأقل", "Select at least one role")}
         </div>
       )}
@@ -484,7 +484,7 @@ function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       <div className="rounded-lg border border-border bg-muted/40 p-4">
         <div className="text-xs text-muted-foreground/60 mb-2">{t("معاينة", "Preview")}</div>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center font-bold">
+          <div className="w-12 h-12 rounded-full bg-success text-primary-foreground flex items-center justify-center font-bold">
             {(form.displayName || t("؟", "?")).slice(0, 2)}
           </div>
           <div className="flex-1 min-w-0">
@@ -495,7 +495,7 @@ function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               ))}
             </div>
           </div>
-          {form.isForeign && <span className="text-xs px-2 py-1 rounded bg-amber-50 text-amber-700">{t("خارجي", "Foreign")}</span>}
+          {form.isForeign && <span className="text-xs px-2 py-1 rounded bg-warning-subtle text-warning">{t("خارجي", "Foreign")}</span>}
         </div>
       </div>
     </div>

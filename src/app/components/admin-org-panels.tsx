@@ -21,7 +21,7 @@ const fmtBytes = (b: number) => b >= 1e9 ? `${(b / 1e9).toFixed(2)} GB` : b >= 1
 
 function Stat({ icon: Icon, label, value, sub }: { icon: any; label: string; value: React.ReactNode; sub?: string }) {
   return (
-    <div className="rounded-xl border border-border bg-white p-3">
+    <div className="rounded-xl border border-border bg-card p-3">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Icon className="h-3.5 w-3.5 text-primary" />{label}</div>
       <div className="mt-1 text-lg text-foreground font-english tabular-nums" style={{ fontWeight: 800 }} dir="ltr">{value}</div>
       {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
@@ -34,14 +34,14 @@ export function AdminOrgUsagePanel({ orgId, subscription, onManage }: { orgId: s
   const [u, setU] = useState<AdminOrgUsage | null>(null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { api.admin.orgUsage(orgId).then(setU).catch((e) => setErr(e instanceof ApiError ? e.message : "failed")); }, [orgId]);
-  if (err) return <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">{err}</div>;
-  if (!u) return <div className="flex items-center justify-center rounded-2xl border border-border bg-white py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
-  const health = { active: ["🟢", t("نشطة", "Active"), "text-emerald-700 bg-emerald-50"], quiet: ["🟡", t("هادئة", "Quiet"), "text-amber-800 bg-amber-50"], idle: ["⚪", t("خاملة", "Idle"), "text-muted-foreground bg-muted"], new: ["🔵", t("جديدة", "New"), "text-blue-700 bg-blue-50"] }[u.activity.health];
-  const load = { light: [t("خفيف", "Light"), "text-emerald-700"], normal: [t("عادي", "Normal"), "text-blue-700"], heavy: [t("ثقيل · راقبه", "Heavy · watch it"), "text-red-700"] }[u.footprint.load];
+  if (err) return <div className="rounded-xl border border-danger-border bg-danger-subtle p-3 text-xs text-danger">{err}</div>;
+  if (!u) return <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
+  const health = { active: ["🟢", t("نشطة", "Active"), "text-success bg-success-subtle"], quiet: ["🟡", t("هادئة", "Quiet"), "text-warning bg-warning-subtle"], idle: ["⚪", t("خاملة", "Idle"), "text-muted-foreground bg-muted"], new: ["🔵", t("جديدة", "New"), "text-info bg-info-subtle"] }[u.activity.health];
+  const load = { light: [t("خفيف", "Light"), "text-success"], normal: [t("عادي", "Normal"), "text-info"], heavy: [t("ثقيل · راقبه", "Heavy · watch it"), "text-danger"] }[u.footprint.load];
   const c = u.counts;
   const opsPerDay = Math.round((u.activity.events30 / 30) * 10) / 10;
   return (
-    <section className="rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(11,27,73,0.04)]">
+    <section className="rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(11,27,73,0.04)]">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><Activity className="h-4 w-4 text-primary" />{t("النشاط والحمل على المنصة", "Activity & platform load")}</h2>
         <div className="flex items-center gap-2 text-xs">
@@ -55,11 +55,11 @@ export function AdminOrgUsagePanel({ orgId, subscription, onManage }: { orgId: s
           <div dir="ltr" className="h-[120px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={u.activity.series} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                <defs><linearGradient id="gOps" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1276E3" stopOpacity={0.3} /><stop offset="100%" stopColor="#1276E3" stopOpacity={0} /></linearGradient></defs>
+                <defs><linearGradient id="gOps" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5875DB" stopOpacity={0.3} /><stop offset="100%" stopColor="#5875DB" stopOpacity={0} /></linearGradient></defs>
                 <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} tick={{ fontSize: 9, fill: "#8A94A6" }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={30} />
                 <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E5EAF2", fontSize: 11 }} />
-                <Area type="monotone" dataKey="events" name={t("عمليات", "ops")} stroke="#1276E3" strokeWidth={2} fill="url(#gOps)" />
-                <Area type="monotone" dataKey="activeUsers" name={t("مستخدمون نشطون", "active users")} stroke="#179FC5" strokeWidth={1.5} fill="none" />
+                <Area type="monotone" dataKey="events" name={t("عمليات", "ops")} stroke="#5875DB" strokeWidth={2} fill="url(#gOps)" />
+                <Area type="monotone" dataKey="activeUsers" name={t("مستخدمون نشطون", "active users")} stroke="#8FA3F0" strokeWidth={1.5} fill="none" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -81,10 +81,10 @@ export function AdminOrgUsagePanel({ orgId, subscription, onManage }: { orgId: s
             <>
               <div className="mt-2 text-foreground" style={{ fontWeight: 700 }}>{subscription.plan?.name || "—"} <span className="text-xs font-normal text-muted-foreground">· {subscription.status}</span></div>
               <div className="mt-2"><SubscriptionProgress start={subscription.currentPeriodStart} end={subscription.currentPeriodEnd || subscription.trialEndsAt} status={subscription.status} lifetime={subscription.lifetime} sponsored={subscription.sponsored} /></div>
-              {subscription.note ? <div className="mt-2 text-[11px] text-amber-900">📝 {subscription.note}</div> : null}
+              {subscription.note ? <div className="mt-2 text-[11px] text-warning">📝 {subscription.note}</div> : null}
             </>
           ) : <div className="mt-2 text-xs text-muted-foreground">{t("لا اشتراك", "No subscription")}</div>}
-          <button type="button" onClick={onManage} className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-xs text-white hover:bg-primary/90" style={{ fontWeight: 600 }}>{t("تغيير الاشتراك", "Change subscription")}</button>
+          <button type="button" onClick={onManage} className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground hover:bg-primary/90" style={{ fontWeight: 600 }}>{t("تغيير الاشتراك", "Change subscription")}</button>
           <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground"><KeyRound className="h-3 w-3" />{t("لا نعرض أرقام العميل المالية هنا — فقط ما تحمله المنصة.", "No customer financials here — only what the platform carries.")}</div>
         </div>
       </div>
@@ -108,7 +108,7 @@ export function AdminOrgNotes({ orgId, push }: { orgId: string; push: (kind: "su
     finally { setBusy(false); }
   };
   return (
-    <section className="rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(11,27,73,0.04)]">
+    <section className="rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(11,27,73,0.04)]">
       <header className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><FileText className="h-4 w-4 text-primary" />{t("ملاحظات الأدمن (خاصة · لا يراها العميل)", "Admin notes (private · never shown to the customer)")}</h2>
         <span className="text-xs text-muted-foreground">{items.length}</span>
@@ -116,12 +116,12 @@ export function AdminOrgNotes({ orgId, push }: { orgId: string; push: (kind: "su
       <div className="p-4">
         <div className="flex gap-2">
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder={t("مثال: اتفاق شفوي 26/08 — يشترك بالمؤسسي وأفتح له شركتين إضافيتين مجانًا…", "e.g. verbal deal 26/08 — pays Enterprise, two extra companies on us…")} className="flex-1 rounded-lg border border-border px-3 py-2 text-sm" />
-          <button type="button" onClick={() => void add()} disabled={busy || !body.trim()} className="self-end inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-white disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}{t("إضافة", "Add")}</button>
+          <button type="button" onClick={() => void add()} disabled={busy || !body.trim()} className="self-end inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}{t("إضافة", "Add")}</button>
         </div>
         {items.length === 0 ? <p className="mt-3 text-xs text-muted-foreground">{t("لا ملاحظات بعد.", "No notes yet.")}</p> : (
           <ul className="mt-3 divide-y divide-border/60">
             {items.map((n) => (
-              <li key={n.id} className={`flex items-start gap-3 py-2.5 ${n.pinned ? "bg-amber-50/40 -mx-2 px-2 rounded-lg" : ""}`}>
+              <li key={n.id} className={`flex items-start gap-3 py-2.5 ${n.pinned ? "bg-warning-subtle/40 -mx-2 px-2 rounded-lg" : ""}`}>
                 <div className="min-w-0 flex-1">
                   <div className="whitespace-pre-wrap text-sm text-foreground">{n.body}</div>
                   <div className="mt-0.5 text-[10px] text-muted-foreground font-english" dir="ltr">{n.adminEmail} · {new Date(n.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
@@ -130,7 +130,7 @@ export function AdminOrgNotes({ orgId, push }: { orgId: string; push: (kind: "su
                 {pendingDelete === n.id ? (
                   <InlineConfirm label={t("حذف الملاحظة؟", "Delete note?")} onConfirm={() => { void api.admin.deleteNote(n.id).then(() => { setPendingDelete(null); void load(); }); }} onCancel={() => setPendingDelete(null)} />
                 ) : (
-                  <button type="button" onClick={() => setPendingDelete(n.id)} className="rounded-md p-1 text-muted-foreground hover:bg-red-50 hover:text-red-700"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => setPendingDelete(n.id)} className="rounded-md p-1 text-muted-foreground hover:bg-danger-subtle hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
                 )}
               </li>
             ))}
@@ -143,7 +143,7 @@ export function AdminOrgNotes({ orgId, push }: { orgId: string; push: (kind: "su
 
 // ── Inbox · tickets + AI threads for one company (Admin v3 R2 · CEO 27/08) ───
 
-const STATUS_TONE: Record<string, string> = { OPEN: "bg-amber-50 text-amber-800", PENDING: "bg-blue-50 text-blue-700", RESOLVED: "bg-emerald-50 text-emerald-700", CLOSED: "bg-muted text-muted-foreground" };
+const STATUS_TONE: Record<string, string> = { OPEN: "bg-warning-subtle text-warning", PENDING: "bg-info-subtle text-info", RESOLVED: "bg-success-subtle text-success", CLOSED: "bg-muted text-muted-foreground" };
 
 export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: string; threads: Array<{ id: string; title: string | null; lastMessageAt: string; messageCount: number; user: { email: string } }>; canWrite: boolean; push: (kind: "success" | "error", msg: string) => void }) {
   const { t } = useLanguage();
@@ -172,13 +172,13 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
   };
   return (
     <div className="grid gap-4 xl:grid-cols-5">
-      <section className="xl:col-span-2 rounded-2xl border border-border bg-white">
+      <section className="xl:col-span-2 rounded-2xl border border-border bg-card">
         <header className="flex items-center justify-between border-b border-border/70 px-4 py-3"><h2 className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><MessageSquare className="h-4 w-4 text-primary" />{t("التذاكر", "Tickets")} <span className="text-xs text-muted-foreground">{tickets.length}</span></h2>{canWrite && <button onClick={() => setCreating(!creating)} className="inline-flex items-center gap-1 text-xs text-primary"><PlusIcon className="h-3.5 w-3.5" />{t("تذكرة جديدة", "New ticket")}</button>}</header>
         {creating && (
           <div className="border-b border-border/70 p-3 space-y-2 bg-primary/5">
             <input value={newSubject} onChange={(e) => setNewSubject(e.target.value)} placeholder={t("الموضوع", "Subject")} className="w-full rounded-md border border-border px-2 py-1.5 text-sm" />
             <textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={2} placeholder={t("أول رسالة (اختياري)", "First message (optional)")} className="w-full rounded-md border border-border px-2 py-1.5 text-sm" />
-            <div className="flex gap-2"><button onClick={() => void create()} disabled={busy || !newSubject.trim()} className="rounded-md bg-primary px-3 py-1.5 text-xs text-white disabled:opacity-50" style={{ fontWeight: 600 }}>{t("إنشاء", "Create")}</button><button onClick={() => setCreating(false)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button></div>
+            <div className="flex gap-2"><button onClick={() => void create()} disabled={busy || !newSubject.trim()} className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-50" style={{ fontWeight: 600 }}>{t("إنشاء", "Create")}</button><button onClick={() => setCreating(false)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button></div>
           </div>
         )}
         <ul className="divide-y divide-border/60 max-h-[420px] overflow-auto">
@@ -198,7 +198,7 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
           ))}
         </ul>
       </section>
-      <section className="xl:col-span-3 rounded-2xl border border-border bg-white flex flex-col min-h-[420px]">
+      <section className="xl:col-span-3 rounded-2xl border border-border bg-card flex flex-col min-h-[420px]">
         {!open ? <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t("اختر تذكرة لعرض المحادثة والرد", "Pick a ticket to read and reply")}</div> : (
           <>
             <header className="flex flex-wrap items-center gap-2 border-b border-border/70 px-4 py-3">
@@ -208,16 +208,16 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
               {canWrite && <div className="ms-auto flex gap-1">
                 {open.status !== "OPEN" && <button onClick={() => void setStatus("OPEN")} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px]"><CircleDot className="h-3 w-3" />{t("فتح", "Open")}</button>}
                 {open.status !== "PENDING" && <button onClick={() => void setStatus("PENDING")} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px]"><ClockIcon className="h-3 w-3" />{t("بانتظار العميل", "Pending")}</button>}
-                {open.status !== "RESOLVED" && <button onClick={() => void setStatus("RESOLVED")} className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700"><CheckCircle2 className="h-3 w-3" />{t("حُلّت", "Resolve")}</button>}
+                {open.status !== "RESOLVED" && <button onClick={() => void setStatus("RESOLVED")} className="inline-flex items-center gap-1 rounded border border-success-border bg-success-subtle px-2 py-1 text-[11px] text-success"><CheckCircle2 className="h-3 w-3" />{t("حُلّت", "Resolve")}</button>}
               </div>}
             </header>
             <div className="flex-1 space-y-2 overflow-auto p-4">
               {open.messages.length === 0 && <p className="text-xs text-muted-foreground">{t("لا رسائل بعد.", "No messages yet.")}</p>}
               {open.messages.map((m) => (
                 <div key={m.id} className={`flex ${m.authorType === "ADMIN" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.authorType === "ADMIN" ? "bg-[#0B1B49] text-white" : "bg-muted text-foreground"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.authorType === "ADMIN" ? "bg-[#1A1E48] text-primary-foreground" : "bg-muted text-foreground"}`}>
                     <div className="whitespace-pre-wrap">{m.body}</div>
-                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-white/60" : "text-muted-foreground"}`} dir="ltr">{m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
+                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-primary-foreground/60" : "text-muted-foreground"}`} dir="ltr">{m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
                   </div>
                 </div>
               ))}
@@ -225,7 +225,7 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
             {canWrite && (
               <div className="flex gap-2 border-t border-border/70 p-3">
                 <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={t("اكتب الرد للعميل…", "Write a reply to the customer…")} className="flex-1 rounded-lg border border-border px-3 py-2 text-sm" />
-                <button onClick={() => void send()} disabled={busy || !reply.trim()} className="self-end inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-white disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{t("إرسال", "Send")}</button>
+                <button onClick={() => void send()} disabled={busy || !reply.trim()} className="self-end inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground disabled:opacity-50" style={{ fontWeight: 600 }}>{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{t("إرسال", "Send")}</button>
               </div>
             )}
           </>

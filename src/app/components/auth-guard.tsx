@@ -65,7 +65,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // before the server confirms the current session.
   if (state.loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white">
+      <div className="fixed inset-0 flex items-center justify-center bg-card">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
@@ -137,9 +137,9 @@ function AccountRestoreScreen({ requestedAt }: { requestedAt: string }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-muted/50 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl space-y-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-full bg-red-50 flex items-center justify-center text-xl">⚠️</div>
+          <div className="h-11 w-11 rounded-full bg-danger-subtle flex items-center justify-center text-xl">⚠️</div>
           <div>
             <h1 className="text-foreground" style={{ fontWeight: 700, fontSize: "1.1rem" }}>
               {t("حسابك مجدول للحذف", "Your account is scheduled for deletion")}
@@ -157,19 +157,19 @@ function AccountRestoreScreen({ requestedAt }: { requestedAt: string }) {
           )}
         </p>
 
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">
+        <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2.5 text-xs text-danger">
           {t("إن لم تلغِ، يُحذف الحساب نهائياً في", "If you don't cancel, the account is permanently deleted on")}{" "}
           <span className="font-english font-semibold" dir="ltr">{purgeAfter.toISOString().slice(0, 10)}</span>
           {" "}({t("متبقّي", "left")} <span className="font-english font-semibold">{daysLeft}</span> {t("يوم", "days")}).
         </div>
 
-        {error && <div className="text-xs text-red-600">{error}</div>}
+        {error && <div className="text-xs text-danger">{error}</div>}
 
         <div className="space-y-2">
           <button
             onClick={restore}
             disabled={busy}
-            className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-white hover:bg-primary disabled:opacity-60"
+            className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary disabled:opacity-60"
           >
             {busy ? t("يُستعاد…", "Restoring…") : t("استرداد الحساب · إلغاء الحذف", "Restore account · cancel deletion")}
           </button>

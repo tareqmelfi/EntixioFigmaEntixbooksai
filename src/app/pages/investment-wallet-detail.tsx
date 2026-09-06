@@ -152,7 +152,7 @@ export function InvestmentWalletDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -162,11 +162,11 @@ export function InvestmentWalletDetail() {
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setForm({ ...form, kind: "TRADING" })}
                   className={`rounded-lg border p-3 text-start transition-colors ${form.kind === "TRADING" ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:bg-muted/40"}`}>
-                  <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "TRADING" ? "#1276E3" : "inherit" }}><TrendingUp className="h-4 w-4" />{t("محفظة تداول", "Trading wallet")}</div>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "TRADING" ? "#5875DB" : "inherit" }}><TrendingUp className="h-4 w-4" />{t("محفظة تداول", "Trading wallet")}</div>
                   <div className="text-[10px] text-muted-foreground mt-1 leading-4">{t("أموالك أنت · تُسجَّل كأصل استثماري وكل حركة تقيّد", "Your own money · an investment asset, every move posts")}</div>
                 </button>
                 <button type="button" onClick={() => setForm({ ...form, kind: "FUNDED_PROP" })}
-                  className={`rounded-lg border p-3 text-start transition-colors ${form.kind === "FUNDED_PROP" ? "border-violet-500 bg-violet-50 ring-1 ring-violet-300" : "border-border hover:bg-muted/40"}`}>
+                  className={`rounded-lg border p-3 text-start transition-colors ${form.kind === "FUNDED_PROP" ? "border-info bg-info-subtle ring-1 ring-info-border" : "border-border hover:bg-muted/40"}`}>
                   <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "FUNDED_PROP" ? "#7C3AED" : "inherit" }}><Landmark className="h-4 w-4" />{t("محفظة ممولة", "Funded wallet")}</div>
                   <div className="text-[10px] text-muted-foreground mt-1 leading-4">{t("رأس المال للشركة المموّلة · يُتتبع خارج الدفاتر، ومالك فقط (الاشتراك + الأرباح) يُقيد", "Capital is the firm's · tracked off-books; only your money posts")}</div>
                 </button>
@@ -179,7 +179,7 @@ export function InvestmentWalletDetail() {
                   <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="TW-0001" dir="ltr" className="font-english" />
                   {isNew && (
                     <button type="button" onClick={async () => { try { const { code } = await api.investments.nextWalletCode(); setForm((f) => ({ ...f, code })); } catch { /* keep */ } }}
-                      title={t("توليد تلقائي", "Auto-generate")} className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-blue-50">
+                      title={t("توليد تلقائي", "Auto-generate")} className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-info-subtle">
                       <Sparkles className="h-4 w-4" />
                     </button>
                   )}
@@ -211,7 +211,7 @@ export function InvestmentWalletDetail() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-violet-300 bg-violet-50/50">
+            <Card className="border-info-border bg-info-subtle/50">
               <CardContent className="p-5 space-y-4">
                 <div>
                   <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات التمويل", "Funding details")}</div>
@@ -246,40 +246,40 @@ export function InvestmentWalletDetail() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {wallet.kind === "FUNDED_PROP" ? (
           <>
-            <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
+            <div className="rounded-lg border border-info-border bg-info-subtle p-3">
               <div className="text-xs text-muted-foreground">{t("رأس المال المموّل (خارج الدفاتر)", "Funded capital (off-books)")}</div>
-              <div className="font-english text-violet-700 mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(wallet.fundedCapital)} {wallet.currency}</div>
+              <div className="font-english text-info mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(wallet.fundedCapital)} {wallet.currency}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("حصتك من الأرباح", "Your profit share")}</div>
               <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{wallet.profitSplitPct != null ? `${wallet.profitSplitPct}%` : "—"}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("توزيعات مستلمة", "Payouts received")}</div>
-              <div className="font-english text-emerald-600 mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.payouts)}</div>
+              <div className="font-english text-success mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.payouts)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("صافي النتيجة", "Net result")}</div>
-              <div className={`font-english mt-1 ${Number(report?.totals?.netResult || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`} style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.netResult)}</div>
+              <div className={`font-english mt-1 ${Number(report?.totals?.netResult || 0) >= 0 ? "text-success" : "text-danger"}`} style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.netResult)}</div>
             </div>
           </>
         ) : (
           <>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("إجمالي الإيداعات", "Total deposits")}</div>
               <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.deposits)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("السحوبات", "Withdrawals")}</div>
               <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.withdrawals)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("الربح المحقق", "Realized P&L")}</div>
-              <div className={`font-english mt-1 ${Number(report?.totals?.realizedPnl || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`} style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.realizedPnl)}</div>
+              <div className={`font-english mt-1 ${Number(report?.totals?.realizedPnl || 0) >= 0 ? "text-success" : "text-danger"}`} style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.realizedPnl)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("صافي النتيجة", "Net result")}</div>
-              <div className={`font-english mt-1 ${Number(report?.totals?.netResult || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`} style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.netResult)}</div>
+              <div className={`font-english mt-1 ${Number(report?.totals?.netResult || 0) >= 0 ? "text-success" : "text-danger"}`} style={{ fontWeight: 700 }} dir="ltr">{money(report?.totals?.netResult)}</div>
             </div>
           </>
         )}
@@ -345,9 +345,9 @@ export function InvestmentWalletDetail() {
                       <td className="py-2.5 px-4 font-english text-xs text-muted-foreground" dir="ltr">{x.date?.slice(0, 10)}</td>
                       <td className="py-2.5 px-4">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          x.kind === "DEPOSIT" || x.kind === "PROFIT_PAYOUT" || x.kind === "TRADE_SELL" ? "bg-emerald-100 text-emerald-700"
-                          : x.kind === "WITHDRAWAL" || x.kind === "FEE" || x.kind === "SUBSCRIPTION" || x.kind === "PROFIT_SHARE_COST" ? "bg-amber-100 text-amber-700"
-                          : "bg-blue-100 text-blue-700"}`}>
+                          x.kind === "DEPOSIT" || x.kind === "PROFIT_PAYOUT" || x.kind === "TRADE_SELL" ? "bg-success-subtle text-success"
+                          : x.kind === "WITHDRAWAL" || x.kind === "FEE" || x.kind === "SUBSCRIPTION" || x.kind === "PROFIT_SHARE_COST" ? "bg-warning-subtle text-warning"
+                          : "bg-info-subtle text-info"}`}>
                           {KIND_LABELS[x.kind] ? t(KIND_LABELS[x.kind].ar, KIND_LABELS[x.kind].en) : x.kind}
                         </span>
                       </td>
@@ -355,18 +355,18 @@ export function InvestmentWalletDetail() {
                         {x.symbol ? <span className="font-english" dir="ltr">{Number(x.quantity).toLocaleString(displayLocale())} × {x.symbol} @ {money(x.price)}</span> : (x.notes || "—")}
                       </td>
                       <td className="py-2.5 px-4 font-english" style={{ fontWeight: 600 }} dir="ltr">{money(x.amount)}</td>
-                      <td className={`py-2.5 px-4 font-english text-xs ${Number(x.realizedPnl || 0) > 0 ? "text-emerald-600" : Number(x.realizedPnl || 0) < 0 ? "text-red-600" : "text-muted-foreground/50"}`} dir="ltr">
+                      <td className={`py-2.5 px-4 font-english text-xs ${Number(x.realizedPnl || 0) > 0 ? "text-success" : Number(x.realizedPnl || 0) < 0 ? "text-danger" : "text-muted-foreground/50"}`} dir="ltr">
                         {x.realizedPnl != null ? money(x.realizedPnl) : "—"}
                       </td>
                       <td className="py-2.5 px-4 text-xs">
                         {x.journalEntryId
-                          ? <span className="text-emerald-700">{t("مقيّد ✓", "posted ✓")}</span>
+                          ? <span className="text-success">{t("مقيّد ✓", "posted ✓")}</span>
                           : <span className="text-muted-foreground/50">{t("سجل فقط", "register")}</span>}
                       </td>
                       <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                         {pendingTxnDelete === x.id
                           ? <InlineConfirm onConfirm={() => handleDeleteTxn(x.id)} onCancel={() => setPendingTxnDelete(null)} />
-                          : <button onClick={() => setPendingTxnDelete(x.id)} className="rounded-md p-1 text-red-500 hover:bg-red-50" title={t("حذف الحركة وقيدها", "Delete transaction and its entry")}><Trash2 className="h-3.5 w-3.5" /></button>}
+                          : <button onClick={() => setPendingTxnDelete(x.id)} className="rounded-md p-1 text-danger hover:bg-danger-subtle" title={t("حذف الحركة وقيدها", "Delete transaction and its entry")}><Trash2 className="h-3.5 w-3.5" /></button>}
                       </td>
                     </tr>
                   ))}
@@ -383,11 +383,11 @@ export function InvestmentWalletDetail() {
         <Button type="button" variant="outline" onClick={handleCloseToggle} className="border-border">
           {wallet.status === "ACTIVE" ? <><Lock className="me-2 h-4 w-4" />{t("إغلاق المحفظة", "Close wallet")}</> : <><LockOpen className="me-2 h-4 w-4" />{t("إعادة فتح", "Reopen")}</>}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("حذف المحفظة نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this wallet permanently? (allowed only with no transactions)")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{t("حذف المحفظة نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this wallet permanently? (allowed only with no transactions)")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -407,17 +407,17 @@ export function InvestmentWalletDetail() {
         {!isNew && wallet && (
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="font-english text-xs text-primary" dir="ltr">{wallet.code}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${wallet.kind === "FUNDED_PROP" ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700"}`}>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${wallet.kind === "FUNDED_PROP" ? "bg-info-subtle text-info" : "bg-info-subtle text-info"}`}>
               {wallet.kind === "FUNDED_PROP" ? t("محفظة ممولة", "Funded wallet") : t("محفظة تداول", "Trading wallet")}
             </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${wallet.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${wallet.status === "ACTIVE" ? "bg-success-subtle text-success" : "bg-surface-hover text-muted-foreground"}`}>
               {wallet.status === "ACTIVE" ? t("نشطة", "Active") : t("مغلقة", "Closed")}
             </span>
             <span className="text-xs text-muted-foreground">{wallet.broker || wallet.fundedProvider || ""} · {wallet.currency}</span>
           </div>
         )}
       </div>
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
     </div>
   );

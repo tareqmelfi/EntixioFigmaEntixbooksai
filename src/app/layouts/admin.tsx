@@ -60,10 +60,10 @@ export function AdminRoot() {
   );
 
   const sidebar = (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-e border-border bg-white">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-e border-border bg-card">
       <div className="flex items-center gap-2 px-4 py-4 border-b border-border">
         <Link to="/admin" dir="ltr" lang="en" className="font-english text-foreground" style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.01em" }}><EntixWordmark size={17} /></Link>
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#0B1B49] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"><ShieldCheck className="h-3 w-3" />Admin</span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#1A1E48] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground"><ShieldCheck className="h-3 w-3" />Admin</span>
         <button type="button" className="ms-auto lg:hidden text-muted-foreground" onClick={() => setMenuOpen(false)} aria-label="close"><X className="h-4 w-4" /></button>
       </div>
       {nav}
@@ -81,13 +81,13 @@ export function AdminRoot() {
       <div className={`fixed inset-y-0 start-0 z-50 lg:hidden transition-transform ${menuOpen ? "translate-x-0" : language === "ar" ? "translate-x-full" : "-translate-x-full"}`}>{sidebar}</div>
 
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-[#0B1B49] px-4 text-white">
+        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-[#1A1E48] px-4 text-primary-foreground">
           <button type="button" className="lg:hidden" onClick={() => setMenuOpen(true)} aria-label="menu"><Menu className="h-5 w-5" /></button>
           <div className="text-sm font-semibold">{t("وحدة تحكم الإدارة", "Admin Console")}</div>
-          <div className="text-xs text-white/60 hidden md:block">{t("كل إجراء يُسجَّل في سجل الأثر", "Every action is audit-logged")}</div>
+          <div className="text-xs text-primary-foreground/60 hidden md:block">{t("كل إجراء يُسجَّل في سجل الأثر", "Every action is audit-logged")}</div>
           <div className="ms-auto flex items-center gap-1">
-            <button type="button" onClick={toggleLanguage} className="rounded-md px-2 py-1 text-xs hover:bg-white/10 inline-flex items-center gap-1" title={t("English", "العربية")}><Languages className="h-3.5 w-3.5" />{language === "ar" ? "EN" : "AR"}</button>
-            <button type="button" onClick={async () => { await authStore.logout(); navigate("/login", { replace: true }); }} className="rounded-md px-2 py-1 text-xs hover:bg-white/10 inline-flex items-center gap-1"><LogOut className="h-3.5 w-3.5" />{t("خروج", "Sign out")}</button>
+            <button type="button" onClick={toggleLanguage} className="rounded-md px-2 py-1 text-xs hover:bg-card/10 inline-flex items-center gap-1" title={t("English", "العربية")}><Languages className="h-3.5 w-3.5" />{language === "ar" ? "EN" : "AR"}</button>
+            <button type="button" onClick={async () => { await authStore.logout(); navigate("/login", { replace: true }); }} className="rounded-md px-2 py-1 text-xs hover:bg-card/10 inline-flex items-center gap-1"><LogOut className="h-3.5 w-3.5" />{t("خروج", "Sign out")}</button>
           </div>
         </header>
         <SessionExpiredBanner />

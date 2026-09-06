@@ -86,7 +86,7 @@ export function MarketingChat() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={t("محادثة المساعد", "Assistant chat")}
-        className={`fixed z-40 bottom-20 lg:bottom-6 ${isAr ? "left-4" : "right-4"} w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-primary text-white shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer`}
+        className={`fixed z-40 bottom-20 lg:bottom-6 ${isAr ? "left-4" : "right-4"} w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer`}
         style={{ width: 52, height: 52 }}
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
@@ -99,22 +99,22 @@ export function MarketingChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            className={`fixed z-40 bottom-[136px] lg:bottom-24 ${isAr ? "left-4" : "right-4"} w-[calc(100vw-2rem)] max-w-[360px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col`}
+            className={`fixed z-40 bottom-[136px] lg:bottom-24 ${isAr ? "left-4" : "right-4"} w-[calc(100vw-2rem)] max-w-[360px] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col`}
             dir={isAr ? "rtl" : "ltr"}
           >
             {/* Header */}
             <div className="bg-foreground px-4 py-3.5 flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+                <Bot className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="flex-1">
-                <div className="text-white" style={{ fontSize: "14px", fontWeight: 700 }}>{t("مساعد ENTIX", "ENTIX Assistant")}</div>
-                <div className="flex items-center gap-1.5 text-white/60" style={{ fontSize: "11px" }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                <div className="text-primary-foreground" style={{ fontSize: "14px", fontWeight: 700 }}>{t("مساعد ENTIX", "ENTIX Assistant")}</div>
+                <div className="flex items-center gap-1.5 text-primary-foreground/60" style={{ fontSize: "11px" }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
                   {t("متاح — رد فوري", "Online — instant reply")}
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white transition-colors cursor-pointer" aria-label={t("إغلاق", "Close")}>
+              <button onClick={() => setOpen(false)} className="text-primary-foreground/60 hover:text-primary-foreground transition-colors cursor-pointer" aria-label={t("إغلاق", "Close")}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -126,7 +126,7 @@ export function MarketingChat() {
                   <div
                     className={
                       m.from === "user"
-                        ? "bg-primary text-white rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]"
+                        ? "bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]"
                         : "bg-muted/60 text-foreground rounded-2xl rounded-bl-sm px-3.5 py-2.5 max-w-[85%]"
                     }
                     style={{ fontSize: "13px", lineHeight: 1.8 }}
@@ -161,20 +161,20 @@ export function MarketingChat() {
             </div>
 
             {/* Input */}
-            <div className="border-t border-gray-100 p-3 flex items-center gap-2">
+            <div className="border-t border-border p-3 flex items-center gap-2">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") send(); }}
                 placeholder={t("اكتب سؤالك…", "Type your question…")}
-                className="flex-1 rounded-xl border border-gray-200 px-3.5 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 rounded-xl border border-border px-3.5 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors"
                 style={{ fontSize: "13px" }}
               />
               <button
                 onClick={send}
                 disabled={!input.trim() || busy}
-                className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/80 disabled:opacity-40 transition-all cursor-pointer"
+                className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/80 disabled:opacity-40 transition-all cursor-pointer"
                 aria-label={t("إرسال", "Send")}
               >
                 <Send className={`w-4 h-4 ${isAr ? "-scale-x-100" : ""}`} />

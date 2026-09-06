@@ -162,7 +162,7 @@ export function BankAccountNew() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -177,7 +177,7 @@ export function BankAccountNew() {
                   <button
                     key={c.code} type="button"
                     onClick={() => handleCountryChange(c.code)}
-                    className={`rounded-full px-3.5 py-1.5 text-sm border transition-colors ${form.country === c.code ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}
+                    className={`rounded-full px-3.5 py-1.5 text-sm border transition-colors ${form.country === c.code ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}
                   >
                     <span className="font-english text-xs me-1" dir="ltr">{c.code}</span>
                     {language === "ar" ? c.ar : c.en}
@@ -220,7 +220,7 @@ export function BankAccountNew() {
                   {form.country === "US" && (
                     <Button
                       type="button" variant="outline"
-                      className="shrink-0 border-blue-200 text-xs"
+                      className="shrink-0 border-info-border text-xs"
                       onClick={() => setForm({
                         ...form,
                         name: form.name || "Mercury Checking ••5302",
@@ -260,7 +260,7 @@ export function BankAccountNew() {
                     placeholder={form.country === "SA" ? "SA00 0000 0000 0000 0000 0000" : "Country IBAN"} maxLength={34} dir="ltr" className="border-border font-english" />
                   {form.country === "SA" && form.iban.length >= 8 && (() => {
                     const d = detectKsaBank(form.iban);
-                    return d ? <p className="text-[10px] text-green-700 mt-1">{t("تم التعرّف", "Detected")}: {d.name}</p> : <p className="text-[10px] text-amber-600 mt-1">{t("لم يتم التعرّف · أدخل البنك يدوياً", "Not detected. Enter the bank manually.")}</p>;
+                    return d ? <p className="text-[10px] text-success mt-1">{t("تم التعرّف", "Detected")}: {d.name}</p> : <p className="text-[10px] text-warning mt-1">{t("لم يتم التعرّف · أدخل البنك يدوياً", "Not detected. Enter the bank manually.")}</p>;
                   })()}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -274,7 +274,7 @@ export function BankAccountNew() {
 
             {form.country === "US" && (
               <>
-                <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
+                <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-foreground">
                   <div className="font-semibold">{t("صيغة الحسابات الأمريكية", "US bank account format")}</div>
                   <p className="mt-1 text-foreground/70">{t("استخدم Routing Number + Account Number — لا يوجد IBAN في أمريكا.", "Use Routing Number + Account Number — US banks have no IBAN.")}</p>
                 </div>

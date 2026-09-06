@@ -102,7 +102,7 @@ export function ShareholderDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{isJsc ? t("بيانات المساهم", "Shareholder details") : t("بيانات المالك", "Owner details")}</div>
@@ -113,7 +113,7 @@ export function ShareholderDetail() {
                 <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="SH-001" dir="ltr" className="font-english" />
                 {isNew && (
                   <button type="button" onClick={async () => { try { const { code } = await api.investments.nextShareholderCode(); setForm((f) => ({ ...f, code })); } catch { /* keep */ } }}
-                    title={t("توليد تلقائي", "Auto-generate")} className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-blue-50">
+                    title={t("توليد تلقائي", "Auto-generate")} className="shrink-0 rounded-md border border-border px-2 text-primary hover:bg-info-subtle">
                     <Sparkles className="h-4 w-4" />
                   </button>
                 )}
@@ -155,15 +155,15 @@ export function ShareholderDetail() {
   const detailView = person && (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الأسهم المملوكة", "Shares held")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.3rem" }} dir="ltr">{num(person.shareCount)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("متوسط تكلفة السهم", "Avg cost per share")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.3rem" }} dir="ltr">{person.avgCost != null ? money(person.avgCost) : "—"}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("إجمالي الاستثمار", "Total invested")}</div>
           <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.3rem" }} dir="ltr">{person.avgCost != null ? money(Number(person.shareCount || 0) * Number(person.avgCost)) : "—"}</div>
         </div>
@@ -201,15 +201,15 @@ export function ShareholderDetail() {
                       <tr key={x.id} className="border-b border-border/50 hover:bg-primary/5">
                         <td className="py-2.5 px-4 font-english text-xs text-muted-foreground" dir="ltr">{x.date?.slice(0, 10)}</td>
                         <td className="py-2.5 px-4">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${x.kind === "ISSUE" ? "bg-blue-100 text-blue-700" : x.kind === "TRANSFER" ? "bg-violet-100 text-violet-700" : x.kind === "BUYBACK" ? "bg-amber-100 text-amber-700" : x.kind === "SELL_TREASURY" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${x.kind === "ISSUE" ? "bg-info-subtle text-info" : x.kind === "TRANSFER" ? "bg-info-subtle text-info" : x.kind === "BUYBACK" ? "bg-warning-subtle text-warning" : x.kind === "SELL_TREASURY" ? "bg-success-subtle text-success" : "bg-surface-hover text-muted-foreground"}`}>
                             {KIND_LABELS[x.kind] ? t(KIND_LABELS[x.kind].ar, KIND_LABELS[x.kind].en) : x.kind}
                           </span>
                         </td>
                         <td className="py-2.5 px-4 text-xs text-foreground/80">{counterparty?.name || t("الشركة", "The company")}</td>
-                        <td className={`py-2.5 px-4 font-english ${isOut ? "text-red-600" : "text-emerald-600"}`} style={{ fontWeight: 600 }} dir="ltr">{isOut ? "−" : "+"}{num(x.shares)}</td>
+                        <td className={`py-2.5 px-4 font-english ${isOut ? "text-danger" : "text-success"}`} style={{ fontWeight: 600 }} dir="ltr">{isOut ? "−" : "+"}{num(x.shares)}</td>
                         <td className="py-2.5 px-4 font-english" dir="ltr">{money(x.pricePerShare)}</td>
                         <td className="py-2.5 px-4 font-english" dir="ltr">{money(x.amount)}</td>
-                        <td className="py-2.5 px-4 text-xs">{x.journalEntryId ? <span className="text-emerald-700">{t("مقيّد ✓", "posted ✓")}</span> : <span className="text-muted-foreground/50">{t("سجل فقط", "register")}</span>}</td>
+                        <td className="py-2.5 px-4 text-xs">{x.journalEntryId ? <span className="text-success">{t("مقيّد ✓", "posted ✓")}</span> : <span className="text-muted-foreground/50">{t("سجل فقط", "register")}</span>}</td>
                       </tr>
                     );
                   })}
@@ -222,11 +222,11 @@ export function ShareholderDetail() {
 
       <div className="flex gap-2 pt-2 border-t border-border/60">
         <Button type="button" variant="outline" onClick={() => setEditMode(true)} className="flex-1 border-border"><Edit2 className="me-2 h-4 w-4" />{t("تعديل", "Edit")}</Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{isJsc ? t("حذف المساهم نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this shareholder permanently? (allowed only with no transactions)") : t("حذف المالك نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this owner permanently? (allowed only with no transactions)")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{isJsc ? t("حذف المساهم نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this shareholder permanently? (allowed only with no transactions)") : t("حذف المالك نهائياً؟ (يُسمح فقط بلا حركات)", "Delete this owner permanently? (allowed only with no transactions)")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -251,7 +251,7 @@ export function ShareholderDetail() {
         )}
         {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><Users2 className="h-4 w-4" />{t("سجّل مساهماً ثم وثّق الإصدار أو التنازل من صفحته", "Register a shareholder, then record issuance or transfers from their page")}</p>}
       </div>
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
     </div>
   );

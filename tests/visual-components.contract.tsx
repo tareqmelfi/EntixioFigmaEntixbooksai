@@ -12,11 +12,12 @@ function className(markup: string) {
 
 const button = className(renderToStaticMarkup(createElement(Button, null, 'Save')))
 const input = className(renderToStaticMarkup(createElement(Input, { 'aria-label': 'Name' })))
-assert.match(button, /\bh-9\b/)
-assert.match(button, /\brounded-lg\b/)
+// Ledger (2026-09): pill buttons, 40px control height
+assert.match(button, /\bh-10\b/)
+assert.match(button, /\brounded-full\b/)
 assert.match(button, /focus-visible:ring-2/)
 assert.doesNotMatch(button, /ring-\[3px\]/)
-assert.match(input, /\bbg-surface\b/)
+assert.match(input, /\bbg-card\b/)
 assert.match(input, /\brounded-lg\b/)
 assert.match(input, /focus-visible:ring-2/)
 

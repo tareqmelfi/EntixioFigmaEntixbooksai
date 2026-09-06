@@ -167,14 +167,14 @@ export function SharedNavbar() {
         <div className="hidden lg:flex items-center gap-3">
           <button 
             onClick={() => navigate("/login")}
-            className="text-[#0B1A47] hover:text-[#1276E3] transition-colors cursor-pointer px-4 py-2.5" 
+            className="text-[#0B1A47] hover:text-[#5875DB] transition-colors cursor-pointer px-4 py-2.5" 
             style={{ fontSize: "14px", fontWeight: 500 }}
           >
             تسجيل الدخول
           </button>
           <button
             onClick={() => navigate("/register")}
-            className="bg-[#05B6FA] hover:bg-[#0498D4] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#05B6FA]/25 cursor-pointer"
+            className="bg-[#8FA3F0] hover:bg-[#0498D4] text-white px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#8FA3F0]/25 cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
             ابدأ مجاناً
@@ -241,7 +241,7 @@ export function SharedNavbar() {
               </button>
               <button
                 onClick={() => handleNavigate("/register")}
-                className="w-full bg-[#05B6FA] text-white py-3 rounded-xl cursor-pointer hover:bg-[#0498D4] transition-colors"
+                className="w-full bg-[#8FA3F0] text-white py-3 rounded-xl cursor-pointer hover:bg-[#0498D4] transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
                 ابدأ مجاناً
@@ -256,7 +256,7 @@ export function SharedNavbar() {
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 safe-area-inset-bottom">
           <button
             onClick={() => navigate("/register")}
-            className="w-full bg-[#05B6FA] text-white py-3 rounded-xl shadow-lg shadow-[#05B6FA]/20 hover:bg-[#0498D4] transition-colors cursor-pointer"
+            className="w-full bg-[#8FA3F0] text-white py-3 rounded-xl shadow-lg shadow-[#8FA3F0]/20 hover:bg-[#0498D4] transition-colors cursor-pointer"
             style={{ fontSize: "15px", fontWeight: 600 }}
           >
             ابدأ مجاناً

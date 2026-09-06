@@ -86,10 +86,10 @@ export function BankAccounts() {
         <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/bank-accounts/new")}><Plus className="me-2 h-4 w-4" />{t("حساب جديد", "New account")}</Button>
       </div>
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}
 
       {selectedAccount && (
-        <Card className="border-blue-100 bg-blue-50">
+        <Card className="border-info-border bg-info-subtle">
           <CardContent className="p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
@@ -101,15 +101,15 @@ export function BankAccounts() {
                 <h2 className="text-lg font-semibold text-foreground">{selectedAccount.name}</h2>
                 <p className="mt-1 text-sm text-foreground/70">{selectedAccount.bankName || t("حساب بنكي", "Bank account")}</p>
                 <div className="mt-3 grid gap-2 text-xs md:grid-cols-3">
-                  <div className="rounded-md bg-white/70 px-3 py-2">
+                  <div className="rounded-md bg-card/70 px-3 py-2">
                     <div className="text-muted-foreground">{t("الدولة", "Country")}</div>
                     <div className="font-english text-foreground" dir="ltr">{selectedAccount.country || "—"}</div>
                   </div>
-                  <div className="rounded-md bg-white/70 px-3 py-2">
+                  <div className="rounded-md bg-card/70 px-3 py-2">
                     <div className="text-muted-foreground">{t("التفاصيل البنكية", "Bank details")}</div>
                     <div className="font-english text-foreground" dir="ltr">{accountIdentifier(selectedAccount)}</div>
                   </div>
-                  <div className="rounded-md bg-white/70 px-3 py-2">
+                  <div className="rounded-md bg-card/70 px-3 py-2">
                     <div className="text-muted-foreground">{t("الرصيد", "Balance")}</div>
                     <div className="font-english text-foreground" dir="ltr">{Number(selectedAccount.balance).toLocaleString(displayLocale())} {selectedAccount.currency}</div>
                   </div>
@@ -172,7 +172,7 @@ export function BankAccounts() {
                         >
                           <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-sm text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{v.date ? new Date(v.date).toLocaleDateString(displayLocale("en-GB")) : "—"}</span></td>
                           <td className="py-3 px-4 text-sm">
-                            <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                            <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                               {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
                               {inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}
                             </span>
@@ -182,7 +182,7 @@ export function BankAccounts() {
                           <td className="py-3 px-4 text-xs text-muted-foreground max-w-[220px] truncate" title={v.notes || v.reference || ""}>
                             {v.reference || v.notes || "—"}
                           </td>
-                          <td className={`py-3 px-4 text-sm font-english ${inbound ? "text-emerald-700" : "text-amber-700"}`} style={{ fontWeight: 600 }}>
+                          <td className={`py-3 px-4 text-sm font-english ${inbound ? "text-success" : "text-warning"}`} style={{ fontWeight: 600 }}>
                             {inbound ? "+" : "−"}{Number(v.amount).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {v.currency}
                           </td>
                           <td className="py-3 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
@@ -261,7 +261,7 @@ export function BankAccounts() {
                       {pendingDelete === b.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />
                       ) : (
-                        <button onClick={() => setPendingDelete(b.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => setPendingDelete(b.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
                       )}
                     </td>
                   </tr>

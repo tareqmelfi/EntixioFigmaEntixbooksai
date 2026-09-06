@@ -10,8 +10,8 @@ import { Quote } from "../lib/api";
 
 export type ProposalOrg = { name: string; logoUrl?: string | null; legalName?: string | null; vatNumber?: string | null; crNumber?: string | null };
 
-const NAVY = "#0B1B49";
-const BLUE = "#1276E3";
+const NAVY = "#1A1E48";
+const BLUE = "#5875DB";
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -87,7 +87,7 @@ export function ProposalDoc({ quote, org, lang }: { quote: Quote; org: ProposalO
   };
 
   return (
-    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ color: "#1B2A41", fontFamily: lang === "ar" ? "'Noto Sans Arabic', 'Inter', sans-serif" : "'Inter', 'Noto Sans Arabic', sans-serif" }}>
+    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontFamily: lang === "ar" ? "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif" : "'IBM Plex Sans', 'IBM Plex Sans Arabic', sans-serif" }}>
       {/* ── Cover header ── */}
       <div style={{ borderBottom: `3px solid ${BLUE}`, paddingBottom: 14, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
@@ -121,7 +121,7 @@ export function ProposalDoc({ quote, org, lang }: { quote: Quote; org: ProposalO
           [t("صالح حتى", "Valid until"), quote.validUntil?.slice(0, 10) || "—"],
           [t("القيمة الإجمالية", "Total value"), `${fmt(quote.total)} ${quote.currency}`],
         ].map(([k, v]) => (
-          <div key={k as string} style={{ background: "#F4FCFF", border: "1px solid #D6E4EE", borderRadius: 8, padding: "7px 10px" }}>
+          <div key={k as string} style={{ background: "#F6F1E8", border: "1px solid #D6E4EE", borderRadius: 8, padding: "7px 10px" }}>
             <div style={{ fontSize: 9.5, color: "#6B7280", marginBottom: 2 }}>{k}</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: NAVY }} className={k === t("القيمة الإجمالية", "Total value") ? "num" : undefined}>{v}</div>
           </div>

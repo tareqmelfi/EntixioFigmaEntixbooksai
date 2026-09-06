@@ -262,7 +262,7 @@ export function ContactSearchInput({
           onKeyDown={handleKeyDown}
           placeholder={resolvedPlaceholder}
           dir="auto"
-          className="w-full rounded-lg border border-border bg-white py-2.5 ps-10 pe-10 text-start text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 transition-colors"
+          className="w-full rounded-lg border border-border bg-card py-2.5 ps-10 pe-10 text-start text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 transition-colors"
         />
         {query && (
           <button
@@ -278,11 +278,11 @@ export function ContactSearchInput({
       {selectedParty && !isOpen && (
         <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           {selectedParty.entityLocation === "foreign" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-800" style={{ fontWeight: 500 }}>
+            <span className="inline-flex items-center gap-1 rounded-full bg-warning-subtle px-2 py-0.5 text-warning" style={{ fontWeight: 500 }}>
               <Globe className="h-3 w-3" />{countries.find((c) => c.code === selectedParty.country)?.flag} {t("كيان أجنبي", "Foreign entity")} — {selectedParty.currency}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-800" style={{ fontWeight: 500 }}>
+            <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-success" style={{ fontWeight: 500 }}>
               🇸🇦 {t("محلي", "Local")}
             </span>
           )}
@@ -298,7 +298,7 @@ export function ContactSearchInput({
             </a>
           )}
           {selectedParty.entityLocation === "foreign" && selectedParty.withholdingTaxRate && (
-            <span className="inline-flex items-center gap-1 text-amber-500">
+            <span className="inline-flex items-center gap-1 text-warning">
               <AlertTriangle className="h-3 w-3" /> {t("استقطاع", "WHT")} {selectedParty.withholdingTaxRate}%
             </span>
           )}
@@ -309,7 +309,7 @@ export function ContactSearchInput({
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-white shadow-lg overflow-hidden"
+          className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg overflow-hidden"
           style={{ maxHeight: "320px" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "280px" }}>
@@ -324,7 +324,7 @@ export function ContactSearchInput({
                   }`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                    party.type === "organization" ? "bg-blue-100" : "bg-primary/5"
+                    party.type === "organization" ? "bg-info-subtle" : "bg-primary/5"
                   }`}>
                     {party.type === "organization" ? (
                       <Building2 className="h-4 w-4 text-primary" />
@@ -339,7 +339,7 @@ export function ContactSearchInput({
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {party.entityLocation === "foreign" ? (
-                        <span className="text-xs text-amber-500">{countries.find((c) => c.code === party.country)?.flag} {t("أجنبي", "Foreign")}</span>
+                        <span className="text-xs text-warning">{countries.find((c) => c.code === party.country)?.flag} {t("أجنبي", "Foreign")}</span>
                       ) : (
                         <span className="text-xs text-muted-foreground">🇸🇦 {t("محلي", "Local")}</span>
                       )}
@@ -381,8 +381,8 @@ export function ContactSearchInput({
 
       {/* Quick Create Modal (inline, no page navigation) */}
       {showQuickCreate && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={(e) => { if (e.target === e.currentTarget) setShowQuickCreate(false); }}>
-          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40" onClick={(e) => { if (e.target === e.currentTarget) setShowQuickCreate(false); }}>
+          <div className="w-full max-w-lg rounded-xl bg-card shadow-xl mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
@@ -404,17 +404,17 @@ export function ContactSearchInput({
                     }`}
                   >
                     <MapPin className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "local" ? "text-primary" : "text-muted-foreground/60"}`} />
-                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "local" ? "#1276E3" : "#374151" }}>🇸🇦 {t("داخل المملكة", "Inside Saudi Arabia")}</p>
+                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "local" ? "#5875DB" : "#374151" }}>🇸🇦 {t("داخل المملكة", "Inside Saudi Arabia")}</p>
                     <p className="text-xs text-muted-foreground/60 mt-0.5">{t("سجل تجاري، رقم ضريبي", "Commercial registration, tax ID")}</p>
                   </button>
                   <button
                     onClick={() => handleLocationChange("foreign")}
                     className={`flex-1 rounded-lg border-2 px-4 py-3 text-center transition-all ${
-                      qcEntityLocation === "foreign" ? "border-amber-500 bg-amber-100/30" : "border-border hover:border-border"
+                      qcEntityLocation === "foreign" ? "border-warning bg-warning-subtle/30" : "border-border hover:border-border"
                     }`}
                   >
-                    <Globe className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "foreign" ? "text-amber-500" : "text-muted-foreground/60"}`} />
-                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "foreign" ? "#F59E0B" : "#374151" }}>🌍 {t("خارج المملكة", "Outside Saudi Arabia")}</p>
+                    <Globe className={`h-5 w-5 mx-auto mb-1 ${qcEntityLocation === "foreign" ? "text-warning" : "text-muted-foreground/60"}`} />
+                    <p className="text-sm" style={{ fontWeight: 600, color: qcEntityLocation === "foreign" ? "#B8862B" : "#374151" }}>🌍 {t("خارج المملكة", "Outside Saudi Arabia")}</p>
                     <p className="text-xs text-muted-foreground/60 mt-0.5">{t("ITN، LEI، ضريبة استقطاع", "ITN, LEI, withholding tax")}</p>
                   </button>
                 </div>
@@ -551,10 +551,10 @@ export function ContactSearchInput({
                     </div>
 
                     {/* Withholding Tax */}
-                    <div className="rounded-lg border-2 border-amber-100 bg-amber-100/20 p-3">
+                    <div className="rounded-lg border-2 border-warning-border bg-warning-subtle/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        <span className="text-xs text-amber-800" style={{ fontWeight: 700 }}>{t("ضريبة الاستقطاع (Withholding Tax)", "Withholding Tax")}</span>
+                        <AlertTriangle className="h-4 w-4 text-warning" />
+                        <span className="text-xs text-warning" style={{ fontWeight: 700 }}>{t("ضريبة الاستقطاع (Withholding Tax)", "Withholding Tax")}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -618,7 +618,7 @@ export function ContactSearchInput({
                 <button
                   onClick={handleQuickCreate}
                   disabled={!query.trim()}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   style={{ fontWeight: 600 }}
                 >
                   <Plus className="h-4 w-4 inline-block me-1" />

@@ -268,7 +268,7 @@ export function BankReconciliation() {
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedBank && (
-              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-foreground flex items-center justify-between gap-3">
+              <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-sm text-foreground flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Landmark className="h-4 w-4 text-primary shrink-0" />
                   <div className="min-w-0">
@@ -344,10 +344,10 @@ export function BankReconciliation() {
                   </>
                 )}
                 <div className="mt-4 flex items-center justify-center gap-2">
-                  <label htmlFor="bank-stmt" className="rounded-md border border-primary bg-white px-3 py-1.5 text-xs text-primary hover:bg-blue-50">
+                  <label htmlFor="bank-stmt" className="rounded-md border border-primary bg-card px-3 py-1.5 text-xs text-primary hover:bg-info-subtle">
                     {t("اختيار ملف أو عدة ملفات", "Choose file(s)")}
                   </label>
-                  <label htmlFor="bank-stmt-folder" className="rounded-md border border-border bg-white px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted">
+                  <label htmlFor="bank-stmt-folder" className="rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted">
                     {t("اختيار مجلد PDF", "Choose PDF folder")}
                   </label>
                 </div>
@@ -373,16 +373,16 @@ export function BankReconciliation() {
             </CardContent></Card>
             <Card className="border-border"><CardContent className="p-4">
               <div className="text-xs text-muted-foreground">{t("مطابقة تلقائية", "Auto-matched")}</div>
-              <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }}>{stats?.matched || 0}</div>
+              <div className="font-english font-bold text-success mt-1" style={{ fontSize: "1.5rem" }}>{stats?.matched || 0}</div>
             </CardContent></Card>
             <Card className="border-border"><CardContent className="p-4">
               <div className="text-xs text-muted-foreground">{t("تحتاج مراجعة", "Needs review")}</div>
-              <div className="font-english font-bold text-amber-700 mt-1" style={{ fontSize: "1.5rem" }}>{stats?.unmatched || 0}</div>
+              <div className="font-english font-bold text-warning mt-1" style={{ fontSize: "1.5rem" }}>{stats?.unmatched || 0}</div>
             </CardContent></Card>
           </div>
 
           {parseSource?.model && (
-            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-foreground">
+            <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-foreground">
               {t("تمت قراءة الكشف عبر AI", "Statement parsed via AI")} · <span className="font-english" dir="ltr">{parseSource.model}</span>
             </div>
           )}
@@ -420,13 +420,13 @@ export function BankReconciliation() {
                           {r.reference && <div className="text-xs text-muted-foreground/60 font-english" dir="ltr">{r.reference}</div>}
                           {r.sourceFile && <div className="text-[11px] text-muted-foreground/60 font-english truncate" dir="ltr">{r.sourceFile}</div>}
                         </td>
-                        <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-green-700" : "text-red-700"}`} dir="ltr">
+                        <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-success" : "text-danger"}`} dir="ltr">
                           {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale())}
                         </td>
                         <td className="px-3 py-2">
                           {r.matchKind && r.matchKind !== "none" ? (
                             <div className="flex items-center gap-2 text-xs">
-                              <Link2 className="h-3 w-3 text-green-600" />
+                              <Link2 className="h-3 w-3 text-success" />
                               <div>
                                 <div className="text-foreground">{r.matchLabel}</div>
                                 {r.matchScore && <div className="text-muted-foreground/60">{t("ثقة", "confidence")} <span className="font-english">{Math.round(r.matchScore * 100)}%</span></div>}
@@ -456,7 +456,7 @@ export function BankReconciliation() {
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={reset} className="border-border">{t("رجوع", "Back")}</Button>
-            <Button onClick={handleCommit} disabled={committing} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleCommit} disabled={committing} className="bg-success hover:bg-success text-primary-foreground">
               {committing ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
               {t("تأكيد وترحيل", "Confirm & post")} {rows.filter(r => r.decision !== "skip").length} {t("حركة", "transactions")}
             </Button>
@@ -465,9 +465,9 @@ export function BankReconciliation() {
       )}
 
       {step === "done" && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-success-border bg-success-subtle">
           <CardContent className="py-12 text-center">
-            <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-3" />
+            <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-3" />
             <div className="text-xl text-foreground font-bold">{t("تمت التسوية بنجاح", "Reconciliation completed")}</div>
             <p className="text-sm text-muted-foreground mt-2">{t("جميع الحركات المعتمدة أصبحت قيوداً مرحَّلة في الدفتر العام", "All approved transactions are now posted journal entries in the general ledger")}</p>
             <Button onClick={reset} className="bg-primary hover:bg-primary/90 mt-4">{t("رفع كشف آخر", "Upload another statement")}</Button>

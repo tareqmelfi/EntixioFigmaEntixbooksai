@@ -158,7 +158,7 @@ export function VoucherPrintView() {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F7FB", padding: 24 }}>
         <div style={{ width: "min(420px,100%)", background: "white", border: "1px solid #E5EAF2", borderRadius: 10, padding: 24, textAlign: "center" }}>
-          <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, color: "#0B1B49" }}>{errAr ? "تعذّر تحميل السند" : "Could not load voucher"}</h1>
+          <h1 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, color: "#1A1E48" }}>{errAr ? "تعذّر تحميل السند" : "Could not load voucher"}</h1>
           <p style={{ margin: 0, color: "#607089" }}>{error || (errAr ? "هذا السند غير متاح" : "This voucher is unavailable")}</p>
         </div>
       </div>
@@ -240,8 +240,8 @@ export function VoucherPrintView() {
       <style>{`
         body {
           margin: 0;
-          background: #F4F5F7;
-          font-family: 'Noto Sans Arabic','Plus Jakarta Sans',system-ui,sans-serif;
+          background: #F6F1E8;
+          font-family: 'IBM Plex Sans Arabic','IBM Plex Sans',system-ui,sans-serif;
         }
         .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
         @media print {
@@ -261,11 +261,11 @@ export function VoucherPrintView() {
         ${embed ? ".voucher-page{ margin:8px auto !important; zoom:0.78; box-shadow:none !important; } body{ background:white; }" : ""}
       `}</style>
 
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ color: "#0B1B49", fontSize: 13, lineHeight: 1.5 }}>
+      <div dir={isRtl ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontSize: 13, lineHeight: 1.5 }}>
         <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: embed ? "none" : "flex", gap: 8 }}>
           <button
             onClick={() => window.print()}
-            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "#1276E3", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+            style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "#5875DB", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
           >
             <Printer style={{ display: "inline-block", verticalAlign: "middle", height: 14, width: 14, marginInlineEnd: 6 }} />
             {T("طباعة / حفظ PDF", "Print / Save PDF")}
@@ -289,9 +289,9 @@ export function VoucherPrintView() {
             <div style={{ textAlign: "end" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "flex-end" }}>
                 <div style={{ textAlign: "start", paddingTop: 2 }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: "#1276E3", lineHeight: 1.35 }}>{org.name}</div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: "#5875DB", lineHeight: 1.35 }}>{org.name}</div>
                   {org.legalName && org.legalName !== org.name && (
-                    <div style={{ fontWeight: 700, fontSize: 12, color: "#1276E3", direction: "ltr", textAlign: "right" }}>{org.legalName}</div>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: "#5875DB", direction: "ltr", textAlign: "right" }}>{org.legalName}</div>
                   )}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
@@ -302,7 +302,7 @@ export function VoucherPrintView() {
                 {printLogo ? (
                   <img src={printLogo} alt={org.name} style={{ maxHeight: 110, maxWidth: 220, objectFit: "contain", display: "block", borderRadius: 12 }} />
                 ) : (
-                  <div style={{ fontWeight: 800, fontSize: 24, color: "#1276E3" }}>{org.name}</div>
+                  <div style={{ fontWeight: 800, fontSize: 24, color: "#5875DB" }}>{org.name}</div>
                 )}
               </div>
             </div>
@@ -320,9 +320,9 @@ export function VoucherPrintView() {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, border: "2px solid #1276E3", borderRadius: 10, background: "#EFF8FF", padding: "16px 14px", textAlign: "center" }}>
+          <div style={{ marginTop: 18, border: "2px solid #5875DB", borderRadius: 10, background: "#EFF8FF", padding: "16px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 12, color: "#6B7280" }}>{T("المبلغ", "Amount")}</div>
-            <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#1276E3", marginTop: 2 }}>{amount.toLocaleString(displayLocale())} {currency}</div>
+            <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#5875DB", marginTop: 2 }}>{amount.toLocaleString(displayLocale())} {currency}</div>
             <div style={{ marginTop: 6, fontSize: 12 }}>{amountInWords}</div>
           </div>
 
@@ -337,7 +337,7 @@ export function VoucherPrintView() {
             {signatureUrl ? (
               <img src={signatureUrl} alt="توقيع" style={{ maxHeight: 56, maxWidth: 180, objectFit: "contain" }} />
             ) : (
-              <span style={{ fontFamily: "'Segoe Script','Traditional Arabic',cursive", fontSize: 20, color: "#0B1B49" }}>{issuerName}</span>
+              <span style={{ fontFamily: "'Segoe Script','Traditional Arabic',cursive", fontSize: 20, color: "#1A1E48" }}>{issuerName}</span>
             )}
             <span style={{ color: "#6B7280", fontSize: 11 }}>{T("· أُصدر إلكترونيًا", "· Issued electronically")}</span>
           </div>

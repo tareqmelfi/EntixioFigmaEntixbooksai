@@ -122,7 +122,7 @@ export function ProjectDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات المشروع", "Project details")}</div>
@@ -152,7 +152,7 @@ export function ProjectDetail() {
                 <button
                   key={s} type="button"
                   onClick={() => setForm({ ...form, status: s })}
-                  className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.status === s ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary/50"}`}
+                  className={`rounded-full px-4 py-1.5 text-sm border transition-colors ${form.status === s ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:border-primary/50"}`}
                 >{statusLabel(s)}</button>
               ))}
             </div>
@@ -172,19 +172,19 @@ export function ProjectDetail() {
   const detailView = project && (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div>
-          <div className="mt-1"><span className={`text-xs px-2 py-0.5 rounded-full ${project.status === "ACTIVE" ? "bg-green-100 text-green-700" : project.status === "ON_HOLD" ? "bg-amber-100 text-amber-700" : project.status === "COMPLETED" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>{statusLabel(project.status)}</span></div>
+          <div className="mt-1"><span className={`text-xs px-2 py-0.5 rounded-full ${project.status === "ACTIVE" ? "bg-success-subtle text-success" : project.status === "ON_HOLD" ? "bg-warning-subtle text-warning" : project.status === "COMPLETED" ? "bg-info-subtle text-info" : "bg-surface-hover text-muted-foreground"}`}>{statusLabel(project.status)}</span></div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("البداية", "Start")}</div>
           <div className="font-english text-foreground mt-1" dir="ltr">{project.startDate?.slice(0, 10) || "—"}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("النهاية", "End")}</div>
           <div className="font-english text-foreground mt-1" dir="ltr">{project.endDate?.slice(0, 10) || "—"}</div>
         </div>
-        <div className="rounded-lg border border-border bg-white p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("الرمز", "Code")}</div>
           <div className="font-english text-primary mt-1" style={{ fontWeight: 700 }} dir="ltr">{project.code}</div>
         </div>
@@ -198,29 +198,29 @@ export function ProjectDetail() {
               <Clock3 className="me-1.5 h-3.5 w-3.5" />{t("سجّل ساعات", "Log hours")}
             </Button>
             {perf.totals?.outstanding > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs text-amber-800">
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning-subtle px-3 py-1 text-xs text-warning">
                 <Banknote className="h-3 w-3" />{t("مستحق للمقاولين:", "Contractor outstanding:")} <span className="font-english">{money(perf.totals.outstanding)}</span>
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("ساعات العمل", "Hours")}</div>
               <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{hrsFmt(perf.totals?.totalHours)}</div>
               <div className="text-[10px] text-muted-foreground">{t("قابلة للفوترة:", "billable:")} <span className="font-english">{hrsFmt(perf.totals?.billableHours)}</span></div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("تكلفة العمالة", "Labor cost")}</div>
               <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{money(perf.totals?.laborCost)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-white p-3">
+            <div className="rounded-lg border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground">{t("المدفوع للمقاولين", "Paid out")}</div>
-              <div className="font-english text-emerald-600 mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{money(perf.totals?.paidOut)}</div>
+              <div className="font-english text-success mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{money(perf.totals?.paidOut)}</div>
             </div>
-            <div className={`rounded-lg border p-3 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50") : "border-border bg-white"}`}>
+            <div className={`rounded-lg border p-3 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "border-success-border bg-success-subtle" : "border-danger-border bg-danger-subtle") : "border-border bg-card"}`}>
               <div className="text-xs text-muted-foreground">{t("المتبقي من الميزانية", "Budget margin")}</div>
-              <div className={`font-english mt-1 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "text-emerald-700" : "text-red-700") : "text-foreground"}`} style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">
+              <div className={`font-english mt-1 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "text-success" : "text-danger") : "text-foreground"}`} style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">
                 {perf.totals?.margin != null ? money(perf.totals.margin) : "—"}
               </div>
               {perf.totals?.budgetUsedPct != null && <div className="text-[10px] text-muted-foreground">{t("المستهلك:", "used:")} <span className="font-english">{displayDigits(perf.totals.budgetUsedPct.toFixed(0))}%</span></div>}
@@ -243,9 +243,9 @@ export function ProjectDetail() {
                       <div className="flex items-center gap-4 font-english text-xs" dir="ltr">
                         <span>{hrsFmt(pc.hours)} {t("ساعة", "h")}</span>
                         <span>{money(pc.earned)}</span>
-                        {pc.paid < pc.earned && <span className="text-amber-600">{t("متبقٍ", "due")} {money(pc.earned - pc.paid)}</span>}
+                        {pc.paid < pc.earned && <span className="text-warning">{t("متبقٍ", "due")} {money(pc.earned - pc.paid)}</span>}
                         {pc.paid < pc.earned && (
-                          <button onClick={() => navigate(`/app/contractors/${pc.contractor.id}/pay`)} className="rounded bg-primary px-2 py-0.5 text-white text-[11px]">{t("ادفع", "Pay")}</button>
+                          <button onClick={() => navigate(`/app/contractors/${pc.contractor.id}/pay`)} className="rounded bg-primary px-2 py-0.5 text-primary-foreground text-[11px]">{t("ادفع", "Pay")}</button>
                         )}
                       </div>
                     </div>
@@ -293,11 +293,11 @@ export function ProjectDetail() {
 
       <div className="flex gap-2 pt-2 border-t border-border/60">
         <Button type="button" variant="outline" onClick={() => setEditMode(true)} className="flex-1 border-border"><Edit2 className="me-2 h-4 w-4" />{t("تعديل", "Edit")}</Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
       </div>
       {pendingDelete && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700 mb-2">{t("حذف المشروع نهائياً؟", "Delete this project permanently?")}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
+          <p className="text-xs text-danger mb-2">{t("حذف المشروع نهائياً؟", "Delete this project permanently?")}</p>
           <InlineConfirm onConfirm={handleDelete} onCancel={() => setPendingDelete(false)} />
         </div>
       )}
@@ -316,7 +316,7 @@ export function ProjectDetail() {
         </h1>
         {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><FolderKanban className="h-4 w-4" />{t("أنشئ مشروعاً واربطه بالفواتير والمصروفات والمقاولين", "Create a project and link it to invoices, expenses and contractors")}</p>}
       </div>
-      {error && !editMode && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
     </div>
   );

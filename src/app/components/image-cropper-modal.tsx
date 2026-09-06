@@ -163,7 +163,7 @@ export function ImageCropperModal({ file, onCrop, onClose, size = 256 }: Props) 
                 draggable={false}
               />
               {/* Square crop overlay */}
-              <div className="absolute inset-0 pointer-events-none border-2 border-white/80 rounded-lg shadow-inner" />
+              <div className="absolute inset-0 pointer-events-none border-2 border-card/80 rounded-lg shadow-inner" />
             </div>
           )}
 
@@ -182,7 +182,7 @@ export function ImageCropperModal({ file, onCrop, onClose, size = 256 }: Props) 
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={handleCancel} className="border-border">{t("إلغاء", "Cancel")}</Button>
-          <Button onClick={handleSave} disabled={loading || !imgRef.current} className="bg-primary hover:bg-primary/90 text-white">
+          <Button onClick={handleSave} disabled={loading || !imgRef.current} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             حفظ الشعار
           </Button>
         </DialogFooter>

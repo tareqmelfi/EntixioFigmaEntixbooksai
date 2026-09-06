@@ -164,7 +164,7 @@ function SegGroup({ value, onChange, options, compact }: {
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`rounded-md transition-colors ${compact ? "px-2 py-1 text-[11px]" : "px-2.5 py-1.5 text-xs"} ${value === o.value ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          className={`rounded-md transition-colors ${compact ? "px-2 py-1 text-[11px]" : "px-2.5 py-1.5 text-xs"} ${value === o.value ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           style={{ fontWeight: value === o.value ? 700 : 500 }}
         >{o.label}</button>
       ))}
@@ -1299,11 +1299,11 @@ export function Expenses() {
 
             <div className="space-y-4">
               {hasActiveDraft && (
-                <div className="rounded-lg border border-primary/20 bg-white px-3 py-3 text-sm text-foreground">
+                <div className="rounded-lg border border-primary/20 bg-card px-3 py-3 text-sm text-foreground">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 font-semibold">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                         <span>{t("مسودة محفوظة تلقائياً", "Auto-saved draft")}</span>
                         {savedAtLabel && <span className="font-english text-xs font-normal text-muted-foreground">{savedAtLabel}</span>}
                       </div>
@@ -1331,7 +1331,7 @@ export function Expenses() {
               {extractionSummary && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-sm text-foreground">
                   <div className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
                       <div className="font-semibold">{t("تمت قراءة المرفق وتعبئة بيانات المورد والضريبة والأصناف", "Attachment read and supplier, tax, items filled")}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
@@ -1344,14 +1344,14 @@ export function Expenses() {
                         {extractionSummary.confidence != null ? <> · {t("ثقة", "Confidence")} <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
                       </div>
                       <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                        <div className="rounded bg-white px-2 py-1">{t("قبل الضريبة ", "Before tax ")}<span className="font-english">{money(extractionSummary.subtotal || 0)}</span></div>
-                        <div className="rounded bg-white px-2 py-1">{t("الضريبة ", "Tax ")}<span className="font-english">{money(extractionSummary.tax || 0)}</span></div>
-                        <div className="rounded bg-white px-2 py-1">{t("الأصناف ", "Items ")}<span className="font-english">{extractionSummary.lineCount}</span></div>
+                        <div className="rounded bg-card px-2 py-1">{t("قبل الضريبة ", "Before tax ")}<span className="font-english">{money(extractionSummary.subtotal || 0)}</span></div>
+                        <div className="rounded bg-card px-2 py-1">{t("الضريبة ", "Tax ")}<span className="font-english">{money(extractionSummary.tax || 0)}</span></div>
+                        <div className="rounded bg-card px-2 py-1">{t("الأصناف ", "Items ")}<span className="font-english">{extractionSummary.lineCount}</span></div>
                       </div>
                       {extractionSummary.warnings.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {extractionSummary.warnings.map((warning, idx) => (
-                            <div key={idx} className="flex items-start gap-1.5 text-xs text-amber-700">
+                            <div key={idx} className="flex items-start gap-1.5 text-xs text-warning">
                               <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
                               <span>{warning}</span>
                             </div>
@@ -1362,7 +1362,7 @@ export function Expenses() {
                   </div>
                 </div>
               )}
-              {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+              {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
@@ -1408,7 +1408,7 @@ export function Expenses() {
                       const acct = accounts.find((a) => a.id === formData.assetAccountId);
                       const isFixed = acct?.type === "ASSET" && /fixed|intangible/i.test(acct.subtype || "");
                       return isFixed ? (
-                        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800">
+                        <p className="rounded-md border border-success-border bg-success-subtle px-2 py-1 text-[11px] text-success">
                           {t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً حتى بدون تفعيل الزر", "Account is inside the assets branch · registers as a fixed asset automatically even without the toggle")}
                         </p>
                       ) : null;
@@ -1468,7 +1468,7 @@ export function Expenses() {
                     <p className="text-xs text-muted-foreground">{t("افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.", "Separate invoice currency from bank currency, and record FX difference or transfer cost clearly.")}</p>
                   </div>
                   {currencySettlement.isCrossCurrency && (
-                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${currencySettlement.difference > 0 ? "bg-amber-100 text-amber-800" : currencySettlement.difference < 0 ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"}`}>
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${currencySettlement.difference > 0 ? "bg-warning-subtle text-warning" : currencySettlement.difference < 0 ? "bg-success-subtle text-success" : "bg-info-subtle text-info"}`}>
                       {t("فرق", "Diff")} {money(Math.abs(currencySettlement.difference), currencySettlement.actualPaidCurrency)}
                     </span>
                   )}
@@ -1530,15 +1530,15 @@ export function Expenses() {
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr]">
-                  <div className="rounded-md border border-border bg-white p-2">
+                  <div className="rounded-md border border-border bg-card p-2">
                     <p className="text-[11px] text-muted-foreground">{t("إجمالي الفاتورة", "Invoice total")}</p>
                     <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.sourceTotal, currencySettlement.sourceCurrency)}</p>
                   </div>
-                  <div className="rounded-md border border-border bg-white p-2">
+                  <div className="rounded-md border border-border bg-card p-2">
                     <p className="text-[11px] text-muted-foreground">{t("القيمة العادلة", "Fair value")}</p>
                     <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.bookBaseAmount, currencySettlement.baseCurrency)}</p>
                   </div>
-                  <div className="rounded-md border border-border bg-white p-2">
+                  <div className="rounded-md border border-border bg-card p-2">
                     <p className="text-[11px] text-muted-foreground">{t("السحب البنكي", "Bank withdrawal")}</p>
                     <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</p>
                   </div>
@@ -1554,7 +1554,7 @@ export function Expenses() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-white">
+              <div className="rounded-lg border border-border bg-card">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{t("تقسيم البنود", "Line Items")}</h3>
@@ -1647,7 +1647,7 @@ export function Expenses() {
                           </td>
                           <td className="px-2 py-2 font-english">{money(line.lineTotal ?? Math.max(0, ((line.quantity || 1) * (line.unitPrice || 0)) - Number(line.discountAmount || 0)), formData.sourceCurrency)}</td>
                           <td className="px-2 py-2 text-center">
-                            <button type="button" onClick={() => setFormData((f) => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                            <button type="button" onClick={() => setFormData((f) => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </td>
@@ -1658,7 +1658,7 @@ export function Expenses() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-white">
+              <div className="rounded-lg border border-border bg-card">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{t("تقسيم المدفوعات", "Payment Splits")}</h3>
@@ -1706,13 +1706,13 @@ export function Expenses() {
                           const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                           return { ...f, paymentSplits: splits.map((item, i) => i === idx ? { ...item, amount } : item) };
                         })} className="h-9 border-border font-english" />
-                        <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-red-600 hover:bg-red-50">
+                        <button type="button" onClick={() => setFormData((f) => ({ ...f, paymentSplits: f.paymentSplits.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
                   ))}
-                  <div className={`text-xs ${Math.abs(paymentRowsTotal - (currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal)) > 0.05 ? "text-amber-700" : "text-emerald-700"}`}>
+                  <div className={`text-xs ${Math.abs(paymentRowsTotal - (currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal)) > 0.05 ? "text-warning" : "text-success"}`}>
                     {t("مجموع المدفوعات:", "Payment total:")} <span className="font-english">{money(paymentRowsTotal, currencySettlement.actualPaidCurrency)}</span>
                     <span className="mx-1 text-muted-foreground/60">/</span>
                     {t("المتوقع:", "Expected:")} <span className="font-english">{money(currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currencySettlement.isCrossCurrency ? currencySettlement.actualPaidCurrency : currencySettlement.sourceCurrency)}</span>
@@ -1778,7 +1778,7 @@ export function Expenses() {
             {pendingDelete === selected.id ? (
               <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
             ) : (
-              <Button variant="outline" onClick={() => setPendingDelete(selected.id)} className="border-red-200 text-red-600 hover:bg-red-50">
+              <Button variant="outline" onClick={() => setPendingDelete(selected.id)} className="border-danger-border text-danger hover:bg-danger-subtle">
                 <Trash2 className="me-2 h-4 w-4" /> {t("حذف", "Delete")}
               </Button>
             )}
@@ -1829,7 +1829,7 @@ export function Expenses() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{t("الفرق", "Difference")}</p>
-                      <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-amber-700" : selectedSettlement.difference < 0 ? "text-emerald-700" : "text-foreground"}`}>
+                      <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-warning" : selectedSettlement.difference < 0 ? "text-success" : "text-foreground"}`}>
                         {money(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
                       </p>
                       <p className="text-[11px] text-muted-foreground">{selectedSettlement.treatmentLabel}</p>
@@ -1878,7 +1878,7 @@ export function Expenses() {
                 <div><span className="text-muted-foreground">{t("الرقم الضريبي:", "Tax No.:")}</span> <span className="font-english">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</span></div>
                 {selected.description && <div className="md:col-span-2"><span className="text-muted-foreground">{t("الوصف:", "Description:")}</span> <span>{selected.description}</span></div>}
                 {selected.notes && <div className="md:col-span-2"><span className="text-muted-foreground">{t("ملاحظات:", "Notes:")}</span> <span>{selected.notes}</span></div>}
-                {selected.duplicateOfId && <div className="md:col-span-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">{t("يوجد مصروف مشابه وتم تعليمه للمراجعة.", "Similar expense found and flagged for review.")}</div>}
+                {selected.duplicateOfId && <div className="md:col-span-2 rounded border border-warning-border bg-warning-subtle px-3 py-2 text-warning">{t("يوجد مصروف مشابه وتم تعليمه للمراجعة.", "Similar expense found and flagged for review.")}</div>}
               </CardContent>
             </Card>
 
@@ -1914,7 +1914,7 @@ export function Expenses() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertTriangle className="h-4 w-4 text-warning" />
                     {t("لا توجد أصناف محفوظة لهذا المصروف. ارفع الإيصال أو عدل المصروف لإضافتها.", "No items saved for this expense. Upload the receipt or edit the expense to add them.")}
                   </div>
                 )}
@@ -1970,7 +1970,7 @@ export function Expenses() {
                       <button
                         type="button"
                         onClick={() => handleAttachmentRemove(detailAttachments[activeAttIdx])}
-                        className="text-red-500/70 hover:text-red-600 p-1"
+                        className="text-danger/70 hover:text-danger p-1"
                         title={t("حذف المرفق", "Delete attachment")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -2027,7 +2027,7 @@ export function Expenses() {
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               <div>
                 <div className="font-semibold">{t("يوجد مصروف محفوظ كمسودة تلقائية", "Auto-saved draft found")}</div>
                 <div className="text-xs text-muted-foreground">{t("لن تضيع البيانات لو خرجت من الشاشة قبل الحفظ النهائي.", "Data wont be lost if you leave before final save.")}</div>
@@ -2038,7 +2038,7 @@ export function Expenses() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-8 border-red-200 text-xs text-red-600 hover:bg-red-50"
+                className="h-8 border-danger-border text-xs text-danger hover:bg-danger-subtle"
                 onClick={() => {
                   clearExpenseDraft();
                   setDraftAvailable(false);
@@ -2121,11 +2121,11 @@ export function Expenses() {
                       <div className="flex items-center gap-1" onClick={(ev) => ev.stopPropagation()}>
                         <button onClick={() => openExpense(e)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50"><Eye className="h-4 w-4" /></button>
                         {e.attachmentCount ? <FileImage className="h-4 w-4 text-primary" /> : null}
-                        {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-emerald-600" /> : null}
+                        {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-success" /> : null}
                         {pendingDelete === e.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>

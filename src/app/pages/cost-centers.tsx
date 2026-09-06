@@ -32,7 +32,7 @@ export function CostCenters() {
         <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/cost-centers/new")}><Plus className="me-2 h-4 w-4" />{t("مركز جديد", "New Cost Center")}</Button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("القائمة", "List")} · {items.length}</CardTitle></CardHeader>

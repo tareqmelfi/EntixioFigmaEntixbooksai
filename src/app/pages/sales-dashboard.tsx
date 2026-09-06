@@ -31,21 +31,21 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   PARTIAL: { ar: "مدفوعة جزئياً", en: "Partially paid" }, OVERDUE: { ar: "متأخرة", en: "Overdue" }, CANCELLED: { ar: "ملغاة", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  SENT: "bg-blue-100 text-blue-700",
-  VIEWED: "bg-indigo-100 text-indigo-700",
-  PAID: "bg-green-100 text-green-700",
-  PARTIAL: "bg-amber-100 text-amber-700",
-  OVERDUE: "bg-red-100 text-red-700",
-  CANCELLED: "bg-gray-100 text-gray-500",
+  DRAFT: "bg-surface-hover text-foreground",
+  SENT: "bg-info-subtle text-info",
+  VIEWED: "bg-info-subtle text-info",
+  PAID: "bg-success-subtle text-success",
+  PARTIAL: "bg-warning-subtle text-warning",
+  OVERDUE: "bg-danger-subtle text-danger",
+  CANCELLED: "bg-surface-hover text-muted-foreground",
 };
 const STATUS_FILL: Record<string, string> = {
   DRAFT: "#9CA3AF",
-  SENT: "#1276E3",
+  SENT: "#5875DB",
   VIEWED: "#7DD3E4",
-  PAID: "#10B981",
-  PARTIAL: "#F59E0B",
-  OVERDUE: "#EF4444",
+  PAID: "#4661C7",
+  PARTIAL: "#B8862B",
+  OVERDUE: "#9E3B2E",
   CANCELLED: "#6B7280",
 };
 
@@ -87,7 +87,7 @@ export function SalesDashboard() {
   }, [data, language]);
 
   if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  if (error || !data) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || t("تعذّر التحميل", "Could not load")}</div>;
+  if (error || !data) return <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error || t("تعذّر التحميل", "Could not load")}</div>;
 
   const cur = data.org.baseCurrency;
   const fmt = (n: number) => `${cur} ${n.toLocaleString(displayLocale())}`;
@@ -143,16 +143,16 @@ export function SalesDashboard() {
         <KpiCard
           label={t("المحصّل", "Collected")}
           value={fmt(data.allTime.paid)}
-          tone="text-green-600"
-          icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+          tone="text-success"
+          icon={<TrendingUp className="h-4 w-4 text-success" />}
           to="/app/invoices?status=PAID"
           title={t("افتح الفواتير المدفوعة", "Open paid invoices")}
         />
         <KpiCard
           label={t("المتأخر", "Overdue")}
           value={fmt(totalOverdue || data.allTime.outstanding)}
-          tone="text-red-600"
-          icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
+          tone="text-danger"
+          icon={<AlertTriangle className="h-4 w-4 text-danger" />}
           to="/app/invoices?status=OVERDUE"
           title={t("افتح الفواتير المتأخرة", "Open overdue invoices")}
         />
@@ -164,7 +164,7 @@ export function SalesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-500" /> {t("أكبر عميل", "Top customer")}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Trophy className="h-3 w-3 text-warning" /> {t("أكبر عميل", "Top customer")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topCustomer?.name || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
@@ -177,10 +177,10 @@ export function SalesDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-red-500" /> {t("أكثر تأخر", "Most overdue")}</p>
+                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-danger" /> {t("أكثر تأخر", "Most overdue")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{mostOverdueCustomer?.contact || "—"}</p>
               </div>
-              <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
+              <div className="font-english text-danger text-sm shrink-0" style={{ fontWeight: 700 }}>
                 <span className="text-muted-foreground/60">{cur}</span> {mostOverdueCustomer ? Number(mostOverdueCustomer.total).toLocaleString(displayLocale()) : "0"}
               </div>
             </div>
@@ -193,7 +193,7 @@ export function SalesDashboard() {
                 <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5"><Briefcase className="h-3 w-3 text-primary" /> {t("أكثر كريديت", "Most credit")}</p>
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{data.topCustomers[1]?.name || "—"}</p>
               </div>
-              <span className="text-xs text-primary bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+              <span className="text-xs text-primary bg-info-subtle px-2 py-0.5 rounded-full shrink-0">
                 {notificationsCount} {t("إشعارات", "notifications")}
               </span>
             </div>
@@ -295,7 +295,7 @@ export function SalesDashboard() {
                     <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6B7280" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} />
                     <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }} />
-                    <Bar dataKey="total" fill="#0B1B49" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="total" fill="#1A1E48" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

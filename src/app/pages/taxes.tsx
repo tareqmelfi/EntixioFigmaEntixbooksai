@@ -259,7 +259,7 @@ export function Taxes() {
                   key={q}
                   type="button"
                   onClick={() => applyRange(qf, qt)}
-                  className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border bg-white text-foreground/70 hover:bg-muted"}`}
+                  className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border bg-card text-foreground/70 hover:bg-muted"}`}
                 >
                   {t(ar, en)} <span className="font-english text-[10px] opacity-70">{year}</span>
                 </button>
@@ -268,7 +268,7 @@ export function Taxes() {
             <button
               type="button"
               onClick={() => applyRange(monthStartIso(), todayIso())}
-              className="rounded-full border border-border bg-white px-3 py-1 text-xs text-foreground/70 transition hover:bg-muted"
+              className="rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground/70 transition hover:bg-muted"
             >
               {t("الشهر الحالي", "Current month")}
             </button>
@@ -276,7 +276,7 @@ export function Taxes() {
         </CardContent>
       </Card>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
@@ -292,36 +292,36 @@ export function Taxes() {
           {/* Draft review — the filer's eye must pass over unposted documents
               BEFORE approving the return (they never enter the buckets above). */}
           {payload.drafts && payload.drafts.count > 0 && (
-            <Card className="border-amber-200 bg-amber-50/40">
+            <Card className="border-warning-border bg-warning-subtle/40">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-amber-900">
+                <CardTitle className="flex items-center gap-2 text-base text-warning">
                   <AlertTriangle className="h-4 w-4" />
                   {t("مسودات داخل هذه الفترة تحتاج مراجعة", "Drafts inside this period need review")}
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{payload.drafts.count}</span>
+                  <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-bold text-warning">{payload.drafts.count}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-xs leading-5 text-amber-800/80">
+                <p className="text-xs leading-5 text-warning/80">
                   {t(
                     "هذه المستندات غير معتمدة ولا تدخل في بنود الإقرار أعلاه. افتحها واعتمدها أو احذفها قبل اعتماد الإقرار النهائي.",
                     "These documents are unposted and excluded from the return lines above. Open each one — post it or delete it — before approving the final return.",
                   )}
                 </p>
-                <ul className="divide-y divide-amber-200/60 rounded-lg border border-amber-200/70 bg-white">
+                <ul className="divide-y divide-warning-border/60 rounded-lg border border-warning-border/70 bg-card">
                   {payload.drafts.invoices.map((d) => (
                     <li key={d.id}>
                       <button
                         type="button"
                         onClick={() => navigate(`/app/invoices/${d.id}`)}
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition hover:bg-amber-50"
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition hover:bg-warning-subtle"
                       >
                         <span className="flex min-w-0 items-center gap-2">
-                          <FileText className="h-4 w-4 shrink-0 text-amber-700" />
+                          <FileText className="h-4 w-4 shrink-0 text-warning" />
                           <span className="truncate font-medium text-foreground">{d.invoiceNumber}</span>
                           <span className="truncate text-xs text-muted-foreground">{d.contactName || "—"}</span>
                         </span>
                         <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{t("مسودة فاتورة", "Draft invoice")}</span>
+                          <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] font-semibold text-warning">{t("مسودة فاتورة", "Draft invoice")}</span>
                           <span className="font-english">{d.issueDate}</span>
                           <span className="font-semibold text-foreground">{money(d.total, currency)}</span>
                         </span>
@@ -333,15 +333,15 @@ export function Taxes() {
                       <button
                         type="button"
                         onClick={() => navigate(`/app/purchases/bills/${d.id}`)}
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition hover:bg-amber-50"
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm transition hover:bg-warning-subtle"
                       >
                         <span className="flex min-w-0 items-center gap-2">
-                          <ShoppingBag className="h-4 w-4 shrink-0 text-amber-700" />
+                          <ShoppingBag className="h-4 w-4 shrink-0 text-warning" />
                           <span className="truncate font-medium text-foreground">{d.billNumber}</span>
                           <span className="truncate text-xs text-muted-foreground">{d.contactName || "—"}</span>
                         </span>
                         <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{t("مسودة مشتريات", "Draft bill")}</span>
+                          <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] font-semibold text-warning">{t("مسودة مشتريات", "Draft bill")}</span>
                           <span className="font-english">{d.issueDate}</span>
                           <span className="font-semibold text-foreground">{money(d.total, currency)}</span>
                         </span>
@@ -427,7 +427,7 @@ export function Taxes() {
                   </tbody>
                 </table>
               </div>
-              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="mt-3 rounded-lg border border-warning-border bg-warning-subtle p-3 text-sm text-warning">
                 {isSA
                   ? t("هذه قراءة تشغيلية لفترة محددة. الإرسال الرسمي إلى ZATCA يتطلب المراجعة المحاسبية النهائية قبل التقديم.", "This is an operational read for a selected period. Official ZATCA filing requires final accounting review before submission.")
                   : "Operational read for the selected period · final filing requires your accountant's review before submission."}
@@ -470,7 +470,7 @@ export function Taxes() {
                               <select
                                 value={draft.transferType}
                                 onChange={(e) => updateDraft(row.voucherId, { transferType: e.target.value as TaxReturnWithholdingRow["transferType"] })}
-                                className="h-9 rounded border border-border px-2 bg-white"
+                                className="h-9 rounded border border-border px-2 bg-card"
                               >
                                 <option value="SERVICE">{t(transferTypeLabel.SERVICE.ar, transferTypeLabel.SERVICE.en)}</option>
                                 <option value="ROYALTY">{t(transferTypeLabel.ROYALTY.ar, transferTypeLabel.ROYALTY.en)}</option>
@@ -483,7 +483,7 @@ export function Taxes() {
                               <select
                                 value={String(draft.rate)}
                                 onChange={(e) => updateDraft(row.voucherId, { rate: Number(e.target.value) })}
-                                className="h-9 rounded border border-border px-2 bg-white"
+                                className="h-9 rounded border border-border px-2 bg-card"
                               >
                                 <option value="5">5%</option>
                                 <option value="15">15%</option>
@@ -522,7 +522,7 @@ export function Taxes() {
 }
 
 function Metric({ label, value, tone = "default", mono = false }: { label: string; value: string; tone?: "default" | "warn" | "good"; mono?: boolean }) {
-  const colors = tone === "good" ? "border-emerald-200 bg-emerald-50" : tone === "warn" ? "border-amber-200 bg-amber-50" : "border-border bg-white";
+  const colors = tone === "good" ? "border-success-border bg-success-subtle" : tone === "warn" ? "border-warning-border bg-warning-subtle" : "border-border bg-card";
   return (
     <div className={`rounded-lg border px-4 py-3 ${colors}`}>
       <div className="text-xs text-muted-foreground">{label}</div>
@@ -565,7 +565,7 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
           </div>
         </CardContent>
       </Card>
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
@@ -582,19 +582,19 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
           </div>
 
           {payload.irsGuide && (
-            <Card className="border-blue-200 bg-blue-50/60">
+            <Card className="border-info-border bg-info-subtle/60">
               <CardHeader><CardTitle className="text-foreground text-base">{t("نموذجك الفيدرالي (IRS)", "Your federal (IRS) form")}: {payload.irsGuide.form}</CardTitle></CardHeader>
               <CardContent className="space-y-1.5 text-sm text-foreground/80">
                 <div>{t(payload.irsGuide.titleAr, payload.irsGuide.title)}</div>
-                {payload.irsGuide.notes.map((n, i) => <div key={i} className="flex gap-2"><span className="text-blue-600">•</span><span>{n}</span></div>)}
-                {payload.hint && <div className="mt-2 rounded-lg bg-white/70 border border-blue-100 px-3 py-2 text-xs text-blue-900">💡 {payload.hint}</div>}
+                {payload.irsGuide.notes.map((n, i) => <div key={i} className="flex gap-2"><span className="text-info">•</span><span>{n}</span></div>)}
+                {payload.hint && <div className="mt-2 rounded-lg bg-card/70 border border-info-border px-3 py-2 text-xs text-info">💡 {payload.hint}</div>}
                 {payload.org.ein && <div className="text-xs text-muted-foreground mt-1">EIN: <span className="font-english">{payload.org.ein}</span>{payload.org.state ? ` · ${t("الولاية", "State")}: ${payload.org.state}` : ""}</div>}
               </CardContent>
             </Card>
           )}
 
           {payload.formPreview && (
-            <Card className="border-emerald-200 bg-emerald-50/50">
+            <Card className="border-success-border bg-success-subtle/50">
               <CardHeader>
                 <CardTitle className="text-foreground text-base">{t("ملخص نموذج الإقرار القابل للطباعة", "Printable filing preview")}</CardTitle>
               </CardHeader>
@@ -606,7 +606,7 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
                 )}
                 <div>{t("إجمالي المبيعات", "Gross sales")}: <span className="font-english" dir="ltr">{money(payload.formPreview.summary.grossSales, cur)}</span></div>
                 <div>{t("الضريبة المحصلة", "Tax collected")}: <span className="font-english" dir="ltr">{money(payload.formPreview.summary.taxCollected, cur)}</span></div>
-                <div className="text-xs text-emerald-900/80">{t("يمكنك استخدام هذا الملخص كنسخة مراجعة/طباعة قبل تقديم الإقرار الرسمي.", "You can use this as a printable review artifact before official filing.")}</div>
+                <div className="text-xs text-success/80">{t("يمكنك استخدام هذا الملخص كنسخة مراجعة/طباعة قبل تقديم الإقرار الرسمي.", "You can use this as a printable review artifact before official filing.")}</div>
               </CardContent>
             </Card>
           )}
@@ -666,13 +666,13 @@ function GenericVatView({ payload, loading, error, country, from, to, setFrom, s
           </div>
         </CardContent>
       </Card>
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
         <>
           {payload.formPreview && (
-            <Card className="border-emerald-200 bg-emerald-50/50">
+            <Card className="border-success-border bg-success-subtle/50">
               <CardHeader>
                 <CardTitle className="text-foreground text-base">{t("ملخص نموذج VAT القابل للطباعة", "Printable VAT filing preview")}</CardTitle>
               </CardHeader>

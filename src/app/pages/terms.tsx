@@ -253,7 +253,7 @@ export function Terms() {
   const sections = isAr ? arSections : enSections;
 
   return (
-    <div className="min-h-screen bg-white" dir={isAr ? "rtl" : "ltr"} style={{ fontFamily: isAr ? "var(--entix-font-ar)" : "var(--entix-font-en)" }}>
+    <div className="min-h-screen bg-card" dir={isAr ? "rtl" : "ltr"} style={{ fontFamily: isAr ? "var(--entix-font-ar)" : "var(--entix-font-en)" }}>
       <SharedNavbar />
       <main>
 
@@ -261,7 +261,7 @@ export function Terms() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-foreground flex items-center justify-center shadow-lg">
-              <Scale className="w-7 h-7 text-white" />
+              <Scale className="w-7 h-7 text-primary-foreground" />
             </div>
             <h1 className="text-foreground mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
               {isAr ? "الشروط والأحكام" : "ENTIX.IO Terms of Service"}
@@ -271,7 +271,7 @@ export function Terms() {
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-200">
+          <div className="bg-surface-subtle rounded-lg p-6 mb-8 border border-border">
             <p className="text-foreground/80 m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr
                 ? "باستخدامك ENTIX.IO، فإنك توافق على هذه الشروط. إذا كنت تستخدم الخدمة نيابة عن منشأة، فأنت تؤكد أن لديك الصلاحية لإلزامها بهذه الشروط."

@@ -534,7 +534,7 @@ export function ItemsTable({
                   <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>
                     <span className="inline-flex items-center gap-1.5">
                       {t("الاعتراف", "Recognition")}
-                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-white">{t("جديد", "New")}</span>
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">{t("جديد", "New")}</span>
                     </span>
                   </th>
                 )}
@@ -560,7 +560,7 @@ export function ItemsTable({
                     key={line.id}
                     className={`border-t ${ROW_BORDER_CLASS} ${
                       isInvalid
-                        ? "bg-red-50/80 hover:bg-red-100/60 ring-1 ring-inset ring-red-400"
+                        ? "bg-danger-subtle/80 hover:bg-danger-subtle/60 ring-1 ring-inset ring-danger"
                         : "hover:bg-muted/20"
                     }`}
                   >
@@ -724,7 +724,7 @@ export function ItemsTable({
                         {isReal && gross > 0 ? (
                           line.accountId && fixedAssetAccountIds.has(line.accountId) ? (
                             <span
-                              className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1.5 text-emerald-700 ring-1 ring-emerald-300"
+                              className="inline-flex items-center justify-center rounded-md bg-success-subtle p-1.5 text-success ring-1 ring-success-border"
                               title={t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ", "Account sits in the assets branch · auto-registers as a fixed asset on save")}
                             >
                               <Building2 className="h-3.5 w-3.5" />

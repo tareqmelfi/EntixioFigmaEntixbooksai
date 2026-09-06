@@ -62,13 +62,13 @@ export function TaxRateSelect({ value, onChange, type = "both", className }: Tax
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded border border-border bg-white px-2.5 py-1.5 text-sm text-start font-english focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
+        className="w-full rounded border border-border bg-card px-2.5 py-1.5 text-sm text-start font-english focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring/20 transition-colors"
       >
         {displayValue}
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-[260px] rounded-lg border border-border bg-white shadow-lg overflow-hidden" style={{ maxHeight: "320px" }}>
+        <div className="absolute z-50 mt-1 w-[260px] rounded-lg border border-border bg-card shadow-lg overflow-hidden" style={{ maxHeight: "320px" }}>
           {/* Actions */}
           <div className="border-b border-border">
             <button className="w-full text-start px-3 py-2 flex items-center gap-2 hover:bg-muted transition-colors">
@@ -89,7 +89,7 @@ export function TaxRateSelect({ value, onChange, type = "both", className }: Tax
                 key={tr.id}
                 onClick={() => handleSelect(tr)}
                 onMouseEnter={() => setHighlightIndex(i)}
-                className={`w-full text-start px-3 py-2.5 flex items-center justify-between transition-colors ${highlightIndex === i ? "bg-primary/5" : "hover:bg-muted"} ${tr.rate === value ? "bg-sky-50" : ""}`}
+                className={`w-full text-start px-3 py-2.5 flex items-center justify-between transition-colors ${highlightIndex === i ? "bg-primary/5" : "hover:bg-muted"} ${tr.rate === value ? "bg-info-subtle" : ""}`}
               >
                 <span className="text-sm text-foreground">{tr.name}</span>
                 <span className="text-sm font-english text-muted-foreground" style={{ fontWeight: 500 }}>{tr.rate}%</span>

@@ -12,8 +12,8 @@ import { useLanguage } from "../components/LanguageContext";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = { ACTIVE: { ar: "نشط", en: "Active" }, ON_HOLD: { ar: "متوقف", en: "On Hold" }, COMPLETED: { ar: "مكتمل", en: "Completed" }, CANCELLED: { ar: "ملغي", en: "Cancelled" } };
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-700", ON_HOLD: "bg-amber-100 text-amber-700",
-  COMPLETED: "bg-blue-100 text-blue-700", CANCELLED: "bg-gray-100 text-gray-500",
+  ACTIVE: "bg-success-subtle text-success", ON_HOLD: "bg-warning-subtle text-warning",
+  COMPLETED: "bg-info-subtle text-info", CANCELLED: "bg-surface-hover text-muted-foreground",
 };
 
 export function Projects() {
@@ -38,7 +38,7 @@ export function Projects() {
         <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/projects/new")}><Plus className="me-2 h-4 w-4" />{t("مشروع جديد", "New Project")}</Button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
       <Card className="border-border">
         <CardHeader><CardTitle className="text-foreground">{t("القائمة", "List")} · {items.length}</CardTitle></CardHeader>

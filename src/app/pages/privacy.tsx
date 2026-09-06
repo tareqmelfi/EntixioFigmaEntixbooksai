@@ -173,14 +173,14 @@ export function Privacy() {
   const sections = isAr ? arSections : enSections;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white" dir={isAr ? "rtl" : "ltr"} style={{ fontFamily: isAr ? "var(--entix-font-ar)" : "var(--entix-font-en)" }}>
+    <div className="min-h-screen overflow-x-hidden bg-card" dir={isAr ? "rtl" : "ltr"} style={{ fontFamily: isAr ? "var(--entix-font-ar)" : "var(--entix-font-en)" }}>
       <SharedNavbar />
       <main data-page="privacy">
         <div className="px-4 pb-20 pt-28 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl">
             <div className="mb-12 text-center">
               <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-foreground shadow-lg">
-                <Shield className="h-7 w-7 text-white" />
+                <Shield className="h-7 w-7 text-primary-foreground" />
               </div>
               <h1 className="mb-3 text-foreground" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
                 {isAr ? "سياسة الخصوصية" : "ENTIX.IO Privacy Policy"}
@@ -190,7 +190,7 @@ export function Privacy() {
               </p>
             </div>
 
-            <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-6">
+            <div className="mb-8 rounded-lg border border-border bg-surface-subtle p-6">
               <h2 className="mb-3 text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
                 {isAr ? "من نحن" : "Who we are"}
               </h2>

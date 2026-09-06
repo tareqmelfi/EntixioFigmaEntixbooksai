@@ -21,10 +21,10 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, ISSUED: { ar: "صادر", en: "Issued" }, APPLIED: { ar: "مطبَّق", en: "Applied" }, CANCELLED: { ar: "ملغى", en: "Cancelled" },
 };
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  ISSUED: "bg-amber-100 text-amber-700",
-  APPLIED: "bg-green-100 text-green-700",
-  CANCELLED: "bg-gray-100 text-gray-500",
+  DRAFT: "bg-surface-hover text-foreground",
+  ISSUED: "bg-warning-subtle text-warning",
+  APPLIED: "bg-success-subtle text-success",
+  CANCELLED: "bg-surface-hover text-muted-foreground",
 };
 
 const REASONS = [
@@ -194,7 +194,7 @@ export function SupplierCredits() {
           }
         >
           <div className="max-w-7xl mx-auto space-y-4">
-            {createError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</div>}
+            {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t("المورد *", "Supplier *")}</Label>
@@ -233,7 +233,7 @@ export function SupplierCredits() {
               </div>
               <div className="space-y-2">
                 <Label>{t("سبب الإشعار *", "Credit reason *")}</Label>
-                <select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm">
+                <select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm">
                   {REASONS.map((reason) => <option key={reason.value} value={reason.value}>{t(reason.label.ar, reason.label.en)}</option>)}
                 </select>
               </div>
@@ -245,7 +245,7 @@ export function SupplierCredits() {
                     <FileText className="h-4 w-4 text-primary" />
                     {t("مرتبط بفاتورة المورد", "Linked to supplier bill")} <span className="font-english font-semibold">{selectedBill.billNumber}</span>
                   </span>
-                  <Button type="button" variant="outline" disabled={sourceLoading} onClick={() => loadBillLines(selectedBill.id)} className="border-primary/20 bg-white">
+                  <Button type="button" variant="outline" disabled={sourceLoading} onClick={() => loadBillLines(selectedBill.id)} className="border-primary/20 bg-card">
                     {sourceLoading ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <FileText className="h-4 w-4 me-2" />}
                     {t("إعادة تعبئة البنود", "Reload lines")}
                   </Button>
@@ -293,8 +293,8 @@ export function SupplierCredits() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("إجمالي الإشعارات", "Total credits")}</div><div className="font-english text-foreground text-xl font-semibold">{items.length}</div></CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div><div className="font-english text-amber-600 text-xl font-semibold">{total.toLocaleString(displayLocale())}</div></CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div><div className="font-english text-green-600 text-xl font-semibold">{items.filter((item) => item.status === "APPLIED").length}</div></CardContent></Card>
+        <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div><div className="font-english text-warning text-xl font-semibold">{total.toLocaleString(displayLocale())}</div></CardContent></Card>
+        <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div><div className="font-english text-success text-xl font-semibold">{items.filter((item) => item.status === "APPLIED").length}</div></CardContent></Card>
       </div>
 
       <Card className="border-border">
@@ -326,13 +326,13 @@ export function SupplierCredits() {
                     <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={item.contact?.displayName || ""}>{item.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{item.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find((reason) => reason.value === item.reason); return r ? t(r.label.ar, r.label.en) : item.reason; })()}</td>
-                    <td className="py-3 px-4 font-english text-sm text-amber-600 font-semibold"><span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(item.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{item.currency}</span></span></span></td>
+                    <td className="py-3 px-4 font-english text-sm text-warning font-semibold"><span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(item.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{item.currency}</span></span></span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status]}`}>{STATUS_LABELS[item.status] ? t(STATUS_LABELS[item.status].ar, STATUS_LABELS[item.status].en) : item.status}</span></td>
                     <td className="py-3 px-4">
                       {pendingDelete === item.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(item.id)} onCancel={() => setPendingDelete(null)} />
                       ) : (
-                        <button onClick={() => setPendingDelete(item.id)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => setPendingDelete(item.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
                       )}
                     </td>
                   </tr>

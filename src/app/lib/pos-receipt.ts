@@ -72,7 +72,7 @@ export function receiptHtml(sale: QueuedSale, store: PosStore | null, opts: Rece
 @page { size: ${opts.paper}mm auto; margin: 3mm; }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff; }
-body { width: ${w}mm; font-family: "Noto Sans Arabic", "Plus Jakarta Sans", Arial, sans-serif; color: #000; font-size: ${opts.paper === "58" ? 10 : 11.5}px; line-height: 1.35; }
+body { width: ${w}mm; font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", Arial, sans-serif; color: #000; font-size: ${opts.paper === "58" ? 10 : 11.5}px; line-height: 1.35; }
 .c { text-align: center; }
 .b { font-weight: 800; }
 .logo { max-width: ${opts.paper === "58" ? 28 : 36}mm; max-height: 14mm; object-fit: contain; margin: 0 auto 2mm; display: block; }

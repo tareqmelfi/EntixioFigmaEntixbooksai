@@ -65,7 +65,7 @@ export function ProjectFilter({ value, onChange, className }: { value: string; o
   const { projects } = useProjects();
   if (!projects.length) return null;
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={className || "h-9 rounded-md border border-border bg-white px-2 text-sm text-foreground"} aria-label={t("المشروع", "Project")}>
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={className || "h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"} aria-label={t("المشروع", "Project")}>
       <option value="">{t("كل المشاريع", "All projects")}</option>
       {projects.map((p) => <option key={p.id} value={p.id}>{p.code} · {p.name}</option>)}
       <option value="none">{t("بدون مشروع", "Unassigned")}</option>

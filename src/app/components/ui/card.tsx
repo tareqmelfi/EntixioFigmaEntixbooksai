@@ -13,7 +13,7 @@ function Card({ className, density = "default", ...props }: CardProps) {
       data-slot="card"
       data-density={density}
       className={cn(
-        "group/card bg-card text-card-foreground flex flex-col rounded-lg border border-border",
+        "group/card bg-card text-card-foreground flex flex-col rounded-lg border border-border transition-[box-shadow,transform,border-color] duration-200",
         density === "compact" ? "gap-4" : density === "comfortable" ? "gap-6" : "gap-5",
         className,
       )}
