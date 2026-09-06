@@ -96,6 +96,9 @@ export function Invoices() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Invoice[]>([]);
+  const [billingTotals, setBillingTotals] = useState<Record<string, { total: number; paid: number; outstanding: number }> | null>(null);
+  const [invoiceCount, setInvoiceCount] = useState(0);
+  const [sourceFilter, setSourceFilter] = useState("ALL");
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -175,19 +178,21 @@ export function Invoices() {
     setLoading(true);
     try {
       const [invRes, contactsRes, productsRes, accountsRes] = await Promise.all([
-        api.invoices.list({ limit: 200 }),
+        api.invoices.list({ limit: 200, ...(sourceFilter === "entix.io" ? { source: "entix.io" } : {}) }),
         api.contacts.list({ limit: 200 }),
         (api as any).products?.list?.({ limit: 200 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
         (api as any).accounts?.list?.({ limit: 500 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
       ]);
       setItems(invRes.items);
+      setBillingTotals(invRes.totalsByCurrency || null);
+      setInvoiceCount(invRes.total);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
       setProducts((productsRes as any).items || []);
       setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
-  }, [push]);
+  }, [push, sourceFilter]);
   useEffect(() => { refresh(); }, [refresh]);
 
   // PR5-D · a payment recorded on the receipts page must be visible as soon as
@@ -258,9 +263,12 @@ export function Invoices() {
     return true;
   });
 
-  const total = items.reduce((s, i) => s + Number(i.total), 0);
-  const paid = items.reduce((s, i) => s + Number(i.amountPaid || 0), 0);
-  const outstanding = total - paid;
+  const totalsByCurrency = billingTotals || items.filter(i => !['DRAFT', 'CANCELLED'].includes(i.status)).reduce((groups: Record<string, { total: number; paid: number; outstanding: number }>, i) => {
+    const row = groups[i.currency || orgCurrency] ||= { total: 0, paid: 0, outstanding: 0 };
+    row.total += Number(i.total); row.paid += Number(i.amountPaid || 0); row.outstanding += Number(i.total) - Number(i.amountPaid || 0);
+    return groups;
+  }, {});
+  const currencyMetric = (key: 'total' | 'paid' | 'outstanding') => <span className="font-english flex flex-col gap-1">{Object.entries(totalsByCurrency).length ? Object.entries(totalsByCurrency).map(([currency, value]) => <bdi key={currency}>{value[key].toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</bdi>) : <bdi>0.00 {orgCurrency}</bdi>}</span>;
   const counts = items.reduce((acc: Record<string, number>, i) => {
     acc[i.status] = (acc[i.status] || 0) + 1;
     return acc;
@@ -1062,10 +1070,10 @@ export function Invoices() {
       )}
 
       <MetricStrip>
-        <Metric label={t("إجمالي الفواتير", "Total invoiced")} value={<span className="font-english">{total.toLocaleString(displayLocale())}</span>} />
-        <Metric label={t("المُحصَّل", "Collected")} value={<span className="font-english">{paid.toLocaleString(displayLocale())}</span>} tone="success" />
-        <Metric label={t("المستحق", "Outstanding")} value={<span className="font-english">{outstanding.toLocaleString(displayLocale())}</span>} tone="warning" />
-        <Metric label={t("عدد الفواتير", "Invoice count")} value={<span className="font-english">{items.length}</span>} />
+        <Metric label={t("إجمالي الفواتير", "Total invoiced")} value={currencyMetric('total')} />
+        <Metric label={t("المُحصَّل", "Collected")} value={currencyMetric('paid')} tone="success" />
+        <Metric label={t("المستحق", "Outstanding")} value={currencyMetric('outstanding')} tone="warning" />
+        <Metric label={t("عدد الفواتير", "Invoice count")} value={<span className="font-english">{invoiceCount}</span>} />
       </MetricStrip>
 
       <div className="grid grid-cols-1 gap-4">
@@ -1074,6 +1082,7 @@ export function Invoices() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-foreground">{t("قائمة الفواتير", "Invoice list")}</CardTitle>
             <PageToolbar aria-label={t("مرشحات الفواتير", "Invoice filters")} className="border-0 bg-transparent p-0">
+              <Select value={sourceFilter} onValueChange={setSourceFilter}><SelectTrigger className="w-40 border-border text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">{t("كل المصادر", "All sources")}</SelectItem><SelectItem value="entix.io">{t("اشتراكات Entix", "Entix subscriptions")}</SelectItem></SelectContent></Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-40 border-border text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>

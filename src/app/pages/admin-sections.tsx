@@ -1,3 +1,4 @@
+import { AdminBillingLedger } from "../components/admin-billing-ledger";
 import { displayLocale } from "../lib/number-display";
 /**
  * Admin Console v2 · Z2.2 section pages (2026-08-26)
@@ -70,6 +71,7 @@ export function AdminSubscriptions() {
         ))}
       </div>
 
+      <AdminBillingLedger />
       <Card className="border-border">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center gap-2">

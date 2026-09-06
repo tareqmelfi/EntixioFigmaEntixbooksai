@@ -162,6 +162,7 @@ function OrgsTab({ guard, push, t }: any) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [membersFor, setMembersFor] = useState<string | null>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [pendingCancel, setPendingCancel] = useState<string | null>(null);
   const [pendingMemberRemove, setPendingMemberRemove] = useState<string | null>(null); // UX-1 · inline confirm instead of window.confirm
   const [memberEmail, setMemberEmail] = useState("");
   const [memberRole, setMemberRole] = useState("VIEWER");
@@ -180,7 +181,7 @@ function OrgsTab({ guard, push, t }: any) {
     setBusyId(orgId + action);
     try {
       const r = await api.admin.orgSubscription(orgId, { action, months });
-      push("success", action === "lifetime" && r.planName ? t(`تمت الترقية: ${r.planName} · بدون تاريخ انتهاء`, `Upgraded: ${r.planName} · no expiry`) : t("تم", "Done"));
+      push("success", action === "lifetime" && r.planName ? t(`تمت الترقية: ${r.planName} · بدون تاريخ انتهاء`, `Upgraded: ${r.planName} · no expiry`) : action === "cancel" ? t("أُلغي الاشتراك؛ تبقى الشركة على المجاني وبياناتها محفوظة", "Subscription canceled; company remains on Free with its data preserved") : t("تم", "Done"));
       await load(q || undefined);
     } catch (e) { guard(e); } finally { setBusyId(null); }
   };
@@ -218,16 +219,17 @@ function OrgsTab({ guard, push, t }: any) {
                     <div className="relative z-20 pointer-events-none"><span className="text-foreground" style={{ fontWeight: 600 }}>{o.name}</span></div><div className="relative z-20 pointer-events-none text-[11px] text-muted-foreground">{o.country} · {o.currency} · {fmtDate(o.createdAt)}</div>
                   </td>
                   <td className="px-3 py-2.5 text-xs font-english text-muted-foreground relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.owner?.email || "—"}</div></td>
-                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}{o.subscription.status === "ACTIVE" && !o.subscription.currentPeriodEnd ? ` · ${t("بدون انتهاء", "no expiry")}` : ""}</div></>) : "—"}</div></td>
+                  <td className="px-3 py-2.5 text-xs relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.subscription ? (<><span className={`px-2 py-0.5 rounded-full ${o.subscription.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{o.subscription.metadata?.canceledByAdmin ? t("أُلغي · مجاني", "Canceled · Free") : o.subscription.status}</span><div className="mt-1 text-foreground/80">{o.subscription.plan?.name || ""}{o.subscription.status === "ACTIVE" && !o.subscription.currentPeriodEnd ? ` · ${t("بدون انتهاء", "no expiry")}` : ""}</div></>) : "—"}</div></td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground relative"><Link to={`/admin/orgs/${o.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 z-10" /><div className="relative z-20 pointer-events-none">{o.members} / {o.invoices}</div></td>
                   <td className="px-3 py-2.5 relative z-20">
                     <div className="flex flex-wrap gap-1.5">
                       <button disabled={!!busyId} onClick={() => act(o.id, "comp", 3)} className="text-[11px] px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50"><Gift className="inline h-3 w-3 me-0.5" />{t("إهداء 3ش", "Comp 3m")}</button>
                       <button disabled={!!busyId} onClick={() => act(o.id, "lifetime")} title={t("أعلى باقة · بدون تاريخ انتهاء", "Highest plan · no expiry")} className="text-[11px] px-2 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 disabled:opacity-50"><Crown className="inline h-3 w-3 me-0.5" />{t("مدى الحياة", "Lifetime")}</button>
                       <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
-                      <button disabled={!!busyId} onClick={() => act(o.id, "cancel")} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
+                      <button disabled={!!busyId} onClick={() => setPendingCancel(o.id)} className="text-[11px] px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
                       <button onClick={() => openMembers(o.id)} className="text-[11px] px-2 py-1 rounded bg-muted text-foreground border border-border hover:bg-accent"><Users className="inline h-3 w-3 me-0.5" />{t("الأعضاء", "Members")}</button>
                     </div>
+                    {pendingCancel === o.id && <InlineConfirm label={t(`إلغاء اشتراك ${o.name} الآن وإيقاف التجديد؟ تبقى البيانات محفوظة.`, `Cancel ${o.name} now and stop renewal? Data is preserved.`)} onCancel={() => setPendingCancel(null)} onConfirm={async () => { setPendingCancel(null); await act(o.id, "cancel"); }} />}
                     {membersFor === o.id && (
                       <div className="mt-2 rounded-lg border border-border bg-muted/30 p-3 space-y-2 min-w-[260px]">
                         <div className="text-xs text-muted-foreground" style={{ fontWeight: 700 }}>{t("أعضاء المنشأة", "Org members")}</div>
