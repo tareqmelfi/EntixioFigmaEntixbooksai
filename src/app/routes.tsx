@@ -217,6 +217,7 @@ export const router = createBrowserRouter([
       // unauthenticated-redirect smoke: /app/dashboard now hits AuthGuard)
       { path: "dashboard", element: lazyElement(() => import("./pages/dashboard"), "Dashboard"), errorElement: <ErrorBoundary /> },
       { path: "ai", element: lazyElement(() => import("./pages/ai"), "AI"), errorElement: <ErrorBoundary /> },
+      { path: "management/:section?", element: lazyElement(() => import("./pages/company-management"), "CompanyManagement"), errorElement: <ErrorBoundary /> },
       // Sales
       { path: "sales", element: lazyElement(() => import("./pages/sales-dashboard"), "SalesDashboard"), errorElement: <ErrorBoundary /> },
       { path: "invoices", element: lazyElement(() => import("./pages/invoices"), "Invoices"), errorElement: <ErrorBoundary /> },

@@ -20,6 +20,7 @@ import { useLegalType } from "../lib/use-legal-type";
 import { authStore } from "./auth-store";
 
 const EN_TEXT: Record<string, string> = {
+  "إدارة الشركة": "Company management",
   "لوحة التحكم": "Dashboard",
   "الذكاء الاصطناعي": "AI",
   "جديد": "New",
@@ -116,6 +117,7 @@ const sections: MenuSection[] = [
   {
     items: [
       { title: "لوحة التحكم", icon: LayoutDashboard, path: "/app" },
+      { title: "إدارة الشركة", icon: Building2, path: "/app/management" },
       { title: "الذكاء الاصطناعي", icon: Sparkles, path: "/app/ai", badge: "جديد" },
       { title: "التقاط الإيصالات", icon: Camera, path: "/app/scan-receipts" },
     ],
@@ -232,6 +234,7 @@ const sections: MenuSection[] = [
 ];
 
 const searchPages = [
+  { label: "إدارة الشركة", path: "/app/management" },
   { label: "لوحة التحكم", path: "/app" },
   { label: "الذكاء الاصطناعي", path: "/app/ai" },
   { label: "المبيعات", path: "/app/sales" },
