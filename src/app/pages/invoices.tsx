@@ -51,6 +51,7 @@ const STATUS_TONES: Record<Invoice["status"], "neutral" | "info" | "success" | "
 const EMPTY_FORM = {
   contactId: "",
   invoiceNumber: "", // auto-generated if empty
+  supplyDate: "",
   reference: "",     // customer PO / external reference
   issueDate: new Date().toISOString().slice(0, 10),
   dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
@@ -353,6 +354,7 @@ export function Invoices() {
         contactId: form.contactId,
         ...(num !== undefined ? { invoiceNumber: num } : {}),
         issueDate: form.issueDate,
+        supplyDate: form.supplyDate || null,
         dueDate: form.dueDate,
         currency: form.currency,
         status,
@@ -531,6 +533,7 @@ export function Invoices() {
       contactId: inv.contactId,
       invoiceNumber: inv.invoiceNumber,
       issueDate: String(inv.issueDate).slice(0, 10),
+      supplyDate: inv.supplyDate?.slice(0,10) || "",
       dueDate: inv.dueDate ? String(inv.dueDate).slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
       currency: inv.currency,
       notes: inv.notes || "",
@@ -694,6 +697,7 @@ export function Invoices() {
                 <Label className="text-foreground/80 text-xs">{t("تاريخ الاستحقاق", "Due date")} *</Label>
                 <DateInput value={form.dueDate} onChange={(iso) => setForm({ ...form, dueDate: iso })} required inputClassName="h-8 text-xs" />
               </div>
+              {!isUS && <div><Label className="text-xs text-muted-foreground">{t("تاريخ التوريد الفعلي — للفاتورة القياسية", "Actual supply date — standard invoice")}</Label><DateInput value={form.supplyDate} onChange={iso => setForm({...form,supplyDate:iso})} inputClassName="h-8 text-xs" /></div>}
               <div className="space-y-1">
                 <Label className="text-foreground/80 text-xs">{t("رقم الفاتورة", "Invoice number")}</Label>
                 <Input value={form.invoiceNumber} onChange={(e) => { setForm({ ...form, invoiceNumber: e.target.value }); setNumberEdited(true); }}
@@ -1106,7 +1110,7 @@ export function Invoices() {
                         title={t("فتح الفاتورة", "Open invoice")}
                         className="hover:underline underline-offset-4 decoration-primary/50 cursor-pointer"
                       >
-                        <span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span>
+                        <span dir="ltr" className="font-english text-sm text-primary inline-block" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{i.invoiceNumber}</span>{(i.zatcaDelivery?.state || i.zatcaStatus) && <span className={`block text-[11px] ${["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? "text-emerald-700" : "text-amber-800"}`} title={i.zatcaDelivery?.message || undefined}>{["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("✓ مقبولة لدى الهيئة", "✓ Accepted by ZATCA") : ["REVIEW","REJECTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("تحتاج معالجة", "Needs attention") : t("بانتظار قبول الهيئة", "Awaiting ZATCA")}</span>}
                       </button>
                     </td>
                     <td className="py-3 px-4 text-sm text-foreground/80" title={i.contact?.displayName || ""}>

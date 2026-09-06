@@ -1901,6 +1901,8 @@ export interface Contact {
   withholdingTaxRate?: number | null
   defaultCurrency?: string | null
   // Address
+  buildingNumber?: string | null
+  district?: string | null
   addressLine1?: string | null
   addressLine2?: string | null
   city?: string | null
@@ -2053,6 +2055,8 @@ export interface ContactInput {
   isForeign?: boolean
   withholdingTaxRate?: number | null
   defaultCurrency?: string | null
+  buildingNumber?: string | null
+  district?: string | null
   addressLine1?: string | null
   addressLine2?: string | null
   city?: string | null
@@ -2717,6 +2721,7 @@ export interface Invoice {
   contactId: string
   invoiceNumber: string
   status: 'DRAFT' | 'APPROVED' | 'SENT' | 'VIEWED' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED'
+  supplyDate?: string | null
   issueDate: string
   dueDate: string
   currency: string
@@ -2730,6 +2735,7 @@ export interface Invoice {
   termsConditions?: string | null
   zatcaUuid?: string | null
   zatcaQr?: string | null
+  zatcaDelivery?: { state: string | null; message: string | null; customerReleaseReady?: boolean } | null
   zatcaStatus?: string | null
   contact?: Contact
   lines?: InvoiceLine[]
@@ -2753,6 +2759,7 @@ export interface InvoiceInput {
   contactId: string
   invoiceNumber?: string
   status?: Invoice['status']
+  supplyDate?: string | null
   issueDate: string
   dueDate: string
   currency?: string

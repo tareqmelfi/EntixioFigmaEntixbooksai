@@ -27,6 +27,7 @@ export type DeviceProof = {
   certificate: { deviceName: string; issuedAt: string; expiresAt: string; fingerprint: string; issuer: string } | null;
   complianceChecksPassed: number; complianceCheckedAt: string | null; checkedAt: string;
   verificationScope: string; revocationStatus: string; submissionStatus: "frozen" | "live";
+  delivery?: { enabled: boolean; ready: boolean; reason: string | null; activatedAt: string | null; heartbeat: string | null; pending: number; needsReview: number; jobs: Array<{ invoiceId: string; invoiceNumber: string; state: string; message: string | null }> };
   lastAcceptedInvoice?: { invoiceId: string; invoiceNumber: string; uuid: string; status: "REPORTED" | "CLEARED"; httpStatus: number; acceptedAt: string; warnings: string[] } | null;
 };
 
@@ -49,7 +50,7 @@ function derive(raw: ZatcaStatus["raw"]): Omit<ZatcaStatus, "loading" | "raw"> {
   if (status === "COMPLIANCE" && raw?.complianceResult?.ok) step = 3;
   const connected = raw?.deviceProof?.deviceLinked === true && raw?.mode === "production" && raw?.environmentVerified === true;
   const connection: ZatcaConnection = connected ? "connected" : status === "NONE" ? "not_connected" : "in_progress";
-  return { connection, status, step, submission: "frozen", vatConfigured: !!raw?.vatConfigured };
+  return { connection, status, step, submission: connected && raw?.deviceProof?.delivery?.ready === true ? "live" : "frozen", vatConfigured: !!raw?.vatConfigured };
 }
 
 const EMPTY: ZatcaStatus = { loading: true, connection: "not_connected", status: "NONE", step: 0, submission: "frozen", vatConfigured: false, raw: null };

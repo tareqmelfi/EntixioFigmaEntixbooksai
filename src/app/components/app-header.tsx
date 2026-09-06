@@ -104,7 +104,8 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             {zatca.connection === "connected" ? t("التفاصيل", "Details") : zatca.connection === "in_progress" ? t("إكمال الربط", "Continue linking") : t("ابدأ الربط", "Start linking")}
           </Link>
         </div>
-        {zatca.connection === "connected" && zatca.submission === "frozen" && <p className="mt-1 text-xs text-amber-900">{zatca.raw?.deviceProof?.lastAcceptedInvoice ? t("تم قبول فاتورة إنتاجية · الإرسال مُدار لكل فاتورة", "Production invoice accepted · submission managed per invoice") : t("إرسال الفواتير غير مفعّل بعد · شهادة الجهاز مستقلة عن قبول الفواتير", "Invoice submission is not active yet · device onboarding is separate from invoice acceptance")}</p>}
+        {zatca.connection === "connected" && zatca.submission === "live" && <p className={`mt-1 text-xs ${zatca.raw?.deviceProof?.delivery?.needsReview ? "text-amber-900" : "text-emerald-800"}`}>{zatca.raw?.deviceProof?.delivery?.needsReview ? t("الإرسال مفعّل · توجد فواتير تحتاج معالجة", "Submission active · invoices need attention") : t("الإرسال التلقائي مفعّل · حالة كل فاتورة محفوظة", "Automatic submission active · each invoice has a saved status")}</p>}
+        {zatca.connection === "connected" && zatca.submission === "frozen" && <p className="mt-1 text-xs text-amber-900">{zatca.raw?.deviceProof?.lastAcceptedInvoice ? t("تم قبول فاتورة إنتاجية · راجع حالة الإرسال", "Production invoice accepted · review submission status") : t("إرسال الفواتير غير مفعّل بعد · شهادة الجهاز مستقلة عن قبول الفواتير", "Invoice submission is not active yet · device onboarding is separate from invoice acceptance")}</p>}
       </div>
       )}
 

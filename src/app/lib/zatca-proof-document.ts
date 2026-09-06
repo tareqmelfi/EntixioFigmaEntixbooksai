@@ -73,8 +73,9 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
     text(stage.label, right - 67, y, 32, ENTIX_BRAND.navy, false, 965);
   });
   const accepted = proof.lastAcceptedInvoice;
-  text(accepted ? `${t("قبول فاتورة إنتاجية", "Production invoice accepted")}: ${accepted.invoiceNumber} · ${accepted.status}` : t("إرسال الفواتير: غير مفعّل بعد", "Invoice submission: not active yet"), 2325, 1420, 28, accepted ? "#17603b" : "#854d0e");
+  text(accepted ? `${t("قبول فاتورة إنتاجية", "Production invoice accepted")}: ${accepted.invoiceNumber} · ${accepted.status}` : t("إرسال الفواتير: غير مفعّل بعد", "Invoice submission: not active yet"), 2325, 1420, 28, accepted ? "#17603b" : "#854d0e", false, 1160);
 
+  text(proof.delivery?.needsReview ? t("توجد فواتير تحتاج مراجعة في حساب المنشأة", "Invoices need review in the organization account") : proof.delivery?.ready ? t("الإرسال التلقائي مفعّل لفواتير المبيعات المدعومة", "Automatic submission active for supported sales invoices") : t("حالة الإرسال تُراجع في حساب المنشأة", "Review submission status in the organization account"), 1120, 1420, 24, proof.delivery?.ready ? "#17603b" : "#526077", false, 940);
   rule(1450);
   const digest = cert.fingerprint.replace(/:/g, "").toUpperCase();
   const fingerprintQr = qrcode(0, "M"); fingerprintQr.addData(`SHA256:${digest}`); fingerprintQr.make();

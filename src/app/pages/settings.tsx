@@ -1984,17 +1984,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         {/* Done */}
         {status === "PRODUCTION" && <ZatcaDeviceProof status={live} />}
 
-        {/* Submission note — connection ≠ submission. Connected orgs get the calm
-            version; the rest keep the honest freeze note. */}
-        {status === "PRODUCTION" ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            {t("شهادة الجهاز محفوظة؛ إرسال الفواتير مجمّد إلى حين اكتمال التحقق الفني واعتماد التفعيل.", "Device certificate stored; invoice submission remains frozen pending technical validation and activation approval.")}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            {t("إرسال الفواتير إلى الهيئة مجمّد قيد التحقق. المخرجات المحلية لا تثبت قبول الهيئة ولا تُرسل تلقائيًا.", "Invoice submission remains frozen pending validation. Local output does not prove authority acceptance and is not submitted automatically.")}
-          </div>
-        )}
+        {status !== "PRODUCTION" && <p className="text-xs text-muted-foreground">{t("أكمل شهادة الإنتاج ثم تحقق من تفعيل إرسال فواتير المنشأة.", "Complete the production certificate, then check the organization invoice submission activation.")}</p>}
       </CardContent>
     </Card>
   );

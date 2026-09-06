@@ -59,6 +59,7 @@ export function InvoicePrintView() {
           }
         }
         if (!inv) throw new Error("not_found");
+        if (inv.zatcaDelivery?.customerReleaseReady === false) throw new ApiError(409, "انتظر قبول الهيئة لهذه الفاتورة قبل تنزيلها أو إرسالها للمشتري. / Await authority confirmation before sharing this invoice.");
         setInvoice(inv);
         if (inv.contactId) {
           const c = await api.contacts.get(inv.contactId).catch(() => null);

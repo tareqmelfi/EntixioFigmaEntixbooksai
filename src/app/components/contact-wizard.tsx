@@ -80,6 +80,8 @@ export type FormState = {
   city: string;
   region: string;
   addressLine1: string;
+  buildingNumber: string;
+  district: string;
   postalCode: string;
   notes: string;
   // role flags
@@ -96,7 +98,7 @@ export const emptyForm: FormState = {
   displayName: "", legalName: "", email: "", phone: "",
   vatNumber: "", crNumber: "", nationalId: "", leiCode: "",
   isForeign: false, withholdingTaxRate: "", defaultCurrency: "SAR",
-  country: "SA", city: "", region: "", addressLine1: "", postalCode: "",
+  country: "SA", city: "", region: "", addressLine1: "", buildingNumber: "", district: "", postalCode: "",
   notes: "",
   isCustomer: true, isSupplier: false, isEmployee: false, isShareholder: false, isFreelancer: false,
 };
@@ -121,6 +123,8 @@ export function contactToForm(c: Contact): FormState {
     city: c.city || "",
     region: c.region || "",
     addressLine1: c.addressLine1 || "",
+    buildingNumber: c.buildingNumber || "",
+    district: c.district || "",
     postalCode: c.postalCode || "",
     notes: c.notes || "",
     isCustomer: !!c.isCustomer || c.type === "CUSTOMER" || c.type === "BOTH",
@@ -151,6 +155,8 @@ export function formToInput(form: FormState): ContactInput {
     city: form.city.trim() || null,
     region: form.region.trim() || null,
     addressLine1: form.addressLine1.trim() || null,
+    buildingNumber: form.buildingNumber.trim() || null,
+    district: form.district.trim() || null,
     postalCode: form.postalCode.trim() || null,
     notes: form.notes.trim() || null,
     isCustomer: form.isCustomer,
@@ -454,6 +460,7 @@ function Step4({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           placeholder={t("مثال: 30 N Gould St Sheridan WY · أو الرياض حي العليا", "e.g. 30 N Gould St Sheridan WY · or Riyadh, Olaya district")}
         />
       </div>
+      {form.country === "SA" && <div className="grid grid-cols-2 gap-3"><div><Label>{t("رقم المبنى — العنوان الوطني", "National address building number")}</Label><Input value={form.buildingNumber} onChange={e => setForm({...form,buildingNumber:e.target.value.replace(/\D/g,"").slice(0,4)})} inputMode="numeric" dir="ltr" /></div><div><Label>{t("الحي", "District")}</Label><Input value={form.district} onChange={e => setForm({...form,district:e.target.value})} /></div></div>}
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Label className="text-xs text-muted-foreground">{t("المدينة", "City")}</Label>
