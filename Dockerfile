@@ -2,7 +2,7 @@
 # Multi-stage build for Entix Books frontend (Vite + React)
 
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:22.6.0-bookworm-slim AS build
+FROM node:22.22.0-bookworm-slim AS build
 # Force rebuild - security + nginx fix 2026-08-03
 WORKDIR /app
 ARG CACHE_BUST=1
