@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * ENTIX.IO — Unified Chart Styling System
  * ──────────────────────────────────────────
@@ -74,8 +75,8 @@ export const legendStyle = {
 } as const;
 
 /** Format number for tooltip display */
-export const formatSAR = (value: number) => `${value.toLocaleString()} SR`;
-export const formatSARShort = (value: number) => `${value.toLocaleString()} SR`;
+export const formatSAR = (value: number) => `${value.toLocaleString(displayLocale())} SR`;
+export const formatSARShort = (value: number) => `${value.toLocaleString(displayLocale())} SR`;
 
 /** Muted bar colors with slight transparency for softer look */
 export const chartColors = {

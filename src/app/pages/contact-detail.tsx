@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Contact Detail · full Wave-style profile page
  *
@@ -160,7 +161,7 @@ export function ContactDetail() {
 
   const { contact, totals } = data;
   const cur = contact.country === "SA" ? "SAR" : (contact.defaultCurrency || "SAR");
-  const fmt = (n: number) => `${n.toLocaleString()} ${cur}`;
+  const fmt = (n: number) => `${n.toLocaleString(displayLocale())} ${cur}`;
 
   return (
     <div className="space-y-5">
@@ -297,20 +298,20 @@ export function ContactDetail() {
         <Metric
           label={t("الفواتير", "Invoices")}
           icon={<FileText className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.invoices.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.invoices.total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
           hint={<><span className="font-english tabular-nums font-semibold">{totals.invoices.count}</span> {t("فاتورة", "invoices")}</>}
         />
         <Metric
           label={t("فواتير الشراء", "Purchase bills")}
           icon={<ShoppingBag className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.bills.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.bills.total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
           hint={<><span className="font-english tabular-nums font-semibold">{totals.bills.count}</span> {t("فاتورة شراء", "purchase bills")}</>}
         />
         <Metric
           tone="success"
           label={t("سندات القبض", "Receipts")}
           icon={<Receipt className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.receipts.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.receipts.total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
           hint={<><span className="font-english tabular-nums font-semibold">{totals.receipts.count}</span> {t("سند قبض", "receipts")}</>}
         />
         <Metric
@@ -318,7 +319,7 @@ export function ContactDetail() {
           label={t("الرصيد الصافي", "Net balance")}
           icon={<Banknote className="h-3.5 w-3.5" />}
           value={<span dir="ltr" className="font-english-block tabular-nums">{fmt(Math.abs(totals.balance))}</span>}
-          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(undefined, { maximumFractionDigits: 2 })} {cur}</span></span></>}
+          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} {cur}</span></span></>}
         />
       </MetricStrip>
 
@@ -461,7 +462,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           <CardHeader className="pb-3">
             <SectionHeader
               title={<span className="flex items-center gap-1.5"><FileText className="h-4 w-4" /> {t("آخر الفواتير", "Latest invoices")}</span>}
-              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString()} {cur}</span></span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString(displayLocale())} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
@@ -488,7 +489,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           <CardHeader className="pb-3">
             <SectionHeader
               title={<span className="flex items-center gap-1.5"><ShoppingBag className="h-4 w-4" /> {t("آخر فواتير الشراء", "Latest purchase bills")}</span>}
-              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString()} {cur}</span></span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString(displayLocale())} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
@@ -550,7 +551,7 @@ function DocList({ rows }: { rows: Array<{ id: string; number: string; date: str
           <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end min-w-[140px] md:min-w-[180px]">
             <DocumentStatus status={r.status} />
             <div className="text-end">
-              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString()}</div>
+              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString(displayLocale())}</div>
               <div dir="ltr" className="whitespace-nowrap text-xs font-english tabular-nums text-muted-foreground">{r.cur}</div>
             </div>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary shrink-0" />
@@ -600,7 +601,7 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
           >
             <div className="text-xs text-muted-foreground">{s.label}</div>
             <div className="mt-0.5 font-english tabular-nums text-base font-bold text-foreground">{s.count}</div>
-            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString()} {cur}</div>
+            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString(displayLocale())} {cur}</div>
           </button>
         ))}
       </div>
@@ -667,9 +668,9 @@ function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: st
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{r.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground"><span dir="ltr" className="font-english inline-block">{r.due?.slice(0, 10) || "—"}</span></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString()}</TableNumericCell></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString()}</TableNumericCell></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString()}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString(displayLocale())}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString(displayLocale())}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString(displayLocale())}</TableNumericCell></td>
               <td className="px-4 py-2.5 text-center"><DocumentStatus status={r.status} /></td>
               <td className="px-2 py-2.5"><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary" /></Link></td>
             </tr>
@@ -724,7 +725,7 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english tabular-nums inline-block">{v.date.slice(0, 10)}</span></td>
               <td className={`px-4 py-2.5 text-end ${v.type === "RECEIPT" ? "text-success" : "text-warning"}`}>
-                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString()} {v.currency}</TableNumericCell>
+                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString(displayLocale())} {v.currency}</TableNumericCell>
               </td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{v.paymentMethod || "—"}</td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs"><span dir="ltr" className="font-english inline-block">{v.reference || "—"}</span></td>
@@ -783,7 +784,7 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{e.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{e.category || t("غير مصنّف", "Uncategorized")}</td>
               <td className="px-4 py-2.5 text-foreground/80 whitespace-normal break-words">{e.description || "—"}</td>
-              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString()} {e.currency}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString(displayLocale())} {e.currency}</TableNumericCell></td>
             </tr>
           ))}
         </tbody>

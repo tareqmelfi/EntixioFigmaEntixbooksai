@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Investment wallet full page — app-wide standard:
  *   /app/investments/new  → create (kind segmented: TRADING / FUNDED_PROP)
@@ -23,7 +24,7 @@ import { api, ApiError, Account } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const KIND_LABELS: Record<string, { ar: string; en: string }> = {
   DEPOSIT: { ar: "إيداع", en: "Deposit" }, WITHDRAWAL: { ar: "سحب", en: "Withdrawal" },
@@ -300,7 +301,7 @@ export function InvestmentWalletDetail() {
                 {wallet.positions.map((p: any) => (
                   <tr key={p.symbol} className="border-b border-border/50">
                     <td className="py-2.5 px-4 font-english" style={{ fontWeight: 700 }} dir="ltr">{p.symbol}</td>
-                    <td className="py-2.5 px-4 font-english" dir="ltr">{Number(p.qty).toLocaleString("en-US", { maximumFractionDigits: 6 })}</td>
+                    <td className="py-2.5 px-4 font-english" dir="ltr">{Number(p.qty).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 6 })}</td>
                     <td className="py-2.5 px-4 font-english" dir="ltr">{money(p.avgCost)}</td>
                     <td className="py-2.5 px-4 font-english" dir="ltr">{money(p.cost)}</td>
                   </tr>
@@ -351,7 +352,7 @@ export function InvestmentWalletDetail() {
                         </span>
                       </td>
                       <td className="py-2.5 px-4 text-xs text-foreground/80">
-                        {x.symbol ? <span className="font-english" dir="ltr">{Number(x.quantity).toLocaleString()} × {x.symbol} @ {money(x.price)}</span> : (x.notes || "—")}
+                        {x.symbol ? <span className="font-english" dir="ltr">{Number(x.quantity).toLocaleString(displayLocale())} × {x.symbol} @ {money(x.price)}</span> : (x.notes || "—")}
                       </td>
                       <td className="py-2.5 px-4 font-english" style={{ fontWeight: 600 }} dir="ltr">{money(x.amount)}</td>
                       <td className={`py-2.5 px-4 font-english text-xs ${Number(x.realizedPnl || 0) > 0 ? "text-emerald-600" : Number(x.realizedPnl || 0) < 0 ? "text-red-600" : "text-muted-foreground/50"}`} dir="ltr">

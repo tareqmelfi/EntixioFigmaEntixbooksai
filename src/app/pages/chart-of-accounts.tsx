@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Chart of Accounts · UX-95 · tree view + auto-suggest code + parent picker
  *
@@ -93,7 +94,7 @@ function buildCashFlowMeta(t: TFunc): Record<CashFlowType, { label: string; hint
 }
 
 function formatAmount(value: number | null | undefined): string {
-  return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return Number(value || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 });
 }
 
 function normalizeText(value: string): string {
@@ -728,7 +729,7 @@ export function ChartOfAccounts() {
                 <Icon className="h-4 w-4 text-muted-foreground/60" />
               </div>
               <div className="font-english text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
-                {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                {total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
               </div>
               <p className="text-[11px] text-muted-foreground/60 mt-1.5"><span className="font-english">{typeItems.length}</span> {t("حساب · الرصيد الإجمالي", "account · Total balance")}</p>
             </button>
@@ -784,7 +785,7 @@ export function ChartOfAccounts() {
                     <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
                       <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></div>
-                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english">{sectionTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english">{sectionTotal.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
@@ -848,7 +849,7 @@ export function ChartOfAccounts() {
                             <div className="font-english text-xs shrink-0 text-end" style={{ minWidth: "80px" }}>
                               {(node.balance ?? 0) !== 0 ? (
                                 <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-amber-700"}`}>
-                                  {(node.balance ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                  {(node.balance ?? 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground">0.00</span>
@@ -907,7 +908,7 @@ export function ChartOfAccounts() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {txPanel.data.total} {t("عملية", "transactions")}
                     <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-amber-700"}`}>
-                      {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
                     </span>
                   </p>
                 )}
@@ -946,9 +947,9 @@ export function ChartOfAccounts() {
                             <div className="text-foreground max-w-[320px] truncate" dir="auto" title={t.description}>{t.description}</div>
                             {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{t.lineDescription}</div>}
                           </td>
-                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.credit > 0 ? t.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.runningBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.credit > 0 ? t.credit.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.runningBalance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
                     </tbody>

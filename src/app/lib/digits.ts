@@ -1,8 +1,8 @@
 /**
  * Digit normalization · Arabic-Indic ↔ Western
  *
- * Per BIBLE rule: "منع استخدام الأرقام العربية الهندية تماماً ·
- *                  استخدام الأرقام اللاتينية (0-9) فقط في التخزين والعرض."
+ * Storage and API values always use 0-9. Display also defaults to 0-9;
+ * users may explicitly opt into Arabic-Indic digits in language settings.
  *
  * Inputs from Mac/iOS Arabic keyboard often produce ٠١٢٣٤٥٦٧٨٩ instead of 0-9.
  * Eastern Arabic-Indic (used in Persian/Urdu): ۰۱۲۳۴۵۶۷۸۹ (also normalized).

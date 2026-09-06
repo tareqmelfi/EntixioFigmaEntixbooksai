@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, FileText, Loader2, Plus, Search, ScrollText, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -225,7 +226,7 @@ export function SupplierCredits() {
                   items={supplierBills.map((bill) => ({
                     id: bill.id,
                     label: bill.billNumber,
-                    sublabel: [bill.contact?.displayName, bill.issueDate?.slice(0, 10), `${Number(bill.total).toLocaleString()} ${bill.currency}`].filter(Boolean).join(" · "),
+                    sublabel: [bill.contact?.displayName, bill.issueDate?.slice(0, 10), `${Number(bill.total).toLocaleString(displayLocale())} ${bill.currency}`].filter(Boolean).join(" · "),
                   }))}
                   placeholder={t("ابحث برقم الفاتورة أو المورد أو التاريخ...", "Search by bill number, supplier or date...")}
                 />
@@ -292,7 +293,7 @@ export function SupplierCredits() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("إجمالي الإشعارات", "Total credits")}</div><div className="font-english text-foreground text-xl font-semibold">{items.length}</div></CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div><div className="font-english text-amber-600 text-xl font-semibold">{total.toLocaleString()}</div></CardContent></Card>
+        <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div><div className="font-english text-amber-600 text-xl font-semibold">{total.toLocaleString(displayLocale())}</div></CardContent></Card>
         <Card className="border-border"><CardContent className="p-5"><div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div><div className="font-english text-green-600 text-xl font-semibold">{items.filter((item) => item.status === "APPLIED").length}</div></CardContent></Card>
       </div>
 
@@ -325,7 +326,7 @@ export function SupplierCredits() {
                     <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={item.contact?.displayName || ""}>{item.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{item.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find((reason) => reason.value === item.reason); return r ? t(r.label.ar, r.label.en) : item.reason; })()}</td>
-                    <td className="py-3 px-4 font-english text-sm text-amber-600 font-semibold"><span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(item.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{item.currency}</span></span></span></td>
+                    <td className="py-3 px-4 font-english text-sm text-amber-600 font-semibold"><span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(item.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{item.currency}</span></span></span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status]}`}>{STATUS_LABELS[item.status] ? t(STATUS_LABELS[item.status].ar, STATUS_LABELS[item.status].en) : item.status}</span></td>
                     <td className="py-3 px-4">
                       {pendingDelete === item.id ? (

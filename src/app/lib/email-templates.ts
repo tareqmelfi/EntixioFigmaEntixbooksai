@@ -1,3 +1,4 @@
+import { displayLocale } from "./number-display";
 /**
  * Document email templates (قوالب رسائل المستندات)
  *
@@ -65,7 +66,7 @@ export function voucherEmail(opts: {
     docLabel: opts.type === "RECEIPT" ? "سند قبض" : "سند صرف",
     number: opts.number,
     date: opts.date,
-    amountLine: `${opts.amount.toLocaleString()} ${opts.currency}`,
+    amountLine: `${opts.amount.toLocaleString(displayLocale())} ${opts.currency}`,
     contactName: opts.contactName,
     orgName: opts.orgName,
   });
@@ -83,7 +84,7 @@ export function invoiceEmail(opts: {
     docLabel: "فاتورة",
     number: opts.number,
     date: opts.date,
-    amountLine: `${opts.total.toLocaleString()} ${opts.currency}`,
+    amountLine: `${opts.total.toLocaleString(displayLocale())} ${opts.currency}`,
     contactName: opts.contactName,
     orgName: opts.orgName,
   });
@@ -101,7 +102,7 @@ export function quoteEmail(opts: {
     docLabel: "عرض سعر",
     number: opts.number,
     date: opts.date,
-    amountLine: `${opts.total.toLocaleString()} ${opts.currency}`,
+    amountLine: `${opts.total.toLocaleString(displayLocale())} ${opts.currency}`,
     contactName: opts.contactName,
     orgName: opts.orgName,
   });

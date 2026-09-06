@@ -1,3 +1,4 @@
+import { displayLocale } from "../../lib/number-display";
 "use client";
 
 import * as React from "react";
@@ -245,7 +246,7 @@ function ChartTooltipContent({
                     </div>
                     {item.value && (
                       <span className="text-foreground font-mono font-medium tabular-nums">
-                        {item.value.toLocaleString()}
+                        {item.value.toLocaleString(displayLocale())}
                       </span>
                     )}
                   </div>

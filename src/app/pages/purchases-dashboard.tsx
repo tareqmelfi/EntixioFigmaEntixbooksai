@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Purchases Dashboard · org-scoped · matches sales dashboard structure (UX-65)
  *
@@ -149,7 +150,7 @@ export function PurchasesDashboard() {
   );
 
   const cur = data.org.baseCurrency;
-  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
+  const fmt = (n: number) => `${cur} ${n.toLocaleString(displayLocale())}`;
   const filtered = data.recentBills.filter((b) => !searchQuery || b.number.includes(searchQuery) || b.contact.includes(searchQuery)).slice(0, 5);
 
   // Insights
@@ -234,7 +235,7 @@ export function PurchasesDashboard() {
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topSupplier?.name || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">{cur}</span> {topSupplier ? Number(topSupplier.total).toLocaleString() : "—"}
+                <span className="text-muted-foreground/60">{cur}</span> {topSupplier ? Number(topSupplier.total).toLocaleString(displayLocale()) : "—"}
               </div>
             </div>
           </CardContent>
@@ -247,7 +248,7 @@ export function PurchasesDashboard() {
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{mostOverdueSupplier?.contact || "—"}</p>
               </div>
               <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">{cur}</span> {mostOverdueSupplier ? Number(mostOverdueSupplier.total).toLocaleString() : "0"}
+                <span className="text-muted-foreground/60">{cur}</span> {mostOverdueSupplier ? Number(mostOverdueSupplier.total).toLocaleString(displayLocale()) : "0"}
               </div>
             </div>
           </CardContent>
@@ -260,7 +261,7 @@ export function PurchasesDashboard() {
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topCategory?.category || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">{cur}</span> {topCategory ? Number(topCategory.total).toLocaleString() : "—"}
+                <span className="text-muted-foreground/60">{cur}</span> {topCategory ? Number(topCategory.total).toLocaleString(displayLocale()) : "—"}
               </div>
             </div>
           </CardContent>
@@ -302,7 +303,7 @@ export function PurchasesDashboard() {
                     <td className="py-3 px-5 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{b.number}</td>
                     <td className="py-3 px-2 text-sm text-foreground/80">{b.contact}</td>
                     <td className="py-3 px-2 font-english text-xs text-muted-foreground">{b.date}</td>
-                    <td className="py-3 px-2 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString()}</td>
+                    <td className="py-3 px-2 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{Number(b.total).toLocaleString(displayLocale())}</td>
                     <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{STATUS_LABELS[b.status] ? (language === "ar" ? STATUS_LABELS[b.status].ar : STATUS_LABELS[b.status].en) : b.status}</span></td>
                     <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-muted-foreground/60" /></td>
                   </tr>

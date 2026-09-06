@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse, ClipboardList, AlertTriangle } from "lucide-react";
@@ -50,10 +51,10 @@ type MovementRow = {
 };
 
 const money = (value: string | number | null | undefined) =>
-  Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const qty = (value: string | number | null | undefined) =>
-  Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 3 });
+  Number(value || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 3 });
 
 const movementLabels: Record<string, { ar: string; en: string }> = {
   RECEIPT: { ar: "استلام", en: "Receipt" },
@@ -311,7 +312,7 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
             const label = movementLabels[row.type];
             return (
               <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
-                <td className="px-4 py-3 text-sm text-muted-foreground font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString("en-GB") : "—"}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString(displayLocale("en-GB")) : "—"}</td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                     {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}

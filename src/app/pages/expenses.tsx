@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Expenses (المصروفات النقدية) · wired to /api/expenses
  * UX pattern: FullPageForm with document preview and receipt OCR.
@@ -323,7 +324,7 @@ function hasStoredExpenseDraft() {
 function draftTimeLabel(value: string | null) {
   if (!value) return null;
   try {
-    return new Date(value).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+    return new Date(value).toLocaleTimeString(displayLocale("ar-SA"), { hour: "2-digit", minute: "2-digit" });
   } catch {
     return null;
   }
@@ -458,7 +459,7 @@ function cleanVendorName(value: any): string {
 
 function money(value: any, currency = "SAR") {
   const n = Number(value || 0);
-  return `${n.toLocaleString(undefined, { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} ${currency}`;
+  return `${n.toLocaleString(displayLocale(undefined), { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 function extractionTotals(data: any) {
@@ -1339,7 +1340,7 @@ export function Expenses() {
                         {extractionSummary.documentNumber ? <> · {t("رقم", "No.")} <span className="font-english">{extractionSummary.documentNumber}</span></> : null}
                         {extractionSummary.vendorCr ? <> · {t("س.ت:", "CR:")} <span className="font-english">{extractionSummary.vendorCr}</span></> : null}
                         {extractionSummary.vendorUnn ? <> · {t("موحد (700):", "UNN (700):")} <span className="font-english">{extractionSummary.vendorUnn}</span></> : null}
-                        {extractionSummary.total ? <> · <span className="font-english">{extractionSummary.total.toFixed(2)} SAR</span></> : null}
+                        {extractionSummary.total ? <> · <span className="font-english">{displayDigits(extractionSummary.total.toFixed(2))} SAR</span></> : null}
                         {extractionSummary.confidence != null ? <> · {t("ثقة", "Confidence")} <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
                       </div>
                       <div className="mt-2 grid grid-cols-3 gap-2 text-xs">

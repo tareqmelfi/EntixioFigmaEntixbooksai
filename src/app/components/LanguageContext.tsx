@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { parsePublicPath } from "../public-site-manifest";
 import { authStore } from "./auth-store";
+import { getNumberingSystem, setNumberingSystem, NUMBERING_EVENT, NUMBERING_STORAGE_KEY, type NumberingSystem } from "../lib/number-display";
 import {
   accountLocale,
   applyDocumentLocale,
@@ -13,6 +14,8 @@ export type Language = "ar" | "en";
 
 interface LanguageContextType {
   language: Language;
+  numberingSystem: NumberingSystem;
+  setNumberingSystem: (value: NumberingSystem) => boolean;
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   t: (ar: string, en?: string) => string;
@@ -28,6 +31,14 @@ function initialLanguage(): Language {
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [numberingSystem, setNumberingState] = useState(getNumberingSystem);
+  useEffect(() => {
+    const sync = () => setNumberingState(getNumberingSystem());
+    const onStorage = (event: StorageEvent) => { if (event.key === NUMBERING_STORAGE_KEY || event.key === null) sync(); };
+    window.addEventListener(NUMBERING_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => { window.removeEventListener(NUMBERING_EVENT, sync); window.removeEventListener("storage", onStorage); };
+  }, []);
   const [language, setLanguageState] = useState<Language>(() => {
     const initial = initialLanguage();
     applyDocumentLocale(initial);
@@ -82,7 +93,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t, numberingSystem, setNumberingSystem }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -104,6 +115,8 @@ export function useLanguageSafe(): LanguageContextType {
   if (context !== undefined) return context;
   return {
     language: "en",
+    numberingSystem: getNumberingSystem(),
+    setNumberingSystem,
     setLanguage: () => {},
     toggleLanguage: () => {},
     t: (_ar: string, en?: string) => en ?? _ar,

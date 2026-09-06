@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * InvoicePreviewPane · split-view preview that shows when a row is clicked.
  *
@@ -217,10 +218,10 @@ export function InvoicePreviewPane({
                 {doc.lines.map((l, i) => (
                   <tr key={l.id || i} className="border-b border-border/50">
                     <td className="py-2 px-3 text-sm text-foreground/80">{l.description}</td>
-                    <td className="py-2 px-3 font-english text-sm text-foreground/80">{Number(l.quantity).toLocaleString()}</td>
-                    <td className="py-2 px-3 font-english text-sm text-foreground/80">{Number(l.unitPrice).toFixed(2)}</td>
+                    <td className="py-2 px-3 font-english text-sm text-foreground/80">{Number(l.quantity).toLocaleString(displayLocale())}</td>
+                    <td className="py-2 px-3 font-english text-sm text-foreground/80">{displayDigits(Number(l.unitPrice).toFixed(2))}</td>
                     <td className="py-2 px-3 font-english text-sm text-foreground" style={{ fontWeight: 600 }}>
-                      {(l.total !== undefined ? Number(l.total) : Number(l.quantity) * Number(l.unitPrice)).toFixed(2)}
+                      {displayDigits((l.total !== undefined ? Number(l.total) : Number(l.quantity) * Number(l.unitPrice)).toFixed(2))}
                     </td>
                   </tr>
                 ))}
@@ -234,18 +235,18 @@ export function InvoicePreviewPane({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t("الإجمالي:", "Total:")}</span>
                 <span className="font-english text-foreground" style={{ fontWeight: 700, fontSize: "1rem" }}>
-                  {total.toLocaleString()} {doc.currency || "SAR"}
+                  {total.toLocaleString(displayLocale())} {doc.currency || "SAR"}
                 </span>
               </div>
               {paid > 0 && (
                 <>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t("المُحصَّل:", "Collected:")}</span>
-                    <span className="font-english text-green-600" style={{ fontWeight: 600 }}>{paid.toLocaleString()}</span>
+                    <span className="font-english text-green-600" style={{ fontWeight: 600 }}>{paid.toLocaleString(displayLocale())}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm pt-1 border-t border-border">
                     <span className="text-muted-foreground">{t("المتبقي:", "Outstanding:")}</span>
-                    <span className="font-english text-amber-600" style={{ fontWeight: 600 }}>{outstanding.toLocaleString()}</span>
+                    <span className="font-english text-amber-600" style={{ fontWeight: 600 }}>{outstanding.toLocaleString(displayLocale())}</span>
                   </div>
                 </>
               )}

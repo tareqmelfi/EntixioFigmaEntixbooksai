@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Admin Dashboard · /admin (W31)
  *
@@ -17,7 +18,7 @@ import { useLanguage } from "../components/LanguageContext";
 import { AdminOverview } from "./admin-overview";
 
 type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email" | "backups" | "agent";
-const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(displayLocale("en-GB")) : "—");
 
 /** Z2.1 · URL section → tab (the shell's sidebar drives navigation; «system» keeps sub-tabs). */
 export type AdminSection = "overview" | "orgs" | "users" | "subscriptions" | "support" | "system";
@@ -480,7 +481,7 @@ function AiTab({ guard }: { guard: (e: any) => boolean }) {
   useEffect(() => { load(); }, [load]);
   return (
     <Card className="border-border">
-      <CardHeader><CardTitle className="text-base text-foreground">{t("استهلاك الذكاء لكل منشأة", "AI spend per org")} · ${totalSpend.toFixed(2)}</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-base text-foreground">{t("استهلاك الذكاء لكل منشأة", "AI spend per org")} · ${displayDigits(totalSpend.toFixed(2))}</CardTitle></CardHeader>
       <CardContent className="p-0">
         {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : (
           <table className="w-full text-sm">
@@ -489,8 +490,8 @@ function AiTab({ guard }: { guard: (e: any) => boolean }) {
               {items.map((o: any) => (
                 <tr key={o.orgId} className="border-b border-border/60">
                   <td className="px-4 py-2.5 text-foreground">{o.orgName} <span className="text-xs text-muted-foreground">{o.country}</span></td>
-                  <td className="px-4 py-2.5 font-english text-xs">${Number(o.creditBalance || 0).toFixed(2)}</td>
-                  <td className="px-4 py-2.5 font-english text-xs">${Number(o.spentThisPeriod || 0).toFixed(4)}</td>
+                  <td className="px-4 py-2.5 font-english text-xs">${displayDigits(Number(o.creditBalance || 0).toFixed(2))}</td>
+                  <td className="px-4 py-2.5 font-english text-xs">${displayDigits(Number(o.spentThisPeriod || 0).toFixed(4))}</td>
                   <td className="px-4 py-2.5 text-xs">{o.disabled ? "🔴" : "🟢"}</td>
                   <td className="px-4 py-2.5">
                     {topupFor?.orgId === o.orgId ? (
@@ -607,7 +608,7 @@ function BackupsTab({ guard, push, t }: any) {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("الحالة", "State")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{data.enabled ? t("مفعّل", "Enabled") : t("معطّل (env ناقص)", "Disabled (missing env)")}</div></div>
-            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("آخر تشغيل", "Last run")}</div><div className="text-foreground text-xs" style={{ fontWeight: 600 }} dir="ltr">{st.lastRunAt ? new Date(st.lastRunAt).toLocaleString("en-GB") : "—"}</div></div>
+            <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("آخر تشغيل", "Last run")}</div><div className="text-foreground text-xs" style={{ fontWeight: 600 }} dir="ltr">{st.lastRunAt ? new Date(st.lastRunAt).toLocaleString(displayLocale("en-GB")) : "—"}</div></div>
             <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("نتيجة آخر تشغيل", "Last result")}</div><div className={st.lastOk ? "text-emerald-700" : "text-red-700"} style={{ fontWeight: 700 }}>{st.lastRunAt ? (st.lastOk ? "✓ OK" : "✗ FAILED") : "—"}</div></div>
             <div className="rounded-lg border border-border p-3"><div className="text-[11px] text-muted-foreground">{t("الملف", "File")}</div><div className="text-foreground text-xs font-english truncate" dir="ltr">{st.lastFileName || "—"}</div></div>
           </div>

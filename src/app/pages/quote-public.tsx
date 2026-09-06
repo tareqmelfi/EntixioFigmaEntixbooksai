@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Public proposal accept page (SPEC-04) · /q/:token — token only · no login.
  * View the standard proposal → موافق (name required · creates the project org-side)
@@ -142,8 +143,8 @@ export function QuotePublic() {
           <div className="no-print" style={{ background: "#fff", border: "2px solid #1276E3", borderRadius: 14, padding: 18, marginBottom: 14 }}>
             <div style={{ fontWeight: 800, color: "#0B1B49", marginBottom: 8 }}>{t("تأكيد الموافقة على العرض", "Confirm approval")}</div>
             <div style={{ fontSize: 12.5, color: "#4A5A6E", marginBottom: 10 }}>
-              {t(`بالضغط على «تأكيد الموافقة» فإنكم توافقون على عرض السعر ${quote.quoteNumber} بقيمة ${Number(quote.total).toLocaleString()} ${quote.currency}.`,
-                 `By confirming you approve proposal ${quote.quoteNumber} for ${Number(quote.total).toLocaleString()} ${quote.currency}.`)}
+              {t(`بالضغط على «تأكيد الموافقة» فإنكم توافقون على عرض السعر ${quote.quoteNumber} بقيمة ${Number(quote.total).toLocaleString(displayLocale())} ${quote.currency}.`,
+                 `By confirming you approve proposal ${quote.quoteNumber} for ${Number(quote.total).toLocaleString(displayLocale())} ${quote.currency}.`)}
             </div>
             {formError && <div style={{ background: "#FDECEC", color: "#8A1F1F", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{formError}</div>}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useNavigate, Link } from "react-router";
 import {
   Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users, AlertCircle
@@ -41,7 +42,7 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
     return () => clearInterval(timer);
   }, [started, target]);
 
-  return <div ref={ref} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fontWeight: 700 }}>{count.toLocaleString("en-US")}{suffix}</div>;
+  return <div ref={ref} style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fontWeight: 700 }}>{count.toLocaleString(displayLocale("en-US"))}{suffix}</div>;
 }
 
 const FEATURES_SA = [

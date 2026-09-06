@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
 import type { Invoice } from '../lib/api';
 import { useLanguage } from './LanguageContext';
@@ -16,7 +17,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
   const accepted = !!evidence && ['REPORTED', 'CLEARED'].includes(evidence.state);
   const canRelease = delivery?.customerReleaseReady !== false;
   const remaining = Number(invoice.total) - Number(invoice.amountPaid || 0);
-  const amount = (value: unknown) => Number(value || 0).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const amount = (value: unknown) => Number(value || 0).toLocaleString(displayLocale(language === 'ar' ? 'ar-SA' : 'en-US'), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return <FullPageForm title={t(`الفاتورة ${invoice.invoiceNumber}`, `Invoice ${invoice.invoiceNumber}`)}
     subtitle={invoice.contact?.displayName || ''} onClose={onClose}
     footer={<div className="flex flex-wrap justify-end gap-2">
@@ -40,26 +41,26 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
         {evidence ? <>
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <div><dt className="text-muted-foreground">{t('رد الهيئة', 'Authority HTTP response')}</dt><dd dir="ltr">{evidence.httpStatus ?? '—'}</dd></div>
-            <div><dt className="text-muted-foreground">{t('محاولات الإرسال', 'Submission attempts')}</dt><dd>{evidence.attempts}</dd></div>
-            <div><dt className="text-muted-foreground">{t('الأخطاء', 'Errors')}</dt><dd>{Array.isArray(evidence.errors) ? evidence.errors.length : '—'}</dd></div>
-            <div><dt className="text-muted-foreground">{t('التحذيرات', 'Warnings')}</dt><dd>{Array.isArray(evidence.warnings) ? evidence.warnings.length : '—'}</dd></div>
+            <div><dt className="text-muted-foreground">{t('محاولات الإرسال', 'Submission attempts')}</dt><dd>{displayDigits(evidence.attempts)}</dd></div>
+            <div><dt className="text-muted-foreground">{t('الأخطاء', 'Errors')}</dt><dd>{Array.isArray(evidence.errors) ? displayDigits(evidence.errors.length) : '—'}</dd></div>
+            <div><dt className="text-muted-foreground">{t('التحذيرات', 'Warnings')}</dt><dd>{Array.isArray(evidence.warnings) ? displayDigits(evidence.warnings.length) : '—'}</dd></div>
           </dl>
-          <p className="text-xs text-muted-foreground">{t('وقت رد الهيئة · الرياض: ', 'Authority response · Riyadh: ')}{new Date(evidence.updatedAt).toLocaleString(language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { timeZone: 'Asia/Riyadh' })}</p>
+          <p className="text-xs text-muted-foreground">{t('وقت رد الهيئة · الرياض: ', 'Authority response · Riyadh: ')}{new Date(evidence.updatedAt).toLocaleString(displayLocale(language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB'), { timeZone: 'Asia/Riyadh' })}</p>
           <p className="text-xs break-all"><span dir="ltr">UUID: {evidence.uuid}</span></p>
           {[...(evidence.errors || []), ...(evidence.warnings || [])].map((message, index) => <p key={index} className="text-sm">{message}</p>)}
         </> : <p className="text-sm">{delivery?.message || t('لم يُحفظ رد نهائي من الهيئة بعد. الاعتماد داخل Entix يختلف عن قبول الهيئة.', 'No final authority response is stored yet. Approval in Entix is separate from ZATCA acceptance.')}</p>}
       </section>}
       <section className="rounded-lg border border-border bg-white p-4 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><p className="text-muted-foreground">{t('تاريخ الإصدار', 'Issue date')}</p><p dir="ltr">{invoice.issueDate?.slice(0, 10)}</p></div>
-          <div><p className="text-muted-foreground">{t('الإجمالي', 'Total')}</p><p>{amount(invoice.total)} {invoice.currency}</p></div>
-          <div><p className="text-muted-foreground">{t('المحصّل', 'Collected')}</p><p>{amount(invoice.amountPaid)} {invoice.currency}</p></div>
-          <div><p className="text-muted-foreground">{t('المستحق', 'Outstanding')}</p><p>{amount(remaining)} {invoice.currency}</p></div>
+          <div><p className="text-muted-foreground">{t('تاريخ الإصدار', 'Issue date')}</p><p dir="ltr">{displayDigits(invoice.issueDate?.slice(0, 10) || '')}</p></div>
+          <div><p className="text-muted-foreground">{t('الإجمالي', 'Total')}</p><p><bdi dir="ltr">{amount(invoice.total)} {invoice.currency}</bdi></p></div>
+          <div><p className="text-muted-foreground">{t('المحصّل', 'Collected')}</p><p><bdi dir="ltr">{amount(invoice.amountPaid)} {invoice.currency}</bdi></p></div>
+          <div><p className="text-muted-foreground">{t('المستحق', 'Outstanding')}</p><p><bdi dir="ltr">{amount(remaining)} {invoice.currency}</bdi></p></div>
         </div>
         <div className="overflow-x-auto"><table className="w-full text-sm text-start"><thead><tr className="border-b border-border">
           {[t('البند', 'Line item'), t('حساب الإيراد', 'Revenue account'), t('الكمية', 'Quantity'), t('السعر قبل الضريبة', 'Price before tax')].map(x => <th key={x} className="text-start py-2 px-2">{x}</th>)}
         </tr></thead><tbody>{(invoice.lines || []).map((line: any, index) => <tr key={line.id || index} className="border-b border-border/50">
-          <td className="p-2">{line.description}</td><td className="p-2">{line.account ? `${line.account.code} · ${language === 'ar' ? line.account.nameAr || line.account.name : line.account.name}` : t('غير مرتبط — يحتاج مراجعة محاسبية', 'Unmapped — accounting review required')}</td><td className="p-2">{Number(line.quantity)}</td><td className="p-2">{amount(line.unitPrice)}</td>
+          <td className="p-2">{line.description}</td><td className="p-2">{line.account ? `${line.account.code} · ${language === 'ar' ? line.account.nameAr || line.account.name : line.account.name}` : t('غير مرتبط — يحتاج مراجعة محاسبية', 'Unmapped — accounting review required')}</td><td className="p-2">{displayDigits(Number(line.quantity))}</td><td className="p-2">{amount(line.unitPrice)}</td>
         </tr>)}</tbody></table></div>
         {invoice.notes && <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>}
       </section>

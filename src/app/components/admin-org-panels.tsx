@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Admin v3 · R1.5 — company workspace panels (CEO 27/08):
  *   <AdminOrgUsagePanel>  ops footprint: health · activity 30d · users · daily ops ·
@@ -68,11 +69,11 @@ export function AdminOrgUsagePanel({ orgId, subscription, onManage }: { orgId: s
             <Stat icon={Store} label={t("نقاط البيع", "POS")} value={`${c.posShifts} / ${c.posSales}`} sub={t("ورديات / مبيعات", "shifts / sales")} />
             <Stat icon={GitBranch} label={t("فروع / مستودعات", "Branches / warehouses")} value={`${c.branches} / ${c.warehouses}`} />
             <Stat icon={FileText} label={t("مستندات", "Documents")} value={c.invoices + c.quotes + c.receipts + c.bills + c.expenses + c.journals} sub={`${c.invoices} ${t("فاتورة", "inv")} · ${c.journals} ${t("قيد", "JE")}`} />
-            <Stat icon={Database} label={t("سجلات", "Rows")} value={u.footprint.rows.toLocaleString("en-US")} sub={`${c.contacts} ${t("عميل", "contacts")} · ${c.products} ${t("منتج", "products")}`} />
+            <Stat icon={Database} label={t("سجلات", "Rows")} value={u.footprint.rows.toLocaleString(displayLocale("en-US"))} sub={`${c.contacts} ${t("عميل", "contacts")} · ${c.products} ${t("منتج", "products")}`} />
             <Stat icon={HardDrive} label={t("المساحة التقديرية", "Est. storage")} value={fmtBytes(u.footprint.estimatedBytes)} sub={`${u.footprint.attachmentCount} ${t("مرفق", "attachments")} · ${fmtBytes(u.footprint.attachmentBytes)}`} />
             <Stat icon={Bot} label={t("ذكاء / API", "AI / API")} value={`${c.aiConversations} / ${c.apiKeys}`} sub={t("محادثات / مفاتيح", "chats / keys")} />
           </div>
-          <div className="mt-2 text-[10px] text-muted-foreground">{t("آخر نشاط:", "Last activity:")} <span className="font-english" dir="ltr">{u.activity.lastActivityAt ? new Date(u.activity.lastActivityAt).toLocaleString("en-GB") : "—"}</span>{u.activity.lastAction ? <span className="font-english"> · {u.activity.lastAction}</span> : null} · {t("موظفون", "employees")} {c.employees} · {t("مشاريع", "projects")} {c.projects} · {t("حسابات بنكية", "bank accounts")} {c.bankAccounts}</div>
+          <div className="mt-2 text-[10px] text-muted-foreground">{t("آخر نشاط:", "Last activity:")} <span className="font-english" dir="ltr">{u.activity.lastActivityAt ? new Date(u.activity.lastActivityAt).toLocaleString(displayLocale("en-GB")) : "—"}</span>{u.activity.lastAction ? <span className="font-english"> · {u.activity.lastAction}</span> : null} · {t("موظفون", "employees")} {c.employees} · {t("مشاريع", "projects")} {c.projects} · {t("حسابات بنكية", "bank accounts")} {c.bankAccounts}</div>
         </div>
         <div className="rounded-xl border border-border bg-muted/20 p-3">
           <div className="flex items-center justify-between"><div className="flex items-center gap-1.5 text-xs text-muted-foreground"><CreditCard className="h-3.5 w-3.5 text-primary" />{t("الاشتراك", "Subscription")}</div>{subscription ? <SubscriptionSourceBadge lifetime={subscription.lifetime} sponsored={subscription.sponsored} source={subscription.maskedStripeSubscriptionId ? "stripe" : undefined} /> : null}</div>
@@ -123,7 +124,7 @@ export function AdminOrgNotes({ orgId, push }: { orgId: string; push: (kind: "su
               <li key={n.id} className={`flex items-start gap-3 py-2.5 ${n.pinned ? "bg-amber-50/40 -mx-2 px-2 rounded-lg" : ""}`}>
                 <div className="min-w-0 flex-1">
                   <div className="whitespace-pre-wrap text-sm text-foreground">{n.body}</div>
-                  <div className="mt-0.5 text-[10px] text-muted-foreground font-english" dir="ltr">{n.adminEmail} · {new Date(n.createdAt).toLocaleString("en-GB")}</div>
+                  <div className="mt-0.5 text-[10px] text-muted-foreground font-english" dir="ltr">{n.adminEmail} · {new Date(n.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
                 </div>
                 <button type="button" title={n.pinned ? t("إلغاء التثبيت", "Unpin") : t("تثبيت", "Pin")} onClick={() => api.admin.updateNote(n.id, { pinned: !n.pinned }).then(load)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground">{n.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}</button>
                 {pendingDelete === n.id ? (
@@ -185,7 +186,7 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
           {tickets.map((tk) => (
             <li key={tk.id}><button onClick={() => void openTicket(tk.id)} className={`w-full px-4 py-2.5 text-start hover:bg-muted/30 ${open?.id === tk.id ? "bg-primary/5" : ""}`}>
               <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-0.5 text-[10px] ${STATUS_TONE[tk.status] || ""}`} style={{ fontWeight: 700 }}>{tk.status}</span><span className="truncate text-sm text-foreground" style={{ fontWeight: 600 }}>{tk.subject}</span></div>
-              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{tk.lastMessage ? `${tk.lastMessage.authorType === "ADMIN" ? "↩ " : ""}${tk.lastMessage.body}` : "—"} · <span className="font-english" dir="ltr">{new Date(tk.updatedAt).toLocaleString("en-GB")}</span>{tk.assignedAgentEmail ? ` · ${tk.assignedAgentEmail}` : ""}</div>
+              <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{tk.lastMessage ? `${tk.lastMessage.authorType === "ADMIN" ? "↩ " : ""}${tk.lastMessage.body}` : "—"} · <span className="font-english" dir="ltr">{new Date(tk.updatedAt).toLocaleString(displayLocale("en-GB"))}</span>{tk.assignedAgentEmail ? ` · ${tk.assignedAgentEmail}` : ""}</div>
             </button></li>
           ))}
         </ul>
@@ -193,7 +194,7 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
         <ul className="divide-y divide-border/60 max-h-[260px] overflow-auto">
           {threads.length === 0 && <li className="p-4 text-xs text-muted-foreground">{t("لا محادثات.", "No conversations.")}</li>}
           {threads.map((th) => (
-            <li key={th.id} className="px-4 py-2.5"><Link to={`/admin/support/${th.id}`} className="text-sm text-foreground hover:underline" style={{ fontWeight: 600 }}>{th.title || t("محادثة", "Thread")}</Link><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{th.user.email} · {th.messageCount} msgs · {new Date(th.lastMessageAt).toLocaleString("en-GB")}</div></li>
+            <li key={th.id} className="px-4 py-2.5"><Link to={`/admin/support/${th.id}`} className="text-sm text-foreground hover:underline" style={{ fontWeight: 600 }}>{th.title || t("محادثة", "Thread")}</Link><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{th.user.email} · {th.messageCount} msgs · {new Date(th.lastMessageAt).toLocaleString(displayLocale("en-GB"))}</div></li>
           ))}
         </ul>
       </section>
@@ -216,7 +217,7 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
                 <div key={m.id} className={`flex ${m.authorType === "ADMIN" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.authorType === "ADMIN" ? "bg-[#0B1B49] text-white" : "bg-muted text-foreground"}`}>
                     <div className="whitespace-pre-wrap">{m.body}</div>
-                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-white/60" : "text-muted-foreground"}`} dir="ltr">{m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString("en-GB")}</div>
+                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-white/60" : "text-muted-foreground"}`} dir="ltr">{m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
                   </div>
                 </div>
               ))}

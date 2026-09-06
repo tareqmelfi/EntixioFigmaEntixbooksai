@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Contractors list — المقاولون والفريلانسر (different from company suppliers:
  * no AP cycle · direct payments · hours tracked per project · peer benchmarks).
@@ -11,8 +12,8 @@ import { Button } from "../components/ui/button";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const hrs = (v: any) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 1 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const hrs = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 1 });
 
 const KIND_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
   FREELANCER: { ar: "فريلانسر", en: "Freelancer", bg: "bg-blue-100 text-blue-700" },
@@ -125,14 +126,14 @@ export function Contractors() {
                         <td className="py-3 px-4 font-english text-xs" dir="ltr">
                           {vsPeers == null ? "—" : (
                             <span className={vsPeers > 5 ? "text-amber-600" : vsPeers < -5 ? "text-emerald-600" : "text-muted-foreground"}>
-                              {vsPeers > 0 ? "+" : ""}{vsPeers.toFixed(0)}%
+                              {vsPeers > 0 ? "+" : ""}{displayDigits(vsPeers.toFixed(0))}%
                             </span>
                           )}
                         </td>
                         <td className={`py-3 px-4 font-english ${Number(x.stats?.outstanding || 0) > 0 ? "text-amber-600" : "text-muted-foreground"}`} style={{ fontWeight: 600 }} dir="ltr">{money(x.stats?.outstanding)}</td>
                         <td className="py-3 px-4">
                           {x.rating != null ? (
-                            <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-english"><Star className="h-3 w-3 fill-current" />{Number(x.rating).toFixed(1)}</span>
+                            <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-english"><Star className="h-3 w-3 fill-current" />{displayDigits(Number(x.rating).toFixed(1))}</span>
                           ) : "—"}
                         </td>
                         <td className="py-3 px-2 text-muted-foreground/50"><ChevronLeft className="h-4 w-4" /></td>

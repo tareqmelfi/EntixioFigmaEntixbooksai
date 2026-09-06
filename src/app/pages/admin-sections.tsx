@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Admin Console v2 · Z2.2 section pages (2026-08-26)
  *   /admin/subscriptions  unified table across every company + MRR by currency
@@ -16,9 +17,9 @@ import { api, ApiError, API_BASE_URL, type AdminAuditRow, type AdminPlanRecord, 
 import { useLanguage } from "../components/LanguageContext";
 import { SubscriptionProgress, SubscriptionManagePanel, SubscriptionSourceBadge, OriginBadge } from "../components/admin-subscription-tools";
 
-const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
-const fmtDateTime = (d?: string | null) => (d ? new Date(d).toLocaleString("en-GB") : "—");
-const money = (cents: number, cur: string) => `${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(displayLocale("en-GB")) : "—");
+const fmtDateTime = (d?: string | null) => (d ? new Date(d).toLocaleString(displayLocale("en-GB")) : "—");
+const money = (cents: number, cur: string) => `${(cents / 100).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
 
 function StatusPill({ status, lifetime }: { status: string; lifetime?: boolean }) {
   const cls = lifetime ? "bg-[#0B1B49] text-white" : status === "ACTIVE" ? "bg-success-subtle text-success" : status === "TRIALING" ? "bg-primary/10 text-primary" : status === "PAST_DUE" ? "bg-warning-subtle text-warning" : "bg-muted text-muted-foreground";

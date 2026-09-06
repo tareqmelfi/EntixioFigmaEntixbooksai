@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Settings → API keys · programmatic access for agents & integrations.
  *
@@ -31,7 +32,7 @@ const EXPIRY_OPTIONS: Array<{ days: number; ar: string; en: string }> = [
 
 function fmt(d: string | null, locale: string) {
   if (!d) return "—";
-  try { return new Date(d).toLocaleString(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US", { dateStyle: "medium", timeStyle: "short" }); } catch { return d; }
+  try { return new Date(d).toLocaleString(displayLocale(locale === "ar" ? "ar-SA-u-nu-latn" : "en-US"), { dateStyle: "medium", timeStyle: "short" }); } catch { return d; }
 }
 
 export function ApiKeysTab({ canManage, push }: { canManage: boolean; push: (kind: "success" | "error", msg: string) => void }) {

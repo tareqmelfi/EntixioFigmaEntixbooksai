@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 /**
  * /admin/join/:token · Admin v3 R2 — accept an internal-team invitation.
@@ -40,7 +41,7 @@ export function AdminJoinPage() {
         : info.expired ? <p className="text-sm text-amber-800">{t("انتهت صلاحية الدعوة — اطلب دعوة جديدة.", "This invitation expired — ask for a new one.")}</p>
         : (
           <div className="space-y-3 text-sm">
-            <div className="rounded-lg bg-muted/40 p-3"><div className="text-muted-foreground text-xs">{t("البريد المدعو", "Invited email")}</div><div className="font-english" dir="ltr" style={{ fontWeight: 600 }}>{info.email}</div><div className="mt-2 text-muted-foreground text-xs">{t("الدور", "Role")}</div><div style={{ fontWeight: 600 }}>{roleName} <span className="font-english text-xs text-muted-foreground">({info.role.key})</span></div><div className="mt-2 text-[11px] text-muted-foreground font-english" dir="ltr">{t("بواسطة", "by")} {info.invitedBy} · {t("حتى", "until")} {new Date(info.expiresAt).toLocaleString("en-GB")}</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-muted-foreground text-xs">{t("البريد المدعو", "Invited email")}</div><div className="font-english" dir="ltr" style={{ fontWeight: 600 }}>{info.email}</div><div className="mt-2 text-muted-foreground text-xs">{t("الدور", "Role")}</div><div style={{ fontWeight: 600 }}>{roleName} <span className="font-english text-xs text-muted-foreground">({info.role.key})</span></div><div className="mt-2 text-[11px] text-muted-foreground font-english" dir="ltr">{t("بواسطة", "by")} {info.invitedBy} · {t("حتى", "until")} {new Date(info.expiresAt).toLocaleString(displayLocale("en-GB"))}</div></div>
             {auth.loading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : !auth.isAuthenticated ? (
               <div className="space-y-2">
                 <p className="text-muted-foreground">{t("سجّل الدخول بنفس البريد ثم ارجع لهذه الصفحة لقبول الدعوة.", "Sign in with the same email, then return here to accept.")}</p>

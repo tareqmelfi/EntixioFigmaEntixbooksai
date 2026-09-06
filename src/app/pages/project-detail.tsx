@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Project full page — app-wide standard (no slide-overs):
  *   /app/projects/new  → create form
@@ -112,8 +113,8 @@ export function ProjectDetail() {
     } finally { setEngageBusy(false); }
   };
 
-  const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const hrsFmt = (v: any) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 1 });
+  const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const hrsFmt = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 1 });
 
   if (loading) {
     return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -222,7 +223,7 @@ export function ProjectDetail() {
               <div className={`font-english mt-1 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "text-emerald-700" : "text-red-700") : "text-foreground"}`} style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">
                 {perf.totals?.margin != null ? money(perf.totals.margin) : "—"}
               </div>
-              {perf.totals?.budgetUsedPct != null && <div className="text-[10px] text-muted-foreground">{t("المستهلك:", "used:")} <span className="font-english">{perf.totals.budgetUsedPct.toFixed(0)}%</span></div>}
+              {perf.totals?.budgetUsedPct != null && <div className="text-[10px] text-muted-foreground">{t("المستهلك:", "used:")} <span className="font-english">{displayDigits(perf.totals.budgetUsedPct.toFixed(0))}%</span></div>}
             </div>
           </div>
 

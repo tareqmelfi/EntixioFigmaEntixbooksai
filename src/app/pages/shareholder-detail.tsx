@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Shareholder full page — app-wide standard:
  *   /app/shareholders/new  → register form (auto SH-001 code)
@@ -16,8 +17,8 @@ import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { useLegalType } from "../lib/use-legal-type";
 
-const num = (v: any) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const KIND_LABELS: Record<string, { ar: string; en: string }> = {
   ISSUE: { ar: "إصدار", en: "Issue" }, BUYBACK: { ar: "شراء الشركة أسهمها", en: "Buyback" },

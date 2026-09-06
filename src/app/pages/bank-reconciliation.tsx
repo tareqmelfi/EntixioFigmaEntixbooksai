@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Bank Reconciliation · UX-115 · Wafeq/Zoho-style
  * Upload statement → parse → review per-row matches → commit
@@ -420,7 +421,7 @@ export function BankReconciliation() {
                           {r.sourceFile && <div className="text-[11px] text-muted-foreground/60 font-english truncate" dir="ltr">{r.sourceFile}</div>}
                         </td>
                         <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-green-700" : "text-red-700"}`} dir="ltr">
-                          {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString()}
+                          {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale())}
                         </td>
                         <td className="px-3 py-2">
                           {r.matchKind && r.matchKind !== "none" ? (

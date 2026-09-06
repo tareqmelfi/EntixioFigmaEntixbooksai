@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Stocktake (الجرد) · B4 · 2026-08-26
  *
@@ -27,7 +28,7 @@ const STATUS: Record<string, { ar: string; en: string; cls: string }> = {
   POSTED: { ar: "مُرحَّل", en: "Posted", cls: "bg-success-subtle text-success" },
   CANCELLED: { ar: "ملغى", en: "Cancelled", cls: "bg-muted text-muted-foreground" },
 };
-const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
+const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString(displayLocale("en-GB"), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 
 // ═══════════════════════════════ list ═══════════════════════════════════════
 export function StockCounts() {

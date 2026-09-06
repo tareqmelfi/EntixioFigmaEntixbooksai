@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Payroll Detail · payslip/statement view for a saved payroll run
  * Route: /app/payroll/:id
@@ -14,7 +15,7 @@ import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
 const money = (v: string | number | null | undefined) =>
-  Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function PayrollDetail() {
   const { id } = useParams<{ id: string }>();

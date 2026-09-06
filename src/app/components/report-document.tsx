@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
@@ -39,7 +40,7 @@ function isTotalRow(row: ReportRow) {
 }
 
 const fmt = (value: number, currency: string) =>
-  `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  `${Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 /** Wave-style equation strip: revenue − expenses = net, straight under the
  * header so the arithmetic is visible before any table (user ask 2026-08-19). */
@@ -250,7 +251,7 @@ export function ReportDocument({
         <footer className="flex items-center justify-between gap-4 border-t border-slate-200 px-6 py-3 text-[11px] text-slate-400">
           <span className="min-w-0 truncate"><BidiText mode="plaintext">{reportTitle}</BidiText> · <BidiText mode="plaintext">{report.org.name}</BidiText> · <NumericText>{report.id}</NumericText></span>
           <span className="hidden sm:inline">
-            {t("أُنشئ في", "Created on")} <NumericText>{new Date(report.generatedAt).toLocaleDateString(isEn ? "en-GB" : "ar-SA")}</NumericText>
+            {t("أُنشئ في", "Created on")} <NumericText>{new Date(report.generatedAt).toLocaleDateString(displayLocale(isEn ? "en-GB" : "ar-SA"))}</NumericText>
             {" · "}
             {t("الفترة", "Date Range")}: <NumericText>{report.period.from}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
           </span>
@@ -270,10 +271,10 @@ function alignToCss(align?: "start" | "end" | "center") {
 function CellValue({ value, keyName, kind, currency, strong }: { value: string | number | null | undefined; keyName: string; kind?: string; currency: string; strong?: boolean }) {
   if (value === null || value === undefined || value === "") return <span className="text-slate-400">—</span>;
   if (kind === "money" || moneyKeys.has(keyName)) {
-    const amount = Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const amount = Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return <NumericText className={Number(value) < 0 ? "font-semibold text-red-700" : strong ? "font-bold text-slate-900" : "font-semibold text-slate-900"}>{amount} {currency}</NumericText>;
   }
-  if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString("en-US")}</NumericText>;
+  if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString(displayLocale("en-US"))}</NumericText>;
   if (kind === "status") return <BidiText className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{String(value)}</BidiText>;
   return <BidiText mode="plaintext">{String(value)}</BidiText>;
 }

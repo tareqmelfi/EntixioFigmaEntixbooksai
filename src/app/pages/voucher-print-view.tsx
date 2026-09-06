@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
  * Voucher print view · branded receipt/payment voucher (UX-201)
@@ -321,7 +322,7 @@ export function VoucherPrintView() {
 
           <div style={{ marginTop: 18, border: "2px solid #1276E3", borderRadius: 10, background: "#EFF8FF", padding: "16px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 12, color: "#6B7280" }}>{T("المبلغ", "Amount")}</div>
-            <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#1276E3", marginTop: 2 }}>{amount.toLocaleString()} {currency}</div>
+            <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#1276E3", marginTop: 2 }}>{amount.toLocaleString(displayLocale())} {currency}</div>
             <div style={{ marginTop: 6, fontSize: 12 }}>{amountInWords}</div>
           </div>
 

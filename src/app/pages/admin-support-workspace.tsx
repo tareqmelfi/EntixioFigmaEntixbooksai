@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { MessageSquare, Paperclip } from "lucide-react";
@@ -20,7 +21,7 @@ const TABS: WorkspaceTab[] = ["messages", "attachments"];
 
 function fmtDate(value?: string | null): string {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-GB");
+  return new Date(value).toLocaleString(displayLocale("en-GB"));
 }
 
 function parseTab(raw: string | null): WorkspaceTab {

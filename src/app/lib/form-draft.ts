@@ -1,3 +1,4 @@
+import { displayLocale } from "./number-display";
 /**
  * useFormDraft · "never lose what you typed" (CEO 2026-08-25)
  *
@@ -277,5 +278,5 @@ export function formatDraftTime(iso: string | null, lang: "ar" | "en"): string {
   if (min < 60) return lang === "ar" ? `قبل ${min} دقيقة` : `${min} min ago`;
   const h = Math.round(min / 60);
   if (h < 24) return lang === "ar" ? `قبل ${h} ساعة` : `${h} h ago`;
-  try { return new Date(iso).toLocaleString(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return iso; }
+  try { return new Date(iso).toLocaleString(displayLocale(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB"), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return iso; }
 }

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { AlertTriangle, ArrowLeft, Building2, Loader2, RefreshCw, Users, CreditCard, Activity } from "lucide-react";
@@ -18,7 +19,7 @@ const TABS: WorkspaceTab[] = ["overview", "people", "subscription", "support", "
 
 function fmtDate(value?: string | null): string {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-GB");
+  return new Date(value).toLocaleString(displayLocale("en-GB"));
 }
 
 function parseTab(raw: string | null): WorkspaceTab {
@@ -269,7 +270,7 @@ export function AdminOrganizationWorkspace() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
                   <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div><div className="flex items-center gap-2 text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.status} <SubscriptionSourceBadge lifetime={workspace.subscription.data.lifetime} sponsored={workspace.subscription.data.sponsored} source={workspace.subscription.data.maskedStripeSubscriptionId ? "stripe" : undefined} /></div></div>
-                  <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الخطة", "Plan")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.plan?.name || "—"}</div><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{workspace.subscription.data.plan ? `${workspace.subscription.data.plan.tier} · ${workspace.subscription.data.plan.interval} · ${(workspace.subscription.data.plan.price / 100).toLocaleString("en-US")} ${workspace.subscription.data.plan.currency.toUpperCase()}` : ""}</div></div>
+                  <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الخطة", "Plan")}</div><div className="text-foreground" style={{ fontWeight: 700 }}>{workspace.subscription.data.plan?.name || "—"}</div><div className="text-[11px] text-muted-foreground font-english" dir="ltr">{workspace.subscription.data.plan ? `${workspace.subscription.data.plan.tier} · ${workspace.subscription.data.plan.interval} · ${(workspace.subscription.data.plan.price / 100).toLocaleString(displayLocale("en-US"))} ${workspace.subscription.data.plan.currency.toUpperCase()}` : ""}</div></div>
                   <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">{t("الفترة", "Period")}</div><div className="mt-1"><SubscriptionProgress start={workspace.subscription.data.currentPeriodStart} end={workspace.subscription.data.currentPeriodEnd || workspace.subscription.data.trialEndsAt} status={workspace.subscription.data.status} lifetime={workspace.subscription.data.lifetime} sponsored={workspace.subscription.data.sponsored} /></div><div className="mt-1 text-[11px] text-muted-foreground font-english" dir="ltr">{fmtDate(workspace.subscription.data.currentPeriodStart)} → {workspace.subscription.data.currentPeriodEnd ? fmtDate(workspace.subscription.data.currentPeriodEnd) : "∞"}</div></div>
                   <div className="rounded-lg border border-border p-3"><div className="text-xs text-muted-foreground">Stripe</div><div className="text-foreground font-english text-xs" dir="ltr">{workspace.subscription.data.maskedStripeSubscriptionId || "—"}</div><div className="text-muted-foreground font-english text-[11px]" dir="ltr">{workspace.subscription.data.maskedStripeCustomerId || ""}</div></div>
                 </div>

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Investment wallets list — محافظ التداول والمحافظ الممولة.
  * App-wide standard: rows open the FULL wallet page (/app/investments/:id).
@@ -11,7 +12,7 @@ import { Button } from "../components/ui/button";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function Investments() {
   const { t } = useLanguage();

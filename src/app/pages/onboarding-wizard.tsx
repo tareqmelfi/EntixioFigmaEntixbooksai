@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Onboarding Wizard · /app/onboarding · 4-step first-run data migration.
  *  1) Opening balances (cash/bank/inventory/AR/AP → balanced journal, capital plug)
@@ -309,7 +310,7 @@ function StepBalances({ alreadyDone, onDone, onSkip, setError }: { alreadyDone: 
         <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3">
           <div className="text-muted-foreground" style={{ fontSize: "11px" }}>{t("رأس المال المدفوع (تلقائي)", "Paid-in capital (auto)")}</div>
           <div className="text-primary font-english" style={{ fontSize: "20px", fontWeight: 800 }} dir="ltr">
-            {(total - num(form.payables)).toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            {(total - num(form.payables)).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>

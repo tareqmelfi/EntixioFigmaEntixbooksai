@@ -1,3 +1,4 @@
+import { displayDigits, displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
 /**
@@ -16,6 +17,7 @@ import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLog
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
+import { NumberPreferences } from "../components/number-preferences";
 import { ApiKeysTab } from "../components/api-keys-tab";
 import { VatRegistrationPanel } from "../components/vat-registration-panel";
 import { LedgerMappingTab } from "../components/ledger-mapping-tab";
@@ -539,8 +541,8 @@ export function Settings() {
                   {aiConfig.mode !== "BYOK" && aiConfig.mode !== "PAYG" && (
                     <>
                       <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 mb-1">
-                        <span>{t("المستخدَم", "Used")}: <span className="font-english text-foreground">${Number(aiConfig.spentThisPeriod).toFixed(2)}</span></span>
-                        <span className="font-english">${Number(aiConfig.monthlyAllocation).toFixed(2)} + ${Number(aiConfig.creditBalance).toFixed(2)} {t("رصيد", "credit")}</span>
+                        <span>{t("المستخدَم", "Used")}: <span className="font-english text-foreground">${displayDigits(Number(aiConfig.spentThisPeriod).toFixed(2))}</span></span>
+                        <span className="font-english">${displayDigits(Number(aiConfig.monthlyAllocation).toFixed(2))} + ${displayDigits(Number(aiConfig.creditBalance).toFixed(2))} {t("رصيد", "credit")}</span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
@@ -548,7 +550,7 @@ export function Settings() {
                           style={{ width: `${Math.min(aiConfig.percentUsed * 100, 100)}%` }}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground/60 font-english mt-1">{(aiConfig.percentUsed * 100).toFixed(0)}% used</p>
+                      <p className="text-xs text-muted-foreground/60 font-english mt-1">{displayDigits((aiConfig.percentUsed * 100).toFixed(0))}% used</p>
                     </>
                   )}
                 </div>
@@ -699,6 +701,7 @@ export function Settings() {
         <Card className="border-border">
           <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Shield className="h-5 w-5" /> {t("حسابي", "My account")}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <NumberPreferences />
             <div className="rounded-lg border border-border p-4">
               <p className="text-sm text-muted-foreground">{t("جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على", "Secure session · 30 days · encrypted via HttpOnly cookie on")} <span className="font-english">.entix.io</span></p>
             </div>
@@ -796,7 +799,7 @@ function DataResetTab({
       const result = await api.orgs.remove(org.id, { confirmName: deleteConfirmName.trim() });
       // Farewell + grace period (CEO 2026-08-25): the company is hidden now and
       // restorable from Account → Deleted companies until `restoreUntil`.
-      const until = (() => { try { return new Date(result.restoreUntil).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); } catch { return ""; } })();
+      const until = (() => { try { return new Date(result.restoreUntil).toLocaleDateString(displayLocale("en-GB"), { day: "2-digit", month: "short", year: "numeric" }); } catch { return ""; } })();
       push("success", t(`تم حذف «${org.name}» · يمكنك استعادتها حتى ${until} من حسابي ← الشركات المحذوفة`, `“${org.name}” deleted · you can restore it until ${until} from Account → Deleted companies`));
       setOrgId(result.nextOrgId);
       // Switch to the next company · or /welcome when this was the last one (zero companies is a valid state).
@@ -1039,7 +1042,7 @@ function DataResetTab({
                       <td className="px-4 py-3 text-xs">
                         <span className={`rounded px-2 py-0.5 ${item.severity === "WARNING" ? "bg-amber-100 text-amber-700" : "bg-blue-50 text-blue-700"}`}>{item.severity}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs font-english text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs font-english text-muted-foreground">{new Date(item.createdAt).toLocaleString(displayLocale())}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1606,7 +1609,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
                 <div key={c.category} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
                   <span className="text-foreground font-english" dir="ltr">{c.category}</span>
                   <span className="text-xs text-muted-foreground">
-                    <span className="font-english" dir="ltr">{c.count}</span> {t("منتج", "products")} · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString()}</span>
+                    <span className="font-english" dir="ltr">{c.count}</span> {t("منتج", "products")} · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString(displayLocale())}</span>
                   </span>
                 </div>
               ))}
@@ -1741,7 +1744,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
                     {" · "}
                     {inv.status === "DECLINED"
                       ? <span className="text-danger">{t("رفضها", "Declined")}</span>
-                      : <>{t("تنتهي", "expires")} <span className="font-english">{new Date(inv.expiresAt).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US")}</span></>}
+                      : <>{t("تنتهي", "expires")} <span className="font-english">{new Date(inv.expiresAt).toLocaleDateString(displayLocale(language === "ar" ? "ar-SA" : "en-US"))}</span></>}
                   </span>
                 </div>
                 {inv.status === "PENDING" && (
@@ -1832,7 +1835,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
   const steps = [
     { id: "prepare", label: t("توليد المفاتيح و CSR", "Generate keys + CSR"), done: status !== "NONE" },
     { id: "compliance", label: t("شهادة الامتثال (OTP)", "Compliance certificate (OTP)"), done: status === "COMPLIANCE" || status === "PRODUCTION" },
-    { id: "checks", label: t("فحوصات الامتثال (٦ مستندات)", "Compliance checks (6 documents)"), done: !!st?.complianceResult?.ok || status === "PRODUCTION" },
+    { id: "checks", label: t("فحوصات الامتثال (6 مستندات)", "Compliance checks (6 documents)"), done: !!st?.complianceResult?.ok || status === "PRODUCTION" },
     { id: "production", label: t("شهادة الإنتاج", "Production certificate"), done: status === "PRODUCTION" },
   ];
 
@@ -2249,7 +2252,7 @@ function PlansTab({ org }: { org: Org }) {
 
   const money = (cents: number) => {
     const v = cents / 100;
-    return v.toLocaleString("en-US", { maximumFractionDigits: v % 1 ? 2 : 0 });
+    return v.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: v % 1 ? 2 : 0 });
   };
   const cur = planCurrency.toUpperCase();
 
@@ -2313,7 +2316,7 @@ function PlansTab({ org }: { org: Org }) {
                 {" · "}
                 <span className="text-muted-foreground">
                   {sub.status === "TRIALING"
-                    ? t(`تجربة مجانية · تنتهي ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-GB") : ""}`, `Free trial · ends ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-GB") : ""}`)
+                    ? t(`تجربة مجانية · تنتهي ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString(displayLocale("en-GB")) : ""}`, `Free trial · ends ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString(displayLocale("en-GB")) : ""}`)
                     : t(sub.status === "ACTIVE" ? "نشطة" : sub.status, sub.status === "ACTIVE" ? "Active" : sub.status)}
                 </span>
               </span>

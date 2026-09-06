@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Shared document-template catalogs + live preview renderer.
  * Used by the templates list (preview modal) and the full-page designer.
@@ -33,7 +34,7 @@ export function TemplatePreview({ tpl, language }: { tpl: any; language: string 
   const subtotal = rows.reduce((s, r) => s + r.qty * r.price, 0);
   const tax = tpl.showTaxBreakdown ? subtotal * 0.15 : 0;
   const total = subtotal + tax;
-  const money = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const money = (n: number) => n.toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const isModern = tpl.layout === "modern";
   const isMinimal = tpl.layout === "minimal";
 

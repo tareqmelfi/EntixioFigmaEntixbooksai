@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Building2, CreditCard } from "lucide-react";
@@ -16,7 +17,7 @@ import {
 
 function fmtDate(value?: string | null): string {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-GB");
+  return new Date(value).toLocaleString(displayLocale("en-GB"));
 }
 
 export function AdminSubscriberWorkspacePage() {

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import {
@@ -260,9 +261,9 @@ export function PortalHome() {
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <Card className="border-border"><CardContent className="pt-4 pb-3 px-4 text-center"><div className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalInvoices}</div><p className="text-xs text-muted-foreground mt-0.5">{t("إجمالي الفواتير", "Total invoices")}</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-green-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-green-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-amber-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-amber-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
-              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-red-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-red-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString()}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-green-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-green-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPaid.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("مدفوع", "Paid")} ✅</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-amber-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-amber-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalPending.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متبقي", "Outstanding")} ⏳</p></CardContent></Card>
+              <Card className="border-border relative overflow-hidden"><div className="absolute top-0 start-0 end-0 h-0.5 bg-red-500" /><CardContent className="pt-4 pb-3 px-4 text-center"><div dir="ltr" className="flex items-baseline justify-center gap-1"><span className="text-red-500 font-english" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{totalOverdue.toLocaleString(displayLocale())}</span><span className="text-xs text-muted-foreground font-english">{currency}</span></div><p className="text-xs text-muted-foreground mt-0.5">{t("متأخر", "Overdue")} 🔴</p></CardContent></Card>
             </div>
           </>
         )}
@@ -285,9 +286,9 @@ export function PortalHome() {
 
                 <div className="flex justify-end">
                   <div className="w-64 space-y-1.5">
-                    <div className="flex justify-between text-sm text-muted-foreground"><span>{t("الإجمالي", "Total")}</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.total.toLocaleString()}</span></div>
-                    <div className="flex justify-between text-sm text-muted-foreground"><span>{t("المدفوع", "Paid")}</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.paid.toLocaleString()}</span></div>
-                    <div className="flex justify-between pt-2 border-t border-border"><span className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("المتبقي", "Remaining")}</span><span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {viewingInvoice.remaining.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-sm text-muted-foreground"><span>{t("الإجمالي", "Total")}</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.total.toLocaleString(displayLocale())}</span></div>
+                    <div className="flex justify-between text-sm text-muted-foreground"><span>{t("المدفوع", "Paid")}</span><span dir="ltr" className="font-english">{currency} {viewingInvoice.paid.toLocaleString(displayLocale())}</span></div>
+                    <div className="flex justify-between pt-2 border-t border-border"><span className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("المتبقي", "Remaining")}</span><span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {viewingInvoice.remaining.toLocaleString(displayLocale())}</span></div>
                   </div>
                 </div>
 
@@ -333,8 +334,8 @@ export function PortalHome() {
                       <td className="py-3 pe-3 text-sm font-english text-primary" style={{ fontWeight: 600 }}>{inv.number}</td>
                       <td className="py-3 pe-3 text-sm font-english text-muted-foreground">{inv.date}</td>
                       <td className="py-3 pe-3 text-sm font-english text-muted-foreground">{inv.dueDate || "—"}</td>
-                      <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{currency} {inv.total.toLocaleString()}</span></td>
-                      <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-amber-700" style={{ fontWeight: 600 }}>{currency} {inv.remaining.toLocaleString()}</span></td>
+                      <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-foreground" style={{ fontWeight: 600 }}>{currency} {inv.total.toLocaleString(displayLocale())}</span></td>
+                      <td className="py-3 pe-3"><span dir="ltr" className="font-english text-sm text-amber-700" style={{ fontWeight: 600 }}>{currency} {inv.remaining.toLocaleString(displayLocale())}</span></td>
                       <td className="py-3 pe-3"><span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] ${statusBadge(inv.status)}`} style={{ fontWeight: 600 }}>{statusLabel(inv.status)}</span></td>
                       <td className="py-3"><Eye className="h-4 w-4 text-muted-foreground" /></td>
                     </tr>
@@ -363,16 +364,16 @@ export function PortalHome() {
                       <td className="py-3 pe-3 text-sm font-english text-muted-foreground">{String(s.date).slice(0, 10)}</td>
                       <td className="py-3 pe-3 text-sm text-foreground/80">{s.description}</td>
                       <td className="py-3 pe-3 text-sm font-english text-primary" style={{ fontWeight: 500 }}>{s.ref}</td>
-                      <td className="py-3 pe-3 text-sm font-english text-foreground" style={{ fontWeight: 500 }}>{s.debit > 0 ? s.debit.toLocaleString() : "—"}</td>
-                      <td className="py-3 pe-3 text-sm font-english text-secondary" style={{ fontWeight: 500 }}>{s.credit > 0 ? s.credit.toLocaleString() : "—"}</td>
-                      <td className="py-3 pe-3 text-sm font-english text-foreground" style={{ fontWeight: 600 }}>{s.balance.toLocaleString()}</td>
+                      <td className="py-3 pe-3 text-sm font-english text-foreground" style={{ fontWeight: 500 }}>{s.debit > 0 ? s.debit.toLocaleString(displayLocale()) : "—"}</td>
+                      <td className="py-3 pe-3 text-sm font-english text-secondary" style={{ fontWeight: 500 }}>{s.credit > 0 ? s.credit.toLocaleString(displayLocale()) : "—"}</td>
+                      <td className="py-3 pe-3 text-sm font-english text-foreground" style={{ fontWeight: 600 }}>{s.balance.toLocaleString(displayLocale())}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="mt-4 pt-3 border-t border-border text-end">
                 <span className="text-sm text-muted-foreground">{t("الرصيد الحالي:", "Current balance:")} </span>
-                <span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {currentBalance.toLocaleString()}</span>
+                <span dir="ltr" className="font-english text-foreground" style={{ fontWeight: 700 }}>{currency} {currentBalance.toLocaleString(displayLocale())}</span>
               </div>
             </CardContent>
           </Card>

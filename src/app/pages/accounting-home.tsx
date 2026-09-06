@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
@@ -64,7 +65,7 @@ const GROUPS: Array<{ labelAr: string; labelEn: string; items: Destination[] }> 
 ];
 
 const money = (value: number, currency: string) =>
-  `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  `${Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 export function AccountingHome() {
   const { t } = useLanguage();

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Admin v3 · R2 — /admin/team: internal team · invitations · roles matrix ·
  * support-desk assignments (CEO 27/08: «أوظّف واحد دعم فني صلاحياته دعم وما
@@ -114,7 +115,7 @@ function TeamTab({ members, invites, roles, reload, push, t, language }: { membe
               <li key={i.id} className="flex flex-wrap items-center gap-3 py-2">
                 <span className="font-english" dir="ltr">{i.email}</span>
                 <span className="rounded-full bg-white px-2 py-0.5 text-[11px] text-foreground border border-border">{language === "ar" ? i.role.nameAr : i.role.nameEn}</span>
-                <span className="text-[11px] text-muted-foreground font-english" dir="ltr">{t("بواسطة", "by")} {i.invitedBy} · {t("تنتهي", "expires")} {new Date(i.expiresAt).toLocaleString("en-GB")}</span>
+                <span className="text-[11px] text-muted-foreground font-english" dir="ltr">{t("بواسطة", "by")} {i.invitedBy} · {t("تنتهي", "expires")} {new Date(i.expiresAt).toLocaleString(displayLocale("en-GB"))}</span>
                 <button onClick={() => api.admin.revokeInvite(i.id).then(reload)} className="ms-auto inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="h-3.5 w-3.5" />{t("إلغاء", "Revoke")}</button>
               </li>
             ))}

@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
  * سندات القبض · Receipt Vouchers (cash IN from customers)
@@ -414,11 +415,11 @@ export function Receipts() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المقبوض", "Total received")}</div>
-            <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString()} SR</div>
+            <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString(displayLocale())} SR</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("متوسط السند", "Average voucher")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString()} SR</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString(displayLocale())} SR</div>
           </CardContent></Card>
         </div>
 
@@ -467,7 +468,7 @@ export function Receipts() {
                       <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
                       <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
                       <td className="px-4 py-3 truncate text-foreground">{v.contact?.displayName || "—"}</td>
-                      <td className="px-4 py-3 text-end font-english font-semibold text-green-700" dir="ltr">{Number(v.amount).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-end font-english font-semibold text-green-700" dir="ltr">{Number(v.amount).toLocaleString(displayLocale())}</td>
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">{METHOD_LABELS[v.paymentMethod]}</td>
                       <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
                         <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-blue-50 rounded" title={t("طباعة", "Print")}>
@@ -499,7 +500,7 @@ export function Receipts() {
             <div className="text-center bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="text-xs text-green-700">{t("المبلغ المقبوض", "Amount received")}</div>
               <div className="font-english font-bold text-green-700 mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
-                {Number(selected.amount).toLocaleString()} {selected.currency}
+                {Number(selected.amount).toLocaleString(displayLocale())} {selected.currency}
               </div>
               <div className="text-xs text-green-600 mt-1">{METHOD_LABELS[selected.paymentMethod]}</div>
             </div>
@@ -645,7 +646,7 @@ export function Receipts() {
                       const isPaid = remaining <= 0;
                       return (
                         <option key={inv.id} value={inv.id} disabled={isPaid}>
-                          {inv.invoiceNumber} · {t("المتبقي", "Remaining")} {remaining.toFixed(2)} {inv.currency}{isPaid ? ` · ${t("مسددة", "Paid")}` : ""}
+                          {inv.invoiceNumber} · {t("المتبقي", "Remaining")} {displayDigits(remaining.toFixed(2))} {inv.currency}{isPaid ? ` · ${t("مسددة", "Paid")}` : ""}
                         </option>
                       );
                     })}
@@ -668,7 +669,7 @@ export function Receipts() {
                             <div className="text-xs text-foreground/90">
                               <span className="font-english text-primary">{inv.invoiceNumber}</span>
                               <span className="text-muted-foreground"> · {t("متبقي", "remaining")} </span>
-                              <span className="font-english">{remaining.toFixed(2)} {inv.currency}</span>
+                              <span className="font-english">{displayDigits(remaining.toFixed(2))} {inv.currency}</span>
                             </div>
                             <Input
                               type="number"

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Products & Services — LIST page.
  * Create/edit happens on the item's OWN full page (/app/products/new or
@@ -110,7 +111,7 @@ export function Products() {
                             {p.type === "SERVICE" ? t("خدمة", "Service") : p.type === "GOOD" ? t("بضاعة", "Good") : p.type === "INVENTORY" ? t("مخزون", "Inventory") : t("آخر", "Other")}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{Number(p.unitPrice).toLocaleString()}</span></td>
+                        <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{Number(p.unitPrice).toLocaleString(displayLocale())}</span></td>
                         <td className="py-3 px-4 text-xs truncate" dir="ltr">
                           {p.incomeAccountId
                             ? <span className="font-english text-emerald-700">{t("مربوط", "linked")} ✓</span>

@@ -1,3 +1,4 @@
+import { displayLocale } from "./number-display";
 /**
  * POS v2 · thermal receipt (58 mm / 80 mm) · prints through a hidden iframe so the
  * cashier screen never re-renders for print. Works fully offline (store block is
@@ -52,8 +53,8 @@ export function receiptHtml(sale: QueuedSale, store: PosStore | null, opts: Rece
   const w = opts.paper === "58" ? 48 : 72; // printable mm
   const t = (a: string, e: string) => (ar ? a : e);
   const dt = new Date(sale.occurredAt);
-  const date = dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const time = dt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const date = dt.toLocaleDateString(displayLocale("en-GB"), { day: "2-digit", month: "2-digit", year: "numeric" });
+  const time = dt.toLocaleTimeString(displayLocale("en-GB"), { hour: "2-digit", minute: "2-digit" });
   const number = sale.invoiceNumber || sale.provisionalNumber;
   const provisional = !sale.invoiceNumber;
   const qr = receiptQrSvg(sale, store, opts.paper === "58" ? 96 : 120);

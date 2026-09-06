@@ -1,3 +1,4 @@
+import { displayLocale } from "./number-display";
 /**
  * POS v2 · device store + offline sync engine (CEO 2026-08-25)
  *
@@ -236,7 +237,7 @@ export function startAutoSync(getMode: () => "instant" | "manual"): () => void {
 }
 
 // ── money ──────────────────────────────────────────────────────────────────
-export const money = (n: number) => (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const money = (n: number) => (Math.round(n * 100) / 100).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export function lineTotals(lines: QueuedLine[]) {
   let net = 0, vat = 0;
   for (const l of lines) {

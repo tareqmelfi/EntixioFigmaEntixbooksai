@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
  * Inbox · UX-81 · email-to-invoice review queue
@@ -331,13 +332,13 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
                             )}
                             {m.extractedTotal != null && (
                               <span className="text-xs text-foreground font-english">
-                                {m.extractedTotal.toLocaleString()} {m.extractedCurrency || "SAR"}
+                                {m.extractedTotal.toLocaleString(displayLocale())} {m.extractedCurrency || "SAR"}
                               </span>
                             )}
                           </div>
                         </div>
                         <span className="text-xs text-muted-foreground/60 font-english shrink-0">
-                          {new Date(m.createdAt).toLocaleDateString("ar-SA", { day: "numeric", month: "short" })}
+                          {new Date(m.createdAt).toLocaleDateString(displayLocale("ar-SA"), { day: "numeric", month: "short" })}
                         </span>
                       </div>
                     </li>
@@ -423,7 +424,7 @@ function DetailPane({
               <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/40 text-xs">
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 <span className="text-foreground/80 font-english">{a.filename}</span>
-                <span className="text-muted-foreground/60 font-english">· {(a.sizeBytes / 1024).toFixed(0)}KB</span>
+                <span className="text-muted-foreground/60 font-english">· {displayDigits((a.sizeBytes / 1024).toFixed(0))}KB</span>
               </div>
             ))}
           </div>
@@ -438,7 +439,7 @@ function DetailPane({
               <Sparkles className="h-3.5 w-3.5 text-primary" /> {t("ما استخرجه الذكاء", "What AI extracted")}
             </div>
             {ex.confidence != null && (
-              <span className="text-xs text-muted-foreground/60 font-english">{t("ثقة:", "Confidence:")} {(ex.confidence * 100).toFixed(0)}%</span>
+              <span className="text-xs text-muted-foreground/60 font-english">{t("ثقة:", "Confidence:")} {displayDigits((ex.confidence * 100).toFixed(0))}%</span>
             )}
           </div>
 
@@ -450,8 +451,8 @@ function DetailPane({
             <Field label={t("رقم الفاتورة", "Invoice number")} value={ex.documentNumber} mono />
             <Field label={t("تاريخ الإصدار", "Issue date")} value={ex.issueDate} mono />
             <Field label={t("تاريخ الاستحقاق", "Due date")} value={ex.dueDate} mono />
-            <Field label={t("الإجمالي", "Total")} value={ex.totals?.total != null ? `${Number(ex.totals.total).toLocaleString()} ${ex.currency || "SAR"}` : null} mono bold />
-            <Field label={t("الضريبة", "Tax")} value={ex.totals?.tax != null ? `${Number(ex.totals.tax).toLocaleString()}` : null} mono />
+            <Field label={t("الإجمالي", "Total")} value={ex.totals?.total != null ? `${Number(ex.totals.total).toLocaleString(displayLocale())} ${ex.currency || "SAR"}` : null} mono bold />
+            <Field label={t("الضريبة", "Tax")} value={ex.totals?.tax != null ? `${Number(ex.totals.tax).toLocaleString(displayLocale())}` : null} mono />
           </div>
 
           {/* Lines table */}
@@ -472,9 +473,9 @@ function DetailPane({
                     <tr key={i} className="border-t border-border/50">
                       <td className="px-3 py-1.5 text-foreground/80">{l.description || "—"}</td>
                       <td className="px-3 py-1.5 text-end font-english">{l.quantity}</td>
-                      <td className="px-3 py-1.5 text-end font-english">{Number(l.unitPrice || 0).toLocaleString()}</td>
-                      <td className="px-3 py-1.5 text-end font-english">{((l.taxRate || 0) * 100).toFixed(0)}%</td>
-                      <td className="px-3 py-1.5 text-end font-english font-semibold">{Number(l.lineTotal || (l.quantity * l.unitPrice) || 0).toLocaleString()}</td>
+                      <td className="px-3 py-1.5 text-end font-english">{Number(l.unitPrice || 0).toLocaleString(displayLocale())}</td>
+                      <td className="px-3 py-1.5 text-end font-english">{displayDigits(((l.taxRate || 0) * 100).toFixed(0))}%</td>
+                      <td className="px-3 py-1.5 text-end font-english font-semibold">{Number(l.lineTotal || (l.quantity * l.unitPrice) || 0).toLocaleString(displayLocale())}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -503,7 +504,7 @@ function DetailPane({
               {dupInfo.match && (
                 <div className="text-xs text-amber-700">
                   {t("يوجد فاتورة شراء مطابقة:", "A matching purchase bill exists:")} <span className="font-english">{dupInfo.match.billNumber}</span>
-                  {" · "}{t("الإجمالي", "Total")} <span className="font-english">{Number(dupInfo.match.total).toLocaleString()}</span>
+                  {" · "}{t("الإجمالي", "Total")} <span className="font-english">{Number(dupInfo.match.total).toLocaleString(displayLocale())}</span>
                   {" · "}{t("المورّد", "Supplier")} {dupInfo.match.supplierName || "—"}
                   {" · "}{t("بتاريخ", "dated")} <span className="font-english">{String(dupInfo.match.issueDate).slice(0, 10)}</span>
                 </div>

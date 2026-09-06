@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * AI Assistant · agentic chat + multi-file OCR with classification
  *
@@ -345,7 +346,7 @@ function mapAgentMessage(m: AgentMessage): Msg {
 function formatConversationTime(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ar-SA", { month: "short", day: "numeric" });
+  return d.toLocaleDateString(displayLocale("ar-SA"), { month: "short", day: "numeric" });
 }
 
 export function AI() {
@@ -681,8 +682,8 @@ export function AI() {
       };
 
       let assistantContent = t(
-        `معالجة ${r.summary.totalFiles} ملف · ✅ ${r.summary.successful} نجح · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} فشل · ` : ""}إجمالي القيمة: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`,
-        `Processed ${r.summary.totalFiles} files · ✅ ${r.summary.successful} succeeded · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} failed · ` : ""}Total value: ${r.summary.totalAmount.toLocaleString()} ${r.summary.currency || ""}`
+        `معالجة ${r.summary.totalFiles} ملف · ✅ ${r.summary.successful} نجح · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} فشل · ` : ""}إجمالي القيمة: ${r.summary.totalAmount.toLocaleString(displayLocale())} ${r.summary.currency || ""}`,
+        `Processed ${r.summary.totalFiles} files · ✅ ${r.summary.successful} succeeded · ${r.summary.failed > 0 ? `❌ ${r.summary.failed} failed · ` : ""}Total value: ${r.summary.totalAmount.toLocaleString(displayLocale())} ${r.summary.currency || ""}`
       );
       if (createdExpenseCount > 0) assistantContent += t(`\n\n✨ تم إنشاء ${createdExpenseCount} مصروف تلقائياً.`, `\n\n✨ Automatically created ${createdExpenseCount} expense(s).`);
       if (createdBillCount > 0) assistantContent += t(`\n\n🧾 تم إنشاء ${createdBillCount} فاتورة مشتريات كمسودة للمراجعة.`, `\n\n🧾 Created ${createdBillCount} purchase bill(s) as drafts for review.`);
@@ -928,7 +929,7 @@ export function AI() {
                               </td>
                               <td className="py-2 px-3 font-english text-muted-foreground">{r.date || "—"}</td>
                               <td className="py-2 px-3 font-english text-foreground" style={{ fontWeight: 600 }}>
-                                {typeof r.total === "number" ? `${r.total.toLocaleString()} ${r.currency || ""}` : "—"}
+                                {typeof r.total === "number" ? `${r.total.toLocaleString(displayLocale())} ${r.currency || ""}` : "—"}
                               </td>
                               <td className="py-2 px-3">
                                 <div className="flex flex-col gap-1">

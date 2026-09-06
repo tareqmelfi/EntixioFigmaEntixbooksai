@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Shareholders register — سجل المساهمين للشركات المساهمة.
  * Rows open the shareholder page (/app/shareholders/:id).
@@ -12,8 +13,8 @@ import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { useLegalType } from "../lib/use-legal-type";
 
-const num = (v: any) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function Shareholders() {
   const { t } = useLanguage();
@@ -132,7 +133,7 @@ export function Shareholders() {
                             <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                               <div className="h-full bg-primary" style={{ width: `${Math.min(100, pct)}%` }} />
                             </div>
-                            <span className="font-english text-xs text-muted-foreground" dir="ltr">{pct.toFixed(1)}%</span>
+                            <span className="font-english text-xs text-muted-foreground" dir="ltr">{displayDigits(pct.toFixed(1))}%</span>
                           </div>
                         </td>
                         <td className="py-3 px-4 font-english text-muted-foreground" dir="ltr">{s.avgCost != null ? money(s.avgCost) : "—"}</td>

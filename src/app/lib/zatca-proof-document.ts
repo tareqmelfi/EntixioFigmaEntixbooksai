@@ -1,3 +1,4 @@
+import { displayLocale } from "./number-display";
 import qrcode from "qrcode-generator";
 import type { DeviceProof } from "./use-zatca-status";
 import { drawEntixWordmark, ENTIX_BRAND } from "./entix-brand-tokens";
@@ -30,7 +31,7 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
     ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fill();
   };
   const rule = (x: number, y: number, width: number, color = "#deded5") => { ctx.fillStyle = color; ctx.fillRect(x, y, width, 2); };
-  const date = (value: string) => new Date(value).toLocaleDateString("en-GB", { timeZone: "Asia/Riyadh" }).replace(/\//g, " / ");
+  const date = (value: string) => new Date(value).toLocaleDateString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" }).replace(/\//g, " / ");
   const qr = (payload: string, x: number, y: number, cell: number) => {
     const code = qrcode(0, "M"); code.addData(payload); code.make();
     const count = code.getModuleCount(), size = (count + 8) * cell;
@@ -95,7 +96,7 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
   check(t("قبول أول فاتورة إنتاجية", "First production invoice accepted"), 930, 856, !!accepted);
   check(t("الإرسال التلقائي للفواتير المدعومة", "Automatic delivery for supported invoices"), 1750, 856, ready && !review);
   text(accepted ? `${accepted.invoiceNumber} · ${accepted.status}` : t("بانتظار رد الهيئة على أول فاتورة", "Awaiting the first invoice authority response"), 1790, 960, 29, accepted ? green : amber, true, 1650);
-  text(review ? t("توجد فواتير تحتاج مراجعة في حساب المنشأة", "Invoices need review in the organization account") : ready ? t("الإرسال التلقائي مفعّل · مبيعات محلية بالريال بضريبة ١٥٪", "Automatic delivery active · Domestic SAR sales at 15% VAT") : t("الإرسال التلقائي: بانتظار استكمال التفعيل", "Automatic delivery: awaiting activation"), 1790, 1018, 27, ready && !review ? green : amber, false, 1650);
+  text(review ? t("توجد فواتير تحتاج مراجعة في حساب المنشأة", "Invoices need review in the organization account") : ready ? t("الإرسال التلقائي مفعّل · مبيعات محلية بالريال بضريبة 15٪", "Automatic delivery active · Domestic SAR sales at 15% VAT") : t("الإرسال التلقائي: بانتظار استكمال التفعيل", "Automatic delivery: awaiting activation"), 1790, 1018, 27, ready && !review ? green : amber, false, 1650);
 
   rule(140, 1424, 1650);
   const digest = cert.fingerprint.replace(/:/g, "").toUpperCase();
@@ -103,7 +104,7 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
   text("SHA-256 fingerprint", 385, 1680, 18, muted, false, 245);
   text(accepted ? t("سجل من Entix؛ قبول الفاتورة المذكورة موثق برد الهيئة. لا يعد اعتمادًا للبرنامج أو لجميع الفواتير.", "An Entix record; the named invoice has an authority response. Not software or blanket invoice accreditation.") : t("سجل ربط من Entix؛ لا يتضمن قبول فاتورة إنتاجية بعد، وليس اعتمادًا حكوميًا للبرنامج.", "An Entix onboarding record; no production invoice accepted yet. Not government software accreditation."), 1790, 1505, 22, muted, false, 1340);
   text(t("مراجعة إلغاء الجهاز في بوابة فاتورة. رمز البصمة للمطابقة؛ لا يفتح رابط تحقق رسمي.", "Review device revocation in Fatoora. The fingerprint code is for matching, not an official verification link."), 1790, 1550, 22, muted, false, 1340);
-  text(`${t("وقت التحقق", "Checked at")}: ${new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })} · ${t("بتوقيت الرياض", "Riyadh time")}`, 1790, 1614, 23, muted, false, 1340);
+  text(`${t("وقت التحقق", "Checked at")}: ${new Date(proof.checkedAt).toLocaleString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" })} · ${t("بتوقيت الرياض", "Riyadh time")}`, 1790, 1614, 23, muted, false, 1340);
   ctx.direction = "ltr"; ctx.textAlign = "left"; ctx.fillStyle = muted; ctx.font = "17px monospace";
   ctx.fillText(`SHA-256 ${cert.fingerprint}`, 440, 1663, 1350);
   return canvas;

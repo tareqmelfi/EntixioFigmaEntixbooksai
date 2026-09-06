@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Calculator, CheckCircle2, Download, Loader2, Plus, Trash2, Wallet } from "lucide-react";
@@ -48,7 +49,7 @@ const blankRow = (): PayrollRow => ({
 });
 
 const money = (value: string | number | null | undefined) =>
-  Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const PRIORITY_COUNTRIES = ["SA", "AE", "US"];
 const countrySort = (a: (typeof COUNTRIES)[number], b: (typeof COUNTRIES)[number]) => {

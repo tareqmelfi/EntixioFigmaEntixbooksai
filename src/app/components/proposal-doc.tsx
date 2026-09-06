@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * ProposalDoc (SPEC-04) · shared renderer for the standard proposal document.
  * Used by:
@@ -17,7 +18,7 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 function fmt(v: unknown): string {
-  return num(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return num(v).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function groupSections(lines: NonNullable<Quote["lines"]>) {
@@ -68,7 +69,7 @@ export function ProposalDoc({ quote, org, lang }: { quote: Quote; org: ProposalO
                 <td style={{ ...td, color: "#8CA0B3" }} className="num">{i + 1}</td>
                 <td style={td}>{l.description}</td>
                 <td style={td}>{l.unit || "—"}</td>
-                <td style={td} className="num">{num(l.quantity).toLocaleString()}</td>
+                <td style={td} className="num">{num(l.quantity).toLocaleString(displayLocale())}</td>
                 <td style={td} className="num">{fmt(l.unitPrice)}</td>
                 <td style={{ ...td, fontWeight: 600 }} className="num">{fmt(l.subtotal)}</td>
               </tr>
@@ -168,7 +169,7 @@ export function ProposalDoc({ quote, org, lang }: { quote: Quote; org: ProposalO
                 <tr key={l.id || i}>
                   <td style={td}>{l.description}</td>
                   <td style={td}>{l.unit || "—"}</td>
-                  <td style={td} className="num">{num(l.quantity).toLocaleString()}</td>
+                  <td style={td} className="num">{num(l.quantity).toLocaleString(displayLocale())}</td>
                   <td style={td} className="num">{fmt(l.subtotal)}</td>
                 </tr>
               ))}

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Fixed Assets list — app-wide standard: rows open the FULL detail page
  * (/app/assets/:id) instead of a slide-over. New asset → /app/assets/new.
@@ -33,7 +34,7 @@ export function FixedAssets() {
     api.accounts.list().then((d) => setAccounts(d.items)).catch(() => {});
   }, []);
 
-  const formatMoney = (value: any) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const formatMoney = (value: any) => Number(value || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 });
   const accountLabel = (id?: string | null) => {
     if (!id) return "—";
     const a = accounts.find(x => x.id === id);
@@ -53,15 +54,15 @@ export function FixedAssets() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي التكلفة", "Total Cost")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCost.toLocaleString()}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCost.toLocaleString(displayLocale())}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("الإهلاك المتراكم", "Accumulated Depreciation")}</div>
-          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString()}</div>
+          <div className="font-english text-amber-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString(displayLocale())}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("صافي القيمة الدفترية", "Net Book Value")}</div>
-          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString()}</div>
+          <div className="font-english text-green-600" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString(displayLocale())}</div>
         </CardContent></Card>
       </div>
 

@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Dashboard · org-scoped financial overview
  * All numbers from /api/dashboard/summary · zero mock data
@@ -172,13 +173,13 @@ function VATGauge({ collected, paid, currency = "SAR" }: { collected: number; pa
           <div style={{ width: `${paidPct}%`, backgroundColor: chartColors.navy }} />
         </div>
         <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> {t("لصالح الضريبة", "Collected")} <span className="font-english font-semibold text-foreground ms-1">{collected.toLocaleString()}</span></span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> {t("لصالحنا", "Owed to us")} <span className="font-english font-semibold text-foreground ms-1">{paid.toLocaleString()}</span></span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.teal }} /> {t("لصالح الضريبة", "Collected")} <span className="font-english font-semibold text-foreground ms-1">{collected.toLocaleString(displayLocale())}</span></span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: chartColors.navy }} /> {t("لصالحنا", "Owed to us")} <span className="font-english font-semibold text-foreground ms-1">{paid.toLocaleString(displayLocale())}</span></span>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <span className="text-[11px] text-muted-foreground">{t("صافي المستحق", "Net Due")}</span>
           <div className="flex items-center gap-2">
-            <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#E84B4B" : "#10B981" }}>{Math.abs(net).toLocaleString()} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
+            <span className="font-english" style={{ fontSize: "1rem", fontWeight: 700, color: isOwed ? "#E84B4B" : "#10B981" }}>{Math.abs(net).toLocaleString(displayLocale())} <span className="text-[10px] text-muted-foreground/60">{currency}</span></span>
             <span className={`text-[10px] px-2 py-0.5 rounded ${isOwed ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>{isOwed ? t("علينا", "We owe") : t("لصالحنا ✓", "Owed to us ✓")}</span>
           </div>
         </div>
@@ -296,7 +297,7 @@ useEffect(() => {
   }
 
   const cur = data.org.baseCurrency;
-  const fmt = (n: number) => `${n.toLocaleString()} ${cur}`;
+  const fmt = (n: number) => `${n.toLocaleString(displayLocale())} ${cur}`;
   const fmtCompact = (n: number) => {
     if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
     if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -349,7 +350,7 @@ useEffect(() => {
               <span className="font-semibold text-red-700">{data.overdueInvoices.length} {t("فاتورة متأخرة", "overdue invoice(s)")}</span>
               <span className="text-red-600 mx-2">·</span>
               <span className="text-red-600 font-english">
-                {data.overdueInvoices.reduce((s, i) => s + i.remaining, 0).toLocaleString()} {cur}
+                {data.overdueInvoices.reduce((s, i) => s + i.remaining, 0).toLocaleString(displayLocale())} {cur}
               </span>
               <span className="text-red-600 mx-1">{t("قيد التحصيل", "pending collection")}</span>
             </div>
@@ -395,9 +396,9 @@ useEffect(() => {
             </div>
             <div className="font-english text-foreground" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15 }}>
               <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
-              {k.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {k.revenue.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5"><span className="font-english font-semibold text-foreground">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoice · cash ")}<span className="font-english">{k.cashOnHand.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
+            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5"><span className="font-english font-semibold text-foreground">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoice · cash ")}<span className="font-english">{k.cashOnHand.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></p>
           </CardContent>
         </Card>
 
@@ -414,7 +415,7 @@ useEffect(() => {
                 </div>
                 <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: positive ? "#0B1B49" : "#D97474" }}>
                   <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
-                  {Math.abs(net).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {Math.abs(net).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}
                 </div>
                 <p className="text-[10.5px] mt-1.5">
                   <span className={positive ? "text-emerald-700" : "text-rose-700"} style={{ fontWeight: 600 }}>{positive ? t("ربح", "Profit") : t("خسارة", "Loss")}</span>
@@ -435,9 +436,9 @@ useEffect(() => {
             </div>
             <div className="font-english" style={{ fontSize: "1.25rem", fontWeight: 700, lineHeight: 1.15, color: chartColors.teal }}>
               <span className="text-muted-foreground text-[0.7rem] me-1 font-normal">{cur}</span>
-              {(k.expenses + k.purchases).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {(k.expenses + k.purchases).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}
             </div>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5">{t("مباشرة ", "Direct ")}<span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>{t(" · عمومية ", " · General ")}<span className="font-english">{k.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></p>
+            <p className="text-[10.5px] text-muted-foreground/60 mt-1.5">{t("مباشرة ", "Direct ")}<span className="font-english font-semibold" style={{ color: chartColors.teal }}>{k.purchases.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span>{t(" · عمومية ", " · General ")}<span className="font-english">{k.expenses.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></p>
           </CardContent>
         </Card>
 
@@ -479,7 +480,7 @@ useEffect(() => {
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
                   <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
-                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
                   <Bar dataKey="profit" fill={chartColors.navySoft} radius={[8, 8, 0, 0]} maxBarSize={40} />
                   <Bar dataKey="loss" fill={chartColors.red} radius={[8, 8, 0, 0]} maxBarSize={40} />
                 </BarChart>
@@ -508,7 +509,7 @@ useEffect(() => {
                     <CartesianGrid {...gridStyle} horizontal={false} />
                     <XAxis type="number" tick={xAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
                     <YAxis type="category" dataKey="category" orientation="right" width={100} tick={{ ...yAxisStyle, fontFamily: "Noto Sans Arabic" }} tickLine={false} axisLine={false} />
-                    <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                    <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
                     <Bar dataKey="value" fill={chartColors.navySoft} radius={[0, 8, 8, 0]} maxBarSize={22} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -530,7 +531,7 @@ useEffect(() => {
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
                   <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
-                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
                   <Bar dataKey="revenue" fill={chartColors.navySoft} radius={[8, 8, 0, 0]} maxBarSize={28} />
                   <Bar dataKey="expenses" fill={chartColors.tealSoft} radius={[8, 8, 0, 0]} maxBarSize={28} />
                 </BarChart>
@@ -556,7 +557,7 @@ useEffect(() => {
                   <CartesianGrid {...gridStyle} />
                   <XAxis dataKey="month" reversed tick={xAxisStyle} tickLine={false} axisLine={false} />
                   <YAxis orientation="right" tick={yAxisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
-                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString()} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
                   <Line type="monotone" dataKey="inflow" stroke={chartColors.navy} strokeWidth={2} dot={{ r: 3, fill: chartColors.navy }} activeDot={{ r: 5 }} />
                   <Line type="monotone" dataKey="outflow" stroke={chartColors.teal} strokeWidth={2} dot={{ r: 3, fill: chartColors.teal }} activeDot={{ r: 5 }} />
                 </LineChart>
@@ -704,7 +705,7 @@ useEffect(() => {
                         </div>
                         {/* Big balance number */}
                         <div className="font-english text-foreground mt-1.5" style={{ fontSize: "0.95rem", fontWeight: 700 }}>
-                          {b.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] text-muted-foreground/60">{b.currency}</span>
+                          {b.balance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-[10px] text-muted-foreground/60">{b.currency}</span>
                         </div>
                       </div>
                     </Link>
@@ -749,7 +750,7 @@ useEffect(() => {
                   </Pie>
                   <Tooltip
                     contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 12 }}
-                    formatter={(v: any) => Number(v).toLocaleString()}
+                    formatter={(v: any) => Number(v).toLocaleString(displayLocale())}
                   />
                   <Legend
                     wrapperStyle={{ fontSize: 11, fontFamily: "Noto Sans Arabic" }}
@@ -796,7 +797,7 @@ useEffect(() => {
                             <div className="text-[10px] text-muted-foreground truncate mt-0.5">{inv.contact}</div>
                           </div>
                           <div className="text-end shrink-0">
-                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{(inv.remaining || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.red }}>{(inv.remaining || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</div>
                           </div>
                         </div>
                       </Link>
@@ -828,7 +829,7 @@ useEffect(() => {
                             <div className="text-[10px] text-muted-foreground truncate mt-0.5">{bill.contact}</div>
                           </div>
                           <div className="text-end shrink-0">
-                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(bill.remaining || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            <div className="font-english text-[11px] font-semibold" style={{ color: chartColors.teal }}>{(bill.remaining || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</div>
                           </div>
                         </div>
                       </Link>
@@ -858,13 +859,13 @@ useEffect(() => {
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="text-muted-foreground text-xs mb-1">{t("إجمالي القبض", "Total receipts")}</div>
-            <div className="font-english text-green-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.receipts.toLocaleString()}</div>
+            <div className="font-english text-green-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.receipts.toLocaleString(displayLocale())}</div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-4">
             <div className="text-muted-foreground text-xs mb-1">{t("إجمالي الصرف", "Total payments")}</div>
-            <div className="font-english text-amber-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.payments.toLocaleString()}</div>
+            <div className="font-english text-amber-600" style={{ fontSize: "1.25rem", fontWeight: 700 }}>{k.payments.toLocaleString(displayLocale())}</div>
           </CardContent>
         </Card>
       </div>

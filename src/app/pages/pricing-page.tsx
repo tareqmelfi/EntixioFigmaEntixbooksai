@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 import { motion } from "motion/react";
 import { CheckCircle2, X, Sparkles, ArrowLeft, ArrowRight, HelpCircle, Rocket, ArrowLeftRight, Gift, AlertCircle, Mail } from "lucide-react";
@@ -393,7 +394,7 @@ export function PricingPage() {
                     <span className="text-foreground" style={{ fontSize: "48px", fontWeight: 800, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
                       {plan.price[currency][billingCycle] === 0
                         ? t("مجاني", "Free")
-                        : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString("en-US")}`}
+                        : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString(displayLocale("en-US"))}`}
                     </span>
                     {plan.price[currency][billingCycle] > 0 && (
                       <span className="text-muted-foreground" style={{ fontSize: "16px" }}>
@@ -404,10 +405,10 @@ export function PricingPage() {
                   {billingCycle === "yearly" && plan.price[currency].yearly > 0 && plan.price[currency].monthly > 0 && (
                     <>
                       <p className="text-green-500" style={{ fontSize: "13px" }} dir="ltr">
-                        {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString("en-US")} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
+                        {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString(displayLocale("en-US"))} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
                       </p>
                       <p className="text-muted-foreground" style={{ fontSize: "12px" }} dir="ltr">
-                        ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString("en-US", { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString("en-US")} {t("سنويًا", "yearly")}
+                        ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString(displayLocale("en-US"))} {t("سنويًا", "yearly")}
                       </p>
                     </>
                   )}

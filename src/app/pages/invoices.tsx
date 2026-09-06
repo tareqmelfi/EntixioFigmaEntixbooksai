@@ -1,3 +1,4 @@
+import { displayDigits, displayLocale } from "../lib/number-display";
 /**
  * Sales Invoices · wired to /api/invoices · org-scoped
  * UX-1: NO modal · NO slide-over.
@@ -887,16 +888,16 @@ export function Invoices() {
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
-                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{isUS ? t("ضريبة المبيعات", "Sales tax") : t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
-                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
+                          <span className="font-english text-foreground text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.tax.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
                           <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>{t("الإجمالي:", "Total:")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
-                            {form.currency} {totals.total.toFixed(2)}
+                            {form.currency} {displayDigits(totals.total.toFixed(2))}
                           </span>
                         </div>
                       </>
@@ -1061,9 +1062,9 @@ export function Invoices() {
       )}
 
       <MetricStrip>
-        <Metric label={t("إجمالي الفواتير", "Total invoiced")} value={<span className="font-english">{total.toLocaleString()}</span>} />
-        <Metric label={t("المُحصَّل", "Collected")} value={<span className="font-english">{paid.toLocaleString()}</span>} tone="success" />
-        <Metric label={t("المستحق", "Outstanding")} value={<span className="font-english">{outstanding.toLocaleString()}</span>} tone="warning" />
+        <Metric label={t("إجمالي الفواتير", "Total invoiced")} value={<span className="font-english">{total.toLocaleString(displayLocale())}</span>} />
+        <Metric label={t("المُحصَّل", "Collected")} value={<span className="font-english">{paid.toLocaleString(displayLocale())}</span>} tone="success" />
+        <Metric label={t("المستحق", "Outstanding")} value={<span className="font-english">{outstanding.toLocaleString(displayLocale())}</span>} tone="warning" />
         <Metric label={t("عدد الفواتير", "Invoice count")} value={<span className="font-english">{items.length}</span>} />
       </MetricStrip>
 
@@ -1178,8 +1179,8 @@ export function Invoices() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString(displayLocale())}</span></td>
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex w-max min-w-full items-center gap-1 whitespace-nowrap">
                         {/* SENT/APPROVED → Sign button */}

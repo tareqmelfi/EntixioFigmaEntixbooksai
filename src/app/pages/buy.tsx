@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * /buy · pay-first guest checkout (owner directive 2026-08-22).
  *
@@ -80,7 +81,7 @@ export function BuyPage() {
   };
 
   const priceFmt = (cents: number, cur: string) =>
-    `${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${cur.toUpperCase() === "SAR" ? t("ر.س", "SAR") : "USD"}`;
+    `${(cents / 100).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 0 })} ${cur.toUpperCase() === "SAR" ? t("ر.س", "SAR") : "USD"}`;
 
   return (
     <div className="min-h-screen bg-background">

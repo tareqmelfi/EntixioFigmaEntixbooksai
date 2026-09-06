@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * POS v2 · الكاشير (CEO 2026-08-25)
  *
@@ -250,7 +251,7 @@ export function PosPage() {
     if (r.error) showToast("err", t(`فشل الرفع: ${r.error}`, `Upload failed: ${r.error}`));
     else if (r.sent === 0) showToast("info", t("لا توجد عمليات بانتظار الرفع", "Nothing pending"));
     else showToast("ok", t(`رُفعت ${r.created + r.duplicate} عملية${r.failed ? ` · فشل ${r.failed}` : ""}`, `Uploaded ${r.created + r.duplicate} sale(s)${r.failed ? ` · ${r.failed} failed` : ""}`));
-    setSyncNote(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    setSyncNote(new Date().toLocaleTimeString(displayLocale("en-GB"), { hour: "2-digit", minute: "2-digit" }));
   };
 
   // ── shift ──
@@ -408,7 +409,7 @@ export function PosPage() {
             <div className="truncate text-sm font-bold">{store?.name || "ENTIX"}<span className="mx-1.5 text-white/40">·</span><span className="font-normal text-white/80">{branchName || t("الكاشير", "Cashier")}</span>{(shift as any)?.cashierName ? <span className="ms-1.5 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-normal text-white/90">{(shift as any).cashierName}</span> : null}</div>
           </div>
           {shift ? (
-            <span className="hidden items-center gap-1.5 rounded-full border border-success/40 bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-[#86EFAC] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#4ADE80]" />{t("وردية مفتوحة", "Shift open")} · <span className="font-english">{new Date(shift.openedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span></span>
+            <span className="hidden items-center gap-1.5 rounded-full border border-success/40 bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-[#86EFAC] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#4ADE80]" />{t("وردية مفتوحة", "Shift open")} · <span className="font-english">{new Date(shift.openedAt).toLocaleTimeString(displayLocale("en-GB"), { hour: "2-digit", minute: "2-digit" })}</span></span>
           ) : (
             <span className="hidden rounded-full border border-warning/40 bg-warning/15 px-2.5 py-1 text-[11px] font-semibold text-[#FCD34D] sm:flex">{t("بدون وردية", "No shift")}</span>
           )}
@@ -678,7 +679,7 @@ function HistoryPanel({ recent, onClose, reprint, t, currency, syncNote, onSync,
             <div className={`h-2 w-2 shrink-0 rounded-full ${s.status === "synced" ? "bg-success" : s.status === "failed" ? "bg-danger" : "bg-warning"}`} title={s.status} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><span className="font-english">{s.invoiceNumber || s.provisionalNumber}</span>{s.status !== "synced" && <span className="rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] font-medium text-warning">{s.status === "failed" ? t("فشل", "failed") : t("بانتظار الرفع", "pending")}</span>}</div>
-              <div className="font-english text-[11px] text-muted-foreground">{new Date(s.occurredAt).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} · {s.lines.length} {t("صنف", "items")} · {s.paymentMethod}{s.lastError ? ` · ${s.lastError}` : ""}</div>
+              <div className="font-english text-[11px] text-muted-foreground">{new Date(s.occurredAt).toLocaleString(displayLocale("en-GB"), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} · {s.lines.length} {t("صنف", "items")} · {s.paymentMethod}{s.lastError ? ` · ${s.lastError}` : ""}</div>
             </div>
             <div className="font-english text-sm font-bold text-foreground">{money(s.totals.grand)} <span className="text-[10px] font-medium text-muted-foreground">{currency}</span></div>
             <button onClick={() => reprint(s)} title={t("إعادة طباعة", "Reprint")} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"><Printer className="h-4 w-4" /></button>

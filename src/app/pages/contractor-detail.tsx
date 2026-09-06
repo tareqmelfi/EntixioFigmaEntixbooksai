@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Contractor full page — app-wide standard:
  *   /app/contractors/new  → register form (auto CTR-001)
@@ -18,8 +19,8 @@ import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const hrs = (v: any) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 1 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const hrs = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 1 });
 
 const KIND_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
   FREELANCER: { ar: "فريلانسر", en: "Freelancer", bg: "bg-blue-100 text-blue-700" },
@@ -268,7 +269,7 @@ export function ContractorDetail() {
                   <span className="text-xs text-muted-foreground">/ {t("الأقران", "peers")} {p != null ? row.fmt(p) : "—"}</span>
                   {diff != null && (
                     <span className={`text-xs px-1.5 py-0.5 rounded ${good ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                      {diff > 0 ? "+" : ""}{diff.toFixed(0)}%
+                      {diff > 0 ? "+" : ""}{displayDigits(diff.toFixed(0))}%
                     </span>
                   )}
                 </div>
@@ -407,7 +408,7 @@ export function ContractorDetail() {
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="font-english text-xs text-primary" dir="ltr">{person.code}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${(KIND_LABELS[person.kind] || KIND_LABELS.FREELANCER).bg}`}>{t((KIND_LABELS[person.kind] || KIND_LABELS.FREELANCER).ar, (KIND_LABELS[person.kind] || KIND_LABELS.FREELANCER).en)}</span>
-            {person.rating != null && <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-english"><Star className="h-3 w-3 fill-current" />{Number(person.rating).toFixed(1)}</span>}
+            {person.rating != null && <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-english"><Star className="h-3 w-3 fill-current" />{displayDigits(Number(person.rating).toFixed(1))}</span>}
             <span className="text-xs text-muted-foreground">{person.specialty || ""}</span>
           </div>
         )}

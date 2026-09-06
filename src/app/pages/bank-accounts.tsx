@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Bank Accounts · CRUD wired to /api/bank-accounts
  * Detail view (/app/bank-accounts/:id) shows the account's transactions
@@ -110,7 +111,7 @@ export function BankAccounts() {
                   </div>
                   <div className="rounded-md bg-white/70 px-3 py-2">
                     <div className="text-muted-foreground">{t("الرصيد", "Balance")}</div>
-                    <div className="font-english text-foreground" dir="ltr">{Number(selectedAccount.balance).toLocaleString()} {selectedAccount.currency}</div>
+                    <div className="font-english text-foreground" dir="ltr">{Number(selectedAccount.balance).toLocaleString(displayLocale())} {selectedAccount.currency}</div>
                   </div>
                 </div>
               </div>
@@ -169,7 +170,7 @@ export function BankAccounts() {
                           onClick={() => navigate(detailPath)}
                           className="border-b border-border/50 hover:bg-primary/5 cursor-pointer"
                         >
-                          <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-sm text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{v.date ? new Date(v.date).toLocaleDateString("en-GB") : "—"}</span></td>
+                          <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-sm text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{v.date ? new Date(v.date).toLocaleDateString(displayLocale("en-GB")) : "—"}</span></td>
                           <td className="py-3 px-4 text-sm">
                             <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                               {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
@@ -182,7 +183,7 @@ export function BankAccounts() {
                             {v.reference || v.notes || "—"}
                           </td>
                           <td className={`py-3 px-4 text-sm font-english ${inbound ? "text-emerald-700" : "text-amber-700"}`} style={{ fontWeight: 600 }}>
-                            {inbound ? "+" : "−"}{Number(v.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {v.currency}
+                            {inbound ? "+" : "−"}{Number(v.amount).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {v.currency}
                           </td>
                           <td className="py-3 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
                             {linkedPath ? (
@@ -211,7 +212,7 @@ export function BankAccounts() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الأرصدة", "Total balance")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalBalance.toLocaleString()}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{totalBalance.toLocaleString(displayLocale())}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("عدد الحسابات", "Accounts")}</div>
@@ -255,7 +256,7 @@ export function BankAccounts() {
                     </td>
                     <td className="py-3 px-4 text-sm text-foreground/80 max-w-[200px] truncate" dir="auto" title={b.bankName || ""}>{b.bankName || "—"}</td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{accountIdentifier(b)}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.balance).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.balance).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       {pendingDelete === b.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} label={t("تأكيد الحذف؟", "Confirm delete?")} />

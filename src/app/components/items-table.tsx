@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * ItemsTable v2 · multi-line invoice/quote/bill items
  *
@@ -589,7 +590,7 @@ export function ItemsTable({
                           items={products.map((p) => ({
                             id: p.id,
                             label: p.name,
-                            sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString()}`,
+                            sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString(displayLocale())}`,
                           }))}
                           placeholder={t("ابحث عن صنف...", "Search item...")}
                           createLabel={(q) => t("+ إنشاء صنف", "+ Create item") + ` "${q}"`}
@@ -675,15 +676,15 @@ export function ItemsTable({
                       </td>
                     )}
                     <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap text-end table-cell">
-                      {gross > 0 ? lineNet.toFixed(2) : ""}
+                      {gross > 0 ? displayDigits(lineNet.toFixed(2)) : ""}
                     </td>
                     {showTaxAmount && (
                       <td className="px-2 py-1 font-english text-xs text-muted-foreground whitespace-nowrap text-end table-cell">
-                        {gross > 0 ? lineTax.toFixed(2) : ""}
+                        {gross > 0 ? displayDigits(lineTax.toFixed(2)) : ""}
                       </td>
                     )}
                     <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap text-end table-cell" style={{ fontWeight: 700 }}>
-                      {gross > 0 ? lineTotal.toFixed(2) : ""}
+                      {gross > 0 ? displayDigits(lineTotal.toFixed(2)) : ""}
                     </td>
                     {showRecognition && (
                       <td className="px-2 py-1">

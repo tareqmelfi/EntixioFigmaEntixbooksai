@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Log work hours — full page (app-wide standard).
  * /app/work-logs/new?project=..&contractor=..
@@ -21,7 +22,7 @@ import { SearchableCombobox } from "../components/searchable-combobox";
 import { api, ApiError, Contact } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function WorkLogNew() {
   const { t } = useLanguage();

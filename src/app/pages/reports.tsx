@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Link } from "react-router";
 import {
@@ -62,7 +63,7 @@ type CategoryDefinition = {
 };
 
 const money = (value: string | number | null | undefined, currency = "SAR") => {
-  const formatted = Number(value || 0).toLocaleString("en-US", {
+  const formatted = Number(value || 0).toLocaleString(displayLocale("en-US"), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -70,7 +71,7 @@ const money = (value: string | number | null | undefined, currency = "SAR") => {
 };
 
 const numberValue = (value: string | number | null | undefined) =>
-  Number(value || 0).toLocaleString("en-US");
+  Number(value || 0).toLocaleString(displayLocale("en-US"));
 
 const categories: CategoryDefinition[] = [
   { id: "financial", title: "تقارير مالية", englishTitle: "Financial Reports", icon: BarChart3, accent: "bg-blue-50 text-blue-700 border-blue-100" },

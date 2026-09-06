@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "./LanguageContext";
 import { Plus, Package } from "lucide-react";
@@ -134,7 +135,7 @@ export function ItemSearchInput({ value, onChange, placeholder, className }: Ite
                   </div>
                 </div>
                 {item.price > 0 && (
-                  <span className="text-xs font-english text-muted-foreground shrink-0">{item.price.toLocaleString()}</span>
+                  <span className="text-xs font-english text-muted-foreground shrink-0">{item.price.toLocaleString(displayLocale())}</span>
                 )}
               </button>
             ))}

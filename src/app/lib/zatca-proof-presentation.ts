@@ -11,7 +11,7 @@ export function deviceProofStages(proof: DeviceProof, t: (ar: string, en: string
   return [
     { label: t("توليد المفاتيح و CSR", "Keys and CSR generated"), complete: current },
     { label: t("شهادة الامتثال (OTP)", "Compliance certificate (OTP)"), complete: current },
-    { label: t("فحوصات الامتثال (٦ مستندات)", "Compliance checks (6 documents)"), complete: proof.complianceChecksPassed === 6 },
+    { label: t("فحوصات الامتثال (6 مستندات)", "Compliance checks (6 documents)"), complete: proof.complianceChecksPassed === 6 },
     { label: t("شهادة الإنتاج", "Production certificate"), complete: current },
   ];
 }

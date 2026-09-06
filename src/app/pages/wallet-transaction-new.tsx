@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * New wallet transaction — full page (app-wide standard).
  * /app/investments/:id/transactions/new
@@ -21,7 +22,7 @@ import { useLanguage } from "../components/LanguageContext";
 
 type TxnKind = "DEPOSIT" | "WITHDRAWAL" | "TRADE_BUY" | "TRADE_SELL" | "FEE" | "SUBSCRIPTION" | "PROFIT_PAYOUT" | "PROFIT_SHARE_COST" | "ADJUSTMENT";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function WalletTransactionNew() {
   const { t } = useLanguage();

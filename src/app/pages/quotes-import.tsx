@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * BOQ import wizard (SPEC-04) · /app/quotes/import
  * Upload the customer's priced BOQ workbook → per-sheet preview (sheet = section)
@@ -127,7 +128,7 @@ export function QuotesImport() {
           preview ? (
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="text-sm text-muted-foreground">
-                {t(`${stats.count} بند مشمول`, `${stats.count} included`)} · <span className="font-english font-bold text-foreground">{stats.total.toLocaleString()}</span>
+                {t(`${stats.count} بند مشمول`, `${stats.count} included`)} · <span className="font-english font-bold text-foreground">{stats.total.toLocaleString(displayLocale())}</span>
                 {stats.optional > 0 && <> · {t(`${stats.optional} اختياري`, `${stats.optional} optional`)}</>}
               </div>
               <div className="flex items-center gap-2">
@@ -147,7 +148,7 @@ export function QuotesImport() {
             <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 py-16 cursor-pointer hover:bg-primary/10 transition-colors">
               {busy ? <Loader2 className="h-10 w-10 animate-spin text-primary" /> : <UploadCloud className="h-10 w-10 text-primary" />}
               <div className="text-foreground" style={{ fontWeight: 700 }}>{t("اسحب ملف الـ BOQ هنا أو اضغط للاختيار", "Drop the BOQ file here or click to choose")}</div>
-              <div className="text-xs text-muted-foreground">{t("Excel (.xlsx / .xls) · حتى 10MB · يدعم العناوين العربية والإنجليزية والأرقام العربية ١٢٣", "Excel (.xlsx / .xls) · up to 10MB · Arabic & English headers")}</div>
+              <div className="text-xs text-muted-foreground">{t("Excel (.xlsx / .xls) · حتى 10MB · يدعم العناوين العربية والإنجليزية والأرقام العربية 123", "Excel (.xlsx / .xls) · up to 10MB · Arabic & English headers")}</div>
               <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.currentTarget.value = ""; }} />
             </label>
           )}
@@ -235,8 +236,8 @@ export function QuotesImport() {
                             <td className="py-1.5 px-3 text-foreground/90">{l.no && <span className="font-english text-muted-foreground me-1">{l.no}</span>}{l.description}</td>
                             <td className="py-1.5 px-3 text-xs text-muted-foreground">{l.unit || "—"}</td>
                             <td className="py-1.5 px-3 font-english">{l.qty ?? "—"}</td>
-                            <td className="py-1.5 px-3 font-english">{l.unitPrice?.toLocaleString() ?? "—"}</td>
-                            <td className="py-1.5 px-3 font-english" style={{ fontWeight: 600 }}>{amount ? amount.toLocaleString() : "—"}</td>
+                            <td className="py-1.5 px-3 font-english">{l.unitPrice?.toLocaleString(displayLocale()) ?? "—"}</td>
+                            <td className="py-1.5 px-3 font-english" style={{ fontWeight: 600 }}>{amount ? amount.toLocaleString(displayLocale()) : "—"}</td>
                           </tr>
                         );
                       })}

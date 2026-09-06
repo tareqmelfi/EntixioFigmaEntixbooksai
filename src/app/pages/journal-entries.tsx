@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Journal Entries · UX-89 · manual ledger entries with debit/credit balance check
  * Wave-style: row click → side panel with full detail · edit · post/unpost · attachments
@@ -368,7 +369,7 @@ export function JournalEntries() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المبالغ المرحّلة", "Total Posted Amount")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalPosted.toLocaleString()}</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalPosted.toLocaleString(displayLocale())}</div>
           </CardContent></Card>
         </div>
 
@@ -435,8 +436,8 @@ export function JournalEntries() {
                             {(e.attachmentCount || 0) > 0 && <span className="ms-2"><Paperclip className="inline h-3 w-3" /> {e.attachmentCount}</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString(displayLocale())}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString(displayLocale())}</td>
                         <td className="px-2 py-3 text-center">
                           <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
                         </td>
@@ -544,16 +545,16 @@ export function JournalEntries() {
                           <div className="text-foreground">{l.accountName}</div>
                           {l.description && <div className="text-[10px] text-muted-foreground/60 mt-0.5">{l.description}</div>}
                         </td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString() : "—"}</td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString() : "—"}</td>
+                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString(displayLocale()) : "—"}</td>
+                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString(displayLocale()) : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-muted">
                     <tr>
                       <td className="px-2 py-1.5 text-end text-muted-foreground font-medium">{t("الإجمالي", "Total")}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalDebit.toLocaleString()}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalCredit.toLocaleString()}</td>
+                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalDebit.toLocaleString(displayLocale())}</td>
+                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalCredit.toLocaleString(displayLocale())}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -583,7 +584,7 @@ export function JournalEntries() {
                     <div key={a.id} className="flex items-center gap-2 p-2 rounded border border-border text-xs">
                       <Paperclip className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0 truncate">{a.filename}</div>
-                      <span className="font-english text-muted-foreground/60" dir="ltr">{(a.sizeBytes / 1024).toFixed(0)} KB</span>
+                      <span className="font-english text-muted-foreground/60" dir="ltr">{displayDigits((a.sizeBytes / 1024).toFixed(0))} KB</span>
                       <a href={a.url} download={a.filename} className="text-primary hover:bg-blue-50 p-1 rounded"><Download className="h-3 w-3" /></a>
                       <button onClick={() => handleRemoveAttachment(a.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 className="h-3 w-3" /></button>
                     </div>
@@ -752,8 +753,8 @@ export function JournalEntries() {
                     <tfoot className="bg-muted text-xs">
                       <tr>
                         <td colSpan={2} className="px-3 py-2 text-end text-muted-foreground font-medium">{t("الإجمالي", "Total")}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalDebit.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalCredit.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalDebit.toLocaleString(displayLocale())}</td>
+                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalCredit.toLocaleString(displayLocale())}</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -767,7 +768,7 @@ export function JournalEntries() {
 
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${balanced ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
                     {balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString()}`)}
+                    {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString(displayLocale())}`)}
                   </div>
                 </div>
 

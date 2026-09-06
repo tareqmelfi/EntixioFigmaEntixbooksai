@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Settings → Account → «الشركات المحذوفة» · soft-deleted companies the user
  * owns, restorable within the grace window (CEO 2026-08-25). No dialogs.
@@ -12,7 +13,7 @@ const GRACE_DAYS = 30;
 
 function fmt(iso?: string | null) {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); } catch { return iso; }
+  try { return new Date(iso).toLocaleDateString(displayLocale("en-GB"), { day: "2-digit", month: "short", year: "numeric" }); } catch { return iso; }
 }
 
 export function DeletedCompanies({ push }: { push: (kind: "success" | "error", msg: string) => void }) {

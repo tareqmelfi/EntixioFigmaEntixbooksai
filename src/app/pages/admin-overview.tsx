@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Admin Console v3 · Command center (/admin) — 2026-08-27.
  *
@@ -23,9 +24,9 @@ import { useLanguage } from "../components/LanguageContext";
 const NAVY = "#0B1B49", BLUE = "#1276E3", CYAN = "#179FC5", SOFT = "#9CC9EA";
 const TIER_COLORS: Record<string, string> = { enterprise: NAVY, professional: BLUE, advanced: BLUE, premium: NAVY, lite: CYAN, starter: SOFT };
 
-const fmtInt = (n: number) => Number(n || 0).toLocaleString("en-US");
-const fmtMoney = (minor: number, cur: string) => `${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${cur}`;
-const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
+const fmtInt = (n: number) => Number(n || 0).toLocaleString(displayLocale("en-US"));
+const fmtMoney = (minor: number, cur: string) => `${(minor / 100).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${cur}`;
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(displayLocale("en-GB")) : "—");
 const rel = (d: string | null | undefined, lang: "ar" | "en") => {
   if (!d) return "";
   const diff = new Date(d).getTime() - Date.now();
@@ -117,7 +118,7 @@ export function AdminOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className={`inline-flex h-2 w-2 rounded-full ${data.system.db === "ok" ? "bg-emerald-500" : "bg-red-500"}`} />
-          {t("محدّث", "Updated")} {new Date(data.generatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+          {t("محدّث", "Updated")} {new Date(data.generatedAt).toLocaleTimeString(displayLocale("en-GB"), { hour: "2-digit", minute: "2-digit" })}
           {hi > 0 && <span className="ms-2 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-red-700" style={{ fontWeight: 600 }}><AlertTriangle className="h-3 w-3" />{hi} {t("يحتاج تدخّل", "need action")}</span>}
         </div>
         <div className="flex items-center gap-2">
@@ -279,7 +280,7 @@ export function AdminOverview() {
           {data.recentAudit.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">{t("لا إجراءات بعد", "No actions yet")}</p> : (
             <ul className="space-y-2.5 text-xs">
               {data.recentAudit.map((a) => (
-                <li key={a.id} className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" /><div className="min-w-0 flex-1"><div className="truncate text-foreground" style={{ fontWeight: 600 }}>{a.action} <span className="font-normal text-muted-foreground">· {a.targetLabel || a.targetType}</span></div><div className="text-[11px] text-muted-foreground font-english">{a.adminEmail} · {new Date(a.createdAt).toLocaleString("en-GB")}</div></div></li>
+                <li key={a.id} className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" /><div className="min-w-0 flex-1"><div className="truncate text-foreground" style={{ fontWeight: 600 }}>{a.action} <span className="font-normal text-muted-foreground">· {a.targetLabel || a.targetType}</span></div><div className="text-[11px] text-muted-foreground font-english">{a.adminEmail} · {new Date(a.createdAt).toLocaleString(displayLocale("en-GB"))}</div></div></li>
               ))}
             </ul>
           )}

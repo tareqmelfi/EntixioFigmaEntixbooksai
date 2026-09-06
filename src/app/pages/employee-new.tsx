@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * New Employee — full page (app-wide standard · no slide-overs).
  * /app/employees/new
@@ -29,7 +30,7 @@ const countrySort = (a: (typeof COUNTRIES)[number], b: (typeof COUNTRIES)[number
 };
 
 const money = (value: number) =>
-  value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  value.toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function idLabelByCountry(t: (ar: string, en?: string) => string, country: string) {
   if (country === "US") return "Tax ID / SSN";

@@ -1,3 +1,4 @@
+import { displayLocale, displayDigits } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
 /**
@@ -392,11 +393,11 @@ export function InvoicePrintView() {
                       <div className="print-wrap-any" style={{ fontWeight: 700 }}>{descHead}</div>
                       {descRest && <div className="print-wrap-any" style={{ whiteSpace: "pre-wrap", color: "#6B7280", fontSize: 10, lineHeight: 1.45 }}>{descRest}</div>}
                     </td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString()}</td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{p.toFixed(2)}</td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{base.toFixed(2)}</td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{Math.max(lineTotal - base, 0).toFixed(2)}</td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{lineTotal.toFixed(2)}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString(displayLocale())}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(p.toFixed(2))}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(base.toFixed(2))}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(Math.max(lineTotal - base, 0).toFixed(2))}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(lineTotal.toFixed(2))}</td>
                   </tr>
                 );
               })}
@@ -437,21 +438,21 @@ export function InvoicePrintView() {
             </div>
             <div className="totals-card">
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
-                <span>{isKsa ? "المجموع الفرعي · Subtotal" : "Subtotal"}</span><span className="num">{subtotal.toFixed(2)} {currency}</span>
+                <span>{isKsa ? "المجموع الفرعي · Subtotal" : "Subtotal"}</span><span className="num">{displayDigits(subtotal.toFixed(2))} {currency}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
-                <span>{isKsa ? "VAT (15%)" : "Sales Tax"}</span><span className="num">{tax.toFixed(2)} {currency}</span>
+                <span>{isKsa ? "VAT (15%)" : "Sales Tax"}</span><span className="num">{displayDigits(tax.toFixed(2))} {currency}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 15, fontWeight: 700, background: accent, color: "white" }}>
-                <span>{isKsa ? "الإجمالي · Total" : "Total"}</span><span className="num">{total.toFixed(2)} {currency}</span>
+                <span>{isKsa ? "الإجمالي · Total" : "Total"}</span><span className="num">{displayDigits(total.toFixed(2))} {currency}</span>
               </div>
               {paid > 0 && (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, borderBottom: "1px solid #F3F4F6" }}>
-                    <span>{isKsa ? "المدفوع" : "Paid"}</span><span className="num">{paid.toFixed(2)} {currency}</span>
+                    <span>{isKsa ? "المدفوع" : "Paid"}</span><span className="num">{displayDigits(paid.toFixed(2))} {currency}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", fontSize: 13, background: "#FEF3C7", fontWeight: 700 }}>
-                    <span>{isKsa ? "المستحق" : "Balance Due"}</span><span className="num">{due.toFixed(2)} {currency}</span>
+                    <span>{isKsa ? "المستحق" : "Balance Due"}</span><span className="num">{displayDigits(due.toFixed(2))} {currency}</span>
                   </div>
                 </>
               )}

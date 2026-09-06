@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
  * /app/billing — subscription management (in-app, full page standard).
@@ -25,7 +26,7 @@ const STATUS_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
 };
 
 const money = (cents: number, currency = "sar", isEn = false) =>
-  `${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency.toUpperCase() === "SAR" ? (isEn ? "SAR" : "ر.س") : currency.toUpperCase()}`;
+  `${(cents / 100).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 0 })} ${currency.toUpperCase() === "SAR" ? (isEn ? "SAR" : "ر.س") : currency.toUpperCase()}`;
 
 export function Billing() {
   const { t, language } = useLanguage();
@@ -107,7 +108,7 @@ export function Billing() {
   const status = sub?.status || "TRIALING";
   const statusMeta = STATUS_LABELS[status] || STATUS_LABELS.TRIALING;
   const daysLeft = sub?.trialEndsAt ? Math.max(0, Math.ceil((new Date(sub.trialEndsAt).getTime() - Date.now()) / 86400000)) : null;
-  const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-GB") : null;
+  const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString(displayLocale("en-GB")) : null;
   const visiblePlans = plans.filter(
     (p) => p.interval === cycle && String(p.currency || "sar").toLowerCase() === planCurrency,
   );

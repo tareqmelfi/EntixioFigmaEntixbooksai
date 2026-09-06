@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
  * Scan Receipts · batch intake hub (rebuilt)
@@ -83,7 +84,7 @@ const nextJobId = () => `rj-${Date.now()}-${++jobSeq}`;
 const fmtMoney = (n: number | null | undefined) =>
   n == null
     ? "—"
-    : Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    : Number(n).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const numOrNull = (v: any): number | null => {
   const n = Number(v);

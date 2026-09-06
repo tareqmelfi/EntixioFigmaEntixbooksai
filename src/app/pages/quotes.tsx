@@ -1,3 +1,4 @@
+import { displayDigits, displayLocale } from "../lib/number-display";
 /**
  * Quotes (عروض الأسعار) · wired to /api/quotes · with convert-to-invoice + sign
  * UX-1 compliant: NO Dialog · NO alert/confirm/prompt
@@ -450,16 +451,16 @@ export function Quotes() {
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
-                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("الضريبة (15%)", "Tax (15%)")}</span>
-                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.tax.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
                           <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>{t("الإجمالي:", "Total:")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
-                            {form.currency} {totals.total.toFixed(2)}
+                            {form.currency} {displayDigits(totals.total.toFixed(2))}
                           </span>
                         </div>
                       </>
@@ -541,7 +542,7 @@ export function Quotes() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("القيمة الإجمالية", "Total value")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale())}</div>
         </CardContent></Card>
       </div>
 
@@ -574,7 +575,7 @@ export function Quotes() {
                     <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={q.contact?.displayName || ""}>{q.contact?.displayName || "—"}</td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{q.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{q.validUntil?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(q.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{q.currency}</span></span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(q.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{q.currency}</span></span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`} title={q.status === "REJECTED" && q.rejectReason ? t(`السبب: ${q.rejectReason}`, `Reason: ${q.rejectReason}`) : undefined}>{STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status}</span></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 flex-wrap">

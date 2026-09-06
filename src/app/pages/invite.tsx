@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * /invite/:token — invitation landing (consent-first, 2026-08-21)
  *
@@ -141,7 +142,7 @@ export function InvitePage() {
               {" · "}{t("الصلاحية", "Role")}: <span className="font-medium text-foreground">{roleLabel(info.role)}</span>
             </p>
             <p className="text-xs text-muted-foreground mb-6">
-              {t("تنتهي الدعوة في", "Invite expires")} <span className="font-english">{new Date(info.expiresAt).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US")}</span>
+              {t("تنتهي الدعوة في", "Invite expires")} <span className="font-english">{new Date(info.expiresAt).toLocaleDateString(displayLocale(language === "ar" ? "ar-SA" : "en-US"))}</span>
             </p>
             <div className="flex flex-col gap-2">
               <button onClick={handleAccept} disabled={busy !== null}

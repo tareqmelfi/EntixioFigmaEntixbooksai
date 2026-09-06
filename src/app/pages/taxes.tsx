@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, Save, Download, Printer, AlertTriangle, FileText, ShoppingBag } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router";
@@ -9,7 +10,7 @@ import { useOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "../components/LanguageContext";
 
 const money = (value: number, currency = "SAR") =>
-  `${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  `${Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);

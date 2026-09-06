@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Condensed bilingual report template (CEO 2026-08-25 · Z12).
  *
@@ -12,8 +13,8 @@
  *   · footer PINNED to the bottom of every printed page (disclaimer + ©).
  *
  * Bilingual labels arrive from the API joined by U+241F (?bilingual=1); a
- * plain string renders in the document language only. Numbers are always
- * Latin digits (product rule) and keep 2 decimals.
+ * plain string renders in the document language only. Numbers use the explicit display preference (Western by default)
+ * and keep 2 decimals.
  */
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportRow } from "../lib/api";
@@ -30,7 +31,7 @@ export function splitBi(value: string | null | undefined): { ar: string; en: str
 
 const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal", "gross", "net", "debit", "credit", "balance", "value"]);
 const isTotalRow = (row: ReportRow) => /(^|-)total$/.test(row.id) || row.id === "net-income" || row.id === "current-earnings";
-const num = (v: number) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (v: number) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg"; both?: boolean }) {
   const { ar, en } = splitBi(value);
@@ -76,7 +77,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const taxLine = resolved.showTaxInfo ? [report.org.vatNumber ? `${t("الرقم الضريبي", "VAT")} ${report.org.vatNumber}` : null, report.org.crNumber ? `${t("س.ت", "CR")} ${report.org.crNumber}` : null].filter(Boolean).join(" · ") : "";
   const companyLine = resolved.showCompanyInfo ? [report.org.addressLine, report.org.city, report.org.phone, report.org.email].filter(Boolean).join(" · ") : "";
   const year = new Date(report.generatedAt || Date.now()).getFullYear();
-  const generated = new Date(report.generatedAt).toLocaleString(isEn ? "en-GB" : "ar-SA-u-nu-latn", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const generated = new Date(report.generatedAt).toLocaleString(displayLocale(isEn ? "en-GB" : "ar-SA-u-nu-latn"), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
     <article className="entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none" dir={dir} style={style}>
@@ -144,7 +145,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>
                               {v === null || v === undefined || v === "" ? <span className="text-slate-400">—</span>
                                 : money ? <NumericText className={Number(v) < 0 ? "font-semibold text-red-700" : total ? "font-bold" : "font-medium"}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
-                                : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString("en-US")}</NumericText>
+                                : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString(displayLocale("en-US"))}</NumericText>
                                 : column.key === "label" ? <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />
                                 : <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />}
                             </td>

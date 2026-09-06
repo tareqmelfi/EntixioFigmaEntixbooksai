@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Partners & Affiliates · لوحة برنامج الشركاء
  * Wired to /api/partners · org-scoped
@@ -30,7 +31,7 @@ const COMMISSION_STATUS: Record<string, { ar: string; en: string; cls: string }>
 };
 
 const money = (v: any, currency = "SAR") =>
-  `${Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  `${Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 export function Partners() {
   const { t, language } = useLanguage();

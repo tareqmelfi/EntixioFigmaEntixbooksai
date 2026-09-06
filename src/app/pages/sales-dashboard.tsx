@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Sales Dashboard · org-scoped · zero mock
  *
@@ -89,7 +90,7 @@ export function SalesDashboard() {
   if (error || !data) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || t("تعذّر التحميل", "Could not load")}</div>;
 
   const cur = data.org.baseCurrency;
-  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
+  const fmt = (n: number) => `${cur} ${n.toLocaleString(displayLocale())}`;
   const filtered = data.recentInvoices.filter((i) => !searchQuery || i.number.includes(searchQuery) || i.contact.includes(searchQuery)).slice(0, 5);
 
   // Insight cards
@@ -167,7 +168,7 @@ export function SalesDashboard() {
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{topCustomer?.name || "—"}</p>
               </div>
               <div className="font-english text-foreground text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">{cur}</span> {topCustomer ? Number(topCustomer.total).toLocaleString() : "—"}
+                <span className="text-muted-foreground/60">{cur}</span> {topCustomer ? Number(topCustomer.total).toLocaleString(displayLocale()) : "—"}
               </div>
             </div>
           </CardContent>
@@ -180,7 +181,7 @@ export function SalesDashboard() {
                 <p className="text-sm text-foreground truncate" style={{ fontWeight: 600 }}>{mostOverdueCustomer?.contact || "—"}</p>
               </div>
               <div className="font-english text-red-600 text-sm shrink-0" style={{ fontWeight: 700 }}>
-                <span className="text-muted-foreground/60">{cur}</span> {mostOverdueCustomer ? Number(mostOverdueCustomer.total).toLocaleString() : "0"}
+                <span className="text-muted-foreground/60">{cur}</span> {mostOverdueCustomer ? Number(mostOverdueCustomer.total).toLocaleString(displayLocale()) : "0"}
               </div>
             </div>
           </CardContent>
@@ -253,7 +254,7 @@ export function SalesDashboard() {
                         <span dir="ltr" className="font-english inline-block" style={{ fontVariantNumeric: "tabular-nums" }}>{i.date}</span>
                       </td>
                       <td className="py-3 px-2 text-sm text-foreground" style={{ fontWeight: 600 }}>
-                        <span dir="ltr" className="font-english inline-block" style={{ fontVariantNumeric: "tabular-nums" }}>{Number(i.total).toLocaleString()}</span>
+                        <span dir="ltr" className="font-english inline-block" style={{ fontVariantNumeric: "tabular-nums" }}>{Number(i.total).toLocaleString(displayLocale())}</span>
                       </td>
                       <td className="py-3 px-2"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[i.status]}`}>{STATUS_LABELS[i.status] ? (language === "ar" ? STATUS_LABELS[i.status].ar : STATUS_LABELS[i.status].en) : i.status}</span></td>
                       <td className="py-3 px-2"><MoreHorizontal className="h-4 w-4 text-muted-foreground/60" /></td>

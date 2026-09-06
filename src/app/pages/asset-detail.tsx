@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Fixed Asset full page — the app-wide standard (no slide-overs):
  *   /app/assets/new  → register form (auto-generated editable code FA-0001…)
@@ -92,7 +93,7 @@ export function AssetDetail() {
     const a = accounts.find(x => x.id === accountId);
     return a ? `${a.code} · ${a.name}` : "—";
   };
-  const formatMoney = (value: any) => Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const formatMoney = (value: any) => Number(value || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

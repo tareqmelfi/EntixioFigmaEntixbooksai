@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Pay a contractor — full page (app-wide standard).
  * /app/contractors/:id/pay
@@ -19,7 +20,7 @@ import { api, ApiError, Account } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
-const money = (v: any) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const METHODS = ["BANK_TRANSFER", "CASH", "CARD", "MADA", "STC_PAY", "CHECK", "OTHER"] as const;
 const METHOD_LABELS: Record<string, { ar: string; en: string }> = {

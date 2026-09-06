@@ -1,3 +1,4 @@
+import { displayDigits, displayLocale } from "../lib/number-display";
 /**
  * Purchase Bills · wired to /api/bills · org-scoped
  * UX-1: NO modal · NO slide-over.
@@ -696,7 +697,7 @@ export function PurchaseBills() {
                       const remaining = Math.max(0, totals.total - paid);
                       return (
                         <div className="text-sm text-muted-foreground">
-                          {t("المجموع", "Total")}: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{paid.toFixed(2)}</span> · {t("متبقي", "Remaining")}: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{remaining.toFixed(2)}</span> {form.currency}
+                          {t("المجموع", "Total")}: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{displayDigits(paid.toFixed(2))}</span> · {t("متبقي", "Remaining")}: <span className="font-english text-foreground" style={{ fontWeight: 600 }}>{displayDigits(remaining.toFixed(2))}</span> {form.currency}
                         </div>
                       );
                     })()}
@@ -754,16 +755,16 @@ export function PurchaseBills() {
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
-                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.subtotal.toFixed(2)}</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("الضريبة (15%)", "Tax (15%)")}</span>
-                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {totals.tax.toFixed(2)}</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.tax.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
                           <span className="text-foreground min-w-0 break-words" style={{ fontWeight: 600 }}>{t("الإجمالي:", "Total:")}</span>
                           <span className="font-english text-foreground text-end whitespace-nowrap shrink-0" style={{ fontSize: "1.25rem", fontWeight: 700 }}>
-                            {form.currency} {totals.total.toFixed(2)}
+                            {form.currency} {displayDigits(totals.total.toFixed(2))}
                           </span>
                         </div>
                       </>
@@ -794,7 +795,7 @@ export function PurchaseBills() {
                   <div key={m.id} className="flex items-center justify-between p-3 hover:bg-muted">
                     <div>
                       <p className="text-sm text-foreground font-medium">{m.billNumber || t("فاتورة بدون رقم", "Invoice without number")}</p>
-                      <p className="text-xs text-muted-foreground">{m.contact?.displayName} · {Number(m.total).toFixed(2)} {m.currency} · {m.issueDate?.slice(0, 10)}</p>
+                      <p className="text-xs text-muted-foreground">{m.contact?.displayName} · {displayDigits(Number(m.total).toFixed(2))} {m.currency} · {m.issueDate?.slice(0, 10)}</p>
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={() => confirmMerge(m.id)}>
                       {t("دمج كمستند", "Merge as document")}
@@ -863,7 +864,7 @@ export function PurchaseBills() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي المشتريات", "Total purchases")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString()}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale())}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("عدد الفواتير", "Invoice count")}</div>
@@ -905,7 +906,7 @@ export function PurchaseBills() {
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{statusLabels(t)[b.status] || b.status}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
                     <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
                         <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>

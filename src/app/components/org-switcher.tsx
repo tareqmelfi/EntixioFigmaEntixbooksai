@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * Org Switcher · لتغيير الشركة + {t("إنشاء شركة جديدة", "Create new company")}
  * يظهر في app-sidebar.tsx · يستبدل الـbutton الجامد القديم
@@ -48,7 +49,7 @@ function planBadge(o: Org, t: (ar: string, en: string) => string): { label: stri
 
 function shortDate(iso?: string | null) {
   if (!iso) return "";
-  try { return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); } catch { return ""; }
+  try { return new Date(iso).toLocaleDateString(displayLocale("en-GB"), { day: "2-digit", month: "2-digit", year: "numeric" }); } catch { return ""; }
 }
 
 export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
