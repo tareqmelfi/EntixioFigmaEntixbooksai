@@ -72,7 +72,8 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
     ctx.beginPath(); ctx.moveTo(right - 35, y - 14); ctx.lineTo(right - 26, y - 5); ctx.lineTo(right - 11, y - 24); ctx.stroke();
     text(stage.label, right - 67, y, 32, ENTIX_BRAND.navy, false, 965);
   });
-  text(t("إرسال الفواتير: غير مفعّل بعد", "Invoice submission: not active yet"), 2325, 1420, 28, "#854d0e");
+  const accepted = proof.lastAcceptedInvoice;
+  text(accepted ? `${t("قبول فاتورة إنتاجية", "Production invoice accepted")}: ${accepted.invoiceNumber} · ${accepted.status}` : t("إرسال الفواتير: غير مفعّل بعد", "Invoice submission: not active yet"), 2325, 1420, 28, accepted ? "#17603b" : "#854d0e");
 
   rule(1450);
   const digest = cert.fingerprint.replace(/:/g, "").toUpperCase();
@@ -83,7 +84,7 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
     if (fingerprintQr.isDark(row, col)) ctx.fillRect(155 + (col + 4) * fpCell, 1465 + (row + 4) * fpCell, fpCell, fpCell);
   }
   text(t("بصمة الشهادة · SHA-256", "Certificate fingerprint · SHA-256"), 430, 1680, 20, "#526077", false, 275);
-  text(t("سجل ربط من Entix؛ ليس اعتمادًا حكوميًا للبرنامج أو إثباتًا لقبول الفواتير أو التسجيل الضريبي.", "An Entix record; not government software accreditation, invoice acceptance, or VAT registration proof."), 2325, 1510, 26, "#526077", false, 1810);
+  text(accepted ? t("سجل من Entix؛ قبول الفاتورة المذكورة موثق برد الهيئة. لا يعد اعتمادًا للبرنامج أو لجميع الفواتير.", "An Entix record; the named invoice has an authority acceptance response. Not software or blanket invoice accreditation.") : t("سجل ربط من Entix؛ ليس اعتمادًا حكوميًا للبرنامج أو إثباتًا لقبول الفواتير أو التسجيل الضريبي.", "An Entix record; not government software accreditation, invoice acceptance, or VAT registration proof."), 2325, 1510, 26, "#526077", false, 1810);
   text(t("مراجعة الإلغاء في بوابة فاتورة. رمز البصمة للمطابقة؛ لا يفتح رابط تحقق رسمي.", "Review revocation in Fatoora. The fingerprint QR is for matching; it is not an official verification link."), 2325, 1558, 26, "#526077", false, 1810);
   text(`${t("وقت التحقق", "Checked at")}: ${new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })} · ${t("بتوقيت الرياض", "Riyadh time")}`, 2325, 1606, 26, "#526077", false, 1810);
   ctx.direction = "ltr"; ctx.textAlign = "left"; ctx.fillStyle = "#526077"; ctx.font = "18px monospace";

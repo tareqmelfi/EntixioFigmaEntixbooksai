@@ -27,6 +27,7 @@ export type DeviceProof = {
   certificate: { deviceName: string; issuedAt: string; expiresAt: string; fingerprint: string; issuer: string } | null;
   complianceChecksPassed: number; complianceCheckedAt: string | null; checkedAt: string;
   verificationScope: string; revocationStatus: string; submissionStatus: "frozen" | "live";
+  lastAcceptedInvoice?: { invoiceId: string; invoiceNumber: string; uuid: string; status: "REPORTED" | "CLEARED"; httpStatus: number; acceptedAt: string; warnings: string[] } | null;
 };
 
 export type ZatcaStatus = {
