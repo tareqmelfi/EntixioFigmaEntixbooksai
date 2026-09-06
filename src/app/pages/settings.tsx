@@ -20,6 +20,7 @@ import { LedgerMappingTab } from "../components/ledger-mapping-tab";
 import { DeletedCompanies } from "../components/deleted-companies";
 import { useZatcaStatus, invalidateZatcaStatus } from "../lib/use-zatca-status";
 import { ZatcaStatusBadge, ZatcaStatusRow } from "../components/zatca-status-badge";
+import { ZatcaDeviceProof } from "../components/zatca-device-proof";
 
 type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys" | "control-accounts";
 const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys", "control-accounts"];
@@ -1979,19 +1980,12 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         )}
 
         {/* Done */}
-        {status === "PRODUCTION" && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <div className="text-sm font-semibold text-emerald-900">{t("شهادة جهاز محفوظة — يلزم التحقق", "Device certificate stored — verification required")}</div>
-            <p className="mt-1 text-xs text-emerald-800">
-              {t("وجود شهادة الجهاز لا يثبت التسجيل الضريبي أو جاهزية إصدار الفواتير وإرسالها.", "A stored device certificate does not establish VAT registration or invoice issuance and submission readiness.")}
-            </p>
-          </div>
-        )}
+        {status === "PRODUCTION" && <ZatcaDeviceProof status={live} />}
 
         {/* Submission note — connection ≠ submission. Connected orgs get the calm
             version; the rest keep the honest freeze note. */}
         {status === "PRODUCTION" ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-900">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
             {t("شهادة الجهاز محفوظة؛ إرسال الفواتير مجمّد إلى حين اكتمال التحقق الفني واعتماد التفعيل.", "Device certificate stored; invoice submission remains frozen pending technical validation and activation approval.")}
           </div>
         ) : (

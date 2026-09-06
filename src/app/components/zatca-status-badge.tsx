@@ -12,8 +12,10 @@ import type { ZatcaStatus } from "../lib/use-zatca-status";
 
 export function zatcaStatusLabel(s: ZatcaStatus, t: (ar: string, en?: string) => string): string {
   if (s.loading) return t("جارٍ التحقق من حالة الربط…", "Checking link status…");
+  if (!s.raw) return t("تعذر تحديث حالة الربط", "Unable to refresh link status");
+  if (s.raw.deviceProof?.certificateState === "expired") return t("شهادة الجهاز منتهية · يلزم التجديد", "Device certificate expired · renew");
+  if (s.connection === "connected") return t("تم ربط جهاز المنشأة · شهادة إنتاج سارية", "Organization device linked · production certificate valid");
   if (s.status === "PRODUCTION") return t("شهادة جهاز محفوظة · قيد التحقق", "Device certificate stored · under validation");
-  if (s.connection === "connected") return t("حالة الربط متحقق منها", "Connection state verified");
   if (s.connection === "in_progress") return t(`قيد الربط · الخطوة ${s.step} من 4`, `Linking · step ${s.step} of 4`);
   return t("غير مربوط بالهيئة", "Not linked to ZATCA");
 }

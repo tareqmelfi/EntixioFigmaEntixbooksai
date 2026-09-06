@@ -93,17 +93,18 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
       {/* ZATCA strip · per-org truth (CEO 26/08): green when the production CSID is
           issued, amber while linking, neutral when not started. Country only selects
           relevance; the label comes from /api/zatca/onboarding/status. */}
-      {isSA && !zatca.loading && (
+      {isSA && (
       <div className={`border-b px-4 py-2 sm:px-6 ${zatca.connection === "connected" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : zatca.connection === "in_progress" ? "border-warning-border bg-warning-subtle text-warning" : "border-border bg-muted/40 text-muted-foreground"}`} data-zatca-connection={zatca.connection}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {zatca.connection === "connected" ? <ShieldCheck className="h-4 w-4 shrink-0" /> : <Shield className="h-4 w-4 shrink-0" />}
-            <span className="truncate text-sm">ZATCA Phase 2 — {zatcaStatusLabel(zatca, t)}</span>
+            <span className="text-sm">ZATCA Phase 2 — {zatcaStatusLabel(zatca, t)}{zatca.raw?.deviceProof?.companyName && <span className="block text-xs">{zatca.raw.deviceProof.companyName}</span>}</span>
           </div>
           <Link to="/app/settings?tab=zatca" className="shrink-0 text-xs font-semibold hover:underline">
             {zatca.connection === "connected" ? t("التفاصيل", "Details") : zatca.connection === "in_progress" ? t("إكمال الربط", "Continue linking") : t("ابدأ الربط", "Start linking")}
           </Link>
         </div>
+        {zatca.connection === "connected" && zatca.submission === "frozen" && <p className="mt-1 text-xs text-amber-900">{t("إرسال الفواتير غير مفعّل بعد · شهادة الجهاز مستقلة عن قبول الفواتير", "Invoice submission is not active yet · device onboarding is separate from invoice acceptance")}</p>}
       </div>
       )}
 
