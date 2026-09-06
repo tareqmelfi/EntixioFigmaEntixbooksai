@@ -1092,7 +1092,7 @@ export function Invoices() {
             <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد فواتير", "No invoices")}</p></div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[1120px] table-fixed">
+            <table className="w-full min-w-[1120px] table-auto">
               <colgroup>
                 <col style={{ width: "15%" }} />{/* الرقم */}
                 <col style={{ width: "20%", minWidth: "180px" }} />{/* العميل */}
@@ -1181,7 +1181,7 @@ export function Invoices() {
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(i.total).toLocaleString()}</span><span className="text-[10px] text-muted-foreground/60">{i.currency}</span></span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-amber-600" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(Number(i.total) - Number(i.amountPaid || 0)).toLocaleString()}</span></td>
                     <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1 whitespace-nowrap">
+                      <div className="flex w-max min-w-full items-center gap-1 whitespace-nowrap">
                         {/* SENT/APPROVED → Sign button */}
                         {i.status === "DRAFT" && (
                           <button
