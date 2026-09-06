@@ -131,32 +131,23 @@ export function Register() {
   }, []);
 
   return (
-    <div className="h-screen flex overflow-hidden" dir={language === "ar" ? "rtl" : "ltr"}>
-      {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-8 bg-background h-full overflow-y-auto">
-        <motion.div 
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-          className="w-full max-w-md py-8"
-        >
-          <div className="mb-8 flex items-center justify-between gap-3">
-            <Link to="/" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors" style={{ fontSize: "14px", fontWeight: 500 }}>
-              <ArrowRight className="w-4 h-4" />
-              {t("العودة للرئيسية", "Back home")}
-            </Link>
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-content-secondary transition-colors hover:border-foreground hover:text-foreground"
-              style={{ fontSize: "13px", fontWeight: 600 }}
-            >
-              <Globe className="h-4 w-4" strokeWidth={1.75} />
-              {language === "ar" ? "EN" : "AR"}
-            </button>
-          </div>
+    <div className="h-screen grid lg:grid-cols-[560px_minmax(0,1fr)] overflow-hidden bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
+      {/* Form column · 560px at the 1440 artboard */}
+      <div className="flex flex-col justify-between px-6 sm:px-10 lg:px-16 py-8 lg:py-10 bg-background h-full overflow-y-auto">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/" className="inline-flex items-center hover:opacity-80 transition-opacity" aria-label="ENTIX.IO">
+            <EntixWordmark size={22} />
+          </Link>
+          <Link to="/" className="inline-flex items-center gap-1.5 text-content-secondary hover:text-foreground transition-colors" style={{ fontSize: "13px", fontWeight: 500 }}>
+            <ArrowRight className="w-4 h-4" />
+            {t("العودة للرئيسية", "Back home")}
+          </Link>
+        </div>
 
-          <div className="flex items-center mb-8">
-            <EntixWordmark size={26} />
-          </div>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+          className="w-full max-w-[400px] py-10"
+        >
 
           {pendingVerificationEmail ? (
             <motion.div
@@ -186,7 +177,7 @@ export function Register() {
                 <button
                   type="button"
                   onClick={() => navigate("/login", { replace: true })}
-                  className="w-full h-12 bg-foreground hover:bg-primary text-background rounded-full transition-colors cursor-pointer"
+                  className="w-full min-h-[48px] py-3.5 bg-[var(--brand-blue-600)] hover:opacity-90 text-primary-foreground rounded-full transition-opacity cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >
                   {t("الانتقال لتسجيل الدخول", "Go to sign in")}
@@ -195,7 +186,7 @@ export function Register() {
                   type="button"
                   onClick={handleResendLink}
                   disabled={resendBusy}
-                  className="w-full h-12 bg-card border border-border hover:bg-surface-hover text-foreground rounded-full transition-colors disabled:opacity-60 cursor-pointer"
+                  className="w-full min-h-[44px] py-3 bg-card border border-border hover:bg-surface-hover text-foreground rounded-full transition-colors disabled:opacity-60 cursor-pointer"
                   style={{ fontSize: "14px", fontWeight: 600 }}
                 >
                   {resendBusy
@@ -209,8 +200,10 @@ export function Register() {
             </motion.div>
           ) : (
           <>
-          <h1 className="text-foreground mb-2 text-[30px] font-bold leading-tight">{t("إنشاء حساب جديد", "Create your account")}</h1>
-          <p className="text-content-secondary mb-8" style={{ fontSize: "15px" }}>{t("ابدأ شهرك المجاني — لا حاجة لبطاقة ائتمان", "Start your free month — no credit card needed")}</p>
+          <h1 className={language === "en"
+            ? "font-display font-normal m-0 mb-2 text-[36px] sm:text-[44px] leading-none text-foreground"
+            : "font-bold m-0 mb-2 text-[28px] sm:text-[34px] leading-[1.25] text-foreground"}>{t("أنشئ حسابك.", "Create your account.")}</h1>
+          <p className="text-content-secondary mb-8 m-0" style={{ fontSize: "15px", lineHeight: 1.5 }}>{t("ابدأ شهرك المجاني — لا حاجة لبطاقة ائتمان", "Start your free month — no credit card needed")}</p>
 
           {error && (
             <motion.div 
@@ -230,7 +223,7 @@ export function Register() {
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   placeholder={t("محمد", "John")}
-                  className="w-full h-11 px-4 rounded-md border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
+                  className="w-full min-h-[44px] h-11 px-3.5 rounded-lg border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
                   style={{ fontSize: "14px" }}
                   required
                 />
@@ -242,7 +235,7 @@ export function Register() {
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   placeholder={t("العلي", "Doe")}
-                  className="w-full h-11 px-4 rounded-md border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
+                  className="w-full min-h-[44px] h-11 px-3.5 rounded-lg border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
                   style={{ fontSize: "14px" }}
                   required
                 />
@@ -255,7 +248,7 @@ export function Register() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
-                className="w-full h-11 px-4 rounded-md border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
+                className="w-full min-h-[44px] h-11 px-3.5 rounded-lg border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
                 style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                 required
               />
@@ -268,7 +261,7 @@ export function Register() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={t("8 أحرف على الأقل", "At least 8 characters")}
-                  className="w-full h-11 px-4 pe-12 rounded-md border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
+                  className="w-full min-h-[44px] h-11 px-3.5 pe-12 rounded-lg border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
                   style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                   required
                 />
@@ -307,7 +300,7 @@ export function Register() {
             <button
               type="submit"
               disabled={loading || (isTurnstileRequired && !captchaToken)}
-              className="w-full h-12 bg-foreground hover:bg-primary disabled:opacity-60 text-background rounded-full transition-colors cursor-pointer"
+              className="w-full min-h-[48px] py-3.5 bg-[var(--brand-blue-600)] hover:opacity-90 disabled:opacity-60 text-primary-foreground rounded-full transition-opacity cursor-pointer"
               style={{ fontSize: "15px", fontWeight: 600 }}
             >
               {loading ? (
@@ -335,7 +328,7 @@ export function Register() {
               type="button"
               onClick={handleGoogle}
               disabled={googleLoading || microsoftLoading}
-              className="w-full h-12 bg-card border border-border hover:bg-surface-hover disabled:opacity-60 text-foreground rounded-full transition-colors flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full min-h-[44px] py-3 bg-card border border-border hover:bg-surface-hover disabled:opacity-60 text-foreground rounded-full transition-colors flex items-center justify-center gap-3 cursor-pointer"
               style={{ fontSize: "14px", fontWeight: 600 }}
             >
               {googleLoading ? (
@@ -354,7 +347,7 @@ export function Register() {
               type="button"
               onClick={handleMicrosoft}
               disabled={microsoftLoading || googleLoading}
-              className="w-full h-12 bg-card border border-border hover:bg-surface-hover disabled:opacity-60 text-foreground rounded-full transition-colors flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full min-h-[44px] py-3 bg-card border border-border hover:bg-surface-hover disabled:opacity-60 text-foreground rounded-full transition-colors flex items-center justify-center gap-3 cursor-pointer"
               style={{ fontSize: "14px", fontWeight: 600 }}
             >
               {microsoftLoading ? (
@@ -369,44 +362,51 @@ export function Register() {
             )}
           </div>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6">
             <span className="text-content-secondary" style={{ fontSize: "14px" }}>{t("لديك حساب بالفعل؟ ", "Already have an account? ")}</span>
             <Link to="/login" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("تسجيل الدخول", "Sign in")}</Link>
           </div>
           </>
           )}
         </motion.div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 text-content-secondary" style={{ fontSize: "12px" }}>
+          <span style={{ direction: "ltr", unicodeBidi: "isolate" }}>&copy; 2026 ENSIDEX LLC &middot; Wyoming, United States. All rights reserved.</span>
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="inline-flex items-center gap-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
+            style={{ fontSize: "12px", fontWeight: 600 }}
+          >
+            <Globe className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {language === "ar" ? "English" : "العربية"}
+          </button>
+        </div>
       </div>
 
-      {/* Left side - Brand */}
-      <div className="hidden lg:flex flex-1 bg-foreground items-center justify-center p-12 relative overflow-hidden">
-        <div className="max-w-md relative z-10 text-start">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <div className="mb-6"><EntixWordmark size={30} light /></div>
-            <h2 className="text-background mb-5" style={{ fontSize: "26px", fontWeight: 700, lineHeight: 1.35 }}>
-              {t("ابدأ رحلتك", "Start your")}<br />{t("المالية معنا", "financial journey")}
-            </h2>
-            <p className="text-background/70 mb-10" style={{ fontSize: "15px", lineHeight: 1.85 }}>
-              {t(
-                "أنشئ حسابك وابدأ شهرًا مجانيًا كاملًا — بياناتك تبقى ملكك وتصدّرها متى شئت.",
-                "Create your account and start a full free month — your data stays yours, exportable anytime."
-              )}
-            </p>
-          </motion.div>
-          
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="divide-y divide-background/15 border-y border-background/15">
+      {/* Ink panel · photograph, scrim, and what the free month includes */}
+      <div className="hidden lg:block relative bg-foreground overflow-hidden">
+        <img src="/marketing/hero-ledger.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.55 }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, color-mix(in srgb, var(--foreground) 10%, transparent), color-mix(in srgb, var(--foreground) 90%, transparent))" }} />
+        <div className="absolute inset-x-16 bottom-14 flex flex-col gap-4 text-background">
+          <p className={language === "en"
+            ? "font-display font-normal m-0 text-[44px] leading-[1.05]"
+            : "font-bold m-0 text-[32px] leading-[1.4]"}>
+            {t("ابدأ بشهر مجاني كامل.", "Start with a full free month.")}
+          </p>
+          <div className="flex flex-col gap-3">
             {[
               { icon: CheckCircle2, ar: "شهر مجاني كامل — بدون بطاقة ائتمان", en: "Full free month — no credit card required" },
               { icon: Users, ar: "مصمم للسوقين السعودي والأمريكي", en: "Built for Saudi & US markets" },
               { icon: Globe, ar: "دعم عربي/إنجليزي مع عملات متعددة", en: "Bilingual AR/EN with multi-currency support" },
               { icon: BarChart3, ar: "تقارير ولوحات تحكم احترافية", en: "Professional reports and dashboards" },
             ].map(item => (
-              <div key={item.en} className="flex items-center gap-3 py-4">
-                <item.icon className="w-5 h-5 text-background/60 flex-shrink-0" strokeWidth={1.75} />
+              <div key={item.en} className="flex items-center gap-2.5">
+                <item.icon className="w-4 h-4 text-background/70 flex-shrink-0" strokeWidth={1.75} />
                 <span className="text-background/80" style={{ fontSize: "14px" }}>{t(item.ar, item.en)}</span>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

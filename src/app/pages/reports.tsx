@@ -8,6 +8,7 @@ import {
   Building2,
   Calculator,
   CalendarClock,
+  ChevronLeft,
   ClipboardList,
   CreditCard,
   FileSearch,
@@ -810,29 +811,34 @@ export function Reports() {
     [filteredReports],
   );
 
+  // Band figures: the numeral carries the size, the currency stays a small quiet unit after it.
   const figures = [
     {
       key: "revenue",
       label: t("الإيرادات · الفترة الحالية", "Revenue · current period"),
-      value: money(summary?.kpi.revenue, currency),
+      value: money(summary?.kpi.revenue, ""),
+      unit: currency,
       hint: t("من الفواتير المعتمدة", "From issued invoices"),
     },
     {
       key: "cash",
       label: t("النقد المتاح", "Cash on hand"),
-      value: money(summary?.kpi.cashOnHand, currency),
+      value: money(summary?.kpi.cashOnHand, ""),
+      unit: currency,
       hint: t("أرصدة الحسابات البنكية والنقدية", "Bank and cash account balances"),
     },
     {
       key: "ar",
       label: t("الذمم المدينة", "Accounts receivable"),
-      value: money(summary?.kpi.accountsReceivable, currency),
+      value: money(summary?.kpi.accountsReceivable, ""),
+      unit: currency,
       hint: t("مستحق على العملاء", "Owed by customers"),
     },
     {
       key: "vat",
       label: profile.taxLabel,
-      value: money(summary?.kpi.vatNet, currency),
+      value: money(summary?.kpi.vatNet, ""),
+      unit: currency,
       hint: profile.taxSystem,
     },
   ];
@@ -854,13 +860,10 @@ export function Reports() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0">
-          <span className="ledger-eyebrow">{t("للمحاسب", "For the accountant")}</span>
-          <h1 className="ledger-greeting mt-1">{t("مركز التقارير", "Reports Center")}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-content-secondary">
-            {t("كل التقارير المالية والتشغيلية موجودة بفهرس واحد، مع مصطلحات متوافقة مع ", "All financial and operational reports are in one index, with terminology aligned with ")}{profile.countryLabel}.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="text-[13px] text-muted-foreground">{t("للمحاسب", "For the accountant")}</span>
+          <h1 className="text-[28px] font-bold leading-[1.2] tracking-[-0.01em] text-foreground">{t("مركز التقارير", "Reports Center")}</h1>
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
             <span>
               {t("إجمالي التقارير", "Total reports")} <span className="font-display text-sm tabular-nums text-foreground">{numberValue(counts.total)}</span>
             </span>
@@ -870,13 +873,13 @@ export function Reports() {
             <span>
               {t("تقارير جديدة", "New reports")} <span className="font-display text-sm tabular-nums text-foreground">{numberValue(counts.newReports)}</span>
             </span>
-          </div>
+          </p>
         </div>
-        <div className="no-print flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-border bg-surface-subtle px-3 py-1.5 text-xs text-content-secondary">
+        <div className="no-print flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex min-h-10 items-center rounded-lg border border-border bg-card px-3.5 py-2 text-sm text-muted-foreground">
             {profile.standardLabel}
           </span>
-          <Button variant="outline" onClick={exportCatalogCsv}>
+          <Button variant="secondary" onClick={exportCatalogCsv}>
             <FileText className="me-2 h-4 w-4" strokeWidth={1.75} />{t("تصدير فهرس التقارير", "Export report index")}
           </Button>
         </div>
@@ -886,12 +889,15 @@ export function Reports() {
         <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>
       )}
 
-      <div className="grid gap-6 rounded-lg bg-foreground p-5 text-background sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-6 rounded-lg border border-foreground bg-foreground px-6 py-[22px] text-background sm:grid-cols-2 xl:grid-cols-4">
         {figures.map((figure) => (
-          <div key={figure.key} className="flex min-w-0 flex-col gap-2">
-            <span className="text-xs text-background/70">{figure.label}</span>
-            <span className="self-start font-display text-[2rem] leading-none tabular-nums text-background" dir="ltr">{figure.value}</span>
-            <span className="truncate text-xs text-background/55">{figure.hint}</span>
+          <div key={figure.key} className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-xs text-chart-3">{figure.label}</span>
+            <span className="self-start font-display text-[40px] leading-none tabular-nums text-background" dir="ltr">
+              {figure.value}
+              {figure.unit && <small className="ms-1.5 align-baseline text-base font-normal text-chart-5">{figure.unit}</small>}
+            </span>
+            <span className="truncate text-xs text-chart-5">{figure.hint}</span>
           </div>
         ))}
       </div>
@@ -905,7 +911,7 @@ export function Reports() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("ابحث باسم التقرير، المصدر، الفرع، المشروع، الضريبة...", "Search by report name, source, branch, project, tax...")}
-            className="h-10 w-full rounded-full border border-border bg-card px-4 pe-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/10"
+            className="h-11 w-full rounded-lg border border-border bg-card px-3.5 pe-10 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/10"
           />
         </label>
         <div className="flex flex-wrap gap-1.5">
@@ -931,9 +937,9 @@ export function Reports() {
       ) : sections.length === 0 ? (
         <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-[22px]">
           {sections.map((group) => (
-            <section key={group.category.id} className="space-y-3">
+            <section key={group.category.id} className="space-y-2.5">
               <span className="ledger-eyebrow block">
                 {language === "en" ? group.category.englishTitle || group.category.title : group.category.title}
               </span>
@@ -990,29 +996,64 @@ function CoreStatementsBlock({ catalog }: { catalog: ReportDefinition[] }) {
   const core = CORE_STATEMENTS.map(({ id, icon }) => ({ def: catalog.find((r) => r.id === id), icon })).filter((x) => x.def);
   if (core.length === 0) return null;
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Landmark className="h-4 w-4 text-content-secondary" strokeWidth={1.75} />
-        <h2 className="ledger-eyebrow">{t("القوائم المالية الأساسية", "Core financial statements")}</h2>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <section className="space-y-2.5">
+      <h2 className="ledger-eyebrow block">{t("القوائم المالية الأساسية", "Core financial statements")}</h2>
+      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
         {core.map(({ def, icon: Icon }) => (
-          <Link
+          <ReportCard
             key={def!.id}
-            to={`/app/reports/${def!.id}`}
-            className="ledger-hoverable group flex items-start gap-3 rounded-lg border border-border-strong bg-card p-4 transition"
-          >
-            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info-subtle">
-              <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-foreground">{language === "en" ? def!.englishTitle || def!.title : def!.title}</div>
-              <p className="mt-1 line-clamp-2 text-xs leading-5 text-content-secondary">{t(def!.description, EN_DESCRIPTIONS[def!.id] || def!.description)}</p>
-            </div>
-          </Link>
+            id={def!.id}
+            title={language === "en" ? def!.englishTitle || def!.title : def!.title}
+            description={t(def!.description, EN_DESCRIPTIONS[def!.id] || def!.description)}
+            icon={Icon}
+          />
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * One report = one paper card: a 40px icon tile, the report's name with a
+ * chevron toward the reading end, and one line of purpose. The status word and
+ * the export formats stay as a quiet meta line so the card keeps the
+ * reference's four-up rhythm instead of growing a boxed footer.
+ */
+function ReportCard({
+  id,
+  title,
+  description,
+  icon: Icon,
+  badge,
+  meta,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  icon: ReportIcon;
+  badge?: ReactNode;
+  meta?: ReactNode;
+}) {
+  return (
+    <Link
+      to={`/app/reports/${id}`}
+      className="ledger-hoverable group flex min-h-24 items-stretch gap-3.5 rounded-lg border border-border bg-card px-5 py-[18px] transition"
+    >
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center self-start rounded-lg bg-info-subtle">
+        <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="min-w-0 text-[15px] font-semibold leading-snug text-foreground">
+            {title}
+            {badge}
+          </span>
+          <ChevronLeft className="h-3.5 w-3.5 shrink-0 rotate-180 text-muted-foreground rtl:rotate-0" strokeWidth={2} aria-hidden="true" />
+        </div>
+        <p className="line-clamp-2 text-xs leading-[1.7] text-content-secondary">{description}</p>
+        {meta}
+      </div>
+    </Link>
   );
 }
 
@@ -1021,36 +1062,25 @@ function ReportCards({ reports }: { reports: ReportDefinition[] }) {
   if (reports.length === 0) return <Empty text={t("لا يوجد تقرير مطابق للبحث الحالي", "No report matches the current search")} />;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {reports.map((report) => {
-        const Icon = iconFor(report);
-        return (
-          <Link
-            key={report.id}
-            to={`/app/reports/${report.id}`}
-            className="ledger-hoverable group flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition"
-          >
-            <div className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info-subtle">
-                <Icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{language === "en" ? report.englishTitle || report.title : report.title}</span>
-                  {report.isNew && (
-                    <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold text-background">{t("جديد", "New")}</span>
-                  )}
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-5 text-content-secondary">{t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}</p>
-              </div>
-            </div>
-            <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
+    <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {reports.map((report) => (
+        <ReportCard
+          key={report.id}
+          id={report.id}
+          icon={iconFor(report)}
+          title={language === "en" ? report.englishTitle || report.title : report.title}
+          description={t(report.description, EN_DESCRIPTIONS[report.id] || report.description)}
+          badge={report.isNew ? (
+            <span className="ms-2 inline-block whitespace-nowrap rounded-full bg-foreground px-2 py-0.5 align-middle text-[10px] font-semibold text-background">{t("جديد", "New")}</span>
+          ) : undefined}
+          meta={(
+            <span className="mt-auto flex items-center justify-between gap-2 pt-1.5 text-[11px] text-muted-foreground">
               <StatusBadge status={report.status} />
               <span className="font-code truncate">{report.formats.join(" · ")}</span>
-            </div>
-          </Link>
-        );
-      })}
+            </span>
+          )}
+        />
+      ))}
     </div>
   );
 }

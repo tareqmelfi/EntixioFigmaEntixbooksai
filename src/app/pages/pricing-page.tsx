@@ -232,48 +232,39 @@ export function PricingPage() {
   const currencySymbol = currency === "USD" ? "$" : "";
   const Arrow = isAr ? ArrowLeft : ArrowRight;
 
+  // Page shell + display hierarchy — same 72px gutters and serif/Arabic split
+  // as the approved artboards (Latin display = serif, Arabic = Plex Arabic 700).
+  const SHELL = "mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px]";
+  const heroHeadingClass = isAr
+    ? "font-bold m-0 text-[30px] sm:text-[40px] lg:text-[48px] leading-[1.3] text-foreground"
+    : "font-display font-normal m-0 text-[38px] sm:text-[52px] lg:text-[64px] leading-none text-foreground";
+  const sectionHeadingClass = isAr
+    ? "font-bold m-0 text-[24px] sm:text-[30px] lg:text-[34px] leading-[1.3] text-foreground"
+    : "font-display font-normal m-0 text-[30px] sm:text-[36px] lg:text-[42px] leading-[1.05] text-foreground";
+
   return (
     <div className="min-h-screen bg-background" dir={isAr ? "rtl" : "ltr"}>
       <SharedNavbar />
       <main>
 
       {/* Hero Section */}
-      <section className="pt-32 sm:pt-36 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-            <span className="inline-flex items-center gap-2 rounded-full bg-info-subtle px-3 py-1.5 text-primary" style={{ fontSize: "12px", fontWeight: 600 }}>
-              <Sparkles className="w-3.5 h-3.5" strokeWidth={1.75} />
-              <span>{t("أسعار شفافة • بدون رسوم خفية", "Transparent pricing • no hidden fees")}</span>
-            </span>
-            <h1 className={`text-foreground mt-5 mb-5 ${isAr ? "font-bold text-[30px] sm:text-[40px] leading-[1.3]" : "font-display font-normal tracking-tight text-[44px] sm:text-[60px] leading-[1.02]"}`}>
-              {t("اختر الباقة المناسبة", "Pick the plan that fits")}
-              <br />
-              <span className="text-primary">{t("لحجم أعمالك", "your business size")}</span>
+      <section className={`${SHELL} pt-[104px] lg:pt-[168px] pb-10`}>
+        <div className="max-w-[1100px] mx-auto text-center flex flex-col items-center gap-4">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-4">
+            <span className="ledger-eyebrow text-primary">{t("الأسعار", "Pricing")}</span>
+            <h1 className={heroHeadingClass}>
+              {t("شهر مجاني كامل. ثم سعر واحد صريح.", "One free month. Then one honest price.")}
             </h1>
-            <p className="text-content-secondary max-w-2xl mx-auto mb-7" style={{ fontSize: "17px", lineHeight: 1.75 }}>
-              {t("خطط مرنة تنمو معك. ابدأ مجاناً وادفع فقط مقابل ما تحتاجه", "Flexible plans that grow with you. Start free — pay only for what you need.")}
+            <p className="text-content-secondary m-0 max-w-[560px]" style={{ fontSize: "18px", lineHeight: isAr ? 1.8 : 1.5 }}>
+              {t("كل باقة تشمل العربية والإنجليزية والضريبة وربط البنوك وتصدير غير محدود — ابدأ مجاناً وادفع فقط مقابل ما تحتاجه.", "Every plan includes Arabic and English, VAT, bank feeds and unlimited exports. Start free — pay only for what you need.")}
             </p>
 
-            {/* Launch Beta — early-supporter framing */}
-            <div className="mx-auto mb-8 max-w-2xl rounded-lg border border-border bg-card px-5 py-4 flex flex-col sm:flex-row items-center gap-3 text-start">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-info-subtle px-3 py-1 text-primary shrink-0" style={{ fontSize: "11px", fontWeight: 700 }}>
-                <Rocket className="w-3.5 h-3.5" strokeWidth={1.75} />
-                {t("إطلاق تجريبي", "Launch Beta")}
-              </span>
-              <p className="text-content-secondary" style={{ fontSize: "13px", lineHeight: 1.7 }}>
-                {t(
-                  "أنت من أوائل المشتركين — شكراً لدعمك! ملاحظاتك تشكّل المنتج ودعمك الآن يصنع الفرق.",
-                  "You're among our very first subscribers — thank you for being an early supporter! Your feedback shapes the product."
-                )}
-              </p>
-            </div>
-
             {/* Billing Cycle + Currency Toggles */}
-            <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+            <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
               <span className="inline-flex rounded-full border border-border bg-card p-1">
                 <button
                   onClick={() => setBillingCycle("monthly")}
-                  className={`rounded-full px-5 py-2 transition-colors cursor-pointer ${
+                  className={`rounded-full px-[18px] py-2 transition-colors cursor-pointer ${
                     billingCycle === "monthly" ? "bg-foreground text-background" : "text-content-secondary hover:text-foreground"
                   }`}
                   style={{ fontSize: "14px", fontWeight: 600 }}
@@ -282,7 +273,7 @@ export function PricingPage() {
                 </button>
                 <button
                   onClick={() => setBillingCycle("yearly")}
-                  className={`inline-flex items-center gap-2 rounded-full px-5 py-2 transition-colors cursor-pointer ${
+                  className={`inline-flex items-center gap-2 rounded-full px-[18px] py-2 transition-colors cursor-pointer ${
                     billingCycle === "yearly" ? "bg-foreground text-background" : "text-content-secondary hover:text-foreground"
                   }`}
                   style={{ fontSize: "14px", fontWeight: 600 }}
@@ -306,14 +297,24 @@ export function PricingPage() {
                 ))}
               </span>
             </div>
-            <p className="text-content-secondary" style={{ fontSize: "13px" }}>{t("ادفع اليوم وابدأ العمل فورًا — التفعيل لحظي بعد الدفع", "Pay today and start immediately — activation is instant after payment")}</p>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-1 text-content-secondary" style={{ fontSize: "13px" }}>
+              <span className="inline-flex items-center gap-1.5">
+                <Rocket className="w-3.5 h-3.5 text-primary" strokeWidth={1.75} />
+                {t("إطلاق تجريبي — كن من الداعمين الأوائل", "Launch Beta — be an early supporter")}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-primary" strokeWidth={1.75} />
+                {t("ادفع اليوم وابدأ العمل فورًا — التفعيل لحظي بعد الدفع", "Pay today and start immediately — activation is instant after payment")}
+              </span>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Pricing Cards */}
-      <section className="py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <section className={`${SHELL} pt-6 pb-10`}>
+        <div>
           {authState.isAuthenticated && authState.user && (
             <div className="max-w-2xl mx-auto mb-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 bg-info-subtle border border-info-border text-foreground rounded-lg px-5 py-3.5" role="note">
               <p style={{ fontSize: "13px", fontWeight: 500 }}>
@@ -345,63 +346,63 @@ export function PricingPage() {
               </button>
             </div>
           )}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
             {PLANS.filter((plan) => !plan.annualOnly || billingCycle === "yearly").map((plan, i) => (
               <motion.div
                 key={plan.tier}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className={`rounded-lg p-6 relative bg-card ${
-                  plan.popular ? "border-2 border-foreground" : "border border-border"
+                className={`rounded-lg border p-7 sm:px-7 sm:py-8 relative flex flex-col gap-5 ${
+                  plan.popular ? "bg-foreground border-foreground text-background" : "bg-card border-border"
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3 start-6">
-                    <span className="rounded-full bg-foreground px-3 py-1 text-background whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>
-                      {t("الأكثر شعبية ⭐", "Most popular ⭐")}
+                  <div className="absolute -top-3 start-7">
+                    <span className="rounded-full bg-[var(--brand-blue-600)] px-3 py-1 text-primary-foreground whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>
+                      {t("الأكثر شعبية", "Most popular")}
                     </span>
                   </div>
                 )}
 
-                <div className="mb-6 mt-2">
-                  <h3 className="text-foreground mb-1" style={{ fontSize: "18px", fontWeight: 600 }}>
+                <div className="flex flex-col gap-1.5">
+                  <h3 className={plan.popular ? "text-background m-0" : "text-foreground m-0"} style={{ fontSize: "18px", fontWeight: 600 }}>
                     {isAr ? plan.name.ar : plan.name.en}
                   </h3>
-                  <p className="text-content-secondary" style={{ fontSize: "13px", lineHeight: 1.6 }}>
+                  <p className={plan.popular ? "text-background/70 m-0" : "text-content-secondary m-0"} style={{ fontSize: "14px", lineHeight: 1.5 }}>
                     {isAr ? plan.desc.ar : plan.desc.en}
                   </p>
                 </div>
 
-                <div className="mb-6">
+                <div className="flex flex-col gap-1.5">
                   {billingCycle === "monthly" && plan.standard && plan.price[currency].monthly > 0 && (
-                    <div className="flex items-center gap-2 mb-1" dir="ltr">
-                      <span className="text-content-secondary" style={{ fontSize: "14px", fontWeight: 500, textDecoration: "line-through" }}>
+                    <div className="flex items-center gap-2" dir="ltr">
+                      <span className={plan.popular ? "text-background/60" : "text-content-secondary"} style={{ fontSize: "14px", fontWeight: 500, textDecoration: "line-through" }}>
                         {currencySymbol}{plan.standard[currency]}
                       </span>
-                      <span className="rounded-full bg-success-subtle text-success px-2 py-0.5" style={{ fontSize: "11px", fontWeight: 600 }}>
+                      <span className={`rounded-full px-2 py-0.5 ${plan.popular ? "bg-background/10 text-background" : "bg-success-subtle text-success"}`} style={{ fontSize: "11px", fontWeight: 600 }}>
                         {t("سعر الإطلاق", "Launch price")} −{Math.round((1 - plan.price[currency].monthly / plan.standard[currency]) * 100)}%
                       </span>
                     </div>
                   )}
-                  <div className="flex items-baseline gap-2 mb-2" dir="ltr">
-                    <span className="text-foreground font-display leading-none text-[46px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <div className="flex items-baseline gap-1.5" dir="ltr">
+                    <span className={`font-display leading-none text-[44px] lg:text-[52px] ${plan.popular ? "text-background" : "text-foreground"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
                       {plan.price[currency][billingCycle] === 0
                         ? t("مجاني", "Free")
                         : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString(displayLocale("en-US"))}`}
                     </span>
                     {plan.price[currency][billingCycle] > 0 && (
-                      <span className="text-content-secondary" style={{ fontSize: "13px" }}>
+                      <span className={plan.popular ? "text-background/70" : "text-content-secondary"} style={{ fontSize: "14px" }}>
                         {currency === "SAR" ? t("ر.س", "SAR") : ""} / {billingCycle === "monthly" ? t("شهر", "mo") : t("سنة", "yr")}
                       </span>
                     )}
                   </div>
                   {billingCycle === "yearly" && plan.price[currency].yearly > 0 && plan.price[currency].monthly > 0 && (
                     <>
-                      <p className="text-success" style={{ fontSize: "13px", fontWeight: 600 }} dir="ltr">
+                      <p className={`m-0 ${plan.popular ? "text-background/80" : "text-success"}`} style={{ fontSize: "13px", fontWeight: 600 }} dir="ltr">
                         {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString(displayLocale("en-US"))} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
                       </p>
-                      <p className="text-content-secondary" style={{ fontSize: "12px" }} dir="ltr">
+                      <p className={`m-0 ${plan.popular ? "text-background/60" : "text-content-secondary"}`} style={{ fontSize: "12px" }} dir="ltr">
                         ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString(displayLocale("en-US"))} {t("سنويًا", "yearly")}
                       </p>
                     </>
@@ -411,12 +412,12 @@ export function PricingPage() {
                 <button
                   onClick={() => subscribe(plan.tier)}
                   disabled={checkoutBusy !== null}
-                  className={`w-full h-11 rounded-full transition-colors mb-6 cursor-pointer disabled:opacity-60 ${
+                  className={`w-full rounded-full py-3.5 transition-colors cursor-pointer disabled:opacity-60 ${
                     plan.popular
-                      ? "bg-foreground text-background hover:bg-primary"
+                      ? "bg-[var(--brand-blue-600)] text-primary-foreground hover:opacity-90"
                       : "border border-foreground text-foreground hover:bg-surface-hover"
                   }`}
-                  style={{ fontSize: "14px", fontWeight: 600 }}
+                  style={{ fontSize: "15px", fontWeight: 600 }}
                 >
                   {checkoutBusy === plan.tier
                     ? t("جارٍ تحويلك لصفحة الدفع الآمنة...", "Taking you to secure checkout...")
@@ -425,20 +426,19 @@ export function PricingPage() {
                       : t("اشترك الآن · يُفعّل فورًا", "Subscribe now · active instantly")}
                 </button>
 
-                <div className="border-t border-border pt-5 space-y-3">
-                  <h4 className="ledger-eyebrow mb-3">
-                    {t("ما ستحصل عليه:", "What you get:")}
-                  </h4>
+                <div className={`h-px w-full ${plan.popular ? "bg-background/20" : "bg-border"}`} />
+
+                <div className="flex flex-col gap-2.5">
                   {featureList(plan).map((f) => {
                     const isZatcaValidation = /ZATCA Phase 2/i.test(f);
                     return (
                       <div key={f} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className="flex items-start gap-2.5">
                         {isZatcaValidation ? (
-                          <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+                          <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-[3px] ${plan.popular ? "text-background/70" : "text-warning"}`} strokeWidth={1.75} />
                         ) : (
-                          <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" strokeWidth={2} />
+                          <Check className="w-4 h-4 text-[var(--brand-blue-600)] flex-shrink-0 mt-[3px]" strokeWidth={2.2} />
                         )}
-                        <span className={isZatcaValidation ? "text-warning" : "text-content-secondary"} style={{ fontSize: "14px", lineHeight: 1.5 }}>{f}</span>
+                        <span className={isZatcaValidation ? (plan.popular ? "text-background/80" : "text-warning") : (plan.popular ? "text-background/85" : "text-foreground")} style={{ fontSize: "14px", lineHeight: 1.5 }}>{f}</span>
                       </div>
                     );
                   })}
@@ -450,7 +450,7 @@ export function PricingPage() {
       </section>
 
       {/* Lite — grocery / very small business tier */}
-      <section className="pb-12 px-4 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] pb-12">
         <div className="max-w-4xl mx-auto">
           <div className="rounded-lg border border-border bg-card p-6 flex flex-col sm:flex-row items-center gap-5">
             <div className="flex-1 text-center sm:text-start">
@@ -479,7 +479,7 @@ export function PricingPage() {
       </section>
 
       {/* 2 years + 1 year free offer */}
-      <section className="pb-12 px-4 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] pb-12">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -516,7 +516,7 @@ export function PricingPage() {
       </section>
 
       {/* Switcher Offer — free migration + remaining time credited FREE */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] py-12">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -576,7 +576,7 @@ export function PricingPage() {
       </section>
 
       {/* Referral Program — coming soon teaser */}
-      <section className="pb-16 px-4 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] pb-16">
         <div className="max-w-4xl mx-auto">
           <div className="rounded-lg border border-border bg-card p-8 sm:p-10 text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-info-subtle px-3 py-1.5 text-primary mb-4" style={{ fontSize: "12px", fontWeight: 600 }}>
@@ -604,7 +604,7 @@ export function PricingPage() {
       </section>
 
       {/* Comparison Toggle */}
-      <section className="py-10 px-4 sm:px-6 lg:px-8 bg-surface-subtle border-y border-border">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] py-10">
         <div className="max-w-7xl mx-auto text-center">
           <button
             onClick={() => setShowComparison(!showComparison)}
@@ -623,10 +623,10 @@ export function PricingPage() {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
-          className="py-14 px-4 sm:px-6 lg:px-8"
+          className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] py-14"
         >
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-foreground mb-10 text-center" style={{ fontSize: "26px", fontWeight: 700 }}>
+            <h2 className={`${sectionHeadingClass} mb-10 text-center`}>
               {t("مقارنة شاملة بين الباقات", "Full plan comparison")}
             </h2>
 
@@ -685,13 +685,13 @@ export function PricingPage() {
       )}
 
       {/* Competitor Benchmark — Wafeq & Wave · verified August 2026 */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] py-16">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <span className="ledger-eyebrow">
               {t("مقارنة صريحة", "Honest benchmark")}
             </span>
-            <h2 className="text-foreground mt-3 mb-3" style={{ fontSize: "26px", fontWeight: 700 }}>
+            <h2 className={`${sectionHeadingClass} mt-3 mb-3`}>
               {t("كيف نقارن بوفق وويف؟", "How we compare to Wafeq & Wave")}
             </h2>
             <p className="text-content-secondary max-w-2xl mx-auto" style={{ fontSize: "14px", lineHeight: 1.8 }}>
@@ -743,9 +743,9 @@ export function PricingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface-subtle border-y border-border">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] py-20">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-foreground mb-6 text-center" style={{ fontSize: "26px", fontWeight: 700 }}>
+          <h2 className={`${sectionHeadingClass} mb-6 text-center`}>
             {t("الأسئلة الشائعة", "Frequently asked questions")}
           </h2>
           <div className="flex justify-center gap-3 mb-10">
@@ -765,28 +765,25 @@ export function PricingPage() {
               {t("طي الكل", "Collapse all")}
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="border-t border-foreground">
             {faqs.map((faq, i) => {
               const open = openFaqs.includes(i);
               return (
-                <div
-                  key={i}
-                  className={`bg-card rounded-lg border transition-colors ${open ? "border-border-strong" : "border-border"}`}
-                >
+                <div key={i} className="border-b border-border">
                   <button
                     onClick={() => setOpenFaqs(open ? openFaqs.filter((x) => x !== i) : [...openFaqs, i])}
-                    className="w-full flex items-center gap-3 p-5 text-start cursor-pointer"
+                    className="w-full flex items-center gap-3 py-5 text-start cursor-pointer hover:text-primary transition-colors"
                     aria-expanded={open}
                   >
-                    <HelpCircle className={`w-5 h-5 flex-shrink-0 transition-colors ${open ? "text-primary" : "text-content-secondary"}`} strokeWidth={1.75} />
-                    <span className="text-foreground flex-1" style={{ fontSize: "15px", fontWeight: 600 }}>
+                    <HelpCircle className={`w-4 h-4 flex-shrink-0 transition-colors ${open ? "text-primary" : "text-content-secondary"}`} strokeWidth={1.75} />
+                    <span className="text-foreground flex-1" style={{ fontSize: "16px", fontWeight: 600 }}>
                       {isAr ? faq.q.ar : faq.q.en}
                     </span>
                     <span className={`text-content-secondary transition-transform duration-200 ${open ? "rotate-45" : ""}`} style={{ fontSize: "20px", lineHeight: 1 }}>+</span>
                   </button>
                   {open && (
-                    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="px-5 pb-5 border-t border-border pt-4">
-                      <p className="text-content-secondary" style={{ fontSize: "14px", lineHeight: 1.85 }}>
+                    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="pb-5">
+                      <p className="text-content-secondary m-0" style={{ fontSize: "14px", lineHeight: 1.6 }}>
                         {isAr ? faq.a.ar : faq.a.en}
                       </p>
                     </motion.div>
@@ -799,25 +796,25 @@ export function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] py-20 pb-24">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-foreground text-background rounded-lg p-10 sm:p-14 text-center"
+            className="flex flex-col items-center text-center gap-5"
           >
-            <div className="flex justify-center mb-6"><EntixWordmark size={26} light /></div>
-            <h2 className="text-background mb-5" style={{ fontSize: "30px", fontWeight: 700, lineHeight: 1.25 }}>
-              {t("لا زلت غير متأكد؟", "Still not sure?")}
+            <EntixWordmark size={22} />
+            <h2 className={sectionHeadingClass}>
+              {t("ابدأ بشهر مجاني كامل.", "Start with a full free month.")}
             </h2>
-            <p className="text-background/70 mb-8 max-w-xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.75 }}>
+            <p className="text-content-secondary m-0 max-w-[560px]" style={{ fontSize: "18px", lineHeight: isAr ? 1.8 : 1.5 }}>
               {t("جرّب ENTIX.IO مجاناً لمدة شهر كامل. لا حاجة لبطاقة ائتمانية.", "Try ENTIX.IO free for a full month. No credit card required.")}
             </p>
             <button
               onClick={() => navigate("/register")}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-background px-8 text-foreground transition-opacity hover:opacity-90 mx-auto cursor-pointer"
-              style={{ fontSize: "15px", fontWeight: 600 }}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-blue-600)] px-7 py-4 min-h-[52px] text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
+              style={{ fontSize: "16px", fontWeight: 600 }}
             >
               {t("ابدأ شهرك المجاني الآن", "Start your free month now")}
               <Arrow className="w-4 h-4" strokeWidth={1.75} />

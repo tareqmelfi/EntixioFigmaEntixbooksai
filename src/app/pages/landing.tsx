@@ -1,12 +1,11 @@
 import { displayLocale } from "../lib/number-display";
 import { useNavigate, Link } from "react-router";
 import {
-  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, CheckCircle2, ChevronDown, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users, AlertCircle
+  Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, ChevronDown, Check, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users, AlertCircle
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
-import { EntixWordmark } from "../components/entix-brand";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
 import { useLanguage } from "../components/LanguageContext";
@@ -42,7 +41,47 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
     return () => clearInterval(timer);
   }, [started, target]);
 
-  return <div ref={ref} className="ledger-figure-value">{count.toLocaleString(displayLocale("en-US"))}{suffix}</div>;
+  return (
+    <div ref={ref} className="font-display text-foreground leading-none text-[40px] sm:text-[48px] lg:text-[56px]" style={{ fontVariantNumeric: "tabular-nums", direction: "ltr", unicodeBidi: "isolate" }}>
+      {count.toLocaleString(displayLocale("en-US"))}{suffix}
+    </div>
+  );
+}
+
+// ─── Shared page container · 72px gutters at the 1440 artboard ───
+const SHELL = "mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px]";
+
+// ─── The ledger figures card that anchors the hero and the product band ───
+function LedgerFigureCard({ t, className = "", elevated = false }: { t: (ar: string, en?: string) => string; className?: string; elevated?: boolean }) {
+  const bars = [
+    { h: 38, tone: "bg-border" },
+    { h: 52, tone: "bg-border" },
+    { h: 46, tone: "bg-border" },
+    { h: 66, tone: "bg-foreground" },
+    { h: 60, tone: "bg-foreground" },
+    { h: 100, tone: "bg-[var(--brand-blue-600)]" },
+  ];
+  const figures = [
+    { k: t("الإيراد · سبتمبر", "Revenue · Sep"), v: "84,200", note: t("▲ 12% مقارنة بأغسطس", "▲ 12% vs Aug"), tone: "text-primary" },
+    { k: t("صافي الدخل", "Net income"), v: "31,050", note: t("هامش 37%", "margin 37%"), tone: "text-content-secondary" },
+    { k: t("صافي الضريبة المستحقة", "VAT net due"), v: "4,780", note: t("يُقدَّم 30 سبتمبر", "files 30 Sep"), tone: "text-warning" },
+  ];
+  return (
+    <div className={`rounded-lg border border-border bg-card p-5 grid grid-cols-1 sm:grid-cols-3 gap-3.5 ${elevated ? "shadow-popover" : ""} ${className}`}>
+      {figures.map(f => (
+        <div key={f.v} className="flex flex-col gap-1.5">
+          <span className="ledger-eyebrow">{f.k}</span>
+          <span className="font-display text-foreground text-[30px] leading-none" style={{ fontVariantNumeric: "tabular-nums", direction: "ltr", unicodeBidi: "isolate" }}>{f.v}</span>
+          <span className={f.tone} style={{ fontSize: "12px", fontWeight: f.tone === "text-content-secondary" ? 400 : 600 }}>{f.note}</span>
+        </div>
+      ))}
+      <div dir="ltr" className="sm:col-span-3 border-t border-border pt-3.5 flex items-end gap-2 h-24" aria-hidden="true">
+        {bars.map((b, i) => (
+          <span key={i} className={`flex-1 rounded-t-[3px] ${b.tone}`} style={{ height: `${b.h}%` }} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const FEATURES_SA = [
@@ -166,45 +205,48 @@ function ShowcaseTabs({ t }: { t: (ar: string, en?: string) => string }) {
     { src: `/marketing/ai-agent${sfx}.webp`, label: t("المساعد الذكي", "AI assistant"), desc: t("أنشئ فواتير ومصروفات وتقارير بمحادثة واحدة", "Create invoices, expenses, and reports in one chat") },
   ];
   return (
-    <div>
-      <div className="flex justify-center gap-2 mb-8 flex-wrap">
-        {shots.map((s, i) => (
-          <button
-            key={s.src}
-            onClick={() => setActive(i)}
-            className={`rounded-full px-5 py-2 transition-colors cursor-pointer border ${i === active ? "bg-foreground text-background border-foreground" : "bg-card text-content-secondary border-border hover:bg-surface-hover"}`}
-            style={{ fontSize: "13px", fontWeight: 600 }}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-      <motion.div
-        key={active}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="rounded-lg border border-border overflow-hidden bg-card"
-      >
-        {/* Browser chrome */}
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-subtle border-b border-border" dir="ltr">
-          <span className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-          <span className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-          <span className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-          <div className="flex-1 mx-4 bg-card border border-border rounded-full px-3 py-1 text-content-secondary text-center font-code" style={{ fontSize: "11px" }}>
-            app.entix.io
-          </div>
+    <div className="bg-foreground text-background rounded-lg grid lg:grid-cols-12 gap-8 px-6 pt-8 sm:px-10 sm:pt-12 lg:px-16 lg:pt-14 overflow-hidden">
+      <div className="lg:col-span-4 flex flex-col gap-4 pb-8 lg:pb-14">
+        <span className="ledger-eyebrow text-chart-3">{t("شاهد ENTIX.IO أثناء العمل", "See ENTIX.IO at work")}</span>
+        <h2 className={isEn
+          ? "font-display font-normal m-0 text-[30px] sm:text-[34px] lg:text-[40px] leading-[1.05] text-background"
+          : "font-bold m-0 text-[24px] sm:text-[28px] lg:text-[32px] leading-[1.4] text-background"}>
+          {t("لوحة تجيب على «كيف حالنا؟» بنظرة واحدة.", "A dashboard that answers “how are we doing?” in one glance.")}
+        </h2>
+        <div className="flex flex-col gap-2.5 mt-1">
+          {shots.map((s, i) => (
+            <button
+              key={s.src}
+              onClick={() => setActive(i)}
+              className={`flex items-center gap-2.5 text-start cursor-pointer transition-colors ${i === active ? "text-background" : "text-background/70 hover:text-background"}`}
+              style={{ fontSize: "15px" }}
+              aria-pressed={i === active}
+            >
+              <span className={`h-2 w-2 rounded-full flex-none ${i === active ? "bg-[var(--brand-blue-600)]" : "bg-background/25"}`} />
+              {s.label}
+            </button>
+          ))}
         </div>
-        <img
-          src={shots[active].src}
-          alt={shots[active].label}
-          loading="lazy"
-          className="w-full block"
-          width={1440}
-          height={900}
-        />
-      </motion.div>
-      <p className="text-center text-content-secondary mt-4" style={{ fontSize: "13px" }}>{shots[active].desc}</p>
+        <p className="text-background/60 mt-1" style={{ fontSize: "13px", lineHeight: 1.7 }}>{shots[active].desc}</p>
+      </div>
+      <div className="lg:col-span-8 bg-background rounded-t-lg p-4 sm:p-6 text-foreground">
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-lg border border-border overflow-hidden bg-card"
+        >
+          <img
+            src={shots[active].src}
+            alt={shots[active].label}
+            loading="lazy"
+            className="w-full block"
+            width={1440}
+            height={900}
+          />
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -251,23 +293,35 @@ export function Landing() {
       : { q: t("هل يدعم العملات المتعددة؟", "Does it support multiple currencies?"), a: t("نعم، يدعم ENTIX.IO الدولار الأمريكي وعملات إضافية مع إجراءات عمل لأسعار الصرف.", "Yes. ENTIX.IO supports US dollars and additional currencies with exchange-rate workflows.") },
   ];
 
-  const displayHeading = language === "en"
-    ? "font-display font-normal tracking-tight text-[44px] sm:text-[60px] lg:text-[72px] leading-[1.0]"
-    : "font-bold text-[32px] sm:text-[44px] lg:text-[56px] leading-[1.18]";
-  const sectionHeading = language === "en"
-    ? "font-display font-normal tracking-tight text-[32px] sm:text-[40px] leading-[1.06] text-foreground"
-    : "font-bold text-[26px] sm:text-[34px] leading-[1.3] text-foreground";
+  const isEn = language === "en";
+  // Display hierarchy comes from the approved artboards: Latin runs in the
+  // serif display face, Arabic never does (Plex Arabic 700 instead).
+  const h1Class = isEn
+    ? "font-display font-normal m-0 text-[44px] sm:text-[64px] lg:text-[84px] leading-[0.98] tracking-[-1.5px] text-foreground"
+    : "font-bold m-0 text-[34px] sm:text-[52px] lg:text-[72px] leading-[1.15] tracking-[-0.5px] text-foreground";
+  const h2Class = isEn
+    ? "font-display font-normal m-0 text-[34px] sm:text-[40px] lg:text-[48px] leading-[1.05] text-foreground"
+    : "font-bold m-0 text-[26px] sm:text-[32px] lg:text-[40px] leading-[1.3] text-foreground";
+  const ctaHeadingClass = isEn
+    ? "font-display font-normal m-0 text-[36px] sm:text-[46px] lg:text-[56px] leading-none text-foreground"
+    : "font-bold m-0 text-[28px] sm:text-[36px] lg:text-[44px] leading-[1.3] text-foreground";
+  const leadClass = isEn ? "text-[16px] sm:text-[20px] leading-[1.55]" : "text-[16px] sm:text-[20px] leading-[1.8]";
+  const btnPrimary = "inline-flex items-center justify-center gap-2 rounded-full bg-[var(--brand-blue-600)] px-7 py-4 text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer min-h-[52px]";
+  const btnGhost = "inline-flex items-center justify-center rounded-full border border-foreground px-6 py-4 text-foreground transition-colors hover:bg-surface-hover cursor-pointer min-h-[52px]";
 
   return (
     <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
       <SharedNavbar />
 
       <main>
-      {/* ─── Hero Section ─── */}
-      <section className="pt-32 sm:pt-36 pb-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="flex flex-wrap items-center gap-2 mb-7">
+      {/* ─── Hero ─── */}
+      <section className={`${SHELL} pt-[104px] lg:pt-[184px] pb-12`}>
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            className="lg:col-span-6 flex flex-col gap-5 sm:gap-7"
+          >
+            <div className="flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center gap-2 rounded-full bg-info-subtle px-3 py-1.5 text-primary" style={{ fontSize: "12px", fontWeight: 600 }}>
                 <Zap className="w-3.5 h-3.5" strokeWidth={1.75} />
                 <span>{isSA
@@ -279,122 +333,99 @@ export function Landing() {
                 <span>{t("إطلاق تجريبي — كن من الداعمين الأوائل", "Launch Beta — be an early supporter")}</span>
               </span>
             </div>
-            <h1 className={`text-foreground mb-6 ${displayHeading}`}>
+            <h1 className={h1Class}>
               {t("أدر حساباتك المالية", "Run your accounting")}
               <br />
-              <span className="text-primary">{t("بذكاء وسهولة", "with clarity and control")}</span>
+              <span className={isEn ? "text-[var(--brand-blue-600)] italic" : "text-[var(--brand-blue-600)]"}>{t("بوضوح وتحكّم.", "with clarity and control.")}</span>
             </h1>
-            <p className="text-content-secondary mb-8 max-w-xl" style={{ fontSize: "17px", lineHeight: 1.75 }}>
+            <p className={`text-content-secondary m-0 max-w-[560px] ${leadClass}`}>
               {isSA
                 ? t(
-                    "ENTIX.IO نظام محاسبة سحابي متكامل يدعم العربية بالكامل. تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
-                    "ENTIX.IO is a cloud accounting platform with full Arabic RTL and English LTR. ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance."
+                    "محاسبة سحابية بالعربية أولًا مع دعم كامل للإنجليزية. فواتير، ضريبة القيمة المضافة، ربط البنوك وإقفال الفترات — وكل رقم يرجع إلى قيده. تكامل ZATCA للمرحلة الثانية قيد التحقق وغير مفعّل للاعتماد الإنتاجي.",
+                    "Arabic-first cloud accounting with full RTL and English LTR. Invoices, VAT, bank feeds and closing — every number traceable back to its entry. ZATCA Phase 2 is under validation and not enabled for production reliance."
                   )
                 : t(
-                    "ENTIX.IO نظام محاسبة سحابي متكامل. ضريبة مبيعات أمريكية، مدفوعات Stripe، وربط بنكي تجريبي عبر Plaid — وبواجهة عربية أو إنجليزية كاملة.",
-                    "ENTIX.IO is a cloud accounting platform with US sales tax, Stripe payments, and Plaid bank feeds in Beta — in a full Arabic or English interface."
+                    "محاسبة سحابية بالعربية والإنجليزية. ضريبة مبيعات أمريكية، مدفوعات Stripe، وربط بنكي تجريبي عبر Plaid — وكل رقم يرجع إلى قيده.",
+                    "Cloud accounting in Arabic and English. US sales tax, Stripe payments, and Plaid bank feeds in Beta — every number traceable back to its entry."
                   )}
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 mt-1">
               <button
                 onClick={() => navigate(href("/register"))}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-7 text-background transition-colors hover:bg-primary cursor-pointer"
-                style={{ fontSize: "15px", fontWeight: 600 }}
+                className={btnPrimary}
+                style={{ fontSize: "16px", fontWeight: 600 }}
               >
                 {t("ابدأ شهرك المجاني", "Start your free month")}
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               </button>
               <button
                 onClick={() => navigate(href("/login"))}
-                className="inline-flex h-12 items-center rounded-full border border-foreground px-7 text-foreground transition-colors hover:bg-surface-hover cursor-pointer"
-                style={{ fontSize: "15px", fontWeight: 500 }}
+                className={btnGhost}
+                style={{ fontSize: "16px", fontWeight: 600 }}
               >
                 {t("تسجيل الدخول", "Sign in")}
               </button>
             </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-8">
+            <div className="flex flex-wrap items-center gap-x-[22px] gap-y-2.5">
               {[
                 isSA
-                  ? { icon: AlertCircle, text: t("ZATCA Phase 2 — قيد التحقق", "ZATCA Phase 2 — Under validation"), zatcaState: true }
+                  ? { icon: AlertCircle, text: t("المرحلة الثانية من ZATCA — قيد التحقق", "ZATCA Phase 2 — under validation"), zatcaState: true }
                   : { icon: CreditCard, text: t("مدفوعات Stripe + Plaid تجريبي", "Stripe + Plaid Beta") },
                 { icon: Database, text: t("نسخ احتياطي يومي", "Daily backups") },
                 { icon: Clock, text: t("شهر مجاني كامل", "Full free month") },
               ].map(item => (
-                <div key={item.text} data-plan-zatca-state={item.zatcaState ? "under-validation" : undefined} className={`flex items-center gap-2 ${item.zatcaState ? "text-warning" : "text-content-secondary"}`} style={{ fontSize: "13px", fontWeight: 500 }}>
-                  <span className={`ledger-dot ${item.zatcaState ? "text-warning" : "text-success"}`} />
-                  <item.icon className="h-4 w-4" strokeWidth={1.75} />
+                <div key={item.text} data-plan-zatca-state={item.zatcaState ? "under-validation" : undefined} className="flex items-center gap-1.5 text-content-secondary" style={{ fontSize: "13px" }}>
+                  <span className={`h-2 w-2 rounded-full flex-none ${item.zatcaState ? "bg-warning" : "bg-[var(--brand-blue-600)]"}`} />
                   {item.text}
                 </div>
               ))}
             </div>
           </motion.div>
 
-          {/* Hero ledger card — built from tokens, no raster art */}
+          {/* Hero visual · photograph + the overlapping ledger figures card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}
-            className="relative"
+            className="lg:col-span-6 relative lg:mb-9"
           >
-            <div className="rounded-lg border border-border bg-card p-5 sm:p-6 shadow-raised">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <span className="ledger-eyebrow">{t("لوحة التحكم", "Dashboard")}</span>
-                <span className="inline-flex items-center gap-1.5 text-success" style={{ fontSize: "12px", fontWeight: 600 }}>
-                  <span className="ledger-dot" />
-                  {t("نسخ احتياطي يومي", "Daily backups")}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-6 py-5" dir="ltr">
-                <div className="flex flex-col gap-1.5">
-                  <span className="ledger-eyebrow">{t("فاتورة هذا الشهر", "invoices this month")}</span>
-                  <span className="ledger-figure-value">1,247</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="ledger-eyebrow">{t("نمو الإيرادات", "Revenue growth")}</span>
-                  <span className="ledger-figure-value text-primary">+23.5%</span>
-                </div>
-              </div>
-              <div className="flex h-28 items-end gap-2 border-t border-border pt-5" aria-hidden="true">
-                {[38, 52, 46, 66, 60, 100].map((h, i) => (
-                  <span
-                    key={i}
-                    className={`flex-1 rounded-t-[3px] ${i === 5 ? "bg-primary" : i >= 3 ? "bg-foreground" : "bg-border"}`}
-                    style={{ height: `${h}%` }}
-                  />
-                ))}
-              </div>
-              <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                <span className="text-content-secondary" style={{ fontSize: "12px" }}>{t("المساعد الذكي", "AI assistant")}</span>
-                <span className="font-code text-content-secondary" style={{ fontSize: "12px" }}>app.entix.io</span>
-              </div>
+            <img
+              src="/marketing/hero-ledger.jpg"
+              alt=""
+              aria-hidden="true"
+              className="w-full h-[240px] sm:h-[380px] lg:h-[560px] object-cover rounded-lg block"
+              style={language === "ar" ? { transform: "scaleX(-1)" } : undefined}
+            />
+            <div className="mt-6 lg:mt-0 lg:absolute lg:-start-10 lg:-bottom-9 lg:w-[460px]">
+              <LedgerFigureCard t={t} elevated />
             </div>
           </motion.div>
         </div>
       </section>
 
       {/* ─── Figures strip ─── */}
-      <section className="px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="ledger-figures grid grid-cols-2 xl:grid-cols-4">
-            {STATS.map(stat => (
-              <div key={stat.label} className="ledger-figure flex flex-col gap-2">
-                <AnimatedNumber target={stat.value} suffix={stat.suffix} />
-                <p className="text-content-secondary" style={{ fontSize: "14px" }}>{t(stat.label, stat.labelEn)}</p>
-              </div>
-            ))}
-          </div>
+      <section className={`${SHELL} mt-16 lg:mt-[120px]`}>
+        <div className="grid grid-cols-2 xl:grid-cols-4 border-y border-foreground">
+          {STATS.map((stat, i) => (
+            <div
+              key={stat.label}
+              className={`flex flex-col gap-1.5 py-6 lg:py-8 ${i === 0 ? "" : "ps-4 lg:ps-6"} ${i === STATS.length - 1 ? "" : "pe-4 lg:pe-6 border-e border-border"} ${i < 2 ? "" : "border-t xl:border-t-0 border-border"} ${i === 2 ? "xl:ps-6 ps-0" : ""}`}
+            >
+              <AnimatedNumber target={stat.value} suffix={stat.suffix} />
+              <p className="text-content-secondary m-0" style={{ fontSize: "14px" }}>{t(stat.label, stat.labelEn)}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ─── Features ─── */}
-      <section id="features" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-12 gap-8 mb-12">
-            <div className="lg:col-span-5">
-              <span className="ledger-eyebrow">{t("المميزات", "Features")}</span>
-              <h2 className={`mt-3 ${sectionHeading}`}>{t("كل ما تحتاجه في مكان واحد", "Everything your accounting team needs")}</h2>
-            </div>
-            <p className="lg:col-span-6 lg:col-start-7 text-content-secondary self-end" style={{ fontSize: "16px", lineHeight: 1.7 }}>{t("أدوات محاسبية متكاملة مصممة لتسهيل عملك اليومي وتحسين أداءك المالي", "A practical accounting workspace for invoices, reports, expenses, VAT, and financial operations.")}</p>
+      {/* ─── Features · heading column + three-up tiles, no boxes ─── */}
+      <section id="features" className={`${SHELL} pt-16 lg:pt-24`}>
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-8">
+          <div className="lg:col-span-4">
+            <h2 className={h2Class}>{t("صُمّم للمحاسب الذي يراجع كل رقم.", "Built for the accountant who checks.")}</h2>
+            <p className="text-content-secondary mt-5 m-0 max-w-[360px]" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>
+              {t("أدوات محاسبية متكاملة مصممة لتسهيل عملك اليومي وتحسين أداءك المالي", "A practical accounting workspace for invoices, reports, expenses, VAT, and financial operations.")}
+            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {FEATURES.map((f, i) => (
               <motion.div
                 key={f.title}
@@ -402,48 +433,59 @@ export function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.04, duration: 0.35 }}
-                className="ledger-hoverable rounded-lg border border-border bg-card p-5 transition-all"
+                className="flex flex-col gap-3.5"
               >
-                <div className="h-10 w-10 rounded-md bg-info-subtle flex items-center justify-center mb-4">
-                  <f.icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
-                </div>
-                <h3 className="text-foreground mb-2" style={{ fontSize: "16px", fontWeight: 600 }}>{t(f.title, f.titleEn)}</h3>
-                <p className="text-content-secondary" style={{ fontSize: "14px", lineHeight: 1.75 }}>{t(f.desc, f.descEn)}</p>
+                <f.icon className="h-7 w-7 text-[var(--brand-blue-600)]" strokeWidth={1.6} />
+                <h3 className="text-foreground m-0" style={{ fontSize: "18px", fontWeight: 600 }}>{t(f.title, f.titleEn)}</h3>
+                <p className="text-content-secondary m-0" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>{t(f.desc, f.descEn)}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── Product showcase · real app screenshots ─── */}
-      <section id="showcase" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-surface-subtle border-y border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="ledger-eyebrow">{t("من داخل المنصة", "Inside the product")}</span>
-            <h2 className={`mt-3 mb-4 ${sectionHeading}`}>{t("شاهد ENTIX.IO أثناء العمل", "See ENTIX.IO at work")}</h2>
-            <p className="text-content-secondary max-w-xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.7 }}>{t("لقطات حقيقية من المنصة — لوحة التحكم، الفواتير، والمساعد الذكي", "Real product screens — the dashboard, invoices, and the AI assistant")}</p>
+      {/* ─── Product band · real screens on the ink card ─── */}
+      <section id="showcase" className={`${SHELL} pt-16 lg:pt-24`}>
+        <ShowcaseTabs t={t} />
+      </section>
+
+      {/* ─── ZATCA & compliance ─── */}
+      <section id="zatca" className={`${SHELL} pt-16 lg:pt-24`}>
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-8">
+          <div className="lg:col-span-4">
+            <span className="ledger-eyebrow">{t("الالتزام", "Compliance")}</span>
+            <h2 className={`${h2Class} mt-3`}>{t("ضريبة تستطيع الدفاع عنها.", "VAT you can defend.")}</h2>
           </div>
-          <ShowcaseTabs t={t} />
+          <div className="lg:col-span-8 grid sm:grid-cols-2 gap-8">
+            <div className="flex flex-col gap-3.5">
+              <Calculator className="h-7 w-7 text-[var(--brand-blue-600)]" strokeWidth={1.6} />
+              <h3 className="text-foreground m-0" style={{ fontSize: "18px", fontWeight: 600 }}>{t("ضريبة القيمة المضافة 15%", "15% VAT, per line")}</h3>
+              <p className="text-content-secondary m-0" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>
+                {t("15% لكل بند ولكل فترة، مع إقرارات جاهزة للمراجعة والتدقيق.", "15% Saudi VAT per line, per period, with returns ready for review and audit.")}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3.5" data-plan-zatca-state="under-validation">
+              <Shield className="h-7 w-7 text-warning" strokeWidth={1.6} />
+              <h3 className="text-foreground m-0" style={{ fontSize: "18px", fontWeight: 600 }}>{t("المرحلة الثانية من ZATCA", "ZATCA Phase 2")}</h3>
+              <p className="text-warning m-0" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>
+                {t(
+                  "ربط المرحلة الثانية قيد التحقق الفني والتنظيمي، ومُعلَن كذلك بوضوح داخل المنتج، وغير مفعّل للاعتماد الإنتاجي.",
+                  "Phase 2 onboarding is under technical and regulatory validation, labelled as such inside the product, and not enabled for production reliance."
+                )}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ─── Sync Architecture ─── */}
-      <section id="sync" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 rounded-full bg-info-subtle px-3 py-1.5 text-primary" style={{ fontSize: "12px", fontWeight: 600 }}>
-              <Shield className="h-3.5 w-3.5" strokeWidth={1.75} />
-              {t("الأمان والاعتمادية", "Security & reliability")}
-            </span>
-            <h2 className={`mt-4 mb-4 ${sectionHeading}`}>{t("بياناتك محمية وملكك دائمًا", "Your data is protected — and always yours")}</h2>
-            <p className="text-content-secondary max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.75 }}>
-              {t(
-                "نسخ احتياطي يومي تلقائي مع احتفاظ 14 يومًا، وعزل كامل لبيانات كل منشأة، وتصدير بياناتك كاملة في أي وقت.",
-                "Automatic daily backups with 14-day retention, complete isolation of each organization's data, and full export anytime."
-              )}
-            </p>
+      {/* ─── Security & data ownership ─── */}
+      <section id="sync" className={`${SHELL} pt-16 lg:pt-24`}>
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-8">
+          <div className="lg:col-span-4">
+            <span className="ledger-eyebrow">{t("الأمان والاعتمادية", "Security & reliability")}</span>
+            <h2 className={`${h2Class} mt-3`}>{t("بياناتك محمية وملكك دائمًا.", "Your data is protected — and always yours.")}</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="lg:col-span-8 grid sm:grid-cols-3 gap-8">
             {[
               { icon: Database, title: "نسخ احتياطي يومي", titleEn: "Daily backups", desc: "نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا — بياناتك قابلة للاستعادة عند الحاجة.", descEn: "Automatic backups every day with 14-day retention — your data stays recoverable when needed." },
               { icon: Shield, title: "عزل كامل للبيانات", titleEn: "Full data isolation", desc: "بيانات كل منشأة معزولة بالكامل مع صلاحيات وصول حسب أدوار المستخدمين وجلسات آمنة مشفّرة.", descEn: "Every organization's data is fully isolated, with role-based access and encrypted secure sessions." },
@@ -455,256 +497,223 @@ export function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="rounded-lg border border-border bg-card p-5"
+                className="flex flex-col gap-3.5"
               >
-                <div className="h-10 w-10 rounded-md bg-info-subtle flex items-center justify-center mb-4">
-                  <item.icon className="h-5 w-5 text-primary" strokeWidth={1.75} />
-                </div>
-                <h3 className="text-foreground mb-2" style={{ fontSize: "16px", fontWeight: 600 }}>{t(item.title, item.titleEn)}</h3>
-                <p className="text-content-secondary" style={{ fontSize: "14px", lineHeight: 1.75 }}>{t(item.desc, item.descEn)}</p>
+                <item.icon className="h-7 w-7 text-[var(--brand-blue-600)]" strokeWidth={1.6} />
+                <h3 className="text-foreground m-0" style={{ fontSize: "18px", fontWeight: 600 }}>{t(item.title, item.titleEn)}</h3>
+                <p className="text-content-secondary m-0" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>{t(item.desc, item.descEn)}</p>
               </motion.div>
             ))}
           </div>
-
-          {/* Architecture strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="mt-10 rounded-lg bg-foreground text-background p-8 sm:p-10"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6">
-              {[
-                { icon: Globe, label: "Cloudflare", sub: "حماية وتسريع", subEn: "protection & CDN" },
-                { icon: Database, label: "PostgreSQL", sub: "قاعدة البيانات", subEn: "database" },
-                { icon: CreditCard, label: "Stripe", sub: "مدفوعات آمنة", subEn: "secure payments" },
-              ].map((item, i) => (
-                <div key={item.label} className="flex items-center gap-3">
-                  {i > 0 && <div className="hidden sm:block w-10 h-px bg-background/30" />}
-                  <div className="flex items-center gap-2.5 rounded-md border border-background/15 px-4 py-3">
-                    <item.icon className="h-5 w-5 text-background/70" strokeWidth={1.75} />
-                    <div>
-                      <div className="font-code text-background" style={{ fontSize: "13px", fontWeight: 600 }}>{item.label}</div>
-                      <div className="text-background/60" style={{ fontSize: "11px" }}>{t(item.sub, item.subEn)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-background/70 max-w-2xl mx-auto text-center" style={{ fontSize: "14px", lineHeight: 1.75 }}>
-              {t(
-                "بنية سحابية حديثة: Cloudflare للحماية والتسريع، وPostgreSQL للبيانات، وStripe للمدفوعات — لا تمر بيانات البطاقات بسيرفراتنا.",
-                "A modern cloud stack: Cloudflare for protection and speed, PostgreSQL for data, and Stripe for payments — card data never touches our servers."
-              )}
-            </p>
-          </motion.div>
         </div>
-      </section>
 
-      {/* ─── Pricing ─── */}
-      <section id="pricing" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-surface-subtle border-y border-border">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10">
-            <span className="ledger-eyebrow">{t("الأسعار", "Pricing")}</span>
-            <h2 className={`mt-3 mb-4 ${sectionHeading}`}>{t("خطط أسعار مرنة", "Flexible pricing plans")}</h2>
-            <p className="text-content-secondary" style={{ fontSize: "16px" }}>{t("اختر الخطة المناسبة لحجم أعمالك — يمكنك الترقية في أي وقت", "Choose the plan that fits your business size. You can upgrade at any time.")}</p>
-          </div>
-
-          {/* 2 years + 1 year free offer */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="max-w-4xl mx-auto mb-10 rounded-lg border border-border bg-card px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4"
-          >
-            <div className="flex items-center gap-3 text-center sm:text-start">
-              <div className="h-10 w-10 rounded-md bg-info-subtle flex items-center justify-center flex-shrink-0">
-                <Gift className="h-5 w-5 text-primary" strokeWidth={1.75} />
-              </div>
-              <div>
-                <div className="text-foreground" style={{ fontSize: "15px", fontWeight: 700 }}>
-                  {t("عرض سنتين + سنة مجاناً", "2 years + 1 year free")}
-                </div>
-                <div className="text-content-secondary" style={{ fontSize: "13px" }}>
-                  {t("ادفع 24 شهراً واحصل على 36 شهراً كاملة — يُفعَّل عبر فريق المبيعات", "Pay for 24 months, get a full 36 — activated via our sales team")}
+        {/* Architecture strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="mt-10 border-t border-border pt-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10"
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            {[
+              { icon: Globe, label: "Cloudflare", sub: "حماية وتسريع", subEn: "protection & CDN" },
+              { icon: Database, label: "PostgreSQL", sub: "قاعدة البيانات", subEn: "database" },
+              { icon: CreditCard, label: "Stripe", sub: "مدفوعات آمنة", subEn: "secure payments" },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-4 py-2.5">
+                <item.icon className="h-5 w-5 text-content-secondary" strokeWidth={1.75} />
+                <div>
+                  <div className="font-code text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>{item.label}</div>
+                  <div className="text-content-secondary" style={{ fontSize: "11px" }}>{t(item.sub, item.subEn)}</div>
                 </div>
               </div>
-            </div>
-            <a
-              href="mailto:support@entix.io?subject=2Y%2B1Y%20Offer"
-              className="inline-flex h-10 items-center rounded-full bg-foreground px-6 text-background transition-colors hover:bg-primary cursor-pointer whitespace-nowrap"
-              style={{ fontSize: "14px", fontWeight: 600 }}
-            >
-              {t("فعّل العرض", "Activate offer")}
-            </a>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto items-start">
-            {PRICING.map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className={`rounded-lg p-6 border relative ${
-                  plan.highlighted
-                    ? "bg-foreground border-foreground text-background"
-                    : "bg-card border-border"
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-3 start-6">
-                    <span className="rounded-full bg-primary px-3 py-1 text-background whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>{t("الأكثر شعبية", "Most popular")}</span>
-                  </div>
-                )}
-                <h3 style={{ fontSize: "18px", fontWeight: 600 }} className={plan.highlighted ? "text-background mt-2" : "text-foreground"}>{t(plan.name, plan.nameEn)}</h3>
-                <p style={{ fontSize: "13px" }} className={`mt-1 ${plan.highlighted ? "text-background/70" : "text-content-secondary"}`}>{t(plan.desc, plan.descEn)}</p>
-                {plan.standard && (
-                  <div className="flex items-center gap-2 mt-4" dir="ltr">
-                    <span
-                      style={{ fontSize: "14px", fontWeight: 500, textDecoration: "line-through" }}
-                      className={plan.highlighted ? "text-background/60" : "text-content-secondary"}
-                    >{plan.standard}</span>
-                    <span className={`rounded-full px-2 py-0.5 ${plan.highlighted ? "bg-background/10 text-background" : "bg-success-subtle text-success"}`} style={{ fontSize: "11px", fontWeight: 600 }}>
-                      {t("سعر الإطلاق", "Launch price")} −{Math.round((1 - Number(plan.price) / Number(plan.standard)) * 100)}%
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-baseline gap-2 mt-2 mb-1" dir="ltr">
-                  <span className={`font-display leading-none text-[44px] ${plan.highlighted ? "text-background" : "text-foreground"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{plan.price}</span>
-                  <span style={{ fontSize: "13px" }} className={plan.highlighted ? "text-background/70" : "text-content-secondary"}>{t(plan.period, plan.periodEn)}</span>
-                </div>
-                {plan.standard && (
-                  <p className={plan.highlighted ? "text-background/70 mt-1" : "text-primary mt-1"} style={{ fontSize: "12px", fontWeight: 600 }}>{t("+ شهرك الأول مجاناً", "+ your first month free")}</p>
-                )}
-                <hr className={`my-5 ${plan.highlighted ? "border-background/20" : "border-border"}`} />
-                <ul className="space-y-3">
-                  {plan.features.map((f, fi) => {
-                    const isZatcaValidation = /ZATCA Phase 2/i.test(f);
-                    return (
-                      <li key={f} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className="flex items-start gap-2.5" style={{ fontSize: "14px", lineHeight: 1.5 }}>
-                        {isZatcaValidation ? (
-                          <AlertCircle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${plan.highlighted ? "text-background/70" : "text-warning"}`} strokeWidth={1.75} />
-                        ) : (
-                          <CheckCircle2 className={`h-4 w-4 flex-shrink-0 mt-0.5 ${plan.highlighted ? "text-background/70" : "text-primary"}`} strokeWidth={1.75} />
-                        )}
-                        <span className={isZatcaValidation ? (plan.highlighted ? "text-background/80" : "text-warning") : (plan.highlighted ? "text-background/80" : "text-content-secondary")}>{t(f, plan.featuresEn[fi])}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <button
-                  onClick={() => navigate(href("/register"))}
-                  className={
-                    plan.highlighted
-                      ? "w-full mt-6 h-11 rounded-full transition-colors cursor-pointer bg-background text-foreground hover:bg-background/90"
-                      : "w-full mt-6 h-11 rounded-full transition-colors cursor-pointer border border-foreground text-foreground hover:bg-surface-hover"
-                  }
-                  style={{ fontSize: "14px", fontWeight: 600 }}
-                >
-                  {t("ابدأ الآن", "Start now")}
-                </button>
-              </motion.div>
             ))}
           </div>
-
-          {/* Referral program strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="max-w-4xl mx-auto mt-10 rounded-lg border border-border bg-card px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4"
-          >
-            <div className="flex items-center gap-3 text-center sm:text-start">
-              <div className="h-10 w-10 rounded-md bg-info-subtle flex items-center justify-center flex-shrink-0">
-                <Users className="h-5 w-5 text-primary" strokeWidth={1.75} />
-              </div>
-              <div>
-                <div className="text-foreground" style={{ fontSize: "15px", fontWeight: 700 }}>
-                  {t("برنامج الإحالة: صديقك يحصل على خصم، وأنت على عمولة 50%", "Referral program: your friend gets a discount, you earn 50% commission")}
-                </div>
-                <div className="text-content-secondary" style={{ fontSize: "13px" }}>
-                  {t("شارك كودك — يحصل المشترك الجديد على خصم، وتُحوَّل لك عمولتك كمسوّق معتمد", "Share your code — new subscribers get a discount, and you earn as an approved marketer")}
-                </div>
-              </div>
-            </div>
-            <Link
-              to={href("/referrals")}
-              className="inline-flex h-10 items-center rounded-full border border-foreground px-6 text-foreground transition-colors hover:bg-surface-hover cursor-pointer whitespace-nowrap"
-              style={{ fontSize: "14px", fontWeight: 600 }}
-            >
-              {t("صفحة الإحالات", "Referrals page")}
-            </Link>
-          </motion.div>
-        </div>
+          <p className="text-content-secondary m-0 max-w-[520px]" style={{ fontSize: "14px", lineHeight: 1.7 }}>
+            {t(
+              "بنية سحابية حديثة: Cloudflare للحماية والتسريع، وPostgreSQL للبيانات، وStripe للمدفوعات — لا تمر بيانات البطاقات بسيرفراتنا.",
+              "A modern cloud stack: Cloudflare for protection and speed, PostgreSQL for data, and Stripe for payments — card data never touches our servers."
+            )}
+          </p>
+        </motion.div>
       </section>
 
-      {/* ─── CTA Section ─── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="bg-foreground text-background rounded-lg p-10 sm:p-14 text-center"
-          >
-            <div className="flex justify-center mb-6"><EntixWordmark size={26} light /></div>
-            <h2 className={`mb-4 ${language === "en" ? "font-display font-normal tracking-tight text-[36px] sm:text-[48px] leading-[1.05] text-background" : "font-bold text-[26px] sm:text-[34px] leading-[1.3] text-background"}`}>
-              {t("جاهز لتحويل إدارتك المالية؟", "Ready to modernize your financial operations?")}
-            </h2>
-            <p className="text-background/70 max-w-xl mx-auto mb-8" style={{ fontSize: "16px", lineHeight: 1.75 }}>
-              {t(
-                "ENTIX.IO في مرحلة الإطلاق التجريبي — كن من الداعمين الأوائل وأدر فواتيرك ومصاريفك وتقاريرك بكفاءة وأمان.",
-                "Use ENTIX.IO to manage accounting, invoices, expenses, and reports with a cleaner bilingual workflow."
+      {/* ─── Pricing teaser ─── */}
+      <section id="pricing" className={`${SHELL} pt-16 lg:pt-24`}>
+        <div className="flex flex-col items-center text-center gap-4 mb-10">
+          <span className="ledger-eyebrow text-primary">{t("الأسعار", "Pricing")}</span>
+          <h2 className={h2Class}>{t("شهر مجاني كامل. ثم سعر واحد صريح.", "One free month. Then one honest price.")}</h2>
+          <p className="text-content-secondary m-0 max-w-[560px]" style={{ fontSize: "18px", lineHeight: isEn ? 1.55 : 1.8 }}>
+            {t("اختر الخطة المناسبة لحجم أعمالك — يمكنك الترقية في أي وقت", "Choose the plan that fits your business size. You can upgrade at any time.")}
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 items-start">
+          {PRICING.map((plan, i) => (
+            <motion.div
+              key={plan.name}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className={`rounded-lg border p-7 sm:px-7 sm:py-8 flex flex-col gap-5 relative ${
+                plan.highlighted ? "bg-foreground border-foreground text-background" : "bg-card border-border"
+              }`}
+            >
+              {plan.highlighted && (
+                <div className="absolute -top-3 start-7">
+                  <span className="rounded-full bg-[var(--brand-blue-600)] px-3 py-1 text-primary-foreground whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>{t("الأكثر شعبية", "Most popular")}</span>
+                </div>
               )}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span style={{ fontSize: "18px", fontWeight: 600 }} className={plan.highlighted ? "text-background" : "text-foreground"}>{t(plan.name, plan.nameEn)}</span>
+                <span style={{ fontSize: "14px" }} className={plan.highlighted ? "text-background/70" : "text-content-secondary"}>{t(plan.desc, plan.descEn)}</span>
+              </div>
+              {plan.standard && (
+                <div className="flex items-center gap-2 -mb-2" dir="ltr">
+                  <span
+                    style={{ fontSize: "14px", fontWeight: 500, textDecoration: "line-through" }}
+                    className={plan.highlighted ? "text-background/60" : "text-content-secondary"}
+                  >{plan.standard}</span>
+                  <span className={`rounded-full px-2 py-0.5 ${plan.highlighted ? "bg-background/10 text-background" : "bg-success-subtle text-success"}`} style={{ fontSize: "11px", fontWeight: 600 }}>
+                    {t("سعر الإطلاق", "Launch price")} −{Math.round((1 - Number(plan.price) / Number(plan.standard)) * 100)}%
+                  </span>
+                </div>
+              )}
+              <div className="flex items-baseline gap-1.5" dir="ltr">
+                <span className={`font-display leading-none text-[52px] ${plan.highlighted ? "text-background" : "text-foreground"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{plan.price}</span>
+                <span style={{ fontSize: "14px" }} className={plan.highlighted ? "text-background/70" : "text-content-secondary"}>{t(plan.period, plan.periodEn)}</span>
+              </div>
               <button
                 onClick={() => navigate(href("/register"))}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-background px-8 text-foreground transition-opacity hover:opacity-90 cursor-pointer"
+                className={
+                  plan.highlighted
+                    ? "w-full rounded-full py-3.5 transition-opacity hover:opacity-90 cursor-pointer bg-[var(--brand-blue-600)] text-primary-foreground"
+                    : "w-full rounded-full py-3.5 transition-colors cursor-pointer border border-foreground text-foreground hover:bg-surface-hover"
+                }
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                {t("ابدأ شهرك المجاني", "Start your free month")}
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                {t("ابدأ شهرك المجاني", "Start free month")}
               </button>
+              <div className={`h-px w-full ${plan.highlighted ? "bg-background/20" : "bg-border"}`} />
+              <ul className="flex flex-col gap-2.5 m-0 p-0" style={{ listStyle: "none" }}>
+                {plan.features.map((f, fi) => {
+                  const isZatcaValidation = /ZATCA Phase 2/i.test(f);
+                  return (
+                    <li key={f} data-plan-zatca-state={isZatcaValidation ? "under-validation" : undefined} className="flex items-start gap-2.5" style={{ fontSize: "14px", lineHeight: 1.5 }}>
+                      {isZatcaValidation ? (
+                        <AlertCircle className={`h-4 w-4 flex-shrink-0 mt-[3px] ${plan.highlighted ? "text-background/70" : "text-warning"}`} strokeWidth={1.75} />
+                      ) : (
+                        <Check className="h-4 w-4 flex-shrink-0 mt-[3px] text-[var(--brand-blue-600)]" strokeWidth={2.2} />
+                      )}
+                      <span className={isZatcaValidation ? (plan.highlighted ? "text-background/80" : "text-warning") : (plan.highlighted ? "text-background/85" : "text-foreground")}>{t(f, plan.featuresEn[fi])}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Offers · 2y+1y and the referral programme */}
+        <div className="mt-10 grid md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="rounded-lg border border-border bg-card p-5 flex items-start gap-4"
+          >
+            <Gift className="h-5 w-5 text-[var(--brand-blue-600)] flex-none mt-0.5" strokeWidth={1.75} />
+            <div className="flex-1">
+              <div className="text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
+                {t("عرض سنتين + سنة مجاناً", "2 years + 1 year free")}
+              </div>
+              <div className="text-content-secondary mt-1" style={{ fontSize: "13px", lineHeight: 1.7 }}>
+                {t("ادفع 24 شهراً واحصل على 36 شهراً كاملة — يُفعَّل عبر فريق المبيعات", "Pay for 24 months, get a full 36 — activated via our sales team")}
+              </div>
+              <a
+                href="mailto:support@entix.io?subject=2Y%2B1Y%20Offer"
+                className="inline-flex items-center text-primary hover:underline mt-2 cursor-pointer"
+                style={{ fontSize: "13px", fontWeight: 600 }}
+              >
+                {t("فعّل العرض", "Activate offer")}
+              </a>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="rounded-lg border border-border bg-card p-5 flex items-start gap-4"
+          >
+            <Users className="h-5 w-5 text-[var(--brand-blue-600)] flex-none mt-0.5" strokeWidth={1.75} />
+            <div className="flex-1">
+              <div className="text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
+                {t("برنامج الإحالة: صديقك يحصل على خصم، وأنت على عمولة 50%", "Referral program: your friend gets a discount, you earn 50% commission")}
+              </div>
+              <div className="text-content-secondary mt-1" style={{ fontSize: "13px", lineHeight: 1.7 }}>
+                {t("شارك كودك — يحصل المشترك الجديد على خصم، وتُحوَّل لك عمولتك كمسوّق معتمد", "Share your code — new subscribers get a discount, and you earn as an approved marketer")}
+              </div>
+              <Link
+                to={href("/referrals")}
+                className="inline-flex items-center text-primary hover:underline mt-2 cursor-pointer"
+                style={{ fontSize: "13px", fontWeight: 600 }}
+              >
+                {t("صفحة الإحالات", "Referrals page")}
+              </Link>
             </div>
           </motion.div>
         </div>
       </section>
 
       {/* ─── FAQ ─── */}
-      <section id="faq" className="py-20 sm:py-24 px-4 sm:px-6 lg:px-8 bg-surface-subtle border-t border-border">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
+      <section id="faq" className={`${SHELL} pt-16 lg:pt-24`}>
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-8">
+          <div className="lg:col-span-4">
             <span className="ledger-eyebrow">{t("مساعدة", "Help")}</span>
-            <h2 className={`mt-3 ${sectionHeading}`}>{t("الأسئلة الشائعة", "Frequently asked questions")}</h2>
+            <h2 className={`${h2Class} mt-3`}>{t("الأسئلة الشائعة", "Frequently asked questions")}</h2>
           </div>
-          <div className="space-y-3">
+          <div className="lg:col-span-8 border-t border-foreground">
             {faqs.map((faq, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }}
-                className="bg-card border border-border rounded-lg overflow-hidden"
-              >
+              <div key={i} className="border-b border-border">
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-5 text-start hover:bg-surface-hover transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between gap-4 py-5 text-start hover:text-primary transition-colors cursor-pointer"
+                  aria-expanded={openFaq === i}
                 >
-                  <span className="text-foreground" style={{ fontSize: "15px", fontWeight: 500 }}>{faq.q}</span>
+                  <span className="text-foreground" style={{ fontSize: "16px", fontWeight: 600 }}>{faq.q}</span>
                   <ChevronDown
                     strokeWidth={1.75}
                     className={
                       openFaq === i
-                        ? "w-5 h-5 text-content-secondary flex-shrink-0 ms-3 transition-transform duration-300 rotate-180"
-                        : "w-5 h-5 text-content-secondary flex-shrink-0 ms-3 transition-transform duration-300"
+                        ? "w-5 h-5 text-content-secondary flex-shrink-0 transition-transform duration-300 rotate-180"
+                        : "w-5 h-5 text-content-secondary flex-shrink-0 transition-transform duration-300"
                     }
                   />
                 </button>
                 <div
                   className="overflow-hidden transition-all duration-300"
-                  style={{ maxHeight: openFaq === i ? "220px" : "0px", opacity: openFaq === i ? 1 : 0 }}
+                  style={{ maxHeight: openFaq === i ? "260px" : "0px", opacity: openFaq === i ? 1 : 0 }}
                 >
-                  <div className="px-5 pb-5 border-t border-border pt-4">
-                    <p className="text-content-secondary" style={{ fontSize: "14px", lineHeight: 1.85 }}>{faq.a}</p>
-                  </div>
+                  <p className="text-content-secondary pb-5 m-0 max-w-[640px]" style={{ fontSize: "14px", lineHeight: 1.6 }}>{faq.a}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ─── Closing CTA ─── */}
+      <section className={`${SHELL} py-20 lg:py-24 flex flex-col items-center text-center gap-5`}>
+        <h2 className={ctaHeadingClass}>{t("ابدأ بشهر مجاني كامل.", "Start with a full free month.")}</h2>
+        <p className="text-content-secondary m-0 max-w-[560px]" style={{ fontSize: "18px", lineHeight: isEn ? 1.5 : 1.8 }}>
+          {t(
+            "بدون بطاقة. استورد دليل حساباتك، وادعُ محاسبك، وصدّر كل شيء متى شئت.",
+            "No card required. Import your chart of accounts, invite your accountant, export everything whenever you like."
+          )}
+        </p>
+        <button
+          onClick={() => navigate(href("/register"))}
+          className={`${btnPrimary} mt-1`}
+          style={{ fontSize: "16px", fontWeight: 600 }}
+        >
+          {t("ابدأ شهرك المجاني", "Start your free month")}
+          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+        </button>
       </section>
 
       </main>

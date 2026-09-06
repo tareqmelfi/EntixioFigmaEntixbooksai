@@ -59,7 +59,7 @@ export function SharedFooter() {
   return (
     <footer className="bg-surface-subtle text-foreground border-t border-border" dir={language === "ar" ? "rtl" : "ltr"}>
       {/* Main footer content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+      <div className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] pt-16 pb-10">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-12">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
@@ -98,7 +98,7 @@ export function SharedFooter() {
 
           {/* Product */}
           <div>
-            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("المنتج", "Product")}</h2>
+            <h2 className="ledger-eyebrow block mb-4">{t("المنتج", "Product")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
@@ -116,7 +116,7 @@ export function SharedFooter() {
 
           {/* Solutions */}
           <div>
-            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الحلول", "Solutions")}</h2>
+            <h2 className="ledger-eyebrow block mb-4">{t("الحلول", "Solutions")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.solutions.map((link) => (
                 <li key={link.label}>
@@ -134,7 +134,7 @@ export function SharedFooter() {
 
           {/* Resources */}
           <div>
-            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الموارد", "Resources")}</h2>
+            <h2 className="ledger-eyebrow block mb-4">{t("الموارد", "Resources")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
@@ -152,7 +152,7 @@ export function SharedFooter() {
 
           {/* Company */}
           <div>
-            <h2 className="text-foreground mb-4" style={{ fontSize: "13px", fontWeight: 600 }}>{t("الشركة", "Company")}</h2>
+            <h2 className="ledger-eyebrow block mb-4">{t("الشركة", "Company")}</h2>
             <ul className="space-y-2.5">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
@@ -246,7 +246,7 @@ export function SharedFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-border">
+        <div className="pt-10 border-t border-border">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-content-secondary text-center md:text-start" style={{ fontSize: "13px" }}>
               &copy; 2026 ENTIX.IO · {t("يعمل بواسطة", "Powered by")}{" "}

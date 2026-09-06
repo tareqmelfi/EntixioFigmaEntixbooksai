@@ -128,7 +128,9 @@ export function computeTotals(lines: InvoiceLine[]) {
   return { subtotal, tax, total: subtotal + tax };
 }
 
-const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: false, recognition: true };
+// ض.ق.م + الاعتراف are off by default so the grid matches the approved 7-column anatomy;
+// both stay one click away in the "الأعمدة" menu.
+const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: true, recognition: true };
 
 const ROW_BORDER_CLASS = "border-border/30";
 
@@ -171,11 +173,13 @@ function AutoGrowTextarea({
   onChange,
   onKeyDown,
   placeholder,
+  title,
 }: {
   value: string;
   onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder: string;
+  title?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const resize = () => {
@@ -194,9 +198,10 @@ function AutoGrowTextarea({
       onInput={resize}
       onKeyDown={onKeyDown}
       placeholder={placeholder}
+      title={title}
       rows={1}
-      style={{ minHeight: "30px", maxHeight: "160px", resize: "none", overflow: "hidden" }}
-      className="w-full border-0 focus:ring-1 focus:ring-primary/30 bg-transparent text-xs leading-5 py-1 px-2 outline-none"
+      style={{ minHeight: "22px", maxHeight: "160px", resize: "none", overflow: "hidden" }}
+      className="w-full border-0 bg-transparent px-2 text-[13px] leading-[22px] outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--brand-blue-600)]"
     />
   );
 }
@@ -476,313 +481,316 @@ export function ItemsTable({
       : a.type === "EXPENSE")
     .map((a) => ({ id: a.id, label: a.name, sublabel: a.code }));
 
+  // Ledger dense grid · column track list mirrors the approved reference
+  // (# · البند · الوصف · الكمية · السعر · [الحساب] · [الضريبة] · المبلغ · [ض.ق.م] · الإجمالي · [الاعتراف] · [أصل] · حذف)
+  const gridTemplate = [
+    "36px",
+    "150px",
+    "minmax(0, 1fr)",
+    "70px",
+    "100px",
+    showAccount ? "170px" : null,
+    showTax ? "96px" : null,
+    "110px",
+    showTaxAmount ? "110px" : null,
+    "130px",
+    showRecognition ? "150px" : null,
+    showAssetCol ? "44px" : null,
+    "32px",
+  ].filter(Boolean).join(" ");
+  const gridMinWidth =
+    36 + 150 + 200 + 70 + 100 + (showAccount ? 170 : 0) + (showTax ? 96 : 0) + 110 +
+    (showTaxAmount ? 110 : 0) + 130 + (showRecognition ? 150 : 0) + (showAssetCol ? 44 : 0) + 32;
+
   return (
     <div className="space-y-3">
-      {/* Items table · paste handler on container */}
+      {/* Items grid · paste handler on container */}
       <div
         ref={containerRef}
         onPaste={handlePaste}
-        className="rounded-lg border border-border overflow-hidden bg-card"
+        className="ledger-grid-dense"
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ minWidth: "100%" }}>
-            <colgroup>
-              <col className="w-8" />
-              <col className="min-w-[140px] w-[14%]" />
-              <col className="min-w-[260px] w-[32%]" />
-              <col className="min-w-[72px] w-[7%]" />
-              <col className="min-w-[104px] w-[9%]" />
-              {showAccount && <col className="min-w-[220px] w-[18%]" />}
-              {showTax && <col className="min-w-[124px] w-[10%]" />}
-              <col className="min-w-[120px] w-[9%]" />
-              {showTaxAmount && <col className="min-w-[120px] w-[9%]" />}
-              <col className="min-w-[132px] w-[10%]" />
-              {showRecognition && <col className="min-w-[150px] w-[12%]" />}
-              {showAssetCol && <col className="w-[52px]" />}
-              <col className="w-10" />
-            </colgroup>
-            <thead className="bg-muted/50 text-xs text-muted-foreground">
-              <tr>
-                <th className="py-2.5 px-2 w-8">
-                  <button
-                    type="button"
-                    onClick={toggleSelectAll}
-                    className="text-muted-foreground/70 hover:text-foreground"
-                    title={allSelected ? t("إلغاء تحديد الكل", "Clear all") : t("تحديد الكل", "Select all")}
-                  >
-                    {allSelected ? <SquareCheck className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-                  </button>
-                </th>
-                {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الصنف", "Item")}</th>
-                )}
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الوصف", "Description")}</th>
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الكمية", "Qty")}</th>
-                <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("السعر", "Price")}</th>
-                {showAccount && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الحساب", "Account")}</th>
-                )}
-                {showTax && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>{t("الضريبة", "Tax")}</th>
-                )}
-                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>{t("المبلغ", "Amount")} ({currency})</th>
-                {showTaxAmount && (
-                  <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>{t("ض.ق.م", "VAT amt")}</th>
-                )}
-                <th className="py-2.5 px-3 text-end" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")} ({currency})</th>
-                {showRecognition && (
-                  <th className="py-2.5 px-3 text-start" style={{ fontWeight: 600 }}>
-                    <span className="inline-flex items-center gap-1.5">
-                      {t("الاعتراف", "Recognition")}
-                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">{t("جديد", "New")}</span>
-                    </span>
-                  </th>
-                )}
-                {showAssetCol && (
-                  <th className="py-2.5 px-1 text-center" style={{ fontWeight: 600 }} title={t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}>{t("أصل", "Asset")}</th>
-                )}
-                <th className="py-2.5 px-2 w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayLines.map((line, i) => {
-                const qty = Number(normalizeDigits(line.quantity)) || 0;
-                const price = Number(normalizeDigits(line.unitPrice)) || 0;
-                const gross = qty * price;
-                const lineTax = line.taxInclusive ? gross - gross / (1 + line.taxRate) : gross * line.taxRate;
-                const lineNet = line.taxInclusive ? gross / (1 + line.taxRate) : gross;
-                const lineTotal = line.taxInclusive ? gross : gross + lineTax;
-                const isReal = i < realLineCount;
-                const isInvalid = isReal && !!invalidIds?.has(line.id);
+          <div style={{ minWidth: gridMinWidth }}>
+            {/* Header row */}
+            <div className="grid" style={{ gridTemplateColumns: gridTemplate }}>
+              <span className="cell h idx">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="group inline-flex h-full w-full items-center justify-center text-content-secondary hover:text-foreground"
+                  title={allSelected ? t("إلغاء تحديد الكل", "Clear all") : t("تحديد الكل", "Select all")}
+                >
+                  {allSelected
+                    ? <SquareCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    : <>
+                        <span className="group-hover:hidden">#</span>
+                        <Square className="hidden h-3.5 w-3.5 group-hover:block" strokeWidth={1.75} />
+                      </>}
+                </button>
+              </span>
+              <span className="cell h">{t("البند", "Item")}</span>
+              <span className="cell h">{t("الوصف", "Description")}</span>
+              <span className="cell h n">{t("الكمية", "Qty")}</span>
+              <span className="cell h n">{t("السعر", "Price")}</span>
+              {showAccount && <span className="cell h">{t("الحساب", "Account")}</span>}
+              {showTax && <span className="cell h n">{t("الضريبة", "Tax")}</span>}
+              <span className="cell h n">{t("المبلغ", "Amount")} ({currency})</span>
+              {showTaxAmount && <span className="cell h n">{t("ض.ق.م", "VAT amt")}</span>}
+              <span className="cell h n">{t("الإجمالي", "Total")} ({currency})</span>
+              {showRecognition && (
+                <span className="cell h">
+                  <span className="inline-flex items-center gap-1.5">
+                    {t("الاعتراف", "Recognition")}
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">{t("جديد", "New")}</span>
+                  </span>
+                </span>
+              )}
+              {showAssetCol && (
+                <span className="cell h" title={t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}>{t("أصل", "Asset")}</span>
+              )}
+              <span className="cell h" />
+            </div>
 
-                return (
-                  <tr
-                    key={line.id}
-                    className={`border-t ${ROW_BORDER_CLASS} ${
-                      isInvalid
-                        ? "bg-danger-subtle/80 hover:bg-danger-subtle/60 ring-1 ring-inset ring-danger"
-                        : "hover:bg-muted/20"
-                    }`}
-                  >
-                    <td className="px-1 py-1 text-center">
+            {/* Line rows */}
+            {displayLines.map((line, i) => {
+              const qty = Number(normalizeDigits(line.quantity)) || 0;
+              const price = Number(normalizeDigits(line.unitPrice)) || 0;
+              const gross = qty * price;
+              const lineTax = line.taxInclusive ? gross - gross / (1 + line.taxRate) : gross * line.taxRate;
+              const lineNet = line.taxInclusive ? gross / (1 + line.taxRate) : gross;
+              const lineTotal = line.taxInclusive ? gross : gross + lineTax;
+              const isReal = i < realLineCount;
+              const isInvalid = isReal && !!invalidIds?.has(line.id);
+              const isSelected = isReal && selected.has(line.id);
+
+              return (
+                <div
+                  key={line.id}
+                  className={`grid ${ROW_BORDER_CLASS} ${isInvalid ? "ring-1 ring-inset ring-danger [&_.cell]:bg-danger-subtle" : ""}`}
+                  style={{ gridTemplateColumns: gridTemplate }}
+                >
+                  <span className="cell idx">
+                    <button
+                      type="button"
+                      onClick={() => isReal && toggleSelect(line.id)}
+                      disabled={!isReal}
+                      aria-pressed={isSelected}
+                      className="group inline-flex h-full w-full items-center justify-center text-content-secondary hover:text-foreground disabled:opacity-40"
+                      title={t("تحديد السطر", "Select line")}
+                    >
+                      {isSelected
+                        ? <SquareCheck className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
+                        : <>
+                            <span className="group-hover:hidden">{i + 1}</span>
+                            <Square className="hidden h-3.5 w-3.5 group-hover:block" strokeWidth={1.75} />
+                          </>}
+                    </button>
+                  </span>
+                  <span className="cell !px-1">
+                    <SearchableCombobox
+                      value={line.productId || ""}
+                      onChange={(id) => {
+                        const p = products.find((x) => x.id === id);
+                        if (p) onProductPick(i, p);
+                      }}
+                      onCreate={onCreateProduct ? async (name) => {
+                        const p = await onCreateProduct(name);
+                        onProductPick(i, p);
+                        return p.id;
+                      } : undefined}
+                      items={products.map((p) => ({
+                        id: p.id,
+                        label: p.name,
+                        sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString(displayLocale())}`,
+                      }))}
+                      placeholder={t("منتج أو خدمة…", "Product or service…")}
+                      createLabel={(q) => t("+ إنشاء صنف", "+ Create item") + ` "${q}"`}
+                      borderless
+                      buttonClassName="min-h-8 h-auto py-1 px-2 text-[13px] rounded-md"
+                      menuMinWidth={360}
+                      wrap
+                    />
+                  </span>
+                  <span className="cell !px-1">
+                    <AutoGrowTextarea
+                      value={line.description}
+                      onChange={(e) => updateLine(i, { description: e.target.value })}
+                      onKeyDown={(e) => {
+                        // Shift+Enter = newline inside cell · Enter alone = next row
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleKeyDown(e as any, i, false);
+                        }
+                        // Shift+Enter is allowed default behavior (newline)
+                      }}
+                      placeholder={t("الوصف", "Description")}
+                      title={t("Shift+Enter لسطر جديد داخل الخلية", "Shift+Enter for a newline inside the cell")}
+                    />
+                  </span>
+                  <span className="cell n">
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={isReal ? line.quantity : ""}
+                      onChange={(e) => updateLine(i, { quantity: normalizeDigits(e.target.value) })}
+                      onKeyDown={(e) => handleKeyDown(e, i, false)}
+                      dir="ltr"
+                      className="font-english text-[13px] text-end"
+                    />
+                  </span>
+                  <span className="cell n">
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={isReal ? line.unitPrice : ""}
+                      onChange={(e) => updateLine(i, { unitPrice: normalizeDigits(e.target.value) })}
+                      onKeyDown={(e) => handleKeyDown(e, i, i === realLineCount - 1)}
+                      dir="ltr"
+                      className="font-english text-[13px] text-end"
+                    />
+                  </span>
+                  {showAccount && (
+                    <span className="cell !px-1">
+                      <SearchableCombobox
+                        value={line.accountId || ""}
+                        onChange={(id) => updateLine(i, { accountId: id })}
+                        items={accountItems}
+                        placeholder={t("حساب…", "Account…")}
+                        borderless
+                        buttonClassName="min-h-8 h-auto py-1 px-2 text-[13px] rounded-md"
+                        menuMinWidth={520}
+                        wrap
+                        onCreate={onCreateAccount ? async (name) => {
+                          const a = await onCreateAccount(name);
+                          updateLine(i, { accountId: a.id });
+                          return a.id;
+                        } : undefined}
+                        createLabel={(q) => t("+ إنشاء حساب جديد", "+ Create account") + ` "${q}"`}
+                      />
+                    </span>
+                  )}
+                  {showTax && (
+                    <span className="cell n !px-1">
+                      <select
+                        value={`${line.taxRate}-${line.taxInclusive ? "in" : "ex"}`}
+                        onChange={(e) => {
+                          const [rate, inc] = e.target.value.split("-");
+                          updateLine(i, { taxRate: Number(rate), taxInclusive: inc === "in" });
+                        }}
+                        className="h-8 w-full border-0 bg-transparent px-1 text-[12px] leading-tight text-end focus:outline-none"
+                      >
+                        <option value="0.15-ex">{t("15% غير شامل", "15% excluded")}</option>
+                        <option value="0.15-in">{t("15% شامل", "15% included")}</option>
+                        <option value="0-ex">{t("0% (صفر)", "0% (zero-rated)")}</option>
+                        <option value="0-ex">{t("معفى", "Exempt")}</option>
+                      </select>
+                    </span>
+                  )}
+                  <span className="cell n font-english text-foreground">
+                    {gross > 0 ? displayDigits(lineNet.toFixed(2)) : ""}
+                  </span>
+                  {showTaxAmount && (
+                    <span className="cell n font-english text-content-secondary">
+                      {gross > 0 ? displayDigits(lineTax.toFixed(2)) : ""}
+                    </span>
+                  )}
+                  <span className="cell n font-display !bg-surface-subtle text-[15px] text-foreground">
+                    {gross > 0 ? displayDigits(lineTotal.toFixed(2)) : ""}
+                  </span>
+                  {showRecognition && (
+                    <span className="cell !px-1">
+                      {isReal && gross > 0 ? (
+                        <div className="flex w-full items-center gap-1">
+                          <Input
+                            type="date"
+                            value={line.recognitionStartDate || ""}
+                            onChange={(e) => updateLine(i, { recognitionStartDate: e.target.value || undefined })}
+                            className="text-[11px]"
+                            dir="ltr"
+                            title={t("بداية الاعتراف بالإيراد", "Revenue recognition start")}
+                          />
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={120}
+                            value={line.recognitionMonths ? String(line.recognitionMonths) : ""}
+                            onChange={(e) => updateLine(i, { recognitionMonths: e.target.value ? Number(e.target.value) : undefined })}
+                            placeholder={t("أشهر", "Months")}
+                            className="font-english text-[11px]"
+                            dir="ltr"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      )}
+                    </span>
+                  )}
+                  {showAssetCol && (
+                    <span className="cell justify-center !px-0">
+                      {isReal && gross > 0 ? (
+                        line.accountId && fixedAssetAccountIds.has(line.accountId) ? (
+                          <span
+                            className="inline-flex items-center justify-center rounded-md p-1 text-success"
+                            title={t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ", "Account sits in the assets branch · auto-registers as a fixed asset on save")}
+                          >
+                            <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={line.isAsset === true}
+                            onClick={() => updateLine(i, { isAsset: !line.isAsset })}
+                            title={line.isAsset ? t("سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء", "Registers as a fixed asset on save · click to undo") : t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}
+                            className={`rounded-md p-1 transition-colors ${line.isAsset ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                          >
+                            <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          </button>
+                        )
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      )}
+                    </span>
+                  )}
+                  <span className="cell justify-center !px-0">
+                    {isReal && (
                       <button
                         type="button"
-                        onClick={() => isReal && toggleSelect(line.id)}
-                        className="text-muted-foreground/70 hover:text-foreground disabled:opacity-30"
-                        disabled={!isReal}
+                        onClick={() => removeRow(i)}
+                        className="rounded-md p-1 text-muted-foreground hover:text-danger"
+                        title={t("حذف السطر", "Delete line")}
                       >
-                        {isReal && selected.has(line.id) ? <SquareCheck className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                       </button>
-                    </td>
-                    {(/* show column even when products empty · allows quick-create */ products.length >= 0) && (
-                      <td className="px-2 py-1">
-                        <SearchableCombobox
-                          value={line.productId || ""}
-                          onChange={(id) => {
-                            const p = products.find((x) => x.id === id);
-                            if (p) onProductPick(i, p);
-                          }}
-                          onCreate={onCreateProduct ? async (name) => {
-                            const p = await onCreateProduct(name);
-                            onProductPick(i, p);
-                            return p.id;
-                          } : undefined}
-                          items={products.map((p) => ({
-                            id: p.id,
-                            label: p.name,
-                            sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString(displayLocale())}`,
-                          }))}
-                          placeholder={t("ابحث عن صنف...", "Search item...")}
-                          createLabel={(q) => t("+ إنشاء صنف", "+ Create item") + ` "${q}"`}
-                          borderless
-                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs rounded-md"
-                          menuMinWidth={360}
-                          wrap
-                        />
-                      </td>
                     )}
-                    <td className="px-2 py-1 align-top">
-                      <AutoGrowTextarea
-                        value={line.description}
-                        onChange={(e) => updateLine(i, { description: e.target.value })}
-                        onKeyDown={(e) => {
-                          // Shift+Enter = newline inside cell · Enter alone = next row
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleKeyDown(e as any, i, false);
-                          }
-                          // Shift+Enter is allowed default behavior (newline)
-                        }}
-                        placeholder={t("الوصف · Shift+Enter لسطر جديد داخل الخلية", "Description · Shift+Enter for a newline inside the cell")}
-                      />
-                    </td>
-                    <td className="px-2 py-1">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={isReal ? line.quantity : ""}
-                        onChange={(e) => updateLine(i, { quantity: normalizeDigits(e.target.value) })}
-                        onKeyDown={(e) => handleKeyDown(e, i, false)}
-                        dir="ltr"
-                        className="border-0 focus:ring-1 focus:ring-primary/30 h-7 font-english bg-transparent text-xs"
-                      />
-                    </td>
-                    <td className="px-2 py-1">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={isReal ? line.unitPrice : ""}
-                        onChange={(e) => updateLine(i, { unitPrice: normalizeDigits(e.target.value) })}
-                        onKeyDown={(e) => handleKeyDown(e, i, i === realLineCount - 1)}
-                        dir="ltr"
-                        className="border-0 focus:ring-1 focus:ring-primary/30 h-7 font-english bg-transparent text-xs"
-                      />
-                    </td>
-                    {showAccount && (
-                      <td className="px-2 py-1">
-                        <SearchableCombobox
-                          value={line.accountId || ""}
-                          onChange={(id) => updateLine(i, { accountId: id })}
-                          items={accountItems}
-                          placeholder={t("ابحث عن حساب...", "Search account...")}
-                          borderless
-                          buttonClassName="min-h-7 h-auto py-1 px-2 text-xs rounded-md"
-                          menuMinWidth={520}
-                          wrap
-                          onCreate={onCreateAccount ? async (name) => {
-                            const a = await onCreateAccount(name);
-                            updateLine(i, { accountId: a.id });
-                            return a.id;
-                          } : undefined}
-                          createLabel={(q) => t("+ إنشاء حساب جديد", "+ Create account") + ` "${q}"`}
-                        />
-                      </td>
-                    )}
-                    {showTax && (
-                      <td className="px-2 py-1">
-                        <select
-                          value={`${line.taxRate}-${line.taxInclusive ? "in" : "ex"}`}
-                          onChange={(e) => {
-                            const [rate, inc] = e.target.value.split("-");
-                            updateLine(i, { taxRate: Number(rate), taxInclusive: inc === "in" });
-                          }}
-                          className="w-full h-7 rounded-md border-0 bg-transparent px-1.5 text-[11px] leading-tight focus:ring-1 focus:ring-primary/30"
-                        >
-                          <option value="0.15-ex">{t("15% غير شامل", "15% excluded")}</option>
-                          <option value="0.15-in">{t("15% شامل", "15% included")}</option>
-                          <option value="0-ex">{t("0% (صفر)", "0% (zero-rated)")}</option>
-                          <option value="0-ex">{t("معفى", "Exempt")}</option>
-                        </select>
-                      </td>
-                    )}
-                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap text-end table-cell">
-                      {gross > 0 ? displayDigits(lineNet.toFixed(2)) : ""}
-                    </td>
-                    {showTaxAmount && (
-                      <td className="px-2 py-1 font-english text-xs text-muted-foreground whitespace-nowrap text-end table-cell">
-                        {gross > 0 ? displayDigits(lineTax.toFixed(2)) : ""}
-                      </td>
-                    )}
-                    <td className="px-2 py-1 font-english text-xs text-foreground whitespace-nowrap text-end table-cell" style={{ fontWeight: 700 }}>
-                      {gross > 0 ? displayDigits(lineTotal.toFixed(2)) : ""}
-                    </td>
-                    {showRecognition && (
-                      <td className="px-2 py-1">
-                        {isReal && gross > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            <Input
-                              type="date"
-                              value={line.recognitionStartDate || ""}
-                              onChange={(e) => updateLine(i, { recognitionStartDate: e.target.value || undefined })}
-                              className="h-7 border-0 bg-transparent px-1 text-[11px] focus:ring-1 focus:ring-primary/30"
-                              dir="ltr"
-                            />
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              min={1}
-                              max={120}
-                              value={line.recognitionMonths ? String(line.recognitionMonths) : ""}
-                              onChange={(e) => updateLine(i, { recognitionMonths: e.target.value ? Number(e.target.value) : undefined })}
-                              placeholder={t("أشهر", "Months")}
-                              className="h-7 border-0 bg-transparent px-1 text-[11px] font-english focus:ring-1 focus:ring-primary/30"
-                              dir="ltr"
-                            />
-                            {line.recognitionStartDate && line.recognitionMonths ? (
-                              <span className="text-[10px] text-primary leading-tight">
-                                {t("{m} شهر · يبدأ {d}", "{m} months · starts {d}").replace("{m}", String(line.recognitionMonths)).replace("{d}", line.recognitionStartDate || "")}
-                              </span>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground/50">—</span>
-                        )}
-                      </td>
-                    )}
-                    {showAssetCol && (
-                      <td className="px-1 py-1 text-center">
-                        {isReal && gross > 0 ? (
-                          line.accountId && fixedAssetAccountIds.has(line.accountId) ? (
-                            <span
-                              className="inline-flex items-center justify-center rounded-md bg-success-subtle p-1.5 text-success ring-1 ring-success-border"
-                              title={t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ", "Account sits in the assets branch · auto-registers as a fixed asset on save")}
-                            >
-                              <Building2 className="h-3.5 w-3.5" />
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              role="checkbox"
-                              aria-checked={line.isAsset === true}
-                              onClick={() => updateLine(i, { isAsset: !line.isAsset })}
-                              title={line.isAsset ? t("سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء", "Registers as a fixed asset on save · click to undo") : t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}
-                              className={`rounded-md p-1.5 transition-colors ${line.isAsset ? "bg-primary/10 text-primary ring-1 ring-primary/40" : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground"}`}
-                            >
-                              <Building2 className="h-3.5 w-3.5" />
-                            </button>
-                          )
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground/40">—</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-1 py-1">
-                      {isReal && (
-                        <button
-                          type="button"
-                          onClick={() => removeRow(i)}
-                          className="rounded-md p-1.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-                          title={t("حذف السطر", "Delete line")}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Footer · add row + cashier input + barcode + columns toggle */}
-        <div className="border-t border-border/50 px-3 py-2 bg-muted/50 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
+        {/* Footer · quiet "+ سطر" pill + cashier input + barcode + columns toggle */}
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-surface-subtle px-3 py-2 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={addRow}
-              className="text-sm text-primary hover:underline flex items-center gap-1"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-primary hover:border-border-strong"
             >
-              <Plus className="h-3.5 w-3.5" /> {t("إضافة سطر", "Add line")}
+              <Plus className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("سطر", "Line")}
             </button>
+            <span className="text-muted-foreground">{t("Enter ينتقل للسطر التالي · Tab بين الخلايا", "Enter moves to the next line · Tab between cells")}</span>
 
             {selected.size > 0 && (
               <button
                 type="button"
                 onClick={deleteSelected}
-                className="text-sm text-destructive hover:underline flex items-center gap-1"
+                className="flex items-center gap-1 text-xs text-danger hover:underline"
               >
-                <Trash2 className="h-3.5 w-3.5" /> {t("حذف {n} سطر", "Delete {n} lines").replace("{n}", String(selected.size))}
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("حذف {n} سطر", "Delete {n} lines").replace("{n}", String(selected.size))}
               </button>
             )}
 
@@ -793,7 +801,7 @@ export function ItemsTable({
                 <input
                   type="text"
                   placeholder={t("ادخل الكود + Enter", "Enter code + Enter")}
-                  className="text-sm rounded border border-border px-2 py-1 w-40 font-english focus:ring-1 focus:ring-primary/30"
+                  className="w-40 rounded-full border border-border bg-card px-3 py-1 font-english text-xs focus:outline-none"
                   dir="ltr"
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
@@ -863,11 +871,12 @@ export function ItemsTable({
               />
             )}
           </div>
-          <div className="relative">
+          <div className="relative flex items-center gap-3">
+            <span className="text-muted-foreground">{t("{n} بنود", "{n} lines").replace("{n}", String(realLineCount))}</span>
             <button
               type="button"
               onClick={() => setColsOpen(!colsOpen)}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-content-secondary hover:text-foreground"
             >
               <Settings2 className="h-3.5 w-3.5" />
               {t("الأعمدة ({n} مخفية)", "Columns ({n} hidden)").replace("{n}", String(hiddenCount))}

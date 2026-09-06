@@ -176,7 +176,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
 
   if (loading) {
     return (
-      <button className={`flex h-[60px] w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-[13px] text-muted-foreground/60 ${className || ""}`}>
+      <button className={`flex h-[54px] w-full items-center justify-between rounded-lg border border-border bg-card px-[12px] py-[10px] text-[13px] text-muted-foreground/60 ${className || ""}`}>
         <span>...{t("جارٍ التحميل", "Loading")}</span>
       </button>
     );
@@ -294,22 +294,22 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       <button
         ref={buttonRef}
         onClick={() => setOpen(!open)}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card p-3 text-sm text-foreground transition-colors hover:bg-surface-hover ${className || ""}`}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-[12px] py-[10px] text-sm text-foreground transition-colors hover:bg-surface-hover ${className || ""}`}
       >
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-[10px]">
           {activeOrg?.logoUrl ? (
-            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-9 w-9 shrink-0 rounded-lg border border-border/50 bg-surface object-contain p-0.5" />
+            <img src={activeOrg.logoUrl} alt={activeOrg.name} className="h-[32px] w-[32px] shrink-0 rounded-lg border border-border/50 bg-surface object-contain p-0.5" />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-foreground text-[13px] text-background" style={{ fontWeight: 600 }}>
+            <div className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-lg bg-foreground text-[13px] text-background" style={{ fontWeight: 600 }}>
               {orgInitials(activeOrg?.name)}
             </div>
           )}
           <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-            <BidiText compact className="w-full max-w-[220px] text-[13px] font-semibold leading-5 text-foreground">
+            <BidiText compact className="w-full max-w-[220px] text-[13px] font-semibold leading-[17px] text-foreground">
               {activeOrg ? activeOrg.name : t("اختر شركة", "Select company")}
             </BidiText>
             {activeOrg && (
-              <NumericText className="block text-[11px] leading-4 text-muted-foreground">
+              <NumericText className="block text-[11px] leading-[14px] text-muted-foreground">
                 {activeOrg.country} · {activeOrg.baseCurrency}
               </NumericText>
             )}

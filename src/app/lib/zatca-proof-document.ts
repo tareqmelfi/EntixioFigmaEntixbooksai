@@ -1,7 +1,7 @@
 import { displayLocale } from "./number-display";
 import qrcode from "qrcode-generator";
 import type { DeviceProof } from "./use-zatca-status";
-import { drawEntixWordmark } from "./entix-brand-tokens";
+import { ENTIX_BRAND } from "./entix-brand-tokens";
 import { deviceProofStages, isDeviceProofCurrent } from "./zatca-proof-presentation";
 
 export const FATOORA_DEVICE_PORTAL = "https://fatoora.zatca.gov.sa/";
@@ -17,35 +17,50 @@ function palette() {
     if (typeof window === "undefined") return fallback;
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   };
-  const ink = read("--content", "");
   return {
     paper: read("--canvas", ""),
     paper2: read("--surface-subtle", ""),
     sheet: read("--card", ""),
     line: read("--border-subtle", ""),
-    ink,
+    ink: read("--content", ""),
     muted: read("--content-secondary", ""),
     accent: read("--action-primary", ""),
     accentSubtle: read("--success-subtle", ""),
     warning: read("--warning", ""),
-    onInk: read("--neutral-0", ""),
+    warningMark: read("--chart-4", ""),
+    onInk: read("--canvas", ""),
     onInkMuted: read("--brand-teal-600", ""),
+    onInkSoft: read("--chart-5", ""),
     onInkLine: read("--neutral-600", ""),
   };
 }
 
 const SANS = '"IBM Plex Sans Arabic", "IBM Plex Sans", sans-serif';
 const MONO = '"JetBrains Mono", "IBM Plex Sans", monospace';
+const SERIF = '"Instrument Serif", "IBM Plex Sans", Georgia, serif';
 
-/** Printable record using the client-approved sidebar layout and actual evidence. */
+/** A4 landscape: the artboard is authored at 1123 x 794 and printed at 2480 x 1754. */
+const SHEET_W = 1123;
+const SHEET_H = 794;
+const SCALE = 2480 / SHEET_W;
+
+/**
+ * Printable binding record, laid out to the approved A4-landscape artboard:
+ * a 250pt ink identity panel on the reading edge, the evidence facts on the
+ * sheet, the stage strip, and a footer carrying the fingerprint and its QR.
+ */
 export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: string, en: string) => string) {
   if (!proof.certificate || !isDeviceProofCurrent(proof)) throw new Error("device_proof_unavailable");
+  const brandFont = `${ENTIX_BRAND.fontWeight} 62px "${ENTIX_BRAND.fontFamily}"`;
   await Promise.all([
-    document.fonts.load(`700 72px ${SANS}`, proof.companyName),
+    document.fonts.load(`700 66px ${SANS}`, proof.companyName),
     document.fonts.load(`400 30px ${SANS}`, "سجل الربط"),
-    document.fonts.load(`500 25px ${MONO}`, "0123456789"),
+    document.fonts.load(`500 45px ${MONO}`, "0123456789"),
+    document.fonts.load(`400 53px ${SERIF}`, "0123456789"),
+    document.fonts.load(brandFont, "ENTIX.IO"),
     document.fonts.ready,
   ]);
+  if (!document.fonts.check(brandFont, "ENTIX.IO")) throw new Error("brand_font_unavailable");
   const cert = proof.certificate;
   const canvas = document.createElement("canvas");
   canvas.width = 2480; canvas.height = 1754;
@@ -53,107 +68,180 @@ export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: stri
   if (!ctx) throw new Error("canvas_unavailable");
   const rtl = t("ar", "en") === "ar";
   const c = palette();
-  const text = (value: string, x: number, y: number, size: number, color: string = c.ink, bold = false, width = 1640, align: CanvasTextAlign = "right") => {
-    ctx.direction = rtl ? "rtl" : "ltr"; ctx.textAlign = align;
-    ctx.fillStyle = color; ctx.font = `${bold ? "700 " : "400 "}${size}px ${SANS}`;
-    ctx.fillText(value, x, y, width);
+
+  // Everything below is authored in artboard units; one helper scales to print.
+  const u = (value: number) => value * SCALE;
+  const fill = (color: string, x: number, y: number, w: number, h: number, radius = 0) => {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(u(x), u(y), u(w), u(h), u(radius)); ctx.fill();
   };
-  const code = (value: string, x: number, y: number, size: number, color: string = c.ink, weight = 500, width = 800, align: CanvasTextAlign = "left") => {
-    ctx.direction = "ltr"; ctx.textAlign = align;
-    ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${MONO}`;
-    ctx.fillText(value, x, y, width);
+  const stroke = (color: string, x: number, y: number, w: number, h: number, radius = 0) => {
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, u(1)); ctx.beginPath(); ctx.roundRect(u(x), u(y), u(w), u(h), u(radius)); ctx.stroke();
   };
-  const box = (x: number, y: number, w: number, h: number, color: string, radius = 18) => {
-    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fill();
+  const rule = (color: string, x: number, y: number, w: number) => { ctx.fillStyle = color; ctx.fillRect(u(x), u(y), u(w), Math.max(1, u(1))); };
+  const dot = (color: string, cx: number, cy: number, r: number) => {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(u(cx), u(cy), u(r), 0, Math.PI * 2); ctx.fill();
   };
-  const rule = (x: number, y: number, width: number, color = c.line) => { ctx.fillStyle = color; ctx.fillRect(x, y, width, 2); };
-  const date = (value: string) => new Date(value).toLocaleDateString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" }).replace(/\//g, " / ");
-  const qr = (payload: string, x: number, y: number, cell: number) => {
+  /** Arabic and UI copy: follows the document direction, aligned to the given edge. */
+  const text = (value: string, x: number, baseline: number, size: number, color: string, opts: { bold?: boolean; align?: CanvasTextAlign; max?: number; tracking?: number } = {}) => {
+    ctx.direction = rtl ? "rtl" : "ltr";
+    ctx.textAlign = opts.align || (rtl ? "right" : "left");
+    ctx.fillStyle = color;
+    ctx.font = `${opts.bold ? "700 " : "400 "}${u(size)}px ${SANS}`;
+    if (opts.tracking) ctx.letterSpacing = `${u(opts.tracking)}px`;
+    ctx.fillText(value, u(x), u(baseline), opts.max ? u(opts.max) : undefined);
+    if (opts.tracking) ctx.letterSpacing = "0px";
+  };
+  /** Codes, identifiers and digits: always left-to-right, never mirrored. */
+  const code = (value: string, x: number, baseline: number, size: number, color: string, opts: { weight?: number; align?: CanvasTextAlign; max?: number; tracking?: number; serif?: boolean } = {}) => {
+    ctx.direction = "ltr"; ctx.textAlign = opts.align || "left"; ctx.fillStyle = color;
+    ctx.font = `${opts.weight || 500} ${u(size)}px ${opts.serif ? SERIF : MONO}`;
+    if (opts.tracking) ctx.letterSpacing = `${u(opts.tracking)}px`;
+    ctx.fillText(value, u(x), u(baseline), opts.max ? u(opts.max) : undefined);
+    if (opts.tracking) ctx.letterSpacing = "0px";
+  };
+  const measure = (value: string, size: number, bold: boolean) => {
+    ctx.direction = rtl ? "rtl" : "ltr"; ctx.font = `${bold ? "700 " : "400 "}${u(size)}px ${SANS}`;
+    return ctx.measureText(value).width / SCALE;
+  };
+  /** The approved wordmark: the production face, paper-coloured on the ink panel. */
+  const wordmark = (left: number, baseline: number, size: number) => {
+    ctx.save(); ctx.direction = "ltr"; ctx.textAlign = "left";
+    ctx.font = `${ENTIX_BRAND.fontWeight} ${u(size)}px "${ENTIX_BRAND.fontFamily}"`;
+    const prefix = ctx.measureText("ENTIX").width, stop = ctx.measureText(".").width;
+    ctx.fillStyle = ENTIX_BRAND.navyOnDark; ctx.fillText("ENTIX", u(left), u(baseline));
+    ctx.fillStyle = ENTIX_BRAND.blueOnDark; ctx.fillText(".", u(left) + prefix, u(baseline));
+    ctx.fillText("IO", u(left) + prefix + stop, u(baseline));
+    ctx.restore();
+  };
+  const qr = (payload: string, x: number, y: number, box: number) => {
     const symbol = qrcode(0, "M"); symbol.addData(payload); symbol.make();
-    const count = symbol.getModuleCount(), size = (count + 8) * cell;
-    box(x, y, size, size, c.sheet, 14);
+    const count = symbol.getModuleCount(), cell = box / count;
     ctx.fillStyle = c.ink;
-    for (let r = 0; r < count; r++) for (let col = 0; col < count; col++) if (symbol.isDark(r, col)) ctx.fillRect(x + (col + 4) * cell, y + (r + 4) * cell, cell, cell);
-    return size;
+    for (let r = 0; r < count; r++) for (let col = 0; col < count; col++) if (symbol.isDark(r, col)) ctx.fillRect(u(x + col * cell), u(y + r * cell), Math.ceil(u(cell)), Math.ceil(u(cell)));
   };
-  // A stage mark is a ring plus a word — the colour alone never carries the meaning.
-  const check = (label: string, right: number, baseline: number, complete: boolean, width = 720) => {
-    const color = complete ? c.accent : c.warning;
-    ctx.fillStyle = complete ? c.accentSubtle : c.paper; ctx.beginPath(); ctx.arc(right - 23, baseline - 13, 23, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath();
-    if (complete) { ctx.moveTo(right - 33, baseline - 14); ctx.lineTo(right - 26, baseline - 7); ctx.lineTo(right - 12, baseline - 24); }
-    else { ctx.arc(right - 23, baseline - 13, 11, 0, Math.PI * 2); ctx.moveTo(right - 23, baseline - 20); ctx.lineTo(right - 23, baseline - 13); ctx.lineTo(right - 17, baseline - 10); }
-    ctx.stroke(); text(label, right - 64, baseline, 29, complete ? c.ink : c.muted, false, width);
-  };
+  const date = (value: string) => new Date(value).toLocaleDateString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" }).replace(/\//g, " / ");
+
   const accepted = proof.lastAcceptedInvoice;
   const ready = proof.delivery?.ready === true;
   const review = !!proof.delivery?.needsReview;
 
-  ctx.fillStyle = c.paper; ctx.fillRect(0, 0, 2480, 1754);
-  box(64, 64, 2352, 1626, c.sheet);
-  ctx.save(); ctx.beginPath(); ctx.roundRect(64, 64, 2352, 1626, 18); ctx.clip();
-  ctx.fillStyle = c.ink; ctx.fillRect(1865, 64, 551, 1626); ctx.restore();
-  ctx.strokeStyle = c.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(64, 64, 2352, 1626, 18); ctx.stroke();
+  // ── Frame ────────────────────────────────────────────────────────────────
+  fill(c.paper, 0, 0, SHEET_W, SHEET_H);
+  const cardX = 28, cardY = 28, cardW = 1067, cardH = 738, panelW = 250;
+  fill(c.sheet, cardX, cardY, cardW, cardH, 8);
+  const panelX = rtl ? cardX + cardW - panelW : cardX;
+  ctx.save(); ctx.beginPath(); ctx.roundRect(u(cardX), u(cardY), u(cardW), u(cardH), u(8)); ctx.clip();
+  fill(c.ink, panelX, cardY, panelW, cardH);
+  ctx.restore();
+  stroke(c.line, cardX, cardY, cardW, cardH, 8);
 
-  // The approved wordmark retains the same face and colors as the application.
-  box(1975, 124, 340, 92, c.sheet, 14);
-  await drawEntixWordmark(ctx, 2286, 189, 54);
-  text(t("سجل ربط جهاز", "E-invoicing device"), 2354, 295, 39, c.onInk, true, 430);
-  text(t("الفوترة الإلكترونية", "binding record"), 2354, 356, 39, c.onInk, true, 430);
-  code("ZATCA PHASE 2 · DEVICE", 1926, 414, 22, c.onInkMuted, 400, 425);
-  code("BINDING RECORD", 1926, 450, 22, c.onInkMuted, 400, 425);
-  rule(1926, 504, 428, c.onInkLine);
-  text(t("مرجع السجل", "Record reference"), 2354, 568, 26, c.onInkMuted, true, 428);
+  // ── Ink identity panel ───────────────────────────────────────────────────
+  const pLeft = panelX + 28, pRight = panelX + panelW - 28, pStart = rtl ? pRight : pLeft;
+  wordmark(pLeft, 80, 24);
+  text(t("سجل ربط جهاز", "E-invoicing device"), pStart, 121, 17, c.onInk, { bold: true, max: 194 });
+  text(t("الفوترة الإلكترونية", "binding record"), pStart, 146, 17, c.onInk, { bold: true, max: 194 });
+  code("ZATCA PHASE 2 · DEVICE", pLeft, 168, 10, c.onInkMuted, { weight: 400, tracking: 1.5, max: 194 });
+  code("BINDING RECORD", pLeft, 181, 10, c.onInkMuted, { weight: 400, tracking: 1.5, max: 194 });
+  rule(c.onInkLine, pLeft, 205, 194);
+  text(t("مرجع السجل", "Record reference"), pStart, 231, 11, c.onInkMuted, { bold: true, tracking: 1.5, max: 194 });
   const reference = deviceProofReference(proof), cut = reference.lastIndexOf("-");
-  code(reference.slice(0, cut + 1), 1926, 618, 25, c.onInk, 500, 428);
-  code(reference.slice(cut + 1), 1926, 660, 25, c.onInk, 500, 428);
-  qr(FATOORA_DEVICE_PORTAL, 2050, 1236, 8);
-  text(t("بوابة فاتورة", "Fatoora portal"), 2354, 1565, 29, c.onInk, true, 428);
-  text(t("تسجيل الدخول لمراجعة الجهاز", "Sign in to review the device"), 2354, 1612, 23, c.onInkMuted, false, 428);
-  // Status word on the ink panel: a dot, an ASCII state word and the Arabic phrase.
-  ctx.fillStyle = c.onInkMuted; ctx.beginPath(); ctx.arc(2346, 1655, 9, 0, Math.PI * 2); ctx.fill();
-  code("BOUND", 1926, 1665, 24, c.onInkMuted, 500, 200);
-  text(t("مرتبط · بيئة الإنتاج", "Bound · production"), 2325, 1663, 25, c.onInk, true, 330);
+  code(reference.slice(0, cut + 1), pLeft, 252, 11, c.onInk, { max: 194 });
+  code(reference.slice(cut + 1), pLeft, 270, 11, c.onInk, { max: 194 });
 
-  text(t("المنشأة", "Organization"), 1790, 149, 25, c.muted, true);
-  text(proof.companyName, 1790, 235, 65, c.ink, true, 1220);
-  text(t("صادر من ENTIX.IO بناءً على شهادة الجهاز المحفوظة", "Issued by ENTIX.IO from the stored device certificate"), 1790, 294, 27, c.muted, false, 1370);
-  box(140, 137, 470, 64, c.accentSubtle, 32);
-  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(583, 169, 9, 0, Math.PI * 2); ctx.fill();
-  text(t("تم ربط جهاز المنشأة في بيئة الإنتاج", "Organization device bound in production"), 560, 181, 26, c.accent, true, 400);
-  rule(140, 337, 1650, c.ink);
-  const field = (label: string, value: string, left: number, right: number, y: number, size = 44) => {
-    text(label, right, y, 26, c.muted, true, right - left);
-    code(value, left, y + 62, size, c.ink, 500, right - left);
+  const portalQrX = rtl ? pRight - 100 : pLeft;
+  fill(c.sheet, portalQrX, 557, 100, 100, 8);
+  qr(FATOORA_DEVICE_PORTAL, portalQrX + 8, 565, 84);
+  text(t("بوابة فاتورة", "Fatoora portal"), pStart, 680, 12, c.onInk, { bold: true, max: 194 });
+  text(t("تسجيل الدخول لمراجعة الجهاز", "Sign in to review the device"), pStart, 702, 11, c.onInkSoft, { max: 194 });
+  // The state on the panel is a mark, an ASCII word and the phrase — never colour alone.
+  dot(c.onInkMuted, rtl ? pRight - 4 : pLeft + 4, 727, 4);
+  text(t("مرتبط · بيئة الإنتاج", "Bound · production"), rtl ? pRight - 15 : pLeft + 15, 731, 12, c.onInkMuted, { bold: true, max: 179 });
+
+  // ── Sheet ────────────────────────────────────────────────────────────────
+  const sheetX = rtl ? cardX : cardX + panelW, sheetW = cardW - panelW;
+  const left = sheetX + 34, right = sheetX + sheetW - 34, start = rtl ? right : left, end = rtl ? left : right;
+  const width = right - left;
+
+  text(t("المنشأة", "Organization"), start, 63, 11, c.muted, { bold: true, tracking: 1.5 });
+  text(proof.companyName, start, 97, 30, c.ink, { bold: true, max: width - 240 });
+  text(t("صادر من ENTIX.IO بناءً على شهادة الجهاز المحفوظة", "Issued by ENTIX.IO from the stored device certificate"), start, 122, 12, c.muted, { max: width - 240 });
+
+  const stateLabel = t("تم ربط جهاز المنشأة في بيئة الإنتاج", "Organization device bound in production");
+  const pillW = measure(stateLabel, 12, true) + 42;
+  const pillX = rtl ? left : right - pillW;
+  fill(c.accentSubtle, pillX, 60, pillW, 28, 14);
+  dot(c.accent, rtl ? pillX + pillW - 14 : pillX + 14, 74, 4);
+  text(stateLabel, rtl ? pillX + pillW - 24 : pillX + 24, 78, 12, c.accent, { bold: true, align: rtl ? "right" : "left", max: pillW - 34 });
+
+  // Facts: two columns, values as codes so identifiers and dates never mirror.
+  rule(c.ink, left, 140, width);
+  const colW = (width - 32) / 2;
+  const colStart = (index: number) => rtl ? right - index * (colW + 32) : left + index * (colW + 32);
+  const fact = (label: string, value: string, column: 0 | 1, labelY: number, valueY: number, size: number, serif = false) => {
+    const anchor = colStart(column);
+    text(label, anchor, labelY, 11, c.muted, { bold: true, tracking: 1.5, max: colW });
+    code(value, rtl ? anchor : anchor, valueY, size, c.ink, { weight: 600, align: rtl ? "right" : "left", max: colW, serif });
   };
-  field(t("الرقم الضريبي", "VAT number"), proof.vatNumber || "—", 1000, 1790, 395);
-  field(t("معرّف الجهاز", "Device identifier"), cert.deviceName || "—", 140, 930, 395, 41);
-  field(t("تاريخ إصدار شهادة الجهاز", "Device certificate issued"), date(cert.issuedAt), 1000, 1790, 533);
-  field(t("صالحة حتى", "Valid until"), date(cert.expiresAt), 140, 930, 533);
+  fact(t("الرقم الضريبي", "VAT number"), proof.vatNumber || "—", 0, 163, 191, 20);
+  fact(t("معرّف الجهاز", "Device identifier"), cert.deviceName || "—", 1, 163, 191, 20);
+  fact(t("تاريخ إصدار شهادة الجهاز", "Device certificate issued"), date(cert.issuedAt), 0, 221, 252, 24, true);
+  fact(t("صالحة حتى", "Valid until"), date(cert.expiresAt), 1, 221, 252, 24, true);
 
-  box(140, 653, 1650, 244, c.paper2);
-  deviceProofStages(proof, t).forEach((stage, index) => check(stage.label, index % 2 === 0 ? 1750 : 930, index < 2 ? 714 : 785, stage.complete));
-  // Authority acceptance and daily delivery are separate evidence-based stages.
-  check(t("قبول أول فاتورة إنتاجية", "First production invoice accepted"), 930, 856, !!accepted);
-  check(t("الإرسال التلقائي للفواتير المدعومة", "Automatic delivery for supported invoices"), 1750, 856, ready && !review);
+  // Stage strip: a ring with a tick, then the stage name — the word carries it.
+  fill(c.paper, left, 276, width, 72, 8);
+  const stage = (label: string, column: 0 | 1, baseline: number, complete: boolean) => {
+    const anchor = column === 0 ? (rtl ? right - 18 : left + 18) : (rtl ? right - 18 - colW - 32 : left + 18 + colW + 32);
+    const markX = rtl ? anchor - 10 : anchor + 10;
+    fill(complete ? c.accentSubtle : c.paper2, markX - 10, baseline - 14, 20, 20, 10);
+    ctx.strokeStyle = complete ? c.accent : c.warningMark; ctx.lineWidth = u(2); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath();
+    if (complete) { ctx.moveTo(u(markX - 5), u(baseline - 4.5)); ctx.lineTo(u(markX - 1.5), u(baseline - 1)); ctx.lineTo(u(markX + 5), u(baseline - 8)); }
+    else { ctx.arc(u(markX), u(baseline - 4), u(5), 0, Math.PI * 2); }
+    ctx.stroke();
+    text(label, rtl ? anchor - 26 : anchor + 26, baseline, 13, complete ? c.ink : c.muted, { max: colW - 60 });
+  };
+  const stages = deviceProofStages(proof, t);
+  stages.forEach((item, index) => stage(item.label, (index % 2) as 0 | 1, index < 2 ? 302 : 330, item.complete));
+
+  // Authority acceptance and platform delivery are separate, evidence-based facts.
   if (accepted) {
-    text(t("قبول فاتورة إنتاجية", "Production invoice accepted"), 1790, 960, 29, c.accent, true, 400);
-    code(`${accepted.invoiceNumber} · ${accepted.status}`, 1370, 960, 27, c.ink, 500, 600, "right");
+    const lead = t("قبول فاتورة إنتاجية:", "Production invoice accepted:");
+    text(lead, start, 375, 13, c.muted);
+    const leadW = measure(lead, 13, false) + 8;
+    const codeAnchor = rtl ? start - leadW : start + leadW;
+    code(accepted.invoiceNumber, codeAnchor, 375, 13, c.ink, { align: rtl ? "right" : "left", max: 200 });
+    const codeW = 150;
+    const badgeX = rtl ? codeAnchor - codeW - 76 : codeAnchor + codeW;
+    fill(c.accentSubtle, badgeX, 364, 76, 18, 9);
+    code(accepted.status, badgeX + 38, 377, 10, c.accent, { align: "center", max: 68 });
   } else {
-    text(t("بانتظار رد الهيئة على أول فاتورة", "Awaiting the first invoice authority response"), 1790, 960, 29, c.warning, true, 1650);
+    text(t("بانتظار رد الهيئة على أول فاتورة إنتاجية", "Awaiting the authority response on the first production invoice"), start, 375, 13, c.warning, { max: width - 260 });
   }
-  text(review ? t("توجد فواتير تحتاج مراجعة في حساب المنشأة", "Invoices need review in the organization account") : ready ? t("الإرسال التلقائي مفعّل · مبيعات محلية بالريال بضريبة 15٪", "Automatic delivery active · Domestic SAR sales at 15% VAT") : t("الإرسال التلقائي: بانتظار استكمال التفعيل", "Automatic delivery: awaiting activation"), 1790, 1018, 27, ready && !review ? c.accent : c.warning, false, 1650);
+  // The delivery state: a muted label, then the state word carrying the colour.
+  const deliveryLabel = t("إرسال الفواتير من المنصة:", "Platform submission:");
+  const deliveryState = review
+    ? t("يحتاج مراجعة", "needs review")
+    : ready ? t("مفعّل", "active") : t("غير مفعّل بعد", "not enabled yet");
+  const stateW = measure(deliveryState, 12, true);
+  text(deliveryState, end, 375, 12, ready && !review ? c.accent : c.warning, { bold: true, align: rtl ? "left" : "right", max: 160 });
+  text(deliveryLabel, rtl ? end + stateW + 5 : end - stateW - 5, 375, 12, c.muted, { align: rtl ? "left" : "right", max: 200 });
 
-  rule(140, 1424, 1650);
-  const digest = cert.fingerprint.replace(/:/g, "").toUpperCase();
-  qr(`SHA256:${digest}`, 140, 1444, 4);
-  code("SHA-256 fingerprint", 140, 1690, 18, c.muted, 400, 250);
-  text(accepted ? t("سجل من Entix؛ قبول الفاتورة المذكورة موثق برد الهيئة. لا يعد اعتمادًا للبرنامج أو لجميع الفواتير.", "An Entix record; the named invoice has an authority response. Not software or blanket invoice accreditation.") : t("سجل ربط من Entix؛ لا يتضمن قبول فاتورة إنتاجية بعد، وليس اعتمادًا حكوميًا للبرنامج.", "An Entix onboarding record; no production invoice accepted yet. Not government software accreditation."), 1790, 1495, 22, c.muted, false, 1340);
-  text(t("مراجعة إلغاء الجهاز في بوابة فاتورة. رمز البصمة للمطابقة؛ لا يفتح رابط تحقق رسمي.", "Review device revocation in Fatoora. The fingerprint code is for matching, not an official verification link."), 1790, 1538, 22, c.muted, false, 1340);
-  text(`${t("وقت التحقق", "Checked at")}: ${new Date(proof.checkedAt).toLocaleString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" })}`, 1790, 1588, 22, c.muted, false, 1340);
-  code(`SHA-256 ${cert.fingerprint}`, 450, 1630, 17, c.muted, 400, 1340);
-  rule(450, 1660, 1340);
-  code("© 2026 ENSIDEX LLC · Wyoming, USA · All rights reserved.", 450, 1700, 19, c.muted, 400, 900);
-  code(reference, 1790, 1700, 19, c.muted, 400, 600, "right");
+  // ── Footer: the disclosure, the verification stamp and the fingerprint QR ──
+  rule(c.line, left, 645, width);
+  const noteLeft = rtl ? right : left + 116, noteWidth = width - 116;
+  const disclosure = accepted
+    ? t("سجل من ENTIX.IO؛ قبول الفاتورة المذكورة موثّق برد الهيئة. لا يُعد اعتمادًا للبرنامج أو لجميع الفواتير.", "An ENTIX.IO record; the named invoice carries an authority response. Not software accreditation and not blanket invoice acceptance.")
+    : t("سجل ربط من ENTIX.IO؛ لا يتضمن قبول فاتورة إنتاجية بعد، وليس اعتمادًا حكوميًا للبرنامج.", "An ENTIX.IO onboarding record; no production invoice accepted yet, and not government software accreditation.");
+  text(disclosure, noteLeft, 672, 11, c.muted, { max: noteWidth });
+  text(t("مراجعة الإلغاء في بوابة فاتورة. رمز البصمة للمطابقة؛ لا يفتح رابط تحقق رسمي.", "Review revocation in the Fatoora portal. The fingerprint code is for matching, not an official verification link."), noteLeft, 692, 11, c.muted, { max: noteWidth });
+  // The verification stamp and the fingerprint are Latin evidence: always read left to right.
+  const stampX = rtl ? left + 116 : left + 116;
+  code(`Verified ${new Date(proof.checkedAt).toLocaleString(displayLocale("en-GB"), { timeZone: "Asia/Riyadh" })} (Riyadh)`, stampX, 715, 11, c.muted, { weight: 400, align: "left", max: noteWidth });
+  const digest = cert.fingerprint;
+  code(`SHA-256 ${digest}`, stampX, 736, 9, c.muted, { weight: 400, align: "left", max: noteWidth });
+
+  const qrX = rtl ? left : right - 84;
+  qr(`SHA256:${digest.replace(/:/g, "").toUpperCase()}`, qrX, 653, 84);
+  code("SHA-256 fingerprint", qrX, 748, 9, c.muted, { weight: 400, align: "left", max: 96 });
   return canvas;
 }

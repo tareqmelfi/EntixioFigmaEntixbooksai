@@ -7,12 +7,12 @@ import {
   Calculator as CalculatorIcon, FolderOpen, Wallet,
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
-  HelpCircle, Globe,
-  Users2, Inbox, Camera, TrendingUp, HardHat,
-  Pin, MousePointer, EyeOff, Crown,
+  HelpCircle,
+  Users2, Inbox, Camera, HardHat,
+  Pin, MousePointer, EyeOff,
   PanelRightClose,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
@@ -22,6 +22,21 @@ import { authStore } from "./auth-store";
 const EN_TEXT: Record<string, string> = {
   "لوحة التحكم": "Dashboard",
   "الذكاء الاصطناعي": "AI",
+  "المساعد الذكي": "AI assistant",
+  "صندوق الوارد": "Inbox",
+  "العملاء": "Customers",
+  "الموردون": "Suppliers",
+  "الفواتير": "Invoices",
+  "المصروفات": "Expenses",
+  "المنتجات والمخزون": "Products & inventory",
+  "المخازن": "Warehouses",
+  "البنوك والنقد": "Banks & cash",
+  "التسوية البنكية": "Bank reconciliation",
+  "دليل الحسابات": "Chart of accounts",
+  "القيود اليومية": "Journal entries",
+  "ميزان المراجعة": "Trial balance",
+  "الموظفون والرواتب": "Employees & payroll",
+  "مسير الرواتب": "Payroll",
   "جديد": "New",
   "العمليات الأساسية": "Core operations",
   "المبيعات": "Sales",
@@ -112,118 +127,92 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+// Sidebar IA · Ledger (2026-09-06 blueprint §1): grouped by money flow — people →
+// documents → money in every group. Contacts stays one data model and appears
+// once, in the top group (one list, role per row — Xero-style). Ownership /
+// analysis groups moved out of the main list (owners registry & investments are
+// reachable from search and Settings until they migrate to entix.app).
 const sections: MenuSection[] = [
   {
     items: [
       { title: "لوحة التحكم", icon: LayoutDashboard, path: "/app" },
-      { title: "الذكاء الاصطناعي", icon: Sparkles, path: "/app/ai", badge: "جديد" },
-      { title: "التقاط الإيصالات", icon: Camera, path: "/app/scan-receipts" },
-    ],
-  },
-  {
-    label: "العمليات الأساسية",
-    items: [
-      { title: "قائمة الاتصال", icon: Users, path: "/app/contacts" },
       {
-        title: "منتجات، خدمات، مخزون",
-        icon: Package,
-        path: "/app/products",
+        title: "صندوق الوارد",
+        icon: Inbox,
+        path: "/app/inbox",
         children: [
-          { title: "المنتجات والخدمات", icon: Layers, path: "/app/products" },
-          { title: "المخزون والمستودعات", icon: Warehouse, path: "/app/warehouses" },
-          { title: "حركات المخزون", icon: ScrollText, path: "/app/stock-movements" },
-        ],
-      },
-      {
-        title: "المبيعات",
-        icon: ShoppingCart,
-        path: "/app/sales",
-        children: [
-          { title: "كاشير POS", icon: ShoppingCart, path: "/app/pos" },
-          { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
-          { title: "فواتير المبيعات", icon: FileText, path: "/app/invoices" },
-          { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
-          { title: "الإشعارات الدائنة", icon: ScrollText, path: "/app/credit-notes" },
-        ],
-      },
-      {
-        title: "المشتريات",
-        icon: ShoppingCart,
-        path: "/app/purchases",
-        children: [
-          { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
-          { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
-          { title: "سندات الصرف", icon: CreditCard, path: "/app/payments" },
-          { title: "المصروفات النقدية", icon: Receipt, path: "/app/expenses" },
           { title: "البريد الوارد", icon: Inbox, path: "/app/inbox" },
+          { title: "التقاط الإيصالات", icon: Camera, path: "/app/scan-receipts" },
         ],
       },
-      {
-        title: "الرواتب والموظفين",
-        icon: Wallet,
-        path: "/app/payroll",
-        children: [
-          { title: "الموظفين", icon: Users2, path: "/app/employees" },
-          { title: "الرواتب", icon: Wallet, path: "/app/payroll" },
-          { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
-        ],
-      },
+      // One contacts list for everyone (CEO 2026-09-06: a person can be customer,
+      // supplier and shareholder at once — Xero-style single list, role shown per row).
+      { title: "قائمة الاتصال", icon: Users, path: "/app/contacts" },
+      { title: "المساعد الذكي", icon: Sparkles, path: "/app/ai", badge: "جديد" },
     ],
   },
   {
-    label: "للمحاسب",
+    label: "المبيعات",
     items: [
-      {
-        title: "المحاسبة",
-        icon: Calculator,
-        // The parent itself navigates to the accounting home — it was
-        // pathless before, so clicking it felt «stuck» (2026-08-18 report).
-        path: "/app/accounting",
-        // Everything that lives in the ledger belongs under one roof (CEO
-        // 2026-08-28: «بديهيًا في أشياء تكون كلها تحت المحاسبة — حتى الأصول
-        // ما تكون برّه كذا»). Fixed assets and fiscal periods used to sit as
-        // siblings of «المحاسبة», so an accountant had to hunt for them.
-        children: [
-          { title: "القيود اليدوية", icon: CalculatorIcon, path: "/app/journal-entries" },
-          { title: "شجرة الحسابات", icon: BookOpen, path: "/app/chart-of-accounts" },
-          { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
-          { title: "الضرائب", icon: FolderOpen, path: "/app/taxes" },
-          { title: "الفترات المالية", icon: CalendarDays, path: "/app/fiscal-periods" },
-        ],
-      },
-      {
-        title: "البنوك",
-        icon: Landmark,
-        path: "/app/bank-accounts",
-        children: [
-          { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
-          { title: "تسوية البنوك", icon: Landmark, path: "/app/bank-reconciliation" },
-        ],
-      },
-      {
-        title: "الملاك والمجلس",
-        icon: Crown,
-        badge: "جديد",
-        children: [
-          { title: "محافظ الاستثمار", icon: TrendingUp, path: "/app/investments" },
-          { title: "سجل المساهمين", icon: Users2, path: "/app/shareholders" },
-        ],
-      },
+      { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
+      { title: "الفواتير", icon: FileText, path: "/app/invoices" },
+      { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
+      { title: "الإشعارات الدائنة", icon: ScrollText, path: "/app/credit-notes" },
+      { title: "كاشير POS", icon: ShoppingCart, path: "/app/pos" },
+    ],
+  },
+  {
+    label: "المشتريات",
+    items: [
+      { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
+      { title: "المصروفات", icon: Receipt, path: "/app/expenses" },
+      { title: "سندات الصرف", icon: CreditCard, path: "/app/payments" },
+      { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
+    ],
+  },
+  {
+    label: "المنتجات والمخزون",
+    items: [
+      { title: "المنتجات والخدمات", icon: Package, path: "/app/products" },
+      { title: "المخازن", icon: Warehouse, path: "/app/warehouses" },
+      { title: "حركات المخزون", icon: Layers, path: "/app/stock-movements" },
+    ],
+  },
+  {
+    label: "البنوك والنقد",
+    items: [
+      { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
+      { title: "التسوية البنكية", icon: GitBranch, path: "/app/bank-reconciliation" },
+    ],
+  },
+  {
+    label: "المحاسبة",
+    items: [
+      { title: "دليل الحسابات", icon: BookOpen, path: "/app/chart-of-accounts" },
+      { title: "القيود اليومية", icon: CalculatorIcon, path: "/app/journal-entries" },
+      { title: "الفترات المالية", icon: CalendarDays, path: "/app/fiscal-periods" },
+      { title: "الضرائب", icon: FolderOpen, path: "/app/taxes" },
+      { title: "الأصول الثابتة", icon: Building2, path: "/app/assets" },
       {
         title: "التحليل والهيكل",
         icon: Target,
         children: [
           { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
           { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
-          { title: "الفروع", icon: GitBranch, path: "/app/branches" },
+          { title: "الفروع", icon: Map, path: "/app/branches" },
         ],
       },
-      // برنامج الشركاء intentionally left the sidebar: it's an account-level
-      // tool under Settings → الأدوات, not part of the client's own books.
+      { title: "ميزان المراجعة", icon: Calculator, path: "/app/reports/trial-balance" },
     ],
   },
-  // التقارير is the LAST main-list item (user direction). Integrations and
-  // Templates moved into Settings → الأدوات; the «للمطورين» group is gone.
+  {
+    label: "الموظفون والرواتب",
+    items: [
+      { title: "الموظفين", icon: Users2, path: "/app/employees" },
+      { title: "مسير الرواتب", icon: Wallet, path: "/app/payroll" },
+      { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
+    ],
+  },
   {
     items: [
       { title: "التقارير", icon: BarChart3, path: "/app/reports" },
@@ -247,6 +236,9 @@ const searchPages = [
   { label: "المصروفات النقدية", path: "/app/expenses" },
   { label: "التقاط الإيصالات", path: "/app/scan-receipts" },
   { label: "قائمة الاتصال", path: "/app/contacts" },
+  { label: "ميزان المراجعة", path: "/app/reports/trial-balance" },
+  { label: "تسوية البنوك", path: "/app/bank-reconciliation" },
+  { label: "الفترات المالية", path: "/app/fiscal-periods" },
   { label: "الرواتب والموظفين", path: "/app/payroll" },
   { label: "المنتجات والخدمات", path: "/app/products" },
   { label: "المخزون والمستودعات", path: "/app/warehouses" },
@@ -272,6 +264,39 @@ const searchPages = [
 
 export type SidebarMode = "pinned" | "auto" | "hidden";
 
+/* ─── Collapsible section groups ───
+ * The money-flow IA turned the sidebar into ~30 links, which scrolls on a
+ * 1000px-tall window. Labelled groups therefore collapse: «المبيعات» and
+ * «المشتريات» stay open (the daily work), every other group opens only when
+ * the user is inside it — or when they open it by hand, which we remember.
+ * localStorage is best-effort: a blocked store just falls back to defaults. */
+const SIDEBAR_GROUPS_KEY = "entix-sidebar-groups";
+const DEFAULT_OPEN_GROUPS = ["المبيعات", "المشتريات"];
+
+function readStoredGroups(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_GROUPS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const out: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof v === "boolean") out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredGroups(value: Record<string, boolean>) {
+  try {
+    localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify(value));
+  } catch {
+    /* private mode / storage disabled — the sidebar still works, just forgets */
+  }
+}
+
 export function AppSidebar({
   isOpen,
   onClose,
@@ -293,6 +318,11 @@ export function AppSidebar({
   const navigate = useNavigate();
   const tr = useSidebarText();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const s of sections) if (s.label) initial[s.label] = DEFAULT_OPEN_GROUPS.includes(s.label);
+    return { ...initial, ...readStoredGroups() };
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -323,11 +353,49 @@ export function AppSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const isActive = (path?: string) => path === location.pathname;
+  // Paths may carry a query (contacts?role=…): match pathname + search together,
+  // (kept generic so a future filtered link lights up independently).
+  const isActive = (path?: string) => {
+    if (!path) return false;
+    const [p, q] = path.split("?");
+    return p === location.pathname && (q ? location.search === `?${q}` : !location.search.includes("role="));
+  };
   const hasActiveChild = (children?: SubItem[]) =>
     children?.some((c) => location.pathname === c.path || location.pathname.startsWith(c.path + "/")) ?? false;
   const isParentPathActive = (path?: string) =>
     path ? location.pathname === path || location.pathname.startsWith(path + "/") : false;
+
+  // A group counts as active when the current route lives anywhere inside it —
+  // query strings are ignored here, so /app/contacts lights its group whichever
+  // role filter is on.
+  const sectionHasActiveRoute = (section: MenuSection) =>
+    section.items.some(
+      (i) =>
+        isParentPathActive(i.path?.split("?")[0]) ||
+        (i.children?.some((c) => isParentPathActive(c.path.split("?")[0])) ?? false),
+    );
+
+  const toggleGroup = (label: string) =>
+    setOpenGroups((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      writeStoredGroups(next);
+      return next;
+    });
+
+  // Never hide the page the user is standing on: the group holding the active
+  // route opens itself, whatever the remembered state said.
+  useEffect(() => {
+    const active = sections.filter((s) => s.label && sectionHasActiveRoute(s)).map((s) => s.label!);
+    if (!active.length) return;
+    setOpenGroups((prev) => {
+      if (active.every((l) => prev[l])) return prev;
+      const next = { ...prev };
+      for (const l of active) next[l] = true;
+      writeStoredGroups(next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
 
   const searchResults = searchQuery.trim()
     ? searchPages.filter((p) => {
@@ -355,6 +423,8 @@ export function AppSidebar({
           ModeIcon={ModeIcon}
           openMenus={openMenus}
           toggleMenu={toggleMenu}
+          openGroups={openGroups}
+          toggleGroup={toggleGroup}
           isActive={isActive}
           hasActiveChild={hasActiveChild}
           isParentPathActive={isParentPathActive}
@@ -392,6 +462,8 @@ export function AppSidebar({
         ModeIcon={ModeIcon}
         openMenus={openMenus}
         toggleMenu={toggleMenu}
+        openGroups={openGroups}
+        toggleGroup={toggleGroup}
         isActive={isActive}
         hasActiveChild={hasActiveChild}
         isParentPathActive={isParentPathActive}
@@ -412,7 +484,7 @@ export function AppSidebar({
 /* ─── Shared sidebar content ─── */
 function SidebarContent({
   cycleMode, modeLabel, ModeIcon,
-  openMenus, toggleMenu, isActive, hasActiveChild, isParentPathActive,
+  openMenus, toggleMenu, openGroups, toggleGroup, isActive, hasActiveChild, isParentPathActive,
   searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
   navigate, onClose, collapsed, setCollapsed, isPlatformAdmin,
 }: {
@@ -421,6 +493,8 @@ function SidebarContent({
   ModeIcon: React.ElementType;
   openMenus: Set<string>;
   toggleMenu: (t: string) => void;
+  openGroups: Record<string, boolean>;
+  toggleGroup: (label: string) => void;
   isActive: (p?: string) => boolean;
   hasActiveChild: (c?: SubItem[]) => boolean;
   isParentPathActive: (p?: string) => boolean;
@@ -438,27 +512,32 @@ function SidebarContent({
 }) {
   const { language, toggleLanguage, t } = useLanguage();
   const tr = useSidebarText();
+  // The shell mounts this twice (pinned column + mobile drawer) — ids must not collide.
+  const uid = useId();
 
   const ModeIconTyped = ModeIcon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
 
   return (
     <>
       {/* ── Sidebar header · vector wordmark · workspace card · quiet search ── */}
-      <div className="flex flex-col gap-3.5 px-4 pb-3 pt-5">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-[14px] px-[16px] pb-[14px] pt-[20px]">
+        {/* Reference artboard centres the wordmark in the 248px column and has no
+            rail toggle; we keep the toggle but float it on the end edge so the
+            mark still sits dead centre. */}
+        <div className="relative flex h-[20px] items-center justify-center">
           <Link
             to="/app"
             onClick={onClose}
-            className={`select-none transition-opacity hover:opacity-80 ${collapsed ? "mx-auto" : ""}`}
+            className="flex select-none items-center leading-none transition-opacity hover:opacity-80"
             title={tr("الرئيسية · ENTIX")}
           >
-            {!collapsed && <EntixWordmark size={22} />}
+            {!collapsed && <EntixWordmark size={17} />}
           </Link>
           {setCollapsed && (
             <button
               type="button"
               onClick={() => setCollapsed!(!collapsed)}
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+              className="absolute end-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
               title={collapsed ? "توسيع" : "طي"}
             >
               <PanelRightClose className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} strokeWidth={1.75} />
@@ -474,11 +553,11 @@ function SidebarContent({
 
         {!collapsed && (
         <div className="relative" ref={searchRef}>
-          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} />
+          <Search className="absolute start-[12px] top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-muted-foreground" strokeWidth={1.75} />
           <input
             type="text"
             placeholder={tr("اذهب إلى صفحة...")}
-            className="h-10 w-full rounded-lg border border-border bg-card ps-9 pe-8 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+            className="h-[40px] w-full rounded-lg border border-border bg-card ps-[34px] pe-8 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -506,68 +585,87 @@ function SidebarContent({
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto px-4 pb-2">
-        {sections.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-2.5" : ""}>
-            {!collapsed && section.label && (
-              <div className="ledger-eyebrow px-2.5 pb-1 pt-2.5 text-start text-[10px]">
-                {tr(section.label)}
-              </div>
-            )}
-            <div className="space-y-px">
-              {section.items.map((item) => {
-                if (item.children) {
-                  return (
-                    <CollapsibleMenu
-                      key={item.title}
-                      item={item}
-                      isOpen={openMenus.has(item.title)}
-                      onToggle={() => toggleMenu(item.title)}
-                      isActive={isActive}
-                      isParentActive={hasActiveChild(item.children) || isParentPathActive(item.path)}
-                      onNavigate={onClose}
-                      collapsed={collapsed}
-                    />
-                  );
-                }
-                return (
-                  <SidebarLink key={item.title} item={item} active={isActive(item.path)} onClick={onClose} collapsed={collapsed} />
-                );
-              })}
+      <nav className="flex-1 overflow-y-auto px-[16px] pb-[8px]">
+        {sections.map((section, si) => {
+          // Labelled groups collapse; the rail (collapsed sidebar) has no
+          // labels, so it always shows every icon.
+          const groupOpen = !section.label || !!openGroups[section.label];
+          const showItems = collapsed || groupOpen;
+          return (
+            <div key={si}>
+              {!collapsed && section.label && (
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(section.label!)}
+                  aria-expanded={groupOpen}
+                  aria-controls={`${uid}-group-${si}`}
+                  className="flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[4px] pt-[10px] text-[10px] leading-[13px] tracking-[1px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <span className="min-w-0 truncate text-start">{tr(section.label)}</span>
+                  <ChevronLeft
+                    className={`h-[12px] w-[12px] shrink-0 transition-transform duration-200 ${groupOpen ? "-rotate-90" : ""}`}
+                    strokeWidth={2}
+                  />
+                </button>
+              )}
+              {showItems && (
+                <div id={`${uid}-group-${si}`} className="space-y-px">
+                  {section.items.map((item) => {
+                    if (item.children) {
+                      return (
+                        <CollapsibleMenu
+                          key={item.title}
+                          item={item}
+                          isOpen={openMenus.has(item.title)}
+                          onToggle={() => toggleMenu(item.title)}
+                          isActive={isActive}
+                          isParentActive={hasActiveChild(item.children) || isParentPathActive(item.path)}
+                          onNavigate={onClose}
+                          collapsed={collapsed}
+                        />
+                      );
+                    }
+                    return (
+                      <SidebarLink key={item.title} item={item} active={isActive(item.path)} onClick={onClose} collapsed={collapsed} />
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* ── Bottom ── */}
-      <div className="mt-auto space-y-px border-t border-border px-4 pb-4 pt-2.5">
+      <div className="mt-auto space-y-px border-t border-border px-[16px] pb-[20px] pt-[10px]">
         {!collapsed && (
           <>
             <Link to="/app/roadmap" onClick={onClose}>
-              <button className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${isActive("/app/roadmap") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
-                <Map className={`h-4 w-4 shrink-0 ${isActive("/app/roadmap") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+              <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/roadmap") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
+                <Map className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/roadmap") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate text-start">{tr("خارطة المزايا")}</span>
               </button>
             </Link>
             <Link to="/app/settings" onClick={onClose}>
-              <button className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${isActive("/app/settings") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
-                <Settings className={`h-4 w-4 shrink-0 ${isActive("/app/settings") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+              <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/settings") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
+                <Settings className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/settings") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate text-start">{tr("الإعدادات")}</span>
               </button>
             </Link>
 
             <div className="flex items-center gap-1">
-              <Link to="/app/help" className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] text-content-secondary transition-colors hover:bg-surface-hover hover:text-foreground">
-                <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+              <Link to="/app/help" className="flex flex-1 items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] text-content-secondary transition-colors hover:bg-surface-hover hover:text-foreground">
+                <HelpCircle className="h-[16px] w-[16px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
                 <span className="min-w-0 truncate">{tr("مركز المساعدة")}</span>
               </Link>
+              {/* Reference shows the language switch as a bare 12px ink word at
+                  the end of the help row — no icon. */}
               <button
                 onClick={toggleLanguage}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-[7px] text-xs text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+                className="rounded-lg px-2 py-[7px] transition-colors hover:bg-surface-hover"
                 aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
               >
-                <Globe className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                <span className="font-english font-semibold text-foreground">{language === "ar" ? "EN" : "AR"}</span>
+                <span className="font-english text-xs font-semibold text-foreground">{language === "ar" ? "EN" : "AR"}</span>
               </button>
             </div>
           </>
@@ -597,10 +695,10 @@ function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; act
       <button
         className={`flex w-full items-center rounded-lg text-[13px] transition-colors ${
           active ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
-        } ${collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-[7px]"}`}
+        } ${collapsed ? "justify-center px-2 py-2" : "gap-[10px] px-[10px] py-[7px] leading-[16px]"}`}
         title={tr(item.title)}
       >
-        <Icon className={`h-4 w-4 shrink-0 ${active ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+        <Icon className={`h-[16px] w-[16px] shrink-0 ${active ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
         {!collapsed && <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(item.title)}</span>}
         {!collapsed && item.badge && (
           <span className="shrink-0 rounded-full bg-info-subtle px-1.5 py-0.5 text-[10px] font-semibold text-info">{tr(item.badge)}</span>
@@ -644,7 +742,7 @@ function CollapsibleMenu({
           }`}
           title={tr(item.title)}
         >
-          <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+          <Icon className="h-[16px] w-[16px] shrink-0" strokeWidth={1.75} />
         </button>
       </div>
     );
@@ -655,13 +753,13 @@ function CollapsibleMenu({
       <div className="flex">
         <button
           onClick={handleMainClick}
-          className={`flex flex-1 items-center gap-2.5 rounded-s-lg ps-2.5 pe-1 py-[7px] text-[13px] transition-colors ${
+          className={`flex flex-1 items-center gap-[10px] rounded-s-lg ps-[10px] pe-1 py-[7px] text-[13px] leading-[16px] transition-colors ${
             isParentActive
               ? "bg-foreground font-semibold text-background"
               : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
         >
-          <Icon className={`h-4 w-4 shrink-0 ${isParentActive ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+          <Icon className={`h-[16px] w-[16px] shrink-0 ${isParentActive ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
           <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(item.title)}</span>
           {item.badge && (
             <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isParentActive ? "bg-background/15 text-background" : "bg-info-subtle text-info"}`}>{tr(item.badge)}</span>
@@ -669,14 +767,14 @@ function CollapsibleMenu({
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          className={`rounded-e-lg px-2 py-[7px] text-[13px] transition-colors ${
+          className={`rounded-e-lg px-2 py-[7px] text-[13px] leading-[16px] transition-colors ${
             isParentActive
               ? "bg-foreground text-background"
               : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
         >
           <ChevronLeft
-            className={`h-3 w-3 shrink-0 transition-transform duration-200 ${isOpen ? "-rotate-90" : ""} ${isParentActive ? "text-background" : "text-muted-foreground"}`}
+            className={`h-[12px] w-[12px] shrink-0 transition-transform duration-200 ${isOpen ? "-rotate-90" : ""} ${isParentActive ? "text-background" : "text-muted-foreground"}`}
             strokeWidth={2}
           />
         </button>
@@ -697,11 +795,11 @@ function CollapsibleMenu({
             return (
               <Link key={child.path + child.title} to={child.path} onClick={onNavigate}>
                 <button
-                  className={`flex w-full items-center gap-2.5 rounded-lg ps-8 pe-2.5 py-[7px] text-[13px] transition-colors ${
+                  className={`flex w-full items-center gap-[10px] rounded-lg ps-8 pe-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${
                     active ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
                   }`}
                 >
-                  <ChildIcon className={`h-4 w-4 shrink-0 ${active ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+                  <ChildIcon className={`h-[16px] w-[16px] shrink-0 ${active ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                   <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(child.title)}</span>
                 </button>
               </Link>

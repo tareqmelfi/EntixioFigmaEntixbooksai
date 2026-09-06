@@ -40,7 +40,8 @@ import { BidiText } from "../components/bidi-text";
 import { api, ApiError, DashboardSummary } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
-import { EmptyState, Metric, MetricStrip } from "../components/product";
+import { EmptyState } from "../components/product";
+import { DashboardFigures, type DashboardFigure } from "../components/dashboard-figures";
 import { useSession } from "../lib/auth-client";
 import { readActAs } from "../lib/act-as";
 
@@ -141,8 +142,15 @@ const series = {
   pale: "var(--chart-5)",      // revenue / totals
   loss: "var(--danger)",       // negative profit only
 };
-const gridStyle = { stroke: "var(--border)", strokeDasharray: "3 3" };
+// Artboard grid: solid hairlines in the light paper rule, never dashed.
+const gridStyle = { stroke: "var(--surface-hover)" };
 const axisStyle = { fontSize: 11, fill: "var(--content-secondary)" };
+
+/* Card metrics taken from the artboard: 16px padding on mobile, 18/20 on the
+   tablet board, 22/24 on the 1440 board; the inner gap follows the same steps. */
+const CARD_BOX = "gap-2.5 p-4 md:gap-3 md:px-5 md:py-[18px] xl:gap-4 xl:px-6 xl:py-[22px]";
+const CARD_TITLE = "text-[14px] font-semibold leading-snug text-foreground md:text-[15px] xl:text-[16px]";
+const CARD_SUB = "text-[12px] leading-snug text-content-secondary";
 const tooltipStyle = {
   contentStyle: { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 },
   labelStyle: { color: "var(--foreground)", fontWeight: 600, marginBottom: 4 },
@@ -155,19 +163,20 @@ function Numeral({ value, fraction = true }: { value: number; fraction?: boolean
   const frac = displayDigits((abs - Math.trunc(abs)).toFixed(2).slice(1));
   return (
     <>
-      {value < 0 ? "−" : ""}{int}{fraction && <small>{frac}</small>}
+      {value < 0 ? "−" : ""}{int}
+      {fraction && <small className="text-[0.45em] text-content-secondary">{frac}</small>}
     </>
   );
 }
 
-function ChartLegend({ items }: { items: { label: string; color: string; type?: "rect" | "line" }[] }) {
+function ChartLegend({ items, className }: { items: { label: string; color: string; type?: "rect" | "line" }[]; className?: string }) {
   return (
-    <div className="flex flex-wrap gap-5 pt-3 text-xs text-content-secondary">
+    <div className={`flex flex-wrap gap-5 text-[12px] text-content-secondary ${className ?? ""}`}>
       {items.map((item) => (
         <span key={item.label} className="flex items-center gap-1.5">
           <span
             aria-hidden="true"
-            className={item.type === "line" ? "inline-block h-0.5 w-4 rounded-full" : "inline-block size-2.5 rounded-[2px]"}
+            className={item.type === "line" ? "inline-block h-0.5 w-4" : "inline-block size-2.5"}
             style={{ backgroundColor: item.color }}
           />
           <span>{item.label}</span>
@@ -329,22 +338,76 @@ useEffect(() => {
     })),
   ].slice(0, 5);
 
+  // ── Figure strip · exactly the four figures on the artboard ────────────────
+  // The artboard prints the numeral bare (currency is the org's base currency,
+  // stated once in the overdue line), a 12/13px muted label and a 12px hint.
+  const n0 = (v: number) => v.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 });
+  const figures: DashboardFigure[] = [
+    {
+      key: "revenue",
+      label: t("إجمالي الإيرادات", "Total revenue"),
+      labelShort: t("الإيرادات", "Revenue"),
+      value: <Numeral value={k.revenue} />,
+      hintTone: hasRevDelta ? "primary" : "muted",
+      hint: hasRevDelta
+        ? <>{revCompare.up ? "▲" : "▼"} <span className="tabular-nums">{revCompare.value}%</span> {t("عن", "vs")} {lastMonthLabel}</>
+        : <><span className="tabular-nums">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoices · cash ")}<span className="tabular-nums">{n0(k.cashOnHand)}</span></>,
+      hintShort: hasRevDelta
+        ? <>{revCompare.up ? "▲" : "▼"} <span className="tabular-nums">{revCompare.value}%</span></>
+        : <><span className="tabular-nums">{k.invoiceCount}</span>{t(" فاتورة", " invoices")}</>,
+    },
+    {
+      key: "net",
+      label: t("صافي الدخل", "Net income"),
+      value: <Numeral value={netIncome} />,
+      negative: netIncome < 0,
+      hintTone: netIncome < 0 ? "danger" : "muted",
+      hint: netIncome >= 0
+        ? <>{t("هامش", "Margin")} <span className="tabular-nums">{marginPct}%</span></>
+        : <>{t("خسارة · هامش", "Loss · margin")} <span className="tabular-nums">{marginPct}%</span></>,
+    },
+    {
+      key: "expenses",
+      label: t("المصروفات", "Expenses"),
+      value: <Numeral value={k.expenses + k.purchases} />,
+      hint: <>{t("مباشرة", "Direct")} <span className="tabular-nums">{n0(k.purchases)}</span> · {t("عامة", "General")} <span className="tabular-nums">{n0(k.expenses)}</span></>,
+      hintShort: <>{t("مباشرة", "Direct")} <span className="tabular-nums">{n0(k.purchases)}</span></>,
+    },
+    {
+      key: "vat",
+      label: t("ضريبة القيمة المضافة المستحقة", "VAT due"),
+      labelShort: t("ضريبة مستحقة", "VAT due"),
+      value: <Numeral value={vatNet} />,
+      hintTone: vatNet > 0 ? "warning" : "success",
+      hint: <>{vatNet > 0 ? t("علينا", "We owe") : t("لصالحنا", "Owed to us")} · {t("مخرجات", "Output")} <span className="tabular-nums">{n0(k.vatOutput)}</span> · {t("مدخلات", "Input")} <span className="tabular-nums">{n0(k.vatInput)}</span></>,
+      hintShort: <>{vatNet > 0 ? t("علينا", "We owe") : t("لصالحنا", "Owed to us")}</>,
+    },
+  ];
+
+  const quickStats: DashboardFigure[] = [
+    { key: "contacts", label: t("عدد العملاء/الموردين", "Customers/Vendors count"), labelShort: t("العملاء والموردون", "Customers/Vendors"), value: <Numeral value={k.contactCount} fraction={false} /> },
+    { key: "overdue", label: t("فواتير متأخرة", "Overdue invoices"), value: <Numeral value={k.overdueCount} fraction={false} />, hintTone: k.overdueCount > 0 ? "warning" : "muted", hint: k.overdueCount > 0 ? t("تحتاج متابعة", "Needs follow-up") : t("لا شيء متأخر", "Nothing overdue") },
+    { key: "receipts", label: t("إجمالي القبض", "Total receipts"), value: <Numeral value={k.receipts} /> },
+    { key: "payments", label: t("إجمالي الصرف", "Total payments"), value: <Numeral value={k.payments} /> },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-[18px] xl:space-y-6">
       {/* Masthead · eyebrow date + greeting + primary actions */}
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-sm text-content-secondary">
-            {todayLabel} · {t("السنة المالية", "Fiscal year")} <span className="tabular-nums">{fiscalYear}</span>
-          </div>
-          <h1 className="ledger-greeting mt-1.5">
+        <div className="flex min-w-0 flex-col gap-1 xl:gap-1.5">
+          <span className="text-[12px] text-content-secondary xl:text-[13px]">
+            {todayLabel}
+            <span className="hidden xl:inline"> · {t("السنة المالية", "Fiscal year")} <span className="tabular-nums">{fiscalYear}</span></span>
+          </span>
+          <h1 className="text-[24px] font-bold leading-[1.15] tracking-[-0.01em] text-foreground xl:text-[30px]">
             {greetWord}{t("، ", ", ")}<BidiText>{greetName}</BidiText>.
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button asChild><Link to="/app/invoices?new=1">{t("+ فاتورة", "+ Invoice")}</Link></Button>
-          <Button asChild variant="outline"><Link to="/app/expenses/new">{t("+ مصروف", "+ Expense")}</Link></Button>
-          <Button asChild variant="secondary">
+        <div className="flex flex-wrap items-center gap-2 xl:gap-2.5">
+          <Button asChild className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]"><Link to="/app/invoices?new=1">{t("+ فاتورة", "+ Invoice")}</Link></Button>
+          <Button asChild variant="outline" className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]"><Link to="/app/expenses/new">{t("+ مصروف", "+ Expense")}</Link></Button>
+          <Button asChild variant="secondary" className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
             <Link to="/app/vouchers/new" title={t("+ سند", "+ Voucher")}>{t("+ قيد", "+ Entry")}</Link>
           </Button>
         </div>
@@ -352,7 +415,7 @@ useEffect(() => {
 
       {onb && !onbDismissed && !onb.completed && (
         <Card className="border-s-[3px] border-s-primary">
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4 xl:px-6 xl:py-[22px]">
             <div className="text-sm leading-7 text-foreground">
               <strong>{t("أكمل إعداد شركتك", "Finish setting up your company")}</strong> — {t("انقل أرصدتك الافتتاحية وأصنافك وعملاءك من برنامجك السابق في دقائق، بدون إدخال يدوي.", "Move your opening balances, items and contacts from your previous software in minutes — no manual entry.")}
             </div>
@@ -373,22 +436,19 @@ useEffect(() => {
 
       {/* Overdue alert line */}
       {k.overdueCount > 0 && (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-            <span className="flex items-center gap-3 text-sm text-foreground">
-              <span className="ledger-dot text-warning" aria-hidden="true" />
-              <span>
-                <span className="tabular-nums">{data.overdueInvoices.length || k.overdueCount}</span>{" "}
-                {t("فاتورة متأخرة", "overdue invoice(s)")}
-                <span className="mx-1.5 text-content-secondary">·</span>
-                {t("قيد التحصيل", "pending collection")}
-                <span className="mx-1.5 text-content-secondary">·</span>
-                <span className="font-display tabular-nums text-base">{overdueTotal.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>{" "}
-                <span className="text-xs text-content-secondary">{cur}</span>
-              </span>
+        <Card className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3.5 py-3 xl:px-[18px] xl:py-3.5">
+          <span className="flex min-w-0 items-center gap-2.5 text-[13px] text-foreground xl:gap-3 xl:text-[14px]">
+            <span className="size-2 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+            <span>
+              <span className="tabular-nums">{data.overdueInvoices.length || k.overdueCount}</span>{" "}
+              {t("فاتورة متأخرة السداد بقيمة", "overdue invoices totalling")}{" "}
+              <span className="font-display text-[16px] tabular-nums xl:text-[18px]">
+                {overdueTotal.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>{" "}
+              {cur}
             </span>
-            <Link to="/app/invoices?status=OVERDUE" className="text-sm font-semibold text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
-          </CardContent>
+          </span>
+          <Link to="/app/invoices?status=OVERDUE" className="shrink-0 text-[13px] font-semibold text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
         </Card>
       )}
 
@@ -418,55 +478,23 @@ useEffect(() => {
         </section>
       )}
 
-      {/* Ledger figures strip */}
-      <MetricStrip>
-        <Metric
-          label={t("إجمالي الإيرادات", "Total Revenue")}
-          value={<><Numeral value={k.revenue} /> <small className="text-content-secondary">{cur}</small></>}
-          hint={hasRevDelta
-            ? <span className="text-primary">{revCompare.up ? "▲" : "▼"} <span className="tabular-nums">{revCompare.value}%</span> {t("عن", "vs")} {lastMonthLabel}</span>
-            : <><span className="tabular-nums">{k.invoiceCount}</span>{t(" فاتورة · نقد ", " invoice · cash ")}<span className="tabular-nums">{k.cashOnHand.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></>}
-        />
-        <Metric
-          label={t("صافي الدخل", "Net Income")}
-          value={<><Numeral value={netIncome} /> <small className="text-content-secondary">{cur}</small></>}
-          tone={netIncome >= 0 ? "neutral" : "critical"}
-          hint={<>{netIncome >= 0 ? t("ربح", "Profit") : t("خسارة", "Loss")} · {t("هامش", "margin")} <span className="tabular-nums">{marginPct}%</span></>}
-        />
-        <Metric
-          label={t("إجمالي المصروفات", "Total Expenses")}
-          value={<><Numeral value={k.expenses + k.purchases} /> <small className="text-content-secondary">{cur}</small></>}
-          hint={<>{t("مباشرة", "Direct")} <span className="tabular-nums">{k.purchases.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span> · {t("عمومية", "General")} <span className="tabular-nums">{k.expenses.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></>}
-        />
-        <Metric
-          label={t("ضريبة القيمة المضافة المستحقة", "VAT due")}
-          value={<><Numeral value={vatNet} /> <small className="text-content-secondary">{cur}</small></>}
-          hint={
-            <span className="inline-flex items-center gap-1.5">
-              <span className={vatNet > 0 ? "inline-flex items-center gap-1.5 text-warning" : "inline-flex items-center gap-1.5 text-success"}>
-                <span className="ledger-dot" aria-hidden="true" />
-                {vatNet > 0 ? t("علينا", "We owe") : t("لصالحنا", "Owed to us")}
-              </span>
-              <span>· {t("مخرجات", "Output")} <span className="tabular-nums">{k.vatOutput.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span> · {t("مدخلات", "Input")} <span className="tabular-nums">{k.vatInput.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 })}</span></span>
-            </span>
-          }
-        />
-      </MetricStrip>
+      {/* Ledger figures strip · artboard: ink rules, serif numerals, no currency */}
+      <DashboardFigures items={figures} />
 
       {/* P&L (span 2) + today's activity */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-            <CardTitle className="text-base font-semibold text-foreground">
+      <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3">
+        <Card className={`${CARD_BOX} lg:col-span-2`}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className={CARD_TITLE}>
               {chartPeriod === "years"
                 ? t("الأرباح والخسائر · حسب السنة", "Profit & Loss · by year")
                 : t("الأرباح والخسائر · آخر 6 أشهر", "Profit & Loss · last 6 months")}
-            </CardTitle>
+            </h2>
             {(data.yearlyTrend?.length ?? 0) > 0 && (
               <div
                 role="group"
                 aria-label={t("فترة الرسوم:", "Chart period:")}
-                className="flex shrink-0 items-center gap-0.5 rounded-full border border-border p-[3px] text-xs font-semibold"
+                className="flex shrink-0 items-center rounded-full border border-border p-[3px] text-[12px] font-semibold"
               >
                 <button
                   type="button"
@@ -487,72 +515,66 @@ useEffect(() => {
                 </button>
               </div>
             )}
-          </CardHeader>
-          <CardContent>
-            <div dir="ltr">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={plRows} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
-                  <CartesianGrid {...gridStyle} vertical={false} />
-                  <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
-                  <YAxis orientation="right" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} width={44} />
-                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
-                  <Bar dataKey="revenue" name={t("الإيرادات", "Revenue")} fill={series.pale} radius={[4, 4, 0, 0]} maxBarSize={34} />
-                  <Bar dataKey="profit" name={t("الربح", "Profit")} radius={[4, 4, 0, 0]} maxBarSize={34}>
-                    {plRows.map((row, i) => (
-                      <Cell key={i} fill={row.profit < 0 ? series.loss : i === plRows.length - 1 ? series.accent : series.ink} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <ChartLegend items={[
-              { label: t("الإيرادات", "Revenue"), color: series.pale },
-              { label: t("الربح", "Profit"), color: series.ink },
-              { label: chartPeriod === "years" ? t("السنة الحالية", "Current year") : t("الشهر الحالي", "Current month"), color: series.accent },
-              { label: t("خسارة", "Loss"), color: series.loss },
-            ]} />
-          </CardContent>
+          </div>
+          {/* Artboard: bare bars on three hairlines · no value axis, month ticks kept */}
+          <div dir="ltr" className="h-[120px] md:h-[150px] xl:h-[190px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={plRows} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barGap={4} barCategoryGap="26%">
+                <CartesianGrid {...gridStyle} vertical={false} />
+                <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={{ stroke: "var(--border)" }} tickMargin={6} />
+                <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                <Bar dataKey="revenue" name={t("الإيرادات", "Revenue")} fill={series.pale} radius={[4, 4, 0, 0]} maxBarSize={42} />
+                <Bar dataKey="profit" name={t("الربح", "Profit")} radius={[4, 4, 0, 0]} maxBarSize={42}>
+                  {plRows.map((row, i) => (
+                    <Cell key={i} fill={row.profit < 0 ? series.loss : i === plRows.length - 1 ? series.accent : series.ink} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <ChartLegend items={[
+            { label: t("الإيرادات", "Revenue"), color: series.pale },
+            { label: t("الربح", "Profit"), color: series.ink },
+            { label: chartPeriod === "years" ? t("السنة الحالية", "Current year") : t("الشهر الحالي", "Current month"), color: series.accent },
+            { label: t("خسارة", "Loss"), color: series.loss },
+          ]} />
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">{t("نشاط اليوم", "Today's activity")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activity.length === 0 ? (
-              <EmptyState
-                className="border-0 px-0 py-8"
-                title={t("لا يوجد نشاط بعد", "No activity yet")}
-                description={t("ستظهر هنا آخر الفواتير والمصروفات والتسويات البنكية.", "Recent invoices, expenses and bank matches will appear here.")}
-              />
-            ) : (
-              <div className="text-sm">
-                {activity.map((row, i) => (
-                  <Link
-                    key={row.key}
-                    to={row.to}
-                    className={`flex items-center justify-between gap-3 py-2.5 ${i < activity.length - 1 ? "border-b border-border" : ""}`}
-                  >
-                    <span className="min-w-0 truncate text-foreground">{row.label}</span>
-                    <span className="shrink-0 font-display tabular-nums text-base text-foreground">
-                      {(row.amount ?? 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
+        <Card className={CARD_BOX}>
+          <h2 className={CARD_TITLE}>{t("نشاط اليوم", "Today's activity")}</h2>
+          {activity.length === 0 ? (
+            <EmptyState
+              className="border-0 px-0 py-8"
+              title={t("لا يوجد نشاط بعد", "No activity yet")}
+              description={t("ستظهر هنا آخر الفواتير والمصروفات والتسويات البنكية.", "Recent invoices, expenses and bank matches will appear here.")}
+            />
+          ) : (
+            <div className="flex flex-col text-[13px] leading-normal">
+              {activity.map((row, i) => (
+                <Link
+                  key={row.key}
+                  to={row.to}
+                  className={`flex items-center justify-between gap-3 py-2.5 ${i < activity.length - 1 ? "border-b border-surface-hover" : ""}`}
+                >
+                  <span className="min-w-0 truncate text-foreground">{row.label}</span>
+                  <span className="shrink-0 font-display text-[16px] leading-[1.2] tabular-nums text-foreground">
+                    {(row.amount ?? 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
       {/* Breakdowns · income · revenue vs expenses · cash flow */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">{t("تفصيل الإيرادات", "Revenue Breakdown")}</CardTitle>
-            <CardDescription className="text-xs">{t("توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة", "Revenue distribution by branches, projects and cost centers")}</CardDescription>
+      <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-2">
+        <Card className={`${CARD_BOX} ledger-hoverable cursor-pointer`} onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
+          <CardHeader className="gap-1.5 p-0">
+            <CardTitle className="text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">{t("تفصيل الإيرادات", "Revenue Breakdown")}</CardTitle>
+            <CardDescription className={CARD_SUB}>{t("توزيع الإيرادات حسب الفروع والمشاريع ومراكز التكلفة", "Revenue distribution by branches, projects and cost centers")}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 [&:last-child]:pb-0">
             {data.incomeBreakdown.length === 0 ? (
               <EmptyState className="border-0 px-0 py-10" title={t("لا توجد إيرادات بعد", "No revenue yet")} />
             ) : (
@@ -571,12 +593,12 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">{t("الإيرادات مقابل المصروفات", "Revenue vs Expenses")}</CardTitle>
-            <CardDescription className="text-xs">{chartPeriod === "years" ? t("مقارنة الإيرادات بالمصروفات حسب السنة", "Revenue vs expenses by year") : t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
+        <Card className={`${CARD_BOX} ledger-hoverable cursor-pointer`} onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
+          <CardHeader className="gap-1.5 p-0">
+            <CardTitle className="text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">{t("الإيرادات مقابل المصروفات", "Revenue vs Expenses")}</CardTitle>
+            <CardDescription className={CARD_SUB}>{chartPeriod === "years" ? t("مقارنة الإيرادات بالمصروفات حسب السنة", "Revenue vs expenses by year") : t("مقارنة الإيرادات بالمصروفات لآخر 6 أشهر", "Revenue vs expenses comparison for the last 6 months")}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 [&:last-child]:pb-0">
             <div dir="ltr">
               <ResponsiveContainer width="100%" height={230}>
                 <BarChart data={chartPeriod === "years" ? (data.yearlyTrend || []).map(y => ({ month: String(y.year), revenue: y.revenue, expenses: y.expenses })) : data.monthlyTrend}>
@@ -589,19 +611,19 @@ useEffect(() => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <ChartLegend items={[
+            <ChartLegend className="mt-4" items={[
               { label: t("الإيرادات", "Revenue"), color: series.pale },
               { label: t("المصروفات", "Expenses"), color: series.ink },
             ]} />
           </CardContent>
         </Card>
 
-        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/bank-accounts")} title={t("فتح الحسابات البنكية", "Open bank accounts")}>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">{t("التدفق النقدي", "Cash Flow")}</CardTitle>
-            <CardDescription className="text-xs">{t("تحليل التدفقات النقدية الداخلة والخارجة", "Analysis of cash inflows and outflows")}</CardDescription>
+        <Card className={`${CARD_BOX} ledger-hoverable cursor-pointer`} onClick={() => navigate("/app/bank-accounts")} title={t("فتح الحسابات البنكية", "Open bank accounts")}>
+          <CardHeader className="gap-1.5 p-0">
+            <CardTitle className="text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">{t("التدفق النقدي", "Cash Flow")}</CardTitle>
+            <CardDescription className={CARD_SUB}>{t("تحليل التدفقات النقدية الداخلة والخارجة", "Analysis of cash inflows and outflows")}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 [&:last-child]:pb-0">
             {data.cashFlowTrend.length === 0 ? (
               <EmptyState className="border-0 px-0 py-10" title={t("لا توجد حركة نقدية بعد", "No cash movement yet")} />
             ) : (
@@ -618,7 +640,7 @@ useEffect(() => {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <ChartLegend items={[
+                <ChartLegend className="mt-4" items={[
                   { label: t("تدفق داخل", "Inflow"), color: series.ink, type: "line" },
                   { label: t("تدفق خارج", "Outflow"), color: series.accent, type: "line" },
                 ]} />
@@ -627,12 +649,12 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">{t("تصنيف المصروفات", "Expense Breakdown")}</CardTitle>
-            <CardDescription className="text-xs">{t("حسب الفئة · هذا العام", "By category · this year")}</CardDescription>
+        <Card className={CARD_BOX}>
+          <CardHeader className="gap-1.5 p-0">
+            <CardTitle className="text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">{t("تصنيف المصروفات", "Expense Breakdown")}</CardTitle>
+            <CardDescription className={CARD_SUB}>{t("حسب الفئة · هذا العام", "By category · this year")}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 [&:last-child]:pb-0">
             {data.expenseBreakdown.length === 0 ? (
               <EmptyState
                 className="border-0 px-0 py-10"
@@ -667,14 +689,14 @@ useEffect(() => {
       </div>
 
       {/* AR/AP + period compare + banks */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+      <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3">
+        <Card className={CARD_BOX}>
+          <CardHeader className="gap-1.5 p-0">
+            <CardTitle className="flex items-center gap-2 text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">
               <Banknote className="size-5 text-content-secondary" strokeWidth={1.75} /> {t("الذمم المدينة والدائنة", "Receivables & Payables")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 p-0 [&:last-child]:pb-0">
             <div className="ledger-hoverable flex cursor-pointer items-center justify-between rounded-lg border border-border p-3 transition" onClick={() => navigate("/app/invoices")} title={t("عرض فواتير المبيعات", "View sales invoices")}>
               <div>
                 <div className="text-xs text-content-secondary">{t("يستحقون لي (AR)", "Receivable (AR)")}</div>
@@ -698,13 +720,13 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        <Card className="ledger-hoverable cursor-pointer" onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+        <Card className={`${CARD_BOX} ledger-hoverable cursor-pointer`} onClick={() => navigate("/app/reports")} title={t("فتح التقارير", "Open reports")}>
+          <CardHeader className="gap-1.5 p-0">
+            <CardTitle className="flex items-center gap-2 text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">
               <TrendingUp className="size-5 text-content-secondary" strokeWidth={1.75} /> {t("هذا الشهر", "This month")} vs {t("الشهر الماضي", "Last month")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-0 [&:last-child]:pb-0">
             {(() => {
               const rows = [
                 { label: t("الإيرادات", "Revenue"), curr: data.periodCompare.thisMonth.revenue, prev: data.periodCompare.lastMonth.revenue, ya: yearAgo.revenue, color: series.ink, upGood: true, cmp: revCompare },
@@ -752,14 +774,14 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+        <Card className={CARD_BOX}>
+          <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 p-0">
+            <CardTitle className="flex items-center gap-2 text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">
               <Wallet className="size-5 text-content-secondary" strokeWidth={1.75} /> {t("الحسابات البنكية", "Bank accounts")}
             </CardTitle>
             <Link to="/app/bank-accounts" className="shrink-0 text-xs font-semibold text-primary hover:underline">{t("إدارة ←", "Manage ←")}</Link>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 [&:last-child]:pb-0">
             {data.bankAccounts.length === 0 ? (
               <EmptyState
                 className="border-0 px-0 py-8"
@@ -802,14 +824,14 @@ useEffect(() => {
       </div>
 
       {/* Overdue AR/AP */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+      <Card className={CARD_BOX}>
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 p-0">
+          <CardTitle className="flex items-center gap-2 text-[14px] font-semibold text-foreground md:text-[15px] xl:text-[16px]">
             <Clock className="size-5 text-warning" strokeWidth={1.75} /> {t("الفواتير المتأخرة", "Overdue Invoices")}
           </CardTitle>
           <Link to="/app/invoices?status=OVERDUE" className="shrink-0 text-xs font-semibold text-primary hover:underline">{t("عرض الكل ←", "View all ←")}</Link>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 [&:last-child]:pb-0">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <div className="mb-2 flex items-center justify-between border-b border-foreground pb-1.5">
@@ -869,12 +891,7 @@ useEffect(() => {
       </Card>
 
       {/* Quick stats footer */}
-      <MetricStrip>
-        <Metric label={t("عدد العملاء/الموردين", "Customers/Vendors count")} value={<Numeral value={k.contactCount} fraction={false} />} />
-        <Metric label={t("فواتير متأخرة", "Overdue invoices")} tone={k.overdueCount > 0 ? "warning" : "neutral"} value={<Numeral value={k.overdueCount} fraction={false} />} />
-        <Metric label={t("إجمالي القبض", "Total receipts")} value={<><Numeral value={k.receipts} /> <small className="text-content-secondary">{cur}</small></>} />
-        <Metric label={t("إجمالي الصرف", "Total payments")} value={<><Numeral value={k.payments} /> <small className="text-content-secondary">{cur}</small></>} />
-      </MetricStrip>
+      <DashboardFigures items={quickStats} />
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

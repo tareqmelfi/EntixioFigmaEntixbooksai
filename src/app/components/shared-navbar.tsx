@@ -96,28 +96,28 @@ export function SharedNavbar() {
         scrolled ? "bg-background/95 backdrop-blur" : "bg-background/90 backdrop-blur"
       } border-b border-border`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] sm:h-[68px] flex items-center justify-between gap-6">
+      <div className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] h-[64px] lg:h-[88px] flex items-center justify-between gap-6">
         {/* Logo */}
         <Link to={publicHref("")} className="flex items-center hover:opacity-80 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
-          <EntixWordmark size={22} />
+          <EntixWordmark size={20} />
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-1 me-auto" ref={dropdownRef}>
+        <div className="hidden lg:flex items-center gap-6 xl:gap-9" ref={dropdownRef}>
           {navItems.map((item) => (
             <div key={item.label} className="relative">
               {item.dropdown ? (
                 <>
                   <button
                     onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
-                    className="flex items-center gap-1.5 px-3 py-2 text-content-secondary hover:text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
-                    style={{ fontSize: "14px", fontWeight: 500 }}
+                    className="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
+                    style={{ fontSize: "15px", fontWeight: 500 }}
                   >
                     {t(item.label, item.labelEn)}
-                    <ChevronDown 
+                    <ChevronDown
                       className={`w-4 h-4 transition-transform duration-200 ${
                         openDropdown === item.label ? "rotate-180" : ""
-                      }`} 
+                      }`}
                     />
                   </button>
                   <AnimatePresence>
@@ -154,8 +154,8 @@ export function SharedNavbar() {
               ) : (
                 <Link
                   to={publicHref(item.href!)}
-                  className="block px-3 py-2 text-content-secondary hover:text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
-                  style={{ fontSize: "14px", fontWeight: 500 }}
+                  className="block text-foreground hover:text-primary transition-colors cursor-pointer"
+                  style={{ fontSize: "15px", fontWeight: 500 }}
                 >
                   {t(item.label, item.labelEn)}
                 </Link>
@@ -167,10 +167,10 @@ export function SharedNavbar() {
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-3">
           <PublicPreferenceSelector />
-          <button 
+          <button
             onClick={() => navigate(publicHref("/login"))}
-            className="text-foreground hover:text-primary transition-colors cursor-pointer px-2 py-2.5"
-            style={{ fontSize: "14px", fontWeight: 500 }}
+            className="text-foreground hover:text-primary transition-colors cursor-pointer px-2"
+            style={{ fontSize: "15px", fontWeight: 500 }}
           >
             {t("تسجيل الدخول", "Sign in")}
           </button>
@@ -183,15 +183,24 @@ export function SharedNavbar() {
           </button>
         </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile CTA + hamburger */}
+        <div className="lg:hidden flex items-center gap-2">
+          <button
+            onClick={() => navigate(publicHref("/register"))}
+            className="inline-flex h-10 items-center rounded-full bg-foreground px-3.5 text-background transition-colors hover:bg-primary cursor-pointer"
+            style={{ fontSize: "13px", fontWeight: 600 }}
+          >
+            {t("ابدأ مجاناً", "Start free")}
+          </button>
         <button
           onClick={() => setMobileNav(!mobileNav)}
           aria-label={mobileNav ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
           aria-expanded={mobileNav}
-          className="lg:hidden p-2 text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
+          className="h-11 w-11 inline-flex items-center justify-center text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
         >
-          {mobileNav ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileNav ? <X className="w-[22px] h-[22px]" strokeWidth={1.8} /> : <Menu className="w-[22px] h-[22px]" strokeWidth={1.8} />}
         </button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}

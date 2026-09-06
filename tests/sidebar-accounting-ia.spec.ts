@@ -11,18 +11,26 @@ import { prepareVisualApp } from './fixtures/visual-app'
  *  3. Integrations/Templates/Partners live inside Settings → «الأدوات».
  */
 
-test('المحاسبة navigates to the accounting home with the key ledgers one click away', async ({ page }) => {
+test('المحاسبة is a money-flow group with the key ledgers one click away (Ledger IA 2026-09)', async ({ page }) => {
   await prepareVisualApp(page, 'ar')
   await page.goto('/app')
 
-  await page.getByRole('button', { name: 'المحاسبة', exact: true }).click()
-  await expect(page).toHaveURL(/\/app\/accounting/)
-
-  // Accounting home exposes the accountant's core destinations
-  await expect(page.getByRole('heading', { name: 'المحاسبة' })).toBeVisible()
-  for (const target of ['شجرة الحسابات', 'القيود اليدوية', 'الإقرار الضريبي', 'الفترات المالية', 'تسوية البنوك']) {
-    await expect(page.getByRole('link', { name: new RegExp(target) }).first()).toBeVisible()
+  const nav = page.locator('nav').first()
+  // Labelled groups collapse (Ledger pixel pass 2026-09): the group label is a
+  // button, and «المحاسبة» is closed by default — open it, then its ledgers are
+  // one click away.
+  const accounting = nav.getByRole('button', { name: 'المحاسبة' })
+  await expect(accounting).toBeVisible()
+  await expect(accounting).toHaveAttribute('aria-expanded', 'false')
+  await accounting.click()
+  await expect(accounting).toHaveAttribute('aria-expanded', 'true')
+  for (const target of ['دليل الحسابات', 'القيود اليومية', 'الفترات المالية', 'الأصول الثابتة']) {
+    await expect(nav.getByRole('link', { name: target })).toBeVisible()
   }
+  // Customers and suppliers are the same contacts model behind two doors —
+  // «المشتريات» is one of the two groups that stay open by default.
+  await nav.getByRole('link', { name: 'الموردون' }).click()
+  await expect(page).toHaveURL(/\/app\/contacts\?role=supplier/)
 })
 
 test('التقارير is the last main item; للمطورين and برنامج الشركاء leave the sidebar', async ({ page }) => {
@@ -38,8 +46,8 @@ test('التقارير is the last main item; للمطورين and برنامج 
   await expect(nav.getByText('التكاملات')).toHaveCount(0)
   await expect(nav.getByText('القوالب')).toHaveCount(0)
 
-  // التقارير renders AFTER المحاسبة section in document order
-  const accountingPos = await nav.getByText('للمحاسب').first().evaluate((el) => el.getBoundingClientRect().top)
+  // التقارير renders AFTER the المحاسبة group in document order
+  const accountingPos = await nav.getByRole('button', { name: 'المحاسبة' }).first().evaluate((el) => el.getBoundingClientRect().top)
   const reportsPos = await nav.getByRole('link', { name: 'التقارير' }).first().evaluate((el) => el.getBoundingClientRect().top)
   expect(reportsPos).toBeGreaterThan(accountingPos)
 })

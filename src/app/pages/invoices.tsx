@@ -26,14 +26,28 @@ import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-crea
 import { QuickContactDialog } from "../components/quick-contact-dialog";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
-import { api, Invoice, Contact } from "../lib/api";
+import { api, getOrgId, Invoice, Contact } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 import { useOrgRegion } from "../lib/use-org-region";
 import { IssuedInvoiceRecord } from "../components/issued-invoice-record";
+import { InvoicePreviewPane } from "../components/invoice-preview-pane";
 import { BidiText } from "../components/bidi-text";
+
+/** Desktop-only split view · ≥1280px shows the paper preview beside the list. */
+function useWideViewport() {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const onChange = () => setWide(mq.matches);
+    mq.addEventListener("change", onChange);
+    onChange();
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, APPROVED: { ar: "معتمدة", en: "Approved" }, SENT: { ar: "مرسلة", en: "Sent" }, VIEWED: { ar: "مُشاهَدة", en: "Viewed" }, PAID: { ar: "مدفوعة", en: "Paid" },
@@ -178,6 +192,13 @@ export function Invoices() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [pendingApprove, setPendingApprove] = useState<string | null>(null);
 
+  // Split view (list ⟷ paper preview) · desktop only · read-only, never a dialog (UX-1)
+  const wideViewport = useWideViewport();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedFull, setSelectedFull] = useState<Invoice | null>(null);
+  const [selectedLoading, setSelectedLoading] = useState(false);
+  const [seller, setSeller] = useState<{ name: string; vatNumber?: string | null } | null>(null);
+
   // Quick-create contact dialog (full form, not just name)
   const [pendingContact, setPendingContact] = useState<{ name: string; resolve: (id: string) => void; reject: () => void } | null>(null);
 
@@ -292,6 +313,40 @@ export function Invoices() {
       count: counts[s] || 0,
     })),
   ];
+
+  // Split view · "من" block of the paper document = the active organisation
+  useEffect(() => {
+    let alive = true;
+    api.orgs.list().then((orgs: any[]) => {
+      if (!alive) return;
+      const active = orgs.find((o) => o.id === getOrgId()) || orgs[0];
+      if (active) setSeller({ name: active.legalName || active.name, vatNumber: active.vatNumber });
+    }).catch(() => { /* preview simply shows no seller block */ });
+    return () => { alive = false; };
+  }, []);
+
+  // Split view · keep a row selected while the list is wide enough for the panel
+  const filteredKey = filtered.map((i) => i.id).join(",");
+  useEffect(() => {
+    if (!wideViewport) { setSelectedId(null); return; }
+    setSelectedId((prev) => (prev && filtered.some((i) => i.id === prev) ? prev : filtered[0]?.id ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wideViewport, filteredKey]);
+
+  // Split view · list rows carry no lines → fetch the selected invoice once (read-only)
+  useEffect(() => {
+    if (!selectedId) { setSelectedFull(null); return; }
+    const row = items.find((i) => i.id === selectedId) || null;
+    setSelectedFull(row);
+    if (row?.lines && (row.lines as any[]).length) return;
+    let alive = true;
+    setSelectedLoading(true);
+    api.invoices.get(selectedId)
+      .then((full) => { if (alive) setSelectedFull(full as Invoice); })
+      .catch(() => { /* keep the row-level summary */ })
+      .finally(() => { if (alive) setSelectedLoading(false); });
+    return () => { alive = false; };
+  }, [selectedId, items]);
 
   const openCreate = () => {
     const prefillContact = searchParams.get("contactId") || "";
@@ -855,7 +910,7 @@ export function Invoices() {
               onCreateAccount={(name) => new Promise((resolve, reject) => {
                 setQuickAccountReq({ name, resolve, reject });
               })}
-              minRows={10}
+              minRows={6}
             />
 
             {/* Document drop zone · matches the screenshot's "اسحب ملفات هنا" bar */}
@@ -1071,12 +1126,34 @@ export function Invoices() {
   }
 
   // Default · list view
+  // In split view the row-action column moves into the preview panel (approved design),
+  // so the six ledger columns keep the reference widths instead of scrolling sideways.
+  const compactList = wideViewport;
+  const selected = selectedFull;
+  const selectedLate = selected ? overdueDays(selected) : 0;
+  const selectedStatusLabel = selected
+    ? selected.status === "PAID"
+      ? t("سُدّدت بالكامل", "Paid in full")
+      : selectedLate > 0
+        ? t(`متأخرة ${selectedLate} أيام`, `${selectedLate} days overdue`)
+        : STATUS_LABELS[selected.status]
+          ? t(STATUS_LABELS[selected.status].ar, STATUS_LABELS[selected.status].en)
+          : selected.status
+    : undefined;
+  const selectedStatusMeta = selected
+    ? [String(selected.issueDate || "").slice(0, 10), (selected as any).journalEntry?.entryNumber || (selected as any).journalEntryNumber]
+        .filter(Boolean).join(" · ")
+    : undefined;
+
   return (
     <div className="space-y-6">
+      <div className={wideViewport ? "grid grid-cols-[minmax(0,1fr)_380px] items-start gap-8" : ""}>
+        <div className="min-w-0 space-y-6">
       <PageHeader
-        eyebrow={t("المبيعات", "Sales")}
+        className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+        eyebrow={<span className="text-[13px]">{t("المبيعات", "Sales")}</span>}
         title={t("الفواتير", "Sales Invoices")}
-        actions={<Button onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة جديدة", "New invoice")}</Button>}
+        actions={<Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("فاتورة جديدة", "New invoice")}</Button>}
       />
 
       {contactFilterId && (
@@ -1093,20 +1170,21 @@ export function Invoices() {
         </InlineAlert>
       )}
 
-      <MetricStrip className="sm:grid-cols-3 xl:grid-cols-3">
+      <MetricStrip className="grid-cols-3 sm:grid-cols-3 xl:grid-cols-3 [&_.ledger-figure-value]:text-[20px] sm:[&_.ledger-figure-value]:text-[30px] [&_.ledger-figure]:py-3 sm:[&_.ledger-figure]:py-4 max-sm:[&_.ledger-figure]:px-2.5 max-sm:[&_.ledger-figure:first-child]:ps-0 max-sm:[&_.ledger-figure:last-child]:pe-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-t-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-s max-sm:[&_.ledger-figure+.ledger-figure]:!border-s-border">
         <Metric label={t("مستحقة", "Outstanding")} value={<Figure value={outstanding} />} />
         <Metric label={t("متأخرة", "Overdue")} value={<span className="text-warning"><Figure value={overdueAmount} /></span>} />
         <Metric label={t("محصّلة هذا الشهر", "Collected this month")} value={<span className="text-primary"><Figure value={collectedThisMonth} /></span>} />
       </MetricStrip>
 
-      <PageToolbar aria-label={t("مرشحات الفواتير", "Invoice filters")} className="gap-2">
+      <PageToolbar aria-label={t("مرشحات الفواتير", "Invoice filters")} className="flex-nowrap gap-2 max-sm:flex-wrap">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto max-sm:w-full">
         {chips.map((chip) => (
           <button
             key={chip.value}
             type="button"
             onClick={() => setFilterStatus(chip.value)}
             aria-pressed={filterStatus === chip.value}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+            className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${
               filterStatus === chip.value
                 ? "bg-foreground font-semibold text-background"
                 : "border border-border text-foreground hover:border-border-strong"
@@ -1115,9 +1193,10 @@ export function Invoices() {
             {chip.label} <span className="font-english tabular-nums">{chip.count}</span>
           </button>
         ))}
-        <div className="relative ms-auto min-w-[200px]">
-          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder={t("بحث برقم أو عميل...", "Search by number or customer...")} className="w-56 ps-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <div className="relative min-w-[200px] shrink-0 max-sm:w-full">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder={t("بحث برقم أو عميل...", "Search by number or customer...")} className="h-9 w-full ps-8 text-[13px] sm:w-[200px]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
       </PageToolbar>
 
@@ -1138,13 +1217,13 @@ export function Invoices() {
                   className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start"
                   title={t("فتح الفاتورة", "Open invoice")}
                 >
-                  <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex min-w-0 flex-col gap-[3px]">
                     <span className="truncate text-sm font-semibold text-foreground">{i.contact?.displayName || "—"}</span>
-                    <span dir="ltr" className="font-code text-xs text-content-secondary">{i.invoiceNumber} · {i.dueDate?.slice(0, 10)}</span>
+                    <span dir="ltr" className="font-code text-xs text-muted-foreground">{i.invoiceNumber} · {i.dueDate?.slice(0, 10)}</span>
                   </span>
-                  <span className="flex shrink-0 flex-col items-end gap-0.5">
-                    <span dir="ltr" className="font-display text-[17px] leading-5 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${statusToneClass(i.status, late)}`}>
+                  <span className="flex shrink-0 flex-col items-end gap-[3px]">
+                    <span dir="ltr" className="font-display text-[18px] leading-5 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${statusToneClass(i.status, late)}`}>
                       <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
                       {late > 0 && i.status !== "PAID" && i.status !== "CANCELLED"
                         ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
@@ -1156,25 +1235,25 @@ export function Invoices() {
             );
           })}
         </ul>
-        <div className="ledger-table hidden md:block">
-        <Table className="min-w-[1040px] table-auto">
+        <div className="ledger-table hidden md:block [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+        <Table className={`table-fixed ${compactList ? "min-w-[700px]" : "min-w-[860px]"}`}>
           <colgroup>
-            <col style={{ width: "13%" }} />{/* الرقم */}
-            <col style={{ width: "24%", minWidth: "220px" }} />{/* العميل */}
-            <col style={{ width: "10%" }} />{/* التاريخ */}
-            <col style={{ width: "10%" }} />{/* الاستحقاق */}
-            <col style={{ width: "14%" }} />{/* المبلغ */}
-            <col style={{ width: "14%" }} />{/* الحالة */}
-            <col style={{ width: "15%" }} />{/* إجراءات */}
+            <col style={{ width: "110px" }} />{/* الرقم */}
+            <col style={{ minWidth: "110px" }} />{/* العميل · flexible */}
+            <col style={{ width: "110px" }} />{/* التاريخ */}
+            <col style={{ width: "110px" }} />{/* الاستحقاق */}
+            <col style={{ width: "130px" }} />{/* المبلغ */}
+            <col style={{ width: "140px" }} />{/* الحالة */}
+            {!compactList && <col style={{ width: "150px" }} />}{/* إجراءات · replaced by the panel action bar in split view */}
           </colgroup>
           <TableHeader><TableRow className="hover:bg-transparent">
             <TableHead>{t("الرقم", "Number")}</TableHead>
             <TableHead>{t("العميل", "Customer")}</TableHead>
             <TableHead>{t("التاريخ", "Date")}</TableHead>
             <TableHead>{t("الاستحقاق", "Due")}</TableHead>
-            <TableHead className="text-end">{t("المبلغ", "Amount")}</TableHead>
+            <TableHead className="text-end">{t("المبلغ", "Amount")} <span className="font-english">({orgCurrency})</span></TableHead>
             <TableHead>{t("الحالة", "Status")}</TableHead>
-            <TableHead>{t("إجراءات", "Actions")}</TableHead>
+            {!compactList && <TableHead>{t("إجراءات", "Actions")}</TableHead>}
           </TableRow></TableHeader>
           <TableBody>
             {filtered.map(i => {
@@ -1183,9 +1262,11 @@ export function Invoices() {
               return (
               <TableRow
                 key={i.id}
-                onClick={() => navigate(`/app/invoices/${i.id}`)}
-                className="h-12 cursor-pointer"
-                title={t("فتح الفاتورة", "Open invoice")}
+                onClick={() => (wideViewport ? setSelectedId(i.id) : navigate(`/app/invoices/${i.id}`))}
+                onDoubleClick={() => navigate(`/app/invoices/${i.id}`)}
+                data-state={wideViewport && selectedId === i.id ? "selected" : undefined}
+                className="h-12 cursor-pointer data-[state=selected]:border-b-transparent data-[state=selected]:[&>td:first-child]:rounded-s-lg data-[state=selected]:[&>td:last-child]:rounded-e-lg"
+                title={wideViewport ? t("عرض في اللوحة · نقرتان للفتح", "Show in the panel · double-click to open") : t("فتح الفاتورة", "Open invoice")}
               >
                 <TableCell className="text-start whitespace-nowrap">
                   <button
@@ -1196,7 +1277,7 @@ export function Invoices() {
                     <span dir="ltr" className="font-code text-sm font-semibold text-foreground inline-block">{i.invoiceNumber}</span>{(i.zatcaDelivery?.state || i.zatcaStatus) && <span className={`block text-[11px] ${["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? "text-success" : "text-warning"}`} title={i.zatcaDelivery?.message || undefined}>{["REPORTED","CLEARED","ACCEPTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("✓ مقبولة لدى الهيئة", "✓ Accepted by ZATCA") : ["REVIEW","REJECTED"].includes(i.zatcaDelivery?.state || i.zatcaStatus || "") ? t("تحتاج معالجة", "Needs attention") : t("بانتظار قبول الهيئة", "Awaiting ZATCA")}</span>}
                   </button>
                 </TableCell>
-                <TableCell className="text-sm text-foreground" title={i.contact?.displayName || ""}>
+                <TableCell className="overflow-hidden text-sm text-foreground" title={i.contact?.displayName || ""}>
                   {i.contactId ? (
                     <button
                       type="button"
@@ -1207,12 +1288,12 @@ export function Invoices() {
                       className="block w-full min-w-0 text-start hover:underline underline-offset-4"
                       title={t("فتح ملف العميل", "Open contact profile")}
                     >
-                      <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
+                      <BidiText mode="plaintext" className="invoice-customer-name block overflow-hidden text-ellipsis !whitespace-nowrap leading-5">
                         {i.contact?.displayName || "—"}
                       </BidiText>
                     </button>
                   ) : (
-                    <BidiText compact mode="plaintext" className="invoice-customer-name leading-5">
+                    <BidiText mode="plaintext" className="invoice-customer-name block overflow-hidden text-ellipsis !whitespace-nowrap leading-5">
                       {i.contact?.displayName || "—"}
                     </BidiText>
                   )}
@@ -1220,7 +1301,7 @@ export function Invoices() {
                 <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{i.issueDate?.slice(0, 10)}</span></TableCell>
                 <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{i.dueDate?.slice(0, 10)}</span></TableCell>
                 <TableCell className="text-end">
-                  <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="font-english text-[10px] text-muted-foreground">{i.currency}</span></span>
+                  <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{i.currency !== orgCurrency && <span className="font-english text-[10px] text-muted-foreground"> {i.currency}</span>}</span>
                   {remaining > 0 && Number(i.amountPaid || 0) > 0 && (
                     <span dir="ltr" className="block text-[11px] text-content-secondary tabular-nums">{t("متبقي", "Remaining")} {remaining.toLocaleString(displayLocale())}</span>
                   )}
@@ -1233,7 +1314,7 @@ export function Invoices() {
                         ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
                         : STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}
                     </span>
-                    {i.status === "DRAFT" && (
+                    {i.status === "DRAFT" && !compactList && (
                       pendingApprove === i.id ? (
                         <InlineConfirm
                           label={t("اعتماد الفاتورة؟", "Approve invoice?")}
@@ -1255,6 +1336,7 @@ export function Invoices() {
                     )}
                   </div>
                 </TableCell>
+                {!compactList && (
                 <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
                   <div className="flex w-max min-w-full items-center gap-1 whitespace-nowrap">
                     {/* SENT/APPROVED → Sign button */}
@@ -1303,6 +1385,7 @@ export function Invoices() {
                     ))}
                   </div>
                 </TableCell>
+                )}
               </TableRow>
             );})}
           </TableBody>
@@ -1310,6 +1393,103 @@ export function Invoices() {
         </div>
         </>
       )}
+        </div>
+
+        {/* Split view · the selected invoice as a paper document (desktop ≥1280px) */}
+        {wideViewport && selected && (
+          <aside className="sticky top-4 rounded-lg bg-surface-subtle p-4" aria-label={t("معاينة الفاتورة", "Invoice preview")}>
+            <InvoicePreviewPane
+              doc={{
+                id: selected.id,
+                number: selected.invoiceNumber,
+                status: selected.status,
+                issueDate: selected.issueDate,
+                dueDate: selected.dueDate,
+                currency: selected.currency,
+                subtotal: selected.subtotal,
+                taxTotal: selected.taxTotal,
+                total: selected.total,
+                amountPaid: selected.amountPaid,
+                qr: selected.zatcaQr || null,
+                lines: (selected.lines as any[])?.map((l: any) => ({
+                  id: l.id,
+                  description: l.description,
+                  quantity: l.quantity,
+                  unitPrice: l.unitPrice,
+                  total: l.total,
+                })),
+              }}
+              seller={seller}
+              customer={selected.contact ? { name: selected.contact.displayName, vatNumber: (selected.contact as any).taxId } : null}
+              docTypeLabel={t("فاتورة ضريبية", "Tax invoice")}
+              statusLabel={selectedStatusLabel}
+              statusMeta={selectedStatusMeta}
+              loading={selectedLoading}
+              onSend={() => openSign(selected)}
+              onPdf={() => window.open(`/print/invoice/${selected.id}`, "_blank", "noopener")}
+              onEdit={() => navigate(`/app/invoices/${selected.id}`)}
+              editLabel={selected.status === "DRAFT" ? t("تعديل", "Edit") : t("فتح", "Open")}
+            />
+            {/* Row actions for the selected invoice · quiet pills under the paper */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {selected.status !== "PAID" && selected.status !== "CANCELLED" && (
+                <button
+                  onClick={() => openRecordPayment(selected)}
+                  className="rounded-full border border-border px-2.5 py-1 text-xs text-success hover:border-border-strong"
+                  title={t("تسجيل دفعة عبر صفحة سندات القبض", "Record a payment via the receipt vouchers page")}
+                >{t("دفعة", "Payment")}</button>
+              )}
+              {selected.status === "DRAFT" && (
+                pendingApprove === selected.id ? (
+                  <InlineConfirm
+                    label={t("اعتماد الفاتورة؟", "Approve invoice?")}
+                    onConfirm={() => { setPendingApprove(null); handleApprove(selected); }}
+                    onCancel={() => setPendingApprove(null)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setPendingApprove(selected.id)}
+                    className="rounded-full border border-border px-2.5 py-1 text-xs text-success hover:border-border-strong"
+                    title={t("اعتماد الفاتورة", "Approve invoice")}
+                  >{t("اعتماد", "Approve")}</button>
+                )
+              )}
+              {selected.status === "DRAFT" && (
+                <button
+                  onClick={() => handleSplitByCategory(selected)}
+                  disabled={splittingId === selected.id}
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:border-border-strong"
+                  title={t("تفكيك الفاتورة إلى فواتير حسب القسم", "Split the invoice into invoices by category")}
+                >
+                  {splittingId === selected.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Split className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                  {t("تفكيك", "Split")}
+                </button>
+              )}
+              {selected.status !== "PAID" && selected.status !== "CANCELLED" && selected.status !== "DRAFT" && (
+                <button
+                  onClick={() => openSign(selected)}
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong"
+                  title={t("إرسال للتوقيع", "Send for signing")}
+                ><FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}</button>
+              )}
+              {selected.status !== "DRAFT" && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("فاتورة صادرة ومقفلة", "Issued and locked")}>
+                  <LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />{t("مقفلة", "Locked")}
+                </span>
+              )}
+              {selected.status === "DRAFT" && (pendingDelete === selected.id ? (
+                <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
+              ) : (
+                <button
+                  onClick={() => setPendingDelete(selected.id)}
+                  className="ms-auto rounded-full p-1.5 text-danger hover:bg-surface-hover"
+                  title={t("حذف", "Delete")}
+                ><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+              ))}
+            </div>
+          </aside>
+        )}
+      </div>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

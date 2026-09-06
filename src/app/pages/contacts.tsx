@@ -63,6 +63,14 @@ export function Contacts() {
 
   // UX-196 · open edit wizard when navigated with ?edit=ID
   const [searchParams, setSearchParams] = useSearchParams();
+  // Sidebar IA (Ledger, 2026-09): «العملاء» lives under Sales and «الموردون» under
+  // Purchases — both point here with ?role=customer|supplier. One data model, two doors.
+  useEffect(() => {
+    const role = searchParams.get("role");
+    if (role === "customer") setFilter("isCustomer");
+    else if (role === "supplier") setFilter("isSupplier");
+    else if (role === "all") setFilter("ALL");
+  }, [searchParams]);
   useEffect(() => {
     const editId = searchParams.get("edit");
     const isNew = searchParams.get("new");

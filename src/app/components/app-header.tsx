@@ -45,7 +45,7 @@ function zatcaPillDetail(zatca: ZatcaStatus, t: (ar: string, en: string) => stri
 
 export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const navigate = useNavigate();
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, t } = useLanguage();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -117,7 +117,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      <header className="h-16 shrink-0 border-b border-border bg-background px-4 sm:px-8">
+      <header className="h-[64px] shrink-0 border-b border-border bg-background px-4 sm:px-[40px]">
         <div className="flex h-full items-center justify-between gap-3">
           {/* START side (right in RTL) · mobile menu only */}
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -126,7 +126,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground lg:hidden"
               title={t("القائمة", "Menu")}
             >
-              <Menu className="h-5 w-5" strokeWidth={1.75} />
+              <Menu className="h-[20px] w-[20px]" strokeWidth={1.75} />
             </button>
             {/* ZATCA pill (Ledger, 2026-09) · replaces the full-width strip. Per-org truth
                 unchanged: dot + word from /api/zatca/onboarding/status. Colour never carries
@@ -136,7 +136,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                 to="/app/settings?tab=zatca"
                 data-zatca-connection={zatca.connection}
                 title={zatcaPillDetail(zatca, t)}
-                className={`inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-full ps-2 pe-3 text-xs font-semibold transition-colors ${
+                className={`inline-flex max-w-[60vw] items-center gap-[8px] rounded-full py-[6px] ps-[8px] pe-[12px] text-[12px] font-semibold leading-[15px] transition-colors ${
                   zatca.connection === "connected"
                     ? "bg-info-subtle text-info hover:bg-info-subtle/70"
                     : zatca.connection === "in_progress"
@@ -146,7 +146,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               >
                 <span
                   aria-hidden="true"
-                  className={`h-2 w-2 shrink-0 rounded-full ${
+                  className={`h-[8px] w-[8px] shrink-0 rounded-full ${
                     zatca.connection === "connected"
                       ? "bg-info shadow-[0_0_0_3px_var(--focus-ring)]"
                       : zatca.connection === "in_progress"
@@ -161,36 +161,22 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               </Link>
             )}
             {isSA && checkedAtLabel && (
-              <span className="hidden text-[13px] text-muted-foreground sm:inline">
+              <span className="hidden text-[13px] leading-[16px] text-muted-foreground sm:inline">
                 {t("آخر تحقق", "Last check")} <span className="font-english" dir="ltr">{checkedAtLabel}</span>
               </span>
             )}
           </div>
 
           {/* END side (left in RTL) · actions only */}
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <button
-              onClick={toggleLanguage}
-              className="hidden items-center gap-1.5 rounded-lg px-2 py-2 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground sm:flex"
-              aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
-            >
-              <span className={language === "ar" ? "font-english text-xs font-semibold" : "text-xs font-semibold"}>
-                {language === "ar" ? "EN" : "AR"}
-              </span>
-            </button>
-
-            {/* Inbox */}
-            <button className="relative rounded-lg p-2 text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground">
-              <Mail className="h-5 w-5" strokeWidth={1.75} />
-            </button>
-
-            {/* Notifications */}
+          <div className="flex shrink-0 items-center gap-1 sm:gap-[6px]">
+            {/* Notifications · reference order (reading from the start edge):
+                bell, mail, then the user block. */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-                className="relative rounded-lg p-2 text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground"
+                className="relative rounded-lg p-1.5 text-foreground transition-colors hover:bg-surface-hover"
               >
-                <Bell className="h-5 w-5" strokeWidth={1.75} />
+                <Bell className="h-[20px] w-[20px]" strokeWidth={1.6} />
                 {unreadCount > 0 && (
                   <span className="absolute end-1 top-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-english" style={{ fontWeight: 700 }}>{unreadCount}</span>
                 )}
@@ -236,19 +222,25 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
               )}
             </div>
 
-            {/* Profile Dropdown */}
+            {/* Inbox */}
+            <button className="relative rounded-lg p-1.5 text-foreground transition-colors hover:bg-surface-hover">
+              <Mail className="h-[20px] w-[20px]" strokeWidth={1.6} />
+            </button>
+
+            {/* Profile Dropdown · reference puts the name/email first and the
+                round 34px avatar on the far end. */}
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
                 className="flex items-center gap-2.5 rounded-lg border border-transparent px-2 py-1 transition-colors hover:bg-surface-hover"
               >
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-foreground text-background" style={{ fontWeight: 600 }}>{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
                 <div className="hidden text-end sm:block">
                   <BidiText compact className="block max-w-48 text-[13px] font-semibold leading-5 text-foreground">{authState.user?.name || t("مستخدم", "User")}</BidiText>
                   <div className="font-english text-[11px] leading-4 text-muted-foreground">{authState.user?.email || "user@entix.io"}</div>
                 </div>
+                <Avatar className="h-[34px] w-[34px]">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-[13px]" style={{ fontWeight: 600 }}>{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
               </button>
 

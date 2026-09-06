@@ -14,7 +14,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { PageHeader, SettingsSection, InlineAlert } from "../components/product";
+import { InlineAlert } from "../components/product";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, Org, AiBillingConfig, AiKeyMode, setOrgId, type AuditLogItem } from "../lib/api";
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
@@ -28,6 +28,7 @@ import { DeletedCompanies } from "../components/deleted-companies";
 import { useZatcaStatus, invalidateZatcaStatus } from "../lib/use-zatca-status";
 import { ZatcaStatusBadge, ZatcaStatusRow } from "../components/zatca-status-badge";
 import { ZatcaDeviceProof } from "../components/zatca-device-proof";
+import { FATOORA_DEVICE_PORTAL } from "../lib/zatca-proof-document";
 
 type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys" | "control-accounts";
 const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys", "control-accounts"];
@@ -220,10 +221,17 @@ export function Settings() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow={t("المنشأة", "Organization")} title={t("الإعدادات", "Settings")} description={org?.name} />
+      {/* Page header · eyebrow + title only, at the reference's 13/28 pairing */}
+      <header className="flex min-w-0 flex-col gap-1">
+        <span className="truncate text-[13px] text-muted-foreground">
+          {t("المنشأة", "Organization")}{org?.name ? ` · ${org.name}` : ""}
+        </span>
+        <h1 className="text-[28px] font-bold leading-[1.2] tracking-[-0.01em] text-foreground">{t("الإعدادات", "Settings")}</h1>
+      </header>
 
       <Tabs value={tab} onValueChange={(v) => selectTab(v as SettingsTab)}>
-        <TabsList className="gap-1.5">
+        {/* Chips carry the reference's nav-item weight: 13px on a 36px pill, 8px apart. */}
+        <TabsList className="gap-2">
         {(([
           ["company", "بيانات الشركة", "Company"],
           ["data", "البيانات", "Data"],
@@ -241,7 +249,7 @@ export function Settings() {
           ["control-accounts", "الحسابات الرقابية", "Control accounts"],
           ["account", "حسابي", "Account"],
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
-          <TabsTrigger key={k} value={k}>{t(label, labelEn)}</TabsTrigger>
+          <TabsTrigger key={k} value={k} className="h-9 px-4 text-[13px]">{t(label, labelEn)}</TabsTrigger>
         ))}
         </TabsList>
       </Tabs>
@@ -661,7 +669,8 @@ export function Settings() {
       {tab === "numbering" && org && <NumberingTab orgId={org.id} push={push} />}
       {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
       {tab === "catalog" && org && <CatalogTab push={push} />}
-      {tab === "zatca" && org && <div className="space-y-6">{org.country === "SA" && (org.role === "OWNER" || org.role === "ADMIN") && <VatRegistrationPanel key={`vat-${org.id}`} orgId={org.id} />}<ZatcaTab key={org.id} org={org} push={push} /></div>}
+      {/* The device link is what the tab is about; VAT registration follows it as the longer-form task. */}
+      {tab === "zatca" && org && <div className="space-y-8"><ZatcaTab key={org.id} org={org} push={push} />{org.country === "SA" && (org.role === "OWNER" || org.role === "ADMIN") && <VatRegistrationPanel key={`vat-${org.id}`} orgId={org.id} />}</div>}
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
 
@@ -1871,32 +1880,64 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
     [t("صالحة حتى", "Valid until"), certDate(certificate?.expiresAt)],
   ];
 
+  const submissionLive = live.submission === "live";
   return (
-    <SettingsSection
-      title={t("الفوترة الإلكترونية · ZATCA Phase 2", "E-invoicing · ZATCA Phase 2")}
-      description={t("تهيئة شهادة الجهاز (CSID) عبر مسار فاتورة الرسمي: مفاتيح محلية → OTP → امتثال → إنتاج.", "Device certificate (CSID) onboarding via the official Fatoora path: local keys → OTP → compliance → production.")}
-      actions={<Button variant="outline" size="sm" onClick={refresh}>{t("تحديث الحالة", "Refresh status")}</Button>}
-    >
-      <div className="space-y-6">
-        {/* Status header · connection pill + last verification, per the approved reference */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <ZatcaStatusBadge status={live} />
-          <p className="text-xs text-muted-foreground">
-            {lastChecked
-              ? <>{t("آخر تحقق", "Last checked")}: <bdi className="font-code">{lastChecked}</bdi></>
-              : t("حالة الشهادة تخص هذه البيئة فقط.", "Certificate status applies only to this environment.")}
-          </p>
+    <section className="flex flex-col gap-[22px]" aria-label={t("الفوترة الإلكترونية — المرحلة الثانية", "E-invoicing — Phase 2")}>
+      {/* Page-level header · title, one line of purpose, and the quiet action pills */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-[26px] font-bold leading-[1.2] tracking-[-0.01em] text-foreground">{t("الفوترة الإلكترونية — المرحلة الثانية", "E-invoicing — Phase 2")}</h2>
+          <p className="text-[13px] text-content-secondary">{t("حالة ربط الجهاز، الشهادة المحفوظة، وسجل الربط القابل للمشاركة.", "Device onboarding status, the stored certificate, and the shareable binding record.")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" className="h-9 px-3.5 text-[13px]" onClick={refresh}>{t("تحديث الحالة", "Refresh status")}</Button>
+          <Button asChild variant="secondary" className="h-9 px-3.5 text-[13px]">
+            <a href={FATOORA_DEVICE_PORTAL} target="_blank" rel="noopener noreferrer">
+              {t("مراجعة في بوابة فاتورة", "Review in Fatoora")}<ExternalLink className="ms-1.5 size-3.5" strokeWidth={1.75} />
+            </a>
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-[22px]">
+        {/* Status row · four facts on one paper card: state, device, expiry, submission */}
+        <div className="grid items-center gap-4 rounded-lg border border-border bg-card px-[22px] py-[18px] sm:grid-cols-2 xl:grid-cols-4">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="ledger-eyebrow">{t("الحالة", "State")}</span>
+            <ZatcaStatusBadge status={live} size="xs" />
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="ledger-eyebrow">{t("الجهاز", "Device")}</span>
+            <span className="truncate text-sm font-medium text-foreground"><bdi className="font-code">{certificate?.deviceName || "—"}</bdi></span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="ledger-eyebrow">{t("الشهادة سارية حتى", "Certificate valid until")}</span>
+            <span className="truncate text-sm font-semibold text-foreground"><bdi className="font-code">{certDate(certificate?.expiresAt)}</bdi></span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="ledger-eyebrow">{t("إرسال الفواتير", "Invoice submission")}</span>
+            <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${submissionLive ? "text-success" : "text-warning"}`}>
+              <span className={`ledger-dot${submissionLive ? "" : " text-chart-4"}`} aria-hidden="true" />
+              {submissionLive ? t("مفعّل", "Active") : t("مجمّد حتى اكتمال التحقق", "Frozen until verification completes")}
+            </span>
+          </div>
         </div>
 
+        {/* What this summary is and is not — read once, in the reference's quiet body size */}
+        <p className="max-w-[820px] text-[13px] leading-[1.9] text-content-secondary">
+          {t("ملخص من ENTIX.IO مستند إلى شهادة الجهاز المحفوظة. لا يُعد شهادة اعتماد للبرنامج ولا إثباتًا لقبول الفواتير أو التسجيل الضريبي. مفاتيح الربط محفوظة على الخادم ولا تظهر في هذا الملخص. نتحقق من الشهادة كل 60 دقيقة؛ الإلغاء يُراجع في بوابة فاتورة.", "A summary from ENTIX.IO based on the stored device certificate. It is not software accreditation and not proof of invoice acceptance or VAT registration. Linking keys stay on the server and are excluded from this summary. The certificate is re-checked every 60 minutes; revocation is reviewed in the Fatoora portal.")}
+          {lastChecked && <> <bdi className="font-code text-xs">{t("آخر تحقق", "Last checked")} {lastChecked}</bdi></>}
+        </p>
+
         {/* Stepper · one paper card per onboarding stage */}
-        <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("مراحل ربط الجهاز", "Device onboarding stages")}>
+        <ol className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("مراحل ربط الجهاز", "Device onboarding stages")}>
           {steps.map((s2, i) => (
-            <li key={s2.id} className="rounded-lg border border-border bg-card p-4">
-              <span className={`flex size-7 items-center justify-center rounded-full text-xs font-semibold ${s2.done ? "bg-primary text-primary-foreground" : "bg-foreground text-background"}`} aria-hidden="true">
+            <li key={s2.id} className="rounded-lg border border-border bg-card px-5 py-[18px]">
+              <span className={`me-auto flex size-7 items-center justify-center rounded-full text-xs font-semibold ${s2.done ? "bg-primary text-primary-foreground" : "bg-foreground text-background"}`} aria-hidden="true">
                 {s2.done ? "✓" : i + 1}
               </span>
-              <h4 className="mt-3 text-sm font-semibold text-foreground">{s2.label}</h4>
-              <p className={`mt-1 inline-flex items-center gap-1.5 text-xs ${s2.done ? "text-success" : "text-muted-foreground"}`}>
+              <h4 className="mt-3 text-sm font-semibold leading-snug text-foreground">{s2.label}</h4>
+              <p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs ${s2.done ? "text-success" : "text-muted-foreground"}`}>
                 <span className={`ledger-dot${s2.done ? "" : " hollow"}`} aria-hidden="true" />
                 {s2.done ? t("مكتملة", "Done") : t("بانتظار التنفيذ", "Not started")}
               </p>
@@ -1905,11 +1946,11 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         </ol>
 
         {/* Device + certificate facts · two-column key → value list */}
-        <dl className="grid gap-x-8 gap-y-3 border-t border-border pt-4 sm:grid-cols-2">
+        <dl className="grid gap-x-8 gap-y-4 border-t border-border pt-[18px] sm:grid-cols-2 xl:grid-cols-3">
           {facts.map(([label, value]) => (
-            <div key={label} className="min-w-0">
+            <div key={label} className="flex min-w-0 flex-col gap-1">
               <dt className="ledger-eyebrow">{label}</dt>
-              <dd className="mt-1 truncate text-lg font-semibold text-foreground"><bdi className="font-code">{value}</bdi></dd>
+              <dd className="truncate text-sm font-semibold text-foreground"><bdi className="font-code">{value}</bdi></dd>
             </div>
           ))}
         </dl>
@@ -2015,8 +2056,25 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
         {status === "PRODUCTION" && <ZatcaDeviceProof status={live} />}
 
         {status !== "PRODUCTION" && <p className="text-xs text-muted-foreground">{t("أكمل شهادة الإنتاج ثم تحقق من تفعيل إرسال فواتير المنشأة.", "Complete the production certificate, then check the organization invoice submission activation.")}</p>}
+
+        {/* The same three indicator states the header strip can show — a dot, a word, no banner */}
+        <div className="flex flex-col gap-2.5">
+          <span className="ledger-eyebrow">{t("حالات المؤشر في الهيدر", "Header indicator states")}</span>
+          <div className="flex flex-wrap items-center gap-x-7 gap-y-3 rounded-lg border border-border bg-card px-[18px] py-3.5">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-success-border bg-success-subtle px-3 py-1 text-xs font-semibold text-success">
+              <span className="ledger-dot" aria-hidden="true" /><span className="font-code">ZATCA</span><span>{t("متصل · إنتاج", "Connected · production")}</span>
+            </span>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-warning-border bg-warning-subtle px-3 py-1 text-xs font-semibold text-warning">
+              <span className="ledger-dot" aria-hidden="true" /><span className="font-code">ZATCA</span><span>{t("قيد التحقق", "Under validation")}</span>
+            </span>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-surface-subtle px-3 py-1 text-xs font-semibold text-muted-foreground">
+              <span className="ledger-dot hollow" aria-hidden="true" /><span className="font-code">ZATCA</span><span>{t("غير مرتبط", "Not linked")}</span>
+            </span>
+            <span className="text-xs text-muted-foreground">{t("النقطة تحمل الحالة، الكلمة تحمل المعنى، التفاصيل بالضغط — بلا بانر.", "The dot carries the state, the word carries the meaning, details are one click away — no banner.")}</span>
+          </div>
+        </div>
       </div>
-    </SettingsSection>
+    </section>
   );
 }
 
