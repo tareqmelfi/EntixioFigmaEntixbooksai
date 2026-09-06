@@ -10,85 +10,101 @@ export function deviceProofReference(proof: DeviceProof) {
   return `ENTIX-Z2-${proof.orgId.slice(0, 8).toUpperCase()}-${(proof.certificate?.fingerprint || "").replace(/:/g, "").slice(0, 12).toUpperCase()}`;
 }
 
-/** A printable Entix record. The QR opens Fatoora, not a public verification endpoint. */
+/** Printable record using the client-approved sidebar layout and actual evidence. */
 export async function renderDeviceProofDocument(proof: DeviceProof, t: (ar: string, en: string) => string) {
   if (!proof.certificate || !isDeviceProofCurrent(proof)) throw new Error("device_proof_unavailable");
   await Promise.all([document.fonts.load('700 72px "Noto Sans Arabic"', proof.companyName), document.fonts.load('400 30px "Noto Sans Arabic"', 'سجل الربط'), document.fonts.ready]);
   const cert = proof.certificate;
   const canvas = document.createElement("canvas");
-  canvas.width = 2480; canvas.height = 1754; // A4 landscape at approximately 212 dpi.
+  canvas.width = 2480; canvas.height = 1754;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas_unavailable");
   const rtl = t("ar", "en") === "ar";
-  const date = (value: string) => new Date(value).toLocaleDateString("en-GB", { timeZone: "Asia/Riyadh" });
-  const text = (value: string, x: number, y: number, size: number, color: string = ENTIX_BRAND.navy, bold = false, width = 2150) => {
-    ctx.direction = rtl ? "rtl" : "ltr"; ctx.textAlign = "right";
-    ctx.fillStyle = color; ctx.font = `${bold ? "bold " : ""}${size}px "Noto Sans Arabic", sans-serif`;
+  const navy = ENTIX_BRAND.navy, muted = "#68748b", green = "#187349", amber = "#956100";
+  const text = (value: string, x: number, y: number, size: number, color: string = navy, bold = false, width = 1640, align: CanvasTextAlign = "right") => {
+    ctx.direction = rtl ? "rtl" : "ltr"; ctx.textAlign = align;
+    ctx.fillStyle = color; ctx.font = `${bold ? "700 " : "400 "}${size}px "Noto Sans Arabic", sans-serif`;
     ctx.fillText(value, x, y, width);
   };
-  const rule = (y: number) => { ctx.fillStyle = "#d7e2ed"; ctx.fillRect(155, y, 2170, 2); };
-  const field = (label: string, value: string, x: number, y: number) => {
-    text(label, x, y, 32, "#526077", false, 1010);
-    text(value, x, y + 76, 52, ENTIX_BRAND.navy, true, 1010);
+  const box = (x: number, y: number, w: number, h: number, color: string, radius = 18) => {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fill();
   };
-
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = ENTIX_BRAND.navy; ctx.lineWidth = 3; ctx.strokeRect(48, 48, 2384, 1658);
-  ctx.strokeStyle = "#d7e2ed"; ctx.lineWidth = 1; ctx.strokeRect(66, 66, 2348, 1622);
-  ctx.fillStyle = ENTIX_BRAND.cyan; ctx.fillRect(66, 66, 2348, 12);
-
-  // Integer-sized QR modules and a four-module quiet zone remain sharp in print.
-  const qr = qrcode(0, "M"); qr.addData(FATOORA_DEVICE_PORTAL); qr.make();
-  const cell = 8, quiet = 4, count = qr.getModuleCount(), qrX = 155, qrY = 140;
-  ctx.fillStyle = ENTIX_BRAND.navy;
-  for (let row = 0; row < count; row++) for (let col = 0; col < count; col++) {
-    if (qr.isDark(row, col)) ctx.fillRect(qrX + (col + quiet) * cell, qrY + (row + quiet) * cell, cell, cell);
-  }
-  const qrRight = qrX + (count + quiet * 2) * cell;
-  text(t("بوابة فاتورة", "Fatoora portal"), qrRight, 465, 31, ENTIX_BRAND.navy, true, 340);
-  text(t("تسجيل الدخول لمراجعة الجهاز", "Sign in to review the device"), qrRight, 510, 24, "#526077", false, 340);
-
-  await drawEntixWordmark(ctx, 2325, 208, 68);
-  text(`${t("مرجع السجل", "Entix record reference")}: \u2066${deviceProofReference(proof)}\u2069`, 2325, 267, 26, "#526077", false, 1700);
-  text(t("سجل ربط جهاز الفوترة الإلكترونية", "E-invoicing device onboarding record"), 2325, 350, 78, ENTIX_BRAND.navy, true, 1710);
-  text(t("صادر من Entix بناءً على شهادة الجهاز المحفوظة", "Issued by Entix from the stored device certificate"), 2325, 418, 32, "#526077", false, 1710);
-  ctx.fillStyle = "#eaf8f0"; ctx.fillRect(1375, 465, 950, 76);
-  text(t("تم ربط جهاز المنشأة في بيئة الإنتاج", "Device onboarded in production"), 2295, 517, 34, "#17603b", true, 890);
-  rule(584);
-
-  text(t("المنشأة", "Organization"), 2325, 668, 32, "#526077");
-  text(proof.companyName, 2325, 760, 72, ENTIX_BRAND.navy, true);
-  field(t("الرقم الضريبي", "VAT number"), proof.vatNumber || "—", 2325, 876);
-  field(t("معرّف الجهاز", "Device identifier"), cert.deviceName || "—", 1140, 876);
-  field(t("تاريخ إصدار شهادة الجهاز", "Device certificate issued"), date(cert.issuedAt), 2325, 1060);
-  field(t("صالحة حتى", "Valid until"), date(cert.expiresAt), 1140, 1060);
-
-  ctx.fillStyle = "#f4f8fb"; ctx.fillRect(155, 1185, 2170, 195);
-  deviceProofStages(proof, t).forEach((stage, index) => {
-    const right = index % 2 === 0 ? 2290 : 1190;
-    const y = index < 2 ? 1247 : 1338;
-    ctx.fillStyle = "#d5f5e6"; ctx.beginPath(); ctx.arc(right - 23, y - 13, 25, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "#17603b"; ctx.lineWidth = 5; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(right - 35, y - 14); ctx.lineTo(right - 26, y - 5); ctx.lineTo(right - 11, y - 24); ctx.stroke();
-    text(stage.label, right - 67, y, 32, ENTIX_BRAND.navy, false, 965);
-  });
+  const rule = (x: number, y: number, width: number, color = "#deded5") => { ctx.fillStyle = color; ctx.fillRect(x, y, width, 2); };
+  const date = (value: string) => new Date(value).toLocaleDateString("en-GB", { timeZone: "Asia/Riyadh" }).replace(/\//g, " / ");
+  const qr = (payload: string, x: number, y: number, cell: number) => {
+    const code = qrcode(0, "M"); code.addData(payload); code.make();
+    const count = code.getModuleCount(), size = (count + 8) * cell;
+    box(x, y, size, size, "#ffffff", 14);
+    ctx.fillStyle = navy;
+    for (let r = 0; r < count; r++) for (let c = 0; c < count; c++) if (code.isDark(r, c)) ctx.fillRect(x + (c + 4) * cell, y + (r + 4) * cell, cell, cell);
+    return size;
+  };
+  const check = (label: string, right: number, baseline: number, complete: boolean, width = 720) => {
+    const color = complete ? green : amber;
+    ctx.fillStyle = complete ? "#dff3e6" : "#fff0c7"; ctx.beginPath(); ctx.arc(right - 23, baseline - 13, 23, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath();
+    if (complete) { ctx.moveTo(right - 33, baseline - 14); ctx.lineTo(right - 26, baseline - 7); ctx.lineTo(right - 12, baseline - 24); }
+    else { ctx.arc(right - 23, baseline - 13, 11, 0, Math.PI * 2); ctx.moveTo(right - 23, baseline - 20); ctx.lineTo(right - 23, baseline - 13); ctx.lineTo(right - 17, baseline - 10); }
+    ctx.stroke(); text(label, right - 64, baseline, 29, navy, false, width);
+  };
   const accepted = proof.lastAcceptedInvoice;
-  text(accepted ? `${t("قبول فاتورة إنتاجية", "Production invoice accepted")}: ${accepted.invoiceNumber} · ${accepted.status}` : t("إرسال الفواتير: غير مفعّل بعد", "Invoice submission: not active yet"), 2325, 1420, 28, accepted ? "#17603b" : "#854d0e", false, 1160);
+  const ready = proof.delivery?.ready === true;
+  const review = !!proof.delivery?.needsReview;
 
-  text(proof.delivery?.needsReview ? t("توجد فواتير تحتاج مراجعة في حساب المنشأة", "Invoices need review in the organization account") : proof.delivery?.ready ? t("الإرسال التلقائي مفعّل لفواتير المبيعات المدعومة", "Automatic submission active for supported sales invoices") : t("حالة الإرسال تُراجع في حساب المنشأة", "Review submission status in the organization account"), 1120, 1420, 24, proof.delivery?.ready ? "#17603b" : "#526077", false, 940);
-  rule(1450);
+  ctx.fillStyle = "#f4f2eb"; ctx.fillRect(0, 0, 2480, 1754);
+  box(64, 64, 2352, 1626, "#fffefa");
+  ctx.save(); ctx.beginPath(); ctx.roundRect(64, 64, 2352, 1626, 18); ctx.clip();
+  ctx.fillStyle = navy; ctx.fillRect(1865, 64, 551, 1626); ctx.restore();
+  ctx.strokeStyle = "#deded5"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(64, 64, 2352, 1626, 18); ctx.stroke();
+
+  // The approved wordmark retains the same face and colors as the application.
+  box(1975, 124, 340, 92, "#ffffff", 14);
+  await drawEntixWordmark(ctx, 2286, 189, 54);
+  text(t("سجل ربط جهاز", "E-invoicing device"), 2354, 295, 39, "#ffffff", true, 430);
+  text(t("الفوترة الإلكترونية", "onboarding record"), 2354, 356, 39, "#ffffff", true, 430);
+  text("ZATCA PHASE 2 · DEVICE", 1926, 414, 23, "#a8c4ee", false, 425, "left");
+  text("ONBOARDING RECORD", 1926, 450, 23, "#a8c4ee", false, 425, "left");
+  rule(1926, 504, 428, "#526285");
+  text(t("مرجع السجل", "Record reference"), 2354, 568, 26, "#a8c4ee", true, 428);
+  const reference = deviceProofReference(proof), cut = reference.lastIndexOf("-");
+  ctx.direction = "ltr"; ctx.textAlign = "left"; ctx.fillStyle = "#ffffff"; ctx.font = '25px monospace';
+  ctx.fillText(reference.slice(0, cut + 1), 1926, 618, 428); ctx.fillText(reference.slice(cut + 1), 1926, 660, 428);
+  qr(FATOORA_DEVICE_PORTAL, 2050, 1236, 8);
+  text(t("بوابة فاتورة", "Fatoora portal"), 2354, 1565, 29, "#ffffff", true, 428);
+  text(t("تسجيل الدخول لمراجعة الجهاز", "Sign in to review the device"), 2354, 1612, 23, "#cad6e9", false, 428);
+  text(t("مرتبط · بيئة الإنتاج", "Onboarded · Production"), 2354, 1661, 25, "#a8c4ee", true, 428);
+
+  text(t("المنشأة", "Organization"), 1790, 149, 25, muted, true);
+  text(proof.companyName, 1790, 235, 65, navy, true, 1220);
+  text(t("صادر من ENTIX.IO بناءً على شهادة الجهاز المحفوظة", "Issued by ENTIX.IO from the stored device certificate"), 1790, 294, 27, muted, false, 1370);
+  box(140, 137, 420, 64, "#edf2ff", 32);
+  text(t("تم الربط في بيئة الإنتاج", "Device onboarded in production"), 535, 181, 27, ENTIX_BRAND.blue, true, 370);
+  rule(140, 337, 1650, navy);
+  const field = (label: string, value: string, left: number, right: number, y: number, size = 46) => {
+    text(label, right, y, 26, muted, true, right - left);
+    ctx.direction = "ltr"; ctx.textAlign = "left"; ctx.fillStyle = navy; ctx.font = `700 ${size}px "Noto Sans Arabic", sans-serif`; ctx.fillText(value, left, y + 65, right - left);
+  };
+  field(t("الرقم الضريبي", "VAT number"), proof.vatNumber || "—", 1000, 1790, 395);
+  field(t("معرّف الجهاز", "Device identifier"), cert.deviceName || "—", 140, 930, 395, 43);
+  field(t("تاريخ إصدار شهادة الجهاز", "Device certificate issued"), date(cert.issuedAt), 1000, 1790, 533);
+  field(t("صالحة حتى", "Valid until"), date(cert.expiresAt), 140, 930, 533);
+
+  box(140, 653, 1650, 244, "#f4f2eb");
+  deviceProofStages(proof, t).forEach((stage, index) => check(stage.label, index % 2 === 0 ? 1750 : 930, index < 2 ? 714 : 785, stage.complete));
+  // Authority acceptance and daily delivery are separate evidence-based stages.
+  check(t("قبول أول فاتورة إنتاجية", "First production invoice accepted"), 930, 856, !!accepted);
+  check(t("الإرسال التلقائي للفواتير المدعومة", "Automatic delivery for supported invoices"), 1750, 856, ready && !review);
+  text(accepted ? `${accepted.invoiceNumber} · ${accepted.status}` : t("بانتظار رد الهيئة على أول فاتورة", "Awaiting the first invoice authority response"), 1790, 960, 29, accepted ? green : amber, true, 1650);
+  text(review ? t("توجد فواتير تحتاج مراجعة في حساب المنشأة", "Invoices need review in the organization account") : ready ? t("الإرسال التلقائي مفعّل · مبيعات محلية بالريال بضريبة ١٥٪", "Automatic delivery active · Domestic SAR sales at 15% VAT") : t("الإرسال التلقائي: بانتظار استكمال التفعيل", "Automatic delivery: awaiting activation"), 1790, 1018, 27, ready && !review ? green : amber, false, 1650);
+
+  rule(140, 1424, 1650);
   const digest = cert.fingerprint.replace(/:/g, "").toUpperCase();
-  const fingerprintQr = qrcode(0, "M"); fingerprintQr.addData(`SHA256:${digest}`); fingerprintQr.make();
-  const fpCell = 4, fpCount = fingerprintQr.getModuleCount();
-  ctx.fillStyle = ENTIX_BRAND.navy;
-  for (let row = 0; row < fpCount; row++) for (let col = 0; col < fpCount; col++) {
-    if (fingerprintQr.isDark(row, col)) ctx.fillRect(155 + (col + 4) * fpCell, 1465 + (row + 4) * fpCell, fpCell, fpCell);
-  }
-  text(t("بصمة الشهادة · SHA-256", "Certificate fingerprint · SHA-256"), 430, 1680, 20, "#526077", false, 275);
-  text(accepted ? t("سجل من Entix؛ قبول الفاتورة المذكورة موثق برد الهيئة. لا يعد اعتمادًا للبرنامج أو لجميع الفواتير.", "An Entix record; the named invoice has an authority acceptance response. Not software or blanket invoice accreditation.") : t("سجل ربط من Entix؛ ليس اعتمادًا حكوميًا للبرنامج أو إثباتًا لقبول الفواتير أو التسجيل الضريبي.", "An Entix record; not government software accreditation, invoice acceptance, or VAT registration proof."), 2325, 1510, 26, "#526077", false, 1810);
-  text(t("مراجعة الإلغاء في بوابة فاتورة. رمز البصمة للمطابقة؛ لا يفتح رابط تحقق رسمي.", "Review revocation in Fatoora. The fingerprint QR is for matching; it is not an official verification link."), 2325, 1558, 26, "#526077", false, 1810);
-  text(`${t("وقت التحقق", "Checked at")}: ${new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })} · ${t("بتوقيت الرياض", "Riyadh time")}`, 2325, 1606, 26, "#526077", false, 1810);
-  ctx.direction = "ltr"; ctx.textAlign = "left"; ctx.fillStyle = "#526077"; ctx.font = "18px monospace";
-  ctx.fillText(`SHA-256  ${cert.fingerprint}`, 500, 1670, 1825);
+  qr(`SHA256:${digest}`, 140, 1444, 4);
+  text("SHA-256 fingerprint", 385, 1680, 18, muted, false, 245);
+  text(accepted ? t("سجل من Entix؛ قبول الفاتورة المذكورة موثق برد الهيئة. لا يعد اعتمادًا للبرنامج أو لجميع الفواتير.", "An Entix record; the named invoice has an authority response. Not software or blanket invoice accreditation.") : t("سجل ربط من Entix؛ لا يتضمن قبول فاتورة إنتاجية بعد، وليس اعتمادًا حكوميًا للبرنامج.", "An Entix onboarding record; no production invoice accepted yet. Not government software accreditation."), 1790, 1505, 22, muted, false, 1340);
+  text(t("مراجعة إلغاء الجهاز في بوابة فاتورة. رمز البصمة للمطابقة؛ لا يفتح رابط تحقق رسمي.", "Review device revocation in Fatoora. The fingerprint code is for matching, not an official verification link."), 1790, 1550, 22, muted, false, 1340);
+  text(`${t("وقت التحقق", "Checked at")}: ${new Date(proof.checkedAt).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })} · ${t("بتوقيت الرياض", "Riyadh time")}`, 1790, 1614, 23, muted, false, 1340);
+  ctx.direction = "ltr"; ctx.textAlign = "left"; ctx.fillStyle = muted; ctx.font = "17px monospace";
+  ctx.fillText(`SHA-256 ${cert.fingerprint}`, 440, 1663, 1350);
   return canvas;
 }
