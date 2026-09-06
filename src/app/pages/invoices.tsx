@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer, LockKeyhole, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
@@ -31,6 +31,7 @@ import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 import { useOrgRegion } from "../lib/use-org-region";
+import { IssuedInvoiceRecord } from "../components/issued-invoice-record";
 import { BidiText } from "../components/bidi-text";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
@@ -307,6 +308,7 @@ export function Invoices() {
   // 'send' = إرسال (only after approval · triggers email)
   const handleSubmit = async (action: "draft" | "approve" | "send" = "draft") => {
     setCreateError(null);
+    if (editingInvoice && editingInvoice.status !== "DRAFT") { setCreateError(t("الفاتورة صادرة ومقفلة", "This issued invoice is locked")); return; }
     if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return; }
 
     const activeLines = lines.filter((l) => {
@@ -328,11 +330,20 @@ export function Invoices() {
     const incompleteActive = activeLines.filter((l) => !isLineComplete(l));
 
     // For approval/send: all active lines must be fully complete.
-    // Revenue account is resolved server-side (fallback ladder · PR4) — no FE hard block.
+    // An explicit line account or a configured product mapping is required.
     if (action !== "draft" && incompleteActive.length > 0) {
       setInvalidLineIds(new Set(incompleteActive.map((l) => l.id)));
       setCreateError(t(`لا يمكن الاعتماد: ${incompleteActive.length} بند ناقص (موضّح بالأحمر) · كل بند يحتاج وصفاً واضحاً + كمية أكبر من صفر + سعراً أكبر من صفر`, `Cannot approve: ${incompleteActive.length} incomplete line(s) (highlighted in red) · each line needs a clear description + quantity greater than zero + price greater than zero`));
       return;
+    }
+
+    if (action !== "draft") {
+      const missing = activeLines.filter(l => !l.accountId && !products.find(p => p.id === l.productId)?.incomeAccountId);
+      if (missing.length) {
+        setInvalidLineIds(new Set(missing.map(l => l.id)));
+        setCreateError(t("اختر حساب الإيراد لكل بند قبل الاعتماد، أو اربط الحساب بالمنتج المختار.", "Select a revenue account for every line before approval, or configure the selected product's income account."));
+        return;
+      }
     }
 
     // For draft we only persist completed lines to avoid إنشاء سطور ناقصة بالخطأ.
@@ -364,7 +375,7 @@ export function Invoices() {
         termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
-          accountId: l.accountId || null, // revenue account · server resolves fallback when null
+          accountId: l.accountId || null, // only an intentional product mapping can supply a missing account
           taxRate: typeof l.taxRate === "number" ? l.taxRate : defaultTaxRate, // numeric rate · jurisdiction default
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
@@ -438,7 +449,12 @@ export function Invoices() {
       }
       // UX-177 · stay on the saved invoice instead of returning to list
       // Switch to edit mode of the freshly-saved invoice · preserve all form fields
+      // Lock immediately after a successful issue, even if the evidence refresh fails.
       setEditingInvoice(inv as Invoice);
+      if (action !== "draft") {
+        try { setEditingInvoice(await api.invoices.get(inv.id)); }
+        catch { push("info", t("تم إصدار الفاتورة. حدّث حالتها لعرض رد الهيئة.", "Invoice issued. Refresh its status to view the authority response.")); }
+      }
       setForm((prev) => ({ ...prev, invoiceNumber: inv.invoiceNumber }));
       draft.clear(); // saved → the autosaved draft is obsolete
       // Keep createOpen true · just refresh state
@@ -475,22 +491,15 @@ export function Invoices() {
         push("error", t("لا يمكن الاعتماد: يوجد بند ناقص (الوصف/الكمية/السعر)", "Cannot approve: there is an incomplete line (description/quantity/price)"));
         return;
       }
-      // Revenue account is resolved server-side (fallback ladder · PR4) — no FE hard block.
+      if (lineItems.some((l: any) => !l.accountId && !l.product?.incomeAccountId)) {
+        push("error", t("اختر حساب الإيراد لكل بند قبل الاعتماد.", "Select a revenue account for every line before approval."));
+        return;
+      }
       await api.invoices.update(inv.id, { status: "APPROVED" });
       setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "APPROVED" } as Invoice : x));
       push("success", t(`تم اعتماد ${inv.invoiceNumber}`, `Approved ${inv.invoiceNumber}`));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
-    }
-  };
-
-  const handleUnapprove = async (inv: Invoice) => {
-    try {
-      await api.invoices.update(inv.id, { status: "DRAFT" });
-      setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "DRAFT" } as Invoice : x));
-      push("success", t(`تم إلغاء اعتماد ${inv.invoiceNumber}`, `Unapproved ${inv.invoiceNumber}`));
-    } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل إلغاء الاعتماد", en: "Unapprove failed" }));
     }
   };
 
@@ -596,6 +605,13 @@ export function Invoices() {
       setSignError(humanizeError(e, language, { ar: "فشل الإرسال", en: "Send failed" }));
     } finally { setBusy(false); }
   };
+
+  if (createOpen && editingInvoice && editingInvoice.status !== "DRAFT" && !signFor) {
+    return <><IssuedInvoiceRecord invoice={editingInvoice} onClose={closeCreate}
+      onPayment={() => openRecordPayment(editingInvoice)}
+      onRefresh={async () => { try { setEditingInvoice(await api.invoices.get(editingInvoice.id)); } catch (e) { push("error", humanizeError(e, language)); } }} />
+      <ToastStack toasts={toasts} onDismiss={dismiss} /></>;
+  }
 
   // Full-page Create form (hides list view) · Wafeq-style replace-content pattern
   if (createOpen) {
@@ -782,6 +798,7 @@ export function Invoices() {
               </div>
             </div>
 
+            <p className="text-xs text-muted-foreground">{t("حساب الإيراد مطلوب لكل بند عند الاعتماد. يمكنك حفظ مسودة حتى يكتمل الربط المحاسبي.", "Each line requires a revenue account for approval. Save a draft while completing the accounting mappings.")}</p>
             {/* Items table v2 · with product picker + account picker */}
             <ItemsTable
               lines={lines}
@@ -799,7 +816,7 @@ export function Invoices() {
                 unitPrice: Number(p.unitPrice) || 0,
                 accountId: p.incomeAccountId,
               }))}
-              accounts={accounts.map((a: any) => ({
+              accounts={accounts.filter((a: any) => a.isActive !== false).map((a: any) => ({
                 id: a.id,
                 code: a.code,
                 name: displayName(a),
@@ -919,7 +936,7 @@ export function Invoices() {
         {quickProductReq && (
           <QuickCreateProduct
             initialName={quickProductReq.name}
-            accounts={accounts.map((a: any) => ({ id: a.id, name: displayName(a), code: a.code, type: a.type, subtype: a.subtype }))}
+            accounts={accounts.filter((a: any) => a.isActive !== false).map((a: any) => ({ id: a.id, name: displayName(a), code: a.code, type: a.type, subtype: a.subtype }))}
             onCreate={async (input) => {
               const p = await (api as any).products.create(input);
               setProducts((prev) => [p, ...prev]);
@@ -1177,15 +1194,7 @@ export function Invoices() {
                             {t("تفكيك", "Split")}
                           </button>
                         )}
-                        {i.status === "APPROVED" && (
-                          <button
-                            onClick={() => handleUnapprove(i)}
-                            className="rounded-md px-1.5 py-0.5 text-[10px] text-amber-700 hover:bg-amber-50 border border-amber-200"
-                            title={t("إلغاء الاعتماد وإرجاعها لمسودة", "Unapprove and return to draft")}
-                          >
-                            ↩ {t("إلغاء اعتماد", "Unapprove")}
-                          </button>
-                        )}
+                        {i.status !== "DRAFT" && <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground" aria-label={t("فاتورة صادرة ومقفلة", "Issued and locked")} />}
                         {i.status !== "PAID" && i.status !== "CANCELLED" && (
                           <button
                             onClick={() => openRecordPayment(i)}
@@ -1204,19 +1213,19 @@ export function Invoices() {
                         <button
                           onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
                           className="rounded-md p-1.5 text-primary hover:bg-blue-50"
-                          title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض/تعديل الفاتورة", "View/edit invoice")}
-                        ><Pencil className="h-4 w-4" /></button>
+                          title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض الفاتورة ورد الهيئة", "View invoice and authority response")}
+                        >{i.status === "DRAFT" ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                         {/* طباعة — always available */}
                         <button
                           onClick={(e) => { e.stopPropagation(); window.open(`/print/invoice/${i.id}`, "_blank"); }}
                           className="rounded-md p-1.5 text-foreground/70 hover:bg-gray-100"
                           title={t("طباعة الفاتورة", "Print invoice")}
                         ><Printer className="h-4 w-4" /></button>
-                        {pendingDelete === i.id ? (
+                        {i.status === "DRAFT" && (pendingDelete === i.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(i.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
                           <button onClick={(e) => { e.stopPropagation(); setPendingDelete(i.id); }} className="rounded-md p-1.5 text-red-600 hover:bg-red-50" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
-                        )}
+                        ))}
                       </div>
                     </td>
                   </tr>

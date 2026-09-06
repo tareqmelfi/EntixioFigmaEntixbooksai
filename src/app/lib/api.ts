@@ -2735,7 +2735,7 @@ export interface Invoice {
   termsConditions?: string | null
   zatcaUuid?: string | null
   zatcaQr?: string | null
-  zatcaDelivery?: { state: string | null; message: string | null; customerReleaseReady?: boolean } | null
+  zatcaDelivery?: { state: string | null; message: string | null; customerReleaseReady?: boolean; evidence?: { state: string; mode: string; kind: string; uuid: string; attempts: number; httpStatus: number | null; updatedAt: string; errors: string[] | null; warnings: string[] | null } | null } | null
   zatcaStatus?: string | null
   contact?: Contact
   lines?: InvoiceLine[]
