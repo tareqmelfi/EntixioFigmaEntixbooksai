@@ -756,7 +756,7 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; compareTo?: string; bilingual?: 1 }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; bilingual?: 1 }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
