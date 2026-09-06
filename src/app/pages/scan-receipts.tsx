@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * Scan Receipts · batch intake hub (rebuilt)
  * Upload many receipts → AI extracts each one → REVIEW table (vendor/buyer/date/
@@ -502,8 +503,8 @@ export function ScanReceipts() {
     (async () => {
       try {
         const orgs = await api.orgs.list();
-        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-        const active = (stored ? orgs.find((org) => org.id === stored) : null) || orgs[0];
+        const stored = getOrgId();
+        const active = (stored ? orgs.find((org) => org.id === stored) : null);
         setOrgId(active?.id || "");
         setOrgSlug(active?.slug || "");
         setOrgName((active as any)?.name || "");

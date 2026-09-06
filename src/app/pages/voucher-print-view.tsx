@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * Voucher print view · branded receipt/payment voucher (UX-201)
  * Standalone route: /print/voucher/:id
@@ -94,8 +95,8 @@ export function VoucherPrintView() {
           setOrg(await api.orgs.get(voucherOrgId));
         } else {
           const orgs = await api.orgs.list();
-          const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-          const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
+          const stored = getOrgId();
+          const active = (stored ? orgs.find((o) => o.id === stored) : null);
           if (active) setOrg(await api.orgs.get(active.id));
         }
       } catch (e: any) {

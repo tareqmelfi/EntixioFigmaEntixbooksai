@@ -8,6 +8,7 @@
  *  - JSON serialization
  *  - Error envelope normalization
  */
+import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
 
 export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
@@ -53,12 +54,12 @@ function listOrgsCached(): Promise<Org[]> {
   return orgsInflight
 }
 
-export function setOrgId(id: string | null) {
+export function setOrgId(id: string | null, persist = true) {
   if (id !== orgId) invalidateOrgsCache()
   orgId = id
-  if (typeof localStorage !== 'undefined') {
-    if (id) localStorage.setItem('entix_org_id', id)
-    else localStorage.removeItem('entix_org_id')
+  if (persist) rememberTabOrgId(id)
+  if (!id && persist) {
+    try { localStorage.removeItem('entix_org_id'); localStorage.removeItem('entix_org_explicit') } catch {}
   }
 }
 
@@ -81,8 +82,7 @@ if (typeof localStorage !== 'undefined') {
  * stored org may not be the document's org).
  */
 export function bootstrapOrgIdFromStorage(): string | null {
-  if (typeof localStorage === 'undefined') return null
-  const stored = localStorage.getItem('entix_org_id')
+  const stored = readTabOrgId()
   if (stored) setOrgId(stored)
   return stored
 }
@@ -160,7 +160,7 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   if (!opts.skipOrg && typeof localStorage !== 'undefined') {
     try {
       const raw = localStorage.getItem('entix_act_as')
-      if (raw) { const v = JSON.parse(raw); if (v?.orgId && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+      if (raw) { const v = JSON.parse(raw); if (v?.orgId === getOrgId() && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
     } catch { /* ignore */ }
   }
 
@@ -714,7 +714,7 @@ export const api = {
       if (oid) headers['X-Org-Id'] = oid
       try {
         const raw = localStorage.getItem('entix_act_as')
-        if (raw) { const v = JSON.parse(raw); if (v?.orgId && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+        if (raw) { const v = JSON.parse(raw); if (v?.orgId === getOrgId() && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
       } catch { /* ignore */ }
       const res = await fetch(`${API_BASE}/api/quotes/import-boq`, { method: 'POST', headers, body: form, credentials: 'include' })
       const data = await res.json().catch(() => ({}))

@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * /app/billing — subscription management (in-app, full page standard).
  * Current plan/status/trial · manage via Stripe portal · upgrade via checkout.
@@ -55,8 +56,8 @@ export function Billing() {
       if (active?.plan?.currency) {
         setPlanCurrency(String(active.plan.currency).toLowerCase() === "usd" ? "usd" : "sar");
       } else {
-        const storedId = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-        const org = (storedId ? (orgs as any[]).find((o) => o.id === storedId) : null) || (orgs as any[])[0];
+        const storedId = getOrgId();
+        const org = (storedId ? (orgs as any[]).find((o) => o.id === storedId) : null);
         setPlanCurrency(org?.country === "US" ? "usd" : "sar");
       }
     } catch (e: any) {

@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * سندات الصرف · Payment Vouchers (cash OUT to suppliers)
  * Wafeq-style: supplier + bill link + attachments + branded PDF + email send
@@ -119,8 +120,8 @@ export function Payments() {
     if (!orgNameRef.current) {
       try {
         const orgs = await api.orgs.list();
-        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-        orgNameRef.current = ((stored ? orgs.find((o) => o.id === stored) : null) || orgs[0])?.name || "";
+        const stored = getOrgId();
+        orgNameRef.current = ((stored ? orgs.find((o) => o.id === stored) : null))?.name || "";
       } catch { orgNameRef.current = ""; }
     }
     const tpl = voucherEmail({

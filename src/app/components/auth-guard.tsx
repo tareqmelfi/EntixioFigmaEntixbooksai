@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router";
 import { authStore } from "./auth-store";
 import { api } from "../lib/api";
+import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 import { accountLocale, applyDocumentLocale, LANGUAGE_STORAGE_KEY } from "./public-preferences";
 
@@ -77,6 +78,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace state={{ from: fromPath }} />;
   }
 
+  // Do not mount financial forms until the tab's company has been confirmed.
+  if (state.organizationError) return <OrganizationRecovery selectionRequired={state.organizationError === "selection_required"} />;
+
   // 3. Authenticated BUT account deletion is pending → the whole app swaps
   // for the restore screen. Cancelling clears the flag and the user comes
   // back to a fully intact account (30-day recovery window).
@@ -91,6 +95,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     applyDocumentLocale(locale);
   }
   return <>{children}</>;
+}
+
+function OrganizationRecovery({ selectionRequired }: { selectionRequired: boolean }) {
+  const { t } = useLanguage();
+  return <main className="mx-auto max-w-xl space-y-5 p-8">
+    <h1 className="text-xl font-semibold">{t("تأكيد الشركة الحالية", "Confirm the current company")}</h1>
+    <p className="text-sm text-muted-foreground">{selectionRequired
+      ? t("الشركة التي كنت تعمل عليها لم تعد ضمن صلاحيات حسابك. اختر شركة للمتابعة.", "Your previous company is no longer available to this account. Choose a company to continue.")
+      : t("تعذر التحقق من الشركة الحالية. احتفظنا باختيارك؛ أعد المحاولة للمتابعة.", "We could not verify the current company. Your selection is preserved; retry to continue.")}</p>
+    {selectionRequired ? <OrgSwitcher /> : <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground" onClick={() => window.location.reload()}>{t("إعادة المحاولة", "Retry")}</button>}
+  </main>;
 }
 
 /** Full-screen recovery prompt shown while account deletion is pending. */

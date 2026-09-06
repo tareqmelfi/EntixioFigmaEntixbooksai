@@ -1,3 +1,4 @@
+import { getOrgId } from "./api";
 /**
  * useLegalType — the active org's legal form.
  * 'JSC' (joint-stock) → shareholders register + share transactions.
@@ -13,8 +14,8 @@ export function useLegalType(): string | null {
     let alive = true;
     api.orgs.list().then((list) => {
       if (!alive) return;
-      const storedId = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-      const active = (storedId ? list.find((o) => o.id === storedId) : null) || list[0];
+      const storedId = getOrgId();
+      const active = (storedId ? list.find((o) => o.id === storedId) : null);
       setLegalType(active?.legalType ?? null);
     }).catch(() => {});
     return () => { alive = false; };

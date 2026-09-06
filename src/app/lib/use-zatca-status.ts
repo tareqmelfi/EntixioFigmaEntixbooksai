@@ -1,3 +1,4 @@
+import { getOrgId } from "./api";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 
@@ -58,7 +59,7 @@ let generation = 0;
 const listeners = new Set<() => void>();
 
 function activeOrgId(): string {
-  try { return localStorage.getItem("entix_org_id") || ""; } catch { return ""; }
+  try { return getOrgId() || ""; } catch { return ""; }
 }
 
 async function load(orgId: string): Promise<ZatcaStatus> {

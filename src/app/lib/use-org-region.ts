@@ -1,3 +1,4 @@
+import { getOrgId } from "./api";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { readActAs } from "./act-as";
@@ -33,16 +34,17 @@ let inflight: Promise<void> | null = null;
 async function loadOnce(): Promise<void> {
   // Z2.3 · an admin acting on behalf of a company has no membership → region comes from the grant.
   const act = readActAs();
-  if (act) { cached = { orgId: act.orgId, country: (act.country || "SA").toUpperCase(), currency: (act.currency || "").toUpperCase() || currencyFor((act.country || "SA").toUpperCase()) }; return; }
+  if (act && act.orgId === getOrgId()) { cached = { orgId: act.orgId, country: (act.country || "SA").toUpperCase(), currency: (act.currency || "").toUpperCase() || currencyFor((act.country || "SA").toUpperCase()) }; return; }
   try {
     const orgs = await api.orgs.list();
-    const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-    const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
-    const country = (active?.country || "SA").toUpperCase();
+    const stored = getOrgId();
+    const active = (stored ? orgs.find((o) => o.id === stored) : null);
+    if (!active) throw new Error("active_company_unavailable");
+    const country = (active.country || "").toUpperCase();
     cached = { orgId: active?.id || "", country, currency: currencyFor(country, (active as any)?.baseCurrency) };
   } catch {
-    // network hiccup → default SA (the product's home market) without blocking UI
-    cached = cached || { orgId: "", country: "SA", currency: "SAR" };
+    // Never invent a region or currency when the selected company is unavailable.
+    cached = cached?.orgId === getOrgId() ? cached : null;
   }
 }
 

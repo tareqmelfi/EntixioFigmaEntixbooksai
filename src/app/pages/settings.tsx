@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * Settings · org info + members + auth · wired to /orgs · /orgs/:id/members
  */
@@ -86,8 +87,8 @@ export function Settings() {
     setLoading(true); setError(null);
     try {
       const orgs = await api.orgs.list();
-      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-      const active = (stored ? orgs.find(o => o.id === stored) : null) || orgs[0];
+      const stored = getOrgId();
+      const active = (stored ? orgs.find(o => o.id === stored) : null);
       if (!active) { setError(t("لا توجد شركة", "No company")); setLoading(false); return; }
       setOrg(active);
       setForm({
@@ -1835,7 +1836,7 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
   ];
 
   const act = async (key: string, fn: () => Promise<any>, okMsg: string) => {
-    if (localStorage.getItem("entix_org_id") !== org.id) {
+    if (getOrgId() !== org.id) {
       push("error", t("تغيّرت المنشأة المختارة؛ أعد فتح إعدادات الربط للمنشأة المطلوبة.", "The selected organization changed. Reopen onboarding settings for the intended organization."));
       return null;
     }

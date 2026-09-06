@@ -6,7 +6,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { ChevronDown, Plus, Check, X, Star } from "lucide-react";
-import { api, Org, setOrgId, API_BASE_URL } from "../lib/api";
+import { api, Org, getOrgId, API_BASE_URL } from "../lib/api";
+import { rememberTabOrgId } from "../lib/tab-org-selection";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
@@ -90,16 +91,10 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     try {
       const list = await api.orgs.list();
       setOrgs(list);
-      // Honor the user's last org selection from localStorage, but only if it
-      // exists in the server-returned list. This keeps the OrgSwitcher in sync
-      // with authStore.refresh() which now also honors the stored org_id.
-      // If the stored org isn't in the list (e.g. after account switch), fall
-      // back to the first org from the server.
-      const storedId = typeof localStorage !== 'undefined'
-        ? localStorage.getItem('entix_org_id') : null
-      const active = (storedId ? list.find(o => o.id === storedId) : null) || list[0] || null;
-      setActiveOrg(active);
-      if (active) setOrgId(active.id);
+      // Display the same authenticated tab context used by every API request.
+      // Listing companies must never change the active company as a side effect.
+      const activeId = getOrgId();
+      setActiveOrg(list.find(o => o.id === activeId) || null);
       // Load the starred default company alongside the org list.
       try {
         const meRes = await fetch(`${API_BASE_URL}/me`, { credentials: 'include' });
@@ -143,32 +138,18 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     return () => window.removeEventListener("entix:open-switcher", onOpen);
   }, []);
 
-  const handleSelect = async (o: Org) => {
-    setActiveOrg(o);
-    setOrgId(o.id);
-    // Mark this as an explicit user pick so authStore.refresh() honors it on
-    // reload — even for demo orgs (clearStaleState wipes it on next login).
-    // The timestamp doubles as a freshness marker for the server-sync race.
-    try { localStorage.setItem('entix_org_explicit', String(Date.now())); } catch {}
-    // Persist the pick on the server profile so EVERY platform (web + iOS)
-    // resolves the same active company for this user.
-    // CRITICAL: this must COMPLETE (or time out) BEFORE the reload below —
-    // reloading immediately cancels the in-flight PATCH, the server keeps the
-    // OLD org, and authStore's server-first priority then bounces the user
-    // back to it on every load ("switcher does nothing" bug).
-    try {
-      await Promise.race([
-        fetch(`${API_BASE_URL}/me/preferences`, {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ selectedOrgId: o.id }),
-        }),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
-    } catch {}
-    setOpen(false);
-    // Hard refresh so all pages re-fetch with the new org id
+  const handleSelect = (o: Org) => {
+    if (!rememberTabOrgId(o.id)) {
+      setSeedMessage({ kind: "error", text: t("تعذر حفظ اختيار الشركة في هذا التبويب. اسمح بتخزين بيانات الموقع ثم أعد المحاولة.", "Could not save this tab's company. Allow site storage and retry.") });
+      return;
+    }
+    // This is only a hint for a future tab. Existing tabs keep their selection.
+    // Do not change request context beneath a still-mounted invoice form.
+    fetch(`${API_BASE_URL}/me/preferences`, {
+      method: 'PATCH', credentials: 'include', keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedOrgId: o.id }),
+    }).catch(() => {});
     window.location.reload();
   };
 

@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * Inbox · UX-81 · email-to-invoice review queue
  *
@@ -76,8 +77,8 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
   // Fetch org slug for display · pull from orgs list using stored active org id
   useEffect(() => {
     api.orgs.list().then((orgs) => {
-      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-      const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
+      const stored = getOrgId();
+      const active = (stored ? orgs.find((o) => o.id === stored) : null);
       if (active?.slug) setOrgSlug(active.slug);
       const local = (active as any)?.inboundEmailLocal || (active?.slug ? `bills-${active.slug}` : null);
       const domain = (active as any)?.inboundEmailDomain || "in.entix.io";

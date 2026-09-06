@@ -74,7 +74,7 @@ const DEFAULT_SETTINGS: PosSettings = {
   footerText: "", showLogo: true, soundOn: true, tileSize: "comfortable",
 };
 
-const org = () => getOrgId() || localStorage.getItem("entix_org_id") || "x";
+const org = () => getOrgId() || "x";
 const K = (name: string) => `entix_pos_v2_${org()}_${name}`;
 const KEEP_SYNCED_DAYS = 7;
 const MAX_KEPT = 300;

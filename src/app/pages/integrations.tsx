@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
@@ -59,8 +60,8 @@ export function Integrations() {
     let alive = true;
     api.orgs.list().then(async (list) => {
       if (!alive) return;
-      const storedId = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-      const active = (storedId ? list.find((o) => o.id === storedId) : null) || list[0];
+      const storedId = getOrgId();
+      const active = (storedId ? list.find((o) => o.id === storedId) : null);
       if (!active) return;
       try {
         const status = await (api as any).oauth.status(active.id);

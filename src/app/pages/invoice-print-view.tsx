@@ -1,3 +1,4 @@
+import { getOrgId } from "../lib/api";
 /**
  * Invoice print view · Wafeq-style branded template (UX-180)
  * Standalone route: /print/invoice/:id
@@ -67,8 +68,8 @@ export function InvoicePrintView() {
           setOrg(await api.orgs.get(invoiceOrgId));
         } else {
           const orgs = await api.orgs.list();
-          const stored = typeof localStorage !== "undefined" ? localStorage.getItem("entix_org_id") : null;
-          const active = (stored ? orgs.find((o) => o.id === stored) : null) || orgs[0];
+          const stored = getOrgId();
+          const active = (stored ? orgs.find((o) => o.id === stored) : null);
           if (active) setOrg(await api.orgs.get(active.id));
         }
       } catch (e: any) {
