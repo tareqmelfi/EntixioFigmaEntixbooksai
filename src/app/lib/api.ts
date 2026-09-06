@@ -2134,6 +2134,7 @@ export interface AccountInput {
 }
 
 export interface Expense {
+  externalId?: string | null
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
@@ -2178,6 +2179,7 @@ export interface Expense {
 }
 
 export interface ExpenseLine {
+  accountId?: string | null
   description: string
   quantity?: number
   unitPrice?: number
