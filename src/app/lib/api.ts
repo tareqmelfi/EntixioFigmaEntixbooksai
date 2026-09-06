@@ -1392,6 +1392,10 @@ export const api = {
 
   // Invoices
   invoices: {
+    attachments: {
+      list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/invoices/${id}/attachments`),
+      add: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) => request<ExpenseAttachment>(`/api/invoices/${id}/attachments`, { method: 'POST', body }),
+    },
     list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string; projectId?: string; source?: string }) =>
       request<PaginatedResponse<Invoice> & { totalsByCurrency?: Record<string, { total: number; paid: number; outstanding: number }> }>('/api/invoices', { query: params }),
     nextNumber: () => request<{ number: string }>('/api/invoices/_/next-number'),
