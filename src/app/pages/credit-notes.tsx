@@ -286,7 +286,7 @@ export function CreditNotes() {
             </div>
           }
         >
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="w-full space-y-4">
             {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
             <div className="space-y-2">
               <Label className="text-foreground/80">{t("العميل", "Customer")} *</Label>

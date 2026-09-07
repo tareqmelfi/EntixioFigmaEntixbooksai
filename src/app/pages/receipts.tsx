@@ -603,7 +603,7 @@ export function Receipts() {
           }
         >
           <div className={editingReceipt && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
-          <form onSubmit={handleSubmit} className="w-full max-w-7xl mx-auto space-y-4">
+          <form onSubmit={handleSubmit} className="w-full space-y-4">
             <div>
               <Label className="text-xs">{t("العميل", "Customer")} *</Label>
               <SearchableCombobox

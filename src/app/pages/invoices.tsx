@@ -1160,7 +1160,7 @@ export function Invoices() {
 
   return (
     <div className="space-y-6">
-      <div className={wideViewport ? "grid grid-cols-[minmax(0,1fr)_380px] items-start gap-8" : ""}>
+      <div className={wideViewport ? "grid grid-cols-[minmax(0,1fr)_minmax(380px,30%)] items-start gap-8" : ""}>
         <div className="min-w-0 space-y-6">
       <PageHeader
         className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
@@ -1254,9 +1254,9 @@ export function Invoices() {
           })}
         </ul>
         <div className="ledger-table hidden md:block [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
-        <Table className={`table-fixed ${compactList ? "min-w-[700px]" : "min-w-[860px]"}`}>
+        <Table className={`table-fixed ${compactList ? "min-w-[820px]" : "min-w-[980px]"}`}>
           <colgroup>
-            <col style={{ width: "110px" }} />{/* الرقم */}
+            <col style={{ width: "200px" }} />{/* الرقم · mono numbers run to 19 chars (ENTIX-XXXXXXXX-0000) — never narrower */}
             <col style={{ minWidth: "110px" }} />{/* العميل · flexible */}
             <col style={{ width: "110px" }} />{/* التاريخ */}
             <col style={{ width: "110px" }} />{/* الاستحقاق */}
@@ -1286,7 +1286,7 @@ export function Invoices() {
                 className="h-12 cursor-pointer data-[state=selected]:border-b-transparent data-[state=selected]:[&>td:first-child]:rounded-s-lg data-[state=selected]:[&>td:last-child]:rounded-e-lg"
                 title={wideViewport ? t("عرض في اللوحة · نقرتان للفتح", "Show in the panel · double-click to open") : t("فتح الفاتورة", "Open invoice")}
               >
-                <TableCell className="text-start whitespace-nowrap">
+                <TableCell className="text-start whitespace-nowrap overflow-hidden text-ellipsis">
                   <button
                     onClick={() => navigate(`/app/invoices/${i.id}`)}
                     title={t("فتح الفاتورة", "Open invoice")}

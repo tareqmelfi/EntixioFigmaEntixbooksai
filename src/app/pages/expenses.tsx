@@ -21,7 +21,6 @@ import {
   Plus,
   Upload,
   Receipt,
-  Search,
   Send,
   Trash2,
   Wallet,
@@ -29,6 +28,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { PageHeader, Metric, MetricStrip, SearchField, LedgerFigure } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -790,16 +790,6 @@ export function Expenses() {
   // it; mixed → per-currency lines, never a blended figure in a wrong unit.
   const expByCur = (summary.sumByCurrency || []).filter((r) => Number(r.total) !== 0);
   const expSingleCur = expByCur.length === 1 ? expByCur[0].currency : null;
-  const totalMoney = expSingleCur
-    ? money(expByCur[0].total, expSingleCur)
-    : expByCur.length > 1
-      ? expByCur.map((r) => money(r.total, r.currency)).join("  ·  ")
-      : money(total, orgCurrency);
-  const avgMoney = expSingleCur
-    ? money(items.length ? avg : 0, expSingleCur)
-    : expByCur.length > 1
-      ? t("— مختلط العملات", "— mixed currencies")
-      : money(items.length ? avg : 0, orgCurrency);
 
   function openCreate() {
     setEditingId(null);
@@ -1288,7 +1278,7 @@ export function Expenses() {
             </div>
           }
         >
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.1fr)] max-w-7xl mx-auto items-start">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.1fr)] items-start">
             <DocumentPreviewPane
               className="xl:sticky xl:top-4 min-h-[640px]"
               hint={t("ارفع إيصالاً أو فاتورة مصروف", "Upload a receipt or expense invoice")}
@@ -2018,13 +2008,12 @@ export function Expenses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المصروفات النقدية", "Cash Expenses")}</h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة المصروفات اليومية مع قراءة الفواتير والمرفقات", "Manage daily expenses with receipt scanning and attachments")}</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("مصروف جديد", "New expense")}</Button>
-      </div>
+      <PageHeader
+        eyebrow={t("المشتريات", "Purchases")}
+        title={t("المصروفات النقدية", "Cash Expenses")}
+        description={t("إدارة المصروفات اليومية مع قراءة الفواتير والمرفقات", "Manage daily expenses with receipt scanning and attachments")}
+        actions={<Button onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("مصروف جديد", "New expense")}</Button>}
+      />
 
       {draftAvailable && (
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
@@ -2056,44 +2045,36 @@ export function Expenses() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{totalMoney}</div><p className="text-xs text-muted-foreground mt-1">{t("إجمالي", "Total")}</p></CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("عدد المصروفات", "Expense Count")}</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div><p className="text-xs text-muted-foreground mt-1">{t("مصروف", "expense")}</p></CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{t("متوسط المصروف", "Average Expense")}</CardTitle></CardHeader>
-          <CardContent><div className="text-foreground font-english" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{avgMoney}</div><p className="text-xs text-muted-foreground mt-1">{t("لكل مصروف", "per expense")}</p></CardContent>
-        </Card>
-      </div>
+      {/* Ledger: figures on the ink-rule strip — no boxed KPI cards */}
+      <MetricStrip className="sm:grid-cols-3 xl:grid-cols-3">
+        <Metric label={t("إجمالي المصروفات", "Total Expenses")} hint={t("إجمالي", "Total")}
+          value={expByCur.length > 1
+            ? <span className="flex flex-col gap-1">{expByCur.map((r) => <span key={r.currency}><LedgerFigure value={Number(r.total)} currency={r.currency} /></span>)}</span>
+            : <LedgerFigure value={expSingleCur ? Number(expByCur[0].total) : total} currency={expSingleCur || orgCurrency} />} />
+        <Metric label={t("عدد المصروفات", "Expense Count")} value={items.length} hint={t("مصروف", "expense")} />
+        <Metric label={t("متوسط المصروف", "Average Expense")} hint={t("لكل مصروف", "per expense")}
+          value={expByCur.length > 1
+            ? <span className="font-sans text-base font-medium text-content-secondary">{t("مختلط العملات", "Mixed currencies")}</span>
+            : <LedgerFigure value={items.length ? avg : 0} currency={expSingleCur || orgCurrency} />} />
+      </MetricStrip>
 
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-foreground">{t("قائمة المصروفات", "Expenses List")}</CardTitle>
-            <div className="relative">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input placeholder={t("بحث بالمورد، رقم الفاتورة، التصنيف...", "Search by supplier, invoice no., category...")} className="w-full min-w-[260px] ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] table-fixed">
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-section font-semibold text-foreground">{t("قائمة المصروفات", "Expenses List")}</h2>
+          <SearchField containerClassName="w-full sm:max-w-sm" placeholder={t("بحث بالمورد، رقم الفاتورة، التصنيف...", "Search by supplier, invoice no., category...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <div className="ledger-table overflow-x-auto">
+            <table className="w-full min-w-[1040px] table-fixed">
               <colgroup>
-                <col style={{ width: "13%" }} />
+                <col style={{ width: "230px" }} />{/* رقم · mono ids run to 30+ chars (ENTIX-FEE-txn_…) — never a % width */}
                 <col />
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "12%" }} />
+                <col style={{ width: "230px" }} />{/* رقم الفاتورة · long gateway references */}
+                <col style={{ width: "110px" }} />
+                <col style={{ width: "130px" }} />
+                <col style={{ width: "150px" }} />
               </colgroup>
               <thead>
-                <tr className="border-b border-border bg-muted">
+                <tr className="border-b border-foreground">
                   <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("رقم", "No.")}</th>
                   <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("المورد / التصنيف", "Supplier / Category")}</th>
                   <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("رقم الفاتورة", "Invoice No.")}</th>
@@ -2108,13 +2089,13 @@ export function Expenses() {
                   <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></td></tr>
                 )}
                 {!loading && filtered.map((e) => (
-                  <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border/50 hover:bg-primary/5 transition-colors cursor-pointer">
-                    <td className="py-3 px-4"><span className="font-english text-sm text-primary" style={{ fontWeight: 600 }}>{e.number}</span></td>
+                  <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border hover:bg-surface-hover transition-colors cursor-pointer">
+                    <td className="py-3 px-4"><span dir="ltr" className="font-code text-sm text-primary block truncate" style={{ fontWeight: 600 }} title={e.number}>{e.number}</span></td>
                     <td className="py-3 px-4">
                       <div className="truncate text-sm text-foreground/80" dir="auto" title={e.contact?.displayName || e.vendorName || ""}>{e.contact?.displayName || e.vendorName || "—"}</div>
                       <div className="truncate text-xs text-muted-foreground">{e.category}</div>
                     </td>
-                    <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{e.documentNumber || e.reference || "—"}</span></td>
+                    <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground block truncate" style={{ fontVariantNumeric: "tabular-nums" }} title={e.documentNumber || e.reference || ""}>{e.documentNumber || e.reference || "—"}</span></td>
                     <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{e.date.slice(0, 10)}</span></td>
                     <td className="py-3 px-4">
                       <span dir="ltr" className="font-english text-sm text-foreground whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{money(e.total, e.currency)}</span>
@@ -2136,9 +2117,8 @@ export function Expenses() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 

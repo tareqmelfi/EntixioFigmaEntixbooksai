@@ -131,6 +131,13 @@ export function Metric({ label, value, hint, tone = "neutral", icon, className, 
   );
 }
 
+/** Ledger figure: large integer part, small muted fraction. Digits/Latin only —
+ *  never put Arabic text inside a figure value (it would render in the serif face). */
+export function LedgerFigure({ value, currency, locale }: { value: number; currency?: string; locale?: string }) {
+  const [int, frac] = Math.abs(value).toLocaleString(locale || "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split(".");
+  return <>{value < 0 ? "-" : ""}{int}<small>.{frac}</small>{currency && <small className="ms-1 text-[0.45em] text-content-secondary">{currency}</small>}</>;
+}
+
 export function MetricStrip({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("ledger-figures grid sm:grid-cols-2 xl:grid-cols-4", className)} {...props} />;
 }

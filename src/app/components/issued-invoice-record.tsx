@@ -27,7 +27,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
       {!stripeManaged && remaining > 0 && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={onPayment}>{t('تسجيل تحصيل', 'Record receipt')}</Button>}
       <Button disabled={!canRelease} onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank', 'noopener,noreferrer')}>{t('طباعة / تنزيل', 'Print / download')}</Button>
     </div>}>
-    <div className="space-y-4 max-w-5xl mx-auto">
+    <div className="space-y-4 w-full">
       <div className="rounded-lg border border-border bg-muted/40 p-4 flex gap-3">
         <LockKeyhole className="h-5 w-5 shrink-0 text-primary" />
         <div><p className="font-semibold">{t('فاتورة صادرة ومقفلة', 'Issued invoice · locked')}</p>

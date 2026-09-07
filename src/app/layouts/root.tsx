@@ -155,8 +155,10 @@ export function Root() {
         <GlobalToasts />
         <main ref={mainRef} className="flex-1 overflow-auto bg-background">
           {/* Reference artboard insets page content 28px / 40px — the same 40px
-              gutter the header uses, so header and page share one vertical rule. */}
-          <div className="mx-auto w-full max-w-[1440px] p-4 sm:px-[40px] sm:py-[28px]">
+              gutter the header uses, so header and page share one vertical rule.
+              Fluid width (CEO 2026-09-07): pages use the whole viewport — no
+              centred column with dead gutters on wide screens. */}
+          <div className="w-full p-4 sm:px-[40px] sm:py-[28px]">
             {gate ? (
               <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />
             ) : (

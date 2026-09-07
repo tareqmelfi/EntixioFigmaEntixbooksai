@@ -34,6 +34,12 @@
 .ledger-figure-value .fraction { font-size: 0.5em; color: var(--content-secondary); }
 
 /* --- tables: rows on paper, no boxed card, ink rule under the header --- */
+/* Fixed-layout guard (CEO 2026-09-07): a cell may never paint over its neighbour.
+   Long ids (ENTIX-FEE-txn_…) and nowrap numbers used to spill into the next
+   column; now they clip with an ellipsis inside their own cell, and unbroken
+   tokens are allowed to wrap. Menus/popovers are portalled, so clipping is safe. */
+table.table-fixed > tbody > tr > td,
+table.table-fixed > thead > tr > th { overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; min-width: 0; }
 .ledger-table > table thead th { background: transparent; }
 .ledger-table > table tbody tr:last-child { border-bottom: 1px solid var(--border); }
 
