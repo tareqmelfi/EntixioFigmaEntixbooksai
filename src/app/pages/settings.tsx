@@ -1624,6 +1624,10 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
 // ── MEMBERS TAB ─────────────────────────────────────────────────────────────
 function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string; initialMembers: any[]; setMembers: (m: any[]) => void; push: any }) {
   const [members, setLocal] = useState(initialMembers);
+  const actorId = authStore.getState().user?.id;
+  const actorRole = members.find(m => (m.userId || m.user?.id) === actorId)?.role;
+  const canManage = actorRole === "OWNER" || actorRole === "ADMIN";
+  const canChange = (member: any) => canManage && (member.userId || member.user?.id) !== actorId && (actorRole === "OWNER" || ["ACCOUNTANT", "VIEWER"].includes(member.role));
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"OWNER" | "ADMIN" | "ACCOUNTANT" | "VIEWER">("ACCOUNTANT");
   const [busy, setBusy] = useState(false);
@@ -1709,7 +1713,8 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2 items-end p-3 bg-muted rounded-lg">
+        <p className="text-xs text-muted-foreground">{t("المالك يدير الأدوار. المدير يدير المحاسبين والمشاهدين فقط. لا يمكن لأي مستخدم تغيير صلاحيات نفسه.", "Owners manage roles. Admins manage accountants and viewers only. Users cannot change their own permissions.")}</p>
+        {canManage && <div className="flex gap-2 items-end p-3 bg-muted rounded-lg">
           <div className="flex-1">
             <Label className="text-xs">{t("البريد الإلكتروني", "Email")}</Label>
             <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
@@ -1719,8 +1724,8 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
             <Label className="text-xs">{t("الدور", "Role")}</Label>
             <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)}
               className="w-full text-sm rounded border border-border px-3 py-2 bg-white">
-              <option value="OWNER">{t("مالك", "Owner")}</option>
-              <option value="ADMIN">{t("مدير", "Admin")}</option>
+              <option value="OWNER" hidden={actorRole !== "OWNER"} disabled={actorRole !== "OWNER"}>{t("مالك", "Owner")}</option>
+              <option value="ADMIN" hidden={actorRole !== "OWNER"} disabled={actorRole !== "OWNER"}>{t("مدير", "Admin")}</option>
               <option value="ACCOUNTANT">{t("محاسب", "Accountant")}</option>
               <option value="VIEWER">{t("مشاهد", "Viewer")}</option>
             </select>
@@ -1728,9 +1733,9 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
           <Button onClick={handleInvite} disabled={busy || !inviteEmail.trim()} className="bg-primary">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("دعوة", "Invite")}
           </Button>
-        </div>
+        </div>}
 
-        {pendingInvites.length > 0 && (
+        {canManage && pendingInvites.length > 0 && (
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground">
               {t("دعوات بانتظار القبول", "Invites awaiting acceptance")}
@@ -1771,17 +1776,17 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
                 <td className="py-3 px-4 text-sm text-foreground">{m.user.name || "—"}</td>
                 <td className="py-3 px-4 font-english text-sm text-foreground/80" dir="ltr">{m.user.email}</td>
                 <td className="py-3 px-4">
-                  <select value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                  <select disabled={!canChange(m)} value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value)}
                     className="text-xs rounded border border-border px-2 py-1 bg-white">
-                    <option value="OWNER">{t("مالك", "Owner")}</option>
-                    <option value="ADMIN">{t("مدير", "Admin")}</option>
+                    <option value="OWNER" hidden={actorRole !== "OWNER"} disabled={actorRole !== "OWNER"}>{t("مالك", "Owner")}</option>
+                    <option value="ADMIN" hidden={actorRole !== "OWNER"} disabled={actorRole !== "OWNER"}>{t("مدير", "Admin")}</option>
                     <option value="ACCOUNTANT">{t("محاسب", "Accountant")}</option>
                     <option value="VIEWER">{t("مشاهد", "Viewer")}</option>
                   </select>
                 </td>
                 <td className="py-3 px-4 font-english text-xs text-muted-foreground" dir="ltr">{m.createdAt?.slice(0, 10)}</td>
                 <td className="py-3 px-4 text-end">
-                  {pendingRemove === m.id ? (
+                  {canChange(m) && (pendingRemove === m.id ? (
                     <InlineConfirm
                       label={t("حذف العضو؟", "Remove member?")}
                       onConfirm={() => handleRemove(m.id)}
@@ -1789,7 +1794,7 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
                     />
                   ) : (
                     <button onClick={() => setPendingRemove(m.id)} className="text-xs text-red-600 hover:underline">{t("حذف", "Delete")}</button>
-                  )}
+                  ))}
                 </td>
               </tr>
             ))}
