@@ -72,7 +72,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
 
   const nameAr = report.org.name || report.org.legalName || "";
   const nameEn = (report.org as any).legalName && (report.org as any).legalName !== report.org.name ? (report.org as any).legalName : "";
-  const currencyLine = t(`(المبالغ بـ ${report.currency} · غير مدققة)`, `(In ${report.currency} · unaudited)`);
+  const currencyLine = report.sections.some(s => s.columns.some(c => c.key === "currency")) ? t("(المبالغ حسب عملة كل صف · غير مدققة)", "(Amounts in each row’s currency · unaudited)") : t(`(المبالغ بـ ${report.currency} · غير مدققة)`, `(In ${report.currency} · unaudited)`);
   const periodLine = `${report.period.from} → ${report.period.to}`;
   const taxLine = resolved.showTaxInfo ? [report.org.vatNumber ? `${t("الرقم الضريبي", "VAT")} ${report.org.vatNumber}` : null, report.org.crNumber ? `${t("س.ت", "CR")} ${report.org.crNumber}` : null].filter(Boolean).join(" · ") : "";
   const companyLine = resolved.showCompanyInfo ? [report.org.addressLine, report.org.city, report.org.phone, report.org.email].filter(Boolean).join(" · ") : "";
@@ -108,7 +108,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
       {/* ── body ── */}
       <main className="flex-1 space-y-5 px-8 pb-6 pt-3" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
-          <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.join(" · ")}</div>
+          <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : pair.ar; }).join(" · ")}</div>
         ) : null}
         {report.sections.map((section) => {
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");

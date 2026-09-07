@@ -75,7 +75,7 @@ const MODES: Array<{ id: AdminSubManageMode; icon: any; ar: string; en: string; 
   { id: "manual", icon: CalendarClock, ar: "يدوي حتى تاريخ", en: "Manual until date", hintAr: "«عليّ 3 أشهر ثم يدفع» — ينزل تلقائيًا للمجاني عند الانتهاء", hintEn: "“On me for N months, then he pays” — drops to free at the end", needsEnd: true },
   { id: "trial", icon: FlaskConical, ar: "تجربة", en: "Trial", hintAr: "تجربة بمدة تحددها", hintEn: "Trial for the period you set", needsEnd: true },
   { id: "renew", icon: RefreshCw, ar: "تجديد يدوي", en: "Renew manually", hintAr: "يمدّ نهاية الفترة الحالية", hintEn: "Pushes the current period end forward", needsEnd: true },
-  { id: "cancel", icon: Ban, ar: "إلغاء", en: "Cancel", hintAr: "الشركة تبقى على المجاني · بياناتها محفوظة", hintEn: "Company stays on Free · data intact" },
+  { id: "cancel", icon: Ban, ar: "إلغاء", en: "Cancel", hintAr: "إلغاء فوري وإيقاف التجديد في Stripe · الشركة تبقى على المجاني وبياناتها محفوظة", hintEn: "Cancel now and stop Stripe renewal · company stays on Free with its data" },
 ];
 
 export function SubscriptionManagePanel({ orgId, currency, currentPlanId, currentMode, currentNote, onDone, onCancel }: { orgId: string; currency?: string; currentPlanId?: string | null; currentMode?: string | null; currentNote?: string | null; onDone: (msg: string) => void; onCancel: () => void }) {
@@ -107,7 +107,7 @@ export function SubscriptionManagePanel({ orgId, currency, currentPlanId, curren
         note: note.trim() || null,
       });
       onDone(t(`تم: ${language === "ar" ? m.ar : m.en}`, `Done: ${m.en}`));
-    } catch (e) { setErr(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed")); }
+    } catch (e) { setErr(e instanceof ApiError ? (language === "ar" ? e.messageAr || e.message : e.message) : t("فشل الحفظ", "Save failed")); }
     finally { setBusy(false); }
   };
 

@@ -123,6 +123,9 @@ export function Invoices() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Invoice[]>([]);
+  const [billingTotals, setBillingTotals] = useState<Record<string, { total: number; paid: number; outstanding: number }> | null>(null);
+  const [invoiceCount, setInvoiceCount] = useState(0);
+  const [sourceFilter, setSourceFilter] = useState("ALL");
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -209,19 +212,21 @@ export function Invoices() {
     setLoading(true);
     try {
       const [invRes, contactsRes, productsRes, accountsRes] = await Promise.all([
-        api.invoices.list({ limit: 200 }),
+        api.invoices.list({ limit: 200, ...(sourceFilter === "entix.io" ? { source: "entix.io" } : {}) }),
         api.contacts.list({ limit: 200 }),
         (api as any).products?.list?.({ limit: 200 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
         (api as any).accounts?.list?.({ limit: 500 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
       ]);
       setItems(invRes.items);
+      setBillingTotals(invRes.totalsByCurrency || null);
+      setInvoiceCount(invRes.total);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
       setProducts((productsRes as any).items || []);
       setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
-  }, [push]);
+  }, [push, sourceFilter]);
   useEffect(() => { refresh(); }, [refresh]);
 
   // PR5-D · a payment recorded on the receipts page must be visible as soon as
@@ -292,9 +297,17 @@ export function Invoices() {
     return true;
   });
 
-  const total = items.reduce((s, i) => s + Number(i.total), 0);
-  const paid = items.reduce((s, i) => s + Number(i.amountPaid || 0), 0);
-  const outstanding = total - paid;
+  const totalsByCurrency = billingTotals || items.filter(i => !['DRAFT', 'CANCELLED'].includes(i.status)).reduce((groups: Record<string, { total: number; paid: number; outstanding: number }>, i) => {
+    const row = groups[i.currency || orgCurrency] ||= { total: 0, paid: 0, outstanding: 0 };
+    row.total += Number(i.total); row.paid += Number(i.amountPaid || 0); row.outstanding += Number(i.total) - Number(i.amountPaid || 0);
+    return groups;
+  }, {});
+  // Ledger figure per currency (main 2026-09 keeps currency totals separate — never summed across currencies).
+  const currencyFigure = (key: 'total' | 'paid' | 'outstanding') => {
+    const entries = Object.entries(totalsByCurrency);
+    if (!entries.length) return <span className="flex flex-col gap-1"><span><Figure value={0} /><small className="ms-1 text-[0.45em] text-content-secondary">{orgCurrency}</small></span></span>;
+    return <span className="flex flex-col gap-1">{entries.map(([currency, value]) => <span key={currency}><Figure value={value[key]} /><small className="ms-1 text-[0.45em] text-content-secondary">{currency}</small></span>)}</span>;
+  };
   const counts = items.reduce((acc: Record<string, number>, i) => {
     acc[i.status] = (acc[i.status] || 0) + 1;
     return acc;
@@ -1171,7 +1184,7 @@ export function Invoices() {
       )}
 
       <MetricStrip className="grid-cols-3 sm:grid-cols-3 xl:grid-cols-3 [&_.ledger-figure-value]:text-[20px] sm:[&_.ledger-figure-value]:text-[30px] [&_.ledger-figure]:py-3 sm:[&_.ledger-figure]:py-4 max-sm:[&_.ledger-figure]:px-2.5 max-sm:[&_.ledger-figure:first-child]:ps-0 max-sm:[&_.ledger-figure:last-child]:pe-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-t-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-s max-sm:[&_.ledger-figure+.ledger-figure]:!border-s-border">
-        <Metric label={t("مستحقة", "Outstanding")} value={<Figure value={outstanding} />} />
+        <Metric label={t("مستحقة", "Outstanding")} value={currencyFigure('outstanding')} hint={<span className="font-english tabular-nums">{invoiceCount} {t("فاتورة", "invoices")}</span>} />
         <Metric label={t("متأخرة", "Overdue")} value={<span className="text-warning"><Figure value={overdueAmount} /></span>} />
         <Metric label={t("محصّلة هذا الشهر", "Collected this month")} value={<span className="text-primary"><Figure value={collectedThisMonth} /></span>} />
       </MetricStrip>
@@ -1194,6 +1207,11 @@ export function Invoices() {
           </button>
         ))}
         </div>
+        {/* Source filter (main 2026-09): Entix subscription invoices vs everything */}
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <SelectTrigger className="h-9 w-[150px] shrink-0 text-[13px] max-sm:w-full"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="ALL">{t("كل المصادر", "All sources")}</SelectItem><SelectItem value="entix.io">{t("اشتراكات Entix", "Entix subscriptions")}</SelectItem></SelectContent>
+        </Select>
         <div className="relative min-w-[200px] shrink-0 max-sm:w-full">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder={t("بحث برقم أو عميل...", "Search by number or customer...")} className="h-9 w-full ps-8 text-[13px] sm:w-[200px]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />

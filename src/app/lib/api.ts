@@ -756,7 +756,7 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; compareTo?: string; bilingual?: 1 }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; bilingual?: 1 }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
@@ -1392,8 +1392,12 @@ export const api = {
 
   // Invoices
   invoices: {
-    list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string; projectId?: string }) =>
-      request<PaginatedResponse<Invoice>>('/api/invoices', { query: params }),
+    attachments: {
+      list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/invoices/${id}/attachments`),
+      add: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) => request<ExpenseAttachment>(`/api/invoices/${id}/attachments`, { method: 'POST', body }),
+    },
+    list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string; projectId?: string; source?: string }) =>
+      request<PaginatedResponse<Invoice> & { totalsByCurrency?: Record<string, { total: number; paid: number; outstanding: number }> }>('/api/invoices', { query: params }),
     nextNumber: () => request<{ number: string }>('/api/invoices/_/next-number'),
     get: (id: string) => request<Invoice>(`/api/invoices/${id}`),
     create: (data: InvoiceInput) =>
@@ -1464,6 +1468,8 @@ export const api = {
     users: (q?: string) => request<{ items: Array<{ id: string; email: string; name: string | null; emailVerified: boolean; createdAt: string; orgs: Array<{ id: string; name: string; country: string; role: string }> }> }>('/api/admin/users', { query: q ? { q } : undefined, skipOrg: true }),
     resetPassword: (email: string, newPassword: string) => request<{ ok: true }>('/api/admin/users/reset-password', { method: 'POST', body: { email, newPassword }, skipOrg: true }),
     verifyEmail: (email: string) => request<{ ok: true }>('/api/admin/users/verify-email', { method: 'POST', body: { email }, skipOrg: true }),
+    billingLedger: () => request<any>('/api/admin/billing-ledger', { skipOrg: true }),
+    syncBillingLedger: () => request<any>('/api/admin/billing-ledger/sync', { method: 'POST', skipOrg: true }),
     orgSubscription: (orgId: string, data: { action: 'comp' | 'trial' | 'cancel' | 'lifetime'; months?: number; planId?: string }) => request<{ ok: true; status?: string; planName?: string; planTier?: string; lifetime?: boolean }>(`/api/admin/orgs/${orgId}/subscription`, { method: 'POST', body: data, skipOrg: true }),
     createUser: (data: { email: string; name?: string; password?: string }) => request<{ ok: true; user: { id: string; email: string; name: string | null }; generatedPassword?: string }>('/api/admin/users/create', { method: 'POST', body: data, skipOrg: true }),
     deleteUser: (userId: string, orgIds?: string[]) => request<{ ok: true; deleted: string; deletedOrgs?: string[]; graceDays?: number }>(`/api/admin/users/${userId}`, { method: 'DELETE', skipOrg: true, query: orgIds && orgIds.length ? { orgIds: orgIds.join(',') } : undefined }),
@@ -2128,6 +2134,7 @@ export interface AccountInput {
 }
 
 export interface Expense {
+  externalId?: string | null
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
@@ -2172,6 +2179,7 @@ export interface Expense {
 }
 
 export interface ExpenseLine {
+  accountId?: string | null
   description: string
   quantity?: number
   unitPrice?: number

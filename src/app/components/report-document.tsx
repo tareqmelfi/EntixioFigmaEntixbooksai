@@ -154,7 +154,7 @@ export function ReportDocument({
               <div>
                 {t("الفترة", "Date Range")}: <NumericText>{report.period.from}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
                 {" · "}
-                <NumericText>{report.currency}</NumericText>
+                <NumericText>{report.sections.some(s => s.columns.some(c => c.key === "currency")) ? t("حسب عملة كل صف", "In each row’s currency") : report.currency}</NumericText>
               </div>
               {resolved.showCompanyInfo && companyLine ? <div><BidiText mode="plaintext">{companyLine}</BidiText></div> : null}
               {resolved.showCompanyInfo && contactLine ? <div><BidiText mode="plaintext">{contactLine}</BidiText></div> : null}
@@ -227,7 +227,7 @@ export function ReportDocument({
                           }}
                           title={column.key === "label" ? String(row.values[column.key] ?? row.label) : undefined}
                         >
-                          <CellValue value={row.values[column.key]} keyName={column.key} kind={column.kind} currency={report.currency} strong={totalRow} />
+                          <CellValue value={row.values[column.key]} keyName={column.key} kind={column.kind} currency={String(row.values.currency || report.currency)} strong={totalRow} />
                         </td>
                         );
                       })}

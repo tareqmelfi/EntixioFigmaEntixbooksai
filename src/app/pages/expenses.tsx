@@ -49,8 +49,9 @@ import { humanizeError } from "../lib/error-messages";
 
 type Translate = (ar: string, en?: string) => string;
 
-function paymentMethodLabels(t: Translate): Record<ApiExpense["paymentMethod"], string> {
+function paymentMethodLabels(t: Translate): Record<string, string> {
   return {
+    CLEARING: t("خصم من رصيد التسوية", "Deducted from clearing balance"),
     CASH: t("نقداً", "Cash"),
     BANK_TRANSFER: t("تحويل بنكي", "Bank Transfer"),
     CARD: t("بطاقة ائتمان", "Credit Card"),
@@ -1431,7 +1432,7 @@ export function Expenses() {
                   <SegGroup
                     value={formData.paymentMethod}
                     onChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}
-                    options={Object.entries(paymentMethodLabels(t)).map(([value, label]) => ({ value, label }))}
+                    options={Object.entries(paymentMethodLabels(t)).filter(([value]) => value !== "CLEARING").map(([value, label]) => ({ value, label }))}
                   />
                 </div>
                 <BranchField value={formData.branchId} onChange={(id) => setFormData((f) => ({ ...f, branchId: id }))} />
@@ -1684,7 +1685,7 @@ export function Expenses() {
                             const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                             return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
                           })}
-                          options={Object.entries(paymentMethodLabels(t)).map(([value, label]) => ({ value, label }))}
+                          options={Object.entries(paymentMethodLabels(t)).filter(([value]) => value !== "CLEARING").map(([value, label]) => ({ value, label }))}
                         />
                         <SegGroup
                           compact
@@ -1741,6 +1742,7 @@ export function Expenses() {
   }
 
   if (selected) {
+    const isStripeSource = selected.externalId?.startsWith("stripe:") === true;
     const lineItems = Array.isArray(selected.lineItems) ? selected.lineItems : [];
     const paymentSplits = Array.isArray(selected.paymentSplits) && selected.paymentSplits.length
       ? selected.paymentSplits
@@ -1766,7 +1768,7 @@ export function Expenses() {
             <Button variant="outline" onClick={openCreate} className="border-border">
               <CopyPlus className="me-2 h-4 w-4" /> {t("مصروف جديد", "New expense")}
             </Button>
-            <Button variant="outline" onClick={() => openEdit(selected)} className="border-border">
+            {!isStripeSource && <><Button variant="outline" onClick={() => openEdit(selected)} className="border-border">
               <Edit3 className="me-2 h-4 w-4" /> {t("تعديل", "Edit")}
             </Button>
             <Button variant="outline" onClick={() => push("info", t("الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات", "Email sending will be linked to expense templates later"))} className="border-border">
@@ -1781,9 +1783,10 @@ export function Expenses() {
               <Button variant="outline" onClick={() => setPendingDelete(selected.id)} className="border-danger-border text-danger hover:bg-danger-subtle">
                 <Trash2 className="me-2 h-4 w-4" /> {t("حذف", "Delete")}
               </Button>
-            )}
+            )}</>}
           </div>
         </div>
+        {isStripeSource && <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">{t("مصروف رسوم مرتبط بفاتورة Stripe. تُزامن قيمته من المصدر؛ يمكنك إرفاق مستندات داعمة أدناه.", "Processing expense linked to a Stripe invoice. Its amount is synced from the source; supporting documents can be attached below.")}</p>}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_430px]">
           <div className="space-y-4">
@@ -1857,7 +1860,7 @@ export function Expenses() {
                         <tr key={idx} className="border-t border-border/50">
                           <td className="px-3 py-2">{paymentMethodLabels(t)[payment.method]}</td>
                           <td className="px-3 py-2 font-english">{payment.reference || payment.cardLast4 || "—"}</td>
-                          <td className="px-3 py-2">{payment.accountName || "—"}</td>
+                          <td className="px-3 py-2">{payment.accountName || (isStripeSource ? t("رصيد Stripe", "Stripe balance") : "—")}</td>
                           <td className="px-3 py-2 font-english">{money(payment.amount, payment.currency || selected.currency)}</td>
                         </tr>
                       ))}
@@ -1902,7 +1905,7 @@ export function Expenses() {
                         {lineItems.map((line, idx) => (
                           <tr key={idx} className="border-t border-border/50">
                             <td className="px-3 py-2">{line.description}</td>
-                            <td className="px-3 py-2">{line.accountName || line.category || "—"}</td>
+                            <td className="px-3 py-2">{line.accountName || (() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${account.nameAr || account.name}` : line.category || "—"; })()}</td>
                             <td className="px-3 py-2 font-english">{line.quantity || 1}</td>
                             <td className="px-3 py-2 font-english">{money(line.unitPrice || 0, selected.currency)}</td>
                             <td className="px-3 py-2 font-english">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</td>

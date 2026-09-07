@@ -1,3 +1,4 @@
+import { InvoiceDocuments } from './invoice-documents';
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
 import type { Invoice } from '../lib/api';
@@ -12,6 +13,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
 }) {
   const { t, language } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
+  const stripeManaged = (invoice as any).paymentLinkProvider === 'stripe-subscription';
   const delivery = invoice.zatcaDelivery;
   const evidence = delivery?.evidence;
   const accepted = !!evidence && ['REPORTED', 'CLEARED'].includes(evidence.state);
@@ -22,14 +24,14 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
     subtitle={invoice.contact?.displayName || ''} onClose={onClose}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button variant="outline" onClick={onClose}>{t('رجوع', 'Back')}</Button>
-      {remaining > 0 && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={onPayment}>{t('تسجيل تحصيل', 'Record receipt')}</Button>}
+      {!stripeManaged && remaining > 0 && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={onPayment}>{t('تسجيل تحصيل', 'Record receipt')}</Button>}
       <Button disabled={!canRelease} onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank', 'noopener,noreferrer')}>{t('طباعة / تنزيل', 'Print / download')}</Button>
     </div>}>
     <div className="space-y-4 max-w-5xl mx-auto">
       <div className="rounded-lg border border-border bg-muted/40 p-4 flex gap-3">
         <LockKeyhole className="h-5 w-5 shrink-0 text-primary" />
         <div><p className="font-semibold">{t('فاتورة صادرة ومقفلة', 'Issued invoice · locked')}</p>
-          <p className="text-sm text-muted-foreground mt-1">{t('لا يمكن تعديلها أو حذفها أو إرجاعها لمسودة. التصحيح بإشعار دائن أو مدين مرتبط بالفاتورة الأصلية. يمكنك تسجيل التحصيل بشكل مستقل.', 'This invoice cannot be edited, deleted or returned to draft. Corrections require a credit/debit note linked to the original. Receipts can be recorded separately.')}</p></div>
+          <p className="text-sm text-muted-foreground mt-1">{stripeManaged ? t('الفاتورة والدفعات متزامنة مع أصل Stripe. يمكنك إضافة المستندات الداعمة أدناه.', 'Invoice and payments are synced from Stripe. Supporting documents can be attached below.') : t('لا يمكن تعديلها أو حذفها أو إرجاعها لمسودة. التصحيح بإشعار دائن أو مدين مرتبط بالفاتورة الأصلية. يمكنك تسجيل التحصيل بشكل مستقل.', 'This invoice cannot be edited, deleted or returned to draft. Corrections require a credit/debit note linked to the original. Receipts can be recorded separately.')}</p></div>
       </div>
       {(delivery?.state || invoice.zatcaStatus) && <section className={`rounded-lg border p-4 space-y-3 ${accepted ? 'border-success-border bg-success-subtle/60' : 'border-warning-border bg-warning-subtle/60'}`}>
         <div className="flex justify-between items-center gap-3">
@@ -64,6 +66,8 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
         </tr>)}</tbody></table></div>
         {invoice.notes && <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>}
       </section>
+      {!!(invoice as any).payments?.length && <section className="rounded-lg border border-border bg-card p-4 space-y-2"><h2 className="font-semibold">{t('الدفعات', 'Payments')}</h2>{(invoice as any).payments.map((p: any) => <div key={p.id} className="flex flex-wrap justify-between gap-2 text-sm"><bdi>{new Date(p.paidAt).toLocaleDateString(displayLocale('en-GB'))}</bdi><bdi>{amount(p.amount)} {p.currency}</bdi><span>{stripeManaged ? 'Stripe' : p.method}</span></div>)}</section>}
+      <InvoiceDocuments invoiceId={invoice.id} />
     </div>
   </FullPageForm>;
 }

@@ -70,6 +70,7 @@ export function ReportView() {
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
   // B1 · branch scope ("" = all · "none" = unassigned · id)
   const [branchId, setBranchId] = useState(searchParams.get("branchId") || "");
+  const [contactId] = useState(searchParams.get("contactId") || "");
   const [projectId, setProjectId] = useState(searchParams.get("projectId") || "");
   const compareTo = useMemo(() => {
     if (!compare) return undefined;
@@ -96,8 +97,8 @@ export function ReportView() {
   };
 
   useEffect(() => {
-    setSearchParams({ from, to, ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
-  }, [from, to, branchId, projectId, setSearchParams]);
+    setSearchParams({ from, to, ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
+  }, [from, to, branchId, projectId, contactId, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -106,7 +107,7 @@ export function ReportView() {
       setError(null);
       try {
         // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
-        const data = await api.reports.get(id, { from, to, compareTo, bilingual: 1, branchId: branchId || undefined, projectId: projectId || undefined });
+        const data = await api.reports.get(id, { from, to, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
         if (alive) {
           setReport(data);
           setSelectedRow(null);
@@ -120,7 +121,7 @@ export function ReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, compareTo, branchId, projectId]);
+  }, [id, from, to, compareTo, branchId, projectId, contactId]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -131,7 +132,7 @@ export function ReportView() {
     return { ...report, sections: report.sections.filter((s) => !isDetailSection(s.id)) };
   }, [report, detailMode, hasDetailSections]);
 
-  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
 
   const exportCsv = () => {
     if (!report) return;
@@ -181,7 +182,7 @@ export function ReportView() {
               )}
             </Button>
           )}
-          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, compareTo, bilingual: 1, branchId: branchId || undefined, projectId: projectId || undefined }).then(setReport)}>
+          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined }).then(setReport)}>
             <RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}
           </Button>
           {/* One compact export control — formats live inside the menu (no
