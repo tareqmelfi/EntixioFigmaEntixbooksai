@@ -8,7 +8,7 @@ import {
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
   HelpCircle,
-  Users2, Inbox, Camera, HardHat,
+  Users2, Inbox, Camera, HardHat, TrendingUp, Crown,
   Pin, MousePointer, EyeOff,
   PanelRightClose,
 } from "lucide-react";
@@ -36,6 +36,7 @@ const EN_TEXT: Record<string, string> = {
   "القيود اليومية": "Journal entries",
   "ميزان المراجعة": "Trial balance",
   "الموظفون والرواتب": "Employees & payroll",
+  "الملاك والاستثمار": "Ownership & investment",
   "مسير الرواتب": "Payroll",
   "جديد": "New",
   "العمليات الأساسية": "Core operations",
@@ -129,9 +130,8 @@ interface MenuSection {
 
 // Sidebar IA · Ledger (2026-09-06 blueprint §1): grouped by money flow — people →
 // documents → money in every group. Contacts stays one data model and appears
-// once, in the top group (one list, role per row — Xero-style). Ownership /
-// analysis groups moved out of the main list (owners registry & investments are
-// reachable from search and Settings until they migrate to entix.app).
+// once, in the top group (one list, role per row — Xero-style). Ownership &
+// investment keep their own group; analysis lives inside the ledger group.
 const sections: MenuSection[] = [
   {
     items: [
@@ -203,6 +203,15 @@ const sections: MenuSection[] = [
         ],
       },
       { title: "ميزان المراجعة", icon: Calculator, path: "/app/reports/trial-balance" },
+    ],
+  },
+  {
+    // Ownership & investment: a Books feature in its own right (CEO 2026-09-07 —
+    // keep it, give it a proper home). Sits after the ledger, before people.
+    label: "الملاك والاستثمار",
+    items: [
+      { title: "سجل المساهمين", icon: Crown, path: "/app/shareholders" },
+      { title: "محافظ الاستثمار", icon: TrendingUp, path: "/app/investments" },
     ],
   },
   {

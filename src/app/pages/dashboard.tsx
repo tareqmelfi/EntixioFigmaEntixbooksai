@@ -396,13 +396,14 @@ useEffect(() => {
       {/* Masthead · eyebrow date + greeting + primary actions */}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1 xl:gap-1.5">
-          <span className="text-[12px] text-content-secondary xl:text-[13px]">
-            {todayLabel}
+          {/* The page name stays the h1 (a11y + tests); the greeting is display copy under it. */}
+          <h1 className="text-[12px] font-normal text-content-secondary xl:text-[13px]">
+            {t("لوحة التحكم", "Dashboard")} · {todayLabel}
             <span className="hidden xl:inline"> · {t("السنة المالية", "Fiscal year")} <span className="tabular-nums">{fiscalYear}</span></span>
-          </span>
-          <h1 className="text-[24px] font-bold leading-[1.15] tracking-[-0.01em] text-foreground xl:text-[30px]">
-            {greetWord}{t("، ", ", ")}<BidiText>{greetName}</BidiText>.
           </h1>
+          <p className="text-[24px] font-bold leading-[1.15] tracking-[-0.01em] text-foreground xl:text-[30px]">
+            {greetWord}{t("، ", ", ")}<BidiText>{greetName}</BidiText>.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 xl:gap-2.5">
           <Button asChild className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]"><Link to="/app/invoices?new=1">{t("+ فاتورة", "+ Invoice")}</Link></Button>

@@ -27,10 +27,9 @@ test('المحاسبة is a money-flow group with the key ledgers one click away
   for (const target of ['دليل الحسابات', 'القيود اليومية', 'الفترات المالية', 'الأصول الثابتة']) {
     await expect(nav.getByRole('link', { name: target })).toBeVisible()
   }
-  // Customers and suppliers are the same contacts model behind two doors —
-  // «المشتريات» is one of the two groups that stay open by default.
-  await nav.getByRole('link', { name: 'الموردون' }).click()
-  await expect(page).toHaveURL(/\/app\/contacts\?role=supplier/)
+  // One contacts list for customers, suppliers and shareholders alike (top group).
+  await nav.getByRole('link', { name: 'قائمة الاتصال' }).click()
+  await expect(page).toHaveURL(/\/app\/contacts$/)
 })
 
 test('التقارير is the last main item; للمطورين and برنامج الشركاء leave the sidebar', async ({ page }) => {
@@ -56,7 +55,7 @@ test('settings «الأدوات» tab hosts integrations, templates, and the par
   await prepareVisualApp(page, 'ar')
   await page.goto('/app/settings')
 
-  await page.getByRole('button', { name: /الأدوات/ }).click()
+  await page.getByRole('tab', { name: /الأدوات/ }).click() // Ledger: settings tabs are real tabs (chips)
   for (const name of ['التكاملات', 'القوالب', 'برنامج الشركاء']) {
     await expect(page.getByRole('link', { name: new RegExp(name) }).first()).toBeVisible()
   }

@@ -19,8 +19,9 @@ test('semantic theme exposes the ENTIX visual contract without locale font shrin
   await page.goto('/sa/ar')
   const arabicFontSize = await page.locator('html').evaluate((html) => getComputedStyle(html).fontSize)
 
-  expect(english.brandBlue).toBe('#1276e3')
-  expect(english.primary).toBe('#0f62c3')
+  // Ledger (2026-09): logo blue accent · AA-safe primary
+  expect(english.brandBlue).toBe('#5875db')
+  expect(english.primary).toBe('#4661c7')
   expect(english.canvas).toBeTruthy()
   expect(english.surface).toBeTruthy()
   expect(english.success).toBeTruthy()
@@ -41,8 +42,8 @@ test('light-only semantic controls do not partially switch with a dark OS prefer
     button.remove()
     return result
   })
-  expect(styles.background).toBe('rgb(255, 255, 255)')
-  expect(styles.color).toBe('rgb(11, 27, 73)')
+  expect(styles.background).toBe('rgb(255, 253, 249)') // --surface = card on paper
+  expect(styles.color).toBe('rgb(26, 30, 72)') // ink
 })
 
 test('Tailwind geometry aliases resolve to concrete radius and elevation values', async ({ page }) => {
@@ -57,7 +58,7 @@ test('Tailwind geometry aliases resolve to concrete radius and elevation values'
     return result
   })
 
-  expect(geometry.radius).toBe('10px')
+  expect(geometry.radius).toBe('8px') // Ledger: one radius token
   expect(geometry.shadow).not.toBe('none')
-  expect(geometry.shadow).toContain('rgba(11, 27, 73, 0.12)')
+  expect(geometry.shadow).toContain('rgba(26, 30, 72, 0.12)')
 })

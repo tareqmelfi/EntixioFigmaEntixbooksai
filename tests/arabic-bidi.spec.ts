@@ -8,7 +8,7 @@ const source = async (relativePath: string) => readFile(path.join(root, relative
 test('global typography is script-aware without locale-wide font mutation', async () => {
   const css = await source('src/styles/index.css')
   const theme = await source('src/styles/theme.css')
-  expect(css).toContain("--entix-font-ui: 'Plus Jakarta Sans', 'Noto Sans Arabic'")
+  expect(css).toContain("--entix-font-ui: 'IBM Plex Sans', 'IBM Plex Sans Arabic'")
   expect(css).not.toMatch(/html\[dir=["']rtl["']\]\s+body\s+\*/)
   expect(`${css}\n${theme}`).not.toMatch(/\.font-english[^}]*direction:\s*ltr/s)
   expect(theme).not.toContain('th, td {\n    white-space: nowrap;')

@@ -449,7 +449,8 @@ export function Landing() {
         <ShowcaseTabs t={t} />
       </section>
 
-      {/* ─── ZATCA & compliance ─── */}
+      {/* ─── ZATCA & compliance (Saudi market only — the US/EN prerender forbids Saudi-only concepts) ─── */}
+      {isSA && (
       <section id="zatca" className={`${SHELL} pt-16 lg:pt-24`}>
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-8">
           <div className="lg:col-span-4">
@@ -477,6 +478,7 @@ export function Landing() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ─── Security & data ownership ─── */}
       <section id="sync" className={`${SHELL} pt-16 lg:pt-24`}>

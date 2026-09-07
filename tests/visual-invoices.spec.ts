@@ -29,16 +29,17 @@ test('invoices use shared product contracts and semantic status tones', async ({
   const heading = page.getByRole('heading', { name: 'Sales Invoices' })
   await expect(heading).toBeVisible()
   await expect(heading.locator('xpath=ancestor::header')).toHaveCount(1)
-  await expect(heading).toHaveClass(/\btext-page\b/)
+  await expect(heading).toHaveClass(/\bfont-bold\b/) // Ledger page title
   await expect(heading).not.toHaveAttribute('style')
 
-  const metrics = ['Total invoiced', 'Collected', 'Outstanding', 'Invoice count']
+  // Ledger: three figures on the ink-rule strip (no boxed KPI cards).
+  const metrics = ['Outstanding', 'Overdue', 'Collected this month']
   for (const label of metrics) {
-    const surface = page.getByText(label, { exact: true }).locator('xpath=../..')
-    await expect(surface).toHaveClass(/\bbg-surface\b/)
-    await expect(surface).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+    const figure = page.getByText(label, { exact: true }).locator('xpath=ancestor::*[contains(@class,"ledger-figure")][1]')
+    await expect(figure).toHaveClass(/\bledger-figure\b/)
   }
 
   await expect(page.getByRole('toolbar', { name: 'Invoice filters' })).toBeVisible()
-  await expect(page.getByText('Paid', { exact: true }).locator('..')).toHaveClass(/\bbg-success-subtle\b/)
+  // Status = dot + word; paid reads in the (blue) success tone, never green.
+  await expect(page.getByText('Paid', { exact: true }).first().locator('xpath=ancestor-or-self::*[contains(@class,"text-success")][1]')).toHaveCount(1)
 })

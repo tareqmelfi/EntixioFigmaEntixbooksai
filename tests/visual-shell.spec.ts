@@ -7,9 +7,9 @@ test('protected shell uses semantic canvas and neutral inactive navigation', asy
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 
   const shell = page.locator('[data-shell="app"]')
-  await expect(shell).toHaveCSS('background-color', 'rgb(247, 249, 252)')
+  await expect(shell).toHaveCSS('background-color', 'rgb(246, 241, 232)') // paper
   const contactsIcon = page.getByRole('link', { name: /Contacts/ }).locator('svg')
-  await expect(contactsIcon).toHaveCSS('color', 'rgb(95, 107, 122)')
+  await expect(contactsIcon).toHaveCSS('color', 'rgb(92, 100, 128)') // muted ink
 })
 
 test('protected shell remains overflow-free on phone and tablet in both directions', async ({ page }) => {
