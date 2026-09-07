@@ -10,7 +10,7 @@ const viewports = [
 const routes = [
   { name: 'dashboard', path: '/app', heading: /Dashboard|لوحة التحكم/ },
   { name: 'contacts', path: '/app/contacts', heading: /Contacts|جهات الاتصال/ },
-  { name: 'invoices', path: '/app/invoices', heading: /Sales Invoices|فواتير المبيعات/ },
+  { name: 'invoices', path: '/app/invoices', heading: /Sales Invoices|الفواتير|فواتير المبيعات/ },
 ] as const
 
 const populatedInvoice = {
@@ -72,7 +72,7 @@ for (const language of ['en', 'ar'] as const) {
     await prepareVisualApp(page, language)
     await page.route('https://api.entix.io/api/invoices**', route => route.fulfill({ json: { items: [populatedInvoice], total: 1, page: 1, limit: 200 } }))
     await page.goto('/app/invoices')
-    await expect(page.getByText('INV-2026-0042')).toBeVisible()
+    await expect(page.getByText('INV-2026-0042').locator('visible=true').first()).toBeVisible() // split view repeats the number in the preview pane
     await page.evaluate(() => document.fonts.ready)
     await expect(page).toHaveScreenshot(`invoices-populated-${language}.png`, { animations: 'disabled', caret: 'hide' })
   })

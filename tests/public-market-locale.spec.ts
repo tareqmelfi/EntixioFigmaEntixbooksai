@@ -380,7 +380,8 @@ test('authenticated explicit English selection writes once and reloads in Englis
   })
 
   await page.goto('/app')
-  const languageButton = page.locator('header').getByRole('button', { name: /تغيير اللغة إلى الإنجليزية/ })
+  // Ledger shell: the language switch lives in the sidebar footer (one per rendered sidebar).
+  const languageButton = page.getByRole('button', { name: /تغيير اللغة إلى الإنجليزية/ }).first()
   await languageButton.click()
   await expect(page.locator('#root > div[dir="ltr"]')).toBeVisible()
   await expect.poll(() => localeWrites.length).toBe(1)
