@@ -9,16 +9,17 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowRight, Banknote, CheckCircle2, Clock3, Edit2, ExternalLink, FolderKanban, Loader2, Plus, Save, ShoppingCart, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, Banknote, CheckCircle2, Clock3, Edit2, ExternalLink, Loader2, Plus, Save, ShoppingCart, Sparkles, StickyNote, Trash2, X } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Button } from "../components/ui/button";
-import { InlineAlert } from "../components/product";
+import { InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
+import { ProjectTasksSection } from "../components/project-tasks-section";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
-import { api, ApiError, type LinkedDocument, type ProjectBudget, type ProjectLink, type ProjectLinkKind, type PurchaseOrder } from "../lib/api";
+import { api, ApiError, type LinkedDocument, type ProjectBudget, type ProjectLink, type ProjectLinkKind, type ProjectTaskList, type PurchaseOrder } from "../lib/api";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ContactSearchInput } from "../components/contact-search-input";
 import { useLanguage } from "../components/LanguageContext";
@@ -28,6 +29,10 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   COMPLETED: { ar: "مكتمل", en: "Completed" }, CANCELLED: { ar: "ملغي", en: "Cancelled" },
 };
 const STATUS_ORDER = ["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"];
+/** Ledger semantics: ok = success (BLUE) · attention = warning (copper) · never a raw palette. */
+const STATUS_TONES: Record<string, "success" | "warning" | "info" | "neutral"> = {
+  ACTIVE: "success", ON_HOLD: "warning", COMPLETED: "info", CANCELLED: "neutral",
+};
 
 /** PL1 · statuses of the documents a project links to (quote · estimate · invoice). */
 const DOC_STATUS_LABELS: Record<string, { ar: string; en: string }> = {
@@ -85,6 +90,9 @@ export function ProjectDetail() {
   const [plans, setPlans] = useState<any[]>([]);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [l3Busy, setL3Busy] = useState<string | null>(null);
+  // SPEC-05 §5 · the tasks section reports its roll-up so the figures strip and
+  // the task table can never disagree about the actual cost.
+  const [taskSummary, setTaskSummary] = useState<ProjectTaskList["summary"] | null>(null);
 
   const applyProject = useCallback((p: any) => {
     setProject(p);
@@ -413,12 +421,12 @@ export function ProjectDetail() {
    * this section is safe for anyone who can open the project.
    */
   const lifecycleSection = project && (
-    <div className="space-y-5" data-testid="project-lifecycle">
-      <Card className="border-border" data-testid="project-cost-budget">
-        <CardContent className="space-y-4 p-5">
+    <div className="space-y-8" data-testid="project-lifecycle">
+      <section className="space-y-3" data-testid="project-cost-budget">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("ميزانية التكلفة", "Cost budget")}</div>
+              <h2 className="text-section font-semibold text-foreground">{t("الميزانية", "Budget")}</h2>
               <p className="mt-0.5 text-xs text-content-secondary">
                 {t("نسخة التكلفة من دراسة المشروع · بلا سعر بيع أو نسبة ربح", "The cost copy of the cost study · no sale price, no margin")}
               </p>
@@ -488,14 +496,13 @@ export function ProjectDetail() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {plans.length > 0 && (
-        <Card className="border-border" data-testid="project-payment-plan">
-          <CardContent className="space-y-3 p-5">
+        <section className="space-y-3" data-testid="project-payment-plan">
             <div className="min-w-0">
-              <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("خطة الدفعات", "Payment plan")}</div>
+              <h2 className="text-section font-semibold text-foreground">{t("الدفعات", "Instalments")}</h2>
               <p className="mt-0.5 text-xs text-content-secondary">
                 {t("لا تصدر فاتورة الدفعة إلا باعتماد المحاسب", "An instalment becomes an invoice only on accountant approval")}
               </p>
@@ -523,15 +530,13 @@ export function ProjectDetail() {
                 </div>
               )))}
             </div>
-          </CardContent>
-        </Card>
+        </section>
       )}
 
       {orders.length > 0 && (
-        <Card className="border-border" data-testid="project-purchase-orders">
-          <CardContent className="space-y-3 p-5">
+        <section className="space-y-3" data-testid="project-purchase-orders">
             <div className="min-w-0">
-              <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("أوامر الشراء", "Purchase orders")}</div>
+              <h2 className="text-section font-semibold text-foreground">{t("المشتريات", "Purchasing")}</h2>
               <p className="mt-0.5 text-xs text-content-secondary">
                 {t("تصل المشتريات ببنود التكلفة فقط · لا عرض ولا فاتورة عميل", "Purchasing receives cost lines only · no proposal, no client invoice")}
               </p>
@@ -548,8 +553,7 @@ export function ProjectDetail() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </section>
       )}
     </div>
   );
@@ -646,67 +650,98 @@ export function ProjectDetail() {
     </form>
   );
 
-  const detailView = project && (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border border-border bg-card p-3">
-          <div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div>
-          <div className="mt-1"><span className={`text-xs px-2 py-0.5 rounded-full ${project.status === "ACTIVE" ? "bg-success-subtle text-success" : project.status === "ON_HOLD" ? "bg-warning-subtle text-warning" : project.status === "COMPLETED" ? "bg-info-subtle text-info" : "bg-surface-hover text-muted-foreground"}`}>{statusLabel(project.status)}</span></div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3">
-          <div className="text-xs text-muted-foreground">{t("البداية", "Start")}</div>
-          <div className="font-english text-foreground mt-1" dir="ltr">{project.startDate?.slice(0, 10) || "—"}</div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3">
-          <div className="text-xs text-muted-foreground">{t("النهاية", "End")}</div>
-          <div className="font-english text-foreground mt-1" dir="ltr">{project.endDate?.slice(0, 10) || "—"}</div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3">
-          <div className="text-xs text-muted-foreground">{t("الرمز", "Code")}</div>
-          <div className="font-english text-primary mt-1" style={{ fontWeight: 700 }} dir="ltr">{project.code}</div>
-        </div>
-      </div>
+  /**
+   * The figures strip the CEO asked for: قيمة العقد · الميزانية · التكلفة الفعلية ·
+   * المتبقي · نسبة الإنجاز. The cost figures come from the TASKS roll-up when the
+   * project has tasks (that is the live number), and fall back to the approved
+   * budget total when it does not.
+   */
+  const figures = project && (() => {
+    const contractValue = project.contractValue != null ? Number(project.contractValue) : null;
+    const plannedCost = taskSummary?.plannedCost ?? (budget ? Number(budget.costTotal) : (project.budget != null ? Number(project.budget) : null));
+    const actualCost = taskSummary?.actualCost ?? null;
+    const remaining = plannedCost !== null && actualCost !== null ? plannedCost - actualCost : null;
+    const percentComplete = taskSummary?.count
+      ? taskSummary.progressPct
+      : (project.percentComplete != null ? Number(project.percentComplete) : null);
+    return { contractValue, plannedCost, actualCost, remaining, percentComplete };
+  })();
 
-      {linkPickers}
+  const detailView = project && figures && (
+    <div className="space-y-8">
+      <MetricStrip className="xl:grid-cols-5" data-testid="project-figures">
+        <Metric
+          label={t("قيمة العقد", "Contract value")}
+          value={figures.contractValue === null ? "—" : <LedgerFigure value={figures.contractValue} currency="SAR" />}
+        />
+        <Metric
+          label={t("الميزانية", "Budget")}
+          value={figures.plannedCost === null ? "—" : <LedgerFigure value={figures.plannedCost} currency="SAR" />}
+          hint={budget ? (budget.status === "APPROVED" ? t("معتمدة · سقف الصرف", "Approved · spending ceiling") : t("مسودة", "Draft")) : undefined}
+        />
+        <Metric
+          label={t("التكلفة الفعلية", "Actual cost")}
+          value={figures.actualCost === null ? "—" : <LedgerFigure value={figures.actualCost} currency="SAR" />}
+          hint={t("من المصروفات وفواتير الموردين وأوامر الشراء", "From expenses, supplier bills and purchase orders")}
+        />
+        <Metric
+          label={t("المتبقي", "Remaining")}
+          value={figures.remaining === null ? "—" : <LedgerFigure value={figures.remaining} currency="SAR" />}
+          tone={figures.remaining !== null && figures.remaining < 0 ? "critical" : "neutral"}
+        />
+        <Metric
+          label={t("نسبة الإنجاز", "% complete")}
+          value={figures.percentComplete === null ? "—" : <>{displayDigits(figures.percentComplete.toFixed(0))}<small>%</small></>}
+        />
+      </MetricStrip>
+
+      {/* البنود / المهام · the pipeline (SPEC-05 §5) */}
+      <ProjectTasksSection projectId={project.id} onSummary={setTaskSummary} />
 
       {lifecycleSection}
 
-      {/* Performance — تقارير أداء المشروع */}
+      <section className="space-y-3" data-testid="project-documents">
+        <h2 className="text-section font-semibold text-foreground">{t("المستندات المرتبطة", "Linked documents")}</h2>
+        {linkPickers}
+      </section>
+
+      {project.notes && (
+        <section className="space-y-3" data-testid="project-notes">
+          <h2 className="text-section font-semibold text-foreground">{t("الملاحظات", "Notes")}</h2>
+          <div className="flex gap-3 rounded-lg border border-border bg-card p-4 text-sm leading-6 text-foreground">
+            <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-content-secondary" strokeWidth={1.75} />
+            <p className="min-w-0 whitespace-pre-wrap"><bdi dir="auto">{project.notes}</bdi></p>
+          </div>
+        </section>
+      )}
+
+      {/* المقاولون · hours, labour cost and what is still due to them */}
       {perf && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => navigate(`/app/work-logs/new?project=${project.id}`)}>
-              <Clock3 className="me-1.5 h-3.5 w-3.5" />{t("سجّل ساعات", "Log hours")}
-            </Button>
+        <section className="space-y-4" data-testid="project-contractors">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-section font-semibold text-foreground">{t("المقاولون", "Contractors")}</h2>
             {perf.totals?.outstanding > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning-subtle px-3 py-1 text-xs text-warning">
-                <Banknote className="h-3 w-3" />{t("مستحق للمقاولين:", "Contractor outstanding:")} <span className="font-english">{money(perf.totals.outstanding)}</span>
+                <Banknote className="h-3 w-3" />{t("مستحق للمقاولين:", "Contractor outstanding:")} <span className="font-english" dir="ltr">{money(perf.totals.outstanding)}</span>
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-border bg-card p-3">
-              <div className="text-xs text-muted-foreground">{t("ساعات العمل", "Hours")}</div>
-              <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{hrsFmt(perf.totals?.totalHours)}</div>
-              <div className="text-[10px] text-muted-foreground">{t("قابلة للفوترة:", "billable:")} <span className="font-english">{hrsFmt(perf.totals?.billableHours)}</span></div>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <div className="text-xs text-muted-foreground">{t("تكلفة العمالة", "Labor cost")}</div>
-              <div className="font-english text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{money(perf.totals?.laborCost)}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-3">
-              <div className="text-xs text-muted-foreground">{t("المدفوع للمقاولين", "Paid out")}</div>
-              <div className="font-english text-success mt-1" style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">{money(perf.totals?.paidOut)}</div>
-            </div>
-            <div className={`rounded-lg border p-3 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "border-success-border bg-success-subtle" : "border-danger-border bg-danger-subtle") : "border-border bg-card"}`}>
-              <div className="text-xs text-muted-foreground">{t("المتبقي من الميزانية", "Budget margin")}</div>
-              <div className={`font-english mt-1 ${perf.totals?.margin != null ? (perf.totals.margin >= 0 ? "text-success" : "text-danger") : "text-foreground"}`} style={{ fontWeight: 700, fontSize: "1.2rem" }} dir="ltr">
-                {perf.totals?.margin != null ? money(perf.totals.margin) : "—"}
-              </div>
-              {perf.totals?.budgetUsedPct != null && <div className="text-[10px] text-muted-foreground">{t("المستهلك:", "used:")} <span className="font-english">{displayDigits(perf.totals.budgetUsedPct.toFixed(0))}%</span></div>}
-            </div>
-          </div>
+          <MetricStrip>
+            <Metric
+              label={t("ساعات العمل", "Hours")}
+              value={<>{displayDigits(hrsFmt(perf.totals?.totalHours))}</>}
+              hint={<>{t("قابلة للفوترة:", "billable:")} <span className="font-english" dir="ltr">{displayDigits(hrsFmt(perf.totals?.billableHours))}</span></>}
+            />
+            <Metric label={t("تكلفة العمالة", "Labor cost")} value={<LedgerFigure value={Number(perf.totals?.laborCost || 0)} currency="SAR" />} />
+            <Metric label={t("المدفوع للمقاولين", "Paid out")} value={<LedgerFigure value={Number(perf.totals?.paidOut || 0)} currency="SAR" />} tone="success" />
+            <Metric
+              label={t("المتبقي من الميزانية", "Budget margin")}
+              value={perf.totals?.margin != null ? <LedgerFigure value={Number(perf.totals.margin)} currency="SAR" /> : "—"}
+              tone={perf.totals?.margin != null && perf.totals.margin < 0 ? "critical" : "neutral"}
+              hint={perf.totals?.budgetUsedPct != null ? <>{t("المستهلك:", "used:")} <span className="font-english" dir="ltr">{displayDigits(perf.totals.budgetUsedPct.toFixed(0))}%</span></> : undefined}
+            />
+          </MetricStrip>
 
           {/* Engaged contractors + engage form */}
           <Card className="border-border">
@@ -769,12 +804,13 @@ export function ProjectDetail() {
               </CardContent>
             </Card>
           )}
-        </div>
+        </section>
       )}
 
-      <div className="flex gap-2 pt-2 border-t border-border/60">
-        <Button type="button" variant="outline" onClick={() => setEditMode(true)} className="flex-1 border-border"><Edit2 className="me-2 h-4 w-4" />{t("تعديل", "Edit")}</Button>
-        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></Button>
+      <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+        <Button type="button" variant="outline" onClick={() => setPendingDelete(true)} className="border-danger-border text-danger hover:bg-danger-subtle">
+          <Trash2 className="me-2 h-4 w-4" strokeWidth={1.75} />{t("حذف المشروع", "Delete project")}
+        </Button>
       </div>
       {pendingDelete && (
         <div className="rounded-lg border border-danger-border bg-danger-subtle p-3">
@@ -790,12 +826,38 @@ export function ProjectDetail() {
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
         <Link to="/app/projects" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
-          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("المحاسبة", "Accounting")} · {t("العودة للمشاريع", "Back to Projects")}
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("المشاريع والتنفيذ", "Projects & delivery")} · {t("العودة للمشاريع", "Back to Projects")}
         </Link>
-        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
-          {isNew ? t("مشروع جديد", "New Project") : (project?.name || t("المشروع", "Project"))}
-        </h1>
-        {isNew && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground flex items-center gap-1.5"><FolderKanban className="h-4 w-4" />{t("أنشئ مشروعاً واربطه بالفواتير والمصروفات والمقاولين", "Create a project and link it to invoices, expenses and contractors")}</p>}
+        {/* The project's NAME is the page title; the CODE rides beside it as a mono
+            chip (CEO screenshot 2026-09-08) — a code is an identifier, not a heading. */}
+        <PageHeader
+          title={
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <bdi dir="auto" className="min-w-0">{isNew ? t("مشروع جديد", "New Project") : (project?.name || t("المشروع", "Project"))}</bdi>
+              {!isNew && project?.code && (
+                <span data-testid="project-code-chip" className="shrink-0 rounded-full border border-border bg-surface-subtle px-3 py-1 font-code text-sm font-semibold text-content-secondary" dir="ltr">{project.code}</span>
+              )}
+              {!isNew && project?.status && (
+                <StatusBadge tone={STATUS_TONES[project.status] || "neutral"}>{statusLabel(project.status)}</StatusBadge>
+              )}
+            </span>
+          }
+          description={isNew
+            ? t("أنشئ مشروعاً واربطه بالفواتير والمصروفات والمقاولين", "Create a project and link it to invoices, expenses and contractors")
+            : (project?.clientName || form.clientName
+                ? t(`العميل: ${project?.clientName || form.clientName}`, `Client: ${project?.clientName || form.clientName}`)
+                : undefined)}
+          actions={!isNew && !editMode && project ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => setEditMode(true)} data-testid="project-edit">
+                <Edit2 className="me-2 h-4 w-4" strokeWidth={1.75} />{t("تعديل", "Edit")}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate(`/app/work-logs/new?project=${project.id}`)}>
+                <Clock3 className="me-2 h-4 w-4" strokeWidth={1.75} />{t("سجّل ساعات", "Log hours")}
+              </Button>
+            </>
+          ) : undefined}
+        />
       </div>
       {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}

@@ -75,6 +75,7 @@ const EN_TEXT: Record<string, string> = {
   "الأصول الثابتة": "Fixed assets",
   "مراكز التكلفة": "Cost centers",
   "المشاريع": "Projects",
+  "المشاريع والتنفيذ": "Projects & delivery",
   "الفروع": "Branches",
   "برنامج الشركاء": "Partner Program",
   "محافظ الاستثمار": "Investment wallets",
@@ -180,6 +181,18 @@ const sections: MenuSection[] = [
     ],
   },
   {
+    // CEO 2026-09-08: «المشاريع» was buried two levels deep under
+    // المحاسبة → التحليل والهيكل, so the page existed but nobody found it.
+    // Projects are execution, not analysis — they get their own group, next to
+    // the purchasing they drive, with the subcontractors who deliver them.
+    label: "المشاريع والتنفيذ",
+    hub: "/app/projects",
+    items: [
+      { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
+      { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
+    ],
+  },
+  {
     label: "المنتجات والمخزون",
     hub: "/app/products",
     items: [
@@ -210,7 +223,6 @@ const sections: MenuSection[] = [
         icon: Target,
         children: [
           { title: "مراكز التكلفة", icon: Target, path: "/app/cost-centers" },
-          { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
           { title: "الفروع", icon: Map, path: "/app/branches" },
         ],
       },
@@ -233,7 +245,6 @@ const sections: MenuSection[] = [
     items: [
       { title: "الموظفين", icon: Users2, path: "/app/employees" },
       { title: "مسير الرواتب", icon: Wallet, path: "/app/payroll" },
-      { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
     ],
   },
   {
