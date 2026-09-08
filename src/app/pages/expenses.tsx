@@ -100,6 +100,12 @@ type FormState = {
   branchId?: string | null;
   /** Project / job-costing dimension (C2) */
   projectId?: string | null;
+  /** Account law (2026-09-08): header-level expense account · fallback for lines without their own */
+  accountId?: string;
+  /** DRAFT saves freely · APPROVED needs an account on every line (or the header account) */
+  status?: "DRAFT" | "APPROVED" | "PAID";
+  /** Header account came from the suggestion engine (client-only flag) */
+  accountSuggested?: boolean;
 };
 
 type ExtractionSummary = {
@@ -219,8 +225,13 @@ function emptyForm(): FormState {
     assetAccountId: "",
     branchId: undefined,
     projectId: null,
+    accountId: "",
+    status: "APPROVED",
   };
 }
+
+/** Client cache for expense-line suggestions · key = text|category */
+const expenseSuggestCache = new Map<string, { accountId: string | null; via?: string } | null>();
 
 function hasDraftContent(form: FormState) {
   const empty = emptyForm();
@@ -667,6 +678,11 @@ export function Expenses() {
   const [pendingSimilarity, setPendingSimilarity] = useState<{ review: SimilarityReview; input: ExpenseInput } | null>(null);
   const [formData, setFormData] = useState<FormState>(() => emptyForm());
   const [accounts, setAccounts] = useState<any[]>([]);
+  // Account law: rows without an account when saving (non-draft) are highlighted + explained inline
+  const [invalidLineIdx, setInvalidLineIdx] = useState<Set<number>>(new Set());
+  const [lineError, setLineError] = useState<string | null>(null);
+  const suggestTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const formDataRef = useRef<FormState | null>(null);
   const [extractionSummary, setExtractionSummary] = useState<ExtractionSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -692,6 +708,56 @@ export function Expenses() {
   useEffect(() => {
     api.accounts.list().then((d) => setAccounts((d as any).items || [])).catch(() => {});
   }, []);
+
+  // «ذكاء يحط أقرب حساب للبند»: any line (or the header) with content and no account
+  // asks POST /api/accounts/suggest (debounced · cached) and is marked «مقترح» until confirmed.
+  formDataRef.current = formData;
+  const expenseAccountItems = accounts
+    .filter((a) => a.type === "EXPENSE" && a.isActive !== false)
+    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined }));
+  const accountLabel = (id?: string | null) => {
+    const a = accounts.find((x) => x.id === id);
+    return a ? `${a.code} · ${a.nameAr || a.name}` : "";
+  };
+  useEffect(() => {
+    if (!createOpen || expenseAccountItems.length === 0) return;
+    const timers = suggestTimersRef.current;
+    const schedule = (key: string, text: string, category: string | null, apply: (hit: { accountId: string | null; via?: string }) => void) => {
+      const cacheKey = `${text.toLowerCase()}|${(category || "").toLowerCase()}`;
+      const existing = timers.get(key);
+      if (existing) clearTimeout(existing);
+      timers.set(key, setTimeout(async () => {
+        timers.delete(key);
+        let hit = expenseSuggestCache.get(cacheKey);
+        if (hit === undefined) {
+          hit = await api.accounts.suggest({ kind: "expense", text, category, contactId: null }).catch(() => null);
+          expenseSuggestCache.set(cacheKey, hit ?? null);
+        }
+        if (hit?.accountId && expenseAccountItems.some((a) => a.id === hit!.accountId)) apply(hit);
+      }, 450));
+    };
+    formData.lineItems.forEach((line, idx) => {
+      if (line.accountId) return;
+      const text = (line.description || "").trim();
+      if (text.length < 3) return;
+      schedule(`line-${idx}`, text, line.category || null, (hit) => {
+        setFormData((f) => ({
+          ...f,
+          lineItems: f.lineItems.map((item, i) => i === idx && !item.accountId && (item.description || "").trim() === text
+            ? { ...item, accountId: hit.accountId, accountName: accountLabel(hit.accountId), accountSuggested: true } as ExpenseLine
+            : item),
+        }));
+      });
+    });
+    const header = (formData.category || "").trim();
+    if (!formData.accountId && header.length >= 3) {
+      schedule("header", `${header} ${formData.description || ""}`.trim(), header, (hit) => {
+        setFormData((f) => (!f.accountId && (f.category || "").trim() === header ? { ...f, accountId: hit.accountId || "", accountSuggested: true } as FormState : f));
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createOpen, formData.lineItems, formData.category, formData.accountId, accounts.length]);
+  useEffect(() => () => { for (const tm of suggestTimersRef.current.values()) clearTimeout(tm); }, []);
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
@@ -901,12 +967,19 @@ export function Expenses() {
       ocrConfidence: expense.ocrConfidence ? Number(expense.ocrConfidence) : null,
       branchId: (expense as any).branchId ?? null,
       projectId: (expense as any).projectId ?? null,
+      accountId: (expense as any).accountId || "",
+      status: ((expense as any).status as FormState["status"]) || "APPROVED",
     });
+    setInvalidLineIdx(new Set());
+    setLineError(null);
     setCreateOpen(true);
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(mode: "draft" | "approve" = "approve") {
     setCreateError(null);
+    setLineError(null);
+    setInvalidLineIdx(new Set());
+    const targetStatus: FormState["status"] = mode === "draft" ? "DRAFT" : (formData.status === "DRAFT" ? "APPROVED" : (formData.status || "APPROVED"));
     const subtotal = Number(normalizeDigits(formData.amount || "0"));
     const taxAmount = Number(normalizeDigits(formData.taxAmount || "0"));
     const totalAmount = Number(normalizeDigits(formData.totalAmount || String(subtotal + taxAmount)));
@@ -935,6 +1008,18 @@ export function Expenses() {
       setCreateError(t("مجموع المدفوعات ", "Payment total ") + money(splitTotal, expectedPaymentCurrency) + t(" لا يطابق المبلغ المتوقع ", " does not match expected ") + money(expectedPaymentTotal, expectedPaymentCurrency));
       return;
     }
+    // Account law (2026-09-08): a non-draft expense needs an account on every line —
+    // or a header account as the fallback. Drafts save freely.
+    if (targetStatus !== "DRAFT" && !formData.accountId) {
+      const missing = formData.lineItems.map((line, idx) => (line.accountId ? -1 : idx)).filter((i) => i >= 0);
+      if (formData.lineItems.length === 0 || missing.length) {
+        const msg = t("لا يمكن اعتماد المصروف: لم تُسجَّل بنوده بالشكل الصحيح — اختر حسابًا لكل بند أو حسابًا للمصروف.", "Cannot approve the expense: its lines were not recorded correctly — choose an account for every line or a header account.");
+        setInvalidLineIdx(new Set(missing));
+        setLineError(msg);
+        setCreateError(msg);
+        return;
+      }
+    }
     setBusy(true);
     try {
       const primaryAttachment = formData.attachments[formData.attachments.length - 1];
@@ -952,8 +1037,13 @@ export function Expenses() {
         supplierTaxId: formData.supplierTaxId || null,
         documentNumber: formData.documentNumber || null,
         reference: formData.documentNumber || null,
-        lineItems: formData.lineItems.map((line) => ({ ...line, sourceCurrency: line.sourceCurrency || settlement.sourceCurrency })),
+        lineItems: formData.lineItems.map((line) => {
+          const { accountSuggested: _suggested, ...rest } = line as ExpenseLine & { accountSuggested?: boolean };
+          return { ...rest, accountId: line.accountId || null, sourceCurrency: line.sourceCurrency || settlement.sourceCurrency };
+        }),
         paymentSplits: finalSplits,
+        status: targetStatus,
+        accountId: formData.accountId || null,
         notes: formData.notes || null,
         attachmentName: primaryAttachment?.name || null,
         attachmentType: primaryAttachment?.type || null,
@@ -995,7 +1085,13 @@ export function Expenses() {
       }
       await finalizeSavedExpense(saved);
     } catch (e: any) {
-      setCreateError(humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" }));
+      const msg = humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" });
+      setCreateError(msg);
+      if (e?.code === "line_account_required") {
+        setLineError(msg);
+        const named: number[] = Array.isArray(e?.details?.lines) ? e.details.lines : [];
+        setInvalidLineIdx(new Set(named.length ? named.map((n) => n - 1) : formData.lineItems.map((l, i) => (l.accountId ? -1 : i)).filter((i) => i >= 0)));
+      }
     } finally {
       setBusy(false);
     }
@@ -1277,7 +1373,10 @@ export function Expenses() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => closeCreate()} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
+              <Button type="button" variant="outline" disabled={busy} onClick={() => handleSubmit("draft")} className="border-border" title={t("المسودة لا تُرحَّل للدفاتر ولا تتطلب حسابات البنود", "A draft is not posted and does not require line accounts")}>
+                {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
+              </Button>
+              <Button type="button" disabled={busy} onClick={() => handleSubmit("approve")} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : editingId ? t("تحديث", "Update") : t("حفظ", "Save")}
               </Button>
             </div>
@@ -1376,6 +1475,23 @@ export function Expenses() {
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("التصنيف *", "Category *")}</Label>
                   <Input placeholder={t("مثال: ضيافة ووجبات · فواتير خدمات", "e.g. Entertainment & meals · Service invoices")} value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-border" />
+                  <div className="space-y-1" data-testid="expense-header-account" data-account-suggested={(formData as any).accountSuggested ? "true" : undefined}>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-foreground/80 text-xs">{t("حساب المصروف (الافتراضي للبنود)", "Expense account (default for lines)")}</Label>
+                      {(formData as any).accountSuggested && formData.accountId && (
+                        <button type="button" onClick={() => setFormData({ ...formData, accountSuggested: false } as FormState)} className="rounded-full border border-border bg-surface-subtle px-1.5 py-0.5 text-[10px] font-semibold leading-none text-content-secondary hover:text-foreground" title={t("حساب مقترح تلقائياً · اضغط للتأكيد أو اختر حساباً آخر", "Suggested automatically · click to confirm or pick another account")}>
+                          {t("مقترح", "Suggested")}
+                        </button>
+                      )}
+                    </div>
+                    <SearchableCombobox
+                      value={formData.accountId || ""}
+                      onChange={(accountId) => setFormData({ ...formData, accountId, accountSuggested: false } as FormState)}
+                      items={expenseAccountItems}
+                      placeholder={t("اختر حساب المصروف من الشجرة…", "Pick the expense account from the chart…")}
+                    />
+                    <p className="text-[11px] text-muted-foreground">{t("يُستخدم لكل بند بلا حساب خاص · المصروف لا يُعتمد بدون حساب على كل بند أو هنا.", "Used for every line without its own account · an expense is not approved without an account on each line or here.")}</p>
+                  </div>
                   <button
                     type="button"
                     role="checkbox"
@@ -1590,7 +1706,7 @@ export function Expenses() {
                         <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">{t("لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.", "No items extracted yet. You can add a line manually or re-upload the invoice.")}</td></tr>
                       )}
                       {formData.lineItems.map((line, idx) => (
-                        <tr key={idx} className="border-t border-border/50">
+                        <tr key={idx} className={`border-t border-border/50 ${invalidLineIdx.has(idx) ? "ring-1 ring-inset ring-danger" : ""}`}>
                           <td className="px-2 py-2">
                             <Input value={line.description || ""} onChange={(e) => {
                               const description = e.target.value;
@@ -1600,8 +1716,23 @@ export function Expenses() {
                           <td className="px-2 py-2">
                             <Input value={line.category || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, category: e.target.value } : item) }))} className="h-8 border-border" />
                           </td>
-                          <td className="px-2 py-2">
-                            <Input value={line.accountName || ""} onChange={(e) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountName: e.target.value } : item) }))} className="h-8 border-border" />
+                          <td className={`px-2 py-2 ${invalidLineIdx.has(idx) ? "bg-danger-subtle" : ""}`} data-testid={`expense-line-account-${idx}`} data-account-suggested={(line as any).accountSuggested ? "true" : undefined}>
+                            <div className="flex min-w-[220px] items-center gap-1">
+                              <div className="min-w-0 flex-1">
+                                <SearchableCombobox
+                                  value={line.accountId || ""}
+                                  onChange={(accountId) => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountId, accountName: accountLabel(accountId), accountSuggested: false } as ExpenseLine : item) }))}
+                                  items={expenseAccountItems}
+                                  placeholder={line.accountName || t("حساب…", "Account…")}
+                                  className={`h-8 ${(line as any).accountSuggested ? "text-content-secondary" : ""}`}
+                                />
+                              </div>
+                              {(line as any).accountSuggested && line.accountId && (
+                                <button type="button" onClick={() => setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, accountSuggested: false } as ExpenseLine : item) }))} className="shrink-0 rounded-full border border-border bg-surface-subtle px-1.5 py-0.5 text-[10px] font-semibold leading-none text-content-secondary hover:text-foreground" title={t("حساب مقترح تلقائياً · اضغط للتأكيد أو اختر حساباً آخر", "Suggested automatically · click to confirm or pick another account")}>
+                                  {t("مقترح", "Suggested")}
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="px-2 py-2">
                             <div className="grid grid-cols-2 gap-1">
@@ -1652,6 +1783,9 @@ export function Expenses() {
                     </tbody>
                   </table>
                 </div>
+                {lineError && (
+                  <p role="alert" data-testid="expense-lines-error" className="border-t border-danger/40 bg-danger-subtle px-3 py-2 text-xs font-semibold text-danger">{lineError}</p>
+                )}
               </div>
 
               <div className="rounded-lg border border-border bg-card">

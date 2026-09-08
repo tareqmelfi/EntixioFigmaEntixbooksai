@@ -667,6 +667,9 @@ export const api = {
       request<{ name: string; nameAr: string; type: 'ASSET'|'LIABILITY'|'EQUITY'|'REVENUE'|'EXPENSE'; category?: string; reasoning?: string; suggestedCode?: string }>(
         '/api/accounts/translate', { method: 'POST', body: { input, hint } },
       ),
+    /** Account law (2026-09-08): closest GL account for a line / product · never null while the chart has an account of the type */
+    suggest: (input: AccountSuggestInput) =>
+      request<AccountSuggestResult>('/api/accounts/suggest', { method: 'POST', body: input }),
   },
 
   // Expenses
@@ -2172,6 +2175,8 @@ export interface Expense {
   duplicateOfId?: string | null
   duplicateReason?: string | null
   notes?: string | null
+  status?: 'DRAFT' | 'APPROVED' | 'PAID'
+  accountId?: string | null
   createdAt: string
   contact?: { id: string; displayName: string; taxId?: string | null; vatNumber?: string | null; isSupplier?: boolean } | null
   taxRate?: { id?: string; name: string; rate: string } | null
@@ -2180,6 +2185,8 @@ export interface Expense {
 
 export interface ExpenseLine {
   accountId?: string | null
+  /** Client-only: the account was filled by the suggestion engine (stripped before save) */
+  accountSuggested?: boolean
   description: string
   quantity?: number
   unitPrice?: number
@@ -2211,7 +2218,30 @@ export interface ExpensePaymentSplit {
   notes?: string | null
 }
 
+export interface AccountSuggestInput {
+  kind: 'sales' | 'purchase' | 'expense' | 'product-income' | 'product-expense'
+  text?: string | null
+  productId?: string | null
+  contactId?: string | null
+  category?: string | null
+  currency?: string | null
+  productType?: string | null
+}
+export interface AccountSuggestResult {
+  accountId: string | null
+  code: string | null
+  name: string | null
+  nameAr?: string | null
+  type?: string | null
+  via: 'product' | 'history' | 'keyword' | 'category' | 'mapping' | 'first' | 'none'
+  confidence: number
+}
+
 export interface ExpenseInput {
+  /** DRAFT saves freely · APPROVED/PAID (default) need an account on every line or a header account */
+  status?: 'DRAFT' | 'APPROVED' | 'PAID'
+  /** Header-level expense account · fallback for lines without their own accountId */
+  accountId?: string | null
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
