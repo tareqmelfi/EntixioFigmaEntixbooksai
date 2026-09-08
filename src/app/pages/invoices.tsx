@@ -88,6 +88,10 @@ const EMPTY_FORM = {
   paymentTerms: "net30", // net15 | net30 | net60 | due-on-receipt | custom
   brandTemplate: "default",
   notes: "",
+  // Brand document template (id) · "" = org default for INVOICE · 2026-09-08
+  templateId: "",
+  // Terms & conditions · per-document override · prefilled from the template on create
+  termsConditions: "",
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
   // Project / job-costing dimension (C2)
@@ -189,6 +193,23 @@ export function Invoices() {
     restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); },
   });
   const [previewOpen, setPreviewOpen] = useState(true);
+  // Brand document templates for the INVOICE kind (BOTH counts) · selector + terms prefill
+  const [docTemplates, setDocTemplates] = useState<any[]>([]);
+  useEffect(() => {
+    if (!createOpen) return;
+    api.documentTemplates.list({ kind: "INVOICE" }).then((r) => setDocTemplates(r.items)).catch(() => setDocTemplates([]));
+  }, [createOpen]);
+  // New invoice → prefill terms + template from the org default (the user may edit or clear them)
+  useEffect(() => {
+    if (!createOpen || editingInvoice) return;
+    let alive = true;
+    api.documentTemplates.defaults().then((d) => {
+      const tpl = d.INVOICE;
+      if (!alive || !tpl) return;
+      setForm((prev: any) => (prev.termsConditions || prev.templateId) ? prev : { ...prev, templateId: tpl.id, termsConditions: tpl.showTerms === false ? "" : (tpl.terms || "") });
+    }).catch(() => { /* no default template · terms stay empty */ });
+    return () => { alive = false; };
+  }, [createOpen, editingInvoice]);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
 
@@ -402,7 +423,16 @@ export function Invoices() {
   // 'draft' = حفظ كمسودة (always available · default)
   // 'approve' = اعتماد (final commit · enables send · backend will lock edits)
   // 'send' = إرسال (only after approval · triggers email)
-  const handleSubmit = async (action: "draft" | "approve" | "send" = "draft") => {
+  /** «معاينة كاملة» for a NEW invoice · saves a draft first (a document needs an id) then opens the print view in a new tab */
+  const handleFullPreview = async () => {
+    const win = window.open("", "_blank", "noopener");
+    const inv = await handleSubmit("draft");
+    if (!inv) { win?.close(); return; }
+    const url = `/print/invoice/${inv.id}?noprint=1${form.templateId ? `&templateId=${form.templateId}` : ""}`;
+    if (win) win.location.href = url; else window.open(url, "_blank", "noopener");
+  };
+
+  const handleSubmit = async (action: "draft" | "approve" | "send" = "draft"): Promise<Invoice | null | undefined> => {
     setCreateError(null);
     if (editingInvoice && editingInvoice.status !== "DRAFT") { setCreateError(t("الفاتورة صادرة ومقفلة", "This issued invoice is locked")); return; }
     if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return; }
@@ -468,7 +498,10 @@ export function Invoices() {
         notes: form.notes || null,
         branchId: form.branchId ?? null,
         projectId: form.projectId ?? null,
-        termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
+        // Reference lives in its OWN column · terms are the per-document override (never packed together)
+        reference: form.reference || null,
+        termsConditions: form.termsConditions || null,
+        templateId: form.templateId || null,
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
           accountId: l.accountId || null, // only an intentional product mapping can supply a missing account
@@ -555,8 +588,10 @@ export function Invoices() {
       draft.clear(); // saved → the autosaved draft is obsolete
       // Keep createOpen true · just refresh state
       // closeCreate();   // ❌ removed · was bouncing user back to list and losing context
+      return inv as Invoice;
     } catch (e: any) {
       setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
+      return null;
     } finally { setBusy(false); }
   };
 
@@ -642,7 +677,10 @@ export function Invoices() {
       dueDate: inv.dueDate ? String(inv.dueDate).slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
       currency: inv.currency,
       notes: inv.notes || "",
-      reference: (inv as any).reference || "",
+      // legacy rows stored "Ref: X" inside termsConditions · surface it as the reference, not as terms
+      reference: (inv as any).reference || (String(inv.termsConditions || "").match(/^Ref:\s*(.+)$/)?.[1] ?? ""),
+      termsConditions: /^Ref:\s*\S+$/.test(String(inv.termsConditions || "").trim()) ? "" : (inv.termsConditions || ""),
+      templateId: (inv as any).templateId || "",
       branchId: (inv as any).branchId ?? null,
       projectId: (inv as any).projectId ?? null,
     } as any);
@@ -741,7 +779,21 @@ export function Invoices() {
                     >
                       {t("طباعة", "Print")}
                     </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      data-testid="invoice-full-preview"
+                      onClick={() => window.open(`/print/invoice/${editingInvoice.id}?noprint=1${form.templateId ? `&templateId=${form.templateId}` : ""}`, "_blank", "noopener")}
+                      title={t("المستند الكامل بكل صفحاته في تبويب جديد", "The full document with all its pages in a new tab")}
+                    >
+                      {t("معاينة كاملة", "Full preview")}
+                    </Button>
                   </>
+                )}
+                {!editingInvoice && (
+                  <Button type="button" variant="secondary" disabled={busy} onClick={handleFullPreview} data-testid="invoice-full-preview" title={t("يحفظ مسودة ثم يفتح المستند الكامل بكل صفحاته في تبويب جديد", "Saves a draft, then opens the full document with all its pages in a new tab")}>
+                    {t("معاينة كاملة", "Full preview")}
+                  </Button>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -855,14 +907,20 @@ export function Invoices() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-testid="invoice-template-field">
                 <Label className="text-content-secondary text-xs">{t("قالب العلامة التجارية", "Brand template")}</Label>
-                <Select value={form.brandTemplate} onValueChange={(v) => setForm({ ...form, brandTemplate: v })}>
-                  <SelectTrigger ><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {BRAND_TEMPLATES.map((bt) => <SelectItem key={bt.value} value={bt.value}>{t(bt.label.ar, bt.label.en)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {/* Real brand templates (designer · /app/templates) · empty = org default for invoices */}
+                <SearchableCombobox
+                  value={form.templateId}
+                  onChange={(id) => {
+                    const tpl = docTemplates.find((x) => x.id === id);
+                    setForm((prev: any) => ({ ...prev, templateId: id, brandTemplate: prev.brandTemplate, termsConditions: prev.termsConditions || (tpl?.showTerms === false ? "" : (tpl?.terms || "")) }));
+                  }}
+                  items={docTemplates.map((x) => ({ id: x.id, label: x.name, sublabel: x.isDefault ? t("افتراضي", "Default") : (x.nameEn || undefined) }))}
+                  placeholder={docTemplates.length ? t("القالب الافتراضي", "Default template") : (BRAND_TEMPLATES[0] ? t(BRAND_TEMPLATES[0].label.ar, BRAND_TEMPLATES[0].label.en) : "")}
+                  onCreate={async () => { navigate("/app/templates/new?type=INVOICE"); return ""; }}
+                  createLabel={(q) => t(`تصميم قالب جديد «${q}»`, `Design a new template “${q}”`)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-content-secondary text-xs">{t("شروط الدفع", "Payment terms")}</Label>
@@ -971,6 +1029,17 @@ export function Invoices() {
                     className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-content-secondary text-xs">{t("الشروط والأحكام · تُطبع في بطاقة الشروط (مُعبّأة من القالب · عدّلها لهذه الفاتورة)", "Terms & conditions · printed in the terms card (prefilled from the template · edit for this invoice)")}</Label>
+                  <textarea
+                    rows={5}
+                    placeholder={t("سطر لكل شرط — الاستحقاق خلال 30 يومًا من تاريخ الإصدار…", "One term per line — due within 30 days of the issue date…")}
+                    value={form.termsConditions}
+                    onChange={(e) => setForm({ ...form, termsConditions: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                    data-testid="invoice-terms"
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-content-secondary text-xs">{t("الإجمالي", "Total")}</Label>
@@ -1019,7 +1088,7 @@ export function Invoices() {
                   <div className="border-b border-border px-4 py-2 ledger-eyebrow">{t("معاينة المستند · آخر نسخة محفوظة", "Document preview · last saved version")}</div>
                   <iframe
                     title={t(`معاينة ${editingInvoice.invoiceNumber}`, `Preview ${editingInvoice.invoiceNumber}`)}
-                    src={`/print/invoice/${editingInvoice.id}?embed=1&noprint=1`}
+                    src={`/print/invoice/${editingInvoice.id}?embed=1&noprint=1${form.templateId ? `&templateId=${form.templateId}` : ""}`}
                     className="w-full bg-card"
                     style={{ height: "calc(100vh - 200px)", border: 0 }}
                   />
