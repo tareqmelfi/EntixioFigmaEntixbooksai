@@ -4,13 +4,13 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  * UX-1 compliant: NO Dialog · NO alert/confirm/prompt
  * UX pattern: FullPageForm + ItemsTable + SearchableCombobox · مطابق Wafeq
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { useSearchParams, useParams, Link } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
+import { EmptyState, InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
 import { BidiText } from "../components/bidi-text";
 import { InvoicePreviewPane } from "../components/invoice-preview-pane";
 import { useWideViewport } from "../lib/use-wide-viewport";
@@ -27,7 +27,7 @@ import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../com
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
-import { api, ApiError, Quote, Contact } from "../lib/api";
+import { api, ApiError, Quote, Contact, type PaymentPlan, type PaymentPlanItemInput, type PaymentCondition, type PaymentBillingMethod } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
@@ -57,6 +57,45 @@ const STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "
 };
 const money2 = (n: number | string) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/* ── SPEC-05 L2 · خطة الدفعات (payment plan) ──────────────────────────────────
+   The instalment schedule attached to the quote and printed on the proposal
+   (the document engine renders doc.paymentPlan). Percents must sum to 100 —
+   the guard blocks saving the PLAN only, never the quote itself. */
+type PlanRow = { key: string; label: string; percent: string; condition: PaymentCondition; conditionValue: string; billingMethod: PaymentBillingMethod };
+let planSeq = 0;
+const newPlanRow = (): PlanRow => ({ key: `p${Date.now()}-${planSeq++}`, label: "", percent: "", condition: "MILESTONE", conditionValue: "", billingMethod: "INVOICE" });
+const CONDITIONS: Array<{ value: PaymentCondition; ar: string; en: string }> = [
+  { value: "SIGNATURE", ar: "عند التوقيع", en: "On signature" },
+  { value: "MILESTONE", ar: "عند مرحلة", en: "At a milestone" },
+  { value: "PROGRESS", ar: "حسب نسبة الإنجاز", en: "By progress" },
+  { value: "DELIVERY", ar: "عند التسليم", en: "On delivery" },
+  { value: "DATE", ar: "بتاريخ محدد", en: "On a date" },
+];
+const BILLING_METHODS: Array<{ value: PaymentBillingMethod; ar: string; en: string }> = [
+  { value: "INVOICE", ar: "فاتورة", en: "Invoice" },
+  { value: "PROGRESS_CLAIM", ar: "مستخلص", en: "Progress claim" },
+];
+const planPercentSum = (rows: PlanRow[]) => rows.reduce((s, r) => s + (Number(normalizeDigits(r.percent)) || 0), 0);
+const planRowsValid = (rows: PlanRow[]) =>
+  rows.length > 0 && rows.every((r) => r.label.trim() && Number(normalizeDigits(r.percent)) > 0) && Math.abs(planPercentSum(rows) - 100) <= 0.01;
+const planRowsToItems = (rows: PlanRow[]): PaymentPlanItemInput[] => rows.map((r, i) => ({
+  label: r.label.trim(),
+  percent: Number(normalizeDigits(r.percent)) || 0,
+  condition: r.condition,
+  conditionValue: r.conditionValue.trim() || null,
+  billingMethod: r.billingMethod,
+  sortOrder: i,
+}));
+const planFromApi = (plan: PaymentPlan | null | undefined): PlanRow[] =>
+  (plan?.items || []).map((i) => ({
+    key: i.id || `p${Date.now()}-${planSeq++}`,
+    label: i.label,
+    percent: String(Number(i.percent)),
+    condition: i.condition,
+    conditionValue: i.conditionValue || "",
+    billingMethod: i.billingMethod,
+  }));
+
 const EMPTY_FORM = {
   contactId: "",
   quoteNumber: "",
@@ -72,6 +111,114 @@ const EMPTY_FORM = {
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
 };
+
+/** SPEC-05 L2 · the «خطة الدفعات» editor — used in the quote form and on the quote page. */
+function PaymentPlanFields({
+  rows, setRows, templates, total, currency, disabled, templateId, onTemplate, actions,
+}: {
+  rows: PlanRow[];
+  setRows: (rows: PlanRow[]) => void;
+  templates: PaymentPlan[];
+  total: number;
+  currency: string;
+  disabled?: boolean;
+  templateId: string;
+  onTemplate: (id: string) => void;
+  actions?: ReactNode;
+}) {
+  const { t } = useLanguage();
+  const sum = planPercentSum(rows);
+  const balanced = rows.length === 0 || Math.abs(sum - 100) <= 0.01;
+  const setRow = (i: number, patch: Partial<PlanRow>) => setRows(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  return (
+    <section className="space-y-2" data-testid="quote-payment-plan">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-section font-semibold text-foreground">{t("خطة الدفعات", "Payment plan")}</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={templateId || "custom"}
+            onValueChange={(v) => {
+              onTemplate(v === "custom" ? "" : v);
+              const tpl = templates.find((x) => x.id === v);
+              if (tpl) setRows(planFromApi(tpl));
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger className="h-9 w-[260px] border-border text-sm" data-testid="quote-plan-template"><SelectValue placeholder={t("خطة قياسية", "Standard plan")} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="custom">{t("مخصصة", "Custom")}</SelectItem>
+              {templates.map((x) => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button type="button" size="sm" variant="outline" className="border-border" disabled={disabled} onClick={() => setRows([...rows, newPlanRow()])} data-testid="quote-plan-add">
+            <Plus className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} />{t("+ دفعة", "+ Instalment")}
+          </Button>
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("لا توجد خطة دفعات — اختر خطة قياسية أو أضف دفعات مخصصة.", "No payment plan — pick a standard plan or add custom instalments.")}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="ledger-grid-dense" style={{ minWidth: 900 }}>
+            <div className="grid" style={{ gridTemplateColumns: "minmax(200px,1.5fr) 90px 150px 180px 120px 150px 40px" }}>
+              <div className="cell h">{t("وصف الدفعة", "Instalment")}</div>
+              <div className="cell h n">{t("النسبة %", "Percent %")}</div>
+              <div className="cell h n">{t("المبلغ", "Amount")}</div>
+              <div className="cell h">{t("الاستحقاق", "Condition")}</div>
+              <div className="cell h">{t("القيمة", "Value")}</div>
+              <div className="cell h">{t("طريقة المطالبة", "Billing")}</div>
+              <div className="cell h" aria-hidden="true" />
+              {rows.map((r, i) => {
+                const pct = Number(normalizeDigits(r.percent)) || 0;
+                return (
+                  <div key={r.key} className="contents">
+                    <div className="cell"><Input value={r.label} disabled={disabled} onChange={(e) => setRow(i, { label: e.target.value })} className="text-[13px]" placeholder={t("دفعة أولى عند التوقيع", "Advance on signature")} data-testid={`quote-plan-label-${i}`} /></div>
+                    <div className="cell n"><Input value={r.percent} disabled={disabled} dir="ltr" inputMode="decimal" onChange={(e) => setRow(i, { percent: normalizeDigits(e.target.value) })} className="text-[13px] font-english text-end" data-testid={`quote-plan-percent-${i}`} /></div>
+                    <div className="cell n font-english text-foreground" data-testid={`quote-plan-amount-${i}`}>{money2((total * pct) / 100)}</div>
+                    <div className="cell">
+                      <Select value={r.condition} onValueChange={(v) => setRow(i, { condition: v as PaymentCondition })} disabled={disabled}>
+                        <SelectTrigger className="h-8 border-0 bg-transparent px-0 text-[13px] shadow-none"><SelectValue /></SelectTrigger>
+                        <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c.value} value={c.value}>{t(c.ar, c.en)}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="cell"><Input value={r.conditionValue} disabled={disabled} onChange={(e) => setRow(i, { conditionValue: e.target.value })} className="text-[13px]" placeholder={r.condition === "PROGRESS" ? "50" : ""} /></div>
+                    <div className="cell">
+                      <Select value={r.billingMethod} onValueChange={(v) => setRow(i, { billingMethod: v as PaymentBillingMethod })} disabled={disabled}>
+                        <SelectTrigger className="h-8 border-0 bg-transparent px-0 text-[13px] shadow-none"><SelectValue /></SelectTrigger>
+                        <SelectContent>{BILLING_METHODS.map((c) => <SelectItem key={c.value} value={c.value}>{t(c.ar, c.en)}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="cell">
+                      <button type="button" disabled={disabled} onClick={() => setRows(rows.filter((_, idx) => idx !== i))} className="rounded-full p-1 text-danger hover:bg-surface-hover" title={t("حذف الدفعة", "Delete instalment")} aria-label={t("حذف الدفعة", "Delete instalment")}>
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={`text-xs ${balanced ? "text-content-secondary" : "text-warning"}`} data-testid="quote-plan-sum">
+          {t("مجموع النسب:", "Percent total:")} <span dir="ltr" className="font-english tabular-nums">{displayDigits(sum.toFixed(2))}%</span>
+          {" · "}
+          <span dir="ltr" className="font-english tabular-nums">{money2((total * sum) / 100)} {currency}</span>
+        </span>
+        {actions}
+      </div>
+      {!balanced && (
+        <InlineAlert tone="warning" data-testid="quote-plan-guard">
+          {t("مجموع النسب يجب أن يساوي 100% — لن تُحفظ خطة الدفعات حتى تتوازن (العرض نفسه يُحفظ عادي).",
+             "The percentages must add up to 100% — the plan will not be saved until they balance (the quote itself saves normally).")}
+        </InlineAlert>
+      )}
+    </section>
+  );
+}
 
 export function Quotes() {
   const { t, language } = useLanguage();
@@ -114,6 +261,17 @@ export function Quotes() {
   }, [createOpen, orgCurrency, isUS]);
   const draft = useFormDraft({ key: "quote:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
+  // SPEC-05 L2 · payment plan (templates + the rows being edited)
+  const [planTemplates, setPlanTemplates] = useState<PaymentPlan[]>([]);
+  const [planRows, setPlanRows] = useState<PlanRow[]>([]);
+  const [planTemplateId, setPlanTemplateId] = useState("");
+  const [planBusy, setPlanBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api.paymentPlans.templates().then((r) => { if (alive) setPlanTemplates(r.items); }).catch(() => { /* no templates · custom rows still work */ });
+    return () => { alive = false; };
+  }, []);
+
   const [signFor, setSignFor] = useState<Quote | null>(null);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
@@ -144,7 +302,7 @@ export function Quotes() {
     let alive = true;
     setDetailLoading(true);
     api.quotes.get(detailId)
-      .then((q) => { if (alive) setDetail(q); })
+      .then((q) => { if (!alive) return; setDetail(q); setPlanRows(planFromApi(q.paymentPlan)); setPlanTemplateId(""); })
       .catch((e: any) => {
         if (!alive) return;
         push("error", e instanceof ApiError ? e.message : t("تعذر تحميل العرض", "Could not load the quote"));
@@ -243,6 +401,7 @@ export function Quotes() {
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
+    setPlanRows([]); setPlanTemplateId("");
     setCreateOpen(true);
   };
   const closeCreate = () => {
@@ -291,6 +450,12 @@ export function Quotes() {
         })),
       } as any);
       setItems(prev => [q, ...prev]);
+      // SPEC-05 L2 · the schedule needs a saved quote · an unbalanced plan blocks
+      // ONLY itself — the quote is already saved either way.
+      if (planRows.length) {
+        if (planRowsValid(planRows)) await applyPaymentPlan(q.id, { silent: true });
+        else push("info", t("حُفظ العرض بدون خطة الدفعات — مجموع النسب ليس 100%", "Quote saved without the payment plan — the percentages do not add up to 100%"));
+      }
       const msg = action === "draft" ? t(`تم حفظ ${q.quoteNumber} كمسودة`, `Saved ${q.quoteNumber} as draft`) : t(`تم إرسال ${q.quoteNumber}`, `Sent ${q.quoteNumber}`);
       push("success", msg);
       draft.clear();
@@ -303,6 +468,40 @@ export function Quotes() {
       setCreateError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
       return null;
     } finally { setBusy(false); }
+  };
+
+  /** SPEC-05 L2 · store the schedule on a SAVED quote (the proposal then prints it). */
+  const applyPaymentPlan = async (quoteId: string, opts?: { silent?: boolean }) => {
+    if (!planRows.length) return;
+    if (!planRowsValid(planRows)) {
+      if (!opts?.silent) push("error", t("مجموع النسب يجب أن يساوي 100% — لم تُحفظ خطة الدفعات", "The percentages must add up to 100% — the payment plan was not saved"));
+      return;
+    }
+    setPlanBusy(true);
+    try {
+      const plan = await api.quotes.setPaymentPlan(quoteId, {
+        templateId: planTemplateId || null,
+        name: planTemplates.find((x) => x.id === planTemplateId)?.name || null,
+        items: planRowsToItems(planRows),
+      });
+      setDetail((prev) => (prev && prev.id === quoteId ? { ...prev, paymentPlan: plan } : prev));
+      setPlanRows(planFromApi(plan));
+      if (!opts?.silent) push("success", t("حُفظت خطة الدفعات وستظهر في العرض المطبوع", "Payment plan saved · it prints on the proposal"));
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("تعذر حفظ خطة الدفعات", "Could not save the payment plan"));
+    } finally { setPlanBusy(false); }
+  };
+
+  const removePaymentPlan = async (quoteId: string) => {
+    setPlanBusy(true);
+    try {
+      await api.quotes.removePaymentPlan(quoteId);
+      setPlanRows([]); setPlanTemplateId("");
+      setDetail((prev) => (prev && prev.id === quoteId ? { ...prev, paymentPlan: null } : prev));
+      push("success", t("أُزيلت خطة الدفعات", "Payment plan removed"));
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("تعذر الحذف", "Delete failed"));
+    } finally { setPlanBusy(false); }
   };
 
   const handleDelete = async (id: string) => {
@@ -608,6 +807,18 @@ export function Quotes() {
                 </div>
               </div>
             </div>
+
+            {/* SPEC-05 L2 · instalment schedule · printed on the proposal */}
+            <PaymentPlanFields
+              rows={planRows}
+              setRows={setPlanRows}
+              templates={planTemplates}
+              templateId={planTemplateId}
+              onTemplate={setPlanTemplateId}
+              total={computeTotals(lines).total}
+              currency={form.currency}
+              disabled={busy}
+            />
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -788,6 +999,14 @@ export function Quotes() {
                     <dt className="text-content-secondary">{t("سبب الرفض", "Decline reason")}</dt>
                     <dd className="min-w-0 break-words text-foreground">{q.rejectReason}</dd>
                   </>}
+                  {q.estimateId && <>
+                    <dt className="text-content-secondary">{t("المصدر", "Origin")}</dt>
+                    <dd className="min-w-0">
+                      <Link to={`/app/estimates/${q.estimateId}`} className="font-code text-primary hover:underline underline-offset-4" data-testid="quote-estimate-link">
+                        {t("من الدراسة", "From estimate")} {q.estimate?.number || "EST"}
+                      </Link>
+                    </dd>
+                  </>}
                   {q.notes && <>
                     <dt className="text-content-secondary">{t("شروط ومدة التنفيذ", "Terms and delivery period")}</dt>
                     <dd className="min-w-0 whitespace-pre-wrap break-words text-foreground">{q.notes}</dd>
@@ -799,6 +1018,31 @@ export function Quotes() {
                 {workflowActions(q)}
               </div>
             </aside>
+            {/* SPEC-05 L2 · the stored schedule · edited here, printed on the proposal */}
+            <div className="lg:col-span-2">
+              <PaymentPlanFields
+                rows={planRows}
+                setRows={setPlanRows}
+                templates={planTemplates}
+                templateId={planTemplateId}
+                onTemplate={setPlanTemplateId}
+                total={Number(q.total || 0)}
+                currency={q.currency}
+                disabled={planBusy}
+                actions={
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Button type="button" size="sm" disabled={planBusy || !planRows.length || !planRowsValid(planRows)} onClick={() => applyPaymentPlan(q.id)} data-testid="quote-plan-save">
+                      {t("حفظ خطة الدفعات", "Save payment plan")}
+                    </Button>
+                    {q.paymentPlan && (
+                      <Button type="button" size="sm" variant="outline" className="border-border text-danger" disabled={planBusy} onClick={() => removePaymentPlan(q.id)}>
+                        {t("إزالة الخطة", "Remove plan")}
+                      </Button>
+                    )}
+                  </span>
+                }
+              />
+            </div>
           </div>
         )}
         <ToastStack toasts={toasts} onDismiss={dismiss} />

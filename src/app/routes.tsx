@@ -229,6 +229,10 @@ export const router = createBrowserRouter([
       { path: "sales/quotes", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "sales/quotes/new", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "sales/quotes/:id", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
+      // SPEC-05 L1 · الدراسة والتسعير (internal cost study → approved → quote)
+      { path: "estimates", element: lazyElement(() => import("./pages/estimates"), "Estimates"), errorElement: <ErrorBoundary /> },
+      { path: "estimates/new", element: lazyElement(() => import("./pages/estimates"), "Estimates"), errorElement: <ErrorBoundary /> },
+      { path: "estimates/:id", element: lazyElement(() => import("./pages/estimates"), "Estimates"), errorElement: <ErrorBoundary /> },
       { path: "quotes/import", element: lazyElement(() => import("./pages/quotes-import"), "QuotesImport"), errorElement: <ErrorBoundary /> },
       { path: "quotes", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },
       { path: "quotes/new", element: lazyElement(() => import("./pages/quotes"), "Quotes"), errorElement: <ErrorBoundary /> },

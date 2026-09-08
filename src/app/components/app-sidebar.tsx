@@ -43,6 +43,7 @@ const EN_TEXT: Record<string, string> = {
   "المبيعات": "Sales",
   "لوحة القسم": "Section dashboard",
   "كاشير POS": "Cashier POS",
+  "الدراسة والتسعير": "Estimating & Pricing",
   "عروض الأسعار": "Quotes",
   "فواتير المبيعات": "Sales invoices",
   "سندات القبض": "Receipts",
@@ -159,6 +160,8 @@ const sections: MenuSection[] = [
     label: "المبيعات",
     hub: "/app/sales",
     items: [
+      // SPEC-05 L1 · the cost study comes BEFORE the quote (internal → client)
+      { title: "الدراسة والتسعير", icon: Calculator, path: "/app/estimates" },
       { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
       { title: "الفواتير", icon: FileText, path: "/app/invoices" },
       { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
