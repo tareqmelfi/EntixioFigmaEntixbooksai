@@ -734,6 +734,61 @@ export const api = {
     publicGet: (token: string) => request<Quote & { org?: { name: string; logoUrl?: string | null } }>(`/api/q/${token}`, { skipOrg: true }),
     publicAccept: (token: string, name: string) => request<{ ok: boolean; projectCreated?: boolean }>(`/api/q/${token}/accept`, { method: 'POST', body: { name }, skipOrg: true }),
     publicReject: (token: string, reason: string) => request<{ ok: boolean }>(`/api/q/${token}/reject`, { method: 'POST', body: { reason }, skipOrg: true }),
+    /** SPEC-05 L2 · attach an instalment schedule (template or custom rows · percents must sum to 100) */
+    setPaymentPlan: (id: string, body: { templateId?: string | null; name?: string | null; items?: PaymentPlanItemInput[] }) =>
+      request<PaymentPlan>(`/api/quotes/${id}/payment-plan`, { method: 'POST', body }),
+    /** SPEC-05 L2 · drop the schedule from the quote (the proposal stops printing it) */
+    removePaymentPlan: (id: string) =>
+      request<void>(`/api/quotes/${id}/payment-plan`, { method: 'DELETE' }),
+  },
+
+  // SPEC-05 L1 · Estimates (الدراسة والتسعير) · cost/margin fields are ABSENT for non-financial roles
+  estimates: {
+    list: (params?: { status?: string; q?: string; contactId?: string; projectId?: string }) =>
+      request<{ items: Estimate[]; total: number; confidentialHidden: boolean }>('/api/estimates', { query: params }),
+    get: (id: string) => request<Estimate>(`/api/estimates/${id}`),
+    create: (data: EstimateInput) => request<Estimate>('/api/estimates', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<EstimateInput>) =>
+      request<Estimate>(`/api/estimates/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void>(`/api/estimates/${id}`, { method: 'DELETE' }),
+    /** DRAFT → REVIEW */
+    submit: (id: string) => request<Estimate>(`/api/estimates/${id}/submit`, { method: 'POST' }),
+    /** REVIEW|DRAFT → APPROVED · OWNER / ADMIN only (403 owner_required otherwise) */
+    approve: (id: string) => request<Estimate>(`/api/estimates/${id}/approve`, { method: 'POST' }),
+    /** APPROVED → Quote · copies itemNo · البند والمواصفات · الكمية · سعر الوحدة · الإجمالي ONLY */
+    convertToQuote: (id: string, body?: { contactId?: string | null; validUntil?: string | null; templateId?: string | null }) =>
+      request<{ quote: Quote; estimateId: string }>(`/api/estimates/${id}/convert-to-quote`, { method: 'POST', body: body || {} }),
+    /** multipart · appends BOQ lines (client price → locked unit price · costs to be filled) */
+    importBoq: async (id: string, file: File, mode?: 'append' | 'replace') => {
+      const form = new FormData()
+      form.append('file', file)
+      if (mode) form.append('mode', mode)
+      const headers: Record<string, string> = {}
+      const oid = getOrgId()
+      if (oid) headers['X-Org-Id'] = oid
+      try {
+        const raw = localStorage.getItem('entix_act_as')
+        if (raw) { const v = JSON.parse(raw); if (v?.orgId === getOrgId() && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+      } catch { /* ignore */ }
+      const res = await fetch(`${API_BASE}/api/estimates/${id}/import-boq`, { method: 'POST', headers, body: form, credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'import_failed', undefined, { body: data })
+      return data as { estimate: Estimate; imported: number; fileName: string; warnings: string[] }
+    },
+    /** clone as V(n+1) DRAFT — the only way to change a converted estimate */
+    newVersion: (id: string) => request<Estimate>(`/api/estimates/${id}/new-version`, { method: 'POST' }),
+  },
+
+  // SPEC-05 L2 · Payment plans (خطة الدفعات) · templates + standalone plans
+  paymentPlans: {
+    list: (params?: { template?: '1'; quoteId?: string }) =>
+      request<{ items: PaymentPlan[]; total: number }>('/api/payment-plans', { query: params }),
+    templates: () => request<{ items: PaymentPlan[]; total: number }>('/api/payment-plans/templates'),
+    get: (id: string) => request<PaymentPlan>(`/api/payment-plans/${id}`),
+    create: (data: PaymentPlanInput) => request<PaymentPlan>('/api/payment-plans', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<PaymentPlanInput>) =>
+      request<PaymentPlan>(`/api/payment-plans/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void>(`/api/payment-plans/${id}`, { method: 'DELETE' }),
   },
 
   // Dashboard — real org-scoped numbers
@@ -2650,6 +2705,11 @@ export interface Quote {
   rejectedAt?: string | null
   rejectReason?: string | null
   sourceFileName?: string | null
+  /** SPEC-05 L1 · the estimate this quote was converted from (GET /:id only) */
+  estimateId?: string | null
+  estimate?: { id: string; number: string; title?: string | null; version?: number } | null
+  /** SPEC-05 L2 · instalment schedule printed on the proposal (GET /:id only) */
+  paymentPlan?: PaymentPlan | null
   contact?: { id: string; displayName: string; email?: string | null }
   lines?: Array<{
     id?: string
@@ -2667,6 +2727,150 @@ export interface Quote {
     included?: boolean
     sortOrder?: number
   }>
+}
+
+/* ── SPEC-05 · Layer 1 «الدراسة والتسعير» (Estimate) + Layer 2 «خطة الدفعات» ──
+   Visibility law (API · lib/estimates.ts): cost · margin · sale price are ABSENT
+   from the payload for non-financial roles — every such field is optional here
+   and the UI must hide the figure when it is undefined, never render 0. */
+export interface EstimateLine {
+  id?: string
+  estimateId?: string
+  sortOrder: number
+  itemNo?: string | null
+  section?: string | null
+  description: string
+  spec?: string | null
+  unit?: string | null
+  quantity: string | number
+  /** confidential · absent for non-financial roles */
+  materialCost?: string | number
+  labourCost?: string | number
+  otherCost?: string | number
+  unitCost?: string | number
+  marginPct?: string | number
+  unitPrice?: string | number
+  unitPriceLocked?: boolean
+  lineTotal?: string | number
+  accountId?: string | null
+  /** always present */
+  taxRate: string | number
+  durationDays?: number | null
+  ownerName?: string | null
+  needsDept?: string | null
+  productId?: string | null
+}
+
+export interface EstimateSectionMargin { section: string; cost: number; sale: number; marginPct: number }
+
+export interface Estimate {
+  id: string
+  orgId: string
+  number: string
+  title: string
+  status: 'DRAFT' | 'REVIEW' | 'APPROVED' | 'CONVERTED' | 'ARCHIVED'
+  contactId?: string | null
+  projectId?: string | null
+  branchId?: string | null
+  currency: string
+  taxRate: string | number
+  notes?: string | null
+  version: number
+  rootId?: string | null
+  convertedQuoteId?: string | null
+  approvedAt?: string | null
+  approvedById?: string | null
+  createdAt: string
+  updatedAt?: string
+  /** confidential · absent for non-financial roles */
+  defaultMarginPct?: string | number
+  costTotal?: string | number
+  saleSubtotal?: string | number
+  taxTotal?: string | number
+  saleTotal?: string | number
+  marginPct?: string | number
+  /** true when the payload was stripped for this role */
+  confidentialHidden?: boolean
+  contact?: { id: string; displayName: string; email?: string | null }
+  quote?: { id: string; quoteNumber: string; status?: string } | null
+  lines?: EstimateLine[]
+  sections?: EstimateSectionMargin[]
+  _count?: { lines: number }
+}
+
+export interface EstimateLineInput {
+  sortOrder?: number
+  itemNo?: string | null
+  section?: string | null
+  description: string
+  spec?: string | null
+  unit?: string | null
+  quantity?: number
+  materialCost?: number
+  labourCost?: number
+  otherCost?: number
+  marginPct?: number | null
+  unitPrice?: number | null
+  unitPriceLocked?: boolean
+  taxRate?: number | null
+  durationDays?: number | null
+  ownerName?: string | null
+  needsDept?: string | null
+  productId?: string | null
+  accountId?: string | null
+}
+
+export interface EstimateInput {
+  title: string
+  number?: string
+  contactId?: string | null
+  projectId?: string | null
+  branchId?: string | null
+  currency?: string
+  defaultMarginPct?: number
+  taxRate?: number
+  notes?: string | null
+  lines?: EstimateLineInput[]
+}
+
+export type PaymentCondition = 'SIGNATURE' | 'MILESTONE' | 'PROGRESS' | 'DELIVERY' | 'DATE'
+export type PaymentBillingMethod = 'INVOICE' | 'PROGRESS_CLAIM'
+
+export interface PaymentPlanItem {
+  id?: string
+  planId?: string
+  sortOrder: number
+  label: string
+  percent: string | number
+  amount: string | number
+  condition: PaymentCondition
+  conditionValue?: string | null
+  billingMethod: PaymentBillingMethod
+  dueDate?: string | null
+  status?: string
+}
+export interface PaymentPlan {
+  id: string
+  orgId: string
+  name: string
+  isTemplate: boolean
+  quoteId?: string | null
+  createdAt?: string
+  items: PaymentPlanItem[]
+}
+export interface PaymentPlanItemInput {
+  label: string
+  percent: number
+  condition?: PaymentCondition
+  conditionValue?: string | null
+  billingMethod?: PaymentBillingMethod
+  dueDate?: string | null
+  sortOrder?: number
+}
+export interface PaymentPlanInput {
+  name: string
+  isTemplate?: boolean
+  items: PaymentPlanItemInput[]
 }
 
 /** SPEC-04 · BOQ import preview (parse only · nothing written) */
