@@ -11,6 +11,9 @@ import { api } from "../lib/api";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 import { useMarketingRegion } from "../components/marketing-region";
+import {
+  PLAN_PRICES, annualSavingsPercent, annualSavingsAmount, monthlyEquivalent, bestAnnualSavingsPercent,
+} from "../lib/pricing-plans";
 
 type Tier = "starter" | "lite" | "professional" | "enterprise";
 type Cell = { ar: string; en: string; state?: "under-validation" } | boolean;
@@ -37,7 +40,7 @@ const PLANS: PlanDef[] = [
     tier: "starter",
     name: { ar: "أساسي", en: "Starter" },
     desc: { ar: "للمشاريع الناشئة والأفراد", en: "For early-stage projects & individuals" },
-    price: { SAR: { monthly: 0, yearly: 0 }, USD: { monthly: 0, yearly: 0 } },
+    price: PLAN_PRICES.starter,
     features: {
       ar: ["5 فواتير شهريًا", "مستخدم واحد", "تقارير أساسية"],
       en: ["5 invoices / month", "1 user", "Basic reports"],
@@ -52,7 +55,7 @@ const PLANS: PlanDef[] = [
     name: { ar: "لايت", en: "Lite" },
     desc: { ar: "محاسبة كاملة بسعر اقتصادي — بدون ذكاء اصطناعي", en: "Full accounting at an economy price — no hosted AI" },
     annualOnly: true,
-    price: { SAR: { monthly: 0, yearly: 535 }, USD: { monthly: 0, yearly: 99 } },
+    price: PLAN_PRICES.lite,
     features: {
       ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "مستخدم واحد", "نقل بيانات مجاني أول مرة"],
       en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Core & tax reports", "1 user", "Free first data migration"],
@@ -67,7 +70,7 @@ const PLANS: PlanDef[] = [
     name: { ar: "احترافي", en: "Professional" },
     desc: { ar: "للشركات الصغيرة والمتوسطة", en: "For small & medium businesses" },
     popular: true,
-    price: { SAR: { monthly: 99, yearly: 950 }, USD: { monthly: 19, yearly: 190 } },
+    price: PLAN_PRICES.professional,
     standard: { SAR: 149, USD: 29 },
     features: {
       ar: ["فواتير غير محدودة", "حتى 5 مستخدمين", "وكيل ذكاء اصطناعي كامل", "تقارير متقدمة", "وصول API (مفاتيح · استيراد جماعي)"],
@@ -88,7 +91,7 @@ const PLANS: PlanDef[] = [
     tier: "enterprise",
     name: { ar: "مؤسسي", en: "Enterprise" },
     desc: { ar: "للمؤسسات الكبيرة", en: "For large organizations" },
-    price: { SAR: { monthly: 299, yearly: 2990 }, USD: { monthly: 59, yearly: 590 } },
+    price: PLAN_PRICES.enterprise,
     standard: { SAR: 449, USD: 89 },
     features: {
       ar: ["كل مزايا الاحترافي", "مستخدمون غير محدودون", "AI متقدم بلا حدود", "تعدد عملات كامل", "سجل تدقيق", "دعم أولوية"],
@@ -262,6 +265,10 @@ export function PricingPage() {
   ];
 
   const currencySymbol = currency === "USD" ? "$" : "";
+  const currencyLabel = currency === "SAR" ? t("ر.س", "SAR") : "";
+  const money = (n: number) => `${currencySymbol}${n.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}`;
+  /** money + its currency word, e.g. "950 ر.س" / "$190" — always wrapped in <bdi dir="ltr"> at the call site. */
+  const amount = (n: number) => (currencyLabel ? `${money(n)} ${currencyLabel}` : money(n));
   const Arrow = isAr ? ArrowLeft : ArrowRight;
 
   // Page shell + display hierarchy — same 72px gutters and serif/Arabic split
@@ -310,9 +317,15 @@ export function PricingPage() {
                   }`}
                   style={{ fontSize: "14px", fontWeight: 600 }}
                 >
-                  {t("سنوي · وفّر", "Yearly · save")}
-                  <span className={billingCycle === "yearly" ? "text-background/70" : "text-primary"} style={{ fontSize: "11px", fontWeight: 700 }}>
-                    {currency === "SAR" ? t("وفّر 238 ر.س+", "Save 238+ SAR") : t("وفّر $38+", "Save $38+")}
+                  {t("سنوي", "Yearly")}
+                  {/* The discount is COMPUTED from the plan prices — never typed
+                      by hand, so a price change can't leave a stale claim. */}
+                  <span
+                    data-testid="billing-toggle-savings"
+                    className="rounded-full bg-savings-subtle px-2 py-0.5 text-savings"
+                    style={{ fontSize: "11px", fontWeight: 700 }}
+                  >
+                    {t("وفّر حتى", "Save up to")} <bdi dir="ltr">{bestAnnualSavingsPercent(currency)}%</bdi>
                   </span>
                 </button>
               </span>
@@ -379,13 +392,27 @@ export function PricingPage() {
             </div>
           )}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-            {PLANS.filter((plan) => !plan.annualOnly || billingCycle === "yearly").map((plan, i) => (
+            {PLANS.filter((plan) => !plan.annualOnly || billingCycle === "yearly").map((plan, i) => {
+              const price = plan.price[currency];
+              const annual = billingCycle === "yearly";
+              const savingsPct = annualSavingsPercent(price);
+              const savingsAmount = annualSavingsAmount(price);
+              // On ANNUAL the card leads with the monthly-equivalent figure —
+              // that is the number a visitor compares against a monthly plan.
+              const headline = annual && price.monthly > 0 ? monthlyEquivalent(price) : price[billingCycle];
+              const perMonth = billingCycle === "monthly" || (annual && price.monthly > 0);
+              return (
               <motion.div
                 key={plan.tier}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
                 className={`rounded-lg border p-7 sm:px-7 sm:py-8 relative flex flex-col gap-5 ${
+                  // On a phone the PAID recommendation must be the first card a
+                  // visitor meets — the free tier leading the stack was reading
+                  // as "you have to register first" (CEO 2026-09-08).
+                  plan.popular ? "order-first md:order-none" : ""
+                } ${
                   plan.popular ? "bg-foreground border-foreground text-background" : "bg-card border-border"
                 }`}
               >
@@ -406,38 +433,50 @@ export function PricingPage() {
                   </p>
                 </div>
 
+                {/* Price · ANNUAL is the default view and carries the discount
+                    marks; MONTHLY shows the plain undiscounted monthly price
+                    with no savings badges at all (CEO 2026-09-08). */}
                 <div className="flex flex-col gap-1.5">
-                  {billingCycle === "monthly" && plan.standard && plan.price[currency].monthly > 0 && (
-                    <div className="flex items-center gap-2" dir="ltr">
+                  {annual && savingsPct > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={plan.popular ? "text-background/60" : "text-content-secondary"} style={{ fontSize: "14px", fontWeight: 500, textDecoration: "line-through" }}>
-                        {currencySymbol}{plan.standard[currency]}
+                        <bdi dir="ltr">{amount(price.monthly)}</bdi> {t("/ شهر", "/ mo")}
                       </span>
-                      <span className={`rounded-full px-2 py-0.5 ${plan.popular ? "bg-background/10 text-background" : "bg-success-subtle text-success"}`} style={{ fontSize: "11px", fontWeight: 600 }}>
-                        {t("سعر الإطلاق", "Launch price")} −{Math.round((1 - plan.price[currency].monthly / plan.standard[currency]) * 100)}%
+                      <span
+                        data-testid={`plan-savings-${plan.tier}`}
+                        className="inline-block whitespace-nowrap rounded-full bg-savings-subtle px-2 py-0.5 text-savings"
+                        style={{ fontSize: "11px", fontWeight: 700 }}
+                      >
+                        {t("وفّر", "Save")} <bdi dir="ltr">{savingsPct}%</bdi>
                       </span>
                     </div>
                   )}
                   <div className="flex items-baseline gap-1.5" dir="ltr">
                     <span className={`font-display leading-none text-[44px] lg:text-[52px] ${plan.popular ? "text-background" : "text-foreground"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {plan.price[currency][billingCycle] === 0
-                        ? t("مجاني", "Free")
-                        : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}`}
+                      {headline === 0 ? t("مجاني", "Free") : money(headline)}
                     </span>
-                    {plan.price[currency][billingCycle] > 0 && (
+                    {headline > 0 && (
                       <span className={plan.popular ? "text-background/70" : "text-content-secondary"} style={{ fontSize: "14px" }}>
-                        {currency === "SAR" ? t("ر.س", "SAR") : ""} / {billingCycle === "monthly" ? t("شهر", "mo") : t("سنة", "yr")}
+                        {currencyLabel} / {perMonth ? t("شهر", "mo") : t("سنة", "yr")}
                       </span>
                     )}
                   </div>
-                  {billingCycle === "yearly" && plan.price[currency].yearly > 0 && plan.price[currency].monthly > 0 && (
-                    <>
-                      <p className={`m-0 ${plan.popular ? "text-background/80" : "text-success"}`} style={{ fontSize: "13px", fontWeight: 600 }} dir="ltr">
-                        {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
-                      </p>
-                      <p className={`m-0 ${plan.popular ? "text-background/60" : "text-content-secondary"}`} style={{ fontSize: "12px" }} dir="ltr">
-                        ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("سنويًا", "yearly")}
-                      </p>
-                    </>
+                  {annual && price.yearly > 0 && (
+                    <p
+                      data-testid={`plan-billed-annually-${plan.tier}`}
+                      className={`m-0 ${plan.popular ? "text-background/70" : "text-content-secondary"}`}
+                      style={{ fontSize: "12px", lineHeight: 1.7 }}
+                    >
+                      {t("يُدفع سنويًا", "billed annually")} · <bdi dir="ltr">{amount(price.yearly)}</bdi>
+                    </p>
+                  )}
+                  {annual && savingsAmount > 0 && (
+                    <p
+                      className={`m-0 text-savings ${plan.popular ? "inline-block w-fit rounded-full bg-savings-subtle px-2.5 py-1" : ""}`}
+                      style={{ fontSize: "13px", fontWeight: 600 }}
+                    >
+                      {t("توفّر", "You save")} <bdi dir="ltr">{amount(savingsAmount)}</bdi> {t("كل سنة", "every year")}
+                    </p>
                   )}
                 </div>
 
@@ -452,17 +491,17 @@ export function PricingPage() {
                     className={`w-full rounded-full py-3.5 transition-colors cursor-pointer disabled:opacity-60 ${
                       plan.popular
                         ? "bg-[var(--brand-blue-600)] text-primary-foreground hover:opacity-90"
-                        : "border border-foreground text-foreground hover:bg-surface-hover"
+                        : "bg-foreground text-background hover:bg-primary"
                     }`}
                     style={{ fontSize: "15px", fontWeight: 600 }}
                   >
                     {checkoutBusy === plan.tier
                       ? t("جارٍ تحويلك لصفحة الدفع الآمنة...", "Taking you to secure checkout...")
-                      : plan.price[currency][billingCycle] === 0
+                      : headline === 0
                         ? t("ابدأ مجاناً", "Start free")
-                        : t("اشترك الآن · يُفعّل فورًا", "Subscribe now · active instantly")}
+                        : t("اشترك الآن — ادفع مباشرة", "Subscribe now — pay directly")}
                   </button>
-                  {plan.price[currency][billingCycle] > 0 && (
+                  {headline > 0 && (
                     <button
                       onClick={startFree}
                       disabled={checkoutBusy !== null}
@@ -477,7 +516,7 @@ export function PricingPage() {
                       {t("ابدأ مجانًا", "Start free")}
                     </button>
                   )}
-                  {plan.price[currency][billingCycle] > 0 && (
+                  {headline > 0 && (
                     <p className={`m-0 text-center ${plan.popular ? "text-background/60" : "text-content-secondary"}`} style={{ fontSize: "11px", lineHeight: 1.6 }}>
                       {t("الاشتراك بدون تسجيل — تُنشئ حسابك بعد الدفع", "Subscribe without registering — your account is created after payment")}
                     </p>
@@ -502,7 +541,8 @@ export function PricingPage() {
                   })}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -516,7 +556,7 @@ export function PricingPage() {
                 {t("جديد · للبقالات والمشاريع الصغيرة جدًا", "New · for groceries & very small businesses")}
               </span>
               <h3 className="text-foreground mb-1" style={{ fontSize: "18px", fontWeight: 700 }}>
-                {currency === "USD" ? t("باقة لايت — $99", "Lite plan — $99") : t("باقة لايت — 375 ر.س", "Lite plan — SAR 375")} <span className="text-content-secondary" style={{ fontSize: "14px", fontWeight: 500 }}>{t("سنويًا فقط", "per year, yearly only")}</span>
+                {t("باقة لايت — ", "Lite plan — ")}<bdi dir="ltr">{amount(PLAN_PRICES.lite[currency].yearly)}</bdi> <span className="text-content-secondary" style={{ fontSize: "14px", fontWeight: 500 }}>{t("سنويًا فقط", "per year, yearly only")}</span>
               </h3>
               <p className="text-content-secondary" style={{ fontSize: "13px", lineHeight: 1.75 }}>
                 {t(

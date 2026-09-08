@@ -47,6 +47,16 @@
   --info-subtle: #edf0fb;
   --info-border: #c9d3f3;
 
+  /* Savings — a DELIBERATE, narrow exception to the Ledger palette.
+   * Ledger semantics never use green (ok = blue), but a subscription discount
+   * is a commercial signal, not a document state: shoppers read "green" as
+   * "you save money" and read blue as "neutral". Scope: annual-vs-monthly
+   * savings chips on the public pricing surfaces ONLY. Never use it for a
+   * paid/ok/connected state inside /app. */
+  --savings: #1f6b45;
+  --savings-subtle: #e8f4ed;
+  --savings-border: #bcdccb;
+
   --background: var(--canvas);
   --foreground: var(--content);
   --card: var(--surface);
@@ -156,6 +166,9 @@
   --color-info: var(--info);
   --color-info-subtle: var(--info-subtle);
   --color-info-border: var(--info-border);
+  --color-savings: var(--savings);
+  --color-savings-subtle: var(--savings-subtle);
+  --color-savings-border: var(--savings-border);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
