@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { EntixWordmark } from "../components/entix-brand";
+import { PublicLanguageToggle } from "../components/public-preference-selector";
 import { API_BASE_URL } from "../lib/api";
 import { localizedPath, type PublicLocale, type PublicMarket } from "../public-site-manifest";
 
@@ -51,7 +52,10 @@ export function MarketLocaleChooser() {
         <p className="mt-10 text-center text-sm font-medium text-content-secondary">
           Taking you to your market… · جاري تحويلك لسوقك…
         </p>
-        <div className="mt-8 flex justify-center gap-3 text-sm font-semibold">
+        <div className="mt-6 flex justify-center">
+          <PublicLanguageToggle />
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm font-semibold">
           <Link to={localizedPath("sa", "ar")} className="rounded-full border border-border bg-card px-5 py-3 text-foreground transition hover:border-foreground hover:bg-surface-hover">
             السعودية — العربية
           </Link>

@@ -6,6 +6,7 @@ import { authStore } from "../components/auth-store";
 import { isTurnstileRequired, Turnstile } from "../components/turnstile";
 import { useLanguage } from "../components/LanguageContext";
 import { EntixWordmark } from "../components/entix-brand";
+import { PublicLanguageToggle } from "../components/public-preference-selector";
 
 export function Login() {
   const navigate = useNavigate();
@@ -157,10 +158,14 @@ export function Login() {
           <Link to="/" className="inline-flex items-center hover:opacity-80 transition-opacity" aria-label="ENTIX.IO">
             <EntixWordmark size={22} />
           </Link>
-          <Link to="/" className="inline-flex items-center gap-1.5 text-content-secondary hover:text-foreground transition-colors" style={{ fontSize: "13px", fontWeight: 500 }}>
-            <ArrowRight className="w-4 h-4" />
-            {t("العودة للرئيسية", "Back home")}
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Reachable at 390px without scrolling — the footer switch stays too. */}
+            <PublicLanguageToggle />
+            <Link to="/" className="hidden sm:inline-flex items-center gap-1.5 text-content-secondary hover:text-foreground transition-colors" style={{ fontSize: "13px", fontWeight: 500 }}>
+              <ArrowRight className="w-4 h-4" />
+              {t("العودة للرئيسية", "Back home")}
+            </Link>
+          </div>
         </div>
 
         <motion.div

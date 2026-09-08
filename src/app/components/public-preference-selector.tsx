@@ -9,6 +9,58 @@ const REGIONS: { id: MarketingRegion; market: "sa" | "us"; flag: string; ar: str
   { id: "US", market: "us", flag: "🇺🇸", ar: "أمريكا", en: "United States" },
 ];
 
+/**
+ * Always-visible AR/EN switch for the public site (CEO 2026-09-08: "زر صغير سهل
+ * بالجوال يقدر يختار عربي أو إنجليش"). One tap, both labels visible so the
+ * visitor sees what they are switching TO, and it never reloads the page:
+ * on a canonical /:market/:locale route it navigates via react-router,
+ * everywhere else it flips the LanguageContext (which persists to the same
+ * public-preferences store and re-applies dir/lang on <html>).
+ */
+export function PublicLanguageToggle({ variant = "light", className = "" }: { variant?: "light" | "dark"; className?: string }) {
+  const { language, setLanguage, t } = useLanguage();
+  const publicRoute = usePublicRoute();
+  const dark = variant === "dark";
+
+  const choose = (next: Language) => {
+    if (next === language) return;
+    if (publicRoute.route) publicRoute.changeLocale(next);
+    else setLanguage(next);
+  };
+
+  const optionClass = (active: boolean) =>
+    active
+      ? dark ? "bg-card text-foreground" : "bg-foreground text-background"
+      : dark ? "text-primary-foreground/70" : "text-content-secondary";
+
+  return (
+    <div
+      data-testid="public-language-toggle"
+      role="group"
+      aria-label={t("اللغة", "Language")}
+      className={`inline-flex shrink-0 items-center rounded-full border p-0.5 ${dark ? "border-card/20" : "border-border"} ${className}`}
+    >
+      {([
+        { code: "ar" as Language, label: "ع", full: "العربية" },
+        { code: "en" as Language, label: "EN", full: "English" },
+      ]).map((option) => (
+        <button
+          key={option.code}
+          type="button"
+          data-testid={`public-language-${option.code}`}
+          onClick={() => choose(option.code)}
+          aria-pressed={language === option.code}
+          aria-label={option.full}
+          className={`min-h-[32px] min-w-[36px] rounded-full px-2.5 transition-colors cursor-pointer ${optionClass(language === option.code)}`}
+          style={{ fontSize: "12px", fontWeight: 700, lineHeight: 1 }}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function PublicPreferenceSelector({ variant = "light" }: { variant?: "light" | "dark" }) {
   const { language, setLanguage, t } = useLanguage();
   const { region, setRegion } = useMarketingRegion();
