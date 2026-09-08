@@ -156,6 +156,30 @@ test.describe('project ↔ document linking', () => {
   })
 })
 
+test.describe('contact code', () => {
+  test('a new contact gets its code prefilled and can still type their own', async ({ page }) => {
+    await prepareVisualApp(page, 'ar')
+    // broad handler first — Playwright matches the LAST registered route first
+    await page.route('https://api.entix.io/api/contacts**', (route) =>
+      route.fulfill({ json: { items: [], total: 0, page: 1, limit: 200 } }))
+    await page.route('https://api.entix.io/api/contacts/_/next-code', (route) =>
+      route.fulfill({ json: { customCode: 'EN-CON-0042' } }))
+
+    await page.goto('/app/contacts')
+    await page.getByRole('button', { name: 'إضافة جهة' }).first().click()
+    // step 1 (type) → step 2 (details) holds the code field
+    await page.getByRole('button', { name: 'التالي' }).first().click()
+
+    const code = page.getByTestId('contact-code-input')
+    await expect(code).toHaveValue('EN-CON-0042')
+    await expect(page.getByTestId('contact-code-auto-chip')).toBeVisible()
+
+    await code.fill('EDG-CLI-001')
+    await expect(code).toHaveValue('EDG-CLI-001')
+    await expect(page.getByTestId('contact-code-auto-chip')).toHaveCount(0)
+  })
+})
+
 test.describe('automatic numbering settings', () => {
   test('the preview follows the prefix, the client-code switch and a free pattern', async ({ page }) => {
     await prepareVisualApp(page, 'ar')

@@ -179,8 +179,11 @@ function WizardModal(props: {
   onNext: () => void;
   onSave: () => void;
   onAutoFill?: (file: File) => Promise<void>;
+  /** PL2 · the code was prefilled from the org numbering pattern and not yet edited. */
+  codeAuto?: boolean;
+  onCodeEdited?: () => void;
 }) {
-  const { step, isEditing, form, setForm, canProceed, busy, onClose, onPrev, onNext, onSave, onAutoFill } = props;
+  const { step, isEditing, form, setForm, canProceed, busy, onClose, onPrev, onNext, onSave, onAutoFill, codeAuto, onCodeEdited } = props;
   const { t } = useLanguage();
 
   return (
@@ -210,7 +213,7 @@ function WizardModal(props: {
         {/* Body */}
         <div className="p-5 space-y-4">
           {step === 1 && <Step1 form={form} setForm={setForm} onAutoFill={onAutoFill} />}
-          {step === 2 && <Step2 form={form} setForm={setForm} />}
+          {step === 2 && <Step2 form={form} setForm={setForm} codeAuto={codeAuto} onCodeEdited={onCodeEdited} />}
           {step === 3 && <Step3 form={form} setForm={setForm} />}
           {step === 4 && <Step4 form={form} setForm={setForm} />}
         </div>
@@ -289,7 +292,7 @@ function Step1({ form, setForm, onAutoFill }: { form: FormState; setForm: (f: Fo
   );
 }
 
-function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+function Step2({ form, setForm, codeAuto, onCodeEdited }: { form: FormState; setForm: (f: FormState) => void; codeAuto?: boolean; onCodeEdited?: () => void }) {
   const { t } = useLanguage();
   const isKsa = form.country === "SA";
   return (
@@ -305,14 +308,27 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           <Input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} placeholder="e.g. Advanced Tech Co." dir="ltr" className="border-border font-english" />
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">{t("رمز العميل/الجهة", "Customer/contact code")}</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Label className="text-xs text-muted-foreground">{t("رمز العميل/الجهة", "Customer/contact code")}</Label>
+            {codeAuto && (
+              <span data-testid="contact-code-auto-chip" className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-subtle px-2 py-0.5 text-[11px] text-content-secondary">
+                <Sparkles className="h-3 w-3" />{t("تلقائي", "Auto")}
+              </span>
+            )}
+          </div>
           <Input
+            data-testid="contact-code-input"
             value={form.customCode}
-            onChange={(e) => setForm({ ...form, customCode: e.target.value.toUpperCase() })}
+            onChange={(e) => { onCodeEdited?.(); setForm({ ...form, customCode: e.target.value.toUpperCase() }); }}
             placeholder="EN-CLI-SNBL"
             dir="ltr"
             className="border-border font-english"
           />
+          <p className="mt-1 text-xs text-muted-foreground/60">
+            {codeAuto
+              ? t("مقترح من إعدادات الترقيم التلقائي · يمكنك تعديله", "Suggested by your automatic numbering settings · you can edit it")
+              : t("اتركه فارغاً ليُولَّد تلقائياً عند الحفظ", "Leave it empty to have it generated on save")}
+          </p>
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">{t("رمز مختصر للفواتير", "Short code for invoices")}</Label>
@@ -513,11 +529,24 @@ export function ContactWizard({ open, editing, onClose }: {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [busy, setBusy] = useState(false);
+  // PL2 · a new contact's code is prefilled from numberingSettings.contact and
+  // stays fully editable — the chip goes away as soon as the user types.
+  const [codeAuto, setCodeAuto] = useState(false);
 
   useEffect(() => {
     if (open) {
       setStep(1);
       setForm(editing ? contactToForm(editing) : emptyForm);
+      setCodeAuto(false);
+      if (!editing) {
+        api.contacts.nextCode()
+          .then((r) => {
+            if (!r?.customCode) return;
+            setForm((f) => (f.customCode ? f : { ...f, customCode: r.customCode }));
+            setCodeAuto(true);
+          })
+          .catch(() => {});
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
@@ -603,6 +632,8 @@ export function ContactWizard({ open, editing, onClose }: {
     <>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <WizardModal
+        codeAuto={codeAuto}
+        onCodeEdited={() => setCodeAuto(false)}
         step={step}
         isEditing={!!editing}
         form={form}
