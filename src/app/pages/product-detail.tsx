@@ -7,7 +7,7 @@
  * its income account (posted on sale) and expense/COGS account (on purchase),
  * so invoice/bill lines land in the right ledger accounts automatically.
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowRight, ImagePlus, Loader2, Save, Trash2, X, ScanBarcode, Plus } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
@@ -52,6 +52,47 @@ export function ProductDetail() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localImages, setLocalImages] = useState<Record<string, string>>({});
+  // Account law (2026-09-08): both accounts are required · empty ones are filled by the
+  // suggestion engine from the type / name / category and marked «مقترح» until confirmed.
+  const [suggested, setSuggested] = useState<{ income?: string; expense?: string }>({});
+  const [suggesting, setSuggesting] = useState(false);
+  const suggestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  useEffect(() => {
+    if (loading || accounts.length === 0) return;
+    // Empty accounts — or ones still marked «مقترح» — follow the name/type as the user types;
+    // a confirmed or hand-picked account is never touched.
+    const needIncome = !form.incomeAccountId || !!suggested.income;
+    const needExpense = !form.expenseAccountId || !!suggested.expense;
+    if (!needIncome && !needExpense) return;
+    const text = [form.name, form.nameAr, form.category, form.description].filter(Boolean).join(" ").trim();
+    if (text.length < 2 && !form.type) return;
+    const prevIncome = form.incomeAccountId;
+    const prevExpense = form.expenseAccountId;
+    if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current);
+    suggestTimerRef.current = setTimeout(async () => {
+      setSuggesting(true);
+      try {
+        const [inc, exp] = await Promise.all([
+          needIncome ? api.accounts.suggest({ kind: "product-income", text, category: form.category || null, productType: form.type }).catch(() => null) : Promise.resolve(null),
+          needExpense ? api.accounts.suggest({ kind: "product-expense", text, category: form.category || null, productType: form.type }).catch(() => null) : Promise.resolve(null),
+        ]);
+        const latest = formRef.current;
+        const patch: Partial<typeof EMPTY_FORM> = {};
+        const marks: { income?: string; expense?: string } = {};
+        if (inc?.accountId && latest.incomeAccountId === prevIncome && accounts.some((a) => a.id === inc.accountId)) { patch.incomeAccountId = inc.accountId; marks.income = inc.via; }
+        if (exp?.accountId && latest.expenseAccountId === prevExpense && accounts.some((a) => a.id === exp.accountId)) { patch.expenseAccountId = exp.accountId; marks.expense = exp.via; }
+        if (Object.keys(patch).length) {
+          setForm((prev) => ({ ...prev, ...patch }));
+          setSuggested((prev) => ({ ...prev, ...marks }));
+        }
+      } finally { setSuggesting(false); }
+    }, 500);
+    return () => { if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.name, form.nameAr, form.category, form.description, form.type, form.incomeAccountId, form.expenseAccountId, suggested.income, suggested.expense, accounts.length, loading]);
 
   useEffect(() => {
     api.accounts.list().then((d) => setAccounts(d.items)).catch(() => {});
@@ -110,6 +151,13 @@ export function ProductDetail() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.unitPrice) { setError(t("الاسم والسعر مطلوبان", "Name and price are required")); return; }
+    // Account law: a product never leaves the form without both accounts (the chart must have them).
+    const hasRevenue = accounts.some((a) => a.type === "REVENUE");
+    const hasExpense = accounts.some((a) => a.type === "EXPENSE" || a.type === "ASSET");
+    if ((!form.incomeAccountId && hasRevenue) || (!form.expenseAccountId && hasExpense)) {
+      setError(t("اختر حساب الإيراد وحساب المصروف/التكلفة قبل الحفظ — يقترحها النظام تلقائياً من نوع الصنف واسمه.", "Choose the income account and the expense/COGS account before saving — the system suggests them from the item type and name."));
+      return;
+    }
     setBusy(true); setError(null);
     try {
       const payload = {
@@ -257,11 +305,19 @@ export function ProductDetail() {
                     )}
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label>{t("حساب الإيراد (عند البيع)", "Income account (on sale)")}</Label>
+                <div className="space-y-2" data-testid="product-income-account" data-account-suggested={suggested.income && form.incomeAccountId ? "true" : undefined}>
+                  <div className="flex items-center gap-2">
+                    <Label>{t("حساب الإيراد (عند البيع)", "Income account (on sale)")} <span className="text-danger">*</span></Label>
+                    {suggested.income && form.incomeAccountId && (
+                      <button type="button" onClick={() => setSuggested((p) => ({ ...p, income: undefined }))} className="rounded-full border border-border bg-surface-subtle px-1.5 py-0.5 text-[10px] font-semibold leading-none text-content-secondary hover:text-foreground" title={t("حساب مقترح تلقائياً · اضغط للتأكيد أو اختر حساباً آخر", "Suggested automatically · click to confirm or pick another account")}>
+                        {t("مقترح", "Suggested")}
+                      </button>
+                    )}
+                    {suggesting && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                  </div>
                   <SearchableCombobox
                     value={form.incomeAccountId}
-                    onChange={(accountId) => setForm({ ...form, incomeAccountId: accountId })}
+                    onChange={(accountId) => { setForm({ ...form, incomeAccountId: accountId }); setSuggested((p) => ({ ...p, income: undefined })); }}
                     items={accounts.filter(a => a.type === "REVENUE").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }))}
                     placeholder={t("اختر حساب الإيراد...", "Choose income account...")}
                   />
@@ -269,11 +325,18 @@ export function ProductDetail() {
                     <p className="text-[11px] text-warning">{t("خدمة بيع؟ اربطها بحساب إيراد البيع/الخدمات ليترحّل البيع صحيحاً.", "Selling service? Link it to the sales/services revenue account so sales post correctly.")}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label>{t("حساب المصروف/التكلفة (عند الشراء)", "Expense/COGS account (on purchase)")}</Label>
+                <div className="space-y-2" data-testid="product-expense-account" data-account-suggested={suggested.expense && form.expenseAccountId ? "true" : undefined}>
+                  <div className="flex items-center gap-2">
+                    <Label>{t("حساب المصروف/التكلفة (عند الشراء)", "Expense/COGS account (on purchase)")} <span className="text-danger">*</span></Label>
+                    {suggested.expense && form.expenseAccountId && (
+                      <button type="button" onClick={() => setSuggested((p) => ({ ...p, expense: undefined }))} className="rounded-full border border-border bg-surface-subtle px-1.5 py-0.5 text-[10px] font-semibold leading-none text-content-secondary hover:text-foreground" title={t("حساب مقترح تلقائياً · اضغط للتأكيد أو اختر حساباً آخر", "Suggested automatically · click to confirm or pick another account")}>
+                        {t("مقترح", "Suggested")}
+                      </button>
+                    )}
+                  </div>
                   <SearchableCombobox
                     value={form.expenseAccountId}
-                    onChange={(accountId) => setForm({ ...form, expenseAccountId: accountId })}
+                    onChange={(accountId) => { setForm({ ...form, expenseAccountId: accountId }); setSuggested((p) => ({ ...p, expense: undefined })); }}
                     items={accounts.filter(a => a.type === "EXPENSE" || a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }))}
                     placeholder={t("اختر حساب المصروف...", "Choose expense account...")}
                   />
@@ -281,6 +344,12 @@ export function ProductDetail() {
                     <p className="text-[11px] text-info">{t("حساب أصل: شراء هذا الصنف يسجَّل أصلاً ثابتاً تلقائياً.", "Asset account: purchasing this item auto-registers a fixed asset.")}</p>
                   )}
                 </div>
+                <p className="text-[11px] text-muted-foreground leading-5">
+                  {t(
+                    "الحسابان مطلوبان لكل صنف. عند تركهما فارغين يقترح النظام أقرب حساب من نوع الصنف (خدمة → إيراد الخدمات · بضاعة → إيراد المبيعات وتكلفة البضاعة) ومن اسمه وتصنيفه، ويضع علامة «مقترح» حتى تؤكده أو تغيّره.",
+                    "Both accounts are required for every item. When left empty the system suggests the closest account from the item type (service → service revenue · goods → sales revenue and COGS) and from its name and category, marked «Suggested» until you confirm or change it.",
+                  )}
+                </p>
                 {(incomeAccount || expenseAccount) && (
                   <div className="rounded-lg border border-success-border bg-success-subtle px-3 py-2 text-[11px] text-success space-y-0.5">
                     {incomeAccount && <div>{t("البيع →", "Sale →")} <span className="font-english font-semibold" dir="ltr">{incomeAccount.code} · {displayName(incomeAccount)}</span></div>}
