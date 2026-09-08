@@ -1572,11 +1572,21 @@ export const api = {
       request<any>('/api/partners/register', { method: 'POST', body: data }),
     me: () => request<{
       partner: any;
-      dashboard: { activeClients: number; totalClients: number; totalEarned: number; totalPaid: number; pendingCommissions: number; clearedCommissions: number };
+      // Balances are PER CURRENCY and are never summed across currencies
+      // (2026-09-08 audit: SAR and USD commissions were being added together).
+      dashboard: {
+        activeClients: number;
+        totalClients: number;
+        balancesByCurrency: Record<string, { earned: number; cleared: number; reserved: number; paid: number; pendingCount: number; clearedCount: number }>;
+      };
       clients: any[]; commissions: any[]; payouts: any[];
+      commissionsPage?: { page: number; pageSize: number };
+      payoutsPage?: { page: number; pageSize: number };
     }>('/api/partners/me'),
     addClient: (orgId: string) => request<any>('/api/partners/clients', { method: 'POST', body: { orgId } }),
-    requestPayout: (data: { amount?: number; currency?: string; notes?: string }) =>
+    // No amount: the server reserves and pays exactly the cleared commissions it
+    // holds for this partner in this currency.
+    requestPayout: (data: { currency?: string; notes?: string }) =>
       request<any>('/api/partners/payouts', { method: 'POST', body: data }),
     leaderboard: () => request<{ partners: any[] }>('/api/partners/leaderboard'),
   },

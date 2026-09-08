@@ -96,7 +96,14 @@ export function Partners() {
   const handlePayout = async () => {
     setBusy(true);
     try {
-      await api.partners.requestPayout({});
+      // The server reserves exactly the cleared commissions it holds, per currency;
+      // currencies are never mixed, so one request is raised for each.
+      const currencies = Object.entries((data?.dashboard?.balancesByCurrency || {}) as Record<string, { cleared?: number }>)
+        .filter(([, b]) => Number(b?.cleared || 0) > 0)
+        .map(([currency]) => currency);
+      for (const currency of currencies) {
+        await api.partners.requestPayout({ currency });
+      }
       push("success", t("تم إرسال طلب السحب · يُراجَع خلال 30 يوماً", "Payout requested · reviewed within 30 days"));
       await refresh();
     } catch (e: any) {
@@ -161,6 +168,11 @@ export function Partners() {
   }
 
   const d = data!.dashboard;
+  // Balances are per currency and are NEVER summed (2026-09-08 audit finding:
+  // SAR and USD commissions were being added into one meaningless number).
+  const balances: [string, { earned: number; cleared: number; reserved: number; paid: number; clearedCount: number }][] =
+    Object.entries(d.balancesByCurrency || {}) as any;
+  const payoutCurrencies = balances.filter(([, b]) => (b?.cleared || 0) > 0).map(([currency]) => currency);
   const partner = data!.partner;
   const points = Number(partner?.points || 0);
   const pointsToCert = Math.max(0, CERTIFICATION_POINTS - points);
@@ -180,7 +192,7 @@ export function Partners() {
             {partner?.name} · {partner?.type === "FIRM" ? t("مكتب محاسبة", "Accounting firm") : t("محاسب مستقل", "Freelance accountant")}
           </p>
         </div>
-        <Button onClick={handlePayout} disabled={busy || d.clearedCommissions === 0} className="bg-primary hover:bg-primary/90">
+        <Button onClick={handlePayout} disabled={busy || payoutCurrencies.length === 0} className="bg-primary hover:bg-primary/90">
           <Wallet className="me-2 h-4 w-4" />
           {t("طلب سحب العمولات الجاهزة", "Request payout of cleared commissions")}
         </Button>
@@ -198,19 +210,25 @@ export function Partners() {
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardContent className="flex items-center gap-3 p-4">
-            <HandCoins className="h-8 w-8 text-primary" />
-            <div>
-              <div className="font-english text-2xl font-bold text-foreground">{money(d.totalEarned)}</div>
+          <CardContent className="flex items-start gap-3 p-4">
+            <HandCoins className="mt-1 h-8 w-8 shrink-0 text-primary" />
+            <div className="min-w-0">
+              {balances.length === 0 && <div className="font-english text-2xl font-bold text-foreground">{money(0)}</div>}
+              {balances.map(([currency, b]) => (
+                <div key={currency} className="font-english text-2xl font-bold text-foreground">{money(b.earned, currency)}</div>
+              ))}
               <div className="text-xs text-muted-foreground">{t("عمولات مستحقة", "Earned (unpaid)")}</div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardContent className="flex items-center gap-3 p-4">
-            <Wallet className="h-8 w-8 text-success" />
-            <div>
-              <div className="font-english text-2xl font-bold text-foreground">{money(d.totalPaid)}</div>
+          <CardContent className="flex items-start gap-3 p-4">
+            <Wallet className="mt-1 h-8 w-8 shrink-0 text-success" />
+            <div className="min-w-0">
+              {balances.length === 0 && <div className="font-english text-2xl font-bold text-foreground">{money(0)}</div>}
+              {balances.map(([currency, b]) => (
+                <div key={currency} className="font-english text-2xl font-bold text-foreground">{money(b.paid, currency)}</div>
+              ))}
               <div className="text-xs text-muted-foreground">{t("عمولات مدفوعة", "Paid out")}</div>
             </div>
           </CardContent>
