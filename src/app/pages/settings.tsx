@@ -2175,17 +2175,21 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
   const [fontFamily, setFontFamily] = useState(initialFont === "Tajawal" ? "Noto Sans Arabic" : initialFont);
   const [logoUrl, setLogoUrl] = useState((org as any).logoUrl || "");
   const [printLogoUrl, setPrintLogoUrl] = useState((org as any).printLogoUrl || "");
+  // Reverse ("light") mark for dark document grounds · LOGO FRAME LAW: a logo is never boxed,
+  // so a dark cover either has this variant or the cover turns light.
+  const [printLogoLightUrl, setPrintLogoLightUrl] = useState((org as any).printLogoLightUrl || "");
   const [stampUrl, setStampUrl] = useState((org as any).stampUrl || "");
   const [busy, setBusy] = useState(false);
   const { t } = useLanguage();
 
-  const upload = (kind: "logoUrl" | "printLogoUrl" | "stampUrl") => async (file: File) => {
+  const upload = (kind: "logoUrl" | "printLogoUrl" | "printLogoLightUrl" | "stampUrl") => async (file: File) => {
     if (file.size > 2 * 1024 * 1024) { push("error", t("الحد الأقصى 2 ميجا", "Max 2 MB")); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const url = String(reader.result || "");
       if (kind === "logoUrl") setLogoUrl(url);
       else if (kind === "printLogoUrl") setPrintLogoUrl(url);
+      else if (kind === "printLogoLightUrl") setPrintLogoLightUrl(url);
       else setStampUrl(url);
     };
     reader.readAsDataURL(file);
@@ -2197,6 +2201,7 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
       const updated = await api.orgs.update(org.id, {
         logoUrl: logoUrl || null,
         printLogoUrl: printLogoUrl || null,
+        printLogoLightUrl: printLogoLightUrl || null,
         stampUrl: stampUrl || null,
       } as any);
       setOrg(updated);
@@ -2257,6 +2262,28 @@ function BrandingTab({ org, setOrg, push }: { org: Org; setOrg: (o: Org) => void
               )}
             </div>
             <p className="text-[10px] text-muted-foreground/60 mt-1">{t("يظهر على الفواتير · السندات · العقود · لو فاضي يستخدم الـ Avatar", "Shown on invoices · vouchers · contracts · if empty, the Avatar is used")}</p>
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">{t("شعار فاتح · للخلفيات الداكنة", "Light logo · for dark backgrounds")}</Label>
+            <div className="border-2 border-dashed border-border rounded-lg p-4">
+              <input type="file" id="brand-print-logo-light" accept="image/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload("printLogoLightUrl")(f); }} />
+              {printLogoLightUrl ? (
+                <div className="flex items-center gap-3">
+                  <img src={printLogoLightUrl} alt="light logo" className="max-w-[200px] max-h-[80px] object-contain rounded p-2" style={{ background: "var(--content)" }} />
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="brand-print-logo-light" className="text-xs text-primary hover:underline cursor-pointer">{t("تغيير", "Change")}</label>
+                    <button type="button" onClick={() => setPrintLogoLightUrl("")} className="text-xs text-danger text-start hover:underline">{t("حذف", "Delete")}</button>
+                  </div>
+                </div>
+              ) : (
+                <label htmlFor="brand-print-logo-light" className="cursor-pointer block text-center py-4">
+                  <div className="text-sm text-primary font-medium">{t("رفع الشعار الفاتح", "Upload the light logo")}</div>
+                  <div className="text-xs text-muted-foreground/60 mt-1">{t("نسخة فاتحة بخلفية شفافة · PNG/SVG · حتى 2MB", "Light variant, transparent background · PNG/SVG · up to 2MB")}</div>
+                </label>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">{t("يُرسم مباشرة على الغلاف الداكن بلا إطار. بدونه يتحول الغلاف إلى فاتح — الشعار لا يوضع داخل صندوق أبدًا.", "Drawn straight onto a dark cover with no frame. Without it the cover turns light — a logo is never placed in a box.")}</p>
           </div>
           <div>
             <Label className="text-xs mb-2 block">{t("الختم الرسمي", "Official stamp")}</Label>

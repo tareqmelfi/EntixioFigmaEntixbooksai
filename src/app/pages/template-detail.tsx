@@ -51,7 +51,7 @@ const EMPTY_FORM = {
   sections: normalizeSections(null) as SectionSetting[],
   termsEn: "", closingTerms: "", closingTermsEn: "",
   bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryEmail: "", signatoryPhone: "",
-  stampUrl: "", footerText: "", classification: "", classificationEn: "",
+  stampUrl: "", footerText: "", classification: "", classificationEn: "", wordmarkAccent: "",
 };
 
 const DEFAULT_TERMS_AR = "العرض ساري 30 يومًا من تاريخ الإصدار.\nالدفع مقدمًا بالكامل عبر رابط الدفع أو التحويل البنكي.\nتبدأ مدة التنفيذ من تاريخ تأكيد الدفع.";
@@ -121,7 +121,7 @@ export function TemplateDetail() {
         termsEn: tpl.termsEn || "", closingTerms: tpl.closingTerms || "", closingTermsEn: tpl.closingTermsEn || "",
         bankAccountId: tpl.bankAccountId || "", signatoryName: tpl.signatoryName || "", signatoryTitle: tpl.signatoryTitle || "",
         signatoryEmail: tpl.signatoryEmail || "", signatoryPhone: tpl.signatoryPhone || "",
-        stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "",
+        stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "", wordmarkAccent: (tpl as any).wordmarkAccent || "",
       });
       if (tpl.kind === "INVOICE") setPreviewKind("INVOICE");
     } catch (e: any) {
@@ -156,6 +156,7 @@ export function TemplateDetail() {
         signatoryEmail: form.signatoryEmail || null, signatoryPhone: form.signatoryPhone || null,
         stampUrl: form.stampUrl || null, footerText: form.footerText || null,
         classification: form.classification || null, classificationEn: form.classificationEn || null,
+        wordmarkAccent: form.wordmarkAccent || null,
       };
       const saved = isNew ? await api.documentTemplates.create(payload) : await api.documentTemplates.update(id!, payload);
       push("success", isNew ? t("تم إنشاء القالب", "Template created") : t("تم تحديث القالب", "Template updated"));
@@ -302,6 +303,7 @@ export function TemplateDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("التصنيف (عربي)", "Classification (Arabic)")}</Label><Input value={form.classification} onChange={(e) => set("classification", e.target.value)} placeholder={t("خاص بالعميل", "Client confidential")} /></div>
               <div className="space-y-2"><Label>{t("التصنيف (إنجليزي)", "Classification (English)")}</Label><Input value={form.classificationEn} onChange={(e) => set("classificationEn", e.target.value)} dir="ltr" className="font-english" placeholder="Client confidential" /></div>
+              <div className="space-y-2"><Label>{t("لون آخر الشعار النصي", "Wordmark accent tail")}</Label><Input value={form.wordmarkAccent} onChange={(e) => set("wordmarkAccent", e.target.value)} dir="ltr" className="font-english" placeholder="X" /><p className="text-xs text-content-secondary">{t("آخر حروف اسم الشركة التي تُطبع بلون العلامة — «X» في ENSIDEX، «PROS» في SPECPROS. يُستخدم عند غياب صورة الشعار.", "The tail of the company name printed in the brand colour — “X” in ENSIDEX, “PROS” in SPECPROS. Used when no logo image exists.")}</p></div>
             </div>
             <div className="space-y-2"><Label>{t("نص التذييل", "Footer text")}</Label><Input value={form.footerText} onChange={(e) => set("footerText", e.target.value)} placeholder={t("© السنة · اسم الشركة · المدينة (تلقائي)", "© year · company · city (automatic)")} /></div>
           </Section>
