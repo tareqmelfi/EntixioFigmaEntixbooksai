@@ -682,12 +682,12 @@ export function PricingPage() {
               {t("قريباً", "Coming soon")}
             </span>
             <h2 className="text-foreground mb-3" style={{ fontSize: "22px", fontWeight: 700 }}>
-              {t("زد دخلك 50% مع برنامج الإحالة", "Boost your income 50% with referrals")}
+              {t("زد دخلك حتى 40% مع برنامج الإحالة", "Boost your income up to 40% with referrals")}
             </h2>
             <p className="text-content-secondary max-w-2xl mx-auto" style={{ fontSize: "14px", lineHeight: 1.85 }}>
               {t(
-                "أحِل شركات إلى ENTIX.IO واحصل على استرداد 50% يُحوَّل لك عمولات ومدفوعات كمسوّق معتمد — بعقد واضح وآلية دفع موثّقة. البرنامج في مراحله الأخيرة وسيُطلق كاملاً قريباً.",
-                "Refer companies to ENTIX.IO and earn a 50% rebate, paid out as approved-marketer commissions — under a clear agreement and a documented payout process. The program is in its final stages and launches fully soon."
+                "أحِل شركات إلى ENTIX.IO واحصل على عمولة متكررة تصل إلى 40% تُحوَّل لك كمسوّق معتمد — بعقد واضح وآلية دفع موثّقة. البرنامج في مراحله الأخيرة وسيُطلق كاملاً قريباً.",
+                "Refer companies to ENTIX.IO and earn a recurring commission of up to 40%, paid out as an approved-marketer commission — under a clear agreement and a documented payout process. The program is in its final stages and launches fully soon."
               )}
             </p>
             <Link

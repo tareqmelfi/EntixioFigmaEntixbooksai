@@ -779,7 +779,7 @@ export function Landing() {
             <Users className="h-5 w-5 text-[var(--brand-blue-600)] flex-none mt-0.5" strokeWidth={1.75} />
             <div className="flex-1">
               <div className="text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
-                {t("برنامج الإحالة: صديقك يحصل على خصم، وأنت على عمولة 50%", "Referral program: your friend gets a discount, you earn 50% commission")}
+                {t("برنامج الإحالة: صديقك يحصل على خصم، وأنت على عمولة تصل إلى 40%", "Referral program: your friend gets a discount, you earn up to 40% commission")}
               </div>
               <div className="text-content-secondary mt-1" style={{ fontSize: "13px", lineHeight: 1.7 }}>
                 {t("شارك كودك — يحصل المشترك الجديد على خصم، وتُحوَّل لك عمولتك كمسوّق معتمد", "Share your code — new subscribers get a discount, and you earn as an approved marketer")}

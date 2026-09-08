@@ -1,6 +1,6 @@
 /**
  * Referrals · marketing page for the ENTIX.IO referral program
- * Invitee gets a discount code · referrer earns 50% commission (approved-marketer agreement)
+ * Invitee gets a discount code · referrer earns a recurring commission, up to 40% (approved-marketer agreement)
  * Code generator is client-side for now; payout onboarding via support until the referrals API ships.
  */
 import { useState } from "react";
@@ -39,7 +39,7 @@ export function Referrals() {
   const steps = [
     { icon: Share2, title: t("شارك كودك", "Share your code"), desc: t("أنشئ كود الإحالة الخاص بك وأرسله لأصحاب الأعمال — أو شارك رابط التسجيل مع الكود.", "Create your referral code and send it to business owners — or share the signup link with the code.") },
     { icon: BadgePercent, title: t("يحصلون على خصم", "They get a discount"), desc: t("كل مشترك جديد يستخدم كودك يحصل على خصم على اشتراكه الأول — بالإضافة لشهره المجاني.", "Every new subscriber using your code gets a discount on their first subscription — on top of the free month.") },
-    { icon: Wallet, title: t("تكسب عمولة 50%", "You earn 50%"), desc: t("تحصل على عمولة 50% من أول اشتراك مدفوع لكل شركة تنضم بكودك — تُحوَّل لك كمسوّق معتمد.", "You earn 50% of the first paid subscription of every company joining with your code — paid to you as an approved marketer.") },
+    { icon: Wallet, title: t("تكسب عمولة تصل إلى 40%", "You earn up to 40%"), desc: t("تحصل على عمولة متكررة تصل إلى 40% من اشتراك كل شركة تنضم بكودك طالما بقيت مشتركة — تُحوَّل لك كمسوّق معتمد.", "You earn a recurring commission of up to 40% of the subscription of every company joining with your code, for as long as they stay subscribed — paid to you as an approved marketer.") },
   ];
 
   return (
@@ -55,12 +55,12 @@ export function Referrals() {
               {t("برنامج الإحالة", "Referral program")}
             </span>
             <h1 className="text-foreground mb-4" style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 800, lineHeight: 1.25 }}>
-              {t("زد دخلك 50% مع كل شركة تُحيلها", "Earn 50% for every company you refer")}
+              {t("زد دخلك حتى 40% مع كل شركة تُحيلها", "Earn up to 40% for every company you refer")}
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto" style={{ fontSize: "16px", lineHeight: 1.9 }}>
               {t(
-                "أحِل أصحاب الأعمال إلى ENTIX.IO: هم يحصلون على خصم وشهر مجاني، وأنت تحصل على عمولة 50% من أول اشتراك مدفوع — بعقد مسوّق معتمد وآلية دفع موثّقة.",
-                "Refer business owners to ENTIX.IO: they get a discount plus a free month, and you earn 50% of their first paid subscription — under an approved-marketer agreement with a documented payout process."
+                "أحِل أصحاب الأعمال إلى ENTIX.IO: هم يحصلون على خصم وشهر مجاني، وأنت تحصل على عمولة متكررة تصل إلى 40% من اشتراكهم — بعقد مسوّق معتمد وآلية دفع موثّقة.",
+                "Refer business owners to ENTIX.IO: they get a discount plus a free month, and you earn a recurring commission of up to 40% of their subscription — under an approved-marketer agreement with a documented payout process."
               )}
             </p>
           </motion.div>
@@ -152,7 +152,7 @@ export function Referrals() {
             </div>
             <ul className="space-y-2.5">
               {[
-                t("العمولة 50% من أول اشتراك مدفوع فقط (وليست من التجديدات).", "Commission is 50% of the first paid subscription only (not renewals)."),
+                t("العمولة متكررة وتصل إلى 40% حسب باقة الشركة المُحالة، طالما بقيت مشتركة.", "Commission is recurring, up to 40% depending on the referred company's plan, for as long as they stay subscribed."),
                 t("خصم المشترك الجديد يُطبَّق على أول فاتورة — ويحتفظ بشهره المجاني.", "The new subscriber's discount applies to their first invoice — and they keep their free month."),
                 t("الدفع يتم شهرياً بعد تجاوز فترة الاسترجاع، بإثباتات موثّقة.", "Payouts run monthly after the refund window, with documented statements."),
                 t("يلزم توقيع عقد المسوّق المعتمد قبل أول تحويل.", "An approved-marketer agreement is signed before the first payout."),
