@@ -26,7 +26,8 @@ import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-crea
 import { QuickContactDialog } from "../components/quick-contact-dialog";
 import { normalizeDigits } from "../lib/digits";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
-import { api, getOrgId, Invoice, Contact } from "../lib/api";
+import { api, getOrgId, Invoice, Contact, DocumentSendRecord } from "../lib/api";
+import { SendComposeForm } from "../components/send-compose-form";
 import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
@@ -177,6 +178,10 @@ export function Invoices() {
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [splittingId, setSplittingId] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  // Send compose page (W-SEND · 2026-09-08) · never auto-fires an email — the
+  // CEO must see + edit the message before it goes out.
+  const [sendComposeFor, setSendComposeFor] = useState<{ invoice: Invoice; prefill?: DocumentSendRecord } | null>(null);
+  const [sendLogRefresh, setSendLogRefresh] = useState(0);
   // Locale-pure defaults (CEO 2026-08-25): a US company never opens on SAR / 15% VAT.
   // Applies only while the form still carries the untouched SAR default and no invoice is being edited.
   useEffect(() => {
@@ -551,9 +556,10 @@ export function Invoices() {
       const msg = isEdit ? t(`تم تحديث ${inv.invoiceNumber}`, `Updated ${inv.invoiceNumber}`)
                 : action === "draft" ? t(`تم حفظ ${inv.invoiceNumber} كمسودة`, `Saved ${inv.invoiceNumber} as draft`)
                 : action === "approve" ? t(`تم اعتماد ${inv.invoiceNumber}`, `Approved ${inv.invoiceNumber}`)
-                : t(`تم إرسال ${inv.invoiceNumber} للعميل`, `Sent ${inv.invoiceNumber} to the customer`);
+                : t(`تم اعتماد ${inv.invoiceNumber} · راجع الرسالة قبل الإرسال`, `Approved ${inv.invoiceNumber} · review the message before sending`);
       push("success", msg);
-      // Auto-trigger email send after approve+send
+      // «إرسال» never auto-fires the email (CEO 2026-09-08) — it opens the
+      // compose page below so the message can be reviewed/edited first.
       if (action === "send" && inv.id) {
         let payLink: string | undefined;
         try {
@@ -562,20 +568,7 @@ export function Invoices() {
         } catch (e: any) {
           push("info", e?.message || t("لم يتم إنشاء رابط دفع، سيتم إرسال الفاتورة بدون رابط دفع", "No payment link was created; the invoice will be sent without a payment link"));
         }
-        try {
-          await (api as any).email?.sendInvoice?.(inv.id, { message: form.notes || undefined, payLink });
-          push("success", payLink ? t("تم إرسال الفاتورة مع رابط الدفع", "Invoice sent with payment link") : t("تم إرسال الفاتورة بدون رابط دفع", "Invoice sent without payment link"));
-          // Email succeeded → transition APPROVED → SENT
-          try {
-            await api.invoices.update(inv.id, { status: "SENT" });
-            inv = { ...inv, status: "SENT" };
-            setItems(prev => prev.map(x => x.id === inv.id ? { ...x, status: "SENT" } as Invoice : x));
-          } catch {
-            push("info", t("أُرسلت الفاتورة لكن تعذر تحديث حالتها إلى «مُرسلة»", "Invoice sent but its status could not be updated to SENT"));
-          }
-        } catch (e: any) {
-          push("error", e?.message || t("تعذر إرسال الفاتورة بالبريد", "Could not send the invoice by email"));
-        }
+        setSendComposeFor({ invoice: { ...inv, __payLink: payLink } as any });
       }
       // UX-177 · stay on the saved invoice instead of returning to list
       // Switch to edit mode of the freshly-saved invoice · preserve all form fields
@@ -741,9 +734,44 @@ export function Invoices() {
     } finally { setBusy(false); }
   };
 
+  // Send compose page (W-SEND · 2026-09-08) · takes over the whole page,
+  // above every other view — «إرسال» always lands here, never fires silently.
+  if (sendComposeFor) {
+    const inv = sendComposeFor.invoice;
+    const contact = inv.contact || customers.find((c) => c.id === inv.contactId);
+    const payLink = (inv as any).__payLink as string | undefined;
+    return <>
+      <SendComposeForm
+        entityType="invoice"
+        entityId={inv.id}
+        documentNumber={inv.invoiceNumber}
+        documentLabelAr="فاتورة" documentLabelEn="Invoice"
+        defaultTo={contact?.email ? [contact.email] : []}
+        defaultSubject={t(`فاتورة ${inv.invoiceNumber}`, `Invoice ${inv.invoiceNumber}`)}
+        defaultBody={t(
+          `مرحباً ${contact?.displayName || ""}،\n\nمرفق الفاتورة رقم ${inv.invoiceNumber} بقيمة ${Number(inv.total).toFixed(2)} ${inv.currency}.${payLink ? `\n\nرابط الدفع: ${payLink}` : ""}\n\nشكراً لتعاملكم معنا.`,
+          `Hi ${contact?.displayName || ""},\n\nPlease find attached invoice ${inv.invoiceNumber} for ${Number(inv.total).toFixed(2)} ${inv.currency}.${payLink ? `\n\nPayment link: ${payLink}` : ""}\n\nThank you.`,
+        )}
+        prefill={sendComposeFor.prefill}
+        onClose={() => setSendComposeFor(null)}
+        onSent={(record) => {
+          setSendLogRefresh((n) => n + 1);
+          if (record.status === "SENT") {
+            setItems((prev) => prev.map((x) => (x.id === inv.id ? { ...x, status: "SENT" } as Invoice : x)));
+            setEditingInvoice((prev) => (prev && prev.id === inv.id ? ({ ...prev, status: "SENT" } as Invoice) : prev));
+          }
+        }}
+        push={push}
+      />
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </>;
+  }
+
   if (createOpen && editingInvoice && editingInvoice.status !== "DRAFT" && !signFor) {
     return <><IssuedInvoiceRecord invoice={editingInvoice} onClose={closeCreate}
       onPayment={() => openRecordPayment(editingInvoice)}
+      onSend={(prefill) => setSendComposeFor({ invoice: editingInvoice, prefill })}
+      sendLogRefreshKey={sendLogRefresh}
       onRefresh={async () => { try { setEditingInvoice(await api.invoices.get(editingInvoice.id)); } catch (e) { push("error", humanizeError(e, language)); } }} />
       <ToastStack toasts={toasts} onDismiss={dismiss} /></>;
   }

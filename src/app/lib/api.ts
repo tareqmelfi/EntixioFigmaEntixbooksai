@@ -300,6 +300,16 @@ export interface PlatformInvoice {
   invoicePdfUrl: string | null; hostedInvoiceUrl: string | null
 }
 /** Company/VAT data shown beside the invoices — read from settings, never invented. */
+/** «سجل الإرسال» · document compose page (W-SEND · 2026-09-08) */
+export type DocumentSendEntityType = "invoice" | "quote" | "creditNote";
+export type DocumentSendStatus = "DRAFT" | "QUEUED" | "SENT" | "DELIVERED" | "BOUNCED" | "FAILED" | "OPENED";
+export interface DocumentSendRecord {
+  id: string; orgId: string; entityType: DocumentSendEntityType; entityId: string
+  to: string[]; cc: string[]; bcc: string[]; subject: string; body: string
+  status: DocumentSendStatus; providerMessageId: string | null; error: string | null
+  sentById: string | null; sentAt: string | null; createdAt: string; updatedAt: string
+}
+
 export interface BillingParty {
   name: string | null; legalName: string | null; email: string | null
   vatNumber: string | null; crNumber: string | null; city: string | null; address: string | null
@@ -1373,6 +1383,29 @@ export const api = {
       request<{ ok: boolean; emailId?: string; sentTo: string }>(
         `/api/email/quotes/${id}/send`,
         { method: 'POST', body: data },
+      ),
+  },
+
+  // Document send compose page + «سجل الإرسال» (W-SEND · 2026-09-08)
+  documentSends: {
+    list: (entityType: DocumentSendEntityType, entityId: string) =>
+      request<{ items: DocumentSendRecord[] }>(
+        `/api/document-sends?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
+      ),
+    get: (id: string) => request<DocumentSendRecord>(`/api/document-sends/${id}`),
+    create: (data: {
+      entityType: DocumentSendEntityType; entityId: string
+      to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string
+      action: "draft" | "send"
+    }) =>
+      request<{ ok: boolean; send: DocumentSendRecord; message?: string }>(
+        '/api/document-sends',
+        { method: 'POST', body: data },
+      ),
+    resend: (id: string) =>
+      request<{ ok: boolean; send: DocumentSendRecord; message?: string }>(
+        `/api/document-sends/${id}/send`,
+        { method: 'POST' },
       ),
   },
 

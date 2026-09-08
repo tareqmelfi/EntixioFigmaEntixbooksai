@@ -6,7 +6,7 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { useSearchParams, useParams, Link } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye, Mail } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
@@ -27,11 +27,13 @@ import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../com
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
-import { api, ApiError, Quote, Contact, type PaymentPlan, type PaymentPlanItemInput, type PaymentCondition, type PaymentBillingMethod } from "../lib/api";
+import { api, ApiError, Quote, Contact, DocumentSendRecord, type PaymentPlan, type PaymentPlanItemInput, type PaymentCondition, type PaymentBillingMethod } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
+import { SendComposeForm } from "../components/send-compose-form";
+import { SendLogSection } from "../components/send-log-section";
 
 const CURRENCIES = [
   { value: "SAR", label: { ar: "ريال سعودي · SAR", en: "Saudi Riyal · SAR" } },
@@ -296,6 +298,10 @@ export function Quotes() {
   const [selectedFull, setSelectedFull] = useState<Quote | null>(null);
   const [selectedLoading, setSelectedLoading] = useState(false);
   const [seller, setSeller] = useState<{ name: string; vatNumber?: string | null } | null>(null);
+  // Send compose page (W-SEND · 2026-09-08) · «إرسال» always opens a page to
+  // review/edit the message — it never fires an email silently.
+  const [sendComposeFor, setSendComposeFor] = useState<{ quote: Quote; prefill?: DocumentSendRecord; fromCreate?: boolean } | null>(null);
+  const [sendLogRefresh, setSendLogRefresh] = useState(0);
 
   useEffect(() => {
     if (!detailId) { setDetail(null); return; }
@@ -462,11 +468,14 @@ export function Quotes() {
         if (planRowsValid(planRows)) await applyPaymentPlan(q.id, { silent: true });
         else push("info", t("حُفظ العرض بدون خطة الدفعات — مجموع النسب ليس 100%", "Quote saved without the payment plan — the percentages do not add up to 100%"));
       }
-      const msg = action === "draft" ? t(`تم حفظ ${q.quoteNumber} كمسودة`, `Saved ${q.quoteNumber} as draft`) : t(`تم إرسال ${q.quoteNumber}`, `Sent ${q.quoteNumber}`);
+      const msg = action === "draft" ? t(`تم حفظ ${q.quoteNumber} كمسودة`, `Saved ${q.quoteNumber} as draft`) : t(`تم حفظ ${q.quoteNumber} · راجع الرسالة قبل الإرسال`, `Saved ${q.quoteNumber} · review the message before sending`);
       push("success", msg);
       draft.clear();
+      // «إرسال» never fires the email silently (CEO 2026-09-08) — it opens the
+      // compose page so the message can be reviewed/edited first.
       if (action === "send" && q.id) {
-        try { await (api as any).email?.sendQuote?.(q.id, { message: form.notes || undefined }); } catch (e) {}
+        setSendComposeFor({ quote: q, fromCreate: true });
+        return q;
       }
       if (!opts?.stayOpen) closeCreate();
       return q;
@@ -606,6 +615,38 @@ export function Quotes() {
       setSignError(e instanceof ApiError ? (e.message === "already_pending" ? t("يوجد طلب توقيع نشط لهذا العرض", "There is an active signing request for this quote") : e.message) : t("فشل الإرسال", "Send failed"));
     } finally { setBusy(false); }
   };
+
+  // Send compose page (W-SEND · 2026-09-08) · takes over the whole page,
+  // above every other view — «إرسال» always lands here, never fires silently.
+  if (sendComposeFor) {
+    const q = sendComposeFor.quote;
+    const contact = q.contact || customers.find((c) => c.id === q.contactId);
+    return <>
+      <SendComposeForm
+        entityType="quote"
+        entityId={q.id}
+        documentNumber={q.quoteNumber}
+        documentLabelAr="عرض سعر" documentLabelEn="Quote"
+        defaultTo={contact?.email ? [contact.email] : []}
+        defaultSubject={t(`عرض سعر ${q.quoteNumber}`, `Quote ${q.quoteNumber}`)}
+        defaultBody={t(
+          `مرحباً ${contact?.displayName || ""}،\n\nمرفق عرض السعر رقم ${q.quoteNumber} بقيمة ${Number(q.total).toFixed(2)} ${q.currency}.\n\nنسعد بتعاونكم معنا.`,
+          `Hi ${contact?.displayName || ""},\n\nPlease find attached quote ${q.quoteNumber} for ${Number(q.total).toFixed(2)} ${q.currency}.\n\nLooking forward to working with you.`,
+        )}
+        prefill={sendComposeFor.prefill}
+        onClose={() => { const fromCreate = sendComposeFor?.fromCreate; setSendComposeFor(null); if (fromCreate) closeCreate(); }}
+        onSent={(record) => {
+          setSendLogRefresh((n) => n + 1);
+          if (record.status === "SENT") {
+            setItems((prev) => prev.map((x) => (x.id === q.id ? { ...x, status: "SENT" } as Quote : x)));
+            setDetail((prev) => (prev && prev.id === q.id ? ({ ...prev, status: "SENT" } as Quote) : prev));
+          }
+        }}
+        push={push}
+      />
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </>;
+  }
 
   // Full-page Create form
   if (createOpen) {
@@ -1021,6 +1062,13 @@ export function Quotes() {
               </div>
               <div className="rounded-lg border border-border bg-card p-5">
                 <h2 className="mb-3 text-section font-semibold text-foreground">{t("إجراءات", "Actions")}</h2>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
+                    <Button type="button" size="sm" onClick={() => setSendComposeFor({ quote: q })} data-testid="quote-send-email">
+                      <Mail className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {t("إرسال بالبريد", "Send by email")}
+                    </Button>
+                  )}
+                </div>
                 {workflowActions(q)}
               </div>
             </aside>
@@ -1047,6 +1095,14 @@ export function Quotes() {
                     )}
                   </span>
                 }
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <SendLogSection
+                entityType="quote"
+                entityId={q.id}
+                refreshKey={sendLogRefresh}
+                onResend={(record) => setSendComposeFor({ quote: q, prefill: record })}
               />
             </div>
           </div>
