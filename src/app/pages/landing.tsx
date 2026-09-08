@@ -11,6 +11,7 @@ import { SharedFooter } from "../components/shared-footer";
 import { useLanguage } from "../components/LanguageContext";
 import { useMarketingRegion } from "../components/marketing-region";
 import { usePublicRoute } from "../lib/public-route";
+import { PLAN_PRICES, annualSavingsPercent, monthlyEquivalent, type PricingCurrency } from "../lib/pricing-plans";
 
 // ─── Animated counter ───
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -251,6 +252,104 @@ function ShowcaseTabs({ t }: { t: (ar: string, en?: string) => string }) {
   );
 }
 
+// ─── Compact pricing block · the FIRST thing after the hero ───
+// CEO 2026-09-08: «الكل مو عارف كيف يشترك ويرسلي تساؤلات بسبب التصميم».
+// Plan · annual price · green savings chip · pay-now and free actions, all
+// visible without scrolling to the full pricing teaser further down the page.
+function LandingPricingBlock({
+  t, currency, onSubscribe, onStartFree, pricingHref,
+}: {
+  t: (ar: string, en?: string) => string;
+  currency: PricingCurrency;
+  onSubscribe: () => void;
+  onStartFree: () => void;
+  pricingHref: string;
+}) {
+  const symbol = currency === "USD" ? "$" : "";
+  const label = currency === "SAR" ? t("ر.س", "SAR") : "";
+  const money = (n: number) => `${symbol}${n.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}`;
+  const amount = (n: number) => (label ? `${money(n)} ${label}` : money(n));
+  const tiers = [
+    { tier: "professional" as const, name: t("احترافي", "Professional"), note: t("للشركات الصغيرة والمتوسطة", "For small & medium businesses"), highlighted: true },
+    { tier: "enterprise" as const, name: t("مؤسسي", "Enterprise"), note: t("للمؤسسات الكبيرة", "For large organizations"), highlighted: false },
+  ];
+  return (
+    <section id="plans" data-testid="landing-pricing-block" className={`${SHELL} pt-12 lg:pt-16`}>
+      <div className="rounded-lg border border-border bg-card p-6 sm:p-8 flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div className="flex flex-col gap-2">
+            <span className="ledger-eyebrow text-primary">{t("الأسعار", "Pricing")}</span>
+            <h2 className="text-foreground m-0" style={{ fontSize: "22px", fontWeight: 700 }}>
+              {t("اشترك في دقيقة — بدون إنشاء حساب", "Subscribe in a minute — no account needed")}
+            </h2>
+            <p className="text-content-secondary m-0" style={{ fontSize: "14px", lineHeight: 1.7 }}>
+              {t("الأسعار سنوية بالخصم. تدفع مباشرة ويُنشأ حسابك بعد الدفع.", "Prices shown are the discounted annual rate. Pay directly — your account is created after payment.")}
+            </p>
+          </div>
+          <Link to={pricingHref} data-testid="landing-pricing-all-plans" className="text-primary hover:underline cursor-pointer whitespace-nowrap" style={{ fontSize: "14px", fontWeight: 600 }}>
+            {t("كل الباقات والمقارنة", "All plans & comparison")}
+          </Link>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          {tiers.map((plan) => {
+            const price = PLAN_PRICES[plan.tier][currency];
+            const savings = annualSavingsPercent(price);
+            return (
+              <div
+                key={plan.tier}
+                data-testid={`landing-plan-${plan.tier}`}
+                className={`rounded-lg border p-5 flex flex-col gap-3 min-w-0 ${plan.highlighted ? "border-foreground bg-surface-subtle" : "border-border bg-card"}`}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-foreground" style={{ fontSize: "16px", fontWeight: 700 }}>{plan.name}</span>
+                  {savings > 0 && (
+                    <span
+                      data-testid={`landing-savings-${plan.tier}`}
+                      className="inline-block whitespace-nowrap rounded-full bg-savings-subtle px-2 py-0.5 text-savings"
+                      style={{ fontSize: "11px", fontWeight: 700 }}
+                    >
+                      {t("وفّر", "Save")} <bdi dir="ltr">{savings}%</bdi>
+                    </span>
+                  )}
+                </div>
+                <p className="text-content-secondary m-0" style={{ fontSize: "13px" }}>{plan.note}</p>
+                <div className="flex items-baseline gap-1.5" dir="ltr">
+                  <span className="font-display text-foreground leading-none text-[36px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {money(monthlyEquivalent(price))}
+                  </span>
+                  <span className="text-content-secondary" style={{ fontSize: "13px" }}>{label} / {t("شهر", "mo")}</span>
+                </div>
+                <p className="text-content-secondary m-0" style={{ fontSize: "12px" }}>
+                  {t("يُدفع سنويًا", "billed annually")} · <bdi dir="ltr">{amount(price.yearly)}</bdi>
+                </p>
+                <div className="flex flex-col gap-2 mt-1">
+                  <button
+                    onClick={onSubscribe}
+                    data-testid={`landing-subscribe-${plan.tier}`}
+                    className="w-full rounded-full bg-foreground py-3 text-background hover:bg-primary transition-colors cursor-pointer"
+                    style={{ fontSize: "14px", fontWeight: 600 }}
+                  >
+                    {t("اشترك الآن — ادفع مباشرة", "Subscribe now — pay directly")}
+                  </button>
+                  <button
+                    onClick={onStartFree}
+                    data-testid={`landing-start-free-${plan.tier}`}
+                    className="w-full rounded-full border border-border py-2.5 text-content-secondary hover:bg-surface-hover hover:text-foreground transition-colors cursor-pointer"
+                    style={{ fontSize: "13px", fontWeight: 600 }}
+                  >
+                    {t("ابدأ مجانًا", "Start free")}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const STATS = [
   { value: 30, suffix: "", label: "يومًا تجربة مجانية", labelEn: "days of free trial" },
   { value: 2, suffix: "", label: "سوق — السعودية وأمريكا", labelEn: "markets — Saudi & US" },
@@ -400,6 +499,14 @@ export function Landing() {
           </motion.div>
         </div>
       </section>
+
+      <LandingPricingBlock
+        t={t}
+        currency={isSA ? "SAR" : "USD"}
+        onSubscribe={() => navigate(href("/pricing"))}
+        onStartFree={() => navigate(href("/register"))}
+        pricingHref={href("/pricing")}
+      />
 
       {/* ─── Figures strip ─── */}
       <section className={`${SHELL} mt-16 lg:mt-[120px]`}>
@@ -584,17 +691,44 @@ export function Landing() {
                 <span className={`font-display leading-none text-[52px] ${plan.highlighted ? "text-background" : "text-foreground"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{plan.price}</span>
                 <span style={{ fontSize: "14px" }} className={plan.highlighted ? "text-background/70" : "text-content-secondary"}>{t(plan.period, plan.periodEn)}</span>
               </div>
-              <button
-                onClick={() => navigate(href("/register"))}
-                className={
-                  plan.highlighted
-                    ? "w-full rounded-full py-3.5 transition-opacity hover:opacity-90 cursor-pointer bg-[var(--brand-blue-600)] text-primary-foreground"
-                    : "w-full rounded-full py-3.5 transition-colors cursor-pointer border border-foreground text-foreground hover:bg-surface-hover"
-                }
-                style={{ fontSize: "15px", fontWeight: 600 }}
-              >
-                {t("ابدأ شهرك المجاني", "Start free month")}
-              </button>
+              {/* Paid plans lead with the money path; the free path stays one
+                  quiet tap away (CEO 2026-09-08). */}
+              {plan.standard ? (
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => navigate(href("/pricing"))}
+                    data-testid={`teaser-subscribe-${plan.nameEn.toLowerCase()}`}
+                    className={
+                      plan.highlighted
+                        ? "w-full rounded-full py-3.5 transition-opacity hover:opacity-90 cursor-pointer bg-[var(--brand-blue-600)] text-primary-foreground"
+                        : "w-full rounded-full py-3.5 transition-colors cursor-pointer bg-foreground text-background hover:bg-primary"
+                    }
+                    style={{ fontSize: "15px", fontWeight: 600 }}
+                  >
+                    {t("اشترك الآن — ادفع مباشرة", "Subscribe now — pay directly")}
+                  </button>
+                  <button
+                    onClick={() => navigate(href("/register"))}
+                    data-testid={`teaser-start-free-${plan.nameEn.toLowerCase()}`}
+                    className={
+                      plan.highlighted
+                        ? "w-full rounded-full py-3 transition-colors cursor-pointer border border-background/40 text-background hover:bg-background/10"
+                        : "w-full rounded-full py-3 transition-colors cursor-pointer border border-border text-content-secondary hover:bg-surface-hover hover:text-foreground"
+                    }
+                    style={{ fontSize: "14px", fontWeight: 600 }}
+                  >
+                    {t("ابدأ مجانًا", "Start free")}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => navigate(href("/register"))}
+                  className="w-full rounded-full py-3.5 transition-colors cursor-pointer border border-foreground text-foreground hover:bg-surface-hover"
+                  style={{ fontSize: "15px", fontWeight: 600 }}
+                >
+                  {t("ابدأ شهرك المجاني", "Start free month")}
+                </button>
+              )}
               <div className={`h-px w-full ${plan.highlighted ? "bg-background/20" : "bg-border"}`} />
               <ul className="flex flex-col gap-2.5 m-0 p-0" style={{ listStyle: "none" }}>
                 {plan.features.map((f, fi) => {
