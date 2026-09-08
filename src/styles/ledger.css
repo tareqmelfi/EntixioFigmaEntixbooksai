@@ -24,17 +24,21 @@
   .ledger-figures > .ledger-figure { border-inline-start: 0; padding-inline: 0; }
   .ledger-figures > .ledger-figure + .ledger-figure { border-top: 1px solid var(--border); }
 }
-.ledger-figure-value {
-  font-family: var(--entix-font-display);
-  font-size: clamp(1.25rem, 10.5cqw, 2.5rem);
-  max-width: 100%;
-  white-space: nowrap;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  direction: ltr;
-  unicode-bidi: isolate;
-  color: var(--foreground);
-  letter-spacing: -0.01em;
+/* In the components layer so a page-level utility (e.g. [&_.ledger-figure-value]:text-[20px])
+   can still tune the size — unlayered CSS would silently beat it. */
+@layer components {
+  .ledger-figure-value {
+    font-family: var(--entix-font-display);
+    font-size: clamp(1.25rem, 10.5cqw, 2.5rem);
+    max-width: 100%;
+    white-space: nowrap;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: isolate;
+    color: var(--foreground);
+    letter-spacing: -0.01em;
+  }
 }
 .ledger-figure-value small,
 .ledger-figure-value .fraction { font-size: 0.5em; color: var(--content-secondary); }

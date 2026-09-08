@@ -25,7 +25,7 @@ export function PageHeader({ title, description, eyebrow, leading, actions, clas
     <header className={cn("flex flex-wrap items-start justify-between gap-4", className)}>
       {/* The title block keeps a 20rem basis so a long action row wraps under
           the title instead of squeezing the h1 below its longest word. */}
-      <div className="flex min-w-0 flex-[1_1_20rem] items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3 sm:basis-80">
         {leading && <div className="mt-1 shrink-0">{leading}</div>}
         <div className="min-w-0 flex-1">
         {eyebrow && <div className="mb-1 text-xs text-content-secondary">{eyebrow}</div>}

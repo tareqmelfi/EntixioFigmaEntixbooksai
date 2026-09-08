@@ -46,8 +46,8 @@ export function IntegrationsPlaid() {
       </button>
 
       <div>
-        <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
-          <span className="rounded-xl bg-primary/5 p-2"><CreditCard className="h-5 w-5 text-primary" /></span>
+        <h1 className="flex items-center gap-2 text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
+          <span className="rounded-lg border border-border bg-surface-subtle p-2"><CreditCard className="h-5 w-5 text-primary" /></span>
           {t("الربط البنكي · Plaid", "Bank linking · Plaid")}
         </h1>
         <p className="text-muted-foreground mt-1">{t("اربط حساباتك البنكية الأمريكية واستورد الحركات تلقائيًا", "Connect your US bank accounts and import transactions automatically")}</p>

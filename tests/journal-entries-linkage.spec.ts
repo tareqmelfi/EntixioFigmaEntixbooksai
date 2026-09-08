@@ -32,7 +32,7 @@ test('journal page proves linkage (coverage banner) and links an entry to its so
   await page.route('https://api.entix.io/api/journals/coverage', (route) =>
     route.fulfill({ json: { unposted: { invoices: 0, bills: 2, expenses: 0, receipts: 0, payments: 0 }, linked: false } }),
   )
-  await page.route('https://api.entix.io/api/journals', (route) => route.fulfill({ json: { items: [ENTRY], total: 1 } }))
+  await page.route('https://api.entix.io/api/journals?**', (route) => route.fulfill({ json: { items: [ENTRY], total: 1 } }))
   await page.route('https://api.entix.io/api/journals/je-1', (route) => route.fulfill({ json: { ...ENTRY, canEdit: false, canPost: false, canUnpost: false } }))
   await page.route('https://api.entix.io/api/journals/je-1/attachments', (route) => route.fulfill({ json: { items: [] } }))
   await page.route('https://api.entix.io/api/accounts*', (route) => route.fulfill({ json: { items: [] } }))
@@ -55,7 +55,7 @@ test('fully-linked orgs see the green proof instead of a warning', async ({ page
   await page.route('https://api.entix.io/api/journals/coverage', (route) =>
     route.fulfill({ json: { unposted: { invoices: 0, bills: 0, expenses: 0, receipts: 0, payments: 0 }, linked: true } }),
   )
-  await page.route('https://api.entix.io/api/journals', (route) => route.fulfill({ json: { items: [ENTRY], total: 1 } }))
+  await page.route('https://api.entix.io/api/journals?**', (route) => route.fulfill({ json: { items: [ENTRY], total: 1 } }))
   await page.route('https://api.entix.io/api/accounts*', (route) => route.fulfill({ json: { items: [] } }))
 
   await page.goto('/app/journal-entries')

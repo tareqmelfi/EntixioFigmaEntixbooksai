@@ -373,9 +373,9 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
   const recentBills = data.bills.slice(0, 5);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
       {/* Left col · contact info */}
-      <div className="lg:col-span-1 space-y-4">
+      <div className="min-w-0 xl:col-span-1 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader title={t("معلومات الاتصال", "Contact info")} />
@@ -456,7 +456,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
       </div>
 
       {/* Right col · recent activity */}
-      <div className="lg:col-span-2 space-y-4">
+      <div className="min-w-0 xl:col-span-2 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader
@@ -518,9 +518,9 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
 function Row({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span dir={mono ? "ltr" : undefined} className={`text-sm text-foreground/80 ${mono ? "font-english tabular-nums" : ""}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3">
+      <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+      <span dir={mono ? "ltr" : undefined} className={`min-w-0 truncate text-sm text-foreground/80 ${mono ? "font-english tabular-nums" : ""}`} title={value}>{value}</span>
     </div>
   );
 }

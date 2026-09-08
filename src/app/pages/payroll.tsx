@@ -375,7 +375,7 @@ export function Payroll() {
 
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
-      <MetricStrip className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 [&_.ledger-figure-value]:text-[22px] sm:[&_.ledger-figure-value]:text-[26px]">
+      <MetricStrip className="grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <LedgerMetric label={t("الموظفون", "Employees")} value={employees.length.toString()} />
         <LedgerMetric label={t("العقود المحفوظة", "Saved contracts")} value={contracts.length.toString()} />
         <LedgerMetric label={t("إجمالي الراتب", "Gross salary")} value={<LedgerFigure value={Number(displayedTotals?.grossSalary || 0)} currency="SAR" />} />

@@ -187,15 +187,27 @@ export const dashboardSummary = {
   periodCompare: { thisMonth: { revenue: BIG * 2, expenses: BIG, net: BIG }, lastMonth: { revenue: BIG, expenses: BIG / 2, net: BIG / 2 }, yearAgo: { revenue: BIG / 2, expenses: BIG / 3, net: BIG / 6 } },
 }
 
-const reportRow = (i: number, depth = 0) => ({ id: `r_${i}`, label: i % 2 ? `${LONG_NAME} — ذمم مدينة تجارية` : `Accounts Receivable — Trade debtors, local & international — ${LONG_ID}`, labelAr: 'ذمم مدينة — عملاء محليون ودوليون', code: `1${i}000`, depth, values: [BIG * (i + 1), BIG * i, (i % 2 ? 1 : -1) * BIG / 3], type: 'row' })
+const reportCols = [
+  { key: 'account', label: 'الحساب / Account', align: 'start', kind: 'text' },
+  { key: 'current', label: 'الفترة الحالية · Current period', align: 'end', kind: 'money' },
+  { key: 'prior', label: 'الفترة السابقة · Prior period', align: 'end', kind: 'money' },
+  { key: 'delta', label: 'التغير · Change', align: 'end', kind: 'money' },
+]
+const reportRow = (i: number, depth = 0) => ({
+  id: `r_${i}`, label: i % 2 ? `${LONG_NAME} — ذمم مدينة تجارية` : `Accounts Receivable — Trade debtors, local & international — ${LONG_ID}`, depth,
+  values: { account: `1${i}000`, current: BIG * (i + 1), prior: BIG * i, delta: (i % 2 ? 1 : -1) * BIG / 3 }, note: i % 3 ? null : LONG_ID, status: null,
+  link: i % 2 ? { label: 'Open ledger', href: '/app/chart-of-accounts', type: 'account' } : null,
+})
 export const reportPayload = (id: string) => ({
-  id, title: 'Balance Sheet', titleAr: 'قائمة المركز المالي', period: { from: '2026-01-01', to: '2026-09-08' }, currency: 'SAR', org: { name: LONG_NAME, legalName: LONG_NAME_2, vatNumber: '310123456789003' },
-  columns: [{ key: 'current', label: 'Current period', labelAr: 'الفترة الحالية' }, { key: 'prior', label: 'Prior period', labelAr: 'الفترة السابقة' }, { key: 'delta', label: 'Change', labelAr: 'التغير' }],
+  id, title: 'قائمة المركز المالي', englishTitle: 'Balance Sheet', description: 'الأصول والالتزامات وحقوق الملكية في نهاية الفترة', category: 'financial', status: 'live',
+  generatedAt: '2026-09-08T10:00:00Z', period: { from: '2026-01-01', to: '2026-09-08' }, comparePeriod: { from: '2025-01-01', to: '2025-09-08' }, currency: 'SAR',
+  org: { id: visualOrgId, name: LONG_NAME, legalName: LONG_NAME_2, country: 'SA', baseCurrency: 'SAR', vatNumber: '310123456789003', crNumber: '1010123456', logoUrl: null, stampUrl: null },
+  summary: { totalAssets: BIG * 21, totalLiabilities: BIG * 9, totalEquity: BIG * 12, netIncome: BIG * 2 },
   sections: [
-    { id: 's1', title: 'Assets', titleAr: 'الأصول', rows: Array.from({ length: 6 }, (_, i) => reportRow(i, i % 3)), total: { label: 'Total assets', labelAr: 'إجمالي الأصول', values: [BIG * 21, BIG * 15, BIG * 6] } },
-    { id: 's2', title: 'Liabilities & equity', titleAr: 'الالتزامات وحقوق الملكية', rows: Array.from({ length: 5 }, (_, i) => reportRow(i + 6, i % 2)), total: { label: 'Total liabilities & equity', labelAr: 'إجمالي الالتزامات وحقوق الملكية', values: [BIG * 21, BIG * 15, BIG * 6] } },
+    { id: 'assets', title: 'الأصول · Assets', description: null, columns: reportCols, rows: Array.from({ length: 8 }, (_, i) => reportRow(i, i % 4)) },
+    { id: 'liabilities', title: 'الالتزامات وحقوق الملكية · Liabilities & equity', description: 'Long section description — ' + LONG_NAME_2, columns: reportCols, rows: Array.from({ length: 6 }, (_, i) => reportRow(i + 8, i % 3)) },
   ],
-  totals: [{ label: 'Net', labelAr: 'الصافي', values: [0, 0, 0] }], generatedAt: '2026-09-08T10:00:00Z',
+  notices: [`Prepared from posted entries only · ${LONG_ID}`],
 })
 
 export const usSalesTax = {

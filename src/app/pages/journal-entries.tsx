@@ -428,7 +428,7 @@ export function JournalEntries() {
                               RTL row — without it the text hugged the debit column and read as
                               overlapping (CEO screenshot 2026-08-28). title = full text on hover. */}
                           <div className="text-foreground truncate" title={e.description} style={{ fontWeight: 500 }}><bdi dir="auto">{e.description}</bdi></div>
-                          <div className="text-xs text-muted-foreground/60 mt-0.5">
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground/60">
                             {e.lineCount} {t("سطر", "lines")}
                             {(e.attachmentCount || 0) > 0 && <span className="ms-2"><Paperclip className="inline h-3 w-3" /> {e.attachmentCount}</span>}
                           </div>
@@ -639,7 +639,7 @@ export function JournalEntries() {
       {/* ── CREATE / EDIT MODAL ──────────────────────────────────────────── */}
       {open && (
         <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => { if (draft.dirty) { draft.flush(); push("info", t("حُفظت مسودتك تلقائيًا — ترجع لها عند فتح النموذج", "Your draft was saved — it comes back when you reopen the form")); } setOpen(false); }}>
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg shadow-[var(--elevation-popover)] w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-5 border-b border-border/50">
                 <h2 className="text-lg text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
