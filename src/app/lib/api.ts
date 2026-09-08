@@ -1943,6 +1943,8 @@ export interface Org {
   zatcaCsidSecret?: string | null
   logoUrl?: string | null
   printLogoUrl?: string | null
+  /** reverse (light) mark for dark document grounds · LOGO FRAME LAW */
+  printLogoLightUrl?: string | null
   defaultInvoiceLanguage?: 'ar' | 'en' | null
   stampUrl?: string | null
   email?: string | null
@@ -2005,6 +2007,7 @@ export interface CreateOrgInput {
   crNumber?: string
   logoUrl?: string
   printLogoUrl?: string
+  printLogoLightUrl?: string | null
   defaultInvoiceLanguage?: 'ar' | 'en'
   stampUrl?: string
   email?: string
