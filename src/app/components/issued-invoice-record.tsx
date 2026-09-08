@@ -20,6 +20,9 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
   const canRelease = delivery?.customerReleaseReady !== false;
   const remaining = Number(invoice.total) - Number(invoice.amountPaid || 0);
   const amount = (value: unknown) => Number(value || 0).toLocaleString(displayLocale(language === 'ar' ? 'ar-SA' : 'en-US'), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Same brand-document engine as /print/invoice/:id (UX-180) · embed=1 hides
+  // the print chrome, noprint=1 stops the auto print dialog from firing.
+  const previewSrc = `/print/invoice/${invoice.id}?embed=1&noprint=1&lang=${language}`;
   return <FullPageForm title={t(`الفاتورة ${invoice.invoiceNumber}`, `Invoice ${invoice.invoiceNumber}`)}
     subtitle={invoice.contact?.displayName || ''} onClose={onClose}
     footer={<div className="flex flex-wrap justify-end gap-2">
@@ -52,6 +55,20 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
           {[...(evidence.errors || []), ...(evidence.warnings || [])].map((message, index) => <p key={index} className="text-sm">{message}</p>)}
         </> : <p className="text-sm">{delivery?.message || t('لم يُحفظ رد نهائي من الهيئة بعد. الاعتماد داخل Entix يختلف عن قبول الهيئة.', 'No final authority response is stored yet. Approval in Entix is separate from ZATCA acceptance.')}</p>}
       </section>}
+      {/* Document preview (real brand-document engine) beside attachments — split view, never stacked below the document */}
+      <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 items-start min-w-0">
+        <div className="min-w-0 rounded-lg border border-border bg-surface-subtle overflow-hidden" aria-label={t('معاينة الفاتورة', 'Invoice preview')}>
+          <iframe
+            title={t('معاينة الفاتورة', 'Invoice preview')}
+            src={previewSrc}
+            className="w-full block bg-card"
+            style={{ height: 'min(78vh, 900px)', minHeight: 480, border: 0 }}
+          />
+        </div>
+        <div className="min-w-0">
+          <InvoiceDocuments invoiceId={invoice.id} />
+        </div>
+      </section>
       <section className="rounded-lg border border-border bg-card p-4 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div><p className="text-muted-foreground">{t('تاريخ الإصدار', 'Issue date')}</p><p dir="ltr">{displayDigits(invoice.issueDate?.slice(0, 10) || '')}</p></div>
@@ -67,7 +84,6 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
         {invoice.notes && <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>}
       </section>
       {!!(invoice as any).payments?.length && <section className="rounded-lg border border-border bg-card p-4 space-y-2"><h2 className="font-semibold">{t('الدفعات', 'Payments')}</h2>{(invoice as any).payments.map((p: any) => <div key={p.id} className="flex flex-wrap justify-between gap-2 text-sm"><bdi>{new Date(p.paidAt).toLocaleDateString(displayLocale('en-GB'))}</bdi><bdi>{amount(p.amount)} {p.currency}</bdi><span>{stripeManaged ? 'Stripe' : p.method}</span></div>)}</section>}
-      <InvoiceDocuments invoiceId={invoice.id} />
     </div>
   </FullPageForm>;
 }

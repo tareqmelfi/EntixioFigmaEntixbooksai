@@ -43,7 +43,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
-import { ToastStack, useToasts } from "../components/side-panel";
+import { ToastStack, useToasts, InlineConfirm } from "../components/side-panel";
 import { InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { useFormDraft, formatDraftTime } from "../lib/form-draft";
 import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
@@ -285,7 +285,7 @@ export function JournalEntries() {
 
   const handleUpload = async (file: File) => {
     if (!selected) return;
-    if (file.size > 25 * 1024 * 1024) { push("error", t("الحد الأقصى للملف 25 ميجا", "Maximum file size is 25MB")); return; }
+    if (file.size > 25 * 1024 * 1024) { push("error", t(`${file.name} — الحد الأقصى للملف 25 ميجا`, `${file.name} — maximum file size is 25MB`)); return; }
     try {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -300,14 +300,22 @@ export function JournalEntries() {
         data: base64,
       });
       setAttachments(prev => [newAtt, ...prev]);
-      push("success", t("تم رفع المرفق", "Attachment uploaded"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل الرفع", "Failed to upload"));
+      push("error", `${file.name} — ${e instanceof ApiError ? e.message : t("فشل الرفع", "Failed to upload")}`);
     }
   };
 
+  // Multi-file: each upload runs independently so one bad file never blocks the rest.
+  const handleUploadMany = async (list: FileList | File[]) => {
+    const files = Array.from(list);
+    await Promise.all(files.map(handleUpload));
+    if (files.length) push("success", files.length > 1 ? t(`تم رفع ${files.length} ملفات`, `${files.length} files uploaded`) : t("تم رفع المرفق", "Attachment uploaded"));
+  };
+
+  const [pendingAttachmentDelete, setPendingAttachmentDelete] = useState<string | null>(null);
   const handleRemoveAttachment = async (aid: string) => {
     if (!selected) return;
+    setPendingAttachmentDelete(null);
     try {
       await api.journals.attachments.remove(selected.id, aid);
       setAttachments(prev => prev.filter(a => a.id !== aid));
@@ -564,13 +572,14 @@ export function JournalEntries() {
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <Paperclip className="h-3.5 w-3.5" /> {t("المرفقات", "Attachments")} ({attachments.length})
                 </div>
-                <input ref={fileInputRef} type="file" hidden
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
+                <input ref={fileInputRef} type="file" hidden multiple
+                  onChange={(e) => { if (e.target.files?.length) void handleUploadMany(e.target.files); e.target.value = ""; }} />
                 <button onClick={() => fileInputRef.current?.click()}
                   className="text-xs text-primary hover:underline flex items-center gap-1">
                   <Upload className="h-3 w-3" /> {t("رفع", "Upload")}
                 </button>
               </div>
+              <p className="text-[11px] text-muted-foreground/60 mb-1">{t("أي صيغة · حتى 25 ميجا للملف · اختر عدة ملفات معاً", "Any format · up to 25 MB per file · select multiple files at once")}</p>
               {attachments.length === 0 ? (
                 <div className="text-xs text-muted-foreground/60 text-center py-3 border border-dashed border-border rounded">
                   {t("لا توجد مرفقات", "No attachments")}
@@ -583,7 +592,11 @@ export function JournalEntries() {
                       <div className="flex-1 min-w-0 truncate">{a.filename}</div>
                       <span className="font-english text-muted-foreground/60" dir="ltr">{displayDigits((a.sizeBytes / 1024).toFixed(0))} KB</span>
                       <a href={a.url} download={a.filename} className="text-primary hover:bg-info-subtle p-1 rounded"><Download className="h-3 w-3" /></a>
-                      <button onClick={() => handleRemoveAttachment(a.id)} className="text-danger hover:bg-danger-subtle p-1 rounded"><Trash2 className="h-3 w-3" /></button>
+                      {pendingAttachmentDelete === a.id ? (
+                        <InlineConfirm onConfirm={() => handleRemoveAttachment(a.id)} onCancel={() => setPendingAttachmentDelete(null)} />
+                      ) : (
+                        <button onClick={() => setPendingAttachmentDelete(a.id)} className="text-danger hover:bg-danger-subtle p-1 rounded"><Trash2 className="h-3 w-3" /></button>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -19,7 +19,7 @@ import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { ToastStack, useToasts } from "../components/side-panel";
+import { ToastStack, useToasts, InlineConfirm } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
@@ -345,7 +345,7 @@ export function Receipts() {
 
   const handleUpload = async (file: File) => {
     if (!selected) return;
-    if (file.size > 25 * 1024 * 1024) { push("error", t("الحد الأقصى 25 ميجا", "Max 25 MB")); return; }
+    if (file.size > 25 * 1024 * 1024) { push("error", t(`${file.name} — الحد الأقصى 25 ميجا`, `${file.name} — max 25 MB`)); return; }
     try {
       const reader = new FileReader();
       const data = await new Promise<string>((resolve, reject) => {
@@ -358,11 +358,19 @@ export function Receipts() {
         sizeBytes: file.size, data,
       });
       setAttachments(prev => [newAtt, ...prev]);
-      push("success", t("تم الرفع", "Uploaded"));
     } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل الرفع", en: "Upload failed" }));
+      push("error", `${file.name} — ${humanizeError(e, language, { ar: "فشل الرفع", en: "Upload failed" })}`);
     }
   };
+
+  // Multi-file: each upload runs independently so one bad file never blocks the rest.
+  const handleUploadMany = async (list: FileList | File[]) => {
+    const files = Array.from(list);
+    await Promise.all(files.map(handleUpload));
+    if (files.length) push("success", files.length > 1 ? t(`تم رفع ${files.length} ملفات`, `${files.length} files uploaded`) : t("تم الرفع", "Uploaded"));
+  };
+
+  const [pendingAttachmentDelete, setPendingAttachmentDelete] = useState<string | null>(null);
 
   const handlePrint = (v: Voucher) => {
     window.open(api.vouchers.printUrl(v.id), "_blank", "noopener,noreferrer");
@@ -480,12 +488,13 @@ export function Receipts() {
                 <div className="flex items-center gap-1 text-xs text-content-secondary">
                   <Paperclip className="h-3 w-3" strokeWidth={1.75} /> {t("المرفقات", "Attachments")} ({attachments.length})
                 </div>
-                <input ref={fileRef} type="file" hidden
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
+                <input ref={fileRef} type="file" hidden multiple
+                  onChange={(e) => { if (e.target.files?.length) void handleUploadMany(e.target.files); e.target.value = ""; }} />
                 <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 text-xs text-primary hover:underline">
                   <Upload className="h-3 w-3" strokeWidth={1.75} /> {t("رفع", "Upload")}
                 </button>
               </div>
+              <p className="mb-1.5 text-[11px] text-muted-foreground/60">{t("أي صيغة · حتى 25 ميجا للملف", "Any format · up to 25 MB per file")}</p>
               {attachments.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border-strong py-2 text-center text-xs text-muted-foreground">{t("لا مرفقات", "No attachments")}</div>
               ) : (
@@ -495,12 +504,17 @@ export function Receipts() {
                       <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                       <div dir="ltr" className="min-w-0 flex-1 truncate text-start font-code">{a.filename}</div>
                       <a href={a.url} download={a.filename} className="rounded-full p-1 text-primary hover:bg-surface-hover"><Download className="h-3 w-3" strokeWidth={1.75} /></a>
-                      <button onClick={async () => {
-                        try {
-                          await api.vouchers.attachments.remove(selected.id, a.id);
-                          setAttachments((prev) => prev.filter((x) => x.id !== a.id));
-                        } catch {}
-                      }} className="rounded-full p-1 text-danger hover:bg-surface-hover"><Trash2 className="h-3 w-3" strokeWidth={1.75} /></button>
+                      {pendingAttachmentDelete === a.id ? (
+                        <InlineConfirm onConfirm={async () => {
+                          setPendingAttachmentDelete(null);
+                          try {
+                            await api.vouchers.attachments.remove(selected.id, a.id);
+                            setAttachments((prev) => prev.filter((x) => x.id !== a.id));
+                          } catch {}
+                        }} onCancel={() => setPendingAttachmentDelete(null)} />
+                      ) : (
+                        <button onClick={() => setPendingAttachmentDelete(a.id)} className="rounded-full p-1 text-danger hover:bg-surface-hover"><Trash2 className="h-3 w-3" strokeWidth={1.75} /></button>
+                      )}
                     </div>
                   ))}
                 </div>

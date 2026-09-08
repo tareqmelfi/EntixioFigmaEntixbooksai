@@ -826,6 +826,13 @@ export const api = {
       request<void>(`/api/quotes/${id}`, { method: 'DELETE' }),
     convertToInvoice: (id: string) =>
       request<{ invoice: Invoice; quoteId: string }>(`/api/quotes/${id}/convert-to-invoice`, { method: 'POST' }),
+    attachments: {
+      list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/quotes/${id}/attachments`),
+      upload: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) =>
+        request<ExpenseAttachment>(`/api/quotes/${id}/attachments`, { method: 'POST', body }),
+      remove: (id: string, aid: string) =>
+        request<void>(`/api/quotes/${id}/attachments/${aid}`, { method: 'DELETE' }),
+    },
     /** SPEC-04 · upload a BOQ workbook → parse preview (multipart · nothing written) */
     importBoq: async (file: File): Promise<BoqPreview> => {
       const form = new FormData()
@@ -1629,6 +1636,13 @@ export const api = {
     create: (data: any) => request<any>('/api/credit-notes', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/credit-notes/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/credit-notes/${id}`, { method: 'DELETE' }),
+    attachments: {
+      list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/credit-notes/${id}/attachments`),
+      upload: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) =>
+        request<ExpenseAttachment>(`/api/credit-notes/${id}/attachments`, { method: 'POST', body }),
+      remove: (id: string, aid: string) =>
+        request<void>(`/api/credit-notes/${id}/attachments/${aid}`, { method: 'DELETE' }),
+    },
   },
 
   // Supplier credits (إشعارات/مرتجعات الموردين)
@@ -1671,6 +1685,8 @@ export const api = {
     attachments: {
       list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/invoices/${id}/attachments`),
       add: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) => request<ExpenseAttachment>(`/api/invoices/${id}/attachments`, { method: 'POST', body }),
+      remove: (id: string, aid: string) =>
+        request<void>(`/api/invoices/${id}/attachments/${aid}`, { method: 'DELETE' }),
     },
     list: (params?: { status?: string; contactId?: string; page?: number; limit?: number; branchId?: string; projectId?: string; source?: string }) =>
       request<PaginatedResponse<Invoice> & { totalsByCurrency?: Record<string, { total: number; paid: number; outstanding: number }> }>('/api/invoices', { query: params }),
