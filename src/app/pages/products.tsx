@@ -6,20 +6,23 @@ import { displayLocale } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
-import { Loader2, Package, Plus } from "lucide-react";
+import { Loader2, Package, Plus, Upload } from "lucide-react";
 import { EmptyState, InlineAlert, PageHeader, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { SmartImportWizard } from "../components/smart-import-wizard";
 
 const IMAGE_STORE_KEY = "entix_product_images_v1";
 
 export function Products() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
-  const { toasts, dismiss } = useToasts();
+  const { toasts, push, dismiss } = useToasts();
+  // Smart import (2026-09-08) · the same wizard the chart of accounts uses
+  const [importOpen, setImportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [localImages, setLocalImages] = useState<Record<string, string>>({});
@@ -40,6 +43,28 @@ export function Products() {
     }
   }, []);
 
+  if (importOpen) {
+    return (
+      <>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+        <SmartImportWizard
+          entity="products"
+          onClose={() => setImportOpen(false)}
+          onImported={(report) => { push(report.ok ? "success" : "error", language === "ar" ? report.message.ar : report.message.en); refresh(); }}
+          templateFileName="entix-products-template.xls"
+          templateSheetName={t("الأصناف", "Items")}
+          templateRows={[
+            ["الرمز", "اسم الصنف", "الاسم بالعربية", "النوع", "الفئة", "سعر البيع", "التكلفة", "الكمية"],
+            ...items.map((p: any) => [
+              p.sku || "", p.name, p.nameAr || "", p.type || "SERVICE", p.category || "",
+              Number(p.unitPrice) || 0, Number(p.costPrice) || 0, Number(p.stockQty) || 0,
+            ] as Array<string | number>),
+          ]}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -49,9 +74,14 @@ export function Products() {
         title={t("المنتجات والخدمات", "Products & Services")}
         description={t("كل صنف مربوط بحسابه المحاسبي · اضغط أي صنف لفتحه وتعديله", "Every item is linked to its accounts · click any item to open and edit it")}
         actions={(
-          <Button onClick={() => navigate("/app/products/new")}>
-            <Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("صنف جديد", "New Item")}
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="products-import">
+              <Upload className="me-2 h-4 w-4" strokeWidth={1.75} />{t("استيراد ذكي", "Smart Import")}
+            </Button>
+            <Button onClick={() => navigate("/app/products/new")}>
+              <Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("صنف جديد", "New Item")}
+            </Button>
+          </>
         )}
       />
 

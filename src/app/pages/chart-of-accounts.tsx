@@ -13,14 +13,15 @@ import { displayLocale } from "../lib/number-display";
  *
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle, Info } from "lucide-react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { LedgerFigure, Metric, MetricStrip, PageHeader, SearchField } from "../components/product";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { SmartImportWizard } from "../components/smart-import-wizard";
 import { useLanguage } from "../components/LanguageContext";
 import { displayName, secondaryName } from "../lib/display-name";
 import { api, ApiError, Account, AccountTransactions } from "../lib/api";
@@ -39,20 +40,6 @@ type AccountForm = {
   allowPayment: boolean;
   allowExpenseClaim: boolean;
 };
-type ImportRow = {
-  code: string;
-  name: string;
-  nameAr: string;
-  type?: AccountType;
-  parentCode?: string;
-  description?: string;
-  confidence?: number | null;
-  duplicateCode?: boolean;
-  duplicateNameCode?: string | null;
-  needsReviewReason?: string | null;
-  rowStatus?: "new" | "code_duplicate" | "name_duplicate" | "needs_review";
-};
-
 type TFunc = (ar: string, en?: string) => string;
 function buildTypeLabels(t: TFunc): Record<AccountType, string> {
   return {
@@ -96,10 +83,6 @@ function buildCashFlowMeta(t: TFunc): Record<CashFlowType, { label: string; hint
 
 function formatAmount(value: number | null | undefined): string {
   return Number(value || 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function normalizeText(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function looksLikeBankAccount(value: string): boolean {
@@ -218,7 +201,7 @@ function flattenTree(roots: TreeNode[], expanded: Set<string>): TreeNode[] {
 }
 
 export function ChartOfAccounts() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const TYPE_LABELS = buildTypeLabels(t);
   const TYPE_LABELS_PLURAL = buildTypeLabelsPlural(t);
   const TYPE_META = buildTypeMeta(t);
@@ -237,9 +220,10 @@ export function ChartOfAccounts() {
   const [form, setForm] = useState<AccountForm>(() => defaultForm("ASSET"));
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
   const [cashFlowManuallyEdited, setCashFlowManuallyEdited] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreview, setImportPreview] = useState<{ rows: ImportRow[]; mapping: Record<string, string>; rawHeaders: string[]; source: "csv" | "file" | "ai"; warnings?: string[]; fileName?: string } | null>(null);
-  const [importBusy, setImportBusy] = useState(false);
+  // Smart import (2026-09-08) · the FullPageForm wizard replaced the old
+  // overlay preview + AI-only analyzer that silently returned zero rows for a
+  // real .xlsx. See components/smart-import-wizard.tsx.
+  const [importOpen, setImportOpen] = useState(false);
   const [mergeSource, setMergeSource] = useState<Account | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeBusy, setMergeBusy] = useState(false);
@@ -484,209 +468,35 @@ export function ChartOfAccounts() {
   };
 
   // ── Smart import ──
-  // Detects header column for code/name/nameAr/type/parentCode regardless of language
-  const detectMapping = (headers: string[]): Record<string, string> => {
-    const lower = headers.map(h => h.trim().toLowerCase());
-    const find = (...needles: string[]) => {
-      for (const n of needles) {
-        const i = lower.findIndex(h => h.includes(n));
-        if (i >= 0) return headers[i];
-      }
-      return '';
-    };
-    return {
-      code: find('code', 'رمز', 'كود', 'رقم'),
-      name: find('name_en', 'name en', 'name', 'اسم انج', 'english'),
-      nameAr: find('namear', 'name_ar', 'name ar', 'اسم عر', 'arabic', 'الاسم'),
-      type: find('type', 'تصنيف', 'نوع', 'فئة', 'category'),
-      parentCode: find('parent', 'أب', 'الأب', 'parent_code', 'parentcode'),
-      description: find('description', 'وصف', 'desc', 'notes'),
-    };
-  };
-
-  const parseCsv = (text: string): { headers: string[]; rows: string[][] } => {
-    // Simple CSV parser handling quoted fields + commas
-    const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
-    const parseLine = (line: string): string[] => {
-      const out: string[] = [];
-      let cur = '', inQuote = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (inQuote) {
-          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-          else if (ch === '"') inQuote = false;
-          else cur += ch;
-        } else {
-          if (ch === ',') { out.push(cur); cur = ''; }
-          else if (ch === '"') inQuote = true;
-          else cur += ch;
-        }
-      }
-      out.push(cur);
-      return out;
-    };
-    const headers = parseLine(lines[0]);
-    const rows = lines.slice(1).map(parseLine);
-    return { headers, rows };
-  };
-
-  const normalizeType = (t: string): AccountType | undefined => {
-    const s = t.trim().toUpperCase();
-    if (['ASSET', 'أصل', 'أصول', 'الأصول'].includes(s)) return 'ASSET';
-    if (['LIABILITY', 'التزام', 'التزامات', 'الالتزامات', 'LIABILITIES'].includes(s)) return 'LIABILITY';
-    if (['EQUITY', 'حقوق', 'حقوق ملكية', 'حقوق الملكية'].includes(s)) return 'EQUITY';
-    if (['REVENUE', 'إيراد', 'إيرادات', 'الإيرادات', 'INCOME'].includes(s)) return 'REVENUE';
-    if (['EXPENSE', 'مصروف', 'مصروفات', 'المصروفات', 'EXPENSES'].includes(s)) return 'EXPENSE';
-    if (['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(s)) return s as AccountType;
-    return undefined;
-  };
-
-  const annotateImportRows = (rows: ImportRow[]): ImportRow[] => {
-    const byCode = new Set(items.map(a => a.code));
-    const byName = new Map(items.map(a => [normalizeText(`${a.name} ${a.nameAr || ""}`), a.code]));
-    const importCodes = new Set(rows.map(row => row.code).filter(Boolean));
-    return rows.map((row) => {
-      const duplicateCode = byCode.has(row.code);
-      const duplicateNameCode = byName.get(normalizeText(`${row.name} ${row.nameAr || ""}`)) || null;
-      const parentMissing = !!row.parentCode && !byCode.has(row.parentCode) && !importCodes.has(row.parentCode);
-      const missingType = !row.type;
-      const lowConfidence = typeof row.confidence === "number" && row.confidence < 0.7;
-      const needsReviewReason = duplicateNameCode
-        ? t("اسم مشابه للحساب ", "Similar name to account ") + duplicateNameCode
-        : parentMissing
-          ? t("الأب ", "Parent ") + row.parentCode + t(" غير موجود", " not found")
-          : missingType
-            ? t("التصنيف غير واضح", "Type unclear")
-            : lowConfidence
-              ? t("ثقة التحليل منخفضة", "Low analysis confidence")
-              : null;
-      return {
-        ...row,
-        duplicateCode,
-        duplicateNameCode,
-        needsReviewReason,
-        rowStatus: duplicateCode ? "code_duplicate" : duplicateNameCode ? "name_duplicate" : needsReviewReason ? "needs_review" : "new",
-      };
-    });
-  };
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("entix-coa-import-preview");
-      if (!raw || importPreview || items.length === 0) return;
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed?.rows) && parsed.rows.length > 0) {
-        setImportPreview({ ...parsed, rows: annotateImportRows(parsed.rows) });
-      }
-    } catch {
-      localStorage.removeItem("entix-coa-import-preview");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
-
-  useEffect(() => {
-    try {
-      if (importPreview) localStorage.setItem("entix-coa-import-preview", JSON.stringify(importPreview));
-      else localStorage.removeItem("entix-coa-import-preview");
-    } catch {}
-  }, [importPreview]);
-
-  const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const s = String(reader.result || "");
-      const idx = s.indexOf("base64,");
-      resolve(idx >= 0 ? s.slice(idx + "base64,".length) : s);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
-  const handleFilePick = async (file: File) => {
-    try {
-      const isCsv = /csv|text\/plain/.test(file.type) || /\.csv$/i.test(file.name);
-      if (!isCsv) {
-        setImportBusy(true);
-        const r = await api.accounts.analyzeImport({
-          fileBase64: await fileToBase64(file),
-          fileName: file.name,
-          mimeType: file.type || "application/octet-stream",
-        });
-        const parsed = annotateImportRows((r.rows || []).map((row: any) => ({
-          code: String(row.code || "").trim(),
-          name: String(row.name || "").trim(),
-          nameAr: String(row.nameAr || "").trim(),
-          type: row.type || undefined,
-          parentCode: row.parentCode || "",
-          description: row.description || "",
-          confidence: row.confidence ?? null,
-        })).filter((row: ImportRow) => row.code));
-        if (parsed.length === 0) {
-          push("error", t("لم يستخرج التحليل حسابات واضحة من الملف", "Analysis did not extract clear accounts from the file"));
-          return;
-        }
-        setImportPreview({ rows: parsed, mapping: {}, rawHeaders: [], source: "file", warnings: r.warnings || [], fileName: file.name });
-        push("success", t("تم تحليل ", "Analyzed ") + parsed.length + t(" حساب من الملف", " accounts from file"));
-        return;
-      }
-      const text = await file.text();
-      const { headers, rows: rawRows } = parseCsv(text);
-      const mapping = detectMapping(headers);
-      const colIdx = (key: string) => headers.indexOf(mapping[key]);
-      const idxCode = colIdx('code');
-      const idxName = colIdx('name');
-      const idxNameAr = colIdx('nameAr');
-      const idxType = colIdx('type');
-      const idxParent = colIdx('parentCode');
-      const idxDesc = colIdx('description');
-
-      const parsed = rawRows.map(r => ({
-        code: idxCode >= 0 ? (r[idxCode] || '').trim() : '',
-        name: idxName >= 0 ? (r[idxName] || '').trim() : '',
-        nameAr: idxNameAr >= 0 ? (r[idxNameAr] || '').trim() : '',
-        type: idxType >= 0 ? normalizeType(r[idxType] || '') : undefined,
-        parentCode: idxParent >= 0 ? (r[idxParent] || '').trim() : '',
-        description: idxDesc >= 0 ? (r[idxDesc] || '').trim() : '',
-      })).filter(r => r.code);
-
-      if (parsed.length === 0) {
-        push('error', t("لم يتم العثور على صفوف صالحة · تأكد من وجود عمود code أو رمز", "No valid rows found · ensure a code or رمز column exists"));
-        return;
-      }
-      setImportPreview({ rows: annotateImportRows(parsed), mapping, rawHeaders: headers, source: "csv", fileName: file.name });
-    } catch (e: any) {
-      push('error', e?.message || t("فشل قراءة الملف", "Failed to read file"));
-    } finally {
-      setImportBusy(false);
-    }
-  };
-
-  const confirmImport = async () => {
-    if (!importPreview) return;
-    setImportBusy(true);
-    try {
-      const rowsToImport = importPreview.rows.filter(row => row.rowStatus === "new");
-      if (rowsToImport.length === 0) {
-        push("error", t("لا توجد حسابات جديدة جاهزة للاستيراد · راجع الصفوف الملونة أولاً", "No new accounts ready for import · review highlighted rows first"));
-        return;
-      }
-      const r = await api.accounts.importBulk(rowsToImport.map(row => ({
-        code: row.code,
-        name: row.name || row.nameAr || row.code,
-        nameAr: row.nameAr || null,
-        type: row.type,
-        parentCode: row.parentCode || null,
-        description: row.description || null,
-      })), true);
-      push('success', r.message);
-      setImportPreview(null);
-      refresh();
-    } catch (e: any) {
-      push('error', e instanceof ApiError ? e.message : t("فشل الاستيراد", "Import failed"));
-    } finally {
-      setImportBusy(false);
-    }
-  };
+  // Smart-import wizard takes the whole content area (UX-1 · FullPageForm, no dialogs).
+  // The template it offers is the org's CURRENT chart, so the user edits and re-uploads.
+  if (importOpen) {
+    return (
+      <>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+        <SmartImportWizard
+          entity="accounts"
+          onClose={() => setImportOpen(false)}
+          onImported={(report) => { push(report.ok ? "success" : "error", language === "ar" ? report.message.ar : report.message.en); refresh(); }}
+          templateFileName="entix-chart-of-accounts-template.xls"
+          templateSheetName={t("دليل الحسابات", "Chart of accounts")}
+          templateRows={[
+            ["كود الحساب", "اسم الحساب", "Account Name (EN)", "المستوى", "التصنيف", "طبيعة الرصيد", "الحساب الأب", "ملاحظة"],
+            ...items.map((a) => [
+              a.code,
+              a.nameAr || a.name,
+              a.name,
+              String(a.code.length <= 1 ? 1 : a.code.length <= 2 ? 2 : 3),
+              TYPE_LABELS[a.type] || a.type,
+              a.type === "ASSET" || a.type === "EXPENSE" ? "مدين" : "دائن",
+              items.find((p) => p.id === a.parentId)?.code || "",
+              a.description || "",
+            ] as Array<string | number>),
+          ]}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -698,10 +508,8 @@ export function ChartOfAccounts() {
         description={t("شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات", "Hierarchical account tree by type · 1xxx Assets · 2xxx Liabilities · 3xxx Equity · 4xxx Revenue · 5xxx Expenses")}
         actions={(
           <>
-            <input ref={fileInputRef} type="file" accept=".csv,text/csv,.pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif,.xlsx,.xls" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy}>
-              {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" strokeWidth={1.75} />}
+            <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="coa-import">
+              <Upload className="me-2 h-4 w-4" strokeWidth={1.75} />
               {t("استيراد ذكي", "Smart Import")}
             </Button>
             <Button variant="outline" onClick={handleExport}>
@@ -950,96 +758,6 @@ export function ChartOfAccounts() {
                   </table>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import preview modal */}
-      {importPreview && (
-        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-3" onClick={() => setImportPreview(null)}>
-          <div className="bg-card rounded-lg shadow-[var(--elevation-popover)] w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
-              <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
-                <FileSpreadsheet className="h-5 w-5 text-primary" /> {t("معاينة الاستيراد", "Import Preview")}
-                {importPreview.fileName && <span className="font-english text-xs text-muted-foreground">· {importPreview.fileName}</span>}
-              </h2>
-              <button type="button" onClick={() => setImportPreview(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
-            </div>
-
-            <div className="p-4 space-y-3 overflow-y-auto flex-1">
-              <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info">
-                ✓ {t("تم اكتشاف", "Detected")} <span className="font-english font-bold">{importPreview.rows.length}</span> {t("صف من", "rows from")} {importPreview.source === "csv" ? "CSV" : t("تحليل ذكي للملف", "smart file analysis")}
-                <span className="ms-2">· {t("جديد:", "New:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "new").length}</span></span>
-                <span className="ms-2">· {t("مكرر بالرمز:", "Code duplicate:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "code_duplicate").length}</span></span>
-                <span className="ms-2">· {t("يحتاج مراجعة:", "Needs review:")} <span className="font-english font-bold">{importPreview.rows.filter(r => r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review").length}</span></span>
-                {(Object.entries(importPreview.mapping).some(([_, v]) => v) || (importPreview.warnings || []).length > 0) && (
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {Object.entries(importPreview.mapping).filter(([_, v]) => v).map(([k, v]) => (
-                      <span key={k} className="text-[10px] px-2 py-0.5 rounded bg-card border border-info-border font-english">
-                        <strong>{k}</strong> ← {v}
-                      </span>
-                    ))}
-                    {(importPreview.warnings || []).slice(0, 3).map((warning, i) => (
-                      <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-warning-subtle border border-warning-border text-warning">
-                        {warning}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-2 flex items-start gap-1.5 text-[11px] text-info/80">
-                  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  {t("الأخضر جاهز للإضافة، الأحمر موجود مسبقاً ولن يستورد، والبرتقالي يحتاج مراجعة حتى لا يتكرر دليل الحسابات أو يركب تحت أب خطأ.", "Green is ready to add, red already exists and wont be imported, orange needs review to avoid duplicates or wrong parent.")}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
-                    <tr>
-                      <th className="px-3 py-2 text-start font-medium">{t("الرمز", "Code")}</th>
-                      <th className="px-3 py-2 text-start font-medium">{t("الاسم", "Name")}</th>
-                      <th className="px-3 py-2 text-start font-medium">{t("العربية", "Arabic")}</th>
-                      <th className="px-3 py-2 text-start font-medium">{t("التصنيف", "Type")}</th>
-                      <th className="px-3 py-2 text-start font-medium">{t("الأب", "Parent")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importPreview.rows.map((r, i) => {
-                      const inferredType = r.type || (r.code ? (r.code.charAt(0) === '1' ? 'ASSET' : r.code.charAt(0) === '2' ? 'LIABILITY' : r.code.charAt(0) === '3' ? 'EQUITY' : r.code.charAt(0) === '4' ? 'REVENUE' : 'EXPENSE') : '?');
-                      return (
-                        <tr key={i} className={`border-t border-border/50 ${r.rowStatus === "code_duplicate" ? "bg-danger-subtle/70" : r.rowStatus === "name_duplicate" || r.rowStatus === "needs_review" ? "bg-warning-subtle/80" : "bg-success-subtle/55"}`}>
-                          <td className="px-3 py-1.5 font-english font-semibold text-primary">{r.code}</td>
-                          <td className="px-3 py-1.5 font-english">
-                            {r.name || '—'}
-                            {r.rowStatus === "new" && <span className="ms-2 rounded bg-success-subtle px-1.5 py-0.5 text-[10px] text-success">{t("سيضاف", "Will add")}</span>}
-                            {r.rowStatus === "code_duplicate" && <span className="ms-2 rounded bg-danger-subtle px-1.5 py-0.5 text-[10px] text-danger">{t("رمز موجود", "Code exists")}</span>}
-                            {r.rowStatus === "name_duplicate" && <span className="ms-2 rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] text-warning">t("اسم مشابه:", "Similar name:") {r.duplicateNameCode}</span>}
-                            {r.rowStatus === "needs_review" && <span className="ms-2 rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] text-warning">{r.needsReviewReason}</span>}
-                          </td>
-                          <td className="px-3 py-1.5">{r.nameAr || '—'}</td>
-                          <td className="px-3 py-1.5">
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${TYPE_COLORS[inferredType as AccountType] || 'bg-surface-hover'}`}>
-                              {TYPE_LABELS[inferredType as AccountType] || inferredType}
-                              {!r.type && <span className="text-[9px] ms-1 opacity-60">t("(تلقائي)", "(auto)")</span>}
-                            </span>
-                          </td>
-                          <td className="px-3 py-1.5 font-english text-xs text-muted-foreground">{r.parentCode || '—'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <p className="text-xs text-muted-foreground/60">{t("عند الحفظ سيتم استيراد الصفوف الخضراء فقط · المعاينة تبقى محفوظة مؤقتاً لو أغلقتها ورجعت لها.", "On save only green rows will be imported · preview is temporarily saved if you close and return.")}</p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-border/50">
-              <Button type="button" variant="outline" onClick={() => setImportPreview(null)} className="border-border" disabled={importBusy}>{t("إلغاء", "Cancel")}</Button>
-              <Button onClick={confirmImport} disabled={importBusy} className="bg-primary hover:bg-primary/90">
-                {importBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("استيراد ", "Import ") + importPreview.rows.filter(r => r.rowStatus === "new").length + t(" حساب جاهز", " accounts ready")}
-              </Button>
             </div>
           </div>
         </div>
