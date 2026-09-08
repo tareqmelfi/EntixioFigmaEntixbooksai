@@ -779,7 +779,7 @@ export function ChartOfAccounts() {
                     <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
                       <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></div>
-                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english">{sectionTotal.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english tabular-nums" dir="ltr">{sectionTotal.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
@@ -840,7 +840,7 @@ export function ChartOfAccounts() {
                               )}
                             </button>
                             {/* Balance */}
-                            <div className="font-english text-xs shrink-0 text-end" style={{ minWidth: "80px" }}>
+                            <div className="font-english text-xs shrink-0 text-end tabular-nums" dir="ltr" style={{ minWidth: "80px" }}>
                               {(node.balance ?? 0) !== 0 ? (
                                 <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-warning"}`}>
                                   {(node.balance ?? 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

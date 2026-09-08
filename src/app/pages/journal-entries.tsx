@@ -392,7 +392,7 @@ export function JournalEntries() {
               <div className="ledger-table overflow-x-auto">
                 <table className="w-full min-w-[900px] table-fixed text-sm">
                   <colgroup>
-                    <col style={{ width: "150px" }} />{/* رقم القيد · mono */}
+                    <col style={{ width: "230px" }} />{/* رقم القيد · mono ids run to 32 chars */}
                     <col style={{ width: "110px" }} />
                     <col />
                     <col style={{ width: "130px" }} />

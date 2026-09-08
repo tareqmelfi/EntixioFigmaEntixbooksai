@@ -53,7 +53,7 @@ function DocumentStatus({ status }: { status: string }) {
     PAID:     { tone: "success", label: { ar: "مدفوعة", en: "Paid" } },
     SENT:     { tone: "info", label: { ar: "مرسلة", en: "Sent" } },
     PARTIAL:  { tone: "warning", label: { ar: "جزئية", en: "Partial" } },
-    OVERDUE:  { tone: "critical", label: { ar: "متأخرة", en: "Overdue" } },
+    OVERDUE:  { tone: "warning", label: { ar: "متأخرة", en: "Overdue" } },
     DRAFT:    { tone: "neutral", label: { ar: "مسودة", en: "Draft" } },
     UNPAID:   { tone: "warning", label: { ar: "غير مدفوعة", en: "Unpaid" } },
     APPROVED: { tone: "info", label: { ar: "معتمدة", en: "Approved" } },
@@ -201,7 +201,7 @@ export function ContactDetail() {
       />
 
       {/* Wave-style 2-column · contact card on left + tabs on right */}
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 gap-5 items-start lg:grid-cols-[280px_minmax(0,1fr)]">
         {/* Left contact card */}
         <Card className="border-border">
           <CardContent className="p-5">
@@ -287,11 +287,8 @@ export function ContactDetail() {
           </CardContent>
         </Card>
 
-        {/* Right column — placeholder spacer for tabs/content (existing KPIs + sections render below this grid) */}
-        <div className="min-w-0">
-          {/* spacer; content continues below outside grid */}
-        </div>
-      </div>
+        {/* Right column · figures + tabs + tab content (the card stays beside them) */}
+        <div className="min-w-0 space-y-5">
 
       {/* Top KPI strip */}
       <MetricStrip>
@@ -350,6 +347,8 @@ export function ContactDetail() {
       {tab === "documents" && <DocumentsTab contact={contact} />}
       {tab === "portal" && <PortalTab contact={contact} />}
       {tab === "activity" && <ActivityTab contactId={contact.id} />}
+        </div>
+      </div>
       {/* تعديل العميل — in place (was: navigate away to /app/contacts?edit= and
           dump the user on the list; now the same wizard opens here and the page
           refreshes with the saved data) */}
@@ -391,7 +390,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
             {contact.phone && (
               <div className="flex items-start gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
-                <a href={`tel:${contact.phone}`} className="text-foreground hover:underline font-english">{contact.phone}</a>
+                <a href={`tel:${contact.phone}`} dir="ltr" className="inline-block text-foreground hover:underline font-english tabular-nums">{contact.phone}</a>
               </div>
             )}
             {(contact.addressLine1 || contact.city) && (
