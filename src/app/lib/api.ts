@@ -136,6 +136,28 @@ type FetchOpts = {
   headers?: Record<string, string>
 }
 
+/**
+ * Multipart upload · the one place a File is POSTed. `request` always sends JSON,
+ * and FormData must NOT carry a content-type header (the browser writes the
+ * boundary), so this stays separate rather than growing a mode flag.
+ */
+async function uploadFile<T>(path: string, file: File, fields?: Record<string, string>): Promise<T> {
+  const form = new FormData()
+  form.append('file', file)
+  for (const [k, v] of Object.entries(fields || {})) form.append(k, v)
+  const headers: Record<string, string> = {}
+  const oid = getOrgId()
+  if (oid) headers['X-Org-Id'] = oid
+  try {
+    const raw = localStorage.getItem('entix_act_as')
+    if (raw) { const v = JSON.parse(raw); if (v?.orgId === getOrgId() && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+  } catch { /* ignore */ }
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: form, credentials: 'include' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'upload_failed', undefined, { body: data })
+  return data as T
+}
+
 async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   const url = new URL(`${API_BASE}${path}`)
   if (opts.query) {
@@ -981,6 +1003,51 @@ export const api = {
       request<ProjectBudget>(`/api/projects/${id}/budget`, { method: 'POST', body: data }),
     approveBudget: (id: string) =>
       request<ProjectBudget>(`/api/projects/${id}/budget/approve`, { method: 'POST', body: {} }),
+    // SPEC-05 §5 · tasks · the execution layer (cost + time · never a sale figure)
+    tasks: (id: string) => request<ProjectTaskList>(`/api/projects/${id}/tasks`),
+    createTask: (id: string, data: Partial<ProjectTask> & { title: string }) =>
+      request<ProjectTask>(`/api/projects/${id}/tasks`, { method: 'POST', body: data }),
+    reorderTasks: (id: string, ids: string[]) =>
+      request<ProjectTaskList>(`/api/projects/${id}/tasks/reorder`, { method: 'PATCH', body: { ids } }),
+    tasksFromBudget: (id: string, data: { replace?: boolean } = {}) =>
+      request<ProjectTaskList>(`/api/projects/${id}/tasks/from-budget`, { method: 'POST', body: data }),
+    tasksFromEstimate: (id: string, data: { replace?: boolean; estimateId?: string | null } = {}) =>
+      request<ProjectTaskList>(`/api/projects/${id}/tasks/from-estimate`, { method: 'POST', body: data }),
+    /** AI project intake · upload a proposal / BOQ → PREVIEW (writes nothing). */
+    intake: (file: File) => uploadFile<ProjectIntakePreview>('/api/projects/intake', file),
+    /** AI project intake · the CONFIRMED preview → project + contact + tasks. */
+    intakeCommit: (body: {
+      project: { name: string; code?: string | null; startDate?: string | null; endDate?: string | null; contractValue?: number | null; notes?: string | null }
+      client?: { contactId?: string | null; createName?: string | null; taxId?: string | null }
+      tasks: Array<{ itemNo?: string | null; title: string; unit?: string | null; quantity?: number | null; plannedCost?: number | null; plannedDays?: number | null }>
+      createBudget?: boolean
+      source?: { fileName?: string | null; mimeType?: string | null; fileHash?: string | null; extract?: unknown }
+    }) => request<{ project: any; createdContact: { id: string; displayName: string } | null; budgetId: string | null; taskCount: number }>(
+      '/api/projects/intake/commit', { method: 'POST', body },
+    ),
+  },
+
+  // SPEC-05 §5 · one task, addressed directly (the row editor patches here)
+  tasks: {
+    get: (id: string) => request<ProjectTask>(`/api/tasks/${id}`),
+    update: (id: string, data: Partial<ProjectTask>) =>
+      request<ProjectTask>(`/api/tasks/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
+  },
+
+  /**
+   * The org's VAT catalogue. Without this the line grid had a tax dropdown but no
+   * id to send, and every quote saved taxTotal = 0 (a 400 quote billed as 400).
+   * The list seeds the standard KSA rates for an org that has none.
+   */
+  taxRates: {
+    list: (params?: { all?: '1' }) =>
+      request<{ items: TaxRate[]; total: number; defaultId: string | null }>('/api/tax-rates', { query: params }),
+    create: (data: { name: string; nameAr?: string | null; rate: number | string; type?: TaxRate['type']; isDefault?: boolean; isInclusive?: boolean }) =>
+      request<TaxRate>('/api/tax-rates', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<{ name: string; nameAr: string | null; rate: number | string; type: TaxRate['type']; isDefault: boolean; isInclusive: boolean; isActive: boolean }>) =>
+      request<TaxRate>(`/api/tax-rates/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<void | (TaxRate & { deactivated: true; usedBy: number })>(`/api/tax-rates/${id}`, { method: 'DELETE' }),
   },
 
   // SPEC-05 L3 · purchase orders issued from budget cost lines
@@ -2333,6 +2400,87 @@ export interface ProjectBudget {
   notes?: string | null
   lines: ProjectBudgetLine[]
 }
+/** The org's VAT catalogue · the line grid picks its `taxRateId` from here. */
+export interface TaxRate {
+  id: string
+  name: string
+  nameAr?: string | null
+  /** Stored as a FRACTION · 0.15 = 15% */
+  rate: string
+  type: 'STANDARD' | 'ZERO_RATED' | 'EXEMPT'
+  isDefault: boolean
+  isInclusive: boolean
+  isActive: boolean
+}
+
+/** SPEC-05 §5 · a project task · cost + time only, never a sale price. */
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE'
+export type TaskHealth = 'GREEN' | 'AMBER' | 'RED'
+export interface ProjectTask {
+  id: string
+  projectId: string
+  itemNo?: string | null
+  section?: string | null
+  title: string
+  description?: string | null
+  status: TaskStatus
+  sortOrder: number
+  plannedCost: string
+  plannedDays?: number | null
+  startDate?: string | null
+  dueDate?: string | null
+  progressPct: string
+  assigneeContactId?: string | null
+  assigneeContact?: { id: string; displayName: string } | null
+  /** Derived · summed from the expenses / bill lines / POs tagged with the task. */
+  actualCost: number
+  remainingCost: number
+  health: TaskHealth
+  costRatio: number | null
+  overBudget: boolean
+  overdue: boolean
+  daysRemaining: number | null
+}
+export interface ProjectTaskSummary {
+  count: number
+  plannedCost: number
+  actualCost: number
+  remainingCost: number
+  progressPct: number
+  byHealth: Record<TaskHealth, number>
+}
+export interface ProjectTaskList {
+  items: ProjectTask[]
+  total: number
+  summary: ProjectTaskSummary
+  /** true when the caller's role is not allowed to see sale/margin figures. */
+  confidentialHidden?: boolean
+  created?: number
+}
+
+/** AI project intake · the PREVIEW · nothing is written until commit. */
+export interface ProjectIntakeTask {
+  itemNo: string | null
+  title: string
+  unit: string | null
+  quantity: number | null
+  plannedCost: number | null
+  plannedCostSource: 'cost-column' | 'line-amount' | null
+  plannedDays: number | null
+  sourceRow: number | null
+}
+export interface ProjectIntakePreview {
+  source: { fileName: string | null; mimeType: string; fileHash: string; engine: 'spreadsheet' | 'ai'; sheet?: string | null }
+  project: { name: string | null; code: string | null; documentNumber: string | null; startDate: string | null; endDate: string | null; contractValue: number | null; currency: string }
+  client: { name: string | null; taxId: string | null; matchedContactId: string | null; matchedBy: 'vat' | 'name' | null; isNew: boolean }
+  tasks: ProjectIntakeTask[]
+  budget: { costTotal: number | null; lineCount: number }
+  /** Keys the FILE did not contain · rendered as «غير موجود في الملف». */
+  missing: string[]
+  warnings: string[]
+  confidence: number | null
+}
+
 export interface PurchaseOrderLine {
   id: string
   description: string
