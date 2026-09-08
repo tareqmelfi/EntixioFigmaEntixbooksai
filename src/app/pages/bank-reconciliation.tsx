@@ -421,7 +421,7 @@ export function BankReconciliation() {
                           {r.sourceFile && <div className="text-[11px] text-muted-foreground/60 font-english truncate" dir="ltr">{r.sourceFile}</div>}
                         </td>
                         <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-success" : "text-danger"}`} dir="ltr">
-                          {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale())}
+                          {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-3 py-2">
                           {r.matchKind && r.matchKind !== "none" ? (

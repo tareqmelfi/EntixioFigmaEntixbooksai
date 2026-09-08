@@ -143,8 +143,8 @@ export function QuotePublic() {
           <div className="no-print" style={{ background: "#fff", border: "2px solid #5875DB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
             <div style={{ fontWeight: 800, color: "#1A1E48", marginBottom: 8 }}>{t("تأكيد الموافقة على العرض", "Confirm approval")}</div>
             <div style={{ fontSize: 12.5, color: "#4A5A6E", marginBottom: 10 }}>
-              {t(`بالضغط على «تأكيد الموافقة» فإنكم توافقون على عرض السعر ${quote.quoteNumber} بقيمة ${Number(quote.total).toLocaleString(displayLocale())} ${quote.currency}.`,
-                 `By confirming you approve proposal ${quote.quoteNumber} for ${Number(quote.total).toLocaleString(displayLocale())} ${quote.currency}.`)}
+              {t(`بالضغط على «تأكيد الموافقة» فإنكم توافقون على عرض السعر ${quote.quoteNumber} بقيمة ${Number(quote.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${quote.currency}.`,
+                 `By confirming you approve proposal ${quote.quoteNumber} for ${Number(quote.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${quote.currency}.`)}
             </div>
             {formError && <div style={{ background: "#FDECEC", color: "#8A1F1F", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{formError}</div>}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

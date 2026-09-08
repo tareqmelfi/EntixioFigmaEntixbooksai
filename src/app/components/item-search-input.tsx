@@ -135,7 +135,7 @@ export function ItemSearchInput({ value, onChange, placeholder, className }: Ite
                   </div>
                 </div>
                 {item.price > 0 && (
-                  <span className="text-xs font-english text-muted-foreground shrink-0">{item.price.toLocaleString(displayLocale())}</span>
+                  <span className="text-xs font-english text-muted-foreground shrink-0">{item.price.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
                 )}
               </button>
             ))}

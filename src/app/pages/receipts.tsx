@@ -415,11 +415,11 @@ export function Receipts() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المقبوض", "Total received")}</div>
-            <div className="font-english font-bold text-success mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString(displayLocale())} SR</div>
+            <div className="font-english font-bold text-success mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} SR</div>
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("متوسط السند", "Average voucher")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString(displayLocale())} SR</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avg.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} SR</div>
           </CardContent></Card>
         </div>
 
@@ -468,7 +468,7 @@ export function Receipts() {
                       <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
                       <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
                       <td className="px-4 py-3 truncate text-foreground">{v.contact?.displayName || "—"}</td>
-                      <td className="px-4 py-3 text-end font-english font-semibold text-success" dir="ltr">{Number(v.amount).toLocaleString(displayLocale())}</td>
+                      <td className="px-4 py-3 text-end font-english font-semibold text-success" dir="ltr">{Number(v.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">{METHOD_LABELS[v.paymentMethod]}</td>
                       <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
                         <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-info-subtle rounded" title={t("طباعة", "Print")}>
@@ -500,7 +500,7 @@ export function Receipts() {
             <div className="text-center bg-success-subtle border border-success-border rounded-lg p-4">
               <div className="text-xs text-success">{t("المبلغ المقبوض", "Amount received")}</div>
               <div className="font-english font-bold text-success mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
-                {Number(selected.amount).toLocaleString(displayLocale())} {selected.currency}
+                {Number(selected.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {selected.currency}
               </div>
               <div className="text-xs text-success mt-1">{METHOD_LABELS[selected.paymentMethod]}</div>
             </div>

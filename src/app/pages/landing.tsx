@@ -43,7 +43,7 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
 
   return (
     <div ref={ref} className="font-display text-foreground leading-none text-[40px] sm:text-[48px] lg:text-[56px]" style={{ fontVariantNumeric: "tabular-nums", direction: "ltr", unicodeBidi: "isolate" }}>
-      {count.toLocaleString(displayLocale("en-US"))}{suffix}
+      {count.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}{suffix}
     </div>
   );
 }

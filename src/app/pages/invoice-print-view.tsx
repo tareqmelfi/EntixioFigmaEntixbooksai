@@ -393,7 +393,7 @@ export function InvoicePrintView() {
                       <div className="print-wrap-any" style={{ fontWeight: 700 }}>{descHead}</div>
                       {descRest && <div className="print-wrap-any" style={{ whiteSpace: "pre-wrap", color: "#6B7280", fontSize: 10, lineHeight: 1.45 }}>{descRest}</div>}
                     </td>
-                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString(displayLocale())}</td>
+                    <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{q.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(p.toFixed(2))}</td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(base.toFixed(2))}</td>
                     <td style={{ ...cell, textAlign: "end", fontFamily: "monospace", direction: "ltr" }}>{displayDigits(Math.max(lineTotal - base, 0).toFixed(2))}</td>

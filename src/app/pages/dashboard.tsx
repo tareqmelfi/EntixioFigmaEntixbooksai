@@ -279,7 +279,7 @@ useEffect(() => {
   }
 
   const cur = data.org.baseCurrency;
-  const fmt = (n: number) => `${n.toLocaleString(displayLocale())} ${cur}`;
+  const fmt = (n: number) => `${n.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${cur}`;
   const fmtCompact = (n: number) => {
     if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
     if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -523,7 +523,7 @@ useEffect(() => {
               <BarChart data={plRows} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barGap={4} barCategoryGap="26%">
                 <CartesianGrid {...gridStyle} vertical={false} />
                 <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={{ stroke: "var(--border)" }} tickMargin={6} />
-                <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} />
                 <Bar dataKey="revenue" name={t("الإيرادات", "Revenue")} fill={series.pale} radius={[4, 4, 0, 0]} maxBarSize={42} />
                 <Bar dataKey="profit" name={t("الربح", "Profit")} radius={[4, 4, 0, 0]} maxBarSize={42}>
                   {plRows.map((row, i) => (
@@ -585,7 +585,7 @@ useEffect(() => {
                     <CartesianGrid {...gridStyle} horizontal={false} />
                     <XAxis type="number" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} />
                     <YAxis type="category" dataKey="category" orientation="right" width={110} tick={axisStyle} tickLine={false} axisLine={false} />
-                    <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                    <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} />
                     <Bar dataKey="value" fill={series.ink} radius={[0, 4, 4, 0]} maxBarSize={22} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -606,7 +606,7 @@ useEffect(() => {
                   <CartesianGrid {...gridStyle} vertical={false} />
                   <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
                   <YAxis orientation="right" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} width={44} />
-                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                  <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} />
                   <Bar dataKey="revenue" fill={series.pale} radius={[4, 4, 0, 0]} maxBarSize={28} />
                   <Bar dataKey="expenses" fill={series.ink} radius={[4, 4, 0, 0]} maxBarSize={28} />
                 </BarChart>
@@ -635,7 +635,7 @@ useEffect(() => {
                       <CartesianGrid {...gridStyle} vertical={false} />
                       <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
                       <YAxis orientation="right" tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={fmtCompact} width={44} />
-                      <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                      <Tooltip {...tooltipStyle} cursor={false} formatter={(v: any) => Number(v).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} />
                       <Line type="monotone" dataKey="inflow" stroke={series.ink} strokeWidth={2} dot={{ r: 3, fill: series.ink }} activeDot={{ r: 5 }} />
                       <Line type="monotone" dataKey="outflow" stroke={series.accent} strokeWidth={2} dot={{ r: 3, fill: series.accent }} activeDot={{ r: 5 }} />
                     </LineChart>
@@ -680,7 +680,7 @@ useEffect(() => {
                       <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip {...tooltipStyle} formatter={(v: any) => Number(v).toLocaleString(displayLocale())} />
+                  <Tooltip {...tooltipStyle} formatter={(v: any) => Number(v).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>

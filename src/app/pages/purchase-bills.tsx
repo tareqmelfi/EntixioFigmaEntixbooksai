@@ -864,7 +864,7 @@ export function PurchaseBills() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي المشتريات", "Total purchases")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale())}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("عدد الفواتير", "Invoice count")}</div>
@@ -902,11 +902,11 @@ export function PurchaseBills() {
                 {filtered.map(b => (
                   <tr key={b.id} onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{b.billNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={b.contact?.displayName || ""}>{b.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" title={b.contact?.displayName || ""}><bdi dir="auto">{b.contact?.displayName || "—"}</bdi></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.dueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{statusLabels(t)[b.status] || b.status}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
+                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
                     <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 flex-wrap">
                         <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>

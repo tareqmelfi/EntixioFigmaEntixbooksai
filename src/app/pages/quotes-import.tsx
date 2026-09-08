@@ -128,7 +128,7 @@ export function QuotesImport() {
           preview ? (
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="text-sm text-muted-foreground">
-                {t(`${stats.count} بند مشمول`, `${stats.count} included`)} · <span className="font-english font-bold text-foreground">{stats.total.toLocaleString(displayLocale())}</span>
+                {t(`${stats.count} بند مشمول`, `${stats.count} included`)} · <span className="font-english font-bold text-foreground">{stats.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
                 {stats.optional > 0 && <> · {t(`${stats.optional} اختياري`, `${stats.optional} optional`)}</>}
               </div>
               <div className="flex items-center gap-2">
@@ -236,8 +236,8 @@ export function QuotesImport() {
                             <td className="py-1.5 px-3 text-foreground/90">{l.no && <span className="font-english text-muted-foreground me-1">{l.no}</span>}{l.description}</td>
                             <td className="py-1.5 px-3 text-xs text-muted-foreground">{l.unit || "—"}</td>
                             <td className="py-1.5 px-3 font-english">{l.qty ?? "—"}</td>
-                            <td className="py-1.5 px-3 font-english">{l.unitPrice?.toLocaleString(displayLocale()) ?? "—"}</td>
-                            <td className="py-1.5 px-3 font-english" style={{ fontWeight: 600 }}>{amount ? amount.toLocaleString(displayLocale()) : "—"}</td>
+                            <td className="py-1.5 px-3 font-english">{l.unitPrice?.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) ?? "—"}</td>
+                            <td className="py-1.5 px-3 font-english" style={{ fontWeight: 600 }}>{amount ? amount.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}</td>
                           </tr>
                         );
                       })}

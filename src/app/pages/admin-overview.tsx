@@ -24,7 +24,7 @@ import { useLanguage } from "../components/LanguageContext";
 const NAVY = "#1A1E48", BLUE = "#5875DB", CYAN = "#8FA3F0", SOFT = "#9CC9EA";
 const TIER_COLORS: Record<string, string> = { enterprise: NAVY, professional: BLUE, advanced: BLUE, premium: NAVY, lite: CYAN, starter: SOFT };
 
-const fmtInt = (n: number) => Number(n || 0).toLocaleString(displayLocale("en-US"));
+const fmtInt = (n: number) => Number(n || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 });
 const fmtMoney = (minor: number, cur: string) => `${(minor / 100).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${cur}`;
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString(displayLocale("en-GB")) : "—");
 const rel = (d: string | null | undefined, lang: "ar" | "en") => {

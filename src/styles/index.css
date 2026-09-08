@@ -55,6 +55,11 @@ body {
   word-break: normal;
 }
 
+/* A name column reads tidy only when every row starts at the same edge (CEO
+   2026-09-08): bidi resolution stays per value, alignment follows the page. */
+[dir="rtl"] .bidi-text, [dir="rtl"] td > bdi, [dir="rtl"] .truncate > bdi { text-align: right; }
+[dir="ltr"] .bidi-text, [dir="ltr"] td > bdi, [dir="ltr"] .truncate > bdi { text-align: left; }
+
 .bidi-text-compact {
   display: -webkit-box;
   overflow: hidden;

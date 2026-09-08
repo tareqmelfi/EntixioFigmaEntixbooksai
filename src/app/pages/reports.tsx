@@ -99,7 +99,7 @@ const money = (value: string | number | null | undefined, currency = "SAR") => {
 };
 
 const numberValue = (value: string | number | null | undefined) =>
-  Number(value || 0).toLocaleString(displayLocale("en-US"));
+  Number(value || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 });
 
 const categories: CategoryDefinition[] = [
   { id: "financial", title: "تقارير مالية", englishTitle: "Financial Reports", icon: BarChart3 },

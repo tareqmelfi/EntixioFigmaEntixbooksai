@@ -38,9 +38,9 @@ import { BidiText } from "../components/bidi-text";
 
 /** Desktop-only split view · ≥1280px shows the paper preview beside the list. */
 function useWideViewport() {
-  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches);
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1536px)").matches);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1280px)");
+    const mq = window.matchMedia("(min-width: 1536px)"); // split view needs ~800px for the list beside a 380px+ panel
     const onChange = () => setWide(mq.matches);
     mq.addEventListener("change", onChange);
     onChange();
@@ -1253,7 +1253,7 @@ export function Invoices() {
             );
           })}
         </ul>
-        <div className="ledger-table hidden md:block [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+        <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
         <Table className={`table-fixed ${compactList ? "min-w-[820px]" : "min-w-[980px]"}`}>
           <colgroup>
             <col style={{ width: "200px" }} />{/* الرقم · mono numbers run to 19 chars (ENTIX-XXXXXXXX-0000) — never narrower */}
@@ -1321,7 +1321,7 @@ export function Invoices() {
                 <TableCell className="text-end">
                   <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{i.currency !== orgCurrency && <span className="font-english text-[10px] text-muted-foreground"> {i.currency}</span>}</span>
                   {remaining > 0 && Number(i.amountPaid || 0) > 0 && (
-                    <span dir="ltr" className="block text-[11px] text-content-secondary tabular-nums">{t("متبقي", "Remaining")} {remaining.toLocaleString(displayLocale())}</span>
+                    <span dir="ltr" className="block text-[11px] text-content-secondary tabular-nums">{t("متبقي", "Remaining")} {remaining.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
                   )}
                 </TableCell>
                 <TableCell className="align-middle">

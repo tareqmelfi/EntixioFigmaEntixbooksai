@@ -274,7 +274,7 @@ function CellValue({ value, keyName, kind, currency, strong }: { value: string |
     const amount = Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return <NumericText className={Number(value) < 0 ? "font-semibold text-danger" : strong ? "font-bold text-foreground" : "font-semibold text-foreground"}>{amount} {currency}</NumericText>;
   }
-  if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString(displayLocale("en-US"))}</NumericText>;
+  if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>;
   if (kind === "status") return <BidiText className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-semibold text-foreground">{String(value)}</BidiText>;
   return <BidiText mode="plaintext">{String(value)}</BidiText>;
 }

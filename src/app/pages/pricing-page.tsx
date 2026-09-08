@@ -389,7 +389,7 @@ export function PricingPage() {
                     <span className={`font-display leading-none text-[44px] lg:text-[52px] ${plan.popular ? "text-background" : "text-foreground"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
                       {plan.price[currency][billingCycle] === 0
                         ? t("مجاني", "Free")
-                        : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString(displayLocale("en-US"))}`}
+                        : `${currencySymbol}${plan.price[currency][billingCycle].toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}`}
                     </span>
                     {plan.price[currency][billingCycle] > 0 && (
                       <span className={plan.popular ? "text-background/70" : "text-content-secondary"} style={{ fontSize: "14px" }}>
@@ -400,10 +400,10 @@ export function PricingPage() {
                   {billingCycle === "yearly" && plan.price[currency].yearly > 0 && plan.price[currency].monthly > 0 && (
                     <>
                       <p className={`m-0 ${plan.popular ? "text-background/80" : "text-success"}`} style={{ fontSize: "13px", fontWeight: 600 }} dir="ltr">
-                        {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString(displayLocale("en-US"))} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
+                        {t("وفّر", "Save")} {currencySymbol}{(plan.price[currency].monthly * 12 - plan.price[currency].yearly).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {currency === "SAR" ? t("ر.س", "SAR") : "USD"} {t("سنوياً", "per year")}
                       </p>
                       <p className={`m-0 ${plan.popular ? "text-background/60" : "text-content-secondary"}`} style={{ fontSize: "12px" }} dir="ltr">
-                        ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString(displayLocale("en-US"))} {t("سنويًا", "yearly")}
+                        ≈ {currencySymbol}{(plan.price[currency].yearly / 12).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("/ شهر", "/ mo")} · {t("تُدفع", "billed")} {currencySymbol}{plan.price[currency].yearly.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {t("سنويًا", "yearly")}
                       </p>
                     </>
                   )}

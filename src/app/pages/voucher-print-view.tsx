@@ -322,7 +322,7 @@ export function VoucherPrintView() {
 
           <div style={{ marginTop: 18, border: "2px solid #5875DB", borderRadius: 10, background: "#EFF8FF", padding: "16px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 12, color: "#6B7280" }}>{T("المبلغ", "Amount")}</div>
-            <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#5875DB", marginTop: 2 }}>{amount.toLocaleString(displayLocale())} {currency}</div>
+            <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#5875DB", marginTop: 2 }}>{amount.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {currency}</div>
             <div style={{ marginTop: 6, fontSize: 12 }}>{amountInWords}</div>
           </div>
 

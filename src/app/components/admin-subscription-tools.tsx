@@ -128,7 +128,7 @@ export function SubscriptionManagePanel({ orgId, currency, currentPlanId, curren
             {t("الباقة", "Plan")}
             <select value={planId} onChange={(e) => setPlanId(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-card px-2 py-2 text-sm text-foreground">
               <option value="">{t("— الحالية / الأعلى تلقائيًا —", "— current / highest automatically —")}</option>
-              {visiblePlans.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.tier} · {p.interval} · {(p.price / 100).toLocaleString(displayLocale("en-US"))} {p.currency.toUpperCase()}</option>)}
+              {visiblePlans.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.tier} · {p.interval} · {(p.price / 100).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} {p.currency.toUpperCase()}</option>)}
             </select>
           </label>
         )}

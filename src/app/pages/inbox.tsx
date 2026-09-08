@@ -332,7 +332,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
                             )}
                             {m.extractedTotal != null && (
                               <span className="text-xs text-foreground font-english">
-                                {m.extractedTotal.toLocaleString(displayLocale())} {m.extractedCurrency || "SAR"}
+                                {m.extractedTotal.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {m.extractedCurrency || "SAR"}
                               </span>
                             )}
                           </div>
@@ -451,8 +451,8 @@ function DetailPane({
             <Field label={t("رقم الفاتورة", "Invoice number")} value={ex.documentNumber} mono />
             <Field label={t("تاريخ الإصدار", "Issue date")} value={ex.issueDate} mono />
             <Field label={t("تاريخ الاستحقاق", "Due date")} value={ex.dueDate} mono />
-            <Field label={t("الإجمالي", "Total")} value={ex.totals?.total != null ? `${Number(ex.totals.total).toLocaleString(displayLocale())} ${ex.currency || "SAR"}` : null} mono bold />
-            <Field label={t("الضريبة", "Tax")} value={ex.totals?.tax != null ? `${Number(ex.totals.tax).toLocaleString(displayLocale())}` : null} mono />
+            <Field label={t("الإجمالي", "Total")} value={ex.totals?.total != null ? `${Number(ex.totals.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${ex.currency || "SAR"}` : null} mono bold />
+            <Field label={t("الضريبة", "Tax")} value={ex.totals?.tax != null ? `${Number(ex.totals.tax).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}` : null} mono />
           </div>
 
           {/* Lines table */}
@@ -473,9 +473,9 @@ function DetailPane({
                     <tr key={i} className="border-t border-border/50">
                       <td className="px-3 py-1.5 text-foreground/80">{l.description || "—"}</td>
                       <td className="px-3 py-1.5 text-end font-english">{l.quantity}</td>
-                      <td className="px-3 py-1.5 text-end font-english">{Number(l.unitPrice || 0).toLocaleString(displayLocale())}</td>
+                      <td className="px-3 py-1.5 text-end font-english">{Number(l.unitPrice || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-1.5 text-end font-english">{displayDigits(((l.taxRate || 0) * 100).toFixed(0))}%</td>
-                      <td className="px-3 py-1.5 text-end font-english font-semibold">{Number(l.lineTotal || (l.quantity * l.unitPrice) || 0).toLocaleString(displayLocale())}</td>
+                      <td className="px-3 py-1.5 text-end font-english font-semibold">{Number(l.lineTotal || (l.quantity * l.unitPrice) || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -504,7 +504,7 @@ function DetailPane({
               {dupInfo.match && (
                 <div className="text-xs text-warning">
                   {t("يوجد فاتورة شراء مطابقة:", "A matching purchase bill exists:")} <span className="font-english">{dupInfo.match.billNumber}</span>
-                  {" · "}{t("الإجمالي", "Total")} <span className="font-english">{Number(dupInfo.match.total).toLocaleString(displayLocale())}</span>
+                  {" · "}{t("الإجمالي", "Total")} <span className="font-english">{Number(dupInfo.match.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
                   {" · "}{t("المورّد", "Supplier")} {dupInfo.match.supplierName || "—"}
                   {" · "}{t("بتاريخ", "dated")} <span className="font-english">{String(dupInfo.match.issueDate).slice(0, 10)}</span>
                 </div>

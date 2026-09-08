@@ -41,6 +41,7 @@ const EN_TEXT: Record<string, string> = {
   "جديد": "New",
   "العمليات الأساسية": "Core operations",
   "المبيعات": "Sales",
+  "لوحة القسم": "Section dashboard",
   "كاشير POS": "Cashier POS",
   "عروض الأسعار": "Quotes",
   "فواتير المبيعات": "Sales invoices",
@@ -125,6 +126,9 @@ interface MenuItem {
 
 interface MenuSection {
   label?: string;
+  /** Group home (CEO 2026-09-08): clicking the group name opens the section's
+   *  own dashboard — its figures and everything that belongs to it. */
+  hub?: string;
   items: MenuItem[];
 }
 
@@ -153,6 +157,7 @@ const sections: MenuSection[] = [
   },
   {
     label: "المبيعات",
+    hub: "/app/sales",
     items: [
       { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
       { title: "الفواتير", icon: FileText, path: "/app/invoices" },
@@ -163,6 +168,7 @@ const sections: MenuSection[] = [
   },
   {
     label: "المشتريات",
+    hub: "/app/purchases",
     items: [
       { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
       { title: "المصروفات", icon: Receipt, path: "/app/expenses" },
@@ -378,6 +384,7 @@ export function AppSidebar({
   // query strings are ignored here, so /app/contacts lights its group whichever
   // role filter is on.
   const sectionHasActiveRoute = (section: MenuSection) =>
+    (!!section.hub && isActive(section.hub)) ||
     section.items.some(
       (i) =>
         isParentPathActive(i.path?.split("?")[0]) ||
@@ -602,7 +609,7 @@ function SidebarContent({
           const showItems = collapsed || groupOpen;
           return (
             <div key={si}>
-              {!collapsed && section.label && (
+              {!collapsed && section.label && !section.hub && (
                 <button
                   type="button"
                   onClick={() => toggleGroup(section.label!)}
@@ -616,6 +623,32 @@ function SidebarContent({
                     strokeWidth={2}
                   />
                 </button>
+              )}
+              {/* Groups with a hub: the name opens the section dashboard, the chevron folds the list */}
+              {!collapsed && section.label && section.hub && (
+                <div className={`flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[4px] pt-[10px] text-[10px] leading-[13px] tracking-[1px] transition-colors ${isActive(section.hub) ? "text-foreground" : "text-muted-foreground"}`}>
+                  <Link
+                    to={section.hub}
+                    onClick={onClose}
+                    className="min-w-0 flex-1 truncate text-start hover:text-foreground"
+                    title={tr("لوحة القسم")}
+                  >
+                    {tr(section.label)}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(section.label!)}
+                    aria-expanded={groupOpen}
+                    aria-controls={`${uid}-group-${si}`}
+                    aria-label={tr(section.label)}
+                    className="shrink-0 rounded p-0.5 hover:text-foreground"
+                  >
+                    <ChevronLeft
+                      className={`h-[12px] w-[12px] shrink-0 transition-transform duration-200 ${groupOpen ? "-rotate-90" : ""}`}
+                      strokeWidth={2}
+                    />
+                  </button>
+                </div>
               )}
               {showItems && (
                 <div id={`${uid}-group-${si}`} className="space-y-px">

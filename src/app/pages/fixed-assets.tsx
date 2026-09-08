@@ -54,15 +54,15 @@ export function FixedAssets() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي التكلفة", "Total Cost")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCost.toLocaleString(displayLocale())}</div>
+          <div className="font-english text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCost.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("الإهلاك المتراكم", "Accumulated Depreciation")}</div>
-          <div className="font-english text-warning" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString(displayLocale())}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.totalDepreciation).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("صافي القيمة الدفترية", "Net Book Value")}</div>
-          <div className="font-english text-success" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString(displayLocale())}</div>
+          <div className="font-english text-success" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{Math.round(stats.netBookValue).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
         </CardContent></Card>
       </div>
 

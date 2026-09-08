@@ -54,7 +54,7 @@ const money = (value: string | number | null | undefined) =>
   Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const qty = (value: string | number | null | undefined) =>
-  Number(value || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 3 });
+  Number(value || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 });
 
 const movementLabels: Record<string, { ar: string; en: string }> = {
   RECEIPT: { ar: "استلام", en: "Receipt" },

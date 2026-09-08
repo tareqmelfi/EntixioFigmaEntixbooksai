@@ -81,7 +81,7 @@ export function FiscalPeriods() {
     setBusy(pendingClose);
     try {
       const r = await api.fiscalPeriods.close(pendingClose);
-      push("success", `${t("تم إغلاق الفترة · صافي الدخل:", "Period closed · Net income:")} ${r.netIncome.toLocaleString(displayLocale())} · ${t("تم إنشاء قيد إغلاق آلي", "an automatic closing entry was created")}`);
+      push("success", `${t("تم إغلاق الفترة · صافي الدخل:", "Period closed · Net income:")} ${r.netIncome.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} · ${t("تم إنشاء قيد إغلاق آلي", "an automatic closing entry was created")}`);
       setPendingClose(null);
       setPreview(null);
       refresh();
@@ -165,7 +165,7 @@ export function FiscalPeriods() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">
-                      {p.netIncome != null ? p.netIncome.toLocaleString(displayLocale()) : "—"}
+                      {p.netIncome != null ? p.netIncome.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}
                     </td>
                     <td className="px-4 py-3 text-end">
                       {p.status === "OPEN" && (
@@ -207,15 +207,15 @@ export function FiscalPeriods() {
             <div className="rounded-lg border border-border divide-y divide-[#F3F4F6]">
               <div className="flex justify-between p-3 text-sm">
                 <span className="text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</span>
-                <span className="font-english font-semibold text-success" dir="ltr">{preview.combinedRevenue.toLocaleString(displayLocale())}</span>
+                <span className="font-english font-semibold text-success" dir="ltr">{preview.combinedRevenue.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between p-3 text-sm">
                 <span className="text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</span>
-                <span className="font-english font-semibold text-danger" dir="ltr">{preview.combinedExpense.toLocaleString(displayLocale())}</span>
+                <span className="font-english font-semibold text-danger" dir="ltr">{preview.combinedExpense.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between p-3 text-sm bg-muted">
                 <span className="text-foreground font-bold">{t("صافي الدخل", "Net Income")}</span>
-                <span className={`font-english font-bold ${preview.netIncome >= 0 ? "text-success" : "text-danger"}`} dir="ltr">{preview.netIncome.toLocaleString(displayLocale())}</span>
+                <span className={`font-english font-bold ${preview.netIncome >= 0 ? "text-success" : "text-danger"}`} dir="ltr">{preview.netIncome.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
               </div>
             </div>
             <div className="flex gap-2 justify-end mt-4">

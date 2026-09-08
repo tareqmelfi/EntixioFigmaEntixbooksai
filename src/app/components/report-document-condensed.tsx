@@ -145,7 +145,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>
                               {v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span>
                                 : money ? <NumericText className={Number(v) < 0 ? "font-semibold text-danger" : total ? "font-bold" : "font-medium"}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
-                                : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString(displayLocale("en-US"))}</NumericText>
+                                : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>
                                 : column.key === "label" ? <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />
                                 : <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />}
                             </td>

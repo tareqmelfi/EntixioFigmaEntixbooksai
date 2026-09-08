@@ -75,8 +75,8 @@ export const legendStyle = {
 } as const;
 
 /** Format number for tooltip display */
-export const formatSAR = (value: number) => `${value.toLocaleString(displayLocale())} SR`;
-export const formatSARShort = (value: number) => `${value.toLocaleString(displayLocale())} SR`;
+export const formatSAR = (value: number) => `${value.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} SR`;
+export const formatSARShort = (value: number) => `${value.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} SR`;
 
 /** Muted bar colors with slight transparency for softer look */
 export const chartColors = {

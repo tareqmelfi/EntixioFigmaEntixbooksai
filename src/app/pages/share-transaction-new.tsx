@@ -61,7 +61,7 @@ export function ShareTransactionNew() {
   const holderItems = useMemo(() => shareholders.map((s) => ({
     id: s.id,
     label: `${s.code} · ${s.name}`,
-    sublabel: `${Number(s.shareCount || 0).toLocaleString(displayLocale())} ${t("سهم", "shares")}`,
+    sublabel: `${Number(s.shareCount || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${t("سهم", "shares")}`,
   })), [shareholders, t]);
 
   const cashAccounts = useMemo(() => accounts
@@ -111,7 +111,7 @@ export function ShareTransactionNew() {
     } catch (e: any) {
       const msg = e instanceof ApiError ? e.message : "";
       setError(
-        msg === "insufficient_shares" ? t(`رصيد البائع لا يكفي (يملك ${fromHolder ? Number(fromHolder.shareCount).toLocaleString(displayLocale()) : "؟"} سهم)`, `Seller's holding is insufficient`)
+        msg === "insufficient_shares" ? t(`رصيد البائع لا يكفي (يملك ${fromHolder ? Number(fromHolder.shareCount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "؟"} سهم)`, `Seller's holding is insufficient`)
         : msg === "insufficient_treasury" ? t("أسهم الخزينة لا تكفي لهذا البيع", "Treasury shares are insufficient for this sale")
         : msg === "same_party" ? t("البائع والمشتري نفس الشخص", "Seller and buyer are the same")
         : msg === "both_parties_required" ? t("التنازل يحتاج الطرفين", "A transfer needs both parties")
@@ -160,7 +160,7 @@ export function ShareTransactionNew() {
                 <div className="space-y-2">
                   <Label>{form.kind === "BUYBACK" ? t("البائع (مساهم حالي) *", "Seller (current holder) *") : form.kind === "CANCEL" ? t("المساهم الملغى أسهمه *", "Holder whose shares cancel *") : t("المتنازل *", "From *")}</Label>
                   <SearchableCombobox value={form.fromShareholderId} onChange={(fromShareholderId) => setForm({ ...form, fromShareholderId })} items={holderItems} placeholder={t("اختر المساهم...", "Choose shareholder...")} />
-                  {fromHolder && <p className="text-[10px] text-muted-foreground">{t("يملك حالياً:", "Currently holds:")} <span className="font-english">{Number(fromHolder.shareCount || 0).toLocaleString(displayLocale())}</span> {t("سهم", "shares")}</p>}
+                  {fromHolder && <p className="text-[10px] text-muted-foreground">{t("يملك حالياً:", "Currently holds:")} <span className="font-english">{Number(fromHolder.shareCount || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span> {t("سهم", "shares")}</p>}
                 </div>
               )}
               {["ISSUE", "SELL_TREASURY", "TRANSFER"].includes(form.kind) && (

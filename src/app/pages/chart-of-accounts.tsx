@@ -944,7 +944,7 @@ export function ChartOfAccounts() {
                           <td className="px-3 py-2 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-foreground/80" style={{ fontVariantNumeric: "tabular-nums" }}>{t.date.slice(0, 10)}</span></td>
                           <td className="px-3 py-2 font-english font-semibold text-primary">{t.journalNumber}</td>
                           <td className="px-3 py-2">
-                            <div className="text-foreground max-w-[320px] truncate" dir="auto" title={t.description}>{t.description}</div>
+                            <div className="text-foreground max-w-[320px] truncate" title={t.description}><bdi dir="auto">{t.description}</bdi></div>
                             {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{t.lineDescription}</div>}
                           </td>
                           <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 }) : "—"}</td>

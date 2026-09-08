@@ -69,7 +69,7 @@ export function AdminOrgUsagePanel({ orgId, subscription, onManage }: { orgId: s
             <Stat icon={Store} label={t("نقاط البيع", "POS")} value={`${c.posShifts} / ${c.posSales}`} sub={t("ورديات / مبيعات", "shifts / sales")} />
             <Stat icon={GitBranch} label={t("فروع / مستودعات", "Branches / warehouses")} value={`${c.branches} / ${c.warehouses}`} />
             <Stat icon={FileText} label={t("مستندات", "Documents")} value={c.invoices + c.quotes + c.receipts + c.bills + c.expenses + c.journals} sub={`${c.invoices} ${t("فاتورة", "inv")} · ${c.journals} ${t("قيد", "JE")}`} />
-            <Stat icon={Database} label={t("سجلات", "Rows")} value={u.footprint.rows.toLocaleString(displayLocale("en-US"))} sub={`${c.contacts} ${t("عميل", "contacts")} · ${c.products} ${t("منتج", "products")}`} />
+            <Stat icon={Database} label={t("سجلات", "Rows")} value={u.footprint.rows.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })} sub={`${c.contacts} ${t("عميل", "contacts")} · ${c.products} ${t("منتج", "products")}`} />
             <Stat icon={HardDrive} label={t("المساحة التقديرية", "Est. storage")} value={fmtBytes(u.footprint.estimatedBytes)} sub={`${u.footprint.attachmentCount} ${t("مرفق", "attachments")} · ${fmtBytes(u.footprint.attachmentBytes)}`} />
             <Stat icon={Bot} label={t("ذكاء / API", "AI / API")} value={`${c.aiConversations} / ${c.apiKeys}`} sub={t("محادثات / مفاتيح", "chats / keys")} />
           </div>

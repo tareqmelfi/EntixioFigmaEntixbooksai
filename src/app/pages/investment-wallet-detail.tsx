@@ -352,7 +352,7 @@ export function InvestmentWalletDetail() {
                         </span>
                       </td>
                       <td className="py-2.5 px-4 text-xs text-foreground/80">
-                        {x.symbol ? <span className="font-english" dir="ltr">{Number(x.quantity).toLocaleString(displayLocale())} × {x.symbol} @ {money(x.price)}</span> : (x.notes || "—")}
+                        {x.symbol ? <span className="font-english" dir="ltr">{Number(x.quantity).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} × {x.symbol} @ {money(x.price)}</span> : (x.notes || "—")}
                       </td>
                       <td className="py-2.5 px-4 font-english" style={{ fontWeight: 600 }} dir="ltr">{money(x.amount)}</td>
                       <td className={`py-2.5 px-4 font-english text-xs ${Number(x.realizedPnl || 0) > 0 ? "text-success" : Number(x.realizedPnl || 0) < 0 ? "text-danger" : "text-muted-foreground/50"}`} dir="ltr">

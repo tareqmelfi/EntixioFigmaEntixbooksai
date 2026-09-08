@@ -69,7 +69,7 @@ export function ProposalDoc({ quote, org, lang }: { quote: Quote; org: ProposalO
                 <td style={{ ...td, color: "#8CA0B3" }} className="num">{i + 1}</td>
                 <td style={td}>{l.description}</td>
                 <td style={td}>{l.unit || "—"}</td>
-                <td style={td} className="num">{num(l.quantity).toLocaleString(displayLocale())}</td>
+                <td style={td} className="num">{num(l.quantity).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                 <td style={td} className="num">{fmt(l.unitPrice)}</td>
                 <td style={{ ...td, fontWeight: 600 }} className="num">{fmt(l.subtotal)}</td>
               </tr>
@@ -169,7 +169,7 @@ export function ProposalDoc({ quote, org, lang }: { quote: Quote; org: ProposalO
                 <tr key={l.id || i}>
                   <td style={td}>{l.description}</td>
                   <td style={td}>{l.unit || "—"}</td>
-                  <td style={td} className="num">{num(l.quantity).toLocaleString(displayLocale())}</td>
+                  <td style={td} className="num">{num(l.quantity).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                   <td style={td} className="num">{fmt(l.subtotal)}</td>
                 </tr>
               ))}

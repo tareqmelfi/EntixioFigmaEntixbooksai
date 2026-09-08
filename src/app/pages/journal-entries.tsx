@@ -369,7 +369,7 @@ export function JournalEntries() {
           </CardContent></Card>
           <Card className="border-border"><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{t("إجمالي المبالغ المرحّلة", "Total Posted Amount")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalPosted.toLocaleString(displayLocale())}</div>
+            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalPosted.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
           </CardContent></Card>
         </div>
 
@@ -430,14 +430,14 @@ export function JournalEntries() {
                           {/* dir="auto" isolates LTR descriptions ("Invoice EN-…") inside the
                               RTL row — without it the text hugged the debit column and read as
                               overlapping (CEO screenshot 2026-08-28). title = full text on hover. */}
-                          <div className="text-foreground truncate" dir="auto" title={e.description} style={{ fontWeight: 500 }}>{e.description}</div>
+                          <div className="text-foreground truncate" title={e.description} style={{ fontWeight: 500 }}><bdi dir="auto">{e.description}</bdi></div>
                           <div className="text-xs text-muted-foreground/60 mt-0.5">
                             {e.lineCount} {t("سطر", "lines")}
                             {(e.attachmentCount || 0) > 0 && <span className="ms-2"><Paperclip className="inline h-3 w-3" /> {e.attachmentCount}</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString(displayLocale())}</td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString(displayLocale())}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                         <td className="px-2 py-3 text-center">
                           <span className="text-xs px-2 py-0.5 rounded bg-surface-hover text-foreground whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
                         </td>
@@ -545,16 +545,16 @@ export function JournalEntries() {
                           <div className="text-foreground">{l.accountName}</div>
                           {l.description && <div className="text-[10px] text-muted-foreground/60 mt-0.5">{l.description}</div>}
                         </td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString(displayLocale()) : "—"}</td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString(displayLocale()) : "—"}</td>
+                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}</td>
+                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-muted">
                     <tr>
                       <td className="px-2 py-1.5 text-end text-muted-foreground font-medium">{t("الإجمالي", "Total")}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalDebit.toLocaleString(displayLocale())}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalCredit.toLocaleString(displayLocale())}</td>
+                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalDebit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
+                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalCredit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -753,8 +753,8 @@ export function JournalEntries() {
                     <tfoot className="bg-muted text-xs">
                       <tr>
                         <td colSpan={2} className="px-3 py-2 text-end text-muted-foreground font-medium">{t("الإجمالي", "Total")}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalDebit.toLocaleString(displayLocale())}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalCredit.toLocaleString(displayLocale())}</td>
+                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalDebit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
+                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalCredit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -768,7 +768,7 @@ export function JournalEntries() {
 
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${balanced ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                     {balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString(displayLocale())}`)}
+                    {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}`)}
                   </div>
                 </div>
 

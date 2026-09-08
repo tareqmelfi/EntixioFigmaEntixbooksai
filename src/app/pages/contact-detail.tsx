@@ -161,7 +161,7 @@ export function ContactDetail() {
 
   const { contact, totals } = data;
   const cur = contact.country === "SA" ? "SAR" : (contact.defaultCurrency || "SAR");
-  const fmt = (n: number) => `${n.toLocaleString(displayLocale())} ${cur}`;
+  const fmt = (n: number) => `${n.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${cur}`;
 
   return (
     <div className="space-y-5">
@@ -462,7 +462,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           <CardHeader className="pb-3">
             <SectionHeader
               title={<span className="flex items-center gap-1.5"><FileText className="h-4 w-4" /> {t("آخر الفواتير", "Latest invoices")}</span>}
-              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString(displayLocale())} {cur}</span></span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
@@ -489,7 +489,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           <CardHeader className="pb-3">
             <SectionHeader
               title={<span className="flex items-center gap-1.5"><ShoppingBag className="h-4 w-4" /> {t("آخر فواتير الشراء", "Latest purchase bills")}</span>}
-              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString(displayLocale())} {cur}</span></span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
@@ -551,7 +551,7 @@ function DocList({ rows }: { rows: Array<{ id: string; number: string; date: str
           <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end min-w-[140px] md:min-w-[180px]">
             <DocumentStatus status={r.status} />
             <div className="text-end">
-              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString(displayLocale())}</div>
+              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
               <div dir="ltr" className="whitespace-nowrap text-xs font-english tabular-nums text-muted-foreground">{r.cur}</div>
             </div>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary shrink-0" />
@@ -601,7 +601,7 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
           >
             <div className="text-xs text-muted-foreground">{s.label}</div>
             <div className="mt-0.5 font-english tabular-nums text-base font-bold text-foreground">{s.count}</div>
-            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString(displayLocale())} {cur}</div>
+            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {cur}</div>
           </button>
         ))}
       </div>
@@ -668,9 +668,9 @@ function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: st
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{r.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground"><span dir="ltr" className="font-english inline-block">{r.due?.slice(0, 10) || "—"}</span></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString(displayLocale())}</TableNumericCell></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString(displayLocale())}</TableNumericCell></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString(displayLocale())}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</TableNumericCell></td>
               <td className="px-4 py-2.5 text-center"><DocumentStatus status={r.status} /></td>
               <td className="px-2 py-2.5"><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary" /></Link></td>
             </tr>
@@ -725,7 +725,7 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english tabular-nums inline-block">{v.date.slice(0, 10)}</span></td>
               <td className={`px-4 py-2.5 text-end ${v.type === "RECEIPT" ? "text-success" : "text-warning"}`}>
-                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString(displayLocale())} {v.currency}</TableNumericCell>
+                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {v.currency}</TableNumericCell>
               </td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{v.paymentMethod || "—"}</td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs"><span dir="ltr" className="font-english inline-block">{v.reference || "—"}</span></td>
@@ -784,7 +784,7 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{e.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{e.category || t("غير مصنّف", "Uncategorized")}</td>
               <td className="px-4 py-2.5 text-foreground/80 whitespace-normal break-words">{e.description || "—"}</td>
-              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString(displayLocale())} {e.currency}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {e.currency}</TableNumericCell></td>
             </tr>
           ))}
         </tbody>

@@ -316,7 +316,7 @@ export function CreditNotes() {
                     sublabel: [
                       i.contact?.displayName,
                       i.issueDate?.slice(0, 10),
-                      `${Number(i.total).toLocaleString(displayLocale())} ${i.currency}`,
+                      `${Number(i.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${i.currency}`,
                     ].filter(Boolean).join(" · "),
                   }))}
                   placeholder={t("ابحث برقم الفاتورة، اسم العميل، أو التاريخ...", "Search by invoice number, customer name, or date...")}
@@ -432,7 +432,7 @@ export function CreditNotes() {
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div>
-          <div className="font-english text-warning" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale())}</div>
+          <div className="font-english text-warning" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
         </CardContent></Card>
         <Card className="border-border"><CardContent className="p-5">
           <div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div>
@@ -470,11 +470,11 @@ export function CreditNotes() {
                 {filtered.map(c => (
                   <tr key={c.id} className="border-b border-border/50 hover:bg-primary/5">
                     <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{c.noteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" dir="auto" title={c.contact?.displayName || ""}>{c.contact?.displayName || "—"}</td>
+                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" title={c.contact?.displayName || ""}><bdi dir="auto">{c.contact?.displayName || "—"}</bdi></td>
                     <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{c.issueDate?.slice(0, 10)}</span></td>
                     <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find(r => r.value === c.reason); return r ? t(r.label.ar, r.label.en) : c.reason; })()}</td>
                     <td className="py-3 px-4 font-english text-sm text-warning" style={{ fontWeight: 600 }}>
-                      <span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(c.total).toLocaleString(displayLocale())}</span><span className="text-[10px] text-muted-foreground/60">{c.currency}</span></span></span>
+                      <span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(c.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span><span className="text-[10px] text-muted-foreground/60">{c.currency}</span></span></span>
                     </td>
                     <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] ? t(STATUS_LABELS[c.status].ar, STATUS_LABELS[c.status].en) : c.status}</span></td>
                     <td className="py-3 px-4">

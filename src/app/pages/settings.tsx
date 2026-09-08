@@ -1609,7 +1609,7 @@ function CatalogTab({ push }: { push: (kind: any, msg: string) => void }) {
                 <div key={c.category} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
                   <span className="text-foreground font-english" dir="ltr">{c.category}</span>
                   <span className="text-xs text-muted-foreground">
-                    <span className="font-english" dir="ltr">{c.count}</span> {t("منتج", "products")} · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString(displayLocale())}</span>
+                    <span className="font-english" dir="ltr">{c.count}</span> {t("منتج", "products")} · <span className="font-english" dir="ltr">{Number(c.totalValue || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
                   </span>
                 </div>
               ))}

@@ -602,7 +602,7 @@ export function ItemsTable({
                       items={products.map((p) => ({
                         id: p.id,
                         label: p.name,
-                        sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString(displayLocale())}`,
+                        sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}`,
                       }))}
                       placeholder={t("منتج أو خدمة…", "Product or service…")}
                       createLabel={(q) => t("+ إنشاء صنف", "+ Create item") + ` "${q}"`}

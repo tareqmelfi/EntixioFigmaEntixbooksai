@@ -2092,7 +2092,7 @@ export function Expenses() {
                   <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border hover:bg-surface-hover transition-colors cursor-pointer">
                     <td className="py-3 px-4"><span dir="ltr" className="font-code text-sm text-primary block truncate" style={{ fontWeight: 600 }} title={e.number}>{e.number}</span></td>
                     <td className="py-3 px-4">
-                      <div className="truncate text-sm text-foreground/80" dir="auto" title={e.contact?.displayName || e.vendorName || ""}>{e.contact?.displayName || e.vendorName || "—"}</div>
+                      <div className="truncate text-sm text-foreground/80" title={e.contact?.displayName || e.vendorName || ""}><bdi dir="auto">{e.contact?.displayName || e.vendorName || "—"}</bdi></div>
                       <div className="truncate text-xs text-muted-foreground">{e.category}</div>
                     </td>
                     <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground block truncate" style={{ fontVariantNumeric: "tabular-nums" }} title={e.documentNumber || e.reference || ""}>{e.documentNumber || e.reference || "—"}</span></td>

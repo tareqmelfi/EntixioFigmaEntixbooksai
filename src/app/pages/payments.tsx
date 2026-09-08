@@ -212,11 +212,11 @@ export function Payments() {
   const byCur = (summary.sumByCurrency || []).filter((r) => Number(r.total) !== 0);
   const singleCur = byCur.length === 1 ? byCur[0].currency : null;
   const totalDisplay = singleCur
-    ? `${Number(byCur[0].total).toLocaleString(displayLocale())} ${singleCur}`
+    ? `${Number(byCur[0].total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${singleCur}`
     : byCur.length > 1
-      ? byCur.map((r) => `${Number(r.total).toLocaleString(displayLocale())} ${r.currency}`).join("  ·  ")
-      : `${total.toLocaleString(displayLocale())} ${orgCurrency}`;
-  const avgDisplay = singleCur ? `${avg.toLocaleString(displayLocale())} ${singleCur}` : (byCur.length > 1 ? t("— مختلط العملات", "— mixed currencies") : `${avg.toLocaleString(displayLocale())} ${orgCurrency}`);
+      ? byCur.map((r) => `${Number(r.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${r.currency}`).join("  ·  ")
+      : `${total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${orgCurrency}`;
+  const avgDisplay = singleCur ? `${avg.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${singleCur}` : (byCur.length > 1 ? t("— مختلط العملات", "— mixed currencies") : `${avg.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${orgCurrency}`);
 
   const resetForm = () => setForm({
     contactId: "", billId: "",
@@ -438,7 +438,7 @@ export function Payments() {
                       <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
                       <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
                       <td className="px-4 py-3 truncate text-foreground">{v.contact?.displayName || "—"}</td>
-                      <td className="px-4 py-3 text-end font-english font-semibold text-danger" dir="ltr">{Number(v.amount).toLocaleString(displayLocale())}</td>
+                      <td className="px-4 py-3 text-end font-english font-semibold text-danger" dir="ltr">{Number(v.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">{METHOD_LABELS[v.paymentMethod]}</td>
                       <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
                         <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-info-subtle rounded"><Printer className="h-4 w-4" /></button>
@@ -465,7 +465,7 @@ export function Payments() {
             <div className="text-center bg-danger-subtle border border-danger-border rounded-lg p-4">
               <div className="text-xs text-danger">{t("المبلغ المصروف", "Amount spent")}</div>
               <div className="font-english font-bold text-danger mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
-                {Number(selected.amount).toLocaleString(displayLocale())} {selected.currency}
+                {Number(selected.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {selected.currency}
               </div>
               <div className="text-xs text-danger mt-1">{METHOD_LABELS[selected.paymentMethod]}</div>
             </div>
