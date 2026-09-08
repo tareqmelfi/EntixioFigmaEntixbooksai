@@ -5,10 +5,11 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  * UX pattern: FullPageForm (replaces content area on create · مطابق Wafeq) + ItemsTable + SearchableCombobox.
  */
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSearchParams, useLocation, useNavigate } from "react-router";
+import { useSearchParams, useLocation, useNavigate, Link } from "react-router";
 import { Plus, Search, Trash2, Loader2, ShoppingBag, Edit2, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -43,15 +44,18 @@ const statusLabels = (t: (ar: string, en?: string) => string): Record<string, st
   DRAFT: t("مسودة", "Draft"), RECEIVED: t("مستلمة", "Received"), DUE: t("مستحقة", "Due"), PAID: t("مدفوعة", "Paid"), PARTIAL: t("مدفوعة جزئياً", "Partially paid"),
   OVERDUE: t("متأخرة", "Overdue"), CANCELLED: t("ملغاة", "Cancelled"),
 });
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  RECEIVED: "bg-primary/10 text-primary",
-  DUE: "bg-secondary/80 text-secondary-foreground",
-  PAID: "bg-success/10 text-success",
-  PARTIAL: "bg-warning/10 text-warning",
-  OVERDUE: "bg-destructive/10 text-destructive",
-  CANCELLED: "bg-muted text-muted-foreground",
+/* Ledger status tone · paid = blue (success) · due/partial/overdue = copper (attention, never brick) ·
+   received = info · draft/cancelled = muted with a hollow dot */
+const STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "critical"> = {
+  DRAFT: "neutral",
+  RECEIVED: "info",
+  DUE: "warning",
+  PAID: "success",
+  PARTIAL: "warning",
+  OVERDUE: "warning",
+  CANCELLED: "neutral",
 };
+const money2 = (n: number | string) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type PaymentSplit = {
   id: string;
@@ -204,6 +208,9 @@ export function PurchaseBills() {
   );
 
   const total = items.reduce((s, b) => s + Number(b.total), 0);
+  // Currency-honest total: one currency → label it · mixed → per-currency figures
+  const totalByCur = Object.entries(items.reduce<Record<string, number>>((acc, b) => { const k = b.currency || orgCurrency || "SAR"; acc[k] = (acc[k] || 0) + Number(b.total); return acc; }, {})).filter(([, v]) => v !== 0);
+  const figureCurrency = totalByCur.length === 1 ? totalByCur[0][0] : (orgCurrency || "SAR");
 
   const openCreate = () => {
     const prefillContact = searchParams.get("contactId") || "";
@@ -780,7 +787,7 @@ export function PurchaseBills() {
         {/* Duplicate detection dialog */}
         {duplicate.open && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/40 p-4">
-            <div className="w-full max-w-xl rounded-2xl bg-card p-6 shadow-xl space-y-4">
+            <div className="w-full max-w-xl rounded-lg border border-border bg-card p-6 shadow-[var(--elevation-popover)] space-y-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-warning/10 p-2">
                   <AlertTriangle className="h-5 w-5 text-warning" />
@@ -851,84 +858,126 @@ export function PurchaseBills() {
   }
 
   // Default · list view
+  const statusPill = (status: string) => (
+    <StatusBadge tone={STATUS_TONE[status] || "neutral"} icon={status === "DRAFT" || status === "CANCELLED" ? <span className="ledger-dot hollow" aria-hidden="true" /> : undefined}>
+      {statusLabels(t)[status] || status}
+    </StatusBadge>
+  );
+  const overdueCount = items.filter(b => b.status === "OVERDUE").length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("فواتير المشتريات", "Purchase invoices")}</h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة فواتير الموردين", "Manage supplier invoices")}</p>
+      <PageHeader
+        className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+        eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")}</span>}
+        title={t("فواتير المشتريات", "Purchase invoices")}
+        description={t("إدارة فواتير الموردين", "Manage supplier invoices")}
+        actions={<Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Button>}
+      />
+
+      {/* Ledger figures · ink rules, serif numerals · currency-honest */}
+      <MetricStrip className="compact sm:grid-cols-3 xl:grid-cols-3">
+        <Metric
+          label={t("إجمالي المشتريات", "Total purchases")}
+          value={totalByCur.length > 1
+            ? <span className="flex flex-col gap-1">{totalByCur.map(([cur, v]) => <span key={cur}><LedgerFigure value={v} currency={cur} /></span>)}</span>
+            : <LedgerFigure value={total} currency={figureCurrency} />}
+        />
+        <Metric label={t("عدد الفواتير", "Invoice count")} value={items.length} hint={t("فاتورة", "invoices")} />
+        <Metric label={t("متأخرة", "Overdue")} value={<span className={overdueCount > 0 ? "text-warning" : undefined}>{overdueCount}</span>} hint={overdueCount > 0 ? t("تحتاج متابعة", "Needs follow-up") : t("لا شيء متأخر", "Nothing overdue")} />
+      </MetricStrip>
+
+      <PageToolbar aria-label={t("مرشحات فواتير المشتريات", "Purchase invoice filters")} className="justify-between">
+        <h2 className="text-section font-semibold text-foreground">{t("قائمة فواتير المشتريات", "Purchase invoices list")}</h2>
+        <div className="relative w-full sm:w-[260px]">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder={t("بحث...", "Search...")} className="h-9 w-full ps-8 text-[13px]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Button>
-      </div>
+      </PageToolbar>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي المشتريات", "Total purchases")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("عدد الفواتير", "Invoice count")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("متأخرة", "Overdue")}</div>
-          <div className="font-english text-destructive" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(b => b.status === "OVERDUE").length}</div>
-        </CardContent></Card>
-      </div>
-
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground">{t("قائمة فواتير المشتريات", "Purchase invoices list")}</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
-           filtered.length === 0 ? (
-            <div className="py-12 text-center"><ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد فواتير مشتريات بعد", "No purchase invoices yet")}</p></div>
-          ) : (
-            <table className="w-full">
-              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("المورد", "Supplier")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الاستحقاق", "Due date")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
-              </tr></thead>
-              <tbody>
-                {filtered.map(b => (
-                  <tr key={b.id} onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="border-b border-border/50 hover:bg-primary/5 cursor-pointer">
-                    <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{b.billNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" title={b.contact?.displayName || ""}><bdi dir="auto">{b.contact?.displayName || "—"}</bdi></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.issueDate?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{b.dueDate?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[b.status]}`}>{statusLabels(t)[b.status] || b.status}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(b.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span><span className="text-[10px] text-muted-foreground/60">{b.currency}</span></span></td>
-                    <td className="py-3 px-4" onClick={(ev) => ev.stopPropagation()}>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>
-                        {b.status === "DRAFT" && (
-                          <button onClick={() => handleApprove(b)} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success/10 flex items-center gap-1 border border-success/20" title={t("اعتماد الفاتورة", "Approve invoice")}>
-                            {t("✓ اعتماد", "✓ Approve")}
-                          </button>
-                        )}
-                        {pendingDelete === b.id ? (
-                          <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} />
-                        ) : (
-                          <button onClick={() => setPendingDelete(b.id)} className="rounded-md p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+      {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
+       filtered.length === 0 ? (
+        <EmptyState icon={<ShoppingBag className="h-8 w-8" strokeWidth={1.75} />} title={t("لا توجد فواتير مشتريات بعد", "No purchase invoices yet")} />
+      ) : (
+        <>
+        <ul className="md:hidden">
+          {filtered.map((b) => (
+            <li key={b.id}>
+              <button type="button" onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الفاتورة", "Open invoice")}>
+                <span className="flex min-w-0 flex-col gap-[3px]">
+                  <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{b.contact?.displayName || "—"}</bdi></span>
+                  <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{b.billNumber} · {b.dueDate?.slice(0, 10)}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-[3px]">
+                  <span dir="ltr" className="font-display text-[18px] leading-5 text-foreground tabular-nums">{money2(b.total)}</span>
+                  {statusPill(b.status)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+          <Table className="table-fixed min-w-[980px]">
+            <colgroup>
+              <col style={{ width: "200px" }} />{/* الرقم · mono */}
+              <col />{/* المورد · flexible */}
+              <col style={{ width: "110px" }} />{/* التاريخ */}
+              <col style={{ width: "110px" }} />{/* الاستحقاق */}
+              <col style={{ width: "130px" }} />{/* الإجمالي */}
+              <col style={{ width: "140px" }} />{/* الحالة */}
+              <col style={{ width: "150px" }} />{/* إجراءات */}
+            </colgroup>
+            <TableHeader><TableRow className="hover:bg-transparent">
+              <TableHead>{t("الرقم", "Number")}</TableHead>
+              <TableHead>{t("المورد", "Supplier")}</TableHead>
+              <TableHead>{t("التاريخ", "Date")}</TableHead>
+              <TableHead>{t("الاستحقاق", "Due date")}</TableHead>
+              <TableHead className="text-end">{t("الإجمالي", "Total")}</TableHead>
+              <TableHead>{t("الحالة", "Status")}</TableHead>
+              <TableHead>{t("إجراءات", "Actions")}</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {filtered.map(b => {
+                const remaining = Number(b.total) - Number(b.amountPaid || 0);
+                return (
+                <TableRow key={b.id} onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="h-12 cursor-pointer" title={t("فتح الفاتورة", "Open invoice")}>
+                  <TableCell className="align-middle overflow-hidden">
+                    <Link to={`/app/purchases/bills/${b.id}`} onClick={(e) => e.stopPropagation()} title={b.billNumber} className="block max-w-full hover:underline underline-offset-4">
+                      <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{b.billNumber}</span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="align-middle overflow-hidden text-foreground" title={b.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{b.contact?.displayName || "—"}</bdi></span></TableCell>
+                  <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{b.issueDate?.slice(0, 10)}</span></TableCell>
+                  <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{b.dueDate?.slice(0, 10)}</span></TableCell>
+                  <TableCell className="text-end align-middle">
+                    <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(b.total)}{b.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {b.currency}</span>}</span>
+                    {remaining > 0 && Number(b.amountPaid || 0) > 0 && (
+                      <span dir="ltr" className="block whitespace-nowrap text-[10px] text-content-secondary tabular-nums" title={t("المتبقي بعد الدفعات", "Remaining after payments")}>{t("متبقي", "Left")} {money2(remaining)}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="align-middle">{statusPill(b.status)}</TableCell>
+                  <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                      {b.status === "DRAFT" && (
+                        <button onClick={() => handleApprove(b)} className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-xs text-success hover:border-border-strong" title={t("اعتماد الفاتورة", "Approve invoice")}>
+                          {t("✓ اعتماد", "✓ Approve")}
+                        </button>
+                      )}
+                      {pendingDelete === b.id ? (
+                        <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} />
+                      ) : (
+                        <button onClick={() => setPendingDelete(b.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );})}
+            </TableBody>
+          </Table>
+        </div>
+        </>
+      )}
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
