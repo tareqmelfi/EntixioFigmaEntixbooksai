@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
 import { normalizeDigits } from "../lib/digits";
+import { formatDraftTime } from "../lib/form-draft";
 import { displayLocale } from "../lib/number-display";
 import { api, ApiError, type Contact, type Estimate, type EstimateLineInput } from "../lib/api";
 import { taxRateLabel, useTaxRates } from "../lib/use-tax-rates";
@@ -458,6 +459,22 @@ export function Estimates() {
     const cell = "cell";
     const inputCls = "text-[13px]";
 
+    // Status strip (CEO 2026-09-08: «اضغط الزر ماني شايف وين يروح» — after Send
+    // for review the status must visibly change ON THE PAGE, not just a toast).
+    // REVIEW has no named reviewer in the API — only an internal owner/admin
+    // approves (see the conditional «اعتماد داخلي» button below) — so we say
+    // that honestly instead of inventing a person. APPROVED does carry a real
+    // approvedAt timestamp from the API; we show that, not a fabricated name
+    // (approvedById isn't resolved to a member name on this page).
+    const statusDetail = !current ? null
+      : current.status === "REVIEW"
+        ? t("بانتظار اعتماد المالك أو المدير", "Waiting on owner/admin approval")
+        : current.status === "APPROVED" && current.approvedAt
+          ? t(`اعتُمدت ${formatDraftTime(current.approvedAt, "ar")}`, `Approved ${formatDraftTime(current.approvedAt, "en")}`)
+          : current.status === "CONVERTED"
+            ? t("حُوّلت إلى عرض سعر — للقراءة فقط", "Converted to a quote — read-only")
+            : null;
+
     return (
       <>
         <FullPageForm
@@ -465,6 +482,12 @@ export function Estimates() {
           subtitle={t("دراسة داخلية · التكلفة والهامش لا تغادر الشركة", "Internal study · cost and margin never leave the company")}
           onClose={() => navigate("/app/estimates")}
           disableEscape={busy}
+          toolbar={current && (
+            <div className="flex flex-wrap items-center gap-2" data-testid="estimate-status-strip">
+              {statusPill(current)}
+              {statusDetail && <span className="text-xs text-content-secondary">{statusDetail}</span>}
+            </div>
+          )}
           footer={
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">

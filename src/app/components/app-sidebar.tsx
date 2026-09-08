@@ -138,6 +138,21 @@ interface MenuSection {
 // documents → money in every group. Contacts stays one data model and appears
 // once, in the top group (one list, role per row — Xero-style). Ownership &
 // investment keep their own group; analysis lives inside the ledger group.
+//
+// CEO 2026-09-08 (verbatim): «سوي فوق بزنس او طريقة تسهل الفريق مثلا: دراسة،
+// تحتها عرض سعر، تحتها المشاريع… لان كثرة البنود يمين تدوخ» — too many flat
+// top-level rows read as noise; the team needs to see the SEQUENCE the work
+// actually follows. Two changes implement that without deleting a single
+// route:
+//  1. «الدراسة والتسعير» becomes a parent row (still a single click to open the
+//     estimate list, exactly as before) with «عروض الأسعار» nested under it —
+//     collapsed by default so Sales shows 5 rows instead of 6 (not duplicated
+//     as its own row — «دراسة، تحتها عرض سعر»).
+//  2. The «المشاريع والتنفيذ» group (full project workspace: tasks, budget,
+//     contractors) moves to sit directly under «المبيعات» — so scanning the
+//     sidebar top-to-bottom now literally IS the business flow: study → quote
+//     → project delivery → purchases that the project drives → accounting.
+//     Its own group and hub are untouched (tests/project-tasks.spec.ts).
 const sections: MenuSection[] = [
   {
     items: [
@@ -161,13 +176,36 @@ const sections: MenuSection[] = [
     label: "المبيعات",
     hub: "/app/sales",
     items: [
-      // SPEC-05 L1 · the cost study comes BEFORE the quote (internal → client)
-      { title: "الدراسة والتسعير", icon: Calculator, path: "/app/estimates" },
-      { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
+      // SPEC-05 L1 · the cost study comes BEFORE the quote (internal → client) —
+      // nested right under it, so «دراسة ← عرض سعر» reads as one row, not two.
+      // The next step of the flow, «مشاريع», is the group immediately below
+      // (kept as its own group — tests/project-tasks.spec.ts — rather than
+      // duplicated here as a second «المشاريع» link).
+      {
+        title: "الدراسة والتسعير",
+        icon: Calculator,
+        path: "/app/estimates",
+        children: [
+          { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
+        ],
+      },
       { title: "الفواتير", icon: FileText, path: "/app/invoices" },
       { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
       { title: "الإشعارات الدائنة", icon: ScrollText, path: "/app/credit-notes" },
       { title: "كاشير POS", icon: ShoppingCart, path: "/app/pos" },
+    ],
+  },
+  {
+    // CEO 2026-09-08: «المشاريع» was buried two levels deep under
+    // المحاسبة → التحليل والهيكل, so the page existed but nobody found it.
+    // Projects are execution, not analysis — they get their own group, right
+    // after the sales flow that creates them (study → quote → project), with
+    // the subcontractors who deliver them.
+    label: "المشاريع والتنفيذ",
+    hub: "/app/projects",
+    items: [
+      { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
+      { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
     ],
   },
   {
@@ -178,18 +216,6 @@ const sections: MenuSection[] = [
       { title: "المصروفات", icon: Receipt, path: "/app/expenses" },
       { title: "سندات الصرف", icon: CreditCard, path: "/app/payments" },
       { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
-    ],
-  },
-  {
-    // CEO 2026-09-08: «المشاريع» was buried two levels deep under
-    // المحاسبة → التحليل والهيكل, so the page existed but nobody found it.
-    // Projects are execution, not analysis — they get their own group, next to
-    // the purchasing they drive, with the subcontractors who deliver them.
-    label: "المشاريع والتنفيذ",
-    hub: "/app/projects",
-    items: [
-      { title: "المشاريع", icon: FolderKanban, path: "/app/projects" },
-      { title: "المقاولون والفريلانسر", icon: HardHat, path: "/app/contractors" },
     ],
   },
   {
