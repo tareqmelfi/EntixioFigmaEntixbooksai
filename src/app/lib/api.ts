@@ -961,6 +961,20 @@ export const api = {
     create: (data: any) => request<any>('/api/projects', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/projects/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
+    // PL2 · suggested project code from numberingSettings.project (never consumed)
+    nextCode: (contactId?: string) =>
+      request<{ code: string }>('/api/projects/next-code', { query: contactId ? { contactId } : undefined }),
+    // PL1 · project ↔ document links · linking records the relation only
+    links: (id: string) => request<{ items: ProjectLink[]; total: number }>(`/api/projects/${id}/links`),
+    linkable: (id: string, params: { kind: ProjectLinkKind; q?: string; contactId?: string }) =>
+      request<{ items: LinkedDocument[]; contactId: string | null }>(`/api/projects/${id}/linkable`, { query: params }),
+    // …and the same feed before the project exists (new-project form stages its links)
+    linkableForContact: (params: { kind: ProjectLinkKind; contactId: string; q?: string }) =>
+      request<{ items: LinkedDocument[]; contactId: string | null }>('/api/projects/linkable', { query: params }),
+    link: (id: string, data: { kind: ProjectLinkKind; documentId: string }) =>
+      request<ProjectLink>(`/api/projects/${id}/links`, { method: 'POST', body: data }),
+    unlink: (id: string, linkId: string) =>
+      request<void>(`/api/projects/${id}/links/${linkId}`, { method: 'DELETE' }),
   },
 
   // Fixed Assets
@@ -2249,13 +2263,39 @@ export interface ContactInput {
   avatarUrl?: string | null
 }
 
-export type NumberingKind = 'contact' | 'invoice' | 'quote' | 'bill' | 'receipt' | 'payment'
+export type NumberingKind = 'contact' | 'invoice' | 'quote' | 'bill' | 'receipt' | 'payment' | 'estimate' | 'project'
 export interface NumberingPerKind {
   prefix?: string
   padding?: number
   start?: number
+  /** PL2 · full-control pattern, e.g. "{clientCode}-{prefix}{YYYY}-{seq}" */
+  pattern?: string
+  /** PL2 · «أدرج رمز العميل» → EDG-PRJ-0007 */
+  includeClientCode?: boolean
+  includeYear?: boolean
+  includeMonth?: boolean
 }
-export type NumberingSettings = Partial<Record<NumberingKind, NumberingPerKind>>
+export type NumberingSettings = Partial<Record<NumberingKind, NumberingPerKind>> & { entityCode?: string }
+
+/** PL1 · a document a project is linked to (quote · estimate · invoice · bill). */
+export type ProjectLinkKind = 'QUOTE' | 'ESTIMATE' | 'INVOICE' | 'BILL'
+export interface LinkedDocument {
+  id: string
+  number: string
+  date: string | null
+  total: string
+  status: string
+  currency: string
+  contactId: string | null
+  title?: string | null
+}
+export interface ProjectLink {
+  id: string
+  kind: ProjectLinkKind
+  documentId: string
+  createdAt?: string
+  document: LinkedDocument | null
+}
 
 export interface AccountTransactions {
   account: { id: string; code: string; name: string; nameAr: string | null; type: string }
