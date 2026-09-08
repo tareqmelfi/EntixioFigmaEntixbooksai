@@ -4,7 +4,7 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  * UX pattern: FullPageForm with document preview and receipt OCR.
  */
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams, Link } from "react-router";
 import {
   AlertTriangle,
   ArrowRight,
@@ -25,10 +25,10 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { PageHeader, Metric, MetricStrip, SearchField, LedgerFigure } from "../components/product";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { InlineAlert, PageHeader, Metric, MetricStrip, SearchField, LedgerFigure } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -461,6 +461,11 @@ function cleanVendorName(value: any): string {
 function money(value: any, currency = "SAR") {
   const n = Number(value || 0);
   return `${n.toLocaleString(displayLocale(undefined), { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} ${currency}`;
+}
+/** Ledger money · always two decimals, currency after the number (list + document view). */
+function money2(value: any, currency = "SAR") {
+  const n = Number(value || 0);
+  return `${n.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 function extractionTotals(data: any) {
@@ -1739,212 +1744,201 @@ export function Expenses() {
       : [{ method: selected.paymentMethod, amount: Number(selected.total || 0), reference: selected.reference || null }];
     const vendorName = selected.contact?.displayName || selected.vendorName || t("غير محدد", "Unspecified");
     const selectedSettlement = (selected.extractedJson as any)?.currencySettlement as CurrencySettlement | undefined;
+    const backToList = () => { setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); };
+    const th = "text-[11px] tracking-[0.06em]";
     return (
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => { setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="border-border">
-              <ArrowRight className="me-2 h-4 w-4" /> {t("المصروفات", "Expenses")}
-            </Button>
-            <div>
-              <h1 className="text-foreground" style={{ fontSize: "1.2rem", fontWeight: 700 }}>{t("مصروف ", "Expense ")}<span className="font-english">{selected.number}</span></h1>
-              <p className="text-sm text-muted-foreground">{vendorName} · {selected.category}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => { setSearchQuery(vendorName); setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="border-border">
-              <Building2 className="me-2 h-4 w-4" /> {t("مصاريف الجهة", "Entity expenses")}
-            </Button>
-            <Button variant="outline" onClick={openCreate} className="border-border">
-              <CopyPlus className="me-2 h-4 w-4" /> {t("مصروف جديد", "New expense")}
-            </Button>
-            {!isStripeSource && <><Button variant="outline" onClick={() => openEdit(selected)} className="border-border">
-              <Edit3 className="me-2 h-4 w-4" /> {t("تعديل", "Edit")}
-            </Button>
-            <Button variant="outline" onClick={() => push("info", t("الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات", "Email sending will be linked to expense templates later"))} className="border-border">
-              <Send className="me-2 h-4 w-4" /> {t("إرسال", "Send")}
-            </Button>
-            <Button variant="outline" onClick={() => push("info", t("ربط المصروف بالحساب البنكي/القيد سيكون من شاشة المطابقة البنكية", "Linking expense to bank account/entry will be from bank reconciliation screen"))} className="border-border">
-              <Link2 className="me-2 h-4 w-4" /> {t("ربط حساب", "Link account")}
-            </Button>
-            {pendingDelete === selected.id ? (
-              <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
-            ) : (
-              <Button variant="outline" onClick={() => setPendingDelete(selected.id)} className="border-danger-border text-danger hover:bg-danger-subtle">
-                <Trash2 className="me-2 h-4 w-4" /> {t("حذف", "Delete")}
+      <div className="space-y-6">
+        {/* Document masthead · eyebrow (group · list link) · code as the title · vendor and category under it */}
+        <PageHeader
+          className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+          eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")} · <button type="button" onClick={backToList} className="hover:underline">{t("المصروفات", "Expenses")}</button></span>}
+          title={<><span className="font-sans">{t("مصروف ", "Expense ")}</span><span dir="ltr" className="break-all font-code">{selected.number}</span></>}
+          description={<><bdi dir="auto">{vendorName}</bdi> · <bdi dir="auto">{selected.category}</bdi></>}
+          actions={
+            <>
+              <Button variant="outline" onClick={backToList} className="h-10 px-[18px] text-sm">
+                <ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} /> {t("المصروفات", "Expenses")}
               </Button>
-            )}</>}
-          </div>
-        </div>
-        {isStripeSource && <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">{t("مصروف رسوم مرتبط بفاتورة Stripe. تُزامن قيمته من المصدر؛ يمكنك إرفاق مستندات داعمة أدناه.", "Processing expense linked to a Stripe invoice. Its amount is synced from the source; supporting documents can be attached below.")}</p>}
+              <Button variant="secondary" onClick={() => { setSearchQuery(vendorName); setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); }} className="h-10 px-[18px] text-sm">
+                <Building2 className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("مصاريف الجهة", "Entity expenses")}
+              </Button>
+              <Button variant="secondary" onClick={openCreate} className="h-10 px-[18px] text-sm">
+                <CopyPlus className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("مصروف جديد", "New expense")}
+              </Button>
+              {!isStripeSource && <><Button onClick={() => openEdit(selected)} className="h-10 px-[18px] text-sm">
+                <Edit3 className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("تعديل", "Edit")}
+              </Button>
+              <Button variant="secondary" onClick={() => push("info", t("الإرسال بالبريد سيُربط لاحقاً بقوالب المصروفات", "Email sending will be linked to expense templates later"))} className="h-10 px-[18px] text-sm">
+                <Send className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("إرسال", "Send")}
+              </Button>
+              <Button variant="secondary" onClick={() => push("info", t("ربط المصروف بالحساب البنكي/القيد سيكون من شاشة المطابقة البنكية", "Linking expense to bank account/entry will be from bank reconciliation screen"))} className="h-10 px-[18px] text-sm">
+                <Link2 className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("ربط حساب", "Link account")}
+              </Button>
+              {pendingDelete === selected.id ? (
+                <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
+              ) : (
+                <Button variant="secondary" onClick={() => setPendingDelete(selected.id)} className="h-10 px-[18px] text-sm text-danger">
+                  <Trash2 className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("حذف", "Delete")}
+                </Button>
+              )}</>}
+            </>
+          }
+        />
+        {isStripeSource && <InlineAlert tone="info">{t("مصروف رسوم مرتبط بفاتورة Stripe. تُزامن قيمته من المصدر؛ يمكنك إرفاق مستندات داعمة أدناه.", "Processing expense linked to a Stripe invoice. Its amount is synced from the source; supporting documents can be attached below.")}</InlineAlert>}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_430px]">
-          <div className="space-y-4">
-            <Card className="border-border">
-              <CardContent className="p-5">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t("الإجمالي", "Total")}</p>
-                    <p className="font-english text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{money(selected.total, selected.currency)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t("قبل الضريبة", "Before tax")}</p>
-                    <p className="font-english text-sm text-foreground">{money(selected.subtotal ?? selected.amount, selected.currency)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">VAT</p>
-                    <p className="font-english text-sm text-foreground">{money(selected.taxAmount, selected.currency)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t("طريقة الدفع", "Payment method")}</p>
-                    <p className="text-sm text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,34%)]">
+          <div className="min-w-0 space-y-6">
+            {/* Figures strip · total · before tax · VAT · payment method */}
+            <MetricStrip className="compact xl:grid-cols-2 2xl:grid-cols-4">
+              <Metric label={t("الإجمالي", "Total")} value={<LedgerFigure value={Number(selected.total || 0)} currency={selected.currency} />} />
+              <Metric label={t("قبل الضريبة", "Before tax")} value={<LedgerFigure value={Number(selected.subtotal ?? selected.amount ?? 0)} currency={selected.currency} />} />
+              <Metric label="VAT" value={<LedgerFigure value={Number(selected.taxAmount || 0)} currency={selected.currency} />} />
+              <Metric label={t("طريقة الدفع", "Payment method")} value={<span className="font-sans text-base font-medium text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</span>} />
+            </MetricStrip>
 
             {selectedSettlement && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardHeader><CardTitle className="text-foreground">{t("تسوية العملة", "Currency Settlement")}</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{t("عملة الفاتورة", "Invoice currency")}</p>
-                      <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{t("القيمة العادلة", "Fair value")}</p>
-                      <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{t("السحب البنكي", "Bank withdrawal")}</p>
-                      <p className="font-english text-sm font-semibold text-foreground">{money(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{t("الفرق", "Difference")}</p>
-                      <p className={`font-english text-sm font-semibold ${selectedSettlement.difference > 0 ? "text-warning" : selectedSettlement.difference < 0 ? "text-success" : "text-foreground"}`}>
-                        {money(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">{selectedSettlement.treatmentLabel}</p>
-                    </div>
+              <section className="rounded-lg border border-border border-s-[3px] border-s-primary bg-card p-5">
+                <h2 className="text-section font-semibold text-foreground">{t("تسوية العملة", "Currency Settlement")}</h2>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="min-w-0">
+                    <p className="text-xs text-content-secondary">{t("عملة الفاتورة", "Invoice currency")}</p>
+                    <p dir="ltr" className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="min-w-0">
+                    <p className="text-xs text-content-secondary">{t("القيمة العادلة", "Fair value")}</p>
+                    <p dir="ltr" className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-content-secondary">{t("السحب البنكي", "Bank withdrawal")}</p>
+                    <p dir="ltr" className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-content-secondary">{t("الفرق", "Difference")}</p>
+                    <p dir="ltr" className={`truncate font-display text-[18px] leading-6 tabular-nums ${selectedSettlement.difference > 0 ? "text-warning" : selectedSettlement.difference < 0 ? "text-success" : "text-foreground"}`}>
+                      {money2(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
+                    </p>
+                    <p className="text-[11px] text-content-secondary">{selectedSettlement.treatmentLabel}</p>
+                  </div>
+                </div>
+              </section>
             )}
 
-            <Card className="border-border">
-              <CardHeader><CardTitle className="text-foreground">{t("المدفوعات", "Payments")}</CardTitle></CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] text-sm">
-                    <thead className="bg-muted text-xs text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 text-start">{t("الطريقة", "Method")}</th>
-                        <th className="px-3 py-2 text-start">{t("المرجع", "Reference")}</th>
-                        <th className="px-3 py-2 text-start">{t("الحساب", "Account")}</th>
-                        <th className="px-3 py-2 text-start">{t("المبلغ", "Amount")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paymentSplits.map((payment, idx) => (
-                        <tr key={idx} className="border-t border-border/50">
-                          <td className="px-3 py-2">{paymentMethodLabels(t)[payment.method]}</td>
-                          <td className="px-3 py-2 font-english">{payment.reference || payment.cardLast4 || "—"}</td>
-                          <td className="px-3 py-2">{payment.accountName || (isStripeSource ? t("رصيد Stripe", "Stripe balance") : "—")}</td>
-                          <td className="px-3 py-2 font-english">{money(payment.amount, payment.currency || selected.currency)}</td>
-                        </tr>
+            <section className="space-y-3">
+              <h2 className="text-section font-semibold text-foreground">{t("المدفوعات", "Payments")}</h2>
+              <div className="ledger-table overflow-x-auto">
+                <Table className="table-fixed min-w-[560px]">
+                  <colgroup>
+                    <col style={{ width: "150px" }} />{/* الطريقة */}
+                    <col style={{ width: "200px" }} />{/* المرجع · mono */}
+                    <col />{/* الحساب · flexible */}
+                    <col style={{ width: "150px" }} />{/* المبلغ */}
+                  </colgroup>
+                  <TableHeader><TableRow className="hover:bg-transparent">
+                    <TableHead className={th}>{t("الطريقة", "Method")}</TableHead>
+                    <TableHead className={th}>{t("المرجع", "Reference")}</TableHead>
+                    <TableHead className={th}>{t("الحساب", "Account")}</TableHead>
+                    <TableHead className={`${th} text-end`}>{t("المبلغ", "Amount")}</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {paymentSplits.map((payment, idx) => (
+                      <TableRow key={idx} className="h-11 hover:bg-transparent">
+                        <TableCell className="align-middle"><span className="block truncate">{paymentMethodLabels(t)[payment.method]}</span></TableCell>
+                        <TableCell className="align-middle overflow-hidden"><span dir="ltr" className={`block truncate font-code text-xs ${language === "ar" ? "text-right" : "text-left"}`} title={payment.reference || payment.cardLast4 || ""}>{payment.reference || payment.cardLast4 || "—"}</span></TableCell>
+                        <TableCell className="align-middle overflow-hidden"><span className="block truncate"><bdi dir="auto">{payment.accountName || (isStripeSource ? t("رصيد Stripe", "Stripe balance") : "—")}</bdi></span></TableCell>
+                        <TableCell className="text-end align-middle"><span dir="ltr" className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(payment.amount, payment.currency || selected.currency)}</span></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-border bg-card p-5">
+              <h2 className="text-section font-semibold text-foreground">{t("بيانات المصروف", "Expense Details")}</h2>
+              <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-sm md:grid-cols-2">
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("رقم المصروف:", "Expense No.:")}</dt><dd dir="ltr" className="min-w-0 truncate font-code text-foreground" title={selected.number}>{selected.number}</dd></div>
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("رقم الفاتورة:", "Invoice No.:")}</dt><dd dir="ltr" className="min-w-0 truncate font-code text-foreground" title={selected.documentNumber || selected.reference || ""}>{selected.documentNumber || selected.reference || "—"}</dd></div>
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("التاريخ:", "Date:")}</dt><dd dir="ltr" className="font-english tabular-nums text-foreground">{selected.date.slice(0, 10)}</dd></div>
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("التصنيف:", "Category:")}</dt><dd className="min-w-0 truncate text-foreground"><bdi dir="auto">{selected.category}</bdi></dd></div>
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("المورد:", "Supplier:")}</dt><dd className="min-w-0 truncate text-foreground"><bdi dir="auto">{vendorName}</bdi></dd></div>
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("الرقم الضريبي:", "Tax No.:")}</dt><dd dir="ltr" className="min-w-0 truncate font-code text-foreground">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</dd></div>
+                {selected.description && <div className="min-w-0 md:col-span-2"><dt className="inline text-content-secondary">{t("الوصف:", "Description:")}</dt> <dd className="inline break-words text-foreground"><bdi dir="auto">{selected.description}</bdi></dd></div>}
+                {selected.notes && <div className="min-w-0 md:col-span-2"><dt className="inline text-content-secondary">{t("ملاحظات:", "Notes:")}</dt> <dd className="inline break-words text-foreground"><bdi dir="auto">{selected.notes}</bdi></dd></div>}
+              </dl>
+              {selected.duplicateOfId && <InlineAlert tone="warning" className="mt-3">{t("يوجد مصروف مشابه وتم تعليمه للمراجعة.", "Similar expense found and flagged for review.")}</InlineAlert>}
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="text-section font-semibold text-foreground">{t("الأصناف والضريبة", "Items & Tax")}</h2>
+              {lineItems.length ? (
+                <div className="ledger-table overflow-x-auto">
+                  <Table className="table-fixed min-w-[820px]">
+                    <colgroup>
+                      <col />{/* الوصف · flexible */}
+                      <col style={{ width: "180px" }} />{/* الحساب */}
+                      <col style={{ width: "70px" }} />{/* الكمية */}
+                      <col style={{ width: "160px" }} />{/* السعر · 1,880,899.52 SAR */}
+                      <col style={{ width: "70px" }} />{/* VAT */}
+                      <col style={{ width: "160px" }} />{/* الإجمالي */}
+                    </colgroup>
+                    <TableHeader><TableRow className="hover:bg-transparent">
+                      <TableHead className={th}>{t("الوصف", "Description")}</TableHead>
+                      <TableHead className={th}>{t("الحساب", "Account")}</TableHead>
+                      <TableHead className={`${th} text-end`}>{t("الكمية", "Qty")}</TableHead>
+                      <TableHead className={`${th} text-end`}>{t("السعر", "Price")}</TableHead>
+                      <TableHead className={`${th} text-end`}>VAT</TableHead>
+                      <TableHead className={`${th} text-end`}>{t("الإجمالي", "Total")}</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {lineItems.map((line, idx) => (
+                        <TableRow key={idx} className="h-11 hover:bg-transparent">
+                          <TableCell className="align-middle overflow-hidden"><span className="block truncate" title={line.description}><bdi dir="auto">{line.description}</bdi></span></TableCell>
+                          <TableCell className="align-middle overflow-hidden text-xs text-content-secondary"><span className="block truncate"><bdi dir="auto">{line.accountName || (() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${account.nameAr || account.name}` : line.category || "—"; })()}</bdi></span></TableCell>
+                          <TableCell className="text-end align-middle"><span dir="ltr" className="font-english tabular-nums">{line.quantity || 1}</span></TableCell>
+                          <TableCell className="text-end align-middle"><span dir="ltr" className="block whitespace-nowrap font-english tabular-nums">{money2(line.unitPrice || 0, selected.currency)}</span></TableCell>
+                          <TableCell className="text-end align-middle"><span dir="ltr" className="font-english tabular-nums">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</span></TableCell>
+                          <TableCell className="text-end align-middle"><span dir="ltr" className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)), selected.currency)}</span></TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader><CardTitle className="text-foreground">{t("بيانات المصروف", "Expense Details")}</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                <div><span className="text-muted-foreground">{t("رقم المصروف:", "Expense No.:")}</span> <span className="font-english">{selected.number}</span></div>
-                <div><span className="text-muted-foreground">{t("رقم الفاتورة:", "Invoice No.:")}</span> <span className="font-english">{selected.documentNumber || selected.reference || "—"}</span></div>
-                <div><span className="text-muted-foreground">{t("التاريخ:", "Date:")}</span> <span className="font-english">{selected.date.slice(0, 10)}</span></div>
-                <div><span className="text-muted-foreground">{t("التصنيف:", "Category:")}</span> <span>{selected.category}</span></div>
-                <div><span className="text-muted-foreground">{t("المورد:", "Supplier:")}</span> <span>{vendorName}</span></div>
-                <div><span className="text-muted-foreground">{t("الرقم الضريبي:", "Tax No.:")}</span> <span className="font-english">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</span></div>
-                {selected.description && <div className="md:col-span-2"><span className="text-muted-foreground">{t("الوصف:", "Description:")}</span> <span>{selected.description}</span></div>}
-                {selected.notes && <div className="md:col-span-2"><span className="text-muted-foreground">{t("ملاحظات:", "Notes:")}</span> <span>{selected.notes}</span></div>}
-                {selected.duplicateOfId && <div className="md:col-span-2 rounded border border-warning-border bg-warning-subtle px-3 py-2 text-warning">{t("يوجد مصروف مشابه وتم تعليمه للمراجعة.", "Similar expense found and flagged for review.")}</div>}
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader><CardTitle className="text-foreground">{t("الأصناف والضريبة", "Items & Tax")}</CardTitle></CardHeader>
-              <CardContent>
-                {lineItems.length ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[640px] text-sm">
-                      <thead className="bg-muted text-xs text-muted-foreground">
-                        <tr>
-                          <th className="px-3 py-2 text-start">{t("الوصف", "Description")}</th>
-                          <th className="px-3 py-2 text-start">{t("الحساب", "Account")}</th>
-                          <th className="px-3 py-2 text-start">{t("الكمية", "Qty")}</th>
-                          <th className="px-3 py-2 text-start">{t("السعر", "Price")}</th>
-                          <th className="px-3 py-2 text-start">VAT</th>
-                          <th className="px-3 py-2 text-start">{t("الإجمالي", "Total")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {lineItems.map((line, idx) => (
-                          <tr key={idx} className="border-t border-border/50">
-                            <td className="px-3 py-2">{line.description}</td>
-                            <td className="px-3 py-2">{line.accountName || (() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${account.nameAr || account.name}` : line.category || "—"; })()}</td>
-                            <td className="px-3 py-2 font-english">{line.quantity || 1}</td>
-                            <td className="px-3 py-2 font-english">{money(line.unitPrice || 0, selected.currency)}</td>
-                            <td className="px-3 py-2 font-english">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</td>
-                            <td className="px-3 py-2 font-english">{money(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)), selected.currency)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
-                    {t("لا توجد أصناف محفوظة لهذا المصروف. ارفع الإيصال أو عدل المصروف لإضافتها.", "No items saved for this expense. Upload the receipt or edit the expense to add them.")}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              ) : (
+                <InlineAlert tone="warning" icon={<AlertTriangle className="h-4 w-4 text-warning" strokeWidth={1.75} />}>
+                  {t("لا توجد أصناف محفوظة لهذا المصروف. ارفع الإيصال أو عدل المصروف لإضافتها.", "No items saved for this expense. Upload the receipt or edit the expense to add them.")}
+                </InlineAlert>
+              )}
+            </section>
           </div>
 
-          <Card className="border-border">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <Paperclip className="h-4 w-4" /> {t("المرفقات", "Attachments")}
-                  {detailAttachments.length > 0 && (
-                    <span className="text-xs text-muted-foreground font-normal font-english">{activeAttIdx + 1} / {detailAttachments.length}</span>
-                  )}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={attFileRef}
-                    type="file"
-                    hidden
-                    multiple
-                    accept=".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv"
-                    onChange={(e) => { if (e.target.files?.length) handleDetailUpload(e.target.files); e.target.value = ""; }}
-                  />
-                  <Button type="button" variant="outline" size="sm" disabled={attBusy} onClick={() => attFileRef.current?.click()} className="border-border h-8 text-xs">
-                    <Upload className="me-1.5 h-3.5 w-3.5" /> {attBusy ? t("جارٍ الرفع…", "Uploading…") : t("رفع مرفقات", "Upload attachments")}
-                  </Button>
-                </div>
+          <aside className="min-w-0 rounded-lg border border-border bg-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-section font-semibold text-foreground">
+                <Paperclip className="h-4 w-4 text-content-secondary" strokeWidth={1.75} /> {t("المرفقات", "Attachments")}
+                {detailAttachments.length > 0 && (
+                  <span className="font-english text-xs font-normal tabular-nums text-content-secondary">{activeAttIdx + 1} / {detailAttachments.length}</span>
+                )}
+              </h2>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={attFileRef}
+                  type="file"
+                  hidden
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv"
+                  onChange={(e) => { if (e.target.files?.length) handleDetailUpload(e.target.files); e.target.value = ""; }}
+                />
+                <Button type="button" variant="secondary" size="sm" disabled={attBusy} onClick={() => attFileRef.current?.click()} className="h-8 text-xs">
+                  <Upload className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {attBusy ? t("جارٍ الرفع…", "Uploading…") : t("رفع مرفقات", "Upload attachments")}
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
+            </div>
+            <div className="mt-4 space-y-3">
               {detailAttachments.length === 0 ? (
-                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted text-center">
-                  <FileImage className="mb-3 h-10 w-10 text-muted-foreground/60" />
-                  <p className="text-sm text-muted-foreground">{t("لا توجد مرفقات لهذا المصروف", "No attachments for this expense")}</p>
-                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs text-primary hover:underline">{t("ارفع أول مرفق", "Upload first attachment")}</button>
+                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border-strong text-center">
+                  <FileImage className="mb-3 h-8 w-8 text-muted-foreground" strokeWidth={1.75} />
+                  <p className="text-sm text-content-secondary">{t("لا توجد مرفقات لهذا المصروف", "No attachments for this expense")}</p>
+                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs font-semibold text-primary hover:underline">{t("ارفع أول مرفق", "Upload first attachment")}</button>
                 </div>
               ) : (
                 <>
@@ -1954,28 +1948,28 @@ export function Expenses() {
                       type="button"
                       disabled={activeAttIdx <= 0}
                       onClick={() => setActiveAttIdx((i) => Math.max(0, i - 1))}
-                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/60 disabled:opacity-40"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:border-border-strong disabled:opacity-40"
                     >
-                      <ChevronRight className="h-4 w-4" /> {t("السابق", "Previous")}
+                      <ChevronRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} /> {t("السابق", "Previous")}
                     </button>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-english text-xs text-muted-foreground truncate max-w-[260px]" dir="ltr">{detailAttachments[activeAttIdx]?.name}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 truncate font-code text-xs text-content-secondary" dir="ltr" title={detailAttachments[activeAttIdx]?.name}>{detailAttachments[activeAttIdx]?.name}</span>
                       <button
                         type="button"
                         onClick={() => handleAttachmentRemove(detailAttachments[activeAttIdx])}
-                        className="text-danger/70 hover:text-danger p-1"
+                        className="shrink-0 rounded-full p-1 text-danger hover:bg-surface-hover"
                         title={t("حذف المرفق", "Delete attachment")}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                       </button>
                     </div>
                     <button
                       type="button"
                       disabled={activeAttIdx >= detailAttachments.length - 1}
                       onClick={() => setActiveAttIdx((i) => Math.min(detailAttachments.length - 1, i + 1))}
-                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/60 disabled:opacity-40"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:border-border-strong disabled:opacity-40"
                     >
-                      {t("التالي", "Next")} <ChevronLeft className="h-4 w-4" />
+                      {t("التالي", "Next")} <ChevronLeft className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />
                     </button>
                   </div>
                   {/* viewer · PDF native scroll / image free scroll */}
@@ -1988,7 +1982,7 @@ export function Expenses() {
                           key={`${att.name}-${i}`}
                           type="button"
                           onClick={() => setActiveAttIdx(i)}
-                          className={`shrink-0 rounded-md border px-2.5 py-1.5 text-[11px] font-english max-w-[160px] truncate ${i === activeAttIdx ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                          className={`max-w-[160px] shrink-0 truncate rounded-full border px-2.5 py-1 font-code text-[11px] ${i === activeAttIdx ? "border-foreground bg-foreground text-background" : "border-border text-content-secondary hover:border-border-strong"}`}
                           dir="ltr"
                         >
                           {att.name}
@@ -1998,14 +1992,13 @@ export function Expenses() {
                   )}
                 </>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </aside>
         </div>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -2063,60 +2056,64 @@ export function Expenses() {
           <h2 className="text-section font-semibold text-foreground">{t("قائمة المصروفات", "Expenses List")}</h2>
           <SearchField containerClassName="w-full sm:max-w-sm" placeholder={t("بحث بالمورد، رقم الفاتورة، التصنيف...", "Search by supplier, invoice no., category...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-        <div className="ledger-table overflow-x-auto">
-            <table className="w-full min-w-[1040px] table-fixed">
+        <div className="ledger-table overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+            <Table className="table-fixed min-w-[1040px]">
               <colgroup>
                 <col style={{ width: "230px" }} />{/* رقم · mono ids run to 30+ chars (ENTIX-FEE-txn_…) — never a % width */}
                 <col />
                 <col style={{ width: "230px" }} />{/* رقم الفاتورة · long gateway references */}
                 <col style={{ width: "110px" }} />
-                <col style={{ width: "130px" }} />
+                <col style={{ width: "150px" }} />{/* المبلغ + VAT line */}
                 <col style={{ width: "150px" }} />
               </colgroup>
-              <thead>
-                <tr className="border-b border-foreground">
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("رقم", "No.")}</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("المورد / التصنيف", "Supplier / Category")}</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("رقم الفاتورة", "Invoice No.")}</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("المبلغ", "Amount")}</th>
-                  <th className="py-3 px-4 text-start text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</td></tr>}
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>{t("رقم", "No.")}</TableHead>
+                  <TableHead>{t("المورد / التصنيف", "Supplier / Category")}</TableHead>
+                  <TableHead>{t("رقم الفاتورة", "Invoice No.")}</TableHead>
+                  <TableHead>{t("التاريخ", "Date")}</TableHead>
+                  <TableHead className="text-end">{t("المبلغ", "Amount")}</TableHead>
+                  <TableHead>{t("إجراءات", "Actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading && <TableRow className="hover:bg-transparent"><TableCell colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</TableCell></TableRow>}
                 {!loading && filtered.length === 0 && (
-                  <tr><td colSpan={6} className="py-12 text-center"><Receipt className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></td></tr>
+                  <TableRow className="hover:bg-transparent"><TableCell colSpan={6} className="py-12 text-center"><Receipt className="h-8 w-8 mx-auto text-muted-foreground mb-3" strokeWidth={1.75} /><p className="text-sm text-muted-foreground">{t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></TableCell></TableRow>
                 )}
                 {!loading && filtered.map((e) => (
-                  <tr key={e.id} onClick={() => openExpense(e)} className="border-b border-border hover:bg-surface-hover transition-colors cursor-pointer">
-                    <td className="py-3 px-4"><span dir="ltr" className="font-code text-sm text-primary block truncate" style={{ fontWeight: 600 }} title={e.number}>{e.number}</span></td>
-                    <td className="py-3 px-4">
-                      <div className="truncate text-sm text-foreground/80" title={e.contact?.displayName || e.vendorName || ""}><bdi dir="auto">{e.contact?.displayName || e.vendorName || "—"}</bdi></div>
-                      <div className="truncate text-xs text-muted-foreground">{e.category}</div>
-                    </td>
-                    <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground block truncate" style={{ fontVariantNumeric: "tabular-nums" }} title={e.documentNumber || e.reference || ""}>{e.documentNumber || e.reference || "—"}</span></td>
-                    <td className="py-3 px-4"><span dir="ltr" className="font-english text-sm text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{e.date.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4">
-                      <span dir="ltr" className="font-english text-sm text-foreground whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{money(e.total, e.currency)}</span>
-                      {Number(e.taxAmount) > 0 && <div dir="ltr" className="font-english text-[11px] text-muted-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>VAT {money(e.taxAmount, e.currency)}</div>}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1" onClick={(ev) => ev.stopPropagation()}>
-                        <button onClick={() => openExpense(e)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/50"><Eye className="h-4 w-4" /></button>
-                        {e.attachmentCount ? <FileImage className="h-4 w-4 text-primary" /> : null}
-                        {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-success" /> : null}
+                  <TableRow key={e.id} onClick={() => openExpense(e)} className="h-12 cursor-pointer" title={t("فتح المصروف", "Open expense")}>
+                    <TableCell className="align-middle overflow-hidden">
+                      <Link to={`/app/expenses/${e.id}`} onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); openExpense(e); }} title={e.number} className="block max-w-full hover:underline underline-offset-4">
+                        <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{e.number}</span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="align-middle overflow-hidden">
+                      <div className="truncate text-sm text-foreground leading-5" title={e.contact?.displayName || e.vendorName || ""}><bdi dir="auto">{e.contact?.displayName || e.vendorName || "—"}</bdi></div>
+                      <div className="truncate text-xs text-content-secondary"><bdi dir="auto">{e.category}</bdi></div>
+                    </TableCell>
+                    <TableCell className="align-middle overflow-hidden"><span dir="ltr" className={`block truncate font-code text-xs text-content-secondary ${language === "ar" ? "text-right" : "text-left"}`} title={e.documentNumber || e.reference || ""}>{e.documentNumber || e.reference || "—"}</span></TableCell>
+                    <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{e.date.slice(0, 10)}</span></TableCell>
+                    <TableCell className="text-end align-middle">
+                      <span dir="ltr" className="block whitespace-nowrap font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(e.total, e.currency)}</span>
+                      {Number(e.taxAmount) > 0 && <span dir="ltr" className="block whitespace-nowrap text-[10px] text-content-secondary tabular-nums">VAT {money2(e.taxAmount, e.currency)}</span>}
+                    </TableCell>
+                    <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        <button onClick={() => openExpense(e)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("فتح المصروف", "Open expense")}><Eye className="h-4 w-4" strokeWidth={1.75} /></button>
+                        {e.attachmentCount ? <FileImage className="h-4 w-4 text-content-secondary" strokeWidth={1.75} aria-label={t("مرفقات", "Attachments")} /> : null}
+                        {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-success" strokeWidth={1.75} aria-label="VAT" /> : null}
                         {pendingDelete === e.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => setPendingDelete(e.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
         </div>
       </section>
 
