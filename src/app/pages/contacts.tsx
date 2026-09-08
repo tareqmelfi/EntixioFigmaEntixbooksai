@@ -12,8 +12,7 @@
  * Roles get distinct color badges. KPI strip at top: total · customers · suppliers · net balance.
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router";
-import { Link } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   Users, Plus, Trash2, Edit2, Loader2, User,
   Building2, Mail, Phone, ExternalLink, Filter,
@@ -42,6 +41,7 @@ const ROLE_LABEL_EN: Record<RoleKey, string> = {
 // ── Main page ────────────────────────────────────────────────────────────────
 export function Contacts() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Contact[]>([]);
   const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
@@ -156,6 +156,7 @@ export function Contacts() {
 
       {/* Header */}
       <PageHeader
+        eyebrow={t("قائمة الاتصال", "Contacts")}
         title={t("جهات الاتصال", "Contacts")}
         description={t("إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر", "Manage all related parties · Customer · Supplier · Employee · Shareholder · Freelancer")}
         actions={(
@@ -221,7 +222,7 @@ export function Contacts() {
               <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">{t("+ إضافة جهة جديدة", "+ Add new contact")}</button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="ledger-table overflow-x-auto">
               <table className="w-full min-w-[980px] text-sm table-fixed">
                 <colgroup>
                   <col className="w-[340px]" />
@@ -231,8 +232,8 @@ export function Contacts() {
                   <col className="w-[90px]" />
                   <col className="w-[120px]" />
                 </colgroup>
-                <thead className="bg-muted text-xs text-muted-foreground">
-                  <tr>
+                <thead className="text-xs text-muted-foreground">
+                  <tr className="border-b border-foreground">
                     <th className="text-start px-4 py-2.5 font-medium">{t("الاسم", "Name")}</th>
                     <th className="text-start px-4 py-2.5 font-medium">{t("الأدوار", "Roles")}</th>
                     <th className="text-start px-4 py-2.5 font-medium">{t("الاتصال", "Contact")}</th>
@@ -245,9 +246,9 @@ export function Contacts() {
                   {filtered.map(c => {
                     const Avatar = c.entityKind === "INDIVIDUAL" ? User : Building2;
                     return (
-                      <tr key={c.id} className="border-t border-border/50 hover:bg-primary/5">
+                      <tr key={c.id} onClick={() => navigate(`/app/contacts/${c.id}`)} className="cursor-pointer border-t border-border hover:bg-surface-hover" title={t("فتح جهة الاتصال", "Open contact")}>
                         <td className="px-4 py-3 overflow-hidden align-middle" style={{ maxWidth: 0 }}>
-                          <Link to={`/app/contacts/${c.id}`} className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
+                          <Link to={`/app/contacts/${c.id}`} onClick={(e) => e.stopPropagation()} className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
                             <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center shrink-0">
                               <Avatar className="h-4 w-4 text-primary" />
                             </div>
@@ -278,7 +279,7 @@ export function Contacts() {
                         </td>
                         <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{c.vatNumber || c.taxId || "—"}</span></td>
                         <td className="px-4 py-3 text-start"><span dir="ltr" className="font-english text-xs text-foreground/80 uppercase">{c.country}</span></td>
-                        <td className="px-2 py-3 text-end">
+                        <td className="px-2 py-3 text-end" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1 justify-end">
                             <Link to={`/app/contacts/${c.id}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("فتح", "Open")}><ExternalLink className="h-4 w-4" /></Link>
                             <button onClick={() => openEdit(c)} className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/5 hover:text-primary" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" /></button>

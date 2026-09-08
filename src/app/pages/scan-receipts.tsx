@@ -600,7 +600,7 @@ export function ScanReceipts() {
       {/* Hero */}
       <div className="text-center max-w-2xl mx-auto pt-4">
         <div className="text-xs text-primary uppercase tracking-wider mb-2 font-english">RECEIPTS</div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {t("تتبّع المصروفات تلقائياً", "Track expenses automatically")} <span className="italic text-primary">{t("بالذكاء", "with AI")}</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-2">

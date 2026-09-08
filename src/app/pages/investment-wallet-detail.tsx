@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -152,7 +153,7 @@ export function InvestmentWalletDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -162,12 +163,12 @@ export function InvestmentWalletDetail() {
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setForm({ ...form, kind: "TRADING" })}
                   className={`rounded-lg border p-3 text-start transition-colors ${form.kind === "TRADING" ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:bg-muted/40"}`}>
-                  <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "TRADING" ? "#5875DB" : "inherit" }}><TrendingUp className="h-4 w-4" />{t("محفظة تداول", "Trading wallet")}</div>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "TRADING" ? "var(--primary)" : "inherit" }}><TrendingUp className="h-4 w-4" />{t("محفظة تداول", "Trading wallet")}</div>
                   <div className="text-[10px] text-muted-foreground mt-1 leading-4">{t("أموالك أنت · تُسجَّل كأصل استثماري وكل حركة تقيّد", "Your own money · an investment asset, every move posts")}</div>
                 </button>
                 <button type="button" onClick={() => setForm({ ...form, kind: "FUNDED_PROP" })}
                   className={`rounded-lg border p-3 text-start transition-colors ${form.kind === "FUNDED_PROP" ? "border-info bg-info-subtle ring-1 ring-info-border" : "border-border hover:bg-muted/40"}`}>
-                  <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "FUNDED_PROP" ? "#7C3AED" : "inherit" }}><Landmark className="h-4 w-4" />{t("محفظة ممولة", "Funded wallet")}</div>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ fontWeight: 700, color: form.kind === "FUNDED_PROP" ? "var(--primary)" : "inherit" }}><Landmark className="h-4 w-4" />{t("محفظة ممولة", "Funded wallet")}</div>
                   <div className="text-[10px] text-muted-foreground mt-1 leading-4">{t("رأس المال للشركة المموّلة · يُتتبع خارج الدفاتر، ومالك فقط (الاشتراك + الأرباح) يُقيد", "Capital is the firm's · tracked off-books; only your money posts")}</div>
                 </button>
               </div>
@@ -231,9 +232,9 @@ export function InvestmentWalletDetail() {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/investments") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
-        <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+        <Button type="submit" disabled={busy} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("إنشاء المحفظة", "Create wallet") : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
@@ -318,7 +319,7 @@ export function InvestmentWalletDetail() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-foreground text-base">{t("الحركات", "Transactions")} · {wallet.transactions?.length || 0}</CardTitle>
             {wallet.status === "ACTIVE" && (
-              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => navigate(`/app/investments/${wallet.id}/transactions/new`)}>
+              <Button size="sm" onClick={() => navigate(`/app/investments/${wallet.id}/transactions/new`)}>
                 <Plus className="me-1.5 h-3.5 w-3.5" />{t("حركة جديدة", "New transaction")}
               </Button>
             )}
@@ -395,13 +396,13 @@ export function InvestmentWalletDetail() {
   );
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <Link to="/app/investments" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-          <ArrowRight className="h-3.5 w-3.5" /> {t("العودة للمحافظ", "Back to Wallets")}
+        <Link to="/app/investments" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("الملاك والاستثمار", "Ownership & investment")} · {t("العودة للمحافظ", "Back to Wallets")}
         </Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {isNew ? t("محفظة استثمار جديدة", "New Investment Wallet") : (wallet?.name || t("المحفظة", "Wallet"))}
         </h1>
         {!isNew && wallet && (

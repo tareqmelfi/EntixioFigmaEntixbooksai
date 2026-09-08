@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Calculator, CheckCircle2, Download, Loader2, Plus, Trash2, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { InlineAlert, LedgerFigure, Metric as LedgerMetric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -351,36 +352,37 @@ export function Payroll() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الرواتب", "Payroll")}</h1>
-          <p className="text-muted-foreground mt-1">{t("حساب مسير الرواتب مع GOSI وSANED بناءً على الموظفين المسجلين", "Calculate the payroll run with GOSI and SANED based on registered employees")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} dir="ltr" className="w-36 font-english" />
-          {/* Primary: Calculate → auto-saves as DRAFT */}
-          <Button className="bg-primary hover:bg-primary/90" onClick={calculate} disabled={busy || loading}>
-            {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Calculator className="me-2 h-4 w-4" />}
-            {t("حساب المسير", "Calculate payroll")}
-          </Button>
-          {/* Secondary: Approve → locks the last-saved DRAFT → APPROVED */}
-          <Button variant="outline" className="border-success-border text-success hover:bg-success-subtle" onClick={approveRun} disabled={busy || loading || !lastSavedRunId}>
-            {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="me-2 h-4 w-4" />}
-            {t("اعتماد المسير", "Approve payroll run")}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("الموظفون والرواتب", "Employees & payroll")}
+        title={t("الرواتب", "Payroll")}
+        description={t("حساب مسير الرواتب مع GOSI وSANED بناءً على الموظفين المسجلين", "Calculate the payroll run with GOSI and SANED based on registered employees")}
+        actions={(
+          <>
+            <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} dir="ltr" className="w-36 font-english" aria-label={t("الفترة", "Period")} />
+            {/* Primary: Calculate → auto-saves as DRAFT */}
+            <Button onClick={calculate} disabled={busy || loading}>
+              {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Calculator className="me-2 h-4 w-4" strokeWidth={1.75} />}
+              {t("حساب المسير", "Calculate payroll")}
+            </Button>
+            {/* Secondary: Approve → locks the last-saved DRAFT → APPROVED */}
+            <Button variant="outline" className="border-success-border text-success hover:bg-success-subtle" onClick={approveRun} disabled={busy || loading || !lastSavedRunId}>
+              {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="me-2 h-4 w-4" strokeWidth={1.75} />}
+              {t("اعتماد المسير", "Approve payroll run")}
+            </Button>
+          </>
+        )}
+      />
 
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Metric label={t("الموظفون", "Employees")} value={employees.length.toString()} />
-        <Metric label={t("العقود المحفوظة", "Saved contracts")} value={contracts.length.toString()} />
-        <Metric label={t("إجمالي الراتب", "Gross salary")} value={`${money(displayedTotals?.grossSalary)} SAR`} />
-        <Metric label={t("الاستقطاعات", "Deductions")} value={`${money(displayedTotals?.totalDeductions)} SAR`} />
-        <Metric label={t("صافي الراتب", "Net salary")} value={`${money(displayedTotals?.netSalary)} SAR`} />
-        <Metric label={t("تكلفة صاحب العمل", "Employer cost")} value={`${money(displayedTotals?.employerCost)} SAR`} />
-      </div>
+      <MetricStrip className="grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <LedgerMetric label={t("الموظفون", "Employees")} value={employees.length.toString()} />
+        <LedgerMetric label={t("العقود المحفوظة", "Saved contracts")} value={contracts.length.toString()} />
+        <LedgerMetric label={t("إجمالي الراتب", "Gross salary")} value={<LedgerFigure value={Number(displayedTotals?.grossSalary || 0)} currency="SAR" />} />
+        <LedgerMetric label={t("الاستقطاعات", "Deductions")} value={<LedgerFigure value={Number(displayedTotals?.totalDeductions || 0)} currency="SAR" />} />
+        <LedgerMetric label={t("صافي الراتب", "Net salary")} value={<LedgerFigure value={Number(displayedTotals?.netSalary || 0)} currency="SAR" />} />
+        <LedgerMetric label={t("تكلفة صاحب العمل", "Employer cost")} value={<LedgerFigure value={Number(displayedTotals?.employerCost || 0)} currency="SAR" />} />
+      </MetricStrip>
 
       <Card className="border-border">
         <CardHeader><CardTitle>{t("إعدادات WPS / مدد", "WPS / Mudad settings")}</CardTitle></CardHeader>
@@ -544,27 +546,35 @@ export function Payroll() {
           {runs.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">{t("لا توجد مسيرات محفوظة بعد", "No saved payroll runs yet")}</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px]">
-                <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-start">{t("الرقم", "Number")}</th>
-                  <th className="px-4 py-3 text-start">{t("الفترة", "Period")}</th>
-                  <th className="px-4 py-3 text-start">{t("الحالة", "Status")}</th>
-                  <th className="px-4 py-3 text-start">{t("الصافي", "Net")}</th>
-                  <th className="px-4 py-3 text-start">{t("عدد الموظفين", "Employees")}</th>
+            <div className="ledger-table overflow-x-auto">
+              <table className="w-full min-w-[820px] table-fixed text-sm">
+                <colgroup>
+                  <col style={{ width: "190px" }} />{/* الرقم · mono */}
+                  <col style={{ width: "120px" }} />
+                  <col style={{ width: "130px" }} />
+                  <col />
+                  <col style={{ width: "130px" }} />
+                  <col style={{ width: "130px" }} />
+                </colgroup>
+                <thead className="text-xs text-muted-foreground"><tr className="border-b border-foreground">
+                  <th className="px-4 py-3 text-start font-medium">{t("الرقم", "Number")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("الفترة", "Period")}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t("الحالة", "Status")}</th>
+                  <th className="px-4 py-3 text-end font-medium">{t("الصافي", "Net")}</th>
+                  <th className="px-4 py-3 text-end font-medium">{t("عدد الموظفين", "Employees")}</th>
                   <th className="px-4 py-3 text-start"></th>
                 </tr></thead>
                 <tbody>
                   {runs.map((run) => (
-                    <tr key={run.id} className="border-b border-border/50 hover:bg-primary/5">
-                      <td className="px-4 py-3 text-sm font-english text-primary font-semibold">
-                        <button onClick={() => navigate(`/app/payroll/${run.id}`)} className="hover:underline">{run.runNumber}</button>
+                    <tr key={run.id} className="border-b border-border hover:bg-surface-hover cursor-pointer" onClick={() => navigate(`/app/payroll/${run.id}`)} title={t("فتح المسير", "Open payroll run")}>
+                      <td className="px-4 py-3 text-sm">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/app/payroll/${run.id}`); }} className="block max-w-full truncate font-code font-semibold text-foreground hover:underline underline-offset-4" dir="ltr" title={run.runNumber}>{run.runNumber}</button>
                       </td>
-                      <td className="px-4 py-3 text-sm font-english">{run.period}</td>
-                      <td className="px-4 py-3 text-xs"><span className="rounded bg-info-subtle px-2 py-0.5 text-info">{run.status}</span></td>
-                      <td className="px-4 py-3 text-sm font-english text-foreground font-semibold">{money(run.netSalary)} {run.currency}</td>
-                      <td className="px-4 py-3 text-sm font-english text-end">{run.lines?.length || 0}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-sm font-english tabular-nums" dir="ltr">{run.period}</td>
+                      <td className="px-4 py-3 text-xs"><StatusBadge tone={run.status === "PAID" || run.status === "POSTED" ? "success" : run.status === "DRAFT" ? "neutral" : run.status === "CANCELLED" ? "critical" : "info"}>{run.status}</StatusBadge></td>
+                      <td className="px-4 py-3 text-end text-sm font-english text-foreground font-semibold tabular-nums whitespace-nowrap" dir="ltr">{money(run.netSalary)} {run.currency}</td>
+                      <td className="px-4 py-3 text-end text-sm font-english tabular-nums" dir="ltr">{run.lines?.length || 0}</td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => window.open(api.payroll.runSifUrl(run.id), "_blank", "noopener,noreferrer")}
@@ -601,14 +611,5 @@ function MoneyInput({ value, onChange }: { value: string; onChange: (value: stri
     <td className="px-3 py-2">
       <Input type="number" min="0" step="0.01" value={value} onChange={(e) => onChange(e.target.value)} dir="ltr" className="w-28 font-english" />
     </td>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
-    </div>
   );
 }

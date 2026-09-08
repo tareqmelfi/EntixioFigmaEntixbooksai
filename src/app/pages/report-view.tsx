@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
+import { InlineAlert, PageHeader } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Card, CardContent } from "../components/ui/card";
 import { ReportDocument, normalizeReportSettings } from "../components/report-document";
@@ -156,19 +157,16 @@ export function ReportView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <button onClick={() => navigate("/app/reports")} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowRight className="h-4 w-4" /> {t("التقارير", "Reports")}
+      <PageHeader
+        eyebrow={(
+          <button onClick={() => navigate("/app/reports")} className="inline-flex items-center gap-2 text-xs text-content-secondary hover:text-foreground">
+            <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("التقارير", "Reports")}
           </button>
-          <h1 className="text-2xl font-bold text-foreground">
-            {language === "en" ? (report?.englishTitle || report?.title || t("تقرير", "Report")) : (report?.title || t("تقرير", "Report"))}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {language === "en" ? (report?.title || "Live report") : (report?.englishTitle || "Live report")}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        )}
+        title={language === "en" ? (report?.englishTitle || report?.title || t("تقرير", "Report")) : (report?.title || t("تقرير", "Report"))}
+        description={language === "en" ? (report?.title || "Live report") : (report?.englishTitle || "Live report")}
+        actions={(
+          <>
           {hasDetailSections && (
             <Button
               variant="outline"
@@ -188,11 +186,12 @@ export function ReportView() {
           {/* One compact export control — formats live inside the menu (no
               PDF/CSV/Excel text cluttering the toolbar, user ask 2026-08-19). */}
           <ExportMenu onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report} />
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       <Card className="border-border">
-        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto_auto_auto_auto] md:items-end">
+        <CardContent className="grid gap-3 p-4 sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto_auto] [&>*]:min-w-0">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">{t("من تاريخ", "From date")}</span>
             <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
@@ -217,16 +216,16 @@ export function ReportView() {
         </CardContent>
       </Card>
 
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {loading ? (
-        <div className="rounded-xl border border-border bg-card py-20 text-center">
+        <div className="rounded-lg border border-border bg-card py-20 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <div className="mt-3 text-sm text-muted-foreground">{t("جاري تحميل التقرير...", "Loading report...")}</div>
         </div>
       ) : report && visibleReport ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="overflow-x-auto rounded-xl bg-muted/50 p-4">
+          <div className="min-w-0 overflow-x-auto rounded-lg bg-surface-subtle p-4">
             <ReportDocument report={visibleReport} settings={settings} onRowClick={setSelectedRow} />
           </div>
           <aside className="space-y-3">

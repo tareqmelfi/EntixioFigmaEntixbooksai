@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowRight, ImagePlus, Loader2, Save, Trash2, X, ScanBarcode, Plus } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
+import { InlineAlert, PageHeader } from "../components/product";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -150,33 +151,29 @@ export function ProductDetail() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
       {/* Page header — full-page standard */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <Link to="/app/products" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-            <ArrowRight className="h-3.5 w-3.5" /> {t("العودة للمنتجات والخدمات", "Back to Products & Services")}
+      <PageHeader
+        eyebrow={(
+          <Link to="/app/products" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary">
+            <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("المنتجات والمخزون", "Products & inventory")} · {t("العودة للمنتجات والخدمات", "Back to Products & Services")}
           </Link>
-          <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>
-            {isNew ? t("صنف جديد", "New Item") : (form.nameAr || form.name || t("تعديل صنف", "Edit Item"))}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isNew
-              ? t("سجّل خدمة أو منتجاً واربطه بحساباته المحاسبية من البداية", "Register a service or product and link its accounts from day one")
-              : t("تعديل بيانات الصنف وربطه المحاسبي", "Edit the item and its accounting links")}
-          </p>
-        </div>
-        {!isNew && (
+        )}
+        title={isNew ? t("صنف جديد", "New Item") : <bdi dir="auto">{form.nameAr || form.name || t("تعديل صنف", "Edit Item")}</bdi>}
+        description={isNew
+          ? t("سجّل خدمة أو منتجاً واربطه بحساباته المحاسبية من البداية", "Register a service or product and link its accounts from day one")
+          : t("تعديل بيانات الصنف وربطه المحاسبي", "Edit the item and its accounting links")}
+        actions={!isNew && (
           <Button type="button" variant="outline" onClick={handleDelete} disabled={deleting} className="border-danger-border text-danger hover:bg-danger-subtle">
-            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="me-2 h-4 w-4" />{t("حذف الصنف", "Delete item")}</>}
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="me-2 h-4 w-4" strokeWidth={1.75} />{t("حذف الصنف", "Delete item")}</>}
           </Button>
         )}
-      </div>
+      />
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+        {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* ── Identity column ── */}
@@ -294,7 +291,7 @@ export function ProductDetail() {
         </div>
 
         {/* Sticky action bar */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
           <Button type="button" variant="outline" onClick={() => navigate("/app/products")}>{t("إلغاء", "Cancel")}</Button>
           <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("حفظ الصنف", "Save item") : t("حفظ التغييرات", "Save changes")}</>}

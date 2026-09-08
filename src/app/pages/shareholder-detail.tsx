@@ -9,6 +9,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ArrowRight, Edit2, Loader2, Plus, Save, Sparkles, Trash2, Users2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -102,7 +103,7 @@ export function ShareholderDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{isJsc ? t("بيانات المساهم", "Shareholder details") : t("بيانات المالك", "Owner details")}</div>
@@ -143,9 +144,9 @@ export function ShareholderDetail() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/shareholders") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
-        <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+        <Button type="submit" disabled={busy} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? (isJsc ? t("تسجيل المساهم", "Register shareholder") : t("تسجيل المالك", "Register owner")) : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
@@ -173,7 +174,7 @@ export function ShareholderDetail() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-foreground text-base">{t("حركات الأسهم", "Share moves")} · {person.transactions?.length || 0}</CardTitle>
-            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/share-transactions/new")}>
+            <Button size="sm" onClick={() => navigate("/app/share-transactions/new")}>
               <Plus className="me-1.5 h-3.5 w-3.5" />{t("حركة أسهم", "Share transaction")}
             </Button>
           </div>
@@ -234,13 +235,13 @@ export function ShareholderDetail() {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <Link to="/app/shareholders" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-          <ArrowRight className="h-3.5 w-3.5" /> {t("العودة للسجل", "Back to the Register")}
+        <Link to="/app/shareholders" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("الملاك والاستثمار", "Ownership & investment")} · {t("العودة للسجل", "Back to the Register")}
         </Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {isNew ? t("مساهم جديد", "New Shareholder") : (person?.name || t("المساهم", "Shareholder"))}
         </h1>
         {!isNew && person && (
@@ -249,7 +250,7 @@ export function ShareholderDetail() {
             <span className="text-xs text-muted-foreground font-english">{person.nationalId || ""}</span>
           </div>
         )}
-        {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><Users2 className="h-4 w-4" />{t("سجّل مساهماً ثم وثّق الإصدار أو التنازل من صفحته", "Register a shareholder, then record issuance or transfers from their page")}</p>}
+        {isNew && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground flex items-center gap-1.5"><Users2 className="h-4 w-4" />{t("سجّل مساهماً ثم وثّق الإصدار أو التنازل من صفحته", "Register a shareholder, then record issuance or transfers from their page")}</p>}
       </div>
       {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}

@@ -4,7 +4,8 @@ import { displayLocale } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback } from "react";
 import { Loader2, Lock, Unlock, CheckCircle2, CalendarDays, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
+import { EmptyState, PageHeader, SectionHeader, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -81,7 +82,7 @@ export function FiscalPeriods() {
     setBusy(pendingClose);
     try {
       const r = await api.fiscalPeriods.close(pendingClose);
-      push("success", `${t("تم إغلاق الفترة · صافي الدخل:", "Period closed · Net income:")} ${r.netIncome.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} · ${t("تم إنشاء قيد إغلاق آلي", "an automatic closing entry was created")}`);
+      push("success", `${t("تم إغلاق الفترة · صافي الدخل:", "Period closed · Net income:")} ${r.netIncome.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${t("تم إنشاء قيد إغلاق آلي", "an automatic closing entry was created")}`);
       setPendingClose(null);
       setPreview(null);
       refresh();
@@ -102,43 +103,81 @@ export function FiscalPeriods() {
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الفترات المالية", "Fiscal Periods")}</h1>
-          <p className="text-muted-foreground mt-1">{t("قفل الفترات · إغلاق سنوي · ترحيل الأرباح المحتجزة", "Period locking · year-end close · retained earnings posting")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))}
-            className="w-24 font-english text-center" dir="ltr" />
-          {items.length === 0 && (
-            <Button onClick={handleInit} disabled={busy === "init"} className="bg-primary hover:bg-primary/90">
-              {busy === "init" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Plus className="h-4 w-4 me-2" />}
-              {t("إنشاء فترات", "Create periods")} {year}
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("المحاسبة", "Accounting")}
+        title={t("الفترات المالية", "Fiscal Periods")}
+        description={t("قفل الفترات · إغلاق سنوي · ترحيل الأرباح المحتجزة", "Period locking · year-end close · retained earnings posting")}
+        actions={(
+          <>
+            <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))}
+              className="w-24 font-english text-center" dir="ltr" aria-label={t("السنة", "Year")} />
+            {items.length === 0 && (
+              <Button onClick={handleInit} disabled={busy === "init"}>
+                {busy === "init" ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <Plus className="h-4 w-4 me-2" strokeWidth={1.75} />}
+                {t("إنشاء فترات", "Create periods")} {year}
+              </Button>
+            )}
+          </>
+        )}
+      />
+
+      {/* Close preview · inline confirmation (UX-1 · no modal) */}
+      {preview && pendingClose && (
+        <Card className="border-s-[3px] border-s-danger">
+          <CardContent className="space-y-4 p-5">
+            <h2 className="text-section font-semibold text-foreground">{t("تأكيد إغلاق الفترة", "Confirm Period Close")}</h2>
+            <p className="text-xs text-muted-foreground">{t("سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية", "An automatic closing entry will be created that zeroes the revenue and expense accounts and posts the net to retained earnings. This action is")} <span className="font-bold text-danger">{t("غير قابلة للتراجع", "irreversible")}</span>.</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border p-3 text-sm">
+                <div className="text-xs text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</div>
+                <div className="mt-1 font-display text-xl tabular-nums text-foreground" dir="ltr">{preview.combinedRevenue.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              </div>
+              <div className="rounded-lg border border-border p-3 text-sm">
+                <div className="text-xs text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</div>
+                <div className="mt-1 font-display text-xl tabular-nums text-foreground" dir="ltr">{preview.combinedExpense.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              </div>
+              <div className="rounded-lg border border-border bg-surface-subtle p-3 text-sm">
+                <div className="text-xs font-semibold text-foreground">{t("صافي الدخل", "Net Income")}</div>
+                <div className={`mt-1 font-display text-xl tabular-nums ${preview.netIncome >= 0 ? "text-foreground" : "text-danger"}`} dir="ltr">{preview.netIncome.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={() => { setPreview(null); setPendingClose(null); }}>{t("إلغاء", "Cancel")}</Button>
+              <Button onClick={handleClose} disabled={busy === pendingClose} className="bg-danger hover:bg-danger text-primary-foreground">
+                {busy === pendingClose ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" strokeWidth={1.75} />}
+                {t("تأكيد الإغلاق", "Confirm Close")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
       ) : items.length === 0 ? (
-        <Card className="border-border">
-          <CardContent className="py-12 text-center">
-            <CalendarDays className="h-12 w-12 text-muted mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">{t("لم يتم إنشاء فترات لعام", "No periods created for")} {year}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">{t("اضغط \"إنشاء فترات\" لإنشاء 12 فترة شهرية", "Click \"Create periods\" to create 12 monthly periods")}</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<CalendarDays className="h-10 w-10" strokeWidth={1.5} />}
+          title={`${t("لم يتم إنشاء فترات لعام", "No periods created for")} ${year}`}
+          description={t("اضغط \"إنشاء فترات\" لإنشاء 12 فترة شهرية", "Click \"Create periods\" to create 12 monthly periods")}
+        />
       ) : (
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">{t("فترات السنة المالية", "Fiscal year periods")} {year}</CardTitle>
-            <CardDescription>{t("افتح/أقفل/أغلق · الإغلاق ينشئ قيد إغلاق آلي ويرحّل صافي الدخل إلى الأرباح المحتجزة", "Reopen/Lock/Close · closing creates an automatic closing entry and posts net income to retained earnings")}</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-xs text-muted-foreground">
-                <tr>
+        <section className="space-y-3">
+          <SectionHeader
+            title={<>{t("فترات السنة المالية", "Fiscal year periods")} <span className="font-english tabular-nums">{year}</span></>}
+            description={t("افتح/أقفل/أغلق · الإغلاق ينشئ قيد إغلاق آلي ويرحّل صافي الدخل إلى الأرباح المحتجزة", "Reopen/Lock/Close · closing creates an automatic closing entry and posts net income to retained earnings")}
+          />
+          <div className="ledger-table overflow-x-auto">
+            <table className="w-full min-w-[760px] table-fixed text-sm">
+              <colgroup>
+                <col />
+                <col style={{ width: "120px" }} />
+                <col style={{ width: "120px" }} />
+                <col style={{ width: "110px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "200px" }} />
+              </colgroup>
+              <thead className="text-xs text-muted-foreground">
+                <tr className="border-b border-foreground">
                   <th className="text-start px-4 py-2.5 font-medium">{t("الفترة", "Period")}</th>
                   <th className="text-start px-4 py-2.5 font-medium">{t("من", "From")}</th>
                   <th className="text-start px-4 py-2.5 font-medium">{t("إلى", "To")}</th>
@@ -149,23 +188,19 @@ export function FiscalPeriods() {
               </thead>
               <tbody>
                 {items.map(p => (
-                  <tr key={p.id} className="border-t border-border/50">
+                  <tr key={p.id} className="border-t border-border">
                     <td className="px-4 py-3 text-foreground font-medium">
                       <span className="font-english me-1" dir="ltr">{p.periodNumber}</span> · {monthName(p.periodNumber)}
                     </td>
-                    <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{p.startDate.slice(0, 10)}</td>
-                    <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{p.endDate.slice(0, 10)}</td>
+                    <td className="px-4 py-3 font-english text-foreground/80 tabular-nums whitespace-nowrap" dir="ltr">{p.startDate.slice(0, 10)}</td>
+                    <td className="px-4 py-3 font-english text-foreground/80 tabular-nums whitespace-nowrap" dir="ltr">{p.endDate.slice(0, 10)}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        p.status === "CLOSED" ? "bg-surface-hover text-foreground" :
-                        p.status === "LOCKED" ? "bg-warning-subtle text-warning" :
-                        "bg-success-subtle text-success"
-                      }`}>
+                      <StatusBadge tone={p.status === "CLOSED" ? "neutral" : p.status === "LOCKED" ? "warning" : "success"}>
                         {p.status === "CLOSED" ? t("مُغلقة", "Closed") : p.status === "LOCKED" ? t("مقفلة", "Locked") : t("مفتوحة", "Open")}
-                      </span>
+                      </StatusBadge>
                     </td>
-                    <td className="px-4 py-3 text-end font-english font-semibold" dir="ltr">
-                      {p.netIncome != null ? p.netIncome.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}
+                    <td className="px-4 py-3 text-end font-english font-semibold tabular-nums whitespace-nowrap" dir="ltr">
+                      {p.netIncome != null ? p.netIncome.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
                     </td>
                     <td className="px-4 py-3 text-end">
                       {p.status === "OPEN" && (
@@ -175,7 +210,7 @@ export function FiscalPeriods() {
                         </Button>
                       )}
                       {p.status === "LOCKED" && (
-                        <span className="flex items-center gap-1 justify-end">
+                        <span className="flex flex-wrap items-center gap-1 justify-end">
                           <Button size="sm" variant="outline" onClick={() => handleUnlock(p.id)} disabled={busy === p.id}
                             className="border-border">
                             <Unlock className="h-3 w-3 me-1" /> {t("فتح", "Reopen")}
@@ -194,40 +229,10 @@ export function FiscalPeriods() {
                 ))}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
-      {/* Preview Close modal */}
-      {preview && pendingClose && (
-        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => { setPreview(null); setPendingClose(null); }}>
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg text-foreground font-bold mb-3">{t("تأكيد إغلاق الفترة", "Confirm Period Close")}</h2>
-            <p className="text-xs text-muted-foreground mb-4">{t("سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية", "An automatic closing entry will be created that zeroes the revenue and expense accounts and posts the net to retained earnings. This action is")} <span className="font-bold text-danger">{t("غير قابلة للتراجع", "irreversible")}</span>.</p>
-            <div className="rounded-lg border border-border divide-y divide-[#F3F4F6]">
-              <div className="flex justify-between p-3 text-sm">
-                <span className="text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</span>
-                <span className="font-english font-semibold text-success" dir="ltr">{preview.combinedRevenue.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between p-3 text-sm">
-                <span className="text-muted-foreground">{t("إجمالي المصروفات", "Total Expenses")}</span>
-                <span className="font-english font-semibold text-danger" dir="ltr">{preview.combinedExpense.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between p-3 text-sm bg-muted">
-                <span className="text-foreground font-bold">{t("صافي الدخل", "Net Income")}</span>
-                <span className={`font-english font-bold ${preview.netIncome >= 0 ? "text-success" : "text-danger"}`} dir="ltr">{preview.netIncome.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end mt-4">
-              <Button variant="outline" onClick={() => { setPreview(null); setPendingClose(null); }} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button onClick={handleClose} disabled={busy === pendingClose} className="bg-danger hover:bg-danger text-primary-foreground">
-                {busy === pendingClose ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
-                {t("تأكيد الإغلاق", "Confirm Close")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

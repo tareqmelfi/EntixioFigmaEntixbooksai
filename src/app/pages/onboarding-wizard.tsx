@@ -140,7 +140,7 @@ export function OnboardingWizard() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8" dir={isAr ? "rtl" : "ltr"}>
       <div className="text-center mb-8">
-        <h1 className="text-foreground mb-2" style={{ fontSize: "26px", fontWeight: 800 }}>
+        <h1 className="mb-2 text-[clamp(1.5rem,1.3rem+0.6vw,1.75rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {t("لننقل بياناتك في دقائق", "Let's move your data in minutes")}
         </h1>
         <p className="text-muted-foreground" style={{ fontSize: "14px", lineHeight: 1.8 }}>
@@ -411,7 +411,7 @@ function StepProducts({ onDone, onSkip, setError }: { onDone: () => void; onSkip
             total={rows.length}
           />
           <label className="flex items-center gap-2 mt-3 cursor-pointer">
-            <input type="checkbox" checked={openingStock} onChange={(e) => setOpeningStock(e.target.checked)} className="w-4 h-4 rounded accent-[#5875DB]" />
+            <input type="checkbox" checked={openingStock} onChange={(e) => setOpeningStock(e.target.checked)} className="w-4 h-4 rounded accent-primary" />
             <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{t("أدخل الكميات كرصيد افتتاحي للمستودع", "Post quantities as opening warehouse stock")}</span>
           </label>
         </>
@@ -583,7 +583,7 @@ function StepDone({ status, onCompleted, onGo, setError }: {
 
 // ── shared bits ──────────────────────────────────────────────────────────────
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="bg-card border border-border rounded-2xl shadow-sm p-6 sm:p-7">{children}</div>;
+  return <div className="bg-card border border-border rounded-lg shadow-sm p-6 sm:p-7">{children}</div>;
 }
 
 function NavButtons({ nextLabel, onNext, onSkip, busy, hideSkip, skipLabel }: {

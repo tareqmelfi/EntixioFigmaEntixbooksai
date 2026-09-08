@@ -16,6 +16,7 @@ import {
 import { Card, CardContent } from "../components/ui/card";
 import { api, type DashboardSummary } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { PageHeader } from "../components/product";
 import { NumericText } from "../components/bidi-text";
 
 /**
@@ -89,12 +90,11 @@ export function AccountingHome() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المحاسبة", "Accounting")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("لوحة المحاسب: الدفاتر والضرائب والبنوك والهيكل التحليلي — اختر وجهتك.", "The accountant's home: ledgers, tax, banking, and analytical structure — pick your destination.")}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={t("المحاسبة", "Accounting")}
+        title={t("المحاسبة", "Accounting")}
+        description={t("لوحة المحاسب: الدفاتر والضرائب والبنوك والهيكل التحليلي — اختر وجهتك.", "The accountant's home: ledgers, tax, banking, and analytical structure — pick your destination.")}
+      />
 
       {kpis.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

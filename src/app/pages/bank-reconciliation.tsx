@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { PageHeader } from "../components/product";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -246,19 +247,20 @@ export function BankReconciliation() {
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("تسوية البنوك", "Bank Reconciliation")}</h1>
-          <p className="text-muted-foreground mt-1">{t("رفع كشف حساب البنك · مطابقة الحركات تلقائياً · ترحيل بنقرة", "Upload a bank statement · auto-match transactions · post with one click")}</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className={step === "upload" ? "text-primary font-semibold" : ""}>{t("1. رفع", "1. Upload")}</span>
-          <ChevronRight className="h-3 w-3" />
-          <span className={step === "review" ? "text-primary font-semibold" : ""}>{t("2. مراجعة", "2. Review")}</span>
-          <ChevronRight className="h-3 w-3" />
-          <span className={step === "done" ? "text-primary font-semibold" : ""}>{t("3. تأكيد", "3. Confirm")}</span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("البنوك والنقد", "Banks & cash")}
+        title={t("تسوية البنوك", "Bank Reconciliation")}
+        description={t("رفع كشف حساب البنك · مطابقة الحركات تلقائياً · ترحيل بنقرة", "Upload a bank statement · auto-match transactions · post with one click")}
+        actions={(
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className={step === "upload" ? "text-primary font-semibold" : ""}>{t("1. رفع", "1. Upload")}</span>
+            <ChevronRight className="h-3 w-3 rtl:rotate-180" />
+            <span className={step === "review" ? "text-primary font-semibold" : ""}>{t("2. مراجعة", "2. Review")}</span>
+            <ChevronRight className="h-3 w-3 rtl:rotate-180" />
+            <span className={step === "done" ? "text-primary font-semibold" : ""}>{t("3. تأكيد", "3. Confirm")}</span>
+          </div>
+        )}
+      />
 
       {step === "upload" && (
         <Card className="border-border">

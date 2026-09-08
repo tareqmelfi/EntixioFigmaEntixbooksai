@@ -14,8 +14,9 @@ import { displayLocale } from "../lib/number-display";
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Search, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle, Info } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, FileSpreadsheet, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle, Info } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
+import { LedgerFigure, Metric, MetricStrip, PageHeader, SearchField } from "../components/product";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -94,7 +95,7 @@ function buildCashFlowMeta(t: TFunc): Record<CashFlowType, { label: string; hint
 }
 
 function formatAmount(value: number | null | undefined): string {
-  return Number(value || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 });
+  return Number(value || 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function normalizeText(value: string): string {
@@ -691,27 +692,28 @@ export function ChartOfAccounts() {
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("دليل الحسابات", "Chart of Accounts")}</h1>
-          <p className="text-muted-foreground mt-1">{t("شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات", "Hierarchical account tree by type · 1xxx Assets · 2xxx Liabilities · 3xxx Equity · 4xxx Revenue · 5xxx Expenses")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv,.pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif,.xlsx,.xls" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy} className="border-border">
-            {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" />}
-            {t("استيراد ذكي", "Smart Import")}
-          </Button>
-          <Button variant="outline" onClick={handleExport} className="border-border">
-            <Download className="me-2 h-4 w-4" /> {t("تصدير CSV", "Export CSV")}
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("حساب جديد", "New Account")}</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("المحاسبة", "Accounting")}
+        title={t("دليل الحسابات", "Chart of Accounts")}
+        description={t("شجرة الحسابات الهرمية حسب التصنيف · 1xxx أصول · 2xxx التزامات · 3xxx حقوق ملكية · 4xxx إيرادات · 5xxx مصروفات", "Hierarchical account tree by type · 1xxx Assets · 2xxx Liabilities · 3xxx Equity · 4xxx Revenue · 5xxx Expenses")}
+        actions={(
+          <>
+            <input ref={fileInputRef} type="file" accept=".csv,text/csv,.pdf,application/pdf,image/*,.png,.jpg,.jpeg,.webp,.heic,.heif,.xlsx,.xls" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFilePick(f); e.target.value = ''; }} />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importBusy}>
+              {importBusy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" strokeWidth={1.75} />}
+              {t("استيراد ذكي", "Smart Import")}
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("تصدير CSV", "Export CSV")}
+            </Button>
+            <Button onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("حساب جديد", "New Account")}</Button>
+          </>
+        )}
+      />
 
-      {/* Type cards · quiet white tiles (UX-198 · minimal Wave-style) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      {/* Type figures · the ledger strip (click a figure to filter that type) */}
+      <MetricStrip className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {(["ASSET","LIABILITY","EQUITY","REVENUE","EXPENSE"] as const).map(typeKey => {
           const meta = TYPE_META[typeKey];
           const Icon = meta.icon;
@@ -719,39 +721,31 @@ export function ChartOfAccounts() {
           const total = typeItems.reduce((s, a) => s + (a.balance ?? 0), 0);
           const isActive = filterType === typeKey;
           return (
-            <button
+            <Metric
               key={typeKey}
+              role="button"
+              tabIndex={0}
+              aria-pressed={isActive}
               onClick={() => setFilterType(isActive ? "ALL" : typeKey)}
-              className={`rounded-lg border bg-card text-start transition p-3.5 hover:border-primary ${isActive ? "border-primary ring-1 ring-ring/20" : "border-border"}`}
-            >
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs text-muted-foreground">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></span>
-                <Icon className="h-4 w-4 text-muted-foreground/60" />
-              </div>
-              <div className="font-english text-foreground" style={{ fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.1 }}>
-                {total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
-              </div>
-              <p className="text-[11px] text-muted-foreground/60 mt-1.5"><span className="font-english">{typeItems.length}</span> {t("حساب · الرصيد الإجمالي", "account · Total balance")}</p>
-            </button>
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFilterType(isActive ? "ALL" : typeKey); } }}
+              className={`cursor-pointer transition ${isActive ? "bg-surface-subtle" : ""}`}
+              icon={<Icon className="h-4 w-4 shrink-0 text-muted-foreground/60" strokeWidth={1.75} />}
+              label={<>{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></>}
+              value={<LedgerFigure value={total} />}
+              hint={<><span className="font-english tabular-nums">{typeItems.length}</span> {t("حساب · الرصيد الإجمالي", "account · Total balance")}</>}
+            />
           );
         })}
-      </div>
+      </MetricStrip>
 
       {/* Toolbar */}
-      <Card className="border-border shadow-sm">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
-            <button onClick={() => setFilterType("ALL")} className={`text-xs px-3 py-1.5 rounded-md border transition ${filterType === "ALL" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground/80 hover:bg-muted"}`}>{t("الكل", "All")} ({items.length})</button>
-            <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">{t("+ توسيع", "+ Expand")}</button>
-            <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">{t("طيّ", "Collapse")}</button>
-            <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField containerClassName="min-w-[200px]" placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        <button onClick={() => setFilterType("ALL")} aria-pressed={filterType === "ALL"} className={`rounded-full px-3 py-1.5 text-xs transition ${filterType === "ALL" ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{t("الكل", "All")} ({items.length})</button>
+        <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">{t("+ توسيع", "+ Expand")}</button>
+        <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">{t("طيّ", "Collapse")}</button>
+        <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
+      </div>
 
       {/* Type-grouped tree sections (UX-192) */}
       {loading ? (
@@ -785,7 +779,7 @@ export function ChartOfAccounts() {
                     <Icon className={`h-4 w-4 ${meta.text}`} />
                     <div>
                       <div className="text-sm text-foreground font-semibold">{TYPE_LABELS_PLURAL[typeKey]} · <span className="font-english">{TYPE_PREFIX[typeKey]}xxxx</span></div>
-                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english">{sectionTotal.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}</span></div>
+                      <div className="text-[10px] text-muted-foreground/60">{sectionRoots.length} {t("حساب رئيسي · إجمالي", "parent accounts · Total")} <span className="font-english tabular-nums" dir="ltr">{sectionTotal.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                     </div>
                   </div>
                   <button
@@ -802,7 +796,7 @@ export function ChartOfAccounts() {
                       {searchQuery ? t("لا نتائج مطابقة", "No matching results") : t("لا توجد حسابات في هذا التصنيف", "No accounts in this category")}
                     </div>
                   ) : (
-                    <div className="divide-y divide-[#F3F4F6]">
+                    <div className="divide-y divide-border">
                       {(() => {
                         // Flatten only the section's tree honoring expanded state
                         const out: TreeNode[] = [];
@@ -827,8 +821,8 @@ export function ChartOfAccounts() {
                             <button
                               type="button"
                               onClick={() => openTransactions(node.id)}
-                              className="font-english text-xs text-primary bg-primary/5 border border-border px-2 py-0.5 rounded shrink-0 hover:underline"
-                              style={{ fontWeight: 700 }}
+                              className="font-code text-xs text-foreground border border-border px-2 py-0.5 rounded shrink-0 hover:underline"
+                              style={{ fontWeight: 600 }}
                             >
                               {node.code}
                             </button>
@@ -846,10 +840,10 @@ export function ChartOfAccounts() {
                               )}
                             </button>
                             {/* Balance */}
-                            <div className="font-english text-xs shrink-0 text-end" style={{ minWidth: "80px" }}>
+                            <div className="font-english text-xs shrink-0 text-end tabular-nums" dir="ltr" style={{ minWidth: "80px" }}>
                               {(node.balance ?? 0) !== 0 ? (
                                 <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-warning"}`}>
-                                  {(node.balance ?? 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
+                                  {(node.balance ?? 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground">0.00</span>
@@ -897,7 +891,7 @@ export function ChartOfAccounts() {
       {/* Transactions slide-over panel */}
       {txPanel && (
         <div className="fixed inset-0 z-50 bg-foreground/40 flex justify-end" onClick={() => setTxPanel(null)}>
-          <div className="bg-card shadow-xl w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-card border-b border-border/50 p-5 flex items-center justify-between z-10">
               <div>
                 <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
@@ -908,7 +902,7 @@ export function ChartOfAccounts() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {txPanel.data.total} {t("عملية", "transactions")}
                     <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-warning"}`}>
-                      {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}
+                      {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </p>
                 )}
@@ -942,14 +936,14 @@ export function ChartOfAccounts() {
                       {txPanel.data.transactions.map((t) => (
                         <tr key={t.id} className="border-t border-border/50 hover:bg-primary/5">
                           <td className="px-3 py-2 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-foreground/80" style={{ fontVariantNumeric: "tabular-nums" }}>{t.date.slice(0, 10)}</span></td>
-                          <td className="px-3 py-2 font-english font-semibold text-primary">{t.journalNumber}</td>
+                          <td className="px-3 py-2 font-code font-semibold text-foreground whitespace-nowrap">{t.journalNumber}</td>
                           <td className="px-3 py-2">
                             <div className="text-foreground max-w-[320px] truncate" title={t.description}><bdi dir="auto">{t.description}</bdi></div>
                             {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{t.lineDescription}</div>}
                           </td>
-                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.credit > 0 ? t.credit.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.runningBalance.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.credit > 0 ? t.credit.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
+                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.runningBalance.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -964,7 +958,7 @@ export function ChartOfAccounts() {
       {/* Import preview modal */}
       {importPreview && (
         <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-3" onClick={() => setImportPreview(null)}>
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg shadow-[var(--elevation-popover)] w-full max-w-6xl h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                 <FileSpreadsheet className="h-5 w-5 text-primary" /> {t("معاينة الاستيراد", "Import Preview")}
@@ -1053,7 +1047,7 @@ export function ChartOfAccounts() {
 
       {mergeSource && (
         <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setMergeSource(null)}>
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg shadow-[var(--elevation-popover)] w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
                 <ArrowRightLeft className="h-5 w-5 text-warning" />
@@ -1099,7 +1093,7 @@ export function ChartOfAccounts() {
 
       {open && (
         <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-lg shadow-[var(--elevation-popover)] w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between p-4 border-b border-border/50">
                 <h2 className="text-base text-foreground" style={{ fontWeight: 700 }}>{editingId ? t("تعديل حساب", "Edit Account") : t("حساب جديد", "New Account")}</h2>

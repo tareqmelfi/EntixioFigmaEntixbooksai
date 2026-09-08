@@ -34,8 +34,10 @@ export async function auditOverflow(page: Page, root = 'main'): Promise<Overflow
       if (cs.position === 'fixed' || cs.position === 'absolute') return
       const r = el.getBoundingClientRect()
       if (r.width === 0 || r.height === 0) return
-      // 1. text/content wider than its own box (nowrap spill) — only when not clipped
-      if (!scrolls(el) && cs.overflowX !== 'hidden' && el.scrollWidth > el.clientWidth + 2 && el.clientWidth > 0) {
+      // 1. text/content wider than its own box (nowrap spill) — only when not clipped.
+      //    Form controls scroll their own value by design and are not layout spills.
+      const formControl = /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)
+      if (!formControl && !scrolls(el) && cs.overflowX !== 'hidden' && el.scrollWidth > el.clientWidth + 2 && el.clientWidth > 0) {
         out.push({ path: path(el), kind: 'spills-self', by: el.scrollWidth - el.clientWidth, text: (el.textContent || '').trim().slice(0, 60) })
       }
       // 2. box outside its parent's box (grid/table cell overlap)
@@ -43,10 +45,10 @@ export async function auditOverflow(page: Page, root = 'main'): Promise<Overflow
       if (p && p !== document.body && !scrolls(p)) {
         const pr = p.getBoundingClientRect()
         const pcs = getComputedStyle(p)
-        // A 0×0 parent is a measuring shim, not a box that can clip anything
-        // (recharts 3 ResponsiveContainer wraps every chart in `width:0;height:0;overflow:visible`).
-        const shim = pr.width === 0 && pr.height === 0
-        if (!shim && pcs.overflow !== 'hidden' && pcs.overflowX !== 'hidden' && (r.right > pr.right + 2 || r.left < pr.left - 2)) {
+        // recharts' ResponsiveContainer measures itself through a 0×0 shim — a
+        // zero-box parent has no width to "spill" out of, so it is not a hit.
+        const zeroParent = pr.width === 0 || pr.height === 0
+        if (!zeroParent && pcs.overflow !== 'hidden' && pcs.overflowX !== 'hidden' && (r.right > pr.right + 2 || r.left < pr.left - 2)) {
           out.push({ path: path(el), kind: 'spills-parent', by: Math.max(r.right - pr.right, pr.left - r.left), text: (el.textContent || '').trim().slice(0, 60) })
         }
       }

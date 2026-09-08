@@ -20,7 +20,7 @@ import {
   KeyRound, Activity, Tag, Landmark , Eye, Printer, Download, Trash2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { InlineAlert, Metric, MetricStrip, PageHeader, SectionHeader, StatusBadge, TableNumericCell } from "../components/product";
+import { InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, SectionHeader, StatusBadge, TableNumericCell } from "../components/product";
 import { api, ApiError, ContactSummary } from "../lib/api";
 import { ContactWizard } from "../components/contact-wizard";
 import { ImageCropperModal } from "../components/image-cropper-modal";
@@ -53,7 +53,7 @@ function DocumentStatus({ status }: { status: string }) {
     PAID:     { tone: "success", label: { ar: "مدفوعة", en: "Paid" } },
     SENT:     { tone: "info", label: { ar: "مرسلة", en: "Sent" } },
     PARTIAL:  { tone: "warning", label: { ar: "جزئية", en: "Partial" } },
-    OVERDUE:  { tone: "critical", label: { ar: "متأخرة", en: "Overdue" } },
+    OVERDUE:  { tone: "warning", label: { ar: "متأخرة", en: "Overdue" } },
     DRAFT:    { tone: "neutral", label: { ar: "مسودة", en: "Draft" } },
     UNPAID:   { tone: "warning", label: { ar: "غير مدفوعة", en: "Unpaid" } },
     APPROVED: { tone: "info", label: { ar: "معتمدة", en: "Approved" } },
@@ -161,14 +161,14 @@ export function ContactDetail() {
 
   const { contact, totals } = data;
   const cur = contact.country === "SA" ? "SAR" : (contact.defaultCurrency || "SAR");
-  const fmt = (n: number) => `${n.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${cur}`;
 
   return (
     <div className="space-y-5">
       {/* Header bar · Wave-style minimal (UX-201) */}
       <PageHeader
         leading={<Link to="/app/contacts" aria-label={t("العودة إلى جهات الاتصال", "Back to contacts")} className="block rounded-md p-1.5 text-muted-foreground transition hover:bg-surface-hover hover:text-primary"><ArrowRight className={`h-5 w-5 ${language === "en" ? "rotate-180" : ""}`} /></Link>}
-        title={<span className="block break-words">{contact.displayName}</span>}
+        eyebrow={t("قائمة الاتصال", "Contacts")}
+        title={<span className="block break-words"><bdi dir="auto">{contact.displayName}</bdi></span>}
         actions={(
           <>
             <Button variant="outline" onClick={() => setEditOpen(true)}>{t("تعديل العميل", "Edit customer")}</Button>
@@ -201,7 +201,7 @@ export function ContactDetail() {
       />
 
       {/* Wave-style 2-column · contact card on left + tabs on right */}
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 gap-5 items-start lg:grid-cols-[280px_minmax(0,1fr)]">
         {/* Left contact card */}
         <Card className="border-border">
           <CardContent className="p-5">
@@ -287,39 +287,36 @@ export function ContactDetail() {
           </CardContent>
         </Card>
 
-        {/* Right column — placeholder spacer for tabs/content (existing KPIs + sections render below this grid) */}
-        <div className="min-w-0">
-          {/* spacer; content continues below outside grid */}
-        </div>
-      </div>
+        {/* Right column · figures + tabs + tab content (the card stays beside them) */}
+        <div className="min-w-0 space-y-5">
 
       {/* Top KPI strip */}
       <MetricStrip>
         <Metric
           label={t("الفواتير", "Invoices")}
           icon={<FileText className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.invoices.total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          value={<LedgerFigure value={totals.invoices.total} currency={cur} />}
           hint={<><span className="font-english tabular-nums font-semibold">{totals.invoices.count}</span> {t("فاتورة", "invoices")}</>}
         />
         <Metric
           label={t("فواتير الشراء", "Purchase bills")}
           icon={<ShoppingBag className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.bills.total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          value={<LedgerFigure value={totals.bills.total} currency={cur} />}
           hint={<><span className="font-english tabular-nums font-semibold">{totals.bills.count}</span> {t("فاتورة شراء", "purchase bills")}</>}
         />
         <Metric
           tone="success"
           label={t("سندات القبض", "Receipts")}
           icon={<Receipt className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{totals.receipts.total.toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">{cur}</span></span>}
+          value={<LedgerFigure value={totals.receipts.total} currency={cur} />}
           hint={<><span className="font-english tabular-nums font-semibold">{totals.receipts.count}</span> {t("سند قبض", "receipts")}</>}
         />
         <Metric
           tone={totals.balance >= 0 ? "success" : "warning"}
           label={t("الرصيد الصافي", "Net balance")}
           icon={<Banknote className="h-3.5 w-3.5" />}
-          value={<span dir="ltr" className="font-english-block tabular-nums">{fmt(Math.abs(totals.balance))}</span>}
-          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 })} {cur}</span></span></>}
+          value={<LedgerFigure value={Math.abs(totals.balance)} currency={cur} />}
+          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</span></span></>}
         />
       </MetricStrip>
 
@@ -350,6 +347,8 @@ export function ContactDetail() {
       {tab === "documents" && <DocumentsTab contact={contact} />}
       {tab === "portal" && <PortalTab contact={contact} />}
       {tab === "activity" && <ActivityTab contactId={contact.id} />}
+        </div>
+      </div>
       {/* تعديل العميل — in place (was: navigate away to /app/contacts?edit= and
           dump the user on the list; now the same wizard opens here and the page
           refreshes with the saved data) */}
@@ -374,9 +373,9 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
   const recentBills = data.bills.slice(0, 5);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
       {/* Left col · contact info */}
-      <div className="lg:col-span-1 space-y-4">
+      <div className="min-w-0 xl:col-span-1 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader title={t("معلومات الاتصال", "Contact info")} />
@@ -391,7 +390,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
             {contact.phone && (
               <div className="flex items-start gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
-                <a href={`tel:${contact.phone}`} className="text-foreground hover:underline font-english">{contact.phone}</a>
+                <a href={`tel:${contact.phone}`} dir="ltr" className="inline-block text-foreground hover:underline font-english tabular-nums">{contact.phone}</a>
               </div>
             )}
             {(contact.addressLine1 || contact.city) && (
@@ -457,12 +456,12 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
       </div>
 
       {/* Right col · recent activity */}
-      <div className="lg:col-span-2 space-y-4">
+      <div className="min-w-0 xl:col-span-2 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader
               title={<span className="flex items-center gap-1.5"><FileText className="h-4 w-4" /> {t("آخر الفواتير", "Latest invoices")}</span>}
-              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {cur}</span></span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.arOpen.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
@@ -489,7 +488,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
           <CardHeader className="pb-3">
             <SectionHeader
               title={<span className="flex items-center gap-1.5"><ShoppingBag className="h-4 w-4" /> {t("آخر فواتير الشراء", "Latest purchase bills")}</span>}
-              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {cur}</span></span>}
+              actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
@@ -519,9 +518,9 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
 function Row({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span dir={mono ? "ltr" : undefined} className={`text-sm text-foreground/80 ${mono ? "font-english tabular-nums" : ""}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3">
+      <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+      <span dir={mono ? "ltr" : undefined} className={`min-w-0 truncate text-sm text-foreground/80 ${mono ? "font-english tabular-nums" : ""}`} title={value}>{value}</span>
     </div>
   );
 }
@@ -551,7 +550,7 @@ function DocList({ rows }: { rows: Array<{ id: string; number: string; date: str
           <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end min-w-[140px] md:min-w-[180px]">
             <DocumentStatus status={r.status} />
             <div className="text-end">
-              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
+              <div dir="ltr" className="whitespace-nowrap text-sm font-english tabular-nums font-semibold text-foreground">{r.total.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div dir="ltr" className="whitespace-nowrap text-xs font-english tabular-nums text-muted-foreground">{r.cur}</div>
             </div>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary shrink-0" />
@@ -601,7 +600,7 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
           >
             <div className="text-xs text-muted-foreground">{s.label}</div>
             <div className="mt-0.5 font-english tabular-nums text-base font-bold text-foreground">{s.count}</div>
-            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {cur}</div>
+            <div dir="ltr" className="font-english tabular-nums text-xs text-muted-foreground">{s.total.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</div>
           </button>
         ))}
       </div>
@@ -632,6 +631,7 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
 
 function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: string; due: string | null; total: number; paid: number; status: string; cur: string; href: string }> }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   if (rows.length === 0) {
     return <div className="py-12 text-center text-sm text-muted-foreground/60">{t("لا توجد سجلات", "No records")}</div>;
   }
@@ -662,17 +662,17 @@ function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: st
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id} className="border-t border-border/50 hover:bg-primary/5 transition">
-              <td className="px-4 py-2.5">
-                <Link to={r.href} dir="ltr" className="font-english inline-block font-semibold text-primary hover:underline">{r.number}</Link>
+            <tr key={r.id} onClick={() => navigate(r.href)} className="border-t border-border/50 hover:bg-surface-hover transition cursor-pointer" title={t("فتح المستند", "Open document")}>
+              <td className="px-4 py-2.5 overflow-hidden">
+                <Link to={r.href} dir="ltr" onClick={(e) => e.stopPropagation()} className="font-code block max-w-full truncate font-semibold text-foreground hover:underline underline-offset-4" title={r.number}>{r.number}</Link>
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{r.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground"><span dir="ltr" className="font-english inline-block">{r.due?.slice(0, 10) || "—"}</span></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</TableNumericCell></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</TableNumericCell></td>
-              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="font-semibold text-foreground">{r.total.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-success">{r.paid.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end"><TableNumericCell className="text-warning">{(r.total - r.paid).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableNumericCell></td>
               <td className="px-4 py-2.5 text-center"><DocumentStatus status={r.status} /></td>
-              <td className="px-2 py-2.5"><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary" /></Link></td>
+              <td className="px-2 py-2.5" onClick={(e) => e.stopPropagation()}><Link to={r.href}><ExternalLink className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary" /></Link></td>
             </tr>
           ))}
         </tbody>
@@ -717,7 +717,7 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
               className="border-t border-border/50 hover:bg-primary/5 transition cursor-pointer"
               title={t("استعراض السند", "View voucher")}
             >
-              <td className="px-4 py-2.5"><span dir="ltr" className="font-english inline-block font-semibold text-primary">{v.number}</span></td>
+              <td className="px-4 py-2.5 overflow-hidden"><Link to={voucherPath(v)} dir="ltr" onClick={(e) => e.stopPropagation()} className="font-code block max-w-full truncate font-semibold text-foreground hover:underline underline-offset-4" title={v.number}>{v.number}</Link></td>
               <td className="px-4 py-2.5">
                 <StatusBadge tone={v.type === "RECEIPT" ? "success" : "warning"}>
                   {v.type === "RECEIPT" ? t("قبض", "Receipt") : t("صرف", "Payment")}
@@ -725,7 +725,7 @@ function VchTable({ rows }: { rows: ContactSummary["vouchers"] }) {
               </td>
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english tabular-nums inline-block">{v.date.slice(0, 10)}</span></td>
               <td className={`px-4 py-2.5 text-end ${v.type === "RECEIPT" ? "text-success" : "text-warning"}`}>
-                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {v.currency}</TableNumericCell>
+                <TableNumericCell className="font-semibold">{Number(v.amount).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {v.currency}</TableNumericCell>
               </td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{v.paymentMethod || "—"}</td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs"><span dir="ltr" className="font-english inline-block">{v.reference || "—"}</span></td>
@@ -784,7 +784,7 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
               <td className="px-4 py-2.5 text-foreground/80"><span dir="ltr" className="font-english inline-block">{e.date.slice(0, 10)}</span></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-normal break-words">{e.category || t("غير مصنّف", "Uncategorized")}</td>
               <td className="px-4 py-2.5 text-foreground/80 whitespace-normal break-words">{e.description || "—"}</td>
-              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {e.currency}</TableNumericCell></td>
+              <td className="px-4 py-2.5 text-end text-warning"><TableNumericCell className="whitespace-nowrap font-semibold">{Number(e.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {e.currency}</TableNumericCell></td>
             </tr>
           ))}
         </tbody>

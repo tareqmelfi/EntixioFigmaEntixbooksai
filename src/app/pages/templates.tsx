@@ -5,11 +5,11 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import {
-  FileText, Plus, Search, Eye, Copy, Edit2, Trash2, Loader2, Star, X, Printer,
+  FileText, Plus, Eye, Copy, Edit2, Trash2, Loader2, Star, X, Printer,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
+import { EmptyState, InlineAlert, PageHeader, SearchField, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
@@ -68,65 +68,61 @@ export function Templates() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("القوالب", "Templates")}</h1>
-          <p className="text-muted-foreground mt-1">{t("قوالب طباعة الفواتير والسندات والإشعارات — القالب الافتراضي يُستخدم فوراً في الطباعة", "Print templates for invoices, vouchers and notes — the default template is used immediately when printing")}</p>
-        </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/templates/new")}><Plus className="me-2 h-4 w-4" />{t("قالب جديد", "New Template")}</Button>
-      </div>
+      <PageHeader
+        eyebrow={t("الإعدادات", "Settings")}
+        title={t("القوالب", "Templates")}
+        description={t("قوالب طباعة الفواتير والسندات والإشعارات — القالب الافتراضي يُستخدم فوراً في الطباعة", "Print templates for invoices, vouchers and notes — the default template is used immediately when printing")}
+        actions={<Button onClick={() => navigate("/app/templates/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("قالب جديد", "New Template")}</Button>}
+      />
 
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-          <Input placeholder={t("بحث في القوالب...", "Search templates...")} className="ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        </div>
-        <div className="flex gap-1 flex-wrap">
-          <button onClick={() => setTypeFilter("")} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${!typeFilter ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{t("الكل", "All")}</button>
+        <SearchField containerClassName="max-w-sm" placeholder={t("بحث في القوالب...", "Search templates...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} aria-label={t("بحث", "Search")} />
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setTypeFilter("")} aria-pressed={!typeFilter} className={`rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${!typeFilter ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{t("الكل", "All")}</button>
           {(Object.keys(TYPE_META) as DocType[]).map(k => (
-            <button key={k} onClick={() => setTypeFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${typeFilter === k ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`} style={{ fontWeight: 600 }}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
+            <button key={k} onClick={() => setTypeFilter(k)} aria-pressed={typeFilter === k} className={`rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${typeFilter === k ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</button>
           ))}
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="h-7 w-7 animate-spin mx-auto text-primary" /></div>
       ) : filtered.length === 0 ? (
-        <Card className="border-border"><CardContent className="py-14 text-center">
-          <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-          <p className="text-sm text-foreground" style={{ fontWeight: 600 }}>{items.length === 0 ? t("لا توجد قوالب بعد — أنشئ أول قالب لشركتك", "No templates yet — create your company's first template") : t("لا نتائج مطابقة", "No matching results")}</p>
-          {items.length === 0 && (
-            <div className="mt-4 flex justify-center gap-2 flex-wrap">
+        <EmptyState
+          icon={<FileText className="h-10 w-10" strokeWidth={1.5} />}
+          title={items.length === 0 ? t("لا توجد قوالب بعد — أنشئ أول قالب لشركتك", "No templates yet — create your company's first template") : t("لا نتائج مطابقة", "No matching results")}
+          action={items.length === 0 ? (
+            <div className="flex justify-center gap-2 flex-wrap">
               {(Object.keys(TYPE_META) as DocType[]).map(k => (
-                <Button key={k} variant="outline" size="sm" onClick={() => navigate(`/app/templates/new?type=${k}`)} className="border-border text-primary"><Plus className="me-1 h-3.5 w-3.5" />{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</Button>
+                <Button key={k} variant="outline" size="sm" onClick={() => navigate(`/app/templates/new?type=${k}`)}><Plus className="me-1 h-3.5 w-3.5" strokeWidth={1.75} />{isAr ? TYPE_META[k].ar : TYPE_META[k].en}</Button>
               ))}
             </div>
-          )}
-        </CardContent></Card>
+          ) : undefined}
+        />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((tpl) => {
             const meta = TYPE_META[tpl.type as DocType] || TYPE_META.INVOICE;
             const Icon = meta.icon as React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
             return (
-              <Card key={tpl.id} className="border-border hover:shadow-md hover:border-primary/30 transition-all cursor-pointer" onClick={() => navigate(`/app/templates/${tpl.id}`)}>
+              <Card key={tpl.id} className="ledger-hoverable min-w-0 cursor-pointer transition" onClick={() => navigate(`/app/templates/${tpl.id}`)} title={t("فتح القالب", "Open template")}>
                 <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl p-2.5" style={{ backgroundColor: meta.bg }}><Icon className="h-5 w-5" style={{ color: meta.color }} /></div>
-                      <div>
-                        <div className="text-foreground" style={{ fontWeight: 600 }}>{isAr ? tpl.name : (tpl.nameEn || tpl.name)}</div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">{isAr ? meta.ar : meta.en} · {isAr ? LAYOUT_META[tpl.layout as Layout]?.ar : LAYOUT_META[tpl.layout as Layout]?.en}</span>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="shrink-0 rounded-lg border border-border bg-surface-subtle p-2.5"><Icon className="h-5 w-5 text-content-secondary" /></div>
+                      <div className="min-w-0">
+                        <div className="truncate text-foreground" style={{ fontWeight: 600 }} title={isAr ? tpl.name : (tpl.nameEn || tpl.name)}><bdi dir="auto">{isAr ? tpl.name : (tpl.nameEn || tpl.name)}</bdi></div>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 mt-0.5">
+                          <span className="truncate text-xs text-muted-foreground">{isAr ? meta.ar : meta.en} · {isAr ? LAYOUT_META[tpl.layout as Layout]?.ar : LAYOUT_META[tpl.layout as Layout]?.en}</span>
                           {tpl.isDefault && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-foreground" style={{ fontWeight: 600 }}><Star className="h-2.5 w-2.5 fill-current" />{t("افتراضي", "Default")}</span>
+                            <StatusBadge tone="info" icon={<Star className="h-2.5 w-2.5 fill-current" />}>{t("افتراضي", "Default")}</StatusBadge>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex shrink-0 gap-1">
                       <span className="h-4 w-4 rounded-full border border-border" style={{ background: tpl.primaryColor }} title={tpl.primaryColor} />
                       <span className="h-4 w-4 rounded-full border border-border" style={{ background: tpl.accentColor }} title={tpl.accentColor} />
                     </div>
@@ -157,7 +153,7 @@ export function Templates() {
       {/* Read-only preview lightbox (kept · it's a viewer, not a form) */}
       {previewTpl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={() => setPreviewTpl(null)}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-card shadow-[var(--elevation-popover)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-border">
               <div className="text-sm" style={{ fontWeight: 700 }}>{isAr ? previewTpl.name : (previewTpl.nameEn || previewTpl.name)} · {t("معاينة", "Preview")}</div>
               <div className="flex gap-1">

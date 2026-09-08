@@ -826,9 +826,10 @@ export function AI() {
       <div className="flex min-w-0 flex-1 flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-3"><Sparkles className="h-7 w-7 text-primary" /></div>
-          <div>
-            <h1 className="text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{t("المساعد الذكي", "AI Assistant")}</h1>
+          <div className="shrink-0 rounded-lg border border-border bg-surface-subtle p-3"><Sparkles className="h-7 w-7 text-content-secondary" strokeWidth={1.75} /></div>
+          <div className="min-w-0">
+            <div className="mb-0.5 text-xs text-content-secondary">{t("المساعد الذكي", "AI assistant")}</div>
+            <h1 className="text-[clamp(1.5rem,1.3rem+0.6vw,2rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">{t("المساعد الذكي", "AI Assistant")}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">{t("اطلب · ارفع · اسأل · ينفذ مباشرة في الـDB · يدعم ملفات متعددة", "Request · upload · ask · executes directly in the DB · supports multiple files")}</p>
           </div>
         </div>
@@ -878,7 +879,7 @@ export function AI() {
               <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${m.role === "user" ? "bg-foreground" : "bg-primary/10"}`}>
                 {m.role === "user" ? <User className="h-4 w-4 text-primary-foreground" /> : <Bot className="h-4 w-4 text-primary" />}
               </div>
-              <div className={`flex-1 max-w-[85%] rounded-2xl px-4 py-3 text-sm ${m.role === "user" ? "bg-foreground text-primary-foreground ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
+              <div className={`flex-1 max-w-[85%] rounded-lg px-4 py-3 text-sm ${m.role === "user" ? "bg-foreground text-primary-foreground ms-auto" : "bg-primary/5 text-foreground border border-border"}`}>
                 {m.attachment && (
                   <div className="mb-2 rounded-lg border border-border/40 p-2 bg-card/10 flex items-center gap-2">
                     <FileText className="h-4 w-4 shrink-0" />
@@ -1013,7 +1014,7 @@ export function AI() {
               <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="h-4 w-4 text-primary" />
               </div>
-              <div className="bg-primary/5 border border-border rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
+              <div className="bg-primary/5 border border-border rounded-lg px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> {t("جارٍ المعالجة...", "Processing...")}
               </div>
             </div>
@@ -1023,7 +1024,7 @@ export function AI() {
               <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="h-4 w-4 text-primary" />
               </div>
-              <div className="bg-primary/5 border border-border rounded-2xl px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
+              <div className="bg-primary/5 border border-border rounded-lg px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> {t("بانتظار الرد المحفوظ من السيرفر...", "Waiting for the saved reply from the server...")}
               </div>
             </div>
