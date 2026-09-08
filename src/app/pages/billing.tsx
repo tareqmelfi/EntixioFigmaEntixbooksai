@@ -11,10 +11,11 @@ import {
   BadgeCheck, CreditCard, Crown, ExternalLink, Loader2, RefreshCw, Rocket,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Button } from "../components/ui/button";
 import { InlineAlert, PageHeader } from "../components/product";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, type PlatformInvoice, type BillingParty } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
 const STATUS_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
@@ -43,15 +44,22 @@ export function Billing() {
   // Plan currency follows the org's country (US → USD · everyone else → SAR),
   // unless the active subscription already carries a currency.
   const [planCurrency, setPlanCurrency] = useState<"sar" | "usd">("sar");
+  const [tab, setTab] = useState<"subscription" | "invoices">("subscription");
+  const [invoices, setInvoices] = useState<PlatformInvoice[]>([]);
+  const [invoiceParties, setInvoiceParties] = useState<{ seller: BillingParty | null; buyer: BillingParty | null }>({ seller: null, buyer: null });
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [s, p, orgs] = await Promise.all([
+      const [s, p, orgs, inv] = await Promise.all([
         api.stripe.subscription().catch(() => null),
         api.stripe.plans().catch(() => ({ plans: [] })),
         api.orgs.list().catch(() => []),
+        // Official platform invoices — never blocks the page if it fails.
+        api.stripe.invoices().catch(() => ({ invoices: [] as PlatformInvoice[], seller: null, buyer: null })),
       ]);
+      setInvoices(inv.invoices || []);
+      setInvoiceParties({ seller: inv.seller || null, buyer: inv.buyer || null });
       const active = s && !s.error ? s : null;
       setSub(active);
       setPlans(p.plans || []);
@@ -130,6 +138,115 @@ export function Billing() {
 
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
+      {/* Subscription · Invoices — the official tax invoice for every payment
+          lives here (CEO 2026-09-08), beside Stripe's own PDF. */}
+      <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit" role="tablist">
+        {([
+          { id: "subscription" as const, ar: "الاشتراك", en: "Subscription" },
+          { id: "invoices" as const, ar: "الفواتير", en: "Invoices" },
+        ]).map((item) => (
+          <button
+            key={item.id}
+            role="tab"
+            aria-selected={tab === item.id}
+            data-testid={`billing-tab-${item.id}`}
+            onClick={() => setTab(item.id)}
+            className={`rounded-md px-4 py-1.5 text-sm transition-colors ${tab === item.id ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+            style={{ fontWeight: tab === item.id ? 700 : 500 }}
+          >
+            {t(item.ar, item.en)}
+          </button>
+        ))}
+      </div>
+
+      {tab === "invoices" && (
+        <div className="space-y-4" data-testid="billing-invoices">
+          {/* Company + VAT data — read from settings, never invented. */}
+          <Card className="border-border">
+            <CardContent className="p-5 grid gap-4 sm:grid-cols-2">
+              {([
+                { label: t("الجهة المُصدِّرة", "Issued by"), party: invoiceParties.seller },
+                { label: t("بيانات منشأتك", "Your company"), party: invoiceParties.buyer },
+              ]).map((block) => (
+                <div key={block.label}>
+                  <div className="text-xs text-muted-foreground mb-1">{block.label}</div>
+                  <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+                    <bdi dir="auto">{block.party?.legalName || block.party?.name || "—"}</bdi>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {t("الرقم الضريبي", "VAT no.")}{" "}
+                    {block.party?.vatNumber
+                      ? <span className="font-code" dir="ltr">{block.party.vatNumber}</span>
+                      : <span className="ph text-warning" data-placeholder="vatNumber">{t("غير مُسجَّل في الإعدادات", "Not set in settings")}</span>}
+                  </div>
+                  {block.party?.crNumber && (
+                    <div className="text-xs text-muted-foreground">
+                      {t("السجل التجاري", "CR")} <span className="font-code" dir="ltr">{block.party.crNumber}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {invoices.length === 0 ? (
+            <InlineAlert tone="info">
+              {t("لا توجد فواتير اشتراك بعد — تظهر هنا فور اكتمال أول عملية دفع.", "No subscription invoices yet — they appear here as soon as your first payment completes.")}
+            </InlineAlert>
+          ) : (
+            <div className="ledger-table overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-start p-3 text-xs text-muted-foreground">{t("رقم الفاتورة", "Invoice no.")}</TableHead>
+                    <TableHead className="text-start p-3 text-xs text-muted-foreground">{t("التاريخ", "Date")}</TableHead>
+                    <TableHead className="text-end p-3 text-xs text-muted-foreground">{t("المبلغ", "Amount")}</TableHead>
+                    <TableHead className="text-start p-3 text-xs text-muted-foreground">{t("الحالة", "Status")}</TableHead>
+                    <TableHead className="text-end p-3 text-xs text-muted-foreground">{t("المستندات", "Documents")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((inv) => (
+                    <TableRow key={inv.id} data-testid="billing-invoice-row">
+                      <TableCell className="p-3 text-sm font-code text-foreground" dir="ltr">{inv.number || inv.stripeInvoiceId}</TableCell>
+                      <TableCell className="p-3 text-sm text-muted-foreground" dir="ltr">{new Date(inv.issuedAt).toLocaleDateString(displayLocale("en-GB"))}</TableCell>
+                      <TableCell className="p-3 text-sm text-end font-english text-foreground" dir="ltr">
+                        {(inv.totalMinor / 100).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {inv.currency}
+                      </TableCell>
+                      <TableCell className="p-3 text-sm">
+                        <span className={inv.remainingMinor === 0 ? "text-success" : "text-warning"}>
+                          {inv.remainingMinor === 0 ? t("مدفوعة", "Paid") : t("مستحقة", "Due")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="p-3 text-end whitespace-nowrap">
+                        <a
+                          href={api.stripe.invoiceDocumentUrl(inv.id, isEn ? "en" : "ar")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-testid="billing-invoice-document"
+                          className="text-primary hover:underline text-xs"
+                        >
+                          {t("الفاتورة الرسمية", "Official invoice")}
+                        </a>
+                        {inv.invoicePdfUrl && (
+                          <>
+                            <span className="text-muted-foreground mx-2">·</span>
+                            <a href={inv.invoicePdfUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
+                              {t("تحميل PDF", "Download PDF")}
+                            </a>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "subscription" && (<>
       {/* Current status */}
       <Card className="border-border">
         <CardContent className="p-5">
@@ -235,6 +352,7 @@ export function Billing() {
           <p className="text-xs text-muted-foreground text-center">{t("دفع آمن عبر Stripe · يمكنك الإلغاء في أي وقت من بوابة الدفع", "Secure payment via Stripe · cancel anytime from the billing portal")}</p>
         </>
       )}
+      </>)}
     </div>
   );
 }

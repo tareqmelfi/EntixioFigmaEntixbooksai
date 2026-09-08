@@ -270,6 +270,25 @@ export interface AdminOrgUsage {
 }
 export interface AdminUserDeletePreview { user: { id: string; email: string; name: string | null }; orgs: Array<{ id: string; name: string; country: string; role: string; deletedAt: string | null; members: number; invoices: number; soleOwner: boolean; plan: string | null; status: string | null }> }
 export interface AdminSubscriptionsPayload { items: AdminSubscriptionRow[]; total: number; mrrCents: Record<string, number>; byStatus: Record<string, number>; lifetime: number }
+/** Official platform (subscription) invoice · Billing → «الفواتير» */
+export interface PlatformInvoice {
+  id: string; number: string | null; stripeInvoiceId: string; status: string; currency: string
+  totalMinor: number; paidMinor: number; remainingMinor: number
+  issuedAt: string; paidAt: string | null; dueAt: string | null
+  invoicePdfUrl: string | null; hostedInvoiceUrl: string | null
+}
+/** Company/VAT data shown beside the invoices — read from settings, never invented. */
+export interface BillingParty {
+  name: string | null; legalName: string | null; email: string | null
+  vatNumber: string | null; crNumber: string | null; city: string | null; address: string | null
+}
+/** What /welcome needs after a pay-first checkout. */
+export interface PublicCheckoutSession {
+  paid: boolean; email: string | null; locale: 'ar' | 'en'; token: string | null
+  planName: string; subscriptionActive: boolean; accountReady: boolean
+  needsPassword: boolean; needsLogin: boolean
+}
+
 export interface AdminPlanRecord { id: string; stripePriceId: string; name: string; nameAr: string | null; description: string | null; price: number; currency: string; interval: string; tier: string; isActive: boolean; subscriptions: number }
 export interface AdminAuditRow { id: string; adminUserId: string; adminEmail: string; action: string; targetType: string; targetId: string | null; targetLabel: string | null; before: any; after: any; reason: string | null; ipAddress: string | null; createdAt: string }
 
@@ -1005,6 +1024,21 @@ export const api = {
     createCheckoutSession: (priceId: string, successUrl?: string, cancelUrl?: string): Promise<{ url: string; multiOrgDiscount?: boolean }> =>
       request<{ url: string }>('/api/stripe/create-checkout-session', { method: 'POST', body: { priceId, successUrl, cancelUrl } }),
     customerPortal: () => request<{ url: string }>('/api/stripe/customer-portal', { method: 'POST', body: {} }),
+    /** Official platform invoices for the active org (Billing → «الفواتير»). */
+    invoices: () => request<{ invoices: PlatformInvoice[]; seller: BillingParty | null; buyer: BillingParty | null }>('/api/stripe/invoices'),
+    /** Absolute URL of the brand-rendered platform tax invoice document. */
+    invoiceDocumentUrl: (id: string, lang: 'ar' | 'en' = 'ar') => `${API_BASE}/api/stripe/invoices/${id}/document?lang=${lang}`,
+  },
+
+  // Buy-first funnel · PUBLIC — a visitor pays BEFORE any account exists.
+  // These calls must never send an org header or require a session.
+  public: {
+    checkout: (body: { planId?: string; tier?: string; interval: 'month' | 'year'; locale: 'ar' | 'en'; market: 'sa' | 'us'; email?: string }) =>
+      request<{ url: string; mode: 'checkout' | 'payment_link'; token: string }>('/api/public/checkout', { method: 'POST', body, skipOrg: true }),
+    checkoutSession: (sessionId: string) =>
+      request<PublicCheckoutSession>('/api/public/checkout/session', { query: { session_id: sessionId }, skipOrg: true }),
+    activate: (sessionId: string, password: string) =>
+      request<{ ok?: boolean; needsLogin?: boolean; email: string }>('/api/public/checkout/activate', { method: 'POST', body: { session_id: sessionId, password }, skipOrg: true }),
   },
 
   // Contractors (freelancers · مقاولون) · work logs · direct payments · project performance

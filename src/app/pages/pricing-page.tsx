@@ -167,6 +167,40 @@ export function PricingPage() {
     }).catch(() => {});
   }, []);
 
+  /**
+   * «ابدأ مجانًا» — the free path. Unchanged behaviour: guests register, a
+   * signed-in user manages the plan from billing.
+   */
+  const startFree = () => {
+    navigate(authStore.getState().isAuthenticated ? "/app/billing" : "/register");
+  };
+
+  /**
+   * «اشترك الآن» — the MONEY path (CEO 2026-09-08: paying must never require an
+   * account first). A guest goes straight to Stripe Checkout via the public
+   * endpoint, which resolves the plan server-side from tier+interval+market —
+   * so a missing client-side priceId can no longer divert a paying visitor into
+   * the registration form, which is exactly what was costing sales.
+   */
+  const buyNow = async (tier: Tier) => {
+    const interval = billingCycle === "monthly" ? "month" : "year";
+    setCheckoutBusy(tier);
+    setCheckoutError(null);
+    try {
+      const { url } = await api.public.checkout({
+        planId: livePriceIds[`${tier}:${interval}:${currency.toLowerCase()}`] || undefined,
+        tier,
+        interval,
+        locale: isAr ? "ar" : "en",
+        market: currency === "SAR" ? "sa" : "us",
+      });
+      window.location.href = url;
+    } catch (e: any) {
+      setCheckoutBusy(null);
+      setCheckoutError(e?.message || "checkout_failed");
+    }
+  };
+
   const subscribe = async (tier: Tier) => {
     const interval = billingCycle === "monthly" ? "month" : "year";
     const priceId = livePriceIds[`${tier}:${interval}:${currency.toLowerCase()}`];
@@ -174,13 +208,11 @@ export function PricingPage() {
     // Starter (free): guests register; signed-in users manage it from billing —
     // never bounce a logged-in user to /register (that just dumps them inside
     // the app with no explanation).
-    if (tier === "starter" || !priceId) { navigate(authed ? "/app/billing" : "/register"); return; }
-    // Pay-first: guests pay BEFORE any account exists — the claim email lands
-    // in their inbox after Stripe confirms (owner directive 2026-08-22).
-    if (!authed) {
-      navigate(`/buy?tier=${tier}&interval=${interval}&currency=${currency.toLowerCase()}`);
-      return;
-    }
+    if (tier === "starter") { startFree(); return; }
+    // Pay-first: guests pay BEFORE any account exists — the account is created
+    // from the email Stripe collects (owner directive 2026-08-22 · 2026-09-08).
+    if (!authed) { await buyNow(tier); return; }
+    if (!priceId) { navigate("/app/billing"); return; }
     setCheckoutBusy(tier);
     setCheckoutError(null);
     try {
@@ -409,22 +441,48 @@ export function PricingPage() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => subscribe(plan.tier)}
-                  disabled={checkoutBusy !== null}
-                  className={`w-full rounded-full py-3.5 transition-colors cursor-pointer disabled:opacity-60 ${
-                    plan.popular
-                      ? "bg-[var(--brand-blue-600)] text-primary-foreground hover:opacity-90"
-                      : "border border-foreground text-foreground hover:bg-surface-hover"
-                  }`}
-                  style={{ fontSize: "15px", fontWeight: 600 }}
-                >
-                  {checkoutBusy === plan.tier
-                    ? t("جارٍ تحويلك لصفحة الدفع الآمنة...", "Taking you to secure checkout...")
-                    : plan.price[currency][billingCycle] === 0
-                      ? t("ابدأ مجاناً", "Start free")
-                      : t("اشترك الآن · يُفعّل فورًا", "Subscribe now · active instantly")}
-                </button>
+                {/* TWO actions per paid plan (CEO 2026-09-08): pay now WITHOUT
+                    an account, or take the free plan. The free tier keeps its
+                    single action — there is nothing to pay for. */}
+                <div className="flex flex-col gap-2" data-testid={`plan-actions-${plan.tier}`}>
+                  <button
+                    onClick={() => subscribe(plan.tier)}
+                    disabled={checkoutBusy !== null}
+                    data-testid={`plan-subscribe-${plan.tier}`}
+                    className={`w-full rounded-full py-3.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                      plan.popular
+                        ? "bg-[var(--brand-blue-600)] text-primary-foreground hover:opacity-90"
+                        : "border border-foreground text-foreground hover:bg-surface-hover"
+                    }`}
+                    style={{ fontSize: "15px", fontWeight: 600 }}
+                  >
+                    {checkoutBusy === plan.tier
+                      ? t("جارٍ تحويلك لصفحة الدفع الآمنة...", "Taking you to secure checkout...")
+                      : plan.price[currency][billingCycle] === 0
+                        ? t("ابدأ مجاناً", "Start free")
+                        : t("اشترك الآن · يُفعّل فورًا", "Subscribe now · active instantly")}
+                  </button>
+                  {plan.price[currency][billingCycle] > 0 && (
+                    <button
+                      onClick={startFree}
+                      disabled={checkoutBusy !== null}
+                      data-testid={`plan-start-free-${plan.tier}`}
+                      className={`w-full rounded-full py-3 transition-colors cursor-pointer disabled:opacity-60 ${
+                        plan.popular
+                          ? "border border-background/40 text-background hover:bg-background/10"
+                          : "border border-border text-content-secondary hover:bg-surface-hover hover:text-foreground"
+                      }`}
+                      style={{ fontSize: "14px", fontWeight: 600 }}
+                    >
+                      {t("ابدأ مجانًا", "Start free")}
+                    </button>
+                  )}
+                  {plan.price[currency][billingCycle] > 0 && (
+                    <p className={`m-0 text-center ${plan.popular ? "text-background/60" : "text-content-secondary"}`} style={{ fontSize: "11px", lineHeight: 1.6 }}>
+                      {t("الاشتراك بدون تسجيل — تُنشئ حسابك بعد الدفع", "Subscribe without registering — your account is created after payment")}
+                    </p>
+                  )}
+                </div>
 
                 <div className={`h-px w-full ${plan.popular ? "bg-background/20" : "bg-border"}`} />
 

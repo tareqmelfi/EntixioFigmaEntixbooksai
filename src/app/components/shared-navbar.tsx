@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
 import { usePublicRoute } from "../lib/public-route";
-import { PublicPreferenceSelector } from "./public-preference-selector";
+import { PublicPreferenceSelector, PublicLanguageToggle } from "./public-preference-selector";
 
 interface DropdownItem {
   label: string;
@@ -185,6 +185,9 @@ export function SharedNavbar() {
 
         {/* Mobile CTA + hamburger */}
         <div className="lg:hidden flex items-center gap-2">
+          {/* Language switch stays OUTSIDE the hamburger — on a phone it must be
+              one tap from the first paint (CEO 2026-09-08). */}
+          <PublicLanguageToggle />
           <button
             onClick={() => navigate(publicHref("/register"))}
             className="inline-flex h-10 items-center rounded-full bg-foreground px-3.5 text-background transition-colors hover:bg-primary cursor-pointer"
