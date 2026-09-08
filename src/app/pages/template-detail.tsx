@@ -10,6 +10,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { ArrowRight, Loader2, Save } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -82,20 +83,20 @@ export function TemplateDetail() {
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <Link to="/app/templates" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-          <ArrowRight className="h-3.5 w-3.5" /> {t("العودة للقوالب", "Back to Templates")}
+        <Link to="/app/templates" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("الإعدادات", "Settings")} · {t("العودة للقوالب", "Back to Templates")}
         </Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {isNew ? t("قالب جديد", "New Template") : t("تعديل القالب", "Edit Template")}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("صمّم قالب الطباعة وشاهد المعاينة الحية أثناء التعديل", "Design the print template and watch the live preview as you edit")}</p>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{t("صمّم قالب الطباعة وشاهد المعاينة الحية أثناء التعديل", "Design the print template and watch the live preview as you edit")}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
           {/* Form column */}
           <div className="space-y-5">
-            {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+            {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
             <Card className="border-border">
               <CardContent className="p-5 space-y-4">
@@ -122,7 +123,7 @@ export function TemplateDetail() {
                     {(Object.keys(LAYOUT_META) as Layout[]).map(k => (
                       <button key={k} type="button" role="radio" aria-checked={form.layout === k} onClick={() => setForm({ ...form, layout: k })}
                         className={`rounded-lg border p-2.5 text-start transition-colors ${form.layout === k ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:bg-muted/40"}`}>
-                        <div className="text-xs" style={{ fontWeight: 700, color: form.layout === k ? "#5875DB" : "inherit" }}>{isAr ? LAYOUT_META[k].ar : LAYOUT_META[k].en}</div>
+                        <div className="text-xs" style={{ fontWeight: 700, color: form.layout === k ? "var(--primary)" : "inherit" }}>{isAr ? LAYOUT_META[k].ar : LAYOUT_META[k].en}</div>
                         <div className="text-[10px] text-muted-foreground mt-0.5 leading-4">{isAr ? LAYOUT_META[k].hintAr : LAYOUT_META[k].hintEn}</div>
                       </button>
                     ))}
@@ -147,12 +148,12 @@ export function TemplateDetail() {
                   ] as const).map(([key, label]) => (
                     <label key={key} className="flex items-center justify-between gap-3 py-1 text-sm cursor-pointer">
                       <span>{label}</span>
-                      <input type="checkbox" checked={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked } as any)} className="h-4 w-4 accent-[#5875DB]" />
+                      <input type="checkbox" checked={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked } as any)} className="h-4 w-4 accent-primary" />
                     </label>
                   ))}
                   <label className="flex items-center justify-between gap-3 py-1 text-sm cursor-pointer border-t border-border/50 mt-1 pt-2">
                     <span style={{ fontWeight: 600 }}>{t("افتراضي لهذا النوع", "Default for this type")}</span>
-                    <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="h-4 w-4 accent-[#5875DB]" />
+                    <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="h-4 w-4 accent-primary" />
                   </label>
                 </div>
 
@@ -176,7 +177,7 @@ export function TemplateDetail() {
 
         <div className="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/templates")}>{t("إلغاء", "Cancel")}</Button>
-          <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+          <Button type="submit" disabled={busy} className="min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("حفظ القالب", "Save template") : t("حفظ التغييرات", "Save changes")}</>}
           </Button>
         </div>

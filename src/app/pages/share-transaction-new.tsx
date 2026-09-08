@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router";
 import { ArrowRight, Loader2, Save } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -121,14 +122,14 @@ export function ShareTransactionNew() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <Link to="/app/shareholders" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-          <ArrowRight className="h-3.5 w-3.5" /> {t("العودة لسجل المساهمين", "Back to the Register")}
+        <Link to="/app/shareholders" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("الملاك والاستثمار", "Ownership & investment")} · {t("العودة لسجل المساهمين", "Back to the Register")}
         </Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{t("حركة أسهم جديدة", "New share transaction")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("كل نوع له معالجته المحاسبية الصحيحة في حقوق الملكية — والتنازل بين المساهمين يبقى في السجل فقط", "Each kind gets its correct equity treatment — transfers between shareholders stay in the register")}</p>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">{t("حركة أسهم جديدة", "New share transaction")}</h1>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{t("كل نوع له معالجته المحاسبية الصحيحة في حقوق الملكية — والتنازل بين المساهمين يبقى في السجل فقط", "Each kind gets its correct equity treatment — transfers between shareholders stay in the register")}</p>
       </div>
 
       {shareholders.length === 0 && (
@@ -138,7 +139,7 @@ export function ShareTransactionNew() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+        {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -148,7 +149,7 @@ export function ShareTransactionNew() {
                 {KINDS.map((k) => (
                   <button key={k.kind} type="button" onClick={() => setForm({ ...form, kind: k.kind })}
                     className={`rounded-lg border p-3 text-start transition-colors ${form.kind === k.kind ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:bg-muted/40"}`}>
-                    <div className="text-sm" style={{ fontWeight: 700, color: form.kind === k.kind ? "#5875DB" : "inherit" }}>{t(k.ar, k.en)}</div>
+                    <div className="text-sm" style={{ fontWeight: 700, color: form.kind === k.kind ? "var(--primary)" : "inherit" }}>{t(k.ar, k.en)}</div>
                     <div className="text-[10px] text-muted-foreground mt-1 leading-4">{k.hint}</div>
                   </button>
                 ))}
@@ -203,7 +204,7 @@ export function ShareTransactionNew() {
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/shareholders")}>{t("إلغاء", "Cancel")}</Button>
-          <Button type="submit" disabled={busy || shareholders.length === 0} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+          <Button type="submit" disabled={busy || shareholders.length === 0} className="min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{t("توثيق الحركة", "Record the move")}</>}
           </Button>
         </div>

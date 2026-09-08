@@ -15,6 +15,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ClipboardList, Plus, ScanBarcode, Lock, RotateCcw, Printer, Loader2, Check, X, Eye, EyeOff, Filter, ArrowLeft } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { Input } from "../components/ui/input";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, type StockCount, type StockCountSummary, type StockCountLine } from "../lib/api";
@@ -22,11 +23,11 @@ import { useLanguage } from "../components/LanguageContext";
 import { displayName } from "../lib/display-name";
 import { money } from "../lib/pos-store";
 
-const STATUS: Record<string, { ar: string; en: string; cls: string }> = {
-  COUNTING: { ar: "جارٍ العدّ", en: "Counting", cls: "bg-warning-subtle text-warning" },
-  REVIEW: { ar: "للمراجعة", en: "Review", cls: "bg-primary/10 text-primary" },
-  POSTED: { ar: "مُرحَّل", en: "Posted", cls: "bg-success-subtle text-success" },
-  CANCELLED: { ar: "ملغى", en: "Cancelled", cls: "bg-muted text-muted-foreground" },
+const STATUS: Record<string, { ar: string; en: string; tone: "warning" | "info" | "success" | "neutral" }> = {
+  COUNTING: { ar: "جارٍ العدّ", en: "Counting", tone: "warning" },
+  REVIEW: { ar: "للمراجعة", en: "Review", tone: "info" },
+  POSTED: { ar: "مُرحَّل", en: "Posted", tone: "success" },
+  CANCELLED: { ar: "ملغى", en: "Cancelled", tone: "neutral" },
 };
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString(displayLocale("en-GB"), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 
@@ -71,13 +72,11 @@ export function StockCounts() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <Link to="/app/inventory" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" />{t("المخزون", "Inventory")}</Link>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الجرد", "Stocktake")}</h1>
-          <p className="mt-1 text-muted-foreground">{t("جمّد أرصدة النظام · عدّ بالباركود · راجع الفروقات · رحّل التسويات — والبيع مستمر", "Freeze system quantities · count by barcode · review variances · post adjustments — sales keep running")}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={<Link to="/app/inventory" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" strokeWidth={1.75} />{t("المنتجات والمخزون", "Products & inventory")} · {t("المخزون", "Inventory")}</Link>}
+        title={t("الجرد", "Stocktake")}
+        description={t("جمّد أرصدة النظام · عدّ بالباركود · راجع الفروقات · رحّل التسويات — والبيع مستمر", "Freeze system quantities · count by barcode · review variances · post adjustments — sales keep running")}
+      />
 
       <Card className="border-border">
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
@@ -102,39 +101,49 @@ export function StockCounts() {
               </select>
             </label>
           ) : (
-            <label className="flex h-10 items-center gap-2 text-sm text-foreground/80"><input type="checkbox" checked={form.blind} onChange={(e) => setForm({ ...form, blind: e.target.checked })} className="h-4 w-4 accent-[#5875DB]" />{t("عدّ أعمى (إخفاء رصيد النظام)", "Blind count (hide system qty)")}</label>
+            <label className="flex h-10 items-center gap-2 text-sm text-foreground/80"><input type="checkbox" checked={form.blind} onChange={(e) => setForm({ ...form, blind: e.target.checked })} className="h-4 w-4 accent-primary" />{t("عدّ أعمى (إخفاء رصيد النظام)", "Blind count (hide system qty)")}</label>
           )}
-          <Button onClick={start} disabled={starting || !warehouses.length} className="bg-primary hover:bg-primary/90">{starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="me-1 h-4 w-4" />}{t("بدء جلسة جرد", "Start stocktake")}</Button>
+          <Button onClick={start} disabled={starting || !warehouses.length}>{starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="me-1 h-4 w-4" />}{t("بدء جلسة جرد", "Start stocktake")}</Button>
           {!warehouses.length && !loading && <div className="text-xs text-warning md:col-span-4">{t("لا يوجد مستودع — أنشئ مستودعًا أولًا من صفحة المخزون.", "No warehouse yet — create one from the Inventory page first.")}</div>}
         </CardContent>
       </Card>
 
-      <Card className="border-border">
-        <CardContent className="p-0">
-          {loading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" /></div> : items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground"><ClipboardList className="h-8 w-8" />{t("لا جلسات جرد بعد", "No stocktakes yet")}</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-border text-start text-xs text-muted-foreground">
-                <th className="px-4 py-2 text-start">{t("الرقم", "No.")}</th><th className="px-4 py-2 text-start">{t("المستودع", "Warehouse")}</th><th className="px-4 py-2 text-start">{t("النطاق", "Scope")}</th><th className="px-4 py-2 text-start">{t("الأصناف", "Items")}</th><th className="px-4 py-2 text-start">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start">{t("بدأ", "Started")}</th><th className="px-4 py-2 text-start">{t("رُحّل", "Posted")}</th>
+      <section className="space-y-3">
+        <h2 className="text-section font-semibold text-foreground">{t("جلسات الجرد", "Stocktake sessions")} · <span className="font-english tabular-nums">{items.length}</span></h2>
+        {loading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" /></div> : items.length === 0 ? (
+          <EmptyState icon={<ClipboardList className="h-10 w-10" strokeWidth={1.5} />} title={t("لا جلسات جرد بعد", "No stocktakes yet")} />
+        ) : (
+          <div className="ledger-table overflow-x-auto">
+            <table className="w-full min-w-[900px] table-fixed text-sm">
+              <colgroup>
+                <col style={{ width: "150px" }} />{/* الرقم · mono */}
+                <col />{/* المستودع · flexible */}
+                <col style={{ width: "170px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "120px" }} />
+                <col style={{ width: "150px" }} />
+                <col style={{ width: "150px" }} />
+              </colgroup>
+              <thead className="text-xs text-muted-foreground"><tr className="border-b border-foreground">
+                <th className="px-4 py-2 text-start font-medium">{t("الرقم", "No.")}</th><th className="px-4 py-2 text-start font-medium">{t("المستودع", "Warehouse")}</th><th className="px-4 py-2 text-start font-medium">{t("النطاق", "Scope")}</th><th className="px-4 py-2 text-end font-medium">{t("الأصناف", "Items")}</th><th className="px-4 py-2 text-start font-medium">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start font-medium">{t("بدأ", "Started")}</th><th className="px-4 py-2 text-start font-medium">{t("رُحّل", "Posted")}</th>
               </tr></thead>
               <tbody>
                 {items.map((s) => (
-                  <tr key={s.id} onClick={() => navigate(`/app/inventory/counts/${s.id}`)} className="cursor-pointer border-b border-border/60 hover:bg-muted/30">
-                    <td className="px-4 py-2.5 font-english font-semibold text-foreground">{s.number}</td>
-                    <td className="px-4 py-2.5">{s.warehouse.name}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{s.scope === "CATEGORY" ? s.category : t("كامل", "Full")}{s.blind ? ` · ${t("أعمى", "blind")}` : ""}</td>
-                    <td className="px-4 py-2.5 font-english">{s.lineCount ?? "—"}</td>
-                    <td className="px-4 py-2.5"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS[s.status]?.cls}`}>{language === "ar" ? STATUS[s.status]?.ar : STATUS[s.status]?.en}</span></td>
-                    <td className="px-4 py-2.5 font-english text-muted-foreground">{fmtDate(s.snapshotAt)}</td>
-                    <td className="px-4 py-2.5 font-english text-muted-foreground">{fmtDate(s.postedAt)}</td>
+                  <tr key={s.id} onClick={() => navigate(`/app/inventory/counts/${s.id}`)} className="cursor-pointer border-b border-border hover:bg-surface-hover" title={t("فتح الجلسة", "Open session")}>
+                    <td className="px-4 py-2.5"><Link to={`/app/inventory/counts/${s.id}`} onClick={(e) => e.stopPropagation()} className="block max-w-full truncate font-code font-semibold text-foreground hover:underline underline-offset-4" dir="ltr" title={s.number}>{s.number}</Link></td>
+                    <td className="px-4 py-2.5 truncate"><bdi dir="auto">{s.warehouse.name}</bdi></td>
+                    <td className="px-4 py-2.5 text-muted-foreground truncate"><bdi dir="auto">{s.scope === "CATEGORY" ? s.category : t("كامل", "Full")}{s.blind ? ` · ${t("أعمى", "blind")}` : ""}</bdi></td>
+                    <td className="px-4 py-2.5 text-end font-english tabular-nums" dir="ltr">{s.lineCount ?? "—"}</td>
+                    <td className="px-4 py-2.5"><StatusBadge tone={STATUS[s.status]?.tone || "neutral"}>{language === "ar" ? STATUS[s.status]?.ar : STATUS[s.status]?.en}</StatusBadge></td>
+                    <td className="px-4 py-2.5 font-english text-muted-foreground tabular-nums whitespace-nowrap" dir="ltr">{fmtDate(s.snapshotAt)}</td>
+                    <td className="px-4 py-2.5 font-english text-muted-foreground tabular-nums whitespace-nowrap" dir="ltr">{fmtDate(s.postedAt)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -224,40 +233,38 @@ export function StockCountDetail() {
   return (
     <div className="space-y-4">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <Link to="/app/inventory/counts" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" />{t("الجرد", "Stocktakes")}</Link>
-          <h1 className="flex items-center gap-3 text-foreground" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-            <span className="font-english">{sc.number}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${st?.cls}`}>{language === "ar" ? st?.ar : st?.en}</span>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{sc.warehouse.name} · {t("تجميد الأرصدة", "Snapshot")} <span className="font-english">{fmtDate(sc.snapshotAt)}</span>{sc.postedAt ? <> · {t("رُحّل", "posted")} <span className="font-english">{fmtDate(sc.postedAt)}</span></> : null}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={<Link to="/app/inventory/counts" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" strokeWidth={1.75} />{t("المنتجات والمخزون", "Products & inventory")} · {t("الجرد", "Stocktakes")}</Link>}
+        title={(
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="font-code" dir="ltr">{sc.number}</span>
+            <StatusBadge tone={st?.tone || "neutral"}>{language === "ar" ? st?.ar : st?.en}</StatusBadge>
+          </span>
+        )}
+        description={<><bdi dir="auto">{sc.warehouse.name}</bdi> · {t("تجميد الأرصدة", "Snapshot")} <span className="font-english">{fmtDate(sc.snapshotAt)}</span>{sc.postedAt ? <> · {t("رُحّل", "posted")} <span className="font-english">{fmtDate(sc.postedAt)}</span></> : null}</>}
+        actions={(
+          <>
           <Button variant="outline" onClick={() => window.print()}><Printer className="me-1 h-4 w-4" />{t("طباعة المحضر", "Print sheet")}</Button>
           {counting && <Button variant="outline" onClick={() => act("review")} disabled={busy}><Eye className="me-1 h-4 w-4" />{t("إنهاء العدّ → مراجعة", "Finish counting → Review")}</Button>}
           {sc.status === "REVIEW" && <Button variant="outline" onClick={() => act("reopen")} disabled={busy}><RotateCcw className="me-1 h-4 w-4" />{t("إعادة فتح العدّ", "Reopen counting")}</Button>}
           {(sc.status === "REVIEW" || counting) && (confirm === "post"
             ? <InlineConfirm label={t(`ترحيل ${sc.summary.variances} تسوية؟`, `Post ${sc.summary.variances} adjustment(s)?`)} onConfirm={() => act("post")} onCancel={() => setConfirm(null)} />
-            : <Button onClick={() => setConfirm("post")} disabled={busy || sc.summary.counted === 0} className="bg-[#1A1E48] text-primary-foreground hover:bg-[#1A1E48]/90"><Lock className="me-1 h-4 w-4" />{t("اعتماد وترحيل", "Approve & post")}</Button>)}
+            : <Button onClick={() => setConfirm("post")} disabled={busy || sc.summary.counted === 0} className=""><Lock className="me-1 h-4 w-4" />{t("اعتماد وترحيل", "Approve & post")}</Button>)}
           {sc.status !== "POSTED" && sc.status !== "CANCELLED" && (confirm === "cancel"
             ? <InlineConfirm label={t("إلغاء الجلسة؟", "Cancel session?")} onConfirm={() => act("cancel")} onCancel={() => setConfirm(null)} />
             : <Button variant="ghost" onClick={() => setConfirm("cancel")} disabled={busy} className="text-danger"><X className="me-1 h-4 w-4" />{t("إلغاء", "Cancel")}</Button>)}
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        {[
-          [t("الأصناف", "Items"), String(sc.summary.lines), ""],
-          [t("تم عدّها", "Counted"), `${sc.summary.counted} / ${sc.summary.lines}`, ""],
-          [t("فروقات", "Variances"), String(sc.summary.variances), sc.summary.variances ? "text-warning" : ""],
-          [t("قيمة النقص", "Shortage value"), money(Math.abs(sc.summary.shortageValue)), sc.summary.shortageValue ? "text-danger" : ""],
-          [t("قيمة الزيادة", "Surplus value"), money(sc.summary.surplusValue), sc.summary.surplusValue ? "text-success" : ""],
-        ].map(([l, v, cls]) => (
-          <Card key={l} className="border-border"><CardContent className="p-3"><div className="text-[11px] text-muted-foreground">{l}</div><div className={`font-english text-lg font-bold ${cls || "text-foreground"}`}>{v}</div></CardContent></Card>
-        ))}
-      </div>
+      <MetricStrip className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 [&_.ledger-figure-value]:text-[22px] sm:[&_.ledger-figure-value]:text-[26px]">
+        <Metric label={t("الأصناف", "Items")} value={String(sc.summary.lines)} />
+        <Metric label={t("تم عدّها", "Counted")} value={`${sc.summary.counted} / ${sc.summary.lines}`} />
+        <Metric label={t("فروقات", "Variances")} value={String(sc.summary.variances)} tone={sc.summary.variances ? "warning" : "neutral"} />
+        <Metric label={t("قيمة النقص", "Shortage value")} value={<LedgerFigure value={Math.abs(sc.summary.shortageValue)} />} tone={sc.summary.shortageValue ? "critical" : "neutral"} />
+        <Metric label={t("قيمة الزيادة", "Surplus value")} value={<LedgerFigure value={sc.summary.surplusValue} />} tone={sc.summary.surplusValue ? "success" : "neutral"} />
+      </MetricStrip>
 
       {/* scan bar */}
       {counting && (

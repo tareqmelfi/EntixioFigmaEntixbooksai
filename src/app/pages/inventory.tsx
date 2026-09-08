@@ -1,8 +1,8 @@
 import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2, Package, Plus, RefreshCw, Repeat2, Warehouse, ClipboardList, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { EmptyState, InlineAlert, LedgerFigure, Metric as LedgerMetric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
@@ -126,106 +126,97 @@ export function Inventory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("المخزون والمستودعات", "Inventory & Warehouses")}</h1>
-          <p className="text-muted-foreground mt-1">{t("تتبع الكميات، المستودعات، الاستلام، الصرف، والتحويلات", "Track quantities, warehouses, receipts, issues, and transfers")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
-          <Button variant="outline" onClick={() => navigate("/app/inventory/counts")}><ClipboardList className="me-2 h-4 w-4" />{t("الجرد", "Stocktake")}</Button>
-          <Button variant="outline" onClick={() => navigate("/app/inventory/transfers")}><Repeat2 className="me-2 h-4 w-4" />{t("التحويلات", "Transfers")}</Button>
-          <Button variant="outline" onClick={() => navigate("/app/inventory/warehouses/new")}><Warehouse className="me-2 h-4 w-4" />{t("مستودع جديد", "New warehouse")}</Button>
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/inventory/movements/new")}><Plus className="me-2 h-4 w-4" />{t("حركة مخزون", "Stock movement")}</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("المنتجات والمخزون", "Products & inventory")}
+        title={t("المخزون والمستودعات", "Inventory & Warehouses")}
+        description={t("تتبع الكميات، المستودعات، الاستلام، الصرف، والتحويلات", "Track quantities, warehouses, receipts, issues, and transfers")}
+        actions={(
+          <>
+            <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="me-2 h-4 w-4" strokeWidth={1.75} />{t("تحديث", "Refresh")}</Button>
+            <Button variant="outline" onClick={() => navigate("/app/inventory/counts")}><ClipboardList className="me-2 h-4 w-4" strokeWidth={1.75} />{t("الجرد", "Stocktake")}</Button>
+            <Button variant="outline" onClick={() => navigate("/app/inventory/transfers")}><Repeat2 className="me-2 h-4 w-4" strokeWidth={1.75} />{t("التحويلات", "Transfers")}</Button>
+            <Button variant="outline" onClick={() => navigate("/app/inventory/warehouses/new")}><Warehouse className="me-2 h-4 w-4" strokeWidth={1.75} />{t("مستودع جديد", "New warehouse")}</Button>
+            <Button onClick={() => navigate("/app/inventory/movements/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("حركة مخزون", "Stock movement")}</Button>
+          </>
+        )}
+      />
 
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <Metric label={t("المستودعات", "Warehouses")} value={warehouses.length.toString()} />
-        <Metric label={t("الأصناف المخزنية", "Inventory items")} value={products.filter((p) => p.type === "INVENTORY").length.toString()} />
-        <Metric label={t("إجمالي الكمية", "Total quantity")} value={qty(totalQty)} />
-        <Metric label={t("قيمة المخزون", "Stock value")} value={`${money(stockValue)} ${orgCurrency || ""}`} tone={lowStock > 0 ? "warn" : "default"} />
-      </div>
+      <MetricStrip>
+        <LedgerMetric label={t("المستودعات", "Warehouses")} value={warehouses.length.toString()} />
+        <LedgerMetric label={t("الأصناف المخزنية", "Inventory items")} value={products.filter((p) => p.type === "INVENTORY").length.toString()} />
+        <LedgerMetric label={t("إجمالي الكمية", "Total quantity")} value={qty(totalQty)} />
+        <LedgerMetric label={t("قيمة المخزون", "Stock value")} value={<LedgerFigure value={stockValue} currency={orgCurrency || undefined} />} tone={lowStock > 0 ? "warning" : "neutral"} />
+      </MetricStrip>
 
       {/* B3.3 · reorder alerts · products at/below their reorder point */}
       {reorder.length > 0 && (
-        <Card className="border-warning-border bg-warning-subtle/40">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4 text-warning" />{t(`تنبيهات إعادة الطلب · ${reorder.length}`, `Reorder alerts · ${reorder.length}`)}</CardTitle>
-          </CardHeader>
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-border/60 text-xs text-muted-foreground">
-                <th className="px-4 py-2 text-start">{t("الصنف", "Item")}</th>
-                <th className="px-4 py-2 text-end">{t("المتوفر", "On hand")}</th>
-                <th className="px-4 py-2 text-end">{t("حد الطلب", "Reorder point")}</th>
-                <th className="px-4 py-2 text-end">{t("النقص", "Short by")}</th>
-                <th className="px-4 py-2 text-end">{t("كمية مقترحة", "Suggested qty")}</th>
-                <th className="px-4 py-2 text-end">{t("التكلفة التقديرية", "Est. cost")}</th>
+        <section className="space-y-3">
+          <h2 className="text-section flex items-center gap-2 font-semibold text-warning"><AlertTriangle className="h-4 w-4" strokeWidth={1.75} />{t(`تنبيهات إعادة الطلب · ${reorder.length}`, `Reorder alerts · ${reorder.length}`)}</h2>
+          <div className="ledger-table overflow-x-auto">
+            <table className="w-full min-w-[860px] table-fixed text-sm">
+              <colgroup>
+                <col />
+                <col style={{ width: "110px" }} />
+                <col style={{ width: "120px" }} />
+                <col style={{ width: "110px" }} />
+                <col style={{ width: "130px" }} />
+                <col style={{ width: "170px" }} />
+              </colgroup>
+              <thead className="text-xs text-muted-foreground"><tr className="border-b border-foreground">
+                <th className="px-4 py-2 text-start font-medium">{t("الصنف", "Item")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("المتوفر", "On hand")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("حد الطلب", "Reorder point")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("النقص", "Short by")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("كمية مقترحة", "Suggested qty")}</th>
+                <th className="px-4 py-2 text-end font-medium">{t("التكلفة التقديرية", "Est. cost")}</th>
               </tr></thead>
               <tbody>
                 {reorder.slice(0, 20).map((r) => (
-                  <tr key={r.product.id} className="border-b border-border/40 hover:bg-card/60 cursor-pointer" onClick={() => navigate(`/app/products/${r.product.id}`)}>
-                    <td className="px-4 py-2 text-foreground">{displayName(r.product as any)}{r.product.sku ? <span className="ms-2 font-english text-xs text-muted-foreground" dir="ltr">{r.product.sku}</span> : null}</td>
-                    <td className="px-4 py-2 text-end font-english">{qty(r.onHand)}</td>
-                    <td className="px-4 py-2 text-end font-english">{qty(r.reorderQty)}</td>
-                    <td className="px-4 py-2 text-end font-english text-danger">{qty(r.shortBy)}</td>
-                    <td className="px-4 py-2 text-end font-english">{qty(r.suggestedQty)}</td>
-                    <td className="px-4 py-2 text-end font-english">{money(r.suggestedQty * r.unitCost)} {orgCurrency || ""}</td>
+                  <tr key={r.product.id} className="border-b border-border hover:bg-surface-hover cursor-pointer" onClick={() => navigate(`/app/products/${r.product.id}`)} title={t("فتح الصنف", "Open item")}>
+                    <td className="px-4 py-2 text-foreground truncate"><Link to={`/app/products/${r.product.id}`} onClick={(e) => e.stopPropagation()} className="hover:underline underline-offset-4"><bdi dir="auto">{displayName(r.product as any)}</bdi></Link>{r.product.sku ? <span className="ms-2 font-code text-xs text-muted-foreground" dir="ltr">{r.product.sku}</span> : null}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums" dir="ltr">{qty(r.onHand)}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums" dir="ltr">{qty(r.reorderQty)}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums text-warning" dir="ltr">{qty(r.shortBy)}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums" dir="ltr">{qty(r.suggestedQty)}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums whitespace-nowrap" dir="ltr">{money(r.suggestedQty * r.unitCost)} {orgCurrency || ""}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {reorder.length > 20 && <div className="px-4 py-2 text-xs text-muted-foreground">{t(`+${reorder.length - 20} صنف آخر`, `+${reorder.length - 20} more`)}</div>}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="tablist">
         <TabButton active={activeTab === "stock"} onClick={() => setActiveTab("stock")}>{t("الأرصدة", "Balances")}</TabButton>
         <TabButton active={activeTab === "warehouses"} onClick={() => setActiveTab("warehouses")}>{t("المستودعات", "Warehouses")}</TabButton>
         <TabButton active={activeTab === "movements"} onClick={() => setActiveTab("movements")}>{t("الحركات", "Movements")}</TabButton>
       </div>
 
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle>{activeTab === "stock" ? t("أرصدة المخزون", "Stock Balances") : activeTab === "warehouses" ? t("المستودعات", "Warehouses") : t("سجل الحركات", "Movement Log")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
-          ) : activeTab === "stock" ? (
-            <StockTable rows={stock} productById={productById} />
-          ) : activeTab === "warehouses" ? (
-            <WarehouseTable rows={warehouses} />
-          ) : (
-            <MovementTable rows={movements} productById={productById} warehouseById={warehouseById} />
-          )}
-        </CardContent>
-      </Card>
-
-
-
+      <section className="space-y-3">
+        <h2 className="text-section font-semibold text-foreground">{activeTab === "stock" ? t("أرصدة المخزون", "Stock Balances") : activeTab === "warehouses" ? t("المستودعات", "Warehouses") : t("سجل الحركات", "Movement Log")}</h2>
+        {loading ? (
+          <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
+        ) : activeTab === "stock" ? (
+          <StockTable rows={stock} productById={productById} />
+        ) : activeTab === "warehouses" ? (
+          <WarehouseTable rows={warehouses} />
+        ) : (
+          <MovementTable rows={movements} productById={productById} warehouseById={warehouseById} />
+        )}
+      </section>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
 
-function Metric({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "warn" }) {
-  return (
-    <div className={`rounded-lg border px-4 py-3 ${tone === "warn" ? "border-warning-border bg-warning-subtle" : "border-border bg-card"}`}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-foreground font-english">{value}</div>
-    </div>
-  );
-}
-
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`rounded-md border px-3 py-2 text-sm ${active ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}>
+    <button role="tab" aria-selected={active} onClick={onClick} className={`rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${active ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>
       {children}
     </button>
   );
@@ -233,16 +224,24 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<string, ProductRow> }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   if (rows.length === 0) return <Empty icon={<Package className="h-10 w-10" />} text={t("لا توجد أرصدة مخزون بعد", "No stock balances yet")} />;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px]">
-        <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-          <th className="px-4 py-3 text-start">{t("الصنف", "Item")}</th>
-          <th className="px-4 py-3 text-start">{t("المستودع", "Warehouse")}</th>
-          <th className="px-4 py-3 text-start">{t("الكمية", "Quantity")}</th>
-          <th className="px-4 py-3 text-start">{t("متوسط التكلفة", "Avg cost")}</th>
-          <th className="px-4 py-3 text-start">{t("القيمة", "Value")}</th>
+    <div className="ledger-table overflow-x-auto">
+      <table className="w-full min-w-[820px] table-fixed text-sm">
+        <colgroup>
+          <col />
+          <col style={{ width: "220px" }} />
+          <col style={{ width: "120px" }} />
+          <col style={{ width: "150px" }} />
+          <col style={{ width: "170px" }} />
+        </colgroup>
+        <thead className="text-xs text-muted-foreground"><tr className="border-b border-foreground">
+          <th className="px-4 py-3 text-start font-medium">{t("الصنف", "Item")}</th>
+          <th className="px-4 py-3 text-start font-medium">{t("المستودع", "Warehouse")}</th>
+          <th className="px-4 py-3 text-end font-medium">{t("الكمية", "Quantity")}</th>
+          <th className="px-4 py-3 text-end font-medium">{t("متوسط التكلفة", "Avg cost")}</th>
+          <th className="px-4 py-3 text-end font-medium">{t("القيمة", "Value")}</th>
         </tr></thead>
         <tbody>
           {rows.map((row) => {
@@ -250,15 +249,15 @@ function StockTable({ rows, productById }: { rows: StockRow[]; productById: Map<
             const quantity = Number(row.quantity || 0);
             const averageCost = Number(row.averageCost || 0);
             return (
-              <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
+              <tr key={row.id} className="border-b border-border hover:bg-surface-hover cursor-pointer" onClick={() => navigate(`/app/products/${row.productId}`)} title={t("فتح الصنف", "Open item")}>
                 <td className="px-4 py-3">
-                  <div className="font-medium text-foreground">{displayName(product ?? {}) || t("صنف غير معروف", "Unknown item")}</div>
-                  <div className="text-xs text-muted-foreground/60 font-english">{product?.sku || row.productId}</div>
+                  <Link to={`/app/products/${row.productId}`} onClick={(e) => e.stopPropagation()} className="block max-w-full truncate font-medium text-foreground hover:underline underline-offset-4" title={displayName(product ?? {}) || undefined}><bdi dir="auto">{displayName(product ?? {}) || t("صنف غير معروف", "Unknown item")}</bdi></Link>
+                  <div className="truncate text-xs text-muted-foreground/60 font-code" dir="ltr">{product?.sku || row.productId}</div>
                 </td>
-                <td className="px-4 py-3 text-sm text-foreground/80">{row.warehouse?.name || row.warehouseId}</td>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground font-english">{qty(quantity)}</td>
-                <td className="px-4 py-3 text-sm font-english">{money(averageCost)}</td>
-                <td className="px-4 py-3 text-sm font-semibold font-english">{money(quantity * averageCost)}</td>
+                <td className="px-4 py-3 text-sm text-foreground/80 truncate"><bdi dir="auto">{row.warehouse?.name || row.warehouseId}</bdi></td>
+                <td className="px-4 py-3 text-end text-sm font-semibold text-foreground font-english tabular-nums" dir="ltr">{qty(quantity)}</td>
+                <td className="px-4 py-3 text-end text-sm font-english tabular-nums" dir="ltr">{money(averageCost)}</td>
+                <td className="px-4 py-3 text-end text-sm font-semibold font-english tabular-nums" dir="ltr">{money(quantity * averageCost)}</td>
               </tr>
             );
           })}
@@ -272,17 +271,17 @@ function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
   const { t } = useLanguage();
   if (rows.length === 0) return <Empty icon={<Warehouse className="h-10 w-10" />} text={t("لا توجد مستودعات بعد", "No warehouses yet")} />;
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {rows.map((row) => (
-        <div key={row.id} className="rounded-lg border border-border bg-card p-4">
+        <div key={row.id} className="min-w-0 rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="font-semibold text-foreground">{row.name}</div>
-              <div className="text-xs text-muted-foreground font-english">{row.code}</div>
+            <div className="min-w-0">
+              <div className="truncate font-semibold text-foreground" title={row.name}><bdi dir="auto">{row.name}</bdi></div>
+              <div className="truncate text-xs text-muted-foreground font-code" dir="ltr">{row.code}</div>
             </div>
-            {row.isPrimary && <span className="rounded bg-info-subtle px-2 py-1 text-xs text-primary">{t("رئيسي", "Primary")}</span>}
+            {row.isPrimary && <StatusBadge tone="info" className="shrink-0">{t("رئيسي", "Primary")}</StatusBadge>}
           </div>
-          {row.address && <div className="mt-3 text-sm text-muted-foreground">{row.address}</div>}
+          {row.address && <div className="mt-3 truncate text-sm text-muted-foreground" title={row.address}><bdi dir="auto">{row.address}</bdi></div>}
         </div>
       ))}
     </div>
@@ -291,17 +290,26 @@ function WarehouseTable({ rows }: { rows: WarehouseRow[] }) {
 
 function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow[]; productById: Map<string, ProductRow>; warehouseById: Map<string, WarehouseRow> }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   if (rows.length === 0) return <Empty icon={<Repeat2 className="h-10 w-10" />} text={t("لا توجد حركات مخزون بعد", "No stock movements yet")} />;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px]">
-        <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-          <th className="px-4 py-3 text-start">{t("التاريخ", "Date")}</th>
-          <th className="px-4 py-3 text-start">{t("الحركة", "Movement")}</th>
-          <th className="px-4 py-3 text-start">{t("الصنف", "Item")}</th>
-          <th className="px-4 py-3 text-start">{t("المستودع", "Warehouse")}</th>
-          <th className="px-4 py-3 text-start">{t("الكمية", "Quantity")}</th>
-          <th className="px-4 py-3 text-start">{t("التكلفة", "Cost")}</th>
+    <div className="ledger-table overflow-x-auto">
+      <table className="w-full min-w-[860px] table-fixed text-sm">
+        <colgroup>
+          <col style={{ width: "110px" }} />
+          <col style={{ width: "150px" }} />
+          <col />
+          <col style={{ width: "200px" }} />
+          <col style={{ width: "110px" }} />
+          <col style={{ width: "140px" }} />
+        </colgroup>
+        <thead className="text-xs text-muted-foreground"><tr className="border-b border-foreground">
+          <th className="px-4 py-3 text-start font-medium">{t("التاريخ", "Date")}</th>
+          <th className="px-4 py-3 text-start font-medium">{t("الحركة", "Movement")}</th>
+          <th className="px-4 py-3 text-start font-medium">{t("الصنف", "Item")}</th>
+          <th className="px-4 py-3 text-start font-medium">{t("المستودع", "Warehouse")}</th>
+          <th className="px-4 py-3 text-end font-medium">{t("الكمية", "Quantity")}</th>
+          <th className="px-4 py-3 text-end font-medium">{t("التكلفة", "Cost")}</th>
         </tr></thead>
         <tbody>
           {rows.map((row) => {
@@ -311,18 +319,17 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
             const inbound = quantityValue >= 0;
             const label = movementLabels[row.type];
             return (
-              <tr key={row.id} className="border-b border-border/50 hover:bg-primary/5">
-                <td className="px-4 py-3 text-sm text-muted-foreground font-english">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString(displayLocale("en-GB")) : "—"}</td>
+              <tr key={row.id} className="border-b border-border hover:bg-surface-hover cursor-pointer" onClick={() => navigate(`/app/products/${row.productId}`)} title={t("فتح الصنف", "Open item")}>
+                <td className="px-4 py-3 text-sm text-muted-foreground font-english tabular-nums whitespace-nowrap" dir="ltr">{row.occurredAt ? new Date(row.occurredAt).toLocaleDateString(displayLocale("en-GB")) : "—"}</td>
                 <td className="px-4 py-3 text-sm">
-                  <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${inbound ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
-                    {inbound ? <ArrowDownToLine className="h-3 w-3" /> : <ArrowUpFromLine className="h-3 w-3" />}
+                  <StatusBadge tone={inbound ? "success" : "warning"} icon={inbound ? <ArrowDownToLine className="h-3 w-3" strokeWidth={1.75} /> : <ArrowUpFromLine className="h-3 w-3" strokeWidth={1.75} />}>
                     {label ? t(label.ar, label.en) : row.type}
-                  </span>
+                  </StatusBadge>
                 </td>
-                <td className="px-4 py-3 text-sm text-foreground">{displayName(product ?? {}) || row.productId}</td>
-                <td className="px-4 py-3 text-sm text-foreground/80">{warehouse?.name || row.warehouseId}</td>
-                <td className="px-4 py-3 text-sm font-semibold font-english">{qty(quantityValue)}</td>
-                <td className="px-4 py-3 text-sm font-english">{money(row.unitCost)}</td>
+                <td className="px-4 py-3 text-sm text-foreground truncate"><Link to={`/app/products/${row.productId}`} onClick={(e) => e.stopPropagation()} className="hover:underline underline-offset-4"><bdi dir="auto">{displayName(product ?? {}) || row.productId}</bdi></Link></td>
+                <td className="px-4 py-3 text-sm text-foreground/80 truncate"><bdi dir="auto">{warehouse?.name || row.warehouseId}</bdi></td>
+                <td className="px-4 py-3 text-end text-sm font-semibold font-english tabular-nums" dir="ltr">{qty(quantityValue)}</td>
+                <td className="px-4 py-3 text-end text-sm font-english tabular-nums" dir="ltr">{money(row.unitCost)}</td>
               </tr>
             );
           })}
@@ -333,5 +340,5 @@ function MovementTable({ rows, productById, warehouseById }: { rows: MovementRow
 }
 
 function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return <div className="py-12 text-center text-muted-foreground/60">{icon}<p className="mt-3 text-sm text-muted-foreground">{text}</p></div>;
+  return <EmptyState icon={icon} title={text} />;
 }

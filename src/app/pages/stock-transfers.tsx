@@ -14,6 +14,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, ArrowLeftRight, Loader2, Plus, Printer, Send, PackageCheck, X, Trash2, Check, Truck } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { Input } from "../components/ui/input";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { SearchableCombobox, type ComboboxItem } from "../components/searchable-combobox";
@@ -24,11 +25,11 @@ import { useOrgRegion } from "../lib/use-org-region";
 import { displayName } from "../lib/display-name";
 import { money } from "../lib/pos-store";
 
-const STATUS: Record<string, { ar: string; en: string; cls: string }> = {
-  DRAFT: { ar: "مسودة", en: "Draft", cls: "bg-muted text-muted-foreground" },
-  SENT: { ar: "في الطريق", en: "In transit", cls: "bg-warning-subtle text-warning" },
-  RECEIVED: { ar: "مستلَم", en: "Received", cls: "bg-success-subtle text-success" },
-  CANCELLED: { ar: "ملغى", en: "Cancelled", cls: "bg-muted text-muted-foreground" },
+const STATUS: Record<string, { ar: string; en: string; tone: "neutral" | "warning" | "success" }> = {
+  DRAFT: { ar: "مسودة", en: "Draft", tone: "neutral" },
+  SENT: { ar: "في الطريق", en: "In transit", tone: "warning" },
+  RECEIVED: { ar: "مستلَم", en: "Received", tone: "success" },
+  CANCELLED: { ar: "ملغى", en: "Cancelled", tone: "neutral" },
 };
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString(displayLocale("en-GB"), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 type Wh = { id: string; code: string; name: string; isPrimary?: boolean };
@@ -83,11 +84,11 @@ export function StockTransfers() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <div>
-        <Link to="/app/inventory" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" />{t("المخزون", "Inventory")}</Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("التحويلات بين المستودعات والفروع", "Warehouse & branch transfers")}</h1>
-        <p className="mt-1 text-muted-foreground">{t("مسودة → أُرسلت (بضاعة في الطريق) → مستلَمة بنفس التكلفة · أي نقص يُرحَّل كفروقات جرد", "Draft → sent (goods in transit) → received at the same cost · any shortfall posts as shrinkage")}</p>
-      </div>
+      <PageHeader
+        eyebrow={<Link to="/app/inventory" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" strokeWidth={1.75} />{t("المنتجات والمخزون", "Products & inventory")} · {t("المخزون", "Inventory")}</Link>}
+        title={t("التحويلات بين المستودعات والفروع", "Warehouse & branch transfers")}
+        description={t("مسودة → أُرسلت (بضاعة في الطريق) → مستلَمة بنفس التكلفة · أي نقص يُرحَّل كفروقات جرد", "Draft → sent (goods in transit) → received at the same cost · any shortfall posts as shrinkage")}
+      />
 
       <Card className="border-border">
         <CardContent className="space-y-3 p-4">
@@ -117,46 +118,57 @@ export function StockTransfers() {
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
             <label className="text-sm"><span className="mb-1 block text-xs font-semibold text-foreground/80">{t("ملاحظات", "Notes")}</span><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("سائق · رقم الشاحنة · سبب التحويل", "Driver · truck no. · reason")} /></label>
             <Button variant="outline" className="border-border" disabled={busy || !validLines.length} onClick={() => void create(false)}>{t("حفظ كمسودة", "Save draft")}</Button>
-            <Button className="bg-primary hover:bg-primary/90" disabled={busy || !validLines.length} onClick={() => void create(true)}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="me-1 h-4 w-4" />}{t("إرسال الآن", "Send now")}</Button>
+            <Button disabled={busy || !validLines.length} onClick={() => void create(true)}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="me-1 h-4 w-4" />}{t("إرسال الآن", "Send now")}</Button>
           </div>
           {!products.length && !loading && <div className="text-xs text-warning">{t("لا أصناف مخزنية بعد — أضف أصنافًا من نوع «بضاعة» أو «مخزون».", "No stock items yet — add items of type “Good” or “Inventory”.")}</div>}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Card className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">{t("في الطريق (قيمة)", "In transit (value)")}</div><div className="font-english text-xl text-foreground" dir="ltr" style={{ fontWeight: 700 }}>{money(inTransit)} {currency}</div></CardContent></Card>
-        <Card className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">{t("في الطريق (مستندات)", "In transit (docs)")}</div><div className="font-english text-xl text-foreground" style={{ fontWeight: 700 }}>{items.filter((i) => i.status === "SENT").length}</div></CardContent></Card>
-        <Card className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">{t("مسودات", "Drafts")}</div><div className="font-english text-xl text-foreground" style={{ fontWeight: 700 }}>{items.filter((i) => i.status === "DRAFT").length}</div></CardContent></Card>
-        <Card className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">{t("مستلَمة", "Received")}</div><div className="font-english text-xl text-foreground" style={{ fontWeight: 700 }}>{items.filter((i) => i.status === "RECEIVED").length}</div></CardContent></Card>
-      </div>
+      <MetricStrip>
+        <Metric label={t("في الطريق (قيمة)", "In transit (value)")} value={<LedgerFigure value={inTransit} currency={currency} />} />
+        <Metric label={t("في الطريق (مستندات)", "In transit (docs)")} value={String(items.filter((i) => i.status === "SENT").length)} />
+        <Metric label={t("مسودات", "Drafts")} value={String(items.filter((i) => i.status === "DRAFT").length)} />
+        <Metric label={t("مستلَمة", "Received")} value={String(items.filter((i) => i.status === "RECEIVED").length)} />
+      </MetricStrip>
 
-      <Card className="border-border">
-        <CardContent className="p-0">
-          {loading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" /></div> : items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground"><ArrowLeftRight className="h-8 w-8" />{t("لا تحويلات بعد", "No transfers yet")}</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="px-4 py-2 text-start">{t("الرقم", "No.")}</th><th className="px-4 py-2 text-start">{t("من", "From")}</th><th className="px-4 py-2 text-start">{t("إلى", "To")}</th><th className="px-4 py-2 text-end">{t("الأصناف", "Items")}</th><th className="px-4 py-2 text-end">{t("الكمية", "Qty")}</th><th className="px-4 py-2 text-end">{t("القيمة", "Value")}</th><th className="px-4 py-2 text-start">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start">{t("أُنشئ", "Created")}</th>
+      <section className="space-y-3">
+        <h2 className="text-section font-semibold text-foreground">{t("سجل التحويلات", "Transfer log")} · <span className="font-english tabular-nums">{items.length}</span></h2>
+        {loading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" /></div> : items.length === 0 ? (
+          <EmptyState icon={<ArrowLeftRight className="h-10 w-10" strokeWidth={1.5} />} title={t("لا تحويلات بعد", "No transfers yet")} />
+        ) : (
+          <div className="ledger-table overflow-x-auto">
+            <table className="w-full min-w-[980px] table-fixed text-sm">
+              <colgroup>
+                <col style={{ width: "150px" }} />{/* الرقم · mono */}
+                <col />
+                <col />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "140px" }} />
+                <col style={{ width: "120px" }} />
+                <col style={{ width: "150px" }} />
+              </colgroup>
+              <thead className="text-xs text-muted-foreground"><tr className="border-b border-foreground">
+                <th className="px-4 py-2 text-start font-medium">{t("الرقم", "No.")}</th><th className="px-4 py-2 text-start font-medium">{t("من", "From")}</th><th className="px-4 py-2 text-start font-medium">{t("إلى", "To")}</th><th className="px-4 py-2 text-end font-medium">{t("الأصناف", "Items")}</th><th className="px-4 py-2 text-end font-medium">{t("الكمية", "Qty")}</th><th className="px-4 py-2 text-end font-medium">{t("القيمة", "Value")}</th><th className="px-4 py-2 text-start font-medium">{t("الحالة", "Status")}</th><th className="px-4 py-2 text-start font-medium">{t("أُنشئ", "Created")}</th>
               </tr></thead>
               <tbody>
                 {items.map((tr) => (
-                  <tr key={tr.id} onClick={() => navigate(`/app/inventory/transfers/${tr.id}`)} className="cursor-pointer border-b border-border/50 hover:bg-primary/5">
-                    <td className="px-4 py-2 font-english text-foreground" dir="ltr" style={{ fontWeight: 600 }}>{tr.number}</td>
-                    <td className="px-4 py-2">{tr.fromWarehouse.name}</td>
-                    <td className="px-4 py-2">{tr.toWarehouse.name}</td>
-                    <td className="px-4 py-2 text-end font-english">{tr.lines}</td>
-                    <td className="px-4 py-2 text-end font-english">{tr.qty}</td>
-                    <td className="px-4 py-2 text-end font-english">{money(tr.value)}</td>
-                    <td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS[tr.status]?.cls}`}>{language === "ar" ? STATUS[tr.status]?.ar : STATUS[tr.status]?.en}</span></td>
-                    <td className="px-4 py-2 font-english text-xs text-muted-foreground" dir="ltr">{fmtDate(tr.createdAt)}</td>
+                  <tr key={tr.id} onClick={() => navigate(`/app/inventory/transfers/${tr.id}`)} className="cursor-pointer border-b border-border hover:bg-surface-hover" title={t("فتح التحويل", "Open transfer")}>
+                    <td className="px-4 py-2"><Link to={`/app/inventory/transfers/${tr.id}`} onClick={(e) => e.stopPropagation()} className="block max-w-full truncate font-code font-semibold text-foreground hover:underline underline-offset-4" dir="ltr" title={tr.number}>{tr.number}</Link></td>
+                    <td className="px-4 py-2 truncate"><bdi dir="auto">{tr.fromWarehouse.name}</bdi></td>
+                    <td className="px-4 py-2 truncate"><bdi dir="auto">{tr.toWarehouse.name}</bdi></td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums" dir="ltr">{tr.lines}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums" dir="ltr">{tr.qty}</td>
+                    <td className="px-4 py-2 text-end font-english tabular-nums whitespace-nowrap" dir="ltr">{money(tr.value)}</td>
+                    <td className="px-4 py-2"><StatusBadge tone={STATUS[tr.status]?.tone || "neutral"}>{language === "ar" ? STATUS[tr.status]?.ar : STATUS[tr.status]?.en}</StatusBadge></td>
+                    <td className="px-4 py-2 font-english text-xs text-muted-foreground tabular-nums whitespace-nowrap" dir="ltr">{fmtDate(tr.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -205,30 +217,31 @@ export function StockTransferDetail() {
   const st = STATUS[tr.status];
 
   return (
-    <div className="space-y-5 max-w-7xl">
+    <div className="space-y-5">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
-        <div>
-          <Link to="/app/inventory/transfers" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" />{t("التحويلات", "Transfers")}</Link>
-          <h1 className="flex items-center gap-2 text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}><Truck className="h-5 w-5 text-primary" /><span className="font-english" dir="ltr">{tr.number}</span><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${st?.cls}`}>{language === "ar" ? st?.ar : st?.en}</span></h1>
-          <p className="mt-1 text-sm text-muted-foreground">{tr.fromWarehouse.name}{tr.fromBranch ? ` (${language === "ar" ? tr.fromBranch.nameAr || tr.fromBranch.name : tr.fromBranch.name})` : ""} → {tr.toWarehouse.name}{tr.toBranch ? ` (${language === "ar" ? tr.toBranch.nameAr || tr.toBranch.name : tr.toBranch.name})` : ""}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        className="print:hidden"
+        eyebrow={<Link to="/app/inventory/transfers" className="text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="me-1 inline h-3 w-3 rtl:rotate-180" strokeWidth={1.75} />{t("المنتجات والمخزون", "Products & inventory")} · {t("التحويلات", "Transfers")}</Link>}
+        title={<span className="flex flex-wrap items-center gap-2"><Truck className="h-5 w-5 text-content-secondary" strokeWidth={1.75} /><span className="font-code" dir="ltr">{tr.number}</span><StatusBadge tone={st?.tone || "neutral"}>{language === "ar" ? st?.ar : st?.en}</StatusBadge></span>}
+        description={<><bdi dir="auto">{tr.fromWarehouse.name}{tr.fromBranch ? ` (${language === "ar" ? tr.fromBranch.nameAr || tr.fromBranch.name : tr.fromBranch.name})` : ""}</bdi> → <bdi dir="auto">{tr.toWarehouse.name}{tr.toBranch ? ` (${language === "ar" ? tr.toBranch.nameAr || tr.toBranch.name : tr.toBranch.name})` : ""}</bdi></>}
+        actions={(
+          <>
           <Button variant="outline" className="border-border" onClick={() => window.print()}><Printer className="me-1 h-4 w-4" />{t("طباعة", "Print")}</Button>
-          {tr.status === "DRAFT" && (confirm === "send" ? <InlineConfirm label={t("إرسال؟ البضاعة تخرج من المصدر الآن", "Send? Goods leave the source now")} onConfirm={() => void act("send")} onCancel={() => setConfirm(null)} /> : <Button className="bg-primary hover:bg-primary/90" disabled={busy} onClick={() => setConfirm("send")}><Send className="me-1 h-4 w-4" />{t("إرسال", "Send")}</Button>)}
-          {tr.status === "SENT" && (confirm === "receive" ? <InlineConfirm label={t("تأكيد الاستلام بالكميات أدناه؟", "Confirm receipt with the quantities below?")} onConfirm={() => void act("receive")} onCancel={() => setConfirm(null)} /> : <Button className="bg-[#1A1E48] text-primary-foreground hover:bg-[#1A1E48]/90" disabled={busy} onClick={() => setConfirm("receive")}><PackageCheck className="me-1 h-4 w-4" />{t("استلام", "Receive")}</Button>)}
+          {tr.status === "DRAFT" && (confirm === "send" ? <InlineConfirm label={t("إرسال؟ البضاعة تخرج من المصدر الآن", "Send? Goods leave the source now")} onConfirm={() => void act("send")} onCancel={() => setConfirm(null)} /> : <Button disabled={busy} onClick={() => setConfirm("send")}><Send className="me-1 h-4 w-4" />{t("إرسال", "Send")}</Button>)}
+          {tr.status === "SENT" && (confirm === "receive" ? <InlineConfirm label={t("تأكيد الاستلام بالكميات أدناه؟", "Confirm receipt with the quantities below?")} onConfirm={() => void act("receive")} onCancel={() => setConfirm(null)} /> : <Button disabled={busy} onClick={() => setConfirm("receive")}><PackageCheck className="me-1 h-4 w-4" />{t("استلام", "Receive")}</Button>)}
           {(tr.status === "DRAFT" || tr.status === "SENT") && (confirm === "cancel" ? <InlineConfirm label={tr.status === "SENT" ? t("إلغاء؟ تعود البضاعة للمصدر", "Cancel? Goods return to the source") : t("إلغاء المسودة؟", "Cancel the draft?")} onConfirm={() => void act("cancel")} onCancel={() => setConfirm(null)} /> : <Button variant="outline" className="border-danger-border text-danger hover:bg-danger-subtle" disabled={busy} onClick={() => setConfirm("cancel")}><X className="me-1 h-4 w-4" />{t("إلغاء", "Cancel")}</Button>)}
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {/* Printable document */}
-      <div className="print-doc rounded-xl border border-border bg-card p-6">
+      <div className="print-doc rounded-lg border border-border bg-card p-6">
         <div className="mb-4 hidden print:block"><div style={{ fontWeight: 800, fontSize: "1.1rem" }}>{t("مستند تحويل مخزون", "Stock transfer note")} · <span dir="ltr">{tr.number}</span></div></div>
         <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-          <div><div className="text-xs text-muted-foreground">{t("من", "From")}</div><div className="text-foreground" style={{ fontWeight: 600 }}>{tr.fromWarehouse.code} · {tr.fromWarehouse.name}</div></div>
-          <div><div className="text-xs text-muted-foreground">{t("إلى", "To")}</div><div className="text-foreground" style={{ fontWeight: 600 }}>{tr.toWarehouse.code} · {tr.toWarehouse.name}</div></div>
-          <div><div className="text-xs text-muted-foreground">{t("أُرسلت", "Sent")}</div><div className="font-english" dir="ltr">{fmtDate(tr.sentAt)}</div></div>
-          <div><div className="text-xs text-muted-foreground">{t("استُلمت", "Received")}</div><div className="font-english" dir="ltr">{fmtDate(tr.receivedAt)}{tr.receivedByName ? ` · ${tr.receivedByName}` : ""}</div></div>
+          <div className="min-w-0"><div className="text-xs text-muted-foreground">{t("من", "From")}</div><div className="truncate text-foreground" style={{ fontWeight: 600 }}><bdi dir="auto">{tr.fromWarehouse.code} · {tr.fromWarehouse.name}</bdi></div></div>
+          <div className="min-w-0"><div className="text-xs text-muted-foreground">{t("إلى", "To")}</div><div className="truncate text-foreground" style={{ fontWeight: 600 }}><bdi dir="auto">{tr.toWarehouse.code} · {tr.toWarehouse.name}</bdi></div></div>
+          <div className="min-w-0"><div className="text-xs text-muted-foreground">{t("أُرسلت", "Sent")}</div><div className="truncate font-english" dir="ltr">{fmtDate(tr.sentAt)}</div></div>
+          <div className="min-w-0"><div className="text-xs text-muted-foreground">{t("استُلمت", "Received")}</div><div className="truncate font-english" dir="ltr">{fmtDate(tr.receivedAt)}{tr.receivedByName ? ` · ${tr.receivedByName}` : ""}</div></div>
         </div>
         {tr.notes && <div className="mt-3 text-sm text-foreground/80">{tr.notes}</div>}
         <table className="mt-4 w-full text-sm">

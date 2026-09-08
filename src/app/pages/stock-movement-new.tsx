@@ -10,6 +10,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, Loader2, Repeat2, Save } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
@@ -99,18 +100,18 @@ export function StockMovementNew() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <Link to="/app/stock-movements" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-          <ArrowRight className="h-3.5 w-3.5" /> {t("العودة لسجل الحركات", "Back to Movement Log")}
+        <Link to="/app/stock-movements" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("المنتجات والمخزون", "Products & inventory")} · {t("العودة لسجل الحركات", "Back to Movement Log")}
         </Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>{t("حركة مخزون", "Stock movement")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("سجل استلام، صرف، أو تحويل بين المستودعات.", "Record a receipt, issue, or transfer between warehouses.")}</p>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">{t("حركة مخزون", "Stock movement")}</h1>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{t("سجل استلام، صرف، أو تحويل بين المستودعات.", "Record a receipt, issue, or transfer between warehouses.")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+        {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -189,7 +190,7 @@ export function StockMovementNew() {
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
           <Button type="button" variant="outline" onClick={() => navigate("/app/stock-movements")}>{t("إلغاء", "Cancel")}</Button>
-          <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+          <Button type="submit" disabled={busy} className="min-w-[140px]">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{t("تسجيل الحركة", "Record movement")}</>}
           </Button>
         </div>

@@ -70,7 +70,8 @@ export function PayrollDetail() {
             <ArrowRight className="h-5 w-5 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-foreground font-english" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{run.runNumber}</h1>
+            <div className="mb-1 text-xs text-content-secondary">{t("الموظفون والرواتب", "Employees & payroll")}</div>
+            <h1 className="font-code text-[clamp(1.5rem,1.3rem+0.6vw,2rem)] font-bold leading-tight text-foreground" dir="ltr">{run.runNumber}</h1>
             <p className="text-sm text-muted-foreground">{t("مسير رواتب", "Payroll run")} · {run.period}</p>
           </div>
         </div>

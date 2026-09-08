@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -133,7 +134,7 @@ export function ContractorDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -201,7 +202,7 @@ export function ContractorDetail() {
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/contractors") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
-        <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+        <Button type="submit" disabled={busy} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("تسجيل المقاول", "Register contractor") : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
@@ -214,7 +215,7 @@ export function ContractorDetail() {
     <div className="space-y-5">
       {/* Action bar */}
       <div className="flex flex-wrap gap-2">
-        <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate(`/app/contractors/${person.id}/pay`)}>
+        <Button onClick={() => navigate(`/app/contractors/${person.id}/pay`)}>
           <Banknote className="me-2 h-4 w-4" />{t("ادفع له الآن", "Pay now")}
         </Button>
         <Button variant="outline" onClick={() => navigate(`/app/work-logs/new?contractor=${person.id}`)}>
@@ -395,13 +396,13 @@ export function ContractorDetail() {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
-        <Link to="/app/contractors" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-          <ArrowRight className="h-3.5 w-3.5" /> {t("العودة للمقاولين", "Back to Contractors")}
+        <Link to="/app/contractors" className="mb-1 inline-flex items-center gap-1.5 text-xs text-content-secondary hover:text-primary">
+          <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("الموظفون والرواتب", "Employees & payroll")} · {t("العودة للمقاولين", "Back to Contractors")}
         </Link>
-        <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {isNew ? t("مقاول جديد", "New Contractor") : (person?.name || t("المقاول", "Contractor"))}
         </h1>
         {!isNew && person && (
@@ -412,7 +413,7 @@ export function ContractorDetail() {
             <span className="text-xs text-muted-foreground">{person.specialty || ""}</span>
           </div>
         )}
-        {isNew && <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><HardHat className="h-4 w-4" />{t("المقاول يختلف عن مورد الشركة: تعاقد مباشر وساعات ودفع فوري بدون دورة فواتير شراء", "A contractor differs from a company supplier: direct engagement, hours and instant payment without a bill cycle")}</p>}
+        {isNew && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground flex items-center gap-1.5"><HardHat className="h-4 w-4" />{t("المقاول يختلف عن مورد الشركة: تعاقد مباشر وساعات ودفع فوري بدون دورة فواتير شراء", "A contractor differs from a company supplier: direct engagement, hours and instant payment without a bill cycle")}</p>}
       </div>
       {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}
