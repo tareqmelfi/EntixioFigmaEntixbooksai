@@ -38,11 +38,13 @@ export function PublicLanguageToggle({ variant = "light", className = "" }: { va
       data-testid="public-language-toggle"
       role="group"
       aria-label={t("اللغة", "Language")}
+      /* Labels stay Latin: the US/EN prerendered pages forbid Arabic codepoints
+         (scripts/prerender.mjs), and "AR" reads the same on every keyboard. */
       className={`inline-flex shrink-0 items-center rounded-full border p-0.5 ${dark ? "border-card/20" : "border-border"} ${className}`}
     >
       {([
-        { code: "ar" as Language, label: "ع", full: "العربية" },
-        { code: "en" as Language, label: "EN", full: "English" },
+        { code: "ar" as Language, label: "AR", full: t("العربية", "Arabic") },
+        { code: "en" as Language, label: "EN", full: t("الإنجليزية", "English") },
       ]).map((option) => (
         <button
           key={option.code}
