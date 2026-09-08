@@ -94,6 +94,8 @@ export interface TemplateSpec {
   signatoryTitle?: string | null;
   signatoryEmail?: string | null;
   signatoryPhone?: string | null;
+  /** Real signature image (uploaded) · preferred over the pen-style name rendering when present. */
+  signatureUrl?: string | null;
   stampUrl?: string | null;
   /** Trailing substring of the company wordmark drawn in the brand colour ("X" for ENSIDEX,
    *  "PROS" for SPECPROS). Null → the engine accents a trailing "X" on an all-Latin name (§14). */
@@ -111,6 +113,9 @@ export interface PartySpec {
   nameEn?: string | null;
   legalName?: string | null;
   code?: string | null;
+  /** ISO 3166-1 alpha-2. Drives the tax vocabulary (§ tax-registration law below) —
+   *  never a hardcoded company-name list. Missing → treated as "SA" (existing default). */
+  country?: string | null;
   vatNumber?: string | null;
   crNumber?: string | null;
   address?: string | null;
@@ -123,6 +128,7 @@ export interface PartySpec {
    *  boxed — a dark sheet either carries this variant or the sheet itself turns light. */
   logoLightUrl?: string | null;
   stampUrl?: string | null;
+  signatureUrl?: string | null;
 }
 
 export interface LineSpec {
@@ -190,6 +196,8 @@ export interface DocSpec {
   qrPayload?: string | null;
   /** Tax rate label · default 15% */
   taxRateLabel?: string | null;
+  /** Per-document print language override · "ar" | "en" · null → caller/org default */
+  language?: DocLang | null;
 }
 
 export interface RenderInput {
@@ -268,7 +276,7 @@ function textHeight(text: string, colMm: number, lineMm = 5.2, charMm = 1.75): n
 // ─── paginator ──────────────────────────────────────────────────────────────
 
 type Block =
-  | { kind: "html"; h: number; html: string; keepWithNext?: boolean }
+  | { kind: "html"; h: number; html: string; keepWithNext?: boolean; forceBreak?: boolean }
   | { kind: "table"; open: string; head: string; headH: number; rows: Array<{ h: number; html: string }>; close: string };
 
 /** Flow blocks into sheets of `capacity` mm. Tables split across sheets with a repeated head. */
@@ -280,6 +288,10 @@ function paginate(blocks: Block[], capacity: number): string[] {
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     if (b.kind === "html") {
+      // forceBreak (closing page title 2026-09-08 · «سوي صفحة الشروط والاحكام مستقلة»):
+      // the terms & conditions page always STARTS a fresh sheet, however much room the
+      // previous sheet had left — a standalone page by construction, not by accident.
+      if (b.forceBreak && used > 0) flush();
       let need = b.h;
       if (b.keepWithNext && blocks[i + 1]) {
         const n = blocks[i + 1];
@@ -321,6 +333,10 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 @font-face{font-family:'Entix Doc Latin';src:url('${fb}/PlusJakartaSans-400-latin.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
 @font-face{font-family:'Entix Doc Latin';src:url('${fb}/PlusJakartaSans-700-latin.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block}
 @font-face{font-family:'Entix Doc Mono';src:url('${fb}/JetBrainsMono-400-latin.woff2') format('woff2');font-weight:400 700;font-style:normal;font-display:block}
+/* Pen-style signatory signature (CEO 2026-09-08) · TeX Gyre Chorus, self-hosted woff2 ·
+   GUST Font License (see public/fonts/GUST-FONT-LICENSE-SignatureScript.txt) · no network
+   fetch at print time. Latin names only — Arabic names fall back to the Arabic face. */
+@font-face{font-family:'Entix Doc Signature';src:url('${fb}/SignatureScript-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
 .edoc{--brand:${brand};--brand-lift:${lift(brand, 0.42)};--dark:${dark};--ink:${DOC_INK};--muted:${DOC_MUTED};--soft:${DOC_PAPER_SOFT};--rule:${DOC_RULE};--paper:${DOC_PAPER};
   --font-arabic:${arabic};--font-latin:${latin};--font-mono:${mono};
   font-family:${body};color:var(--ink);font-size:10.5pt;line-height:1.6;-webkit-font-smoothing:antialiased;
@@ -345,7 +361,9 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
    on paper. If a company has no reverse variant, the SHEET turns light — the mark
    is never boxed to rescue it. Do not add background / border / padding / radius
    to .hdr-logo img, .li-img or .stamp-box img in any future edit. */
-.edoc .hdr-logo img{max-height:11mm;max-width:72mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0;box-shadow:none}
+/* logo cap (CEO 2026-09-08 · «صغر شكله»): a professional wordmark-scale mark — a large
+   uploaded logo is scaled down to this box, never allowed to dominate the header. */
+.edoc .hdr-logo img{max-height:9mm;max-width:46mm;object-fit:contain;object-position:${lang === "ar" ? "right" : "left"} center;display:block;background:none;border:0;padding:0;border-radius:0;box-shadow:none}
 /* the wordmark IS the logo when no image exists · sized as a wordmark, never as an icon */
 .edoc .hdr-word{font-family:var(--font-latin);font-weight:800;font-size:24pt;line-height:1;letter-spacing:-.025em;color:var(--ink);white-space:nowrap;max-width:78mm;overflow:hidden;text-overflow:ellipsis;direction:ltr;background:none;border:0;padding:0}
 .edoc .hdr-word .x{color:var(--brand)}
@@ -456,12 +474,20 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .sig{background:none;border:0;padding:0}
 .edoc .sig .k{font-size:8pt;color:var(--muted);margin-bottom:2mm}
 .edoc .sig .n{font-size:13pt;font-weight:800}
+/* pen-style rendering of the signatory's own name (CEO 2026-09-08) · Latin names only —
+   an Arabic name has no matching script glyphs in this face and keeps the bold sans. */
+.edoc .sig .n.pen{font-family:'Entix Doc Signature',var(--font-latin);font-weight:400;font-style:normal;font-size:22pt;line-height:1.1;letter-spacing:.01em;color:var(--ink);direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
+.edoc .sig .n.img{margin:0 0 1mm}
+.edoc .sig .n.img img{max-height:16mm;max-width:56mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
 .edoc .sig .c{font-family:var(--font-mono);font-size:8pt;color:var(--muted);direction:ltr;text-align:${lang === "ar" ? "right" : "left"};margin-top:1mm}
 .edoc .sig .o{font-size:8pt;color:var(--muted);margin-top:1mm}
 .edoc .stamp{background:none;border:0;padding:0}
 .edoc .stamp .k{font-size:8pt;color:var(--muted);margin-bottom:2mm}
 .edoc .stamp-box{display:flex;align-items:flex-start;justify-content:flex-start;min-height:34mm;background:none;border:0;padding:0}
-.edoc .stamp-box img{max-height:40mm;max-width:64mm;object-fit:contain;opacity:.94;mix-blend-mode:multiply;transform:rotate(-5deg);transform-origin:center;background:none;border:0;padding:0;border-radius:0}
+/* ink impression (CEO 2026-09-08 · «يكون فعلا لون ختم مو كذا بس كانه صورة»): multiply
+   blend sits the mark IN the paper · a slight desaturate + contrast push reads as a
+   press rather than a filter, without discarding the artwork's own colours. */
+.edoc .stamp-box img{max-height:40mm;max-width:64mm;object-fit:contain;opacity:.86;mix-blend-mode:multiply;filter:saturate(.88) contrast(1.12);transform:rotate(-5deg);transform-origin:center;background:none;border:0;padding:0;border-radius:0}
 .edoc .bank dl{display:grid;grid-template-columns:auto 1fr;gap:1.2mm 5mm;margin:0;font-size:8.5pt}
 .edoc .bank dt{color:var(--muted)}
 .edoc .bank dd{margin:0;overflow-wrap:anywhere}
@@ -501,7 +527,31 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const order = sections.map((s) => s.id);
   const cur = doc.currency || "SAR";
   const year = (isoDate(doc.issueDate) || new Date().toISOString()).slice(0, 4);
-  const docType = isQuote ? t("عرض سعر", "Quotation") : t("فاتورة ضريبية", "Tax invoice");
+  // ── TAX-INVOICE LAW (CEO · 2026-09-08 · «كيف شركة امريكية تصدر فاتورة ضريبية؟!») ──
+  // A "tax invoice" and every VAT/ZATCA vocabulary item exist ONLY where a real Saudi
+  // VAT registration backs them. This is derived from the ISSUING ORG's own country and
+  // registration number — never a hardcoded company name — so it holds for every org,
+  // ENSIDEX (US, no VAT) and any Saudi-registered tenant alike:
+  //   · country === "SA" AND a 15-digit VAT number  → tax invoice · VAT rows · ZATCA QR
+  //   · anything else (a US org's EIN in the same field included) → plain invoice, no
+  //     "tax" wording anywhere, no VAT row (not even a zero one), no ZATCA QR — the
+  //     document-verification QR (doc number only) stays.
+  // Applied per-party (isVatRegistered/regLabel below) so a party's own registration
+  // number is never mislabelled under a foreign party's tax regime.
+  const isVatRegistered = (p: PartySpec | null | undefined): boolean => {
+    const country = String(p?.country || "SA").trim().toUpperCase();
+    const digits = String(p?.vatNumber || "").replace(/\D/g, "");
+    return country === "SA" && digits.length === 15;
+  };
+  const regLabel = (p: PartySpec | null | undefined): string => {
+    if (isVatRegistered(p)) return t("الرقم الضريبي", "VAT no.");
+    const country = String(p?.country || "SA").trim().toUpperCase();
+    if (country === "US") return t("الرقم الفيدرالي الأمريكي (EIN)", "EIN");
+    return t("رقم التسجيل الضريبي", "Registration no.");
+  };
+  const orgTaxRegistered = isVatRegistered(org);
+  const docType = isQuote ? t("عرض سعر", "Quotation") : (orgTaxRegistered ? t("فاتورة ضريبية", "Tax invoice") : t("فاتورة", "Invoice"));
+  const docEyebrow = isQuote ? "QUOTATION" : (orgTaxRegistered ? "TAX INVOICE" : "INVOICE");
   const hasArabic = (v: unknown) => /[\u0600-\u06FF]/.test(String(v || ""));
   const classification = (ar ? tpl.classification : (tpl.classificationEn || (hasArabic(tpl.classification) ? "" : tpl.classification))) || t("خاص بالعميل", "Client confidential");
   const fileId = doc.number || "";
@@ -588,15 +638,18 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const introRaw = ((ar ? tpl.coverIntro : (tpl.coverIntroEn || tpl.coverIntro)) || "").trim() || (isQuote
       ? t("عرض سعر مقدَّم من {company} إلى {client}. تجدون في الصفحات التالية البنود والأسعار وشروط العرض، وطريقة القبول والسداد.",
           "A quotation from {company} to {client}. The following pages detail the items, prices, terms of the offer, and how to accept and pay.")
-      : t("فاتورة ضريبية صادرة عن {company} إلى {client}. تجدون في الصفحات التالية تفاصيل البنود والضريبة وطريقة السداد.",
-          "A tax invoice issued by {company} to {client}. The following pages detail the items, tax and how to pay."));
+      : orgTaxRegistered
+        ? t("فاتورة ضريبية صادرة عن {company} إلى {client}. تجدون في الصفحات التالية تفاصيل البنود والضريبة وطريقة السداد.",
+            "A tax invoice issued by {company} to {client}. The following pages detail the items, tax and how to pay.")
+        : t("فاتورة صادرة عن {company} إلى {client}. تجدون في الصفحات التالية تفاصيل البنود وطريقة السداد.",
+            "An invoice issued by {company} to {client}. The following pages detail the items and how to pay."));
     const intro = esc(introRaw).replace(/&lt;strong&gt;|&lt;\/strong&gt;/g, "");
     const titleParts = title.split(/\r?\n/).filter(Boolean);
     const titleHtml = titleParts.length > 1
       ? `${esc(titleParts[0])}<br><span class="accent">${esc(titleParts.slice(1).join(" "))}</span>`
       : esc(title);
     const body = `<div class="cover-body">
-  <div class="eyebrow">${isQuote ? "QUOTATION" : "TAX INVOICE"} · ${esc(issue)}</div>
+  <div class="eyebrow">${docEyebrow} · ${esc(issue)}</div>
   <div class="cover-title">${titleHtml}</div>
   <div class="cover-rule"></div>
   <div class="cover-intro">${fill(intro)}</div>
@@ -605,9 +658,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
       <div class="v">${isQuote ? t("رقم العرض", "Quote no.") : t("رقم الفاتورة", "Invoice no.")} ${num(doc.number)}</div>
       <div class="s">${t("تاريخ الإصدار", "Issue date")} ${num(issue)}</div>
       ${end ? `<div class="s">${esc(endLabel)} ${num(end)}</div>` : ""}</div>
-    <div><div class="k">${isQuote ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("المستحق شامل الضريبة", "Total due incl. tax")}</div>
+    <div><div class="k">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : (orgTaxRegistered ? t("المستحق شامل الضريبة", "Total due incl. tax") : t("المستحق", "Total due"))}</div>
       <div class="big">${cur} ${money(doc.total)}</div>
-      <div class="s">${num(money(taxable))} + ${esc(taxLabel)} ${num(money(doc.taxTotal))}</div>
+      ${orgTaxRegistered ? `<div class="s">${num(money(taxable))} + ${esc(taxLabel)} ${num(money(doc.taxTotal))}</div>` : ""}
       ${doc.title && title !== doc.title ? `<div class="s">${esc(doc.title)}</div>` : ""}</div>
     <div class="col-client"><div class="k">${t("العميل", "Client")}</div>
       ${contact?.code ? `<div class="v lat" dir="ltr">${esc(contact.code)}</div>` : ""}
@@ -624,7 +677,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const partyHtml = (label: string, name: string, alt: string | null | undefined, p: PartySpec | null, showRep: boolean) => {
     const d: string[] = [];
     if (p?.crNumber) d.push(`${t("س.ت", "CR")} ${num(p.crNumber)}`);
-    if (p?.vatNumber) d.push(`${t("الرقم الضريبي", "VAT no.")} ${num(p.vatNumber)}`);
+    if (p?.vatNumber) d.push(`${regLabel(p)} ${num(p.vatNumber)}`);
     if (p?.address) d.push(bdi(p.address));
     if (p?.city && !(p.address || "").includes(p.city)) d.push(bdi(p.city));
     const contacts = [p?.phone ? num(p.phone) : "", p?.email ? num(p.email) : ""].filter(Boolean).join(" · ");
@@ -636,7 +689,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const headerBlock = (): Block => ({
     kind: "html", h: 76, html: `<div class="doc-head">
-  <div><div class="eyebrow">${isQuote ? "QUOTATION" : "TAX INVOICE"}</div><div class="title">${esc(docType)}</div></div>
+  <div><div class="eyebrow">${docEyebrow}</div><div class="title">${esc(docType)}</div></div>
   ${partyHtml(isQuote ? t("المورد · الجهة المُقدِّمة", "Supplier · issued by") : t("المورد · الجهة المُصدِرة", "Supplier · issued by"), orgName, orgAlt, org, true)}
   ${partyHtml(t("العميل", "Client"), clientName, clientAlt, contact, false)}
 </div>
@@ -688,9 +741,11 @@ export function renderDocument(input: RenderInput): RenderOutput {
       rows.push(`<div class="r"><span class="lbl">${isQuote ? t("سعر القائمة", "List price") : t("الإجمالي قبل الخصم", "Total before discount")}</span><span class="amt">${cur} ${money(listPrice)}</span></div>`);
       rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${cur} ${money(discount)}</span></div>`);
     }
-    rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
-    if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${esc(taxLabel)}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
-    rows.push(`<div class="r grand"><span class="lbl">${isQuote ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي المستحق", "Total due")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
+    if (orgTaxRegistered) {
+      rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
+      if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${esc(taxLabel)}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+    }
+    rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("الإجمالي المستحق", "Total due")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
     if (!isQuote && paid > 0) {
       rows.push(`<div class="r"><span class="lbl">${t("المسدَّد", "Paid")}</span><span class="amt">${cur} ${money(paid)}</span></div>`);
       rows.push(`<div class="r due"><span class="lbl">${t("المتبقي", "Balance due")}</span><span class="amt">${cur} ${money(due)}</span></div>`);
@@ -700,7 +755,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     // QR on a tax invoice → the document number as plain text. The payment-link
     // QR (when a pay link exists) is drawn once, in the "pay online" card below —
     // it is intentionally not repeated here to avoid printing the same QR twice.
-    const zatcaQr = !isQuote && doc.qrPayload;
+    const zatcaQr = !isQuote && orgTaxRegistered && doc.qrPayload;
     const qrText = zatcaQr ? doc.qrPayload! : (doc.number || "");
     const qr = qrText ? qrSvg(qrText) : "";
     const qrCaption = zatcaQr
@@ -718,7 +773,11 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const link = safeUrl(doc.paymentLinkUrl);
     if (!items.length && !link) return null;
     const termsCard = items.length ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div><ul>${items.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
-    const payCard = link ? `<div class="card"><div class="t">${t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${cur} ${money(isQuote ? doc.total : Math.max(due, 0))} بخطوة واحدة — المبلغ شامل الضريبة، بلا رسوم إضافية.`, `Scan the code or open the link and pay ${cur} ${money(isQuote ? doc.total : Math.max(due, 0))} in one step — tax included, no extra fees.`)}</p><a href="${esc(link)}">${esc(link)}</a><div class="chips"><span class="chip">Apple Pay ✓</span><span class="chip">${t("بطاقة ائتمانية / مدى", "Credit card / mada")} ✓</span><span class="chip">${t("بوابة دفع مؤمَّنة", "Secure gateway")} 🔒</span></div></div></div></div>` : "";
+    const payAmount = `${cur} ${money(isQuote ? doc.total : Math.max(due, 0))}`;
+    const payNote = orgTaxRegistered
+      ? t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — المبلغ شامل الضريبة، بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — tax included, no extra fees.`)
+      : t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — no extra fees.`);
+    const payCard = link ? `<div class="card"><div class="t">${t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${payNote}</p><a href="${esc(link)}">${esc(link)}</a><div class="chips"><span class="chip">Apple Pay ✓</span><span class="chip">${t("بطاقة ائتمانية / مدى", "Credit card / mada")} ✓</span><span class="chip">${t("بوابة دفع مؤمَّنة", "Secure gateway")} 🔒</span></div></div></div></div>` : "";
     const h = 20 + Math.max(items.reduce((s, i) => s + textHeight(i, 70, 5.2, 1.7), 0), link ? 42 : 0);
     const html = termsCard && payCard ? `<div class="cards">${termsCard}${payCard}</div>` : `<div class="cards" style="grid-template-columns:1fr">${termsCard || payCard}</div>`;
     return { kind: "html", h, html };
@@ -771,7 +830,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const parts: string[] = [];
     parts.push(`<strong>${t("عن الجهة المُصدِرة:", "About the issuer:")}</strong> <strong>${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</strong>`);
     // identifiers stay LTR-isolated · an un-isolated "2026-001962138" reorders inside Arabic text
-    const ids = [org.crNumber ? `${t("س.ت", "CR")} ${num(org.crNumber)}` : "", org.vatNumber ? `${t("الرقم الضريبي", "VAT no.")} ${num(org.vatNumber)}` : ""].filter(Boolean);
+    const ids = [org.crNumber ? `${t("س.ت", "CR")} ${num(org.crNumber)}` : "", org.vatNumber ? `${regLabel(org)} ${num(org.vatNumber)}` : ""].filter(Boolean);
     if (ids.length) parts.push(`(${ids.join(" · ")})`);
     const where = [org.address, org.city].filter(Boolean).map(bdi).join(" · ");
     if (where) parts.push(`— ${where}`);
@@ -783,15 +842,44 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const signatoryBlock = (): Block | null => {
     if (!tpl.signatoryName && !stamp) return null;
+    // Pen-style signature (CEO 2026-09-08): a real uploaded signature image wins when
+    // present · otherwise the signatory's own name is set in the script face — never a
+    // hardcoded person. Arabic names have no glyphs in this Latin script face, so they
+    // keep the bold sans instead of falling back to tofu.
+    const sigImg = safeUrl(tpl.signatureUrl) || safeUrl(org.signatureUrl);
+    const nameIsLatin = tpl.signatoryName ? !hasArabic(tpl.signatoryName) : false;
+    const nameHtml = !tpl.signatoryName
+      ? `<div class="n">—</div>`
+      : sigImg
+        ? `<div class="n img"><img src="${esc(sigImg)}" alt="${esc(tpl.signatoryName)}"></div>`
+        : `<div class="n${nameIsLatin ? " pen" : ""}">${bdi(tpl.signatoryName)}</div>`;
     // frameless by instruction · no .card wrapper on either block
-    const sig = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div><div class="n">${bdi(tpl.signatoryName || "—")}</div>${tpl.signatoryTitle ? `<div class="o">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
+    const sig = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${nameHtml}${tpl.signatoryTitle ? `<div class="o">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
     const st = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;
     // stamp keeps the outer edge in both scripts (right in RTL · right in LTR)
-    return { kind: "html", h: 46, html: `<div class="sig-cards">${ar ? st + sig : sig + st}</div>` };
+    return { kind: "html", h: 50, html: `<div class="sig-cards">${ar ? st + sig : sig + st}</div>` };
   };
 
-  const closingLines = lines(ar ? tpl.closingTerms : (tpl.closingTermsEn || tpl.closingTerms));
-  const hasClosing = on("closing") && closingLines.length > 0;
+  // Terms & conditions ALWAYS get their own standalone sheet (CEO 2026-09-08 · «سوي صفحة
+  // الشروط والاحكام مستقلة لابد تكون موجودة»): a template/org's own closingTerms print when
+  // set, otherwise a neutral default clause set — the page is never simply omitted.
+  const DEFAULT_CLOSING_AR = [
+    "القبول | يُعد استخدام هذا المستند أو التوقيع عليه أو الشروع في التنفيذ بموجبه قبولًا بجميع ما ورد فيه من شروط.",
+    "السداد | تُستحق المبالغ وفق الشروط والمواعيد الموضحة في هذا المستند، ما لم يُتفق كتابيًا على خلاف ذلك.",
+    "الصلاحية | يبقى هذا المستند ساريًا حتى التاريخ المحدد فيه، ما لم يُجدَّد أو يُعدَّل كتابيًا.",
+    "التعديلات | أي تعديل على البنود أو الأسعار يكون نافذًا فقط إذا تم كتابيًا وبموافقة الطرفين.",
+    "السرية | هذا المستند سرّي وموجّه حصرًا للعميل المذكور فيه، ولا يجوز مشاركته مع طرف ثالث دون إذن كتابي.",
+  ];
+  const DEFAULT_CLOSING_EN = [
+    "Acceptance | Using, signing, or acting on this document constitutes acceptance of all terms stated in it.",
+    "Payment | Amounts fall due per the terms and dates shown in this document, unless otherwise agreed in writing.",
+    "Validity | This document remains valid until the date stated in it, unless renewed or amended in writing.",
+    "Amendments | Any change to items or prices takes effect only when made in writing and agreed by both parties.",
+    "Confidentiality | This document is confidential and addressed solely to the named client; it may not be shared with a third party without written permission.",
+  ];
+  const closingLinesRaw = lines(ar ? tpl.closingTerms : (tpl.closingTermsEn || tpl.closingTerms));
+  const closingLines = closingLinesRaw.length ? closingLinesRaw : (ar ? DEFAULT_CLOSING_AR : DEFAULT_CLOSING_EN);
+  const hasClosing = on("closing");
 
   for (const id of order) {
     if (!on(id)) continue;
@@ -811,24 +899,29 @@ export function renderDocument(input: RenderInput): RenderOutput {
   }
   if (!on("header") && doc.notes && !on("totals")) blocks.push({ kind: "html", h: 20, html: `<div class="notes">${bdi(doc.notes)}</div>` });
 
-  for (const page of paginate(blocks, CAP)) sheets.push({ cls: "light", body: page });
-
-  // ── closing page ──
+  // ── closing page (terms & conditions) ──
+  // Appended to the SAME block list — one single paginate() pass — rather than paginated
+  // on its own. The closing intro carries forceBreak, so it always STARTS a fresh sheet
+  // (a standalone T&C page, per CEO instruction) while whatever small tail the main flow
+  // left (e.g. a lone terms/bank card) still packs onto the previous sheet instead of
+  // being stranded alone on a nearly-empty page (CEO 2026-09-08 · «مافي فراغات كذا مالها
+  // داعي أو انه يتوسع» — no sheet is ever emitted mostly empty).
   if (hasClosing) {
     const clauses = closingLines.map(clause);
     const rows = clauses.map((c, i) => ({
       h: 4 + textHeight(c.text, 118, 4.5, 1.42),
       html: `<tr><td class="idx">${String(i + 1).padStart(2, "0")}</td><td class="ttl">${bdi(c.title || "—")}</td><td>${bdi(c.text)}</td></tr>`,
     }));
-    const intro: Block = { kind: "html", h: 26, html: `<div class="h2">${t("الشروط والأحكام", "Terms & conditions")}</div><p class="lead">${isQuote
+    const intro: Block = { kind: "html", h: 26, forceBreak: true, html: `<div class="h2">${t("الشروط والأحكام", "Terms & conditions")}</div><p class="lead">${isQuote
       ? t(`تسري هذه الشروط على عرض السعر ${doc.number} والفاتورة الصادرة بموجبه، وتُعد جزءًا لا يتجزأ من الاتفاق بين الطرفين.`, `These terms apply to quotation ${doc.number} and any invoice issued under it, and form an integral part of the agreement between the parties.`)
       : t(`تسري هذه الشروط على الفاتورة ${doc.number}${doc.reference ? ` بمرجع ${doc.reference}` : ""}.`, `These terms apply to invoice ${doc.number}${doc.reference ? ` (ref. ${doc.reference})` : ""}.`)}</p>` };
     const table: Block = { kind: "table", open: `<table class="tc"><colgroup><col style="width:9mm"><col style="width:34mm"><col></colgroup>`, head: `<thead><tr><th>#</th><th>${t("البند", "Clause")}</th><th>${t("الشرط", "Terms")}</th></tr></thead>`, headH: 9, rows, close: `</table>` };
-    const tail: Block[] = [];
-    if (on("signatory")) { const s = signatoryBlock(); if (s) tail.push(s); }
-    if (on("company")) tail.push(companyBlock());
-    for (const page of paginate([intro, table, ...tail], CAP)) sheets.push({ cls: "light", body: page });
+    blocks.push(intro, table);
+    if (on("signatory")) { const s = signatoryBlock(); if (s) blocks.push(s); }
+    if (on("company")) blocks.push(companyBlock());
   }
+
+  for (const page of paginate(blocks, CAP)) sheets.push({ cls: "light", body: page });
 
   // ── assemble ──
   const total = sheets.length;
@@ -861,6 +954,7 @@ export function partyFromOrg(org: any): PartySpec {
     name: org.name || org.legalName || "",
     nameEn: org.nameEn || org.legalName || null,
     legalName: org.legalName || null,
+    country: org.country || "SA",
     vatNumber: org.vatNumber || null,
     crNumber: org.crNumber || null,
     address: address || null,
@@ -871,6 +965,7 @@ export function partyFromOrg(org: any): PartySpec {
     logoUrl: org.printLogoUrl || org.logoUrl || null,
     logoLightUrl: org.printLogoLightUrl || null,
     stampUrl: org.stampUrl || null,
+    signatureUrl: org.signatureUrl || null,
   };
 }
 
@@ -958,6 +1053,7 @@ export function docFromQuote(q: any): DocSpec {
     total: n(q.total),
     paymentLinkUrl: q.paymentLinkUrl || null,
     paymentPlan: planRows(q.paymentPlan, n(q.taxTotal), n(q.total)),
+    language: q.language === "en" || q.language === "ar" ? q.language : null,
   };
 }
 
@@ -982,6 +1078,7 @@ export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
     paymentLinkUrl: inv.paymentLinkUrl || null,
     paymentPlan: planRows(inv.paymentPlan, n(inv.taxTotal), n(inv.total)),
     qrPayload: qrPayload ?? inv.zatcaQr ?? null,
+    language: inv.language === "en" || inv.language === "ar" ? inv.language : null,
   };
 }
 
