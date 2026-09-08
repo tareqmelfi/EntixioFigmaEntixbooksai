@@ -59,11 +59,23 @@ test('print documents share professional Arabic document contracts', async () =>
   const fontCss = await source('src/styles/fonts-selfhosted.css')
   const report = await source('src/app/components/report-document.tsx')
   const invoice = await source('src/app/pages/invoice-print-view.tsx')
+  const engine = await source('src/app/lib/document-render.ts')
   const voucher = await source('src/app/pages/voucher-print-view.tsx')
   const printCss = await source('src/styles/print-documents.css')
   expect(indexCss).toContain("@import './print-documents.css'")
   expect(fontCss).toContain('url(/fonts/NotoSansArabic-400-arabic.woff2)')
-  for (const [name, file] of Object.entries({ report, invoice, voucher })) {
+  // 2026-09-08 · the invoice print view renders through the brand document engine
+  // (fixed A4 sheets · self-hosted Noto Sans Arabic + Plus Jakarta Sans · bidi isolation)
+  expect(invoice).toContain('BrandDocument')
+  expect(invoice).toContain('docFromInvoice')
+  expect(engine).toContain('NotoSansArabic-400-arabic.woff2')
+  expect(engine).toContain('PlusJakartaSans-400-latin.woff2')
+  expect(engine).toMatch(/@page\{size:A4;margin:0\}/)
+  expect(engine).toMatch(/width:210mm;height:297mm/)
+  expect(engine).toMatch(/break-after:page/)
+  expect(engine).toMatch(/unicode-bidi:isolate/)
+  expect(engine).toMatch(/font-variant-numeric:tabular-nums/)
+  for (const [name, file] of Object.entries({ report, voucher })) {
     expect(file, name).toContain('document-paper')
     expect(file, name).toContain('document-title')
     expect(file, name).toContain('document-table')
@@ -83,12 +95,15 @@ test('print documents share professional Arabic document contracts', async () =>
 
 test('print identifiers are isolated LTR while arbitrary names and prose use auto direction', async () => {
   const report = await source('src/app/components/report-document.tsx')
-  const invoice = await source('src/app/pages/invoice-print-view.tsx')
+  const engine = await source('src/app/lib/document-render.ts')
   const voucher = await source('src/app/pages/voucher-print-view.tsx')
   expect(report).toMatch(/<BidiText[^>]*mode="plaintext"/)
   expect(report).toMatch(/<NumericText[^>]*>\{report\.id\}<\/NumericText>/)
-  expect(invoice).toMatch(/<BidiText[^>]*>\{contact\?\.displayName/)
-  expect(invoice).toMatch(/<NumericText[^>]*>\{invoice\.invoiceNumber\}<\/NumericText>/)
+  // engine: names/prose → <bdi dir="auto"> · identifiers/amounts → <bdi dir="ltr" class="num">
+  expect(engine).toMatch(/const bdi = .*<bdi dir="auto">/)
+  expect(engine).toMatch(/const num = .*<bdi dir="ltr" class="num/)
+  expect(engine).toMatch(/\$\{bdi\(clientName\)\}/)
+  expect(engine).toMatch(/\$\{num\(doc\.number\)\}/)
   expect(voucher).toMatch(/<BidiText[^>]*>\{contact\?\.displayName/)
   expect(voucher).toMatch(/<NumericText[^>]*>\{voucher\.number\}<\/NumericText>/)
 })

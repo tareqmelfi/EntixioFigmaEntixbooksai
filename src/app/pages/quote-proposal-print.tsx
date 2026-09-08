@@ -1,12 +1,19 @@
 /**
  * Proposal print view (SPEC-04) · /print/proposal/:id — org-side branded PDF
- * via browser print. Same renderer as the public /q page (ProposalDoc).
+ * via browser print.
+ *
+ * 2026-09-08 · renders from the org's brand document template (cover → inner
+ * pages → terms & conditions page · fixed A4 sheets) through the shared
+ * document engine (src/app/lib/document-render.ts · same as the API render
+ * route). ?lang=ar|en · ?templateId= · ?noprint=1 (QA) · ?embed=1 (pane).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { Loader2, Printer, X } from "lucide-react";
-import { api, Quote, Org, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
-import { ProposalDoc } from "../components/proposal-doc";
+import { api, Quote, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
+import { BrandDocument, useBrandTemplate } from "../components/brand-document";
+import { partyFromOrg, partyFromContact, docFromQuote, type RenderInput } from "../lib/document-render";
+import { waitForPrintReady } from "../lib/print-image";
 
 export function QuoteProposalPrint() {
   const { id } = useParams<{ id: string }>();
@@ -14,7 +21,11 @@ export function QuoteProposalPrint() {
   const langOverride = searchParams.get("lang");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [org, setOrg] = useState<Org | null>(null);
+  const [contact, setContact] = useState<Contact | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const noPrint = searchParams.get("noprint") === "1";
+  const embed = searchParams.get("embed") === "1";
+  const templateParam = searchParams.get("templateId");
 
   useEffect(() => {
     if (!id) return;
@@ -36,25 +47,51 @@ export function QuoteProposalPrint() {
         if (!q) throw new Error("not_found");
         setQuote(q);
         try { setOrg(await api.orgs.get(q.orgId)); } catch { /* header degrades gracefully */ }
-        setTimeout(() => window.print(), 600);
+        if (q.contactId) { try { setContact(await api.contacts.get(q.contactId)); } catch { /* client block degrades */ } }
       } catch {
         setError("العرض غير متاح — تأكد من تسجيل الدخول");
       }
     })();
   }, [id]);
 
-  if (error) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>{error}</div>;
-  if (!quote) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
-
   const lang: "ar" | "en" = langOverride === "en" ? "en" : "ar";
+  // Template: ?templateId= → quote.templateId → org default for QUOTE (BOTH counts)
+  const { template, bank, ready } = useBrandTemplate("QUOTE", templateParam || quote?.templateId || null, !!quote);
+
+  const input = useMemo<RenderInput | null>(() => {
+    if (!quote || !ready) return null;
+    return {
+      lang,
+      template,
+      org: partyFromOrg(org),
+      contact: partyFromContact(contact) || (quote.contact ? { name: quote.contact.displayName, email: quote.contact.email } : null),
+      doc: docFromQuote(quote),
+      bank,
+      fontBase: "/fonts",
+      embed: true,
+    };
+  }, [quote, ready, template, bank, org, contact, lang]);
+
+  // PDF filename = document.title
+  useEffect(() => { if (quote) document.title = `${quote.quoteNumber}${contact?.displayName ? " · " + contact.displayName : ""}`; }, [quote, contact]);
+
+  // Auto-print once the sheets are on screen (fonts + images settled)
+  useEffect(() => {
+    if (!input || noPrint || embed) return;
+    let cancelled = false;
+    waitForPrintReady().then(() => { if (!cancelled) window.print(); });
+    return () => { cancelled = true; };
+  }, [input, noPrint, embed]);
+
+  if (error) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>{error}</div>;
+  if (!quote || !input) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
 
   return (
-    <div style={{ background: "#fff", minHeight: "100vh" }}>
+    <div style={{ background: embed ? "#fff" : "#E9ECF1", minHeight: "100vh" }}>
       <style>{`
-        .num { font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: embed; }
-        @media print { .no-print { display: none !important; } @page { size: A4; margin: 12mm; } }
+        @media print { .no-print { display: none !important; } html, body { background: #fff !important; } }
       `}</style>
-      <div className="no-print" style={{ position: "sticky", top: 0, background: "#1A1E48", color: "#fff", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 5 }}>
+      <div className="no-print" style={{ position: "sticky", top: 0, background: "#1A1E48", color: "#fff", padding: "9px 16px", display: embed ? "none" : "flex", justifyContent: "space-between", alignItems: "center", zIndex: 5 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>{quote.quoteNumber} · {quote.title || ""}</span>
         <span style={{ display: "flex", gap: 8 }}>
           <button onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#5875DB", border: "none", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12.5, cursor: "pointer" }}>
@@ -65,17 +102,8 @@ export function QuoteProposalPrint() {
           </button>
         </span>
       </div>
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "22px 20px" }}>
-        <ProposalDoc quote={quote} org={org ? { name: org.name, logoUrl: (org as any).printLogoUrl || org.logoUrl, legalName: org.legalName, vatNumber: org.vatNumber, crNumber: org.crNumber } : null} lang={lang} />
-        {/* Acceptance block (print) */}
-        <div style={{ marginTop: 22, border: "1px solid #D6E4EE", borderRadius: 10, padding: "12px 16px", breakInside: "avoid-page" }} dir={lang === "ar" ? "rtl" : "ltr"}>
-          <div style={{ fontWeight: 700, fontSize: 12.5, color: "#1A1E48", marginBottom: 10 }}>{lang === "ar" ? "إقرار القبول" : "Acceptance"}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, fontSize: 11.5, color: "#4A5A6E" }}>
-            <div>{lang === "ar" ? "الاسم:" : "Name:"} ______________________</div>
-            <div>{lang === "ar" ? "التوقيع:" : "Signature:"} ______________________</div>
-            <div>{lang === "ar" ? "التاريخ:" : "Date:"} ______________________</div>
-          </div>
-        </div>
+      <div className="edoc-shell" style={{ padding: embed ? 0 : "16px 0 32px" }}>
+        <BrandDocument input={input} scaleToFit={embed} />
       </div>
     </div>
   );
