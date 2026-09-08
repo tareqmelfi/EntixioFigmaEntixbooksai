@@ -7,10 +7,12 @@ import { getOrgId } from "../lib/api";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus, Search, X, Trash2, Loader2, Printer, Mail, Paperclip, Upload, Download,
-  Wallet,
+  Wallet, ArrowRight, Eye,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar } from "../components/product";
+import { useWideViewport } from "../lib/use-wide-viewport";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -20,7 +22,7 @@ import { FullPageForm } from "../components/full-page-form";
 import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { voucherEmail } from "../lib/email-templates";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams, Link } from "react-router";
 import { useReturnTo } from "../lib/use-return-to";
 import { api, Voucher, Contact, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
@@ -28,7 +30,9 @@ import { BranchField } from "../components/branch-field";
 import { useOrgRegion } from "../lib/use-org-region";
 
 export function Payments() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  // Split view (list ⟷ document panel) · desktop ≥1536 only · below that the panel replaces the list
+  const wideViewport = useWideViewport();
 
   const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
     CASH: t("نقداً", "Cash"), BANK_TRANSFER: t("تحويل بنكي", "Bank Transfer"), CARD: t("بطاقة ائتمان", "Credit Card"),
@@ -211,12 +215,6 @@ export function Payments() {
   // lines instead of a meaningless blended figure (owner report 2026-08-21).
   const byCur = (summary.sumByCurrency || []).filter((r) => Number(r.total) !== 0);
   const singleCur = byCur.length === 1 ? byCur[0].currency : null;
-  const totalDisplay = singleCur
-    ? `${Number(byCur[0].total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${singleCur}`
-    : byCur.length > 1
-      ? byCur.map((r) => `${Number(r.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${r.currency}`).join("  ·  ")
-      : `${total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${orgCurrency}`;
-  const avgDisplay = singleCur ? `${avg.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${singleCur}` : (byCur.length > 1 ? t("— مختلط العملات", "— mixed currencies") : `${avg.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${orgCurrency}`);
 
   const resetForm = () => setForm({
     contactId: "", billId: "",
@@ -371,160 +369,285 @@ export function Payments() {
     } finally { setPendingDelete(null); }
   };
 
-  return (
-    <div className="flex gap-4">
-      <ToastStack toasts={toasts} onDismiss={dismiss} />
+  // ── Ledger list + document panel ──────────────────────────────────────────
+  // Currency-honest totals: one currency → label it · mixed → per-currency figures
+  const figureCurrency = singleCur || orgCurrency || items[0]?.currency || "SAR";
+  const money2 = (n: number | string) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      <div className={`space-y-6 transition-all ${selected ? "flex-1 min-w-0" : "w-full"}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("سندات الصرف", "Payment Vouchers")}</h1>
-            <p className="text-muted-foreground mt-1">{t("المبالغ المدفوعة للموردين · ربط مباشر بفاتورة المشتريات", "Amounts paid to suppliers · direct link to purchase invoice")}</p>
-          </div>
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => { resetForm(); setEditingPayment(null); setOpen(true); }}>
-            <Plus className="me-2 h-4 w-4" /> {t("سند صرف جديد", "New payment voucher")}
-          </Button>
-        </div>
+  const closeSelected = () => {
+    setSelected(null);
+    setEmailDialog(false);
+    if (/\/app\/receipts\/[^/]+/.test(location.pathname)) navigate("/app/payments", { replace: true });
+  };
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("عدد السندات", "Voucher count")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{items.length}</div>
-          </CardContent></Card>
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("إجمالي المصروف", "Total spent")}</div>
-            <div className="font-english font-bold text-danger mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalDisplay}</div>
-          </CardContent></Card>
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("متوسط السند", "Average voucher")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{avgDisplay}</div>
-          </CardContent></Card>
-        </div>
-
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-foreground flex items-center gap-2"><Wallet className="h-4 w-4" /> {t("سجل السندات", "Voucher log")}</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t("بحث...", "Search...")} className="pe-9 border-border" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
-            ) : filtered.length === 0 ? (
-              <div className="py-12 text-center"><Wallet className="h-12 w-12 mx-auto text-muted mb-3" /><p className="text-sm text-muted-foreground">{t("لا سندات", "No vouchers")}</p></div>
-            ) : (
-              <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-                <colgroup>
-                  <col style={{ width: "120px" }} /><col style={{ width: "100px" }} /><col />
-                  <col style={{ width: "120px" }} /><col style={{ width: "100px" }} /><col style={{ width: "120px" }} />
-                </colgroup>
-                <thead className="bg-muted text-xs text-muted-foreground">
-                  <tr>
-                    <th className="text-start px-4 py-2.5 font-medium">{t("رقم", "Number")}</th>
-                    <th className="text-start px-4 py-2.5 font-medium">{t("التاريخ", "Date")}</th>
-                    <th className="text-start px-4 py-2.5 font-medium">{t("المورد", "Supplier")}</th>
-                    <th className="text-end px-4 py-2.5 font-medium">{t("المبلغ", "Amount")}</th>
-                    <th className="text-center px-4 py-2.5 font-medium">{t("طريقة الدفع", "Payment method")}</th>
-                    <th className="px-2 py-2.5"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((v) => (
-                    <tr key={v.id}
-                      className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === v.id ? "bg-primary/5" : ""}`}
-                      onClick={() => openSelected(v)}>
-                      <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{v.number}</td>
-                      <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{v.date.slice(0, 10)}</td>
-                      <td className="px-4 py-3 truncate text-foreground">{v.contact?.displayName || "—"}</td>
-                      <td className="px-4 py-3 text-end font-english font-semibold text-danger" dir="ltr">{Number(v.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">{METHOD_LABELS[v.paymentMethod]}</td>
-                      <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
-                        <button onClick={() => handlePrint(v)} className="p-1.5 text-primary hover:bg-info-subtle rounded"><Printer className="h-4 w-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </CardContent>
-        </Card>
+  const emailForm$ = selected && emailDialog && (
+    <div className="space-y-3" data-testid="payment-email-form">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{t("إرسال السند للمورد", "Send voucher to supplier")}</h3>
+        <button type="button" onClick={() => setEmailDialog(false)} className="rounded-full p-1 text-muted-foreground hover:bg-surface-hover" aria-label={t("إغلاق", "Close")}><X className="h-4 w-4" strokeWidth={1.75} /></button>
       </div>
+      <div>
+        <Label className="text-xs">{t("إلى", "To")} *</Label>
+        <Input type="email" value={emailForm.to} onChange={(e) => setEmailForm({ ...emailForm, to: e.target.value })} dir="ltr" className="font-english" />
+      </div>
+      <div>
+        <Label className="text-xs">{t("الموضوع", "Subject")}</Label>
+        <Input value={emailForm.subject} onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })} />
+      </div>
+      <div>
+        <Label className="text-xs">{t("رسالة", "Message")}</Label>
+        <textarea value={emailForm.message} onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+          rows={4} className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={() => setEmailDialog(false)}>{t("إلغاء", "Cancel")}</Button>
+        <Button type="button" size="sm" onClick={handleEmail}><Mail className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("إرسال", "Send")}</Button>
+      </div>
+    </div>
+  );
 
-      {selected && (
-        <Card className="border-border w-[460px] flex-shrink-0 self-start sticky top-4">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border/50">
-            <div>
-              <div className="font-english font-bold text-primary" dir="ltr">{selected.number}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{selected.contact?.displayName || "—"}</div>
-            </div>
-            <button onClick={() => setSelected(null)} className="p-1 hover:bg-surface-hover rounded"><X className="h-4 w-4 text-muted-foreground" /></button>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="text-center bg-danger-subtle border border-danger-border rounded-lg p-4">
-              <div className="text-xs text-danger">{t("المبلغ المصروف", "Amount spent")}</div>
-              <div className="font-english font-bold text-danger mt-1" style={{ fontSize: "1.75rem" }} dir="ltr">
-                {Number(selected.amount).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} {selected.currency}
+  // Document panel · the selected voucher (split view ≥1536 · full view below that)
+  const panel = selected && (
+    <div className="rounded-lg border border-border bg-card" aria-label={t("تفاصيل السند", "Voucher details")}>
+      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="min-w-0">
+          <span className="ledger-eyebrow">{t("سند صرف", "Payment voucher")}</span>
+          <div dir="ltr" className="mt-1 break-all font-code text-[15px] font-semibold text-foreground">{selected.number}</div>
+          <div className="mt-0.5 truncate text-xs text-content-secondary"><bdi dir="auto">{selected.contact?.displayName || "—"}</bdi></div>
+        </div>
+        <button onClick={closeSelected} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-surface-hover" aria-label={t("إغلاق", "Close")}>
+          <X className="h-4 w-4" strokeWidth={1.75} />
+        </button>
+      </div>
+      <div className="space-y-5 p-5">
+        {emailForm$ || (
+          <>
+            <div className="border-y border-foreground py-4">
+              <div className="text-xs text-content-secondary">{t("المبلغ المصروف", "Amount spent")}</div>
+              <div className="ledger-figure-value mt-2" style={{ fontSize: "clamp(1.75rem, 2vw, 2.5rem)" }}>
+                <LedgerFigure value={Number(selected.amount)} currency={selected.currency} />
               </div>
-              <div className="text-xs text-danger mt-1">{METHOD_LABELS[selected.paymentMethod]}</div>
+              <div className="mt-1 text-xs text-content-secondary">{METHOD_LABELS[selected.paymentMethod]}</div>
             </div>
 
-            <div className="text-sm space-y-1.5">
-              <div className="flex justify-between"><span className="text-muted-foreground">{t("التاريخ", "Date")}</span><span className="font-english" dir="ltr">{selected.date.slice(0, 10)}</span></div>
-              {selected.reference && <div className="flex justify-between"><span className="text-muted-foreground">{t("المرجع", "Reference")}</span><span className="font-english text-xs" dir="ltr">{selected.reference}</span></div>}
-              {selected.notes && <div className="pt-2 border-t border-border/50 text-xs text-foreground/80">{selected.notes}</div>}
-            </div>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+              <dt className="text-content-secondary">{t("التاريخ", "Date")}</dt>
+              <dd className="text-end"><span dir="ltr" className="font-english tabular-nums text-foreground">{selected.date.slice(0, 10)}</span></dd>
+              {selected.reference && <>
+                <dt className="text-content-secondary">{t("المرجع", "Reference")}</dt>
+                <dd className="min-w-0 text-end"><span dir="ltr" className="block break-all font-code text-xs text-foreground">{selected.reference}</span></dd>
+              </>}
+              {selected.billId && <>
+                <dt className="text-content-secondary">{t("فاتورة مشتريات مرتبطة", "Linked bill")}</dt>
+                <dd className="min-w-0 text-end"><Link to={`/app/purchases/bills/${selected.billId}`} dir="ltr" className="font-code text-xs text-primary hover:underline">{selected.billId.slice(-8)}</Link></dd>
+              </>}
+              {selected.notes && <dd className="col-span-2 border-t border-border pt-2 text-xs text-foreground"><bdi dir="auto">{selected.notes}</bdi></dd>}
+            </dl>
 
+            {/* Attachments */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs text-muted-foreground flex items-center gap-1"><Paperclip className="h-3 w-3" /> {t("المرفقات", "Attachments")} ({attachments.length})</div>
-                <input ref={fileRef} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
-                <button onClick={() => fileRef.current?.click()} className="text-xs text-primary hover:underline flex items-center gap-1"><Upload className="h-3 w-3" /> {t("رفع", "Upload")}</button>
+              <div className="mb-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-1 text-xs text-content-secondary">
+                  <Paperclip className="h-3 w-3" strokeWidth={1.75} /> {t("المرفقات", "Attachments")} ({attachments.length})
+                </div>
+                <input ref={fileRef} type="file" hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }} />
+                <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                  <Upload className="h-3 w-3" strokeWidth={1.75} /> {t("رفع", "Upload")}
+                </button>
               </div>
               {attachments.length === 0 ? (
-                <div className="text-xs text-muted-foreground/60 text-center py-2 border border-dashed rounded">{t("لا مرفقات", "No attachments")}</div>
+                <div className="rounded-lg border border-dashed border-border-strong py-2 text-center text-xs text-muted-foreground">{t("لا مرفقات", "No attachments")}</div>
               ) : (
                 <div className="space-y-1">
                   {attachments.map((a) => (
-                    <div key={a.id} className="flex items-center gap-2 p-2 rounded border border-border text-xs">
-                      <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 truncate">{a.filename}</div>
-                      <a href={a.url} download={a.filename} className="text-primary p-1 hover:bg-info-subtle rounded"><Download className="h-3 w-3" /></a>
+                    <div key={a.id} className="flex items-center gap-2 rounded-lg border border-border p-2 text-xs">
+                      <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                      <div dir="ltr" className="min-w-0 flex-1 truncate text-start font-code">{a.filename}</div>
+                      <a href={a.url} download={a.filename} className="rounded-full p-1 text-primary hover:bg-surface-hover"><Download className="h-3 w-3" strokeWidth={1.75} /></a>
                       <button onClick={async () => {
-                        try { await api.vouchers.attachments.remove(selected.id, a.id); setAttachments((prev) => prev.filter((x) => x.id !== a.id)); } catch {}
-                      }} className="text-danger p-1 hover:bg-danger-subtle rounded"><Trash2 className="h-3 w-3" /></button>
+                        try {
+                          await api.vouchers.attachments.remove(selected.id, a.id);
+                          setAttachments((prev) => prev.filter((x) => x.id !== a.id));
+                        } catch {}
+                      }} className="rounded-full p-1 text-danger hover:bg-surface-hover"><Trash2 className="h-3 w-3" strokeWidth={1.75} /></button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
-              <Button onClick={() => handlePrint(selected)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Printer className="h-4 w-4 me-1" /> {t("طباعة / PDF", "Print / PDF")}
+            {/* Actions · ink pill for print, quiet pills for the rest */}
+            <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+              <Button size="sm" onClick={() => handlePrint(selected)}>
+                <Printer className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("طباعة / PDF", "Print / PDF")}
               </Button>
-              <Button onClick={() => openEdit(selected)} variant="outline" className="border-border">
-                <Wallet className="h-4 w-4 me-1" /> {t("تعديل", "Edit")}
+              <Button size="sm" onClick={() => openEdit(selected)} variant="outline">
+                <Wallet className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("تعديل", "Edit")}
               </Button>
-              <Button onClick={() => { openEmailDialog(selected); }} variant="outline" className="border-border">
-                <Mail className="h-4 w-4 me-1" /> {t("إرسال للمورد", "Send to supplier")}
+              <Button size="sm" onClick={() => {
+                openEmailDialog(selected);
+              }} variant="outline">
+                <Mail className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("إرسال للمورد", "Send to supplier")}
               </Button>
               {pendingDelete === selected.id ? (
                 <span className="flex items-center gap-1">
-                  <Button onClick={() => handleDelete(selected.id)} className="bg-danger hover:bg-danger">{t("تأكيد", "Confirm")}</Button>
-                  <Button onClick={() => setPendingDelete(null)} variant="outline">{t("إلغاء", "Cancel")}</Button>
+                  <Button size="sm" onClick={() => handleDelete(selected.id)} variant="destructive">{t("تأكيد", "Confirm")}</Button>
+                  <Button size="sm" onClick={() => setPendingDelete(null)} variant="outline">{t("إلغاء", "Cancel")}</Button>
                 </span>
               ) : (
-                <Button onClick={() => setPendingDelete(selected.id)} variant="outline" className="border-danger-border text-danger">
-                  <Trash2 className="h-4 w-4 me-1" /> {t("حذف", "Delete")}
+                <Button size="sm" onClick={() => setPendingDelete(selected.id)} variant="outline" className="text-danger">
+                  <Trash2 className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("حذف", "Delete")}
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 
+  // Below the split-view threshold the document replaces the list (never a dialog · UX-1)
+  if (selected && !wideViewport && !open) {
+    return (
+      <div className="space-y-6">
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+        <PageHeader
+          className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+          eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")} · <Link to="/app/payments" className="hover:underline">{t("سندات الصرف", "Payment Vouchers")}</Link></span>}
+          title={<span dir="ltr" className="font-code">{selected.number}</span>}
+          actions={<Button variant="outline" className="h-10 px-[18px] text-sm" onClick={closeSelected}><ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />{t("سندات الصرف", "Payment Vouchers")}</Button>}
+        />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">{panel}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+
+      <div className={wideViewport && selected ? "grid grid-cols-[minmax(0,1fr)_minmax(380px,30%)] items-start gap-8" : ""}>
+      <div className="min-w-0 space-y-6">
+        <PageHeader
+          className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+          eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")}</span>}
+          title={t("سندات الصرف", "Payment Vouchers")}
+          description={t("المبالغ المدفوعة للموردين · ربط مباشر بفاتورة المشتريات", "Amounts paid to suppliers · direct link to purchase invoice")}
+          actions={
+            <Button className="h-10 px-[18px] text-sm" onClick={() => { resetForm(); setEditingPayment(null); setOpen(true); }}>
+              <Plus className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("سند صرف جديد", "New payment voucher")}
+            </Button>
+          }
+        />
+
+        {/* Ledger figures · currency-honest (per-currency when mixed) */}
+        <MetricStrip className="compact sm:grid-cols-3 xl:grid-cols-3">
+          <Metric label={t("عدد السندات", "Voucher count")} value={items.length} hint={t("سند", "vouchers")} />
+          <Metric
+            label={t("إجمالي المصروف", "Total spent")}
+            value={byCur.length > 1
+              ? <span className="flex flex-col gap-1">{byCur.map((r) => <span key={r.currency}><LedgerFigure value={Number(r.total)} currency={r.currency} /></span>)}</span>
+              : <LedgerFigure value={singleCur ? Number(byCur[0].total) : total} currency={figureCurrency} />}
+          />
+          <Metric
+            label={t("متوسط السند", "Average voucher")}
+            value={byCur.length > 1
+              ? <span className="font-sans text-base font-medium text-content-secondary">{t("مختلط العملات", "Mixed currencies")}</span>
+              : <LedgerFigure value={avg} currency={figureCurrency} />}
+          />
+        </MetricStrip>
+
+        <PageToolbar aria-label={t("مرشحات السندات", "Voucher filters")} className="justify-between">
+          <h2 className="flex items-center gap-2 text-section font-semibold text-foreground"><Wallet className="h-4 w-4 text-content-secondary" strokeWidth={1.75} /> {t("سجل السندات", "Voucher log")}</h2>
+          <div className="relative w-full sm:w-[260px]">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t("بحث...", "Search...")} className="h-9 w-full ps-8 text-[13px]" />
+          </div>
+        </PageToolbar>
+
+        {loading ? (
+          <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={<Wallet className="h-8 w-8" strokeWidth={1.75} />} title={t("لا سندات", "No vouchers")} />
+        ) : (
+          <>
+          <ul className="md:hidden">
+            {filtered.map((v) => (
+              <li key={v.id}>
+                <button type="button" onClick={() => navigate(`/app/payments/${v.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح السند", "Open voucher")}>
+                  <span className="flex min-w-0 flex-col gap-[3px]">
+                    <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{v.contact?.displayName || "—"}</bdi></span>
+                    <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{v.number} · {v.date.slice(0, 10)}</span>
+                  </span>
+                  <span dir="ltr" className="shrink-0 font-display text-[18px] leading-5 text-foreground tabular-nums">{money2(v.amount)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+            <Table className={`table-fixed ${wideViewport && selected ? "min-w-[700px]" : "min-w-[840px]"}`}>
+              <colgroup>
+                <col style={{ width: "200px" }} />{/* رقم · mono ids up to 32 chars */}
+                <col style={{ width: "110px" }} />{/* التاريخ */}
+                <col />{/* العميل · flexible */}
+                <col style={{ width: "130px" }} />{/* المبلغ */}
+                <col style={{ width: "140px" }} />{/* طريقة الدفع */}
+                {!(wideViewport && selected) && <col style={{ width: "110px" }} />}{/* إجراءات */}
+              </colgroup>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>{t("رقم", "Number")}</TableHead>
+                  <TableHead>{t("التاريخ", "Date")}</TableHead>
+                  <TableHead>{t("المورد", "Supplier")}</TableHead>
+                  <TableHead className="text-end">{t("المبلغ", "Amount")} <span className="font-english">({figureCurrency})</span></TableHead>
+                  <TableHead>{t("طريقة الدفع", "Payment method")}</TableHead>
+                  {!(wideViewport && selected) && <TableHead>{t("إجراءات", "Actions")}</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((v) => (
+                  <TableRow key={v.id}
+                    data-state={selected?.id === v.id ? "selected" : undefined}
+                    className="h-12 cursor-pointer"
+                    onClick={() => (wideViewport ? openSelected(v) : navigate(`/app/payments/${v.id}`))}
+                    onDoubleClick={() => navigate(`/app/payments/${v.id}`)}
+                    title={wideViewport ? t("عرض في اللوحة · نقرتان للفتح", "Show in the panel · double-click to open") : t("فتح السند", "Open voucher")}>
+                    <TableCell className="align-middle overflow-hidden">
+                      <Link to={`/app/payments/${v.id}`} onClick={(e) => e.stopPropagation()} title={v.number} className="block max-w-full hover:underline underline-offset-4">
+                        <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{v.number}</span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="align-middle overflow-hidden"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{v.date.slice(0, 10)}</span></TableCell>
+                    <TableCell className="align-middle overflow-hidden text-foreground" title={v.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{v.contact?.displayName || "—"}</bdi></span></TableCell>
+                    <TableCell className="text-end align-middle">
+                      <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(v.amount)}{v.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {v.currency}</span>}</span>
+                    </TableCell>
+                    <TableCell className="align-middle text-xs text-content-secondary"><span className="block truncate">{METHOD_LABELS[v.paymentMethod]}</span></TableCell>
+                    {!(wideViewport && selected) && (
+                    <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        <button onClick={() => navigate(`/app/payments/${v.id}`)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("فتح السند", "Open voucher")}><Eye className="h-4 w-4" strokeWidth={1.75} /></button>
+                        <button onClick={() => handlePrint(v)} className="rounded-full p-1.5 text-content-secondary hover:bg-surface-hover" title={t("طباعة", "Print")}>
+                          <Printer className="h-4 w-4" strokeWidth={1.75} />
+                        </button>
+                      </div>
+                    </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          </>
+        )}
+      </div>
+
+      {/* Split view · the selected voucher beside the list (desktop ≥1536px) */}
+      {wideViewport && selected && (
+        <aside className="sticky top-4 min-w-0">{panel}</aside>
+      )}
+      </div>
       {open && (
         <FullPageForm
           title={editingPayment ? t("تعديل سند صرف", "Edit payment voucher") : t("سند صرف جديد", "New payment voucher")}
@@ -739,28 +862,6 @@ export function Payments() {
           )}
           </div>
         </FullPageForm>
-      )}
-
-      {emailDialog && selected && (
-        <div className="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4" onClick={() => setEmailDialog(false)}>
-          <div className="bg-card rounded-2xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-border/50">
-              <h2 className="text-lg text-foreground font-bold">{t("إرسال السند للمورد", "Send voucher to supplier")}</h2>
-              <button onClick={() => setEmailDialog(false)} className="p-1 hover:bg-surface-hover rounded"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div><Label className="text-xs">{t("إلى", "To")} *</Label><Input type="email" value={emailForm.to} onChange={(e) => setEmailForm({ ...emailForm, to: e.target.value })} dir="ltr" className="font-english" /></div>
-              <div><Label className="text-xs">{t("الموضوع", "Subject")}</Label><Input value={emailForm.subject} onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })} /></div>
-              <div><Label className="text-xs">{t("رسالة", "Message")}</Label><textarea value={emailForm.message} onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })} rows={4} className="w-full text-sm rounded border border-border px-3 py-2" /></div>
-            </div>
-            <div className="flex justify-end gap-2 p-5 border-t border-border/50">
-              <Button type="button" variant="outline" onClick={() => setEmailDialog(false)} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button type="button" onClick={handleEmail} className="bg-primary hover:bg-primary/90">
-                <Mail className="h-4 w-4 me-1" /> {t("إرسال", "Send")}
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
