@@ -124,7 +124,18 @@ export interface LineSpec {
   included?: boolean;
 }
 
-export interface PaymentPlanRow { label: string; note?: string | null; net: number; tax: number; total: number }
+export interface PaymentPlanRow {
+  label: string;
+  note?: string | null;
+  net: number;
+  tax: number;
+  total: number;
+  /** SPEC-05 L2 (2026-09-08) · structured instalment (a stored PaymentPlanItem) · the note is derived when absent */
+  percent?: number | null;
+  condition?: "SIGNATURE" | "MILESTONE" | "PROGRESS" | "DELIVERY" | "DATE" | string | null;
+  conditionValue?: string | null;
+  billingMethod?: "INVOICE" | "PROGRESS_CLAIM" | string | null;
+}
 
 export interface BankSpec {
   name?: string | null;
@@ -622,7 +633,20 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (!plan || !plan.length) return null;
     const hasNet = plan.some((p) => p.net || p.tax);
     const sum = plan.reduce((s, p) => ({ net: s.net + (p.net || 0), tax: s.tax + (p.tax || 0), total: s.total + (p.total || 0) }), { net: 0, tax: 0, total: 0 });
-    const rows = plan.map((p, i) => `<tr><td class="idx">${String(i + 1).padStart(2, "0")}</td><td>${bdi(p.label)}${p.note ? `<div class="rest" style="font-size:7.5pt;color:var(--muted)">${bdi(p.note)}</div>` : ""}</td>${hasNet ? `<td class="n">${num(money(p.net))}</td><td class="n">${num(money(p.tax))}</td>` : ""}<td class="n"><strong>${num(money(p.total))}</strong></td></tr>`).join("");
+    const planNote = (p: PaymentPlanRow): string | null => {
+      if (p.note) return p.note;
+      const pct = p.percent ? `${qty(p.percent)}%` : "";
+      const v = p.conditionValue || "";
+      const cond = p.condition === "SIGNATURE" ? t("عند التوقيع", "On signature")
+        : p.condition === "PROGRESS" ? (v ? t(`عند إنجاز ${v}%`, `At ${v}% progress`) : t("حسب نسبة الإنجاز", "By progress"))
+        : p.condition === "DELIVERY" ? t("عند التسليم", "On delivery")
+        : p.condition === "DATE" ? (v ? t(`يستحق في ${v}`, `Due ${v}`) : "")
+        : p.condition === "MILESTONE" ? (v ? t(`عند: ${v}`, `Milestone: ${v}`) : "")
+        : "";
+      const method = p.billingMethod === "PROGRESS_CLAIM" ? t("مستخلص", "Progress claim") : "";
+      return [pct, cond, method].filter(Boolean).join(" · ") || null;
+    };
+    const rows = plan.map((p, i) => `<tr><td class="idx">${String(i + 1).padStart(2, "0")}</td><td>${bdi(p.label)}${planNote(p) ? `<div class="rest" style="font-size:7.5pt;color:var(--muted)">${bdi(planNote(p))}</div>` : ""}</td>${hasNet ? `<td class="n">${num(money(p.net))}</td><td class="n">${num(money(p.tax))}</td>` : ""}<td class="n"><strong>${num(money(p.total))}</strong></td></tr>`).join("");
     const html = `<div class="h3">${t("جدول السداد", "Payment schedule")}</div><table class="plan"><colgroup><col style="width:10mm"><col>${hasNet ? `<col style="width:30mm"><col style="width:26mm">` : ""}<col style="width:32mm"></colgroup><thead><tr><th>#</th><th>${t("الدفعة", "Instalment")}</th>${hasNet ? `<th class="n">${t("الخاضع", "Net")} (${esc(cur)})</th><th class="n">${t("الضريبة", "Tax")}</th>` : ""}<th class="n">${t("الإجمالي", "Total")}</th></tr></thead><tbody>${rows}${plan.length > 1 && (doc.paymentPlan?.length || 0) > 0 ? `<tr class="sum"><td></td><td>${t("الإجمالي", "Total")}</td>${hasNet ? `<td class="n">${num(money(sum.net))}</td><td class="n">${num(money(sum.tax))}</td>` : ""}<td class="n">${num(money(sum.total))}</td></tr>` : ""}</tbody></table>`;
     return { kind: "html", h: 16 + (plan.length + 1) * 9, html };
   };
@@ -779,6 +803,35 @@ function lineSpec(l: any, code?: string | null): LineSpec {
   };
 }
 
+/**
+ * doc.paymentPlan accepts engine rows OR a stored PaymentPlan ({ items: [{ label · percent · amount ·
+ * condition · conditionValue · billingMethod }] }) · SPEC-05 L2 (2026-09-08). A stored item's amount
+ * is its share of the document total; net / tax are split by the document's own tax ratio.
+ */
+function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] | null {
+  if (!plan) return null;
+  if (Array.isArray(plan)) return plan.length ? plan : null;
+  const items: any[] = Array.isArray(plan.items) ? plan.items : [];
+  if (!items.length) return null;
+  const taxShare = total > 0 ? taxTotal / total : 0;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  return items.map((it) => {
+    const amount = r2(n(it.amount) || (total * n(it.percent)) / 100);
+    const tax = r2(amount * taxShare);
+    return {
+      label: String(it.label || ""),
+      note: it.note || null,
+      net: r2(amount - tax),
+      tax,
+      total: amount,
+      percent: n(it.percent) || null,
+      condition: it.condition || null,
+      conditionValue: it.conditionValue || null,
+      billingMethod: it.billingMethod || null,
+    };
+  });
+}
+
 export function docFromQuote(q: any): DocSpec {
   return {
     kind: "QUOTE",
@@ -797,7 +850,7 @@ export function docFromQuote(q: any): DocSpec {
     taxTotal: n(q.taxTotal),
     total: n(q.total),
     paymentLinkUrl: q.paymentLinkUrl || null,
-    paymentPlan: Array.isArray(q.paymentPlan) ? q.paymentPlan : null,
+    paymentPlan: planRows(q.paymentPlan, n(q.taxTotal), n(q.total)),
   };
 }
 
@@ -820,7 +873,7 @@ export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
     total: n(inv.total),
     amountPaid: n(inv.amountPaid),
     paymentLinkUrl: inv.paymentLinkUrl || null,
-    paymentPlan: Array.isArray(inv.paymentPlan) ? inv.paymentPlan : null,
+    paymentPlan: planRows(inv.paymentPlan, n(inv.taxTotal), n(inv.total)),
     qrPayload: qrPayload ?? inv.zatcaQr ?? null,
   };
 }
