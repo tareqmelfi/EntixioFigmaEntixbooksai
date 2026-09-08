@@ -440,13 +440,19 @@ export function Quotes() {
         reference: form.reference || null,
         termsConditions: form.termsConditions || null,
         templateId: form.templateId || null,
+        // The tax the user picked travels WITH the line. Sending only price and
+        // quantity is what made every quote save taxTotal = 0 and quote a client
+        // 400 on a 400 subtotal instead of 460 (CEO screenshot 2026-09-08).
+        // The API stores the net itself, so the typed price is sent as typed and
+        // `taxInclusive` says how to read it.
         lines: validLines.map((l) => ({
           productId: l.productId || null,
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
-          unitPrice: l.taxInclusive
-            ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
-            : Number(normalizeDigits(l.unitPrice)),
+          unitPrice: Number(normalizeDigits(l.unitPrice)),
+          taxRateId: l.taxRateId || null,
+          taxRate: l.taxRate,
+          taxInclusive: l.taxInclusive,
         })),
       } as any);
       setItems(prev => [q, ...prev]);

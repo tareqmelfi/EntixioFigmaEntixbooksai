@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow, type UsSalesTaxPayload, type VatSummaryPayload } from "../lib/api";
 import { useOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "../components/LanguageContext";
+import { TaxRatesSection } from "../components/tax-rates-section";
 
 const money = (value: number, currency = "SAR") =>
   `${Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -519,6 +520,10 @@ export function Taxes() {
           </Card>
         </>
       ) : null}
+
+      {/* The rates the line grid offers · without this resource a quote saved
+          taxTotal = 0 and the client was billed 400 on a 460 quote. */}
+      <TaxRatesSection />
     </div>
   );
 }
@@ -624,6 +629,10 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
           </Card>
         </>
       ) : null}
+
+      {/* The rates the line grid offers · without this resource a quote saved
+          taxTotal = 0 and the client was billed 400 on a 460 quote. */}
+      <TaxRatesSection />
     </div>
   );
 }
@@ -699,6 +708,10 @@ function GenericVatView({ payload, loading, error, country, from, to, setFrom, s
           </Card>
         </>
       ) : null}
+
+      {/* The rates the line grid offers · without this resource a quote saved
+          taxTotal = 0 and the client was billed 400 on a 460 quote. */}
+      <TaxRatesSection />
     </div>
   );
 }

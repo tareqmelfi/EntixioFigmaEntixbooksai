@@ -31,6 +31,7 @@ import { authStore } from "../components/auth-store";
 import { normalizeDigits } from "../lib/digits";
 import { displayLocale } from "../lib/number-display";
 import { api, ApiError, type Contact, type Estimate, type EstimateLineInput } from "../lib/api";
+import { taxRateLabel, useTaxRates } from "../lib/use-tax-rates";
 
 const CURRENCIES = ["SAR", "USD", "EUR", "AED"];
 
@@ -134,6 +135,8 @@ const EMPTY_FORM = {
 
 export function Estimates() {
   const { t, language } = useLanguage();
+  // The org's VAT catalogue · fills the rate field instead of the user typing 15.
+  const { rates: taxRates } = useTaxRates();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
@@ -567,7 +570,26 @@ export function Estimates() {
                   )}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("نسبة الضريبة %", "Tax rate %")}</Label>
-                    <Input value={form.taxRate} disabled={frozen} inputMode="decimal" dir="ltr" onChange={(e) => setForm({ ...form, taxRate: normalizeDigits(e.target.value) })} className="h-9 border-border text-sm font-english" data-testid="estimate-tax-rate" />
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Input value={form.taxRate} disabled={frozen} inputMode="decimal" dir="ltr" onChange={(e) => setForm({ ...form, taxRate: normalizeDigits(e.target.value) })} className="h-9 min-w-0 flex-1 border-border text-sm font-english" data-testid="estimate-tax-rate" />
+                      {/* Pick from the ORG's catalogue instead of remembering the number.
+                          The field stays typeable — a study may price a rate the org has not set up. */}
+                      {taxRates.length > 0 && (
+                        <select
+                          data-testid="estimate-tax-rate-picker"
+                          aria-label={t("اختر نسبة ضريبة", "Choose a tax rate")}
+                          disabled={frozen}
+                          value=""
+                          onChange={(e) => { const r = taxRates.find((x) => x.id === e.target.value); if (r) setForm({ ...form, taxRate: String(Number((Number(r.rate) * 100).toFixed(4))) }); }}
+                          className="h-9 w-[42%] shrink-0 truncate rounded-lg border border-border bg-card px-2 text-xs text-content-secondary"
+                        >
+                          <option value="">{t("من الإعدادات…", "From settings…")}</option>
+                          {taxRates.map((r) => (
+                            <option key={r.id} value={r.id}>{taxRateLabel(r, language === "ar" ? "ar" : "en")}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   </div>
                 </div>
 

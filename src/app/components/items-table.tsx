@@ -29,6 +29,7 @@ import { BarcodeScannerButton } from "./barcode-scanner";
 import { normalizeDigits } from "../lib/digits";
 import { useLanguage } from "./LanguageContext";
 import { api } from "../lib/api";
+import { taxRateShortLabel, useTaxRates } from "../lib/use-tax-rates";
 
 export interface InvoiceLine {
   id: string;
@@ -40,6 +41,12 @@ export interface InvoiceLine {
   accountId?: string;
   taxInclusive: boolean;
   taxRate: number;
+  /**
+   * The org's TaxRate row this line was priced with. The editors send it to the
+   * API; before it existed the API saw no rate at all and stored taxTotal = 0
+   * (a 400 quote reached the client as 400 instead of 460).
+   */
+  taxRateId?: string;
   notes?: string;
   /** Revenue recognition / deferred revenue · optional per-line schedule */
   recognitionStartDate?: string;        // ISO date (yyyy-mm-dd)
@@ -296,7 +303,7 @@ export function ItemsTable({
   suggestAccount,
   autoSuggest = true,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN_COLS);
   const [suggestingIds, setSuggestingIds] = useState<Set<string>>(new Set());
@@ -587,9 +594,69 @@ export function ItemsTable({
   const totals = computeTotals(lines);
   void totals;
 
+  // The org's VAT catalogue · shared cache, so several grids on one page fetch once.
+  const { rates: taxRates } = useTaxRates();
+
+  /**
+   * Once the catalogue arrives, bind every line that has a matching rate to that
+   * rate's id, so a document the user never re-touched still saves with a real
+   * `taxRateId` instead of relying on the numeric fallback. Runs on the catalogue
+   * changing only — lines the user edits get their id from the dropdown itself.
+   */
+  useEffect(() => {
+    if (!taxRates.length) return;
+    const byId = new Set(taxRates.map((r) => r.id));
+    let changed = false;
+    const next = lines.map((l) => {
+      if (l.taxRateId && byId.has(l.taxRateId)) return l;
+      const match = taxRates.find((r) => Number(r.rate) === lineTaxRate(l) && !!r.isInclusive === !!l.taxInclusive)
+        || taxRates.find((r) => Number(r.rate) === lineTaxRate(l));
+      if (!match || l.taxRateId === match.id) return l;
+      changed = true;
+      return { ...l, taxRateId: match.id };
+    });
+    if (changed) setLines(next);
+    // `lines` is deliberately not a dependency: this binds ids when the catalogue
+    // loads, it is not a per-keystroke normalizer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxRates]);
+
   // Account column is always visible once the chart is loaded (never a hidden toggle).
   const showAccount = accounts.length > 0 || !!onCreateAccount;
   const showTax = !hidden.tax;
+
+  /**
+   * Tax options come from the ORG's catalogue (`/api/tax-rates`), so the value the
+   * user picks is an id the API can store. The static pair below is the fallback
+   * for the moment before the catalogue arrives (and if the request fails) — it
+   * keeps the grid usable but is never what a saved line carries when rates load.
+   */
+  const taxOptions = taxRates.length
+    ? taxRates.map((r) => ({ value: r.id, label: taxRateShortLabel(r, language === "ar" ? "ar" : "en") }))
+    : [
+        { value: "rate:0.15:ex", label: t("15% غير شامل", "15% excluded") },
+        { value: "rate:0.15:in", label: t("15% شامل", "15% included") },
+        { value: "rate:0:ex", label: t("0% (صفر)", "0% (zero-rated)") },
+      ];
+
+  /** Which option a stored line is showing · by id first, then by rate + mode. */
+  const taxOptionValue = (line: InvoiceLine): string => {
+    if (line.taxRateId && taxRates.some((r) => r.id === line.taxRateId)) return line.taxRateId;
+    const match = taxRates.find(
+      (r) => Number(r.rate) === lineTaxRate(line) && !!r.isInclusive === !!line.taxInclusive,
+    ) || taxRates.find((r) => Number(r.rate) === lineTaxRate(line));
+    if (match) return match.id;
+    return `rate:${lineTaxRate(line)}:${line.taxInclusive ? "in" : "ex"}`;
+  };
+
+  /** Turn the chosen option back into the three fields a line stores. */
+  const taxSelection = (value: string): Partial<InvoiceLine> => {
+    const rate = taxRates.find((r) => r.id === value);
+    if (rate) return { taxRateId: rate.id, taxRate: Number(rate.rate), taxInclusive: !!rate.isInclusive };
+    const [, fraction, mode] = value.split(":");
+    return { taxRateId: undefined, taxRate: Number(fraction) || 0, taxInclusive: mode === "in" };
+  };
+
   const showTaxAmount = !hidden.taxAmount;
   const showRecognition = !hidden.recognition;
   const showAssetCol = direction === "purchases";
@@ -817,17 +884,15 @@ export function ItemsTable({
                   {showTax && (
                     <span className="cell n !px-1">
                       <select
-                        value={`${lineTaxRate(line)}-${line.taxInclusive ? "in" : "ex"}`}
-                        onChange={(e) => {
-                          const [rate, inc] = e.target.value.split("-");
-                          updateLine(i, { taxRate: Number(rate), taxInclusive: inc === "in" });
-                        }}
+                        data-testid={`line-tax-${i}`}
+                        aria-label={t("الضريبة", "Tax")}
+                        value={taxOptionValue(line)}
+                        onChange={(e) => updateLine(i, taxSelection(e.target.value))}
                         className="h-8 w-full border-0 bg-transparent px-1 text-[12px] leading-tight text-end focus:outline-none"
                       >
-                        <option value="0.15-ex">{t("15% غير شامل", "15% excluded")}</option>
-                        <option value="0.15-in">{t("15% شامل", "15% included")}</option>
-                        <option value="0-ex">{t("0% (صفر)", "0% (zero-rated)")}</option>
-                        <option value="0-ex">{t("معفى", "Exempt")}</option>
+                        {taxOptions.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
                       </select>
                     </span>
                   )}
