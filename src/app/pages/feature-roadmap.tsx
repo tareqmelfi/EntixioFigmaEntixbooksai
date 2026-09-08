@@ -59,7 +59,7 @@ const modules: FeatureModule[] = [
       { name: "مراكز التكلفة", nameEn: "Cost Centers", status: "live", description: "تتبع المصاريف والإيرادات حسب مركز التكلفة", descEn: "Track expenses and revenue by cost center", details: ["متاح في كل سطر قيد", "تقارير حسب مركز التكلفة في التقارير"], detailsEn: ["Available on every entry line", "Cost center reports in Reports"] },
       { name: "هيكل مراكز تكلفة متعدد المستويات", nameEn: "Multi-level Cost Center Structure", status: "planned", description: "هيكل هرمي لمراكز التكلفة مع تقارير مفصلة", descEn: "Hierarchical cost center structure with detailed reports", critical: true },
       { name: "تعدد العملات", nameEn: "Multi-currency", status: "partial", description: "دعم عملات متعددة مع تحويل سعر الصرف", descEn: "Support multiple currencies with exchange rate conversion", details: ["تم: تعريف العملة لكل جهة اتصال (أجنبية)", "يحتاج: تحويل سعر الصرف التلقائي في الفواتير", "يحتاج: حسابات أرباح/خسائر فروق العملة"], detailsEn: ["Done: define currency per contact (foreign)", "Needs: automatic exchange rate conversion in invoices", "Needs: exchange gain/loss accounts"], critical: true },
-      { name: "السنة المالية", nameEn: "Fiscal Year", status: "planned", description: "إدارة الفترات المالية مع إقفال وفتح الفترات", descEn: "Manage fiscal periods with closing and opening", details: ["تعريف بداية ونهاية السنة", "إقفال الفترات (شهري/ربعي/سنوي)", "قيود الإقفال التلقائية"], detailsEn: ["Define year start and end", "Close periods (monthly/quarterly/annual)", "Automatic closing entries"], critical: true },
+      { name: "السنة المالية", nameEn: "Fiscal Year", status: "live", description: "إدارة الفترات المالية مع إقفال وفتح الفترات", descEn: "Manage fiscal periods with closing and opening", details: ["تهيئة فترات السنة", "قفل / فتح الفترة", "معاينة الإقفال قبل التنفيذ ثم الإقفال"], detailsEn: ["Initialize year periods", "Lock / unlock a period", "Preview a close before committing, then close"] },
     ],
   },
   {
@@ -166,12 +166,12 @@ const modules: FeatureModule[] = [
     bgColor: "bg-destructive/10",
     features: [
       { name: "دورات الرواتب", nameEn: "Payroll cycles", status: "live", description: "تشغيل دورات رواتب شهرية مع قائمة الموظفين", descEn: "Run monthly payroll cycles with employee list" },
-      { name: "مسير الرواتب", nameEn: "Payroll run", status: "planned", description: "معالجة وتشغيل الرواتب الشهرية مع التفاصيل", descEn: "Process and run monthly payroll with details", critical: true },
-      { name: "الموظفين", nameEn: "Employees", status: "planned", description: "إدارة بيانات الموظفين وعقودهم", descEn: "Manage employee data and contracts", critical: true },
+      { name: "مسير الرواتب", nameEn: "Payroll run", status: "live", description: "حساب وحفظ واعتماد مسير رواتب شهري، مع تصدير ملف SIF", descEn: "Calculate, save, and approve a monthly payroll run, with SIF file export" },
+      { name: "الموظفين", nameEn: "Employees", status: "live", description: "إدارة بيانات الموظفين وعقودهم", descEn: "Manage employee data and contracts" },
       { name: "مطالبات الموظفين", nameEn: "Employee claims", status: "planned", description: "تقديم واعتماد مطالبات المصاريف", descEn: "Submit and approve expense claims" },
       { name: "الحضور والانصراف", nameEn: "Attendance", status: "phase2", description: "تسجيل ومتابعة حضور الموظفين", descEn: "Record and track employee attendance" },
       { name: "الإجازات", nameEn: "Leave", status: "phase2", description: "طلبات واعتمادات الإجازات", descEn: "Leave requests and approvals" },
-      { name: "امتثال GOSI", nameEn: "GOSI compliance", status: "phase2", description: "حساب تلقائي لاشتراكات التأمينات الاجتماعية", descEn: "Automatic calculation of social insurance contributions", critical: true },
+      { name: "امتثال GOSI", nameEn: "GOSI compliance", status: "partial", description: "حساب تلقائي لاشتراكات التأمينات الاجتماعية وتصدير ملف SIF", descEn: "Automatic calculation of social insurance contributions and SIF file export", details: ["تم: حساب اشتراكات الموظف وصاحب العمل وتصدير SIF CSV", "يحتاج: ربط مباشر (API) مع بوابة التأمينات"], detailsEn: ["Done: employee/employer contribution calculation and SIF CSV export", "Needs: direct API sync with the GOSI portal"], critical: true },
     ],
   },
   {
@@ -196,8 +196,8 @@ const modules: FeatureModule[] = [
     features: [
       { name: "إدارة الحسابات البنكية", nameEn: "Bank account management", status: "live", description: "إنشاء وإدارة الحسابات البنكية والصناديق", descEn: "Create and manage bank accounts and cash boxes", details: ["حسابات جارية / توفير / صناديق", "أرصدة وعملات متعددة", "IBAN ومعلومات البنك"], detailsEn: ["Current / savings / cash boxes", "Balances and multiple currencies", "IBAN and bank information"] },
       { name: "تحويلات بين الحسابات", nameEn: "Transfers between accounts", status: "planned", description: "تحويل أرصدة بين الحسابات البنكية", descEn: "Transfer balances between bank accounts" },
-      { name: "مطابقة بنكية", nameEn: "Bank reconciliation", status: "planned", description: "مطابقة كشف الحساب مع الحركات", descEn: "Match bank statement with transactions", critical: true },
-      { name: "استيراد كشوف بنكية (CSV/OFX)", nameEn: "Import bank statements (CSV/OFX)", status: "planned", description: "رفع كشوف الحساب لمطابقتها", descEn: "Upload bank statements for reconciliation" },
+      { name: "مطابقة بنكية", nameEn: "Bank reconciliation", status: "live", description: "رفع كشف الحساب ومطابقته مع السندات والفواتير سطراً بسطر", descEn: "Upload a bank statement and match it against vouchers and invoices row by row", details: ["اقتراح مطابقات تلقائي لكل سطر", "قرار: قبول / إنشاء سند / تجاهل لكل سطر"], detailsEn: ["Automatic match suggestions per row", "Decision per row: accept / create voucher / skip"] },
+      { name: "استيراد كشوف بنكية (CSV/OFX)", nameEn: "Import bank statements (CSV/OFX)", status: "live", description: "رفع كشوف الحساب لمطابقتها، بصيغ CSV / MT940 / OFX / QIF / PDF / Excel", descEn: "Upload account statements for reconciliation, in CSV / MT940 / OFX / QIF / PDF / Excel formats" },
     ],
   },
   {
@@ -207,9 +207,9 @@ const modules: FeatureModule[] = [
     color: "text-primary",
     bgColor: "bg-primary/10",
     features: [
-      { name: "مراكز التكلفة", nameEn: "Cost centers", status: "live", description: "إدارة مراكز التكلفة مع الميزانيات والمصروفات", descEn: "Manage cost centers with budgets and expenses", details: ["ميزانيات ونسب استخدام", "هيكل أب-ابن", "ربط بالقيود والفواتير"], detailsEn: ["Budgets and utilization rates", "Parent-child structure", "Link to entries and invoices"] },
+      { name: "مراكز التكلفة", nameEn: "Cost centers", status: "live", description: "إدارة مراكز التكلفة مع الميزانيات والمصروفات", descEn: "Manage cost centers with budgets and expenses", details: ["ميزانيات ونسب استخدام", "ربط بالقيود والفواتير"], detailsEn: ["Budgets and utilization rates", "Link to entries and invoices"] },
       { name: "الفروع", nameEn: "Branches", status: "live", description: "إدارة الفروع والمواقع", descEn: "Manage branches and locations", details: ["بيانات الفرع والعنوان", "المدير والموظفين", "إيرادات كل فرع"], detailsEn: ["Branch data and address", "Manager and employees", "Revenue per branch"] },
-      { name: "إقفال الفترات", nameEn: "Period closing", status: "planned", description: "إقفال الفترات المالية ومنع التعديل بعد الإقفال", descEn: "Close fiscal periods and prevent editing after closing", critical: true },
+      { name: "إقفال الفترات", nameEn: "Period closing", status: "live", description: "إقفال الفترات المالية ومنع التعديل بعد الإقفال — من صفحة الفترات المالية", descEn: "Close fiscal periods and prevent editing after closing — from the Fiscal Periods page" },
     ],
   },
   {
@@ -220,11 +220,11 @@ const modules: FeatureModule[] = [
     bgColor: "bg-foreground/80/10",
     features: [
       { name: "REST API", nameEn: "REST API", status: "live", description: "واجهة برمجية كاملة للتكامل مع أنظمة خارجية", descEn: "Full API for integration with external systems" },
-      { name: "Webhooks", nameEn: "Webhooks", status: "live", description: "إشعارات فورية للأحداث", descEn: "Instant event notifications" },
+      { name: "Webhooks", nameEn: "Webhooks", status: "planned", description: "إشعارات فورية للأحداث لأنظمة خارجية", descEn: "Instant event notifications to external systems" },
       { name: "قوالب المستندات", nameEn: "Document templates", status: "live", description: "إدارة قوالب الفواتير والمستندات بتصاميم متعددة", descEn: "Manage invoice and document templates with multiple designs", details: ["فواتير بيع / عروض أسعار / سندات", "تحديد قالب افتراضي", "تصميمات: كلاسيك / حديث / مبسّط"], detailsEn: ["Sales invoices / quotations / vouchers", "Set a default template", "Designs: classic / modern / minimal"] },
       { name: "ربط سلة (Salla)", nameEn: "Salla integration", status: "planned", description: "تكامل مع متجر سلة الإلكتروني", descEn: "Integration with Salla online store" },
       { name: "ربط زد (Zid)", nameEn: "Zid integration", status: "planned", description: "تكامل مع متجر زد الإلكتروني", descEn: "Integration with Zid online store" },
-      { name: "ربط Stripe / Moyasar", nameEn: "Stripe / Moyasar integration", status: "planned", description: "بوابات دفع إلكترونية", descEn: "Electronic payment gateways" },
+      { name: "ربط Stripe / Moyasar", nameEn: "Stripe / Moyasar integration", status: "partial", description: "بوابات دفع إلكترونية", descEn: "Electronic payment gateways", details: ["تم: ربط Stripe (OAuth Connect) وإعداد مفاتيح Moyasar من الإعدادات", "يحتاج: ربط Moyasar بواجهة OAuth مماثلة"], detailsEn: ["Done: Stripe OAuth Connect and Moyasar key setup from Settings", "Needs: a matching OAuth connect flow for Moyasar"] },
       { name: "ربط واتساب أعمال", nameEn: "WhatsApp Business integration", status: "phase2", description: "إرسال الفواتير عبر WhatsApp Business", descEn: "Send invoices via WhatsApp Business" },
     ],
   },
@@ -259,7 +259,7 @@ const modules: FeatureModule[] = [
     color: "text-primary",
     bgColor: "bg-primary/10",
     features: [
-      { name: "OCR - قراءة الفواتير", nameEn: "OCR - invoice reading", status: "partial", description: "استخراج بيانات الفواتير من صور وPDF تلقائياً", descEn: "Extract invoice data from images and PDFs automatically", details: ["واجهة الرفع موجودة", "يحتاج: تكامل Google Vision API"], detailsEn: ["Upload interface exists", "Needs: Google Vision API integration"] },
+      { name: "OCR - قراءة الفواتير", nameEn: "OCR - invoice reading", status: "live", description: "استخراج بيانات الفواتير من صور وPDF تلقائياً وإنشاء مصروف مباشرة", descEn: "Automatically extract invoice data from images and PDFs and create an expense directly" },
       { name: "التصنيف التلقائي", nameEn: "Automatic categorization", status: "phase3", description: "تصنيف المعاملات تلقائياً على الحسابات المناسبة", descEn: "Auto-categorize transactions to appropriate accounts" },
       { name: "توقعات التدفق النقدي", nameEn: "Cash flow forecasting", status: "phase3", description: "تنبؤ بالسيولة المستقبلية بناءً على الأنماط التاريخية", descEn: "Predict future liquidity based on historical patterns" },
     ],
