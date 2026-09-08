@@ -390,6 +390,11 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .cover-rule{height:.5pt;background:var(--rule);margin:0 0 7mm}
 .edoc .cover-intro{font-size:11.5pt;line-height:1.9;max-width:150mm;color:var(--ink)}
 .edoc .cover-intro strong{font-weight:700;color:var(--brand)}
+/* A name/title run that wraps mid-word inside an RTL sentence gets its two halves
+   reordered onto the wrong lines by the browser's per-line bidi pass — keep each
+   embedded name atomic so it moves to whichever line it fits on as one block
+   (CEO 2026-09-08 · «العربية مضروبة»). */
+.edoc bdi.nm{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 .edoc .cover-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;margin-top:24mm;padding-top:8mm;border-top:.5pt solid var(--rule)}
 .edoc .cover-meta .k{font-size:8pt;font-weight:700;color:var(--brand);margin-bottom:1.5mm}
 .edoc .cover-meta .v{font-size:11pt;font-weight:700}
@@ -402,14 +407,14 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .party .k{font-size:8pt;font-weight:700;color:var(--muted);margin-bottom:1mm}
 .edoc .party .n{font-size:10.5pt;font-weight:700;line-height:1.4}
 .edoc .party .n2{font-family:var(--font-latin);font-size:8.5pt;color:var(--muted);direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
-.edoc .party .d{font-size:8pt;color:var(--muted);line-height:1.55;margin-top:1.5mm;overflow-wrap:anywhere}
+.edoc .party .d{font-size:8pt;color:var(--muted);line-height:1.55;margin-top:1.5mm;overflow-wrap:break-word}
 .edoc .meta-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:0 0 5mm}
 .edoc .meta-strip .tile{background:var(--soft);border-radius:2mm;padding:3mm 4mm}
 .edoc .meta-strip .k{font-size:7.5pt;color:var(--muted);margin-bottom:.5mm}
 .edoc .meta-strip .v{font-size:10pt;font-weight:700}
 .edoc table.items{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 5mm}
 .edoc table.items th{font-size:8pt;font-weight:700;color:var(--muted);text-align:start;padding:2.5mm 2mm;border-bottom:1.2pt solid var(--ink)}
-.edoc table.items td{padding:3mm 2mm;border-bottom:.5pt solid var(--rule);vertical-align:top;font-size:9.5pt;overflow-wrap:anywhere}
+.edoc table.items td{padding:3mm 2mm;border-bottom:.5pt solid var(--rule);vertical-align:top;font-size:9.5pt;overflow-wrap:break-word}
 .edoc table.items th.n,.edoc table.items td.n{text-align:end}
 .edoc table.items .code{font-family:var(--font-mono);font-size:8pt;color:var(--brand);font-weight:700;direction:ltr;unicode-bidi:isolate}
 .edoc table.items .head{font-weight:700}
@@ -435,7 +440,7 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .card{border:.5pt solid var(--rule);border-radius:2.5mm;padding:4mm 5mm;min-height:20mm;break-inside:avoid}
 .edoc .card .t{font-weight:700;font-size:10pt;margin-bottom:2.5mm}
 .edoc .card ul{margin:0;padding:0;list-style:none}
-.edoc .card li{position:relative;padding-inline-start:4mm;font-size:8.5pt;line-height:1.65;color:var(--ink);margin-bottom:1.2mm;overflow-wrap:anywhere}
+.edoc .card li{position:relative;padding-inline-start:4mm;font-size:8.5pt;line-height:1.65;color:var(--ink);margin-bottom:1.2mm;overflow-wrap:break-word}
 .edoc .card li::before{content:"";position:absolute;inset-inline-start:0;top:2.6mm;width:1.6mm;height:1.6mm;border-radius:50%;background:var(--brand)}
 .edoc .epay{display:grid;grid-template-columns:24mm 1fr;gap:4mm;align-items:start}
 .edoc .epay .qr{width:24mm;height:24mm;border:.5pt solid var(--rule);border-radius:1.5mm;padding:1.5mm;background:#fff}
@@ -464,7 +469,7 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .note strong{font-weight:700}
 .edoc table.tc{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 6mm}
 .edoc table.tc th{font-size:8pt;color:var(--muted);text-align:start;padding:2mm;border-bottom:1.2pt solid var(--ink)}
-.edoc table.tc td{padding:2mm 2mm;border-bottom:.5pt solid var(--rule);font-size:8.3pt;line-height:1.55;vertical-align:top;overflow-wrap:anywhere}
+.edoc table.tc td{padding:2mm 2mm;border-bottom:.5pt solid var(--rule);font-size:8.3pt;line-height:1.55;vertical-align:top;overflow-wrap:break-word}
 .edoc table.tc .idx{font-family:var(--font-mono);color:var(--brand);font-weight:700;font-size:8pt}
 .edoc table.tc .ttl{font-weight:700}
 /* signatory + stamp · FRAMELESS by CEO instruction (2026-09-08): «الغِ الفريم الي عند
@@ -572,7 +577,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const orgAlt = ar ? (org.legalName && org.legalName !== org.name ? org.legalName : org.nameEn) : (org.name !== orgName ? org.name : "");
   const clientName = contact ? (ar ? contact.name : (contact.nameEn || contact.legalName || contact.name)) : "—";
   const clientAlt = contact ? (ar ? (contact.legalName && contact.legalName !== contact.name ? contact.legalName : contact.nameEn) : (contact.name !== clientName ? contact.name : "")) : "";
-  const taxLabel = doc.taxRateLabel || t("ضريبة القيمة المضافة 15%", "VAT 15%");
+  // Built (not one translated string) so the trailing "15%" gets its own LTR isolate —
+  // digits+percent as the last token of an un-isolated Arabic sentence render reversed
+  // ("%15") in every Chromium bidi pass (CEO 2026-09-08 · «العربية مضروبة»).
+  const taxLabel = doc.taxRateLabel ? bdi(doc.taxRateLabel) : `${bdi(t("ضريبة القيمة المضافة", "VAT"))} ${num("15%")}`;
   const footerLeft = tpl.footerText ? esc(tpl.footerText) : `© ${esc(year)} ${esc(org.legalName || org.name)}${org.city ? " · " + bdi(org.city) : ""}`;
   const paid = Number(doc.amountPaid || 0);
   const due = doc.total - paid;
@@ -627,14 +635,17 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // ── cover ──
   if (on("cover") && coverStyle !== "NONE") {
     const title = ((ar ? tpl.coverTitle : (tpl.coverTitleEn || tpl.coverTitle)) || "").trim() || doc.title || docType;
+    // Each embedded name/number is a foreign run inside the RTL sentence — wrap it in an
+    // atomic (bdi.nm, see CSS) isolate so it can't be split mid-word across a line wrap,
+    // which is what was reordering company vs. client (CEO 2026-09-08 · «العربية مضروبة»).
     const fill = (s: string) => s
-      .replace(/\{company\}/g, `<strong>${esc(orgName)}</strong>`)
-      .replace(/\{client\}/g, `<strong>${esc(clientName)}</strong>`)
+      .replace(/\{company\}/g, `<bdi dir="auto" class="nm"><strong>${esc(orgName)}</strong></bdi>`)
+      .replace(/\{client\}/g, `<bdi dir="auto" class="nm"><strong>${esc(clientName)}</strong></bdi>`)
       .replace(/\{number\}/g, num(doc.number))
       .replace(/\{reference\}/g, num(doc.reference || "—"))
       .replace(/\{total\}/g, num(`${cur} ${money(doc.total)}`))
       .replace(/\{date\}/g, num(issue))
-      .replace(/\{title\}/g, `<strong>${esc(doc.title || "")}</strong>`);
+      .replace(/\{title\}/g, `<bdi dir="auto" class="nm"><strong>${esc(doc.title || "")}</strong></bdi>`);
     const introRaw = ((ar ? tpl.coverIntro : (tpl.coverIntroEn || tpl.coverIntro)) || "").trim() || (isQuote
       ? t("عرض سعر مقدَّم من {company} إلى {client}. تجدون في الصفحات التالية البنود والأسعار وشروط العرض، وطريقة القبول والسداد.",
           "A quotation from {company} to {client}. The following pages detail the items, prices, terms of the offer, and how to accept and pay.")
@@ -660,7 +671,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       ${end ? `<div class="s">${esc(endLabel)} ${num(end)}</div>` : ""}</div>
     <div><div class="k">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : (orgTaxRegistered ? t("المستحق شامل الضريبة", "Total due incl. tax") : t("المستحق", "Total due"))}</div>
       <div class="big">${cur} ${money(doc.total)}</div>
-      ${orgTaxRegistered ? `<div class="s">${num(money(taxable))} + ${esc(taxLabel)} ${num(money(doc.taxTotal))}</div>` : ""}
+      ${orgTaxRegistered ? `<div class="s">${num(money(taxable))} + ${taxLabel} ${num(money(doc.taxTotal))}</div>` : ""}
       ${doc.title && title !== doc.title ? `<div class="s">${esc(doc.title)}</div>` : ""}</div>
     <div class="col-client"><div class="k">${t("العميل", "Client")}</div>
       ${contact?.code ? `<div class="v lat" dir="ltr">${esc(contact.code)}</div>` : ""}
@@ -743,7 +754,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     }
     if (orgTaxRegistered) {
       rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
-      if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${esc(taxLabel)}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+      if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
     }
     rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("الإجمالي المستحق", "Total due")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
     if (!isQuote && paid > 0) {

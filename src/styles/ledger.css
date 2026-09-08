@@ -69,7 +69,11 @@ table.table-fixed > thead > tr > th { overflow: hidden; text-overflow: ellipsis;
 .ledger-grid-dense .cell input:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--brand-blue-600); }
 
 /* --- eyebrow / code labels --- */
+/* Tracking + uppercase are a Latin typographic convention: Arabic has no case, and the
+   letter-spacing pulls joined (cursive) glyphs apart, so both are disabled on Arabic
+   text (CEO 2026-09-08 · «العربية مضروبة»). */
 .ledger-eyebrow { font-size: 11px; letter-spacing: 0.12em; font-weight: 600; color: var(--content-secondary); text-transform: uppercase; }
+:lang(ar) .ledger-eyebrow { letter-spacing: normal; text-transform: none; }
 
 /* --- status dot (always paired with a word) --- */
 .ledger-dot { display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: none; }
