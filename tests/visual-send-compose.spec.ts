@@ -4,7 +4,6 @@ import { auditOverflow, AUDIT_WIDTHS } from './fixtures/overflow-audit'
 
 test.use({
   launchOptions: { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' },
-  baseURL: 'http://localhost:5212',
 })
 
 const invoice = {

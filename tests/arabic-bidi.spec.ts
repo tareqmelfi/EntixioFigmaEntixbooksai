@@ -49,8 +49,15 @@ test('priority entity surfaces use the reusable bidi component', async () => {
 
 test('invoice customer names receive a stable, compact bidi-aware table column', async () => {
   const invoices = await source('src/app/pages/invoices.tsx')
-  expect(invoices).toMatch(/<col style=\{\{ width: "24%", minWidth: "220px" \}\}/)
-  expect(invoices).toMatch(/<BidiText[^>]*compact[^>]*mode="plaintext"/)
+  // The column model changed with the 2026-09-08 anti-overlap pass: the mono document
+  // number takes a fixed width (it can run to 19 characters) and the customer name is the
+  // flexible column with a floor, instead of the old percentage split. The contract is the
+  // shape — fixed number column, flexible-with-minWidth name column — not the old literals.
+  expect(invoices).toMatch(/<col style=\{\{ width: "200px" \}\}/)
+  expect(invoices).toMatch(/<col style=\{\{ minWidth: "\d+px" \}\}/)
+  // `compact` was replaced by explicit single-line truncation classes on the cell itself,
+  // so the assertion is on the behaviour that matters: plaintext bidi + one clipped line.
+  expect(invoices).toMatch(/<BidiText mode="plaintext"[^>]*text-ellipsis[^>]*whitespace-nowrap/)
   expect(invoices).toMatch(/className="invoice-customer-name/)
 })
 

@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs'
 import { prepareVisualApp } from './fixtures/visual-app'
 import { auditOverflow, AUDIT_WIDTHS } from './fixtures/overflow-audit'
 
-const PORT = Number(process.env.ZZ_PORT || 5186)
+const PORT = process.env.ENTIX_DEV_PORT ?? '5173'
 const SHOTS = process.env.ZZ_SHOTS || '/tmp/claude-0/shots/smart-import'
 
 const analysis = JSON.parse(readFileSync(new URL('./fixtures/smart-import-analysis.json', import.meta.url), 'utf-8'))
