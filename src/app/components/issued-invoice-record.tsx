@@ -1,15 +1,21 @@
 import { InvoiceDocuments } from './invoice-documents';
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
-import type { Invoice } from '../lib/api';
+import type { DocumentSendRecord, Invoice } from '../lib/api';
 import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
 import { FullPageForm } from './full-page-form';
-import { LockKeyhole, CheckCircle2, Clock3 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { SendLogSection } from './send-log-section';
+import { LockKeyhole, CheckCircle2, Clock3, Mail } from 'lucide-react';
 
 /** Issued document view: never mounts editable invoice controls. */
-export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: {
+export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey }: {
   invoice: Invoice; onClose: () => void; onRefresh: () => Promise<void>; onPayment: () => void;
+  /** «إرسال» — opens the compose page (never fires an email directly, UX-1).
+   *  Pass a past DocumentSendRecord to prefill the page from «إعادة الإرسال». */
+  onSend?: (prefill?: DocumentSendRecord) => void;
+  sendLogRefreshKey?: number;
 }) {
   const { t, language } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
@@ -26,6 +32,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
       <Button variant="outline" onClick={onClose}>{t('رجوع', 'Back')}</Button>
       {!stripeManaged && remaining > 0 && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={onPayment}>{t('تسجيل تحصيل', 'Record receipt')}</Button>}
       <Button disabled={!canRelease} onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank', 'noopener,noreferrer')}>{t('طباعة / تنزيل', 'Print / download')}</Button>
+      {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}
     </div>}>
     <div className="space-y-4 w-full">
       <div className="rounded-lg border border-border bg-muted/40 p-4 flex gap-3">
@@ -59,15 +66,16 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment }: 
           <div><p className="text-muted-foreground">{t('المحصّل', 'Collected')}</p><p><bdi dir="ltr">{amount(invoice.amountPaid)} {invoice.currency}</bdi></p></div>
           <div><p className="text-muted-foreground">{t('المستحق', 'Outstanding')}</p><p><bdi dir="ltr">{amount(remaining)} {invoice.currency}</bdi></p></div>
         </div>
-        <div className="overflow-x-auto"><table className="w-full text-sm text-start"><thead><tr className="border-b border-border">
-          {[t('البند', 'Line item'), t('حساب الإيراد', 'Revenue account'), t('الكمية', 'Quantity'), t('السعر قبل الضريبة', 'Price before tax')].map(x => <th key={x} className="text-start py-2 px-2">{x}</th>)}
-        </tr></thead><tbody>{(invoice.lines || []).map((line: any, index) => <tr key={line.id || index} className="border-b border-border/50">
-          <td className="p-2">{line.description}</td><td className="p-2">{line.account ? `${line.account.code} · ${language === 'ar' ? line.account.nameAr || line.account.name : line.account.name}` : t('غير مرتبط — يحتاج مراجعة محاسبية', 'Unmapped — accounting review required')}</td><td className="p-2">{displayDigits(Number(line.quantity))}</td><td className="p-2">{amount(line.unitPrice)}</td>
-        </tr>)}</tbody></table></div>
+        <Table className="text-sm text-start"><TableHeader><TableRow className="border-b border-border hover:bg-transparent">
+          {[t('البند', 'Line item'), t('حساب الإيراد', 'Revenue account'), t('الكمية', 'Quantity'), t('السعر قبل الضريبة', 'Price before tax')].map(x => <TableHead key={x} className="text-start py-2 px-2">{x}</TableHead>)}
+        </TableRow></TableHeader><TableBody>{(invoice.lines || []).map((line: any, index) => <TableRow key={line.id || index} className="border-b border-border/50">
+          <TableCell className="p-2">{line.description}</TableCell><TableCell className="p-2">{line.account ? `${line.account.code} · ${language === 'ar' ? line.account.nameAr || line.account.name : line.account.name}` : t('غير مرتبط — يحتاج مراجعة محاسبية', 'Unmapped — accounting review required')}</TableCell><TableCell className="p-2">{displayDigits(Number(line.quantity))}</TableCell><TableCell className="p-2">{amount(line.unitPrice)}</TableCell>
+        </TableRow>)}</TableBody></Table>
         {invoice.notes && <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>}
       </section>
       {!!(invoice as any).payments?.length && <section className="rounded-lg border border-border bg-card p-4 space-y-2"><h2 className="font-semibold">{t('الدفعات', 'Payments')}</h2>{(invoice as any).payments.map((p: any) => <div key={p.id} className="flex flex-wrap justify-between gap-2 text-sm"><bdi>{new Date(p.paidAt).toLocaleDateString(displayLocale('en-GB'))}</bdi><bdi>{amount(p.amount)} {p.currency}</bdi><span>{stripeManaged ? 'Stripe' : p.method}</span></div>)}</section>}
       <InvoiceDocuments invoiceId={invoice.id} />
+      <SendLogSection entityType="invoice" entityId={invoice.id} refreshKey={sendLogRefreshKey} onResend={(record) => onSend?.(record)} />
     </div>
   </FullPageForm>;
 }

@@ -10,7 +10,7 @@ import { displayLocale } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { Plus, Search, Trash2, Loader2, ScrollText, FileText, ScanLine } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, ScrollText, FileText, ScanLine, Mail } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
@@ -24,7 +24,9 @@ import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
-import { api, ApiError, Contact, Invoice } from "../lib/api";
+import { api, ApiError, Contact, DocumentSendRecord, Invoice } from "../lib/api";
+import { SendComposeForm } from "../components/send-compose-form";
+import { SendLogSection } from "../components/send-log-section";
 import { displayName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
@@ -99,6 +101,10 @@ export function CreditNotes() {
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { toasts, push, dismiss } = useToasts();
+  // Send compose page (W-SEND · 2026-09-08) · «إرسال» opens a page to review
+  // the message before it goes out — it never fires an email silently.
+  const [sendComposeFor, setSendComposeFor] = useState<{ note: CreditNote; prefill?: DocumentSendRecord } | null>(null);
+  const [sendLogRefresh, setSendLogRefresh] = useState(0);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -275,6 +281,32 @@ export function CreditNotes() {
   const customerInvoices = invoices.filter(i => !form.contactId || i.contactId === form.contactId);
   const selectedInvoice = invoices.find((i) => i.id === form.originalInvoiceId);
 
+  // Send compose page (W-SEND · 2026-09-08) · takes over the whole page,
+  // above every other view — «إرسال» always lands here, never fires silently.
+  if (sendComposeFor) {
+    const cn = sendComposeFor.note;
+    const contact = cn.contact || customers.find((c) => c.id === cn.contactId);
+    return <>
+      <SendComposeForm
+        entityType="creditNote"
+        entityId={cn.id}
+        documentNumber={cn.noteNumber}
+        documentLabelAr="إشعار دائن" documentLabelEn="Credit note"
+        defaultTo={contact?.email ? [contact.email] : []}
+        defaultSubject={t(`إشعار دائن ${cn.noteNumber}`, `Credit note ${cn.noteNumber}`)}
+        defaultBody={t(
+          `مرحباً ${contact?.displayName || ""}،\n\nمرفق إشعار دائن رقم ${cn.noteNumber} بقيمة ${Number(cn.total).toFixed(2)} ${cn.currency}.\n\nشكراً لتعاملكم معنا.`,
+          `Hi ${contact?.displayName || ""},\n\nPlease find attached credit note ${cn.noteNumber} for ${Number(cn.total).toFixed(2)} ${cn.currency}.\n\nThank you.`,
+        )}
+        prefill={sendComposeFor.prefill}
+        onClose={() => { setSendComposeFor(null); navigate("/app/credit-notes"); }}
+        onSent={() => setSendLogRefresh((n) => n + 1)}
+        push={push}
+      />
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </>;
+  }
+
   // Full-page Create form
   if (createOpen) {
     return (
@@ -288,6 +320,11 @@ export function CreditNotes() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
+              {isEditing && editId && (
+                <Button type="button" variant="outline" className="border-border" disabled={busy} onClick={() => { const cn = items.find((x) => x.id === editId); if (cn) setSendComposeFor({ note: cn }); }} data-testid="credit-note-send">
+                  <Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إرسال", "Send")}
+                </Button>
+              )}
               <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
               </Button>
@@ -416,6 +453,14 @@ export function CreditNotes() {
               />
             </div>
             <p className="text-xs text-muted-foreground">{t("💡 يمكنك لصق بنود من Excel · سيتم توزيعها تلقائياً.", "💡 You can paste line items from Excel · they will be distributed automatically.")}</p>
+            {isEditing && editId && (
+              <SendLogSection
+                entityType="creditNote"
+                entityId={editId}
+                refreshKey={sendLogRefresh}
+                onResend={(record) => { const cn = items.find((x) => x.id === editId); if (cn) setSendComposeFor({ note: cn, prefill: record }); }}
+              />
+            )}
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
