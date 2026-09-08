@@ -9,7 +9,7 @@ import {
   Plus, Loader2, BookOpen, Trash2, X, AlertCircle, CheckCircle2, Calculator,
   Pencil, Send, Undo2, Paperclip, Download, Upload, ExternalLink,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 
 /** Auto-posted entries carry their source document id in `reference` —
  * map (source, id) → the document page so the ledger is one click from its
@@ -38,12 +38,13 @@ function sourceDocLabel(source: string | null, t: (ar: string, en?: string) => s
     default: return t("المستند", "Document");
   }
 }
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
+import { InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { useFormDraft, formatDraftTime } from "../lib/form-draft";
 import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
 import { displayName } from "../lib/display-name";
@@ -72,6 +73,8 @@ const PAGE_SIZE = 200;
 export function JournalEntries() {
   const { toasts, push, dismiss } = useToasts();
   const { t } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
   // UX-206 · debit/credit increase/decrease indicator
   function impactLabel(accountType: string, debit: number, credit: number): { text: string; tone: "up" | "down" | null } {
     if (!debit && !credit) return { text: "", tone: null };
@@ -123,6 +126,13 @@ export function JournalEntries() {
     } finally { setLoading(false); }
   }, [push, statusFilter]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // /app/journal-entries/new opens the entry form directly (brief rule 8 · every
+  // list row and every "new" route lands on the editor, never a dead page).
+  useEffect(() => {
+    if (location.pathname.endsWith("/new")) { openCreate(); navigate("/app/journal-entries", { replace: true }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const loadMore = useCallback(async () => {
     setLoadingMore(true);
@@ -311,35 +321,31 @@ export function JournalEntries() {
   const totalDraft = items.filter(e => e.status === "DRAFT").length;
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-6 xl:flex-row xl:gap-4">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      <div className={`space-y-6 transition-all ${selected ? "flex-1 min-w-0" : "w-full"}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("قيود اليومية", "Journal Entries")}</h1>
-            <p className="text-muted-foreground mt-1">{t("قيود محاسبية يدوية مع التحقق من توازن المدين والدائن", "Manual accounting entries with debit/credit balance verification")}</p>
-          </div>
-          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}>
-            <Plus className="me-2 h-4 w-4" /> {t("قيد جديد", "New Entry")}
-          </Button>
-        </div>
+      <div className={`space-y-6 transition-all ${selected ? "min-w-0 flex-1" : "w-full"}`}>
+        <PageHeader
+          eyebrow={t("المحاسبة", "Accounting")}
+          title={t("قيود اليومية", "Journal Entries")}
+          description={t("قيود محاسبية يدوية مع التحقق من توازن المدين والدائن", "Manual accounting entries with debit/credit balance verification")}
+          actions={(
+            <Button onClick={openCreate}>
+              <Plus className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("قيد جديد", "New Entry")}
+            </Button>
+          )}
+        />
 
         {/* Ledger linkage proof — every posted document should carry its auto
             entry. Silent poster skips (missing COA account) surface HERE. */}
         {coverage && (
           coverage.linked ? (
-            <div className="rounded-lg border border-success-border bg-success-subtle px-4 py-2.5 text-sm text-success flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <InlineAlert tone="success" icon={<CheckCircle2 className="h-4 w-4 text-success" strokeWidth={1.75} />}>
               {t("كل المستندات المعتمدة مترابطة مع الدفتر — لا فجوات.", "Every posted document is linked to the ledger — no gaps.")}
-            </div>
+            </InlineAlert>
           ) : (
-            <div className="rounded-lg border border-warning-border bg-warning-subtle px-4 py-2.5 text-sm text-warning">
-              <div className="flex items-center gap-2 font-semibold">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {t("مستندات معتمدة بلا قيد محاسبي", "Posted documents without a journal entry")}
-              </div>
-              <div className="mt-1 text-xs leading-5 text-warning">
+            <InlineAlert tone="warning" icon={<AlertCircle className="h-4 w-4 text-warning" strokeWidth={1.75} />} title={t("مستندات معتمدة بلا قيد محاسبي", "Posted documents without a journal entry")}>
+              <div className="text-xs leading-5 text-content-secondary">
                 {[
                   coverage.unposted.invoices > 0 ? t("فواتير مبيعات", "Sales invoices") + `: ${coverage.unposted.invoices}` : null,
                   coverage.unposted.bills > 0 ? t("فواتير مشتريات", "Purchase bills") + `: ${coverage.unposted.bills}` : null,
@@ -350,42 +356,30 @@ export function JournalEntries() {
                 {" — "}
                 {t("السبب الأغلب: حساب واجهة غير موجود في شجرة الحسابات (مثل 11000 ذمم مدينة أو 21000 ضريبة). راجع شجرة الحسابات ثم أعد حفظ المستند ليُرحَّل.", "Most common cause: a posting account is missing from the chart (e.g. 11000 AR or 21000 VAT). Review the chart of accounts, then re-save the document to post it.")}
               </div>
-            </div>
+            </InlineAlert>
           )
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("إجمالي القيود", "Total Entries")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalCount || items.length}</div>
-          </CardContent></Card>
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("المرحّلة", "Posted")}</div>
-            <div className="font-english font-bold text-success mt-1" style={{ fontSize: "1.5rem" }}>{items.filter(e => e.status === "POSTED").length}</div>
-          </CardContent></Card>
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("المسودات", "Drafts")}</div>
-            <div className="font-english font-bold text-warning mt-1" style={{ fontSize: "1.5rem" }}>{totalDraft}</div>
-          </CardContent></Card>
-          <Card className="border-border"><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{t("إجمالي المبالغ المرحّلة", "Total Posted Amount")}</div>
-            <div className="font-english font-bold text-foreground mt-1" style={{ fontSize: "1.5rem" }} dir="ltr">{totalPosted.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
-          </CardContent></Card>
-        </div>
+        <MetricStrip>
+          <Metric label={t("إجمالي القيود", "Total Entries")} value={String(totalCount || items.length)} />
+          <Metric tone="success" label={t("المرحّلة", "Posted")} value={String(items.filter(e => e.status === "POSTED").length)} />
+          <Metric tone="warning" label={t("المسودات", "Drafts")} value={String(totalDraft)} />
+          <Metric label={t("إجمالي المبالغ المرحّلة", "Total Posted Amount")} value={<LedgerFigure value={totalPosted} />} />
+        </MetricStrip>
 
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-foreground flex items-center gap-2"><BookOpen className="h-4 w-4" /> {t("سجل القيود", "Entries Log")}</CardTitle>
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-section flex items-center gap-2 font-semibold text-foreground"><BookOpen className="h-4 w-4" strokeWidth={1.75} /> {t("سجل القيود", "Entries Log")}</h2>
             <div className="flex gap-1">
               {(["", "POSTED", "DRAFT"] as const).map(s => (
-                <button key={s} onClick={() => setStatusFilter(s)}
-                  className={`text-xs px-3 py-1.5 rounded-md ${statusFilter === s ? "bg-primary text-primary-foreground" : "bg-surface-hover text-foreground hover:bg-border"}`}>
+                <button key={s} onClick={() => setStatusFilter(s)} aria-pressed={statusFilter === s}
+                  className={`rounded-full px-3 py-1.5 text-xs transition-colors ${statusFilter === s ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>
                   {s === "" ? t("الكل", "All") : s === "POSTED" ? t("مرحّل", "Posted") : t("مسودة", "Draft")}
                 </button>
               ))}
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
+          </div>
+          <div>
             {loading ? (
               <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : items.length === 0 ? (
@@ -395,20 +389,20 @@ export function JournalEntries() {
                 <button onClick={openCreate} className="text-sm text-primary hover:underline mt-2">+ {t("أضف أول قيد", "Add first entry")}</button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+              <div className="ledger-table overflow-x-auto">
+                <table className="w-full min-w-[900px] table-fixed text-sm">
                   <colgroup>
-                    <col style={{ width: "120px" }} />
-                    <col style={{ width: "100px" }} />
+                    <col style={{ width: "150px" }} />{/* رقم القيد · mono */}
+                    <col style={{ width: "110px" }} />
                     <col />
-                    <col style={{ width: "120px" }} />
-                    <col style={{ width: "120px" }} />
-                    <col style={{ width: "80px" }} />
-                    <col style={{ width: "90px" }} />
+                    <col style={{ width: "130px" }} />
+                    <col style={{ width: "130px" }} />
+                    <col style={{ width: "96px" }} />
+                    <col style={{ width: "104px" }} />
                     <col style={{ width: "60px" }} />
                   </colgroup>
-                  <thead className="bg-muted text-xs text-muted-foreground">
-                    <tr>
+                  <thead className="text-xs text-muted-foreground">
+                    <tr className="border-b border-foreground">
                       <th className="text-start px-4 py-2.5 font-medium">{t("رقم", "No.")}</th>
                       <th className="text-start px-4 py-2.5 font-medium">{t("التاريخ", "Date")}</th>
                       <th className="text-start px-4 py-2.5 font-medium">{t("الوصف", "Description")}</th>
@@ -422,10 +416,13 @@ export function JournalEntries() {
                   <tbody>
                     {items.map(e => (
                       <tr key={e.id}
-                        className={`border-t border-border/50 cursor-pointer hover:bg-primary/5 ${selected?.id === e.id ? "bg-primary/5" : ""}`}
-                        onClick={() => openDetail(e.id)}>
-                        <td className="px-4 py-3 font-english font-semibold text-primary truncate" dir="ltr">{e.number}</td>
-                        <td className="px-4 py-3 font-english text-foreground/80" dir="ltr">{e.date.slice(0, 10)}</td>
+                        className={`border-t border-border cursor-pointer hover:bg-surface-hover ${selected?.id === e.id ? "bg-surface-subtle" : ""}`}
+                        onClick={() => openDetail(e.id)}
+                        title={t("فتح القيد", "Open entry")}>
+                        <td className="px-4 py-3 text-start">
+                          <button type="button" onClick={(ev) => { ev.stopPropagation(); openDetail(e.id); }} className="block max-w-full truncate font-code text-sm font-semibold text-foreground hover:underline underline-offset-4" dir="ltr" title={e.number}>{e.number}</button>
+                        </td>
+                        <td className="px-4 py-3 font-english text-foreground/80 tabular-nums" dir="ltr">{e.date.slice(0, 10)}</td>
                         <td className="px-4 py-3">
                           {/* dir="auto" isolates LTR descriptions ("Invoice EN-…") inside the
                               RTL row — without it the text hugged the debit column and read as
@@ -436,25 +433,25 @@ export function JournalEntries() {
                             {(e.attachmentCount || 0) > 0 && <span className="ms-2"><Paperclip className="inline h-3 w-3" /> {e.attachmentCount}</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
-                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalDebit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="px-4 py-3 text-end font-english font-semibold text-foreground whitespace-nowrap tabular-nums" dir="ltr">{e.totalCredit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="px-2 py-3 text-center">
-                          <span className="text-xs px-2 py-0.5 rounded bg-surface-hover text-foreground whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
+                          <span className="rounded-full border border-border px-2 py-0.5 text-xs text-content-secondary whitespace-nowrap">{e.source === "manual" ? t("يدوي", "Manual") : e.source === "invoice" ? t("فاتورة", "Invoice") : e.source === "bill" ? t("مشتريات", "Purchases") : e.source || "—"}</span>
                         </td>
                         <td className="px-2 py-3 text-center">
-                          <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${e.status === "POSTED" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
+                          <StatusBadge tone={e.status === "POSTED" ? "success" : "warning"} className="whitespace-nowrap">
                             {e.status === "POSTED" ? t("مرحّل", "Posted") : t("مسودة", "Draft")}
-                          </span>
+                          </StatusBadge>
                         </td>
                         <td className="px-2 py-3 text-end" onClick={(ev) => ev.stopPropagation()}>
                           {e.source === "manual" && e.status === "DRAFT" && (
                             pendingDelete === e.id ? (
                               <span className="flex items-center gap-1 text-xs">
-                                <button onClick={() => handleDelete(e.id)} className="px-2 py-1 rounded bg-danger text-primary-foreground">{t("تأكيد", "Confirm")}</button>
-                                <button onClick={() => setPendingDelete(null)} className="px-2 py-1 rounded border border-border">{t("إلغاء", "Cancel")}</button>
+                                <button onClick={() => handleDelete(e.id)} className="rounded-full bg-danger px-2 py-1 text-primary-foreground">{t("تأكيد", "Confirm")}</button>
+                                <button onClick={() => setPendingDelete(null)} className="rounded-full border border-border px-2 py-1">{t("إلغاء", "Cancel")}</button>
                               </span>
                             ) : (
-                              <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
+                              <button onClick={() => setPendingDelete(e.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" /></button>
                             )
                           )}
                         </td>
@@ -467,7 +464,7 @@ export function JournalEntries() {
                     <button
                       onClick={loadMore}
                       disabled={loadingMore}
-                      className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted/50 disabled:opacity-60"
+                      className="rounded-full border border-border px-4 py-2 text-sm text-foreground hover:border-border-strong disabled:opacity-60"
                     >
                       {loadingMore
                         ? t("جارٍ التحميل...", "Loading...")
@@ -477,17 +474,17 @@ export function JournalEntries() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
       {/* ── DETAIL PANEL ─────────────────────────────────────────────────── */}
       {selected && (
-        <Card className="border-border w-[480px] flex-shrink-0 self-start sticky top-4">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border/50">
-            <div>
-              <div className="font-english font-bold text-primary" dir="ltr">{selected.number}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{selected.description}</div>
+        <Card className="border-border w-full min-w-0 shrink-0 self-start xl:sticky xl:top-4 xl:w-[420px] 2xl:w-[480px]">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border/50">
+            <div className="min-w-0 flex-1 overflow-hidden [&>div]:truncate">
+              <div className="font-code font-bold text-foreground" dir="ltr">{selected.number}</div>
+              <div className="text-xs text-muted-foreground mt-0.5"><bdi dir="auto">{selected.description}</bdi></div>
             </div>
             <button onClick={() => setSelected(null)} className="p-1 hover:bg-surface-hover rounded">
               <X className="h-4 w-4 text-muted-foreground" />
@@ -502,9 +499,9 @@ export function JournalEntries() {
               <div>
                 <div className="text-xs text-muted-foreground">{t("الحالة", "Status")}</div>
                 <div className="mt-0.5">
-                  <span className={`text-xs px-2 py-0.5 rounded ${selected.status === "POSTED" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
+                  <StatusBadge tone={selected.status === "POSTED" ? "success" : "warning"}>
                     {selected.status === "POSTED" ? t("مرحّل", "Posted") : t("مسودة", "Draft")}
-                  </span>
+                  </StatusBadge>
                 </div>
               </div>
               {selected.reference && (
@@ -545,16 +542,16 @@ export function JournalEntries() {
                           <div className="text-foreground">{l.accountName}</div>
                           {l.description && <div className="text-[10px] text-muted-foreground/60 mt-0.5">{l.description}</div>}
                         </td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}</td>
-                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}</td>
+                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.debit > 0 ? l.debit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
+                        <td className="px-2 py-1.5 text-end font-english" dir="ltr">{l.credit > 0 ? l.credit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-muted">
                     <tr>
                       <td className="px-2 py-1.5 text-end text-muted-foreground font-medium">{t("الإجمالي", "Total")}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalDebit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
-                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalCredit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
+                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalDebit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-2 py-1.5 text-end font-english font-bold text-foreground" dir="ltr">{selected.totalCredit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -753,8 +750,8 @@ export function JournalEntries() {
                     <tfoot className="bg-muted text-xs">
                       <tr>
                         <td colSpan={2} className="px-3 py-2 text-end text-muted-foreground font-medium">{t("الإجمالي", "Total")}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalDebit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
-                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalCredit.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</td>
+                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalDebit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="px-3 py-2 text-end font-english font-bold text-foreground" dir="ltr">{totalCredit.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -768,7 +765,7 @@ export function JournalEntries() {
 
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${balanced ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
                     {balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}`)}
+                    {balanced ? t("متوازن ✓", "Balanced ✓") : (totalDebit === 0 && totalCredit === 0 ? t("أدخل المبالغ", "Enter amounts") : `${t("الفرق", "Difference")}: ${Math.abs(diff).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
                   </div>
                 </div>
 

@@ -16,6 +16,7 @@ import {
   Save, Sparkles, Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
+import { InlineAlert, PageHeader, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
@@ -93,7 +94,7 @@ export function AssetDetail() {
     const a = accounts.find(x => x.id === accountId);
     return a ? `${a.code} · ${a.name}` : "—";
   };
-  const formatMoney = (value: any) => Number(value || 0).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 2 });
+  const formatMoney = (value: any) => Number(value || 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +160,7 @@ export function AssetDetail() {
 
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -219,9 +220,9 @@ export function AssetDetail() {
         </Card>
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/assets") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
-        <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90 min-w-[140px]">
+        <Button type="submit" disabled={busy} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("تسجيل الأصل", "Register asset") : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
@@ -242,29 +243,29 @@ export function AssetDetail() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border border-border bg-card p-3">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("التكلفة", "Cost")}</div>
-          <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(asset.acquisitionCost)}</div>
+          <div className="mt-1 truncate font-display text-lg tabular-nums text-foreground" dir="ltr">{formatMoney(asset.acquisitionCost)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-3">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("القيمة المتبقية", "Salvage Value")}</div>
-          <div className="font-english text-foreground mt-1" style={{ fontWeight: 700 }} dir="ltr">{formatMoney(asset.salvageValue)}</div>
+          <div className="mt-1 truncate font-display text-lg tabular-nums text-foreground" dir="ltr">{formatMoney(asset.salvageValue)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-3">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("تاريخ الاقتناء", "Acquisition Date")}</div>
-          <div className="font-english text-foreground mt-1" dir="ltr">{asset.acquisitionDate?.slice(0, 10)}</div>
+          <div className="mt-1 truncate font-english tabular-nums text-foreground" dir="ltr">{asset.acquisitionDate?.slice(0, 10)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-3">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-3">
           <div className="text-xs text-muted-foreground">{t("العمر الإنتاجي", "Useful Life")}</div>
-          <div className="text-foreground mt-1" style={{ fontWeight: 700 }}>{asset.usefulLifeYears} {t("سنة", "years")}</div>
+          <div className="mt-1 truncate text-foreground" style={{ fontWeight: 700 }}><span className="font-english tabular-nums">{asset.usefulLifeYears}</span> {t("سنة", "years")}</div>
         </div>
       </div>
 
       <div className="rounded-lg border border-border bg-card p-4 space-y-2 text-sm">
         <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("الربط المحاسبي", "Accounting links")}</div>
-        <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t("حساب الأصل", "Asset account")}</span><span className="font-english text-foreground" dir="ltr">{accountLabel(asset.accountId)}</span></div>
-        <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t("مصروف الإهلاك", "Depreciation expense")}</span><span className="font-english text-foreground" dir="ltr">{accountLabel(asset.depreciationExpenseAccountId)}</span></div>
-        <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t("مجمع الإهلاك", "Accumulated depreciation")}</span><span className="font-english text-foreground" dir="ltr">{accountLabel(asset.accumulatedDepreciationAccountId)}</span></div>
+        <div className="flex justify-between gap-2"><span className="shrink-0 text-muted-foreground">{t("حساب الأصل", "Asset account")}</span><span className="min-w-0 truncate font-english text-foreground" dir="ltr" title={accountLabel(asset.accountId)}>{accountLabel(asset.accountId)}</span></div>
+        <div className="flex justify-between gap-2"><span className="shrink-0 text-muted-foreground">{t("مصروف الإهلاك", "Depreciation expense")}</span><span className="min-w-0 truncate font-english text-foreground" dir="ltr" title={accountLabel(asset.depreciationExpenseAccountId)}>{accountLabel(asset.depreciationExpenseAccountId)}</span></div>
+        <div className="flex justify-between gap-2"><span className="shrink-0 text-muted-foreground">{t("مجمع الإهلاك", "Accumulated depreciation")}</span><span className="min-w-0 truncate font-english text-foreground" dir="ltr" title={accountLabel(asset.accumulatedDepreciationAccountId)}>{accountLabel(asset.accumulatedDepreciationAccountId)}</span></div>
       </div>
 
       {asset.status === "DISPOSED" && (
@@ -304,36 +305,38 @@ export function AssetDetail() {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <Link to="/app/assets" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-2">
-            <ArrowRight className="h-3.5 w-3.5" /> {t("العودة للأصول الثابتة", "Back to Fixed Assets")}
+      <PageHeader
+        eyebrow={(
+          <Link to="/app/assets" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary">
+            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} /> {t("المحاسبة", "Accounting")} · {t("العودة للأصول الثابتة", "Back to Fixed Assets")}
           </Link>
-          <h1 className="text-foreground" style={{ fontSize: "1.6rem", fontWeight: 700 }}>
-            {isNew ? t("أصل ثابت جديد", "New Fixed Asset") : (asset?.name || t("الأصل", "Asset"))}
-          </h1>
-          {!isNew && asset && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="font-english text-xs text-primary" dir="ltr">{asset.code}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${asset.status === "ACTIVE" ? "bg-success-subtle text-success" : "bg-surface-hover text-muted-foreground"}`}>
-                {asset.status === "ACTIVE" ? t("نشط", "Active") : t("مُخرج", "Disposed")}
+        )}
+        title={isNew ? t("أصل ثابت جديد", "New Fixed Asset") : <bdi dir="auto">{asset?.name || t("الأصل", "Asset")}</bdi>}
+        description={(
+          <>
+            {!isNew && asset && (
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-code text-xs text-foreground" dir="ltr">{asset.code}</span>
+                <StatusBadge tone={asset.status === "ACTIVE" ? "success" : "neutral"}>
+                  {asset.status === "ACTIVE" ? t("نشط", "Active") : t("مُخرج", "Disposed")}
+                </StatusBadge>
+                <span className="text-xs text-muted-foreground"><bdi dir="auto">{asset.category || t("بدون تصنيف", "Uncategorized")}</bdi></span>
               </span>
-              <span className="text-xs text-muted-foreground">{asset.category || t("بدون تصنيف", "Uncategorized")}</span>
-            </div>
-          )}
-          {isNew && (
-            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-              <Building2 className="h-4 w-4" />
-              {t("التسجيل اليدوي للأصول المقتناة خارج المشتريات · الشراء على حساب أصل يسجّل تلقائياً", "Manual registration for assets acquired outside purchases · buying on an asset account auto-registers")}
-            </p>
-          )}
-        </div>
-      </div>
+            )}
+            {isNew && (
+              <span className="flex items-center gap-1.5">
+                <Building2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                {t("التسجيل اليدوي للأصول المقتناة خارج المشتريات · الشراء على حساب أصل يسجّل تلقائياً", "Manual registration for assets acquired outside purchases · buying on an asset account auto-registers")}
+              </span>
+            )}
+          </>
+        )}
+      />
 
-      {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && !editMode && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {(isNew || editMode) ? formView : detailView}
     </div>

@@ -43,7 +43,10 @@ export async function auditOverflow(page: Page, root = 'main'): Promise<Overflow
       if (p && p !== document.body && !scrolls(p)) {
         const pr = p.getBoundingClientRect()
         const pcs = getComputedStyle(p)
-        if (pcs.overflow !== 'hidden' && pcs.overflowX !== 'hidden' && (r.right > pr.right + 2 || r.left < pr.left - 2)) {
+        // recharts' ResponsiveContainer measures itself through a 0×0 shim — a
+        // zero-box parent has no width to "spill" out of, so it is not a hit.
+        const zeroParent = pr.width === 0 && pr.height === 0
+        if (!zeroParent && pcs.overflow !== 'hidden' && pcs.overflowX !== 'hidden' && (r.right > pr.right + 2 || r.left < pr.left - 2)) {
           out.push({ path: path(el), kind: 'spills-parent', by: Math.max(r.right - pr.right, pr.left - r.left), text: (el.textContent || '').trim().slice(0, 60) })
         }
       }

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, Save, Download, Printer, AlertTriangle, FileText, ShoppingBag } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { InlineAlert, LedgerFigure, Metric as LedgerMetric, MetricStrip, PageHeader } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
 import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow, type UsSalesTaxPayload, type VatSummaryPayload } from "../lib/api";
@@ -228,10 +229,11 @@ export function Taxes() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإقرار الضريبي السعودي", "Saudi Tax Return")}</h1>
-        <p className="text-muted-foreground mt-1">{t("مطابقة تشغيلية لبنود VAT + جدول ضريبة الاستقطاع من الحوالات مع تعديل النسبة لكل عملية.", "Operational reconciliation of VAT line items plus a withholding tax schedule per remittance with per-transaction rate adjustment.")}</p>
-      </div>
+      <PageHeader
+        eyebrow={t("المحاسبة", "Accounting")}
+        title={t("الإقرار الضريبي السعودي", "Saudi Tax Return")}
+        description={t("مطابقة تشغيلية لبنود VAT + جدول ضريبة الاستقطاع من الحوالات مع تعديل النسبة لكل عملية.", "Operational reconciliation of VAT line items plus a withholding tax schedule per remittance with per-transaction rate adjustment.")}
+      />
 
       <Card className="border-border">
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
@@ -243,7 +245,7 @@ export function Taxes() {
             <span className="font-semibold">{t("إلى تاريخ", "To date")}</span>
             <DateInput value={to} onChange={(v) => applyRange(from, v)} inputClassName="h-10 text-sm" />
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={load}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
             <Button variant="outline" onClick={exportZatcaCsv} disabled={!payload}><Download className="me-2 h-4 w-4" />{t("تصدير ملخص الإقرار", "Export return summary")}</Button>
             <Button variant="outline" onClick={printZatca} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
@@ -276,18 +278,18 @@ export function Taxes() {
         </CardContent>
       </Card>
 
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
         <>
-          <div className="grid gap-3 md:grid-cols-4">
-            <Metric label={t("رقم التسجيل الضريبي", "VAT registration number")} value={payload.org.vatNumber || "—"} mono />
-            <Metric label={t("الفترة", "Period")} value={`${payload.period.from} → ${payload.period.to}`} mono />
-            <Metric label={t("صافي VAT", "Net VAT")} value={money(payload.vatDeclaration.netVat, currency)} tone={payload.vatDeclaration.netVat >= 0 ? "warn" : "good"} />
-            <Metric label={payload.vatDeclaration.netVat >= 0 ? t("المستحق الدفع", "Payable") : t("الرصيد المسترد", "Refundable balance")} value={money(payload.vatDeclaration.netVat >= 0 ? payload.vatDeclaration.payable : payload.vatDeclaration.refundable, currency)} tone={payload.vatDeclaration.netVat >= 0 ? "warn" : "good"} />
-          </div>
+          <MetricStrip>
+            <LedgerMetric label={t("رقم التسجيل الضريبي", "VAT registration number")} value={<span className="font-code text-[0.6em]">{payload.org.vatNumber || "—"}</span>} />
+            <LedgerMetric label={t("الفترة", "Period")} value={<span className="font-code text-[0.55em] whitespace-nowrap">{payload.period.from} → {payload.period.to}</span>} />
+            <LedgerMetric label={t("صافي VAT", "Net VAT")} tone={payload.vatDeclaration.netVat >= 0 ? "warning" : "success"} value={<LedgerFigure value={payload.vatDeclaration.netVat} currency={currency} />} />
+            <LedgerMetric label={payload.vatDeclaration.netVat >= 0 ? t("المستحق الدفع", "Payable") : t("الرصيد المسترد", "Refundable balance")} tone={payload.vatDeclaration.netVat >= 0 ? "warning" : "success"} value={<LedgerFigure value={payload.vatDeclaration.netVat >= 0 ? payload.vatDeclaration.payable : payload.vatDeclaration.refundable} currency={currency} />} />
+          </MetricStrip>
 
           {/* Draft review — the filer's eye must pass over unposted documents
               BEFORE approving the return (they never enter the buckets above). */}
@@ -521,16 +523,6 @@ export function Taxes() {
   );
 }
 
-function Metric({ label, value, tone = "default", mono = false }: { label: string; value: string; tone?: "default" | "warn" | "good"; mono?: boolean }) {
-  const colors = tone === "good" ? "border-success-border bg-success-subtle" : tone === "warn" ? "border-warning-border bg-warning-subtle" : "border-border bg-card";
-  return (
-    <div className={`rounded-lg border px-4 py-3 ${colors}`}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-lg font-semibold text-foreground ${mono ? "font-english" : ""}`}>{value}</div>
-    </div>
-  );
-}
-
 function VatRow({ label, base, tax, currency, strong = false }: { label: string; base: number; tax: number; currency: string; strong?: boolean }) {
   return (
     <tr className="border-b border-border/50">
@@ -551,35 +543,36 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
   const cur = payload?.currency || "USD";
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("ملخص ضريبة المبيعات الأمريكية", "US Sales Tax Summary")}</h1>
-        <p className="text-muted-foreground mt-1">{t("المبيعات والضريبة المحصلة حسب الولاية + النموذج الفيدرالي المناسب لنوع شركتك — اطبعه أو عبّ منه إقرارك.", "Sales & collected tax by state, plus the federal form that fits your entity type — print it or fill your return from it.")}</p>
-      </div>
+      <PageHeader
+        eyebrow={t("المحاسبة", "Accounting")}
+        title={t("ملخص ضريبة المبيعات الأمريكية", "US Sales Tax Summary")}
+        description={t("المبيعات والضريبة المحصلة حسب الولاية + النموذج الفيدرالي المناسب لنوع شركتك — اطبعه أو عبّ منه إقرارك.", "Sales & collected tax by state, plus the federal form that fits your entity type — print it or fill your return from it.")}
+      />
       <Card className="border-border">
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("من تاريخ", "From date")}</span><DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" /></label>
           <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("إلى تاريخ", "To date")}</span><DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" /></label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={reload}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
             <Button variant="outline" onClick={() => window.print()} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
           </div>
         </CardContent>
       </Card>
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              [t("إجمالي المبيعات", "Gross sales"), money(payload.sales.grossSales, cur)],
-              [t("معفاة / بدون ضريبة", "Exempt / untaxed"), money(payload.sales.exemptSales, cur)],
-              [t("مبيعات خاضعة", "Taxable sales"), money(payload.sales.taxableSales, cur)],
-              [t("الضريبة المحصلة", "Tax collected"), money(payload.sales.taxCollected, cur)],
-            ].map(([l, v]) => (
-              <Card key={l as string} className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">{l}</div><div className="text-foreground mt-1" style={{ fontWeight: 700, fontSize: "1.15rem" }} dir="ltr">{v}</div></CardContent></Card>
+          <MetricStrip>
+            {([
+              [t("إجمالي المبيعات", "Gross sales"), payload.sales.grossSales],
+              [t("معفاة / بدون ضريبة", "Exempt / untaxed"), payload.sales.exemptSales],
+              [t("مبيعات خاضعة", "Taxable sales"), payload.sales.taxableSales],
+              [t("الضريبة المحصلة", "Tax collected"), payload.sales.taxCollected],
+            ] as Array<[string, number]>).map(([l, v]) => (
+              <LedgerMetric key={l} label={l} value={<LedgerFigure value={v} currency={cur} />} />
             ))}
-          </div>
+          </MetricStrip>
 
           {payload.irsGuide && (
             <Card className="border-info-border bg-info-subtle/60">
@@ -652,21 +645,22 @@ function GenericVatView({ payload, loading, error, country, from, to, setFrom, s
   );
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإقرار الضريبي", "VAT Return")} · {country}</h1>
-        <p className="text-muted-foreground mt-1">{t(`بنود VAT بمعدل بلدك${ratePct != null ? ` (${ratePct}%)` : ""} — اطبعها أو عبّ منها إقرارك الرسمي.`, `VAT lines at your country's rate${ratePct != null ? ` (${ratePct}%)` : ""} — print or fill your official return from them.`)}</p>
-      </div>
+      <PageHeader
+        eyebrow={t("المحاسبة", "Accounting")}
+        title={<>{t("الإقرار الضريبي", "VAT Return")} · <span className="font-english">{country}</span></>}
+        description={t(`بنود VAT بمعدل بلدك${ratePct != null ? ` (${ratePct}%)` : ""} — اطبعها أو عبّ منها إقرارك الرسمي.`, `VAT lines at your country's rate${ratePct != null ? ` (${ratePct}%)` : ""} — print or fill your official return from them.`)}
+      />
       <Card className="border-border">
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("من تاريخ", "From date")}</span><DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" /></label>
           <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("إلى تاريخ", "To date")}</span><DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" /></label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={reload}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
             <Button variant="outline" onClick={() => window.print()} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
           </div>
         </CardContent>
       </Card>
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" /></div>
       ) : payload ? (
