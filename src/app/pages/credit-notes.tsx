@@ -9,10 +9,12 @@ import { displayLocale } from "../lib/number-display";
  * Difference: links to original invoice (optional) · negative impact on receivables.
  */
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router";
-import { Plus, Search, Trash2, Loader2, ScrollText, ArrowDownLeft, FileText, ScanLine } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { useParams, useNavigate, Link } from "react-router";
+import { Plus, Search, Trash2, Loader2, ScrollText, FileText, ScanLine } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
+import { useOrgRegion } from "../lib/use-org-region";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -30,12 +32,14 @@ import { BranchField } from "../components/branch-field";
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, ISSUED: { ar: "صادر", en: "Issued" }, APPLIED: { ar: "مطبَّق", en: "Applied" }, CANCELLED: { ar: "ملغى", en: "Cancelled" },
 };
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-surface-hover text-foreground",
-  ISSUED: "bg-warning-subtle text-warning",
-  APPLIED: "bg-success-subtle text-success",
-  CANCELLED: "bg-surface-hover text-muted-foreground",
+/* Ledger status tone · applied = blue (success) · issued = copper (waiting to be applied) · draft/cancelled = muted, hollow dot */
+const STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "critical"> = {
+  DRAFT: "neutral",
+  ISSUED: "warning",
+  APPLIED: "success",
+  CANCELLED: "neutral",
 };
+const money2 = (n: number | string) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const REASONS = [
   { value: "RETURN", label: { ar: "إرجاع بضاعة", en: "Goods return" } },
@@ -70,7 +74,8 @@ interface CreditNote {
 }
 
 export function CreditNotes() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { currency: orgCurrency } = useOrgRegion();
   const params = useParams();
   const navigate = useNavigate();
   const editId = params.id;
@@ -165,6 +170,9 @@ export function CreditNotes() {
   );
 
   const total = items.reduce((s, c) => s + Number(c.total), 0);
+  // Currency-honest total: one currency → label it · mixed → per-currency figures
+  const totalByCur = Object.entries(items.reduce<Record<string, number>>((acc, c) => { acc[c.currency] = (acc[c.currency] || 0) + Number(c.total); return acc; }, {})).filter(([, v]) => v !== 0);
+  const figureCurrency = totalByCur.length === 1 ? totalByCur[0][0] : (orgCurrency || "SAR");
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -415,91 +423,127 @@ export function CreditNotes() {
     );
   }
 
+  const statusPill = (status: string) => (
+    <StatusBadge tone={STATUS_TONE[status] || "neutral"} icon={status === "DRAFT" || status === "CANCELLED" ? <span className="ledger-dot hollow" aria-hidden="true" /> : undefined}>
+      {STATUS_LABELS[status] ? t(STATUS_LABELS[status].ar, STATUS_LABELS[status].en) : status}
+    </StatusBadge>
+  );
+  const reasonWord = (reason: string) => { const r = REASONS.find((x) => x.value === reason); return r ? t(r.label.ar, r.label.en) : reason; };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإشعارات الدائنة", "Credit Notes")}</h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة إشعارات الخصم والإرجاع للعملاء", "Manage customer discount and return credit notes")}</p>
+      <PageHeader
+        className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+        eyebrow={<span className="text-[13px]">{t("المبيعات", "Sales")}</span>}
+        title={t("الإشعارات الدائنة", "Credit Notes")}
+        description={t("إدارة إشعارات الخصم والإرجاع للعملاء", "Manage customer discount and return credit notes")}
+        actions={<Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إشعار دائن جديد", "New credit note")}</Button>}
+      />
+
+      {/* Ledger figures · ink rules, serif numerals */}
+      <MetricStrip className="compact sm:grid-cols-3 xl:grid-cols-3">
+        <Metric label={t("إجمالي الإشعارات", "Total credit notes")} value={items.length} hint={t("إشعار", "notes")} />
+        <Metric
+          label={t("إجمالي القيمة", "Total value")}
+          value={totalByCur.length > 1
+            ? <span className="flex flex-col gap-1 text-warning">{totalByCur.map(([cur, v]) => <span key={cur}><LedgerFigure value={v} currency={cur} /></span>)}</span>
+            : <span className="text-warning"><LedgerFigure value={total} currency={figureCurrency} /></span>}
+          hint={t("تُخصم من رصيد العميل", "Deducted from the customer balance")}
+        />
+        <Metric label={t("مطبَّقة", "Applied")} value={<span className="text-success">{items.filter(c => c.status === "APPLIED").length}</span>} hint={t("إشعار مطبَّق", "applied")} />
+      </MetricStrip>
+
+      <PageToolbar aria-label={t("مرشحات الإشعارات", "Credit note filters")} className="justify-between">
+        <h2 className="text-section font-semibold text-foreground">{t("قائمة الإشعارات الدائنة", "Credit note list")}</h2>
+        <div className="relative w-full sm:w-[260px]">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder={t("بحث...", "Search...")} className="h-9 w-full ps-8 text-[13px]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("إشعار دائن جديد", "New credit note")}</Button>
-      </div>
+      </PageToolbar>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي الإشعارات", "Total credit notes")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي القيمة", "Total value")}</div>
-          <div className="font-english text-warning" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("مطبَّقة", "Applied")}</div>
-          <div className="font-english text-success" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.filter(c => c.status === "APPLIED").length}</div>
-        </CardContent></Card>
-      </div>
-
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground">{t("قائمة الإشعارات الدائنة", "Credit note list")}</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
-           filtered.length === 0 ? (
-            <div className="py-12 text-center">
-              <ScrollText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" />
-              <p className="text-sm text-muted-foreground mb-2">{t("لا توجد إشعارات دائنة", "No credit notes")}</p>
-              <p className="text-xs text-muted-foreground/60">{t("اضغط \"إشعار دائن جديد\" لإنشاء أول إشعار", "Click \"New credit note\" to create your first note")}</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الرقم", "Number")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("العميل", "Customer")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("السبب", "Reason")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("القيمة", "Value")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
-              </tr></thead>
-              <tbody>
-                {filtered.map(c => (
-                  <tr key={c.id} className="border-b border-border/50 hover:bg-primary/5">
-                    <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{c.noteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" title={c.contact?.displayName || ""}><bdi dir="auto">{c.contact?.displayName || "—"}</bdi></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{c.issueDate?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{(() => { const r = REASONS.find(r => r.value === c.reason); return r ? t(r.label.ar, r.label.en) : c.reason; })()}</td>
-                    <td className="py-3 px-4 font-english text-sm text-warning" style={{ fontWeight: 600 }}>
-                      <span className="inline-flex items-center gap-1 whitespace-nowrap"><ArrowDownLeft className="h-3 w-3 shrink-0" /><span dir="ltr" className="inline-flex items-baseline gap-1" style={{ fontVariantNumeric: "tabular-nums" }}><span>{Number(c.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span><span className="text-[10px] text-muted-foreground/60">{c.currency}</span></span></span>
-                    </td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[c.status]}`}>{STATUS_LABELS[c.status] ? t(STATUS_LABELS[c.status].ar, STATUS_LABELS[c.status].en) : c.status}</span></td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => navigate(`/app/credit-notes/${c.id}`)}
-                          className="rounded-md p-1.5 text-primary hover:bg-primary/5"
-                          title={t("تعديل", "Edit")}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        {pendingDelete === c.id ? (
-                          <InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />
-                        ) : (
-                          <button onClick={() => setPendingDelete(c.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+      {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
+       filtered.length === 0 ? (
+        <EmptyState
+          icon={<ScrollText className="h-8 w-8" strokeWidth={1.75} />}
+          title={t("لا توجد إشعارات دائنة", "No credit notes")}
+          description={t("اضغط \"إشعار دائن جديد\" لإنشاء أول إشعار", "Click \"New credit note\" to create your first note")}
+        />
+      ) : (
+        <>
+        <ul className="md:hidden">
+          {filtered.map((c) => (
+            <li key={c.id}>
+              <button type="button" onClick={() => navigate(`/app/credit-notes/${c.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الإشعار", "Open credit note")}>
+                <span className="flex min-w-0 flex-col gap-[3px]">
+                  <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{c.contact?.displayName || "—"}</bdi></span>
+                  <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{c.noteNumber} · {c.issueDate?.slice(0, 10)}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-[3px]">
+                  <span dir="ltr" className="font-display text-[18px] leading-5 text-warning tabular-nums">{money2(c.total)}</span>
+                  {statusPill(c.status)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+          <Table className="table-fixed min-w-[980px]">
+            <colgroup>
+              <col style={{ width: "200px" }} />{/* الرقم · mono */}
+              <col />{/* العميل · flexible */}
+              <col style={{ width: "110px" }} />{/* التاريخ */}
+              <col style={{ width: "150px" }} />{/* السبب */}
+              <col style={{ width: "130px" }} />{/* القيمة */}
+              <col style={{ width: "140px" }} />{/* الحالة */}
+              <col style={{ width: "150px" }} />{/* إجراءات */}
+            </colgroup>
+            <TableHeader><TableRow className="hover:bg-transparent">
+              <TableHead>{t("الرقم", "Number")}</TableHead>
+              <TableHead>{t("العميل", "Customer")}</TableHead>
+              <TableHead>{t("التاريخ", "Date")}</TableHead>
+              <TableHead>{t("السبب", "Reason")}</TableHead>
+              <TableHead className="text-end">{t("القيمة", "Value")}</TableHead>
+              <TableHead>{t("الحالة", "Status")}</TableHead>
+              <TableHead>{t("إجراءات", "Actions")}</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {filtered.map(c => (
+                <TableRow key={c.id} onClick={() => navigate(`/app/credit-notes/${c.id}`)} className="h-12 cursor-pointer" title={t("فتح الإشعار", "Open credit note")}>
+                  <TableCell className="align-middle overflow-hidden">
+                    <Link to={`/app/credit-notes/${c.id}`} onClick={(e) => e.stopPropagation()} title={c.noteNumber} className="block max-w-full hover:underline underline-offset-4">
+                      <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{c.noteNumber}</span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="align-middle overflow-hidden text-foreground" title={c.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{c.contact?.displayName || "—"}</bdi></span></TableCell>
+                  <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{c.issueDate?.slice(0, 10)}</span></TableCell>
+                  <TableCell className="align-middle text-xs text-content-secondary"><span className="block truncate">{reasonWord(c.reason)}</span></TableCell>
+                  <TableCell className="text-end align-middle">
+                    <span dir="ltr" className="block font-display text-[18px] leading-6 text-warning tabular-nums">{money2(c.total)}{c.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {c.currency}</span>}</span>
+                  </TableCell>
+                  <TableCell className="align-middle">{statusPill(c.status)}</TableCell>
+                  <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <button
+                        onClick={() => navigate(`/app/credit-notes/${c.id}`)}
+                        className="rounded-full p-1.5 text-primary hover:bg-surface-hover"
+                        title={t("تعديل", "Edit")}
+                      >
+                        <FileText className="h-4 w-4" strokeWidth={1.75} />
+                      </button>
+                      {pendingDelete === c.id ? (
+                        <InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />
+                      ) : (
+                        <button onClick={() => setPendingDelete(c.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        </>
+      )}
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
