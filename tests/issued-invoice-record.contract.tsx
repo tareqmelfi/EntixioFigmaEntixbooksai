@@ -29,7 +29,11 @@ const accepted=render(invoice)
 assert.match(accepted,/REPORTED/)
 assert.match(accepted,/42000/)
 assert.match(accepted,/200/)
-assert.doesNotMatch(accepted,/<input|<textarea|<select/)
+// The invoice's own accounting fields stay locked. Attaching supporting documents to an
+// issued invoice is NOT editing it (CEO 2026-09-08: multi-file attachments on every document),
+// so the attachment picker's hidden file input is the one permitted input on this page.
+const editableControls = accepted.replace(/<input[^>]*type="file"[^>]*\/>/g, '')
+assert.doesNotMatch(editableControls,/<input|<textarea|<select/)
 assert.doesNotMatch(accepted,/>إلغاء اعتماد<|>حفظ كمسودة<|>اعتماد<|>حذف</)
 const pending=render({...invoice,zatcaDelivery:{state:'PENDING',customerReleaseReady:false,evidence:null}})
 assert.match(pending,/disabled=""/)

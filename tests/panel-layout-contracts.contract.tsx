@@ -1,11 +1,38 @@
 import assert from "node:assert/strict";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { FullPageForm } from "../src/app/components/full-page-form";
-import { InlinePanel } from "../src/app/components/inline-panel";
-import { InlineConfirm, SidePanel, ToastStack } from "../src/app/components/side-panel";
+
+// FullPageForm reads the language context (bilingual chrome), and LanguageProvider touches
+// window/localStorage during render — so the browser globals are shimmed before the
+// components are imported, and every render goes through the provider.
+const storage = new Map<string, string>();
+const localStorageShim = {
+  getItem: (k: string) => storage.get(k) ?? null,
+  setItem: (k: string, v: string) => void storage.set(k, String(v)),
+  removeItem: (k: string) => void storage.delete(k),
+};
+const windowShim: any = {
+  location: { pathname: "/app/invoices", href: "http://localhost/app/invoices" },
+  addEventListener() {},
+  removeEventListener() {},
+  localStorage: localStorageShim,
+};
+// A getter, not a plain assignment: react-dom/server replaces globalThis.window while
+// rendering, which would otherwise strip location out from under LanguageProvider.
+Object.defineProperty(globalThis, "window", { configurable: true, get: () => windowShim, set: () => {} });
+(globalThis as any).localStorage = localStorageShim;
+(globalThis as any).history = { pushState() {}, replaceState() {}, back() {}, forward() {} };
+(globalThis as any).document = { documentElement: { setAttribute() {}, style: {} }, body: { dir: "", style: {} } };
+
+const { createElement } = await import("react");
+const { renderToStaticMarkup: renderMarkup } = await import("react-dom/server");
+const { LanguageProvider } = await import("../src/app/components/LanguageContext");
+const { MemoryRouter } = await import("react-router");
+const { FullPageForm } = await import("../src/app/components/full-page-form");
+const { InlinePanel } = await import("../src/app/components/inline-panel");
+const { InlineConfirm, SidePanel, ToastStack } = await import("../src/app/components/side-panel");
 
 const element = createElement;
+const renderToStaticMarkup = (node: any) =>
+  renderMarkup(element(MemoryRouter as any, null, element(LanguageProvider as any, null, node)));
 const rootClass = (markup: string) => markup.match(/^<[^>]+class="([^"]+)"/)?.[1] ?? "";
 const forbiddenChrome = /\bbg-white\b|\bbg-primary(?:\/\d+)?\b|\brounded-(?:2xl|3xl)\b|\bshadow-(?:xl|2xl)\b|shadow-\[/;
 
@@ -54,7 +81,10 @@ assert.doesNotMatch(desktopPanel, /style="[^"]*font-size/);
 const originalWindow = globalThis.window;
 Object.defineProperty(globalThis, "window", {
   configurable: true,
+  // Keep the base shim (location/localStorage) — LanguageProvider now wraps every render —
+  // and add matchMedia so SidePanel takes its desktop branch.
   value: {
+    ...windowShim,
     matchMedia: () => ({
       matches: true,
       addEventListener: () => undefined,
