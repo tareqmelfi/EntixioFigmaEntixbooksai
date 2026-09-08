@@ -7,6 +7,10 @@ const exemptFiles = new Set([
   'src/app/components/report-document.tsx',
   'src/app/pages/invoice-print-view.tsx',
   'src/app/pages/voucher-print-view.tsx',
+  // Brand document engine + its print shells (parameterised by each company's brand colours)
+  'src/app/lib/document-render.ts',
+  'src/app/components/brand-document.tsx',
+  'src/app/pages/quote-proposal-print.tsx',
 ])
 const rules = [
   ['decorative-gradient', /\b(?:bg|text)-gradient-[\w-]+|\bfrom-[\w\[/.-]+\s+\bto-[\w\[/.-]+/g],

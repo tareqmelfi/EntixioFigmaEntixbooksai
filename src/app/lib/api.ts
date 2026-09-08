@@ -815,8 +815,13 @@ export const api = {
   // Fixed Assets
   // Document templates (print layouts for invoices / quotes / vouchers / notes)
   documentTemplates: {
-    list: (params?: { type?: string }) =>
+    list: (params?: { type?: string; kind?: 'QUOTE' | 'INVOICE' }) =>
       request<{ items: any[]; total: number }>('/api/document-templates', { query: params }),
+    /** Org default template per document kind (BOTH-kind templates count for both) */
+    defaults: () => request<{ QUOTE: any | null; INVOICE: any | null }>('/api/document-templates/defaults'),
+    /** Server-rendered print HTML (same engine as the web print views) */
+    render: (kind: 'QUOTE' | 'INVOICE', docId: string, params?: { templateId?: string | null; lang?: 'ar' | 'en'; actions?: 0 | 1 }) =>
+      request<string>(`/api/document-templates/render/${kind}/${docId}`, { query: params as any }),
     get: (id: string) => request<any>(`/api/document-templates/${id}`),
     create: (data: any) => request<any>('/api/document-templates', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
@@ -2631,6 +2636,10 @@ export interface Quote {
   total: string
   notes?: string | null
   termsConditions?: string | null
+  /** Internal / customer reference · own column (never inside termsConditions) */
+  reference?: string | null
+  /** Brand document template · null → org default for QUOTE */
+  templateId?: string | null
   convertedInvoiceId?: string | null
   /** SPEC-04 · BOQ → Proposal → Award */
   title?: string | null
@@ -2690,6 +2699,8 @@ export interface QuoteInput {
   exchangeRate?: number
   notes?: string | null
   termsConditions?: string | null
+  reference?: string | null
+  templateId?: string | null
   /** SPEC-04 */
   title?: string | null
   sourceFileName?: string | null
@@ -2771,6 +2782,11 @@ export interface Invoice {
   amountPaid: string
   notes?: string | null
   termsConditions?: string | null
+  /** Customer PO / external reference · own column (never inside termsConditions) */
+  reference?: string | null
+  /** Brand document template · null → org default for INVOICE */
+  templateId?: string | null
+  paymentLinkUrl?: string | null
   zatcaUuid?: string | null
   zatcaQr?: string | null
   zatcaDelivery?: { state: string | null; message: string | null; customerReleaseReady?: boolean; evidence?: { state: string; mode: string; kind: string; uuid: string; attempts: number; httpStatus: number | null; updatedAt: string; errors: string[] | null; warnings: string[] | null } | null } | null
@@ -2804,6 +2820,8 @@ export interface InvoiceInput {
   exchangeRate?: number
   notes?: string
   termsConditions?: string
+  reference?: string | null
+  templateId?: string | null
   lines: InvoiceLine[]
 }
 

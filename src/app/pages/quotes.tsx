@@ -65,6 +65,10 @@ const EMPTY_FORM = {
   validUntil: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
   currency: "SAR",
   notes: "",
+  // Brand document template (id) · "" = org default for QUOTE · 2026-09-08
+  templateId: "",
+  // Terms & conditions · per-document override · prefilled from the template on create
+  termsConditions: "",
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
 };
@@ -79,6 +83,20 @@ export function Quotes() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  // Brand document templates for the QUOTE kind (BOTH counts) · selector + terms prefill
+  const [docTemplates, setDocTemplates] = useState<any[]>([]);
+  useEffect(() => {
+    if (!createOpen) return;
+    let alive = true;
+    api.documentTemplates.list({ kind: "QUOTE" }).then((r) => { if (alive) setDocTemplates(r.items); }).catch(() => setDocTemplates([]));
+    // New quote → prefill terms + template from the org default (the user may edit or clear them)
+    api.documentTemplates.defaults().then((d) => {
+      const tpl = d.QUOTE;
+      if (!alive || !tpl) return;
+      setForm((prev) => (prev.termsConditions || prev.templateId) ? prev : { ...prev, templateId: tpl.id, termsConditions: tpl.showTerms === false ? "" : (tpl.terms || "") });
+    }).catch(() => { /* no default template · terms stay empty */ });
+    return () => { alive = false; };
+  }, [createOpen]);
   const { goBack: goBackToSource } = useReturnTo();
   const [products, setProducts] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -233,11 +251,20 @@ export function Quotes() {
     goBackToSource();
   };
 
-  const handleSubmit = async (action: "draft" | "send" = "draft") => {
+  /** «معاينة كاملة» · saves a draft first (a document needs an id) then opens the print view in a new tab */
+  const handleFullPreview = async () => {
+    const win = window.open("", "_blank", "noopener");
+    const q = await handleSubmit("draft", { stayOpen: true });
+    if (!q) { win?.close(); return; }
+    const url = `/print/proposal/${q.id}?noprint=1${form.templateId ? `&templateId=${form.templateId}` : ""}`;
+    if (win) win.location.href = url; else window.open(url, "_blank", "noopener");
+  };
+
+  const handleSubmit = async (action: "draft" | "send" = "draft", opts?: { stayOpen?: boolean }): Promise<Quote | null> => {
     setCreateError(null);
-    if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return; }
+    if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return null; }
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
-    if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل (وصف + سعر)", "Add at least one line item (description + price)")); return; }
+    if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل (وصف + سعر)", "Add at least one line item (description + price)")); return null; }
     setBusy(true);
     try {
       const status = action === "draft" ? "DRAFT" : "SENT";
@@ -250,7 +277,10 @@ export function Quotes() {
         status,
         notes: form.notes || null,
         branchId: form.branchId ?? null,
-        termsConditions: form.reference ? `Ref: ${form.reference}` : undefined,
+        // Reference lives in its OWN column · terms are the per-document override (never packed together)
+        reference: form.reference || null,
+        termsConditions: form.termsConditions || null,
+        templateId: form.templateId || null,
         lines: validLines.map((l) => ({
           productId: l.productId || null,
           description: l.description,
@@ -267,9 +297,11 @@ export function Quotes() {
       if (action === "send" && q.id) {
         try { await (api as any).email?.sendQuote?.(q.id, { message: form.notes || undefined }); } catch (e) {}
       }
-      closeCreate();
+      if (!opts?.stayOpen) closeCreate();
+      return q;
     } catch (e: any) {
       setCreateError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
+      return null;
     } finally { setBusy(false); }
   };
 
@@ -382,7 +414,12 @@ export function Quotes() {
           draft={draft}
           footer={
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
+                <Button type="button" variant="secondary" disabled={busy} onClick={handleFullPreview} data-testid="quote-full-preview" title={t("يحفظ مسودة ثم يفتح المستند الكامل بكل صفحاته في تبويب جديد", "Saves a draft, then opens the full document with all its pages in a new tab")}>
+                  {t("معاينة كاملة", "Full preview")}
+                </Button>
+              </div>
               <div className="flex items-center gap-2">
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
@@ -458,6 +495,21 @@ export function Quotes() {
                 <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
               </div>
+              <div className="space-y-1.5" data-testid="quote-template-field">
+                <Label className="text-foreground/80 text-xs">{t("قالب المستند", "Document template")}</Label>
+                {/* Brand templates (designer · /app/templates) · empty = org default for quotes */}
+                <SearchableCombobox
+                  value={form.templateId}
+                  onChange={(id) => {
+                    const tpl = docTemplates.find((x) => x.id === id);
+                    setForm((prev) => ({ ...prev, templateId: id, termsConditions: prev.termsConditions || (tpl?.showTerms === false ? "" : (tpl?.terms || "")) }));
+                  }}
+                  items={docTemplates.map((x) => ({ id: x.id, label: x.name, sublabel: x.isDefault ? t("افتراضي", "Default") : (x.nameEn || undefined) }))}
+                  placeholder={t("القالب الافتراضي", "Default template")}
+                  onCreate={async () => { navigate("/app/templates/new?type=QUOTE"); return ""; }}
+                  createLabel={(q) => t(`تصميم قالب جديد «${q}»`, `Design a new template “${q}”`)}
+                />
+              </div>
             </div>
 
             <ItemsTable
@@ -518,6 +570,15 @@ export function Quotes() {
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                />
+                <Label className="text-foreground/80 text-xs">{t("الشروط والأحكام · تُطبع في بطاقة «شروط العرض» (مُعبّأة من القالب · عدّلها لهذا العرض)", "Terms & conditions · printed in the terms card (prefilled from the template · edit for this quote)")}</Label>
+                <textarea
+                  rows={5}
+                  placeholder={t("سطر لكل شرط — العرض ساري 30 يومًا من تاريخ الإصدار…", "One term per line — valid for 30 days from the issue date…")}
+                  value={form.termsConditions}
+                  onChange={(e) => setForm({ ...form, termsConditions: e.target.value })}
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                  data-testid="quote-terms"
                 />
               </div>
               <div className="space-y-1.5">
