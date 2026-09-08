@@ -264,6 +264,10 @@ export const router = createBrowserRouter([
       { path: "journal-entries/new", element: lazyElement(() => import("./pages/journal-entries"), "JournalEntries"), errorElement: <ErrorBoundary /> },
       { path: "taxes", element: lazyElement(() => import("./pages/taxes"), "Taxes"), errorElement: <ErrorBoundary /> },
       // Bank Accounts
+      // Group-name aliases (CEO 2026-09-08): a bookmarked or typed group URL must
+      // never 404 — every sidebar group name resolves to its section page.
+      { path: "banks", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },
+      { path: "cash", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },
       { path: "bank-accounts", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },
       { path: "bank-accounts/new", element: lazyElement(() => import("./pages/bank-account-new"), "BankAccountNew"), errorElement: <ErrorBoundary /> },
       { path: "bank-accounts/:id", element: lazyElement(() => import("./pages/bank-accounts"), "BankAccounts"), errorElement: <ErrorBoundary /> },

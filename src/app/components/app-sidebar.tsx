@@ -178,6 +178,7 @@ const sections: MenuSection[] = [
   },
   {
     label: "المنتجات والمخزون",
+    hub: "/app/products",
     items: [
       { title: "المنتجات والخدمات", icon: Package, path: "/app/products" },
       { title: "المخازن", icon: Warehouse, path: "/app/warehouses" },
@@ -186,6 +187,7 @@ const sections: MenuSection[] = [
   },
   {
     label: "البنوك والنقد",
+    hub: "/app/bank-accounts",
     items: [
       { title: "الحسابات البنكية", icon: Landmark, path: "/app/bank-accounts" },
       { title: "التسوية البنكية", icon: GitBranch, path: "/app/bank-reconciliation" },
@@ -193,6 +195,7 @@ const sections: MenuSection[] = [
   },
   {
     label: "المحاسبة",
+    hub: "/app/accounting",
     items: [
       { title: "دليل الحسابات", icon: BookOpen, path: "/app/chart-of-accounts" },
       { title: "القيود اليومية", icon: CalculatorIcon, path: "/app/journal-entries" },
@@ -215,6 +218,7 @@ const sections: MenuSection[] = [
     // Ownership & investment: a Books feature in its own right (CEO 2026-09-07 —
     // keep it, give it a proper home). Sits after the ledger, before people.
     label: "الملاك والاستثمار",
+    hub: "/app/shareholders",
     items: [
       { title: "سجل المساهمين", icon: Crown, path: "/app/shareholders" },
       { title: "محافظ الاستثمار", icon: TrendingUp, path: "/app/investments" },
@@ -222,6 +226,7 @@ const sections: MenuSection[] = [
   },
   {
     label: "الموظفون والرواتب",
+    hub: "/app/employees",
     items: [
       { title: "الموظفين", icon: Users2, path: "/app/employees" },
       { title: "مسير الرواتب", icon: Wallet, path: "/app/payroll" },
