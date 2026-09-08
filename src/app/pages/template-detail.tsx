@@ -314,6 +314,9 @@ export function TemplateDetail() {
                 <button key={k} type="button" role="radio" aria-checked={form.coverStyle === k} data-testid={`cover-${k}`} onClick={() => set("coverStyle", k)} className={segBtn(form.coverStyle === k)}>{isAr ? COVER_META[k].ar : COVER_META[k].en}</button>
               ))}
             </div>
+            {form.coverStyle === "DARK" && ((org as any)?.printLogoUrl || (org as any)?.logoUrl) && !(org as any)?.printLogoLightUrl ? (
+              <p className="text-xs text-warning" data-testid="cover-light-fallback">{t("الشعار الحالي داكن ولا توجد نسخة فاتحة، فسيُطبع الغلاف فاتحًا — الشعار لا يوضع داخل إطار أبدًا. ارفع «الشعار الفاتح» من الإعدادات ← العلامة التجارية ليبقى الغلاف داكنًا.", "This logo is dark and there is no light variant, so the cover prints light — a logo is never placed in a frame. Upload the light logo in Settings → Branding to keep the cover dark.")}</p>
+            ) : null}
             <div className="space-y-2"><Label>{t("عنوان الغلاف (سطران · السطر الثاني بلون العلامة)", "Cover title (two lines · second line in brand colour)")}</Label>
               <textarea rows={2} value={form.coverTitle} onChange={(e) => set("coverTitle", e.target.value)} className={field} placeholder={t("محاسبة مقاولات\nتُدار من المشروع", "Contracting accounting\nrun from the project")} /></div>
             <div className="space-y-2"><Label>{t("مقدمة الغلاف", "Cover intro")}</Label>
