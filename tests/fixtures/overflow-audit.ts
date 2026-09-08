@@ -43,7 +43,10 @@ export async function auditOverflow(page: Page, root = 'main'): Promise<Overflow
       if (p && p !== document.body && !scrolls(p)) {
         const pr = p.getBoundingClientRect()
         const pcs = getComputedStyle(p)
-        if (pcs.overflow !== 'hidden' && pcs.overflowX !== 'hidden' && (r.right > pr.right + 2 || r.left < pr.left - 2)) {
+        // A 0×0 parent is a measuring shim, not a box that can clip anything
+        // (recharts 3 ResponsiveContainer wraps every chart in `width:0;height:0;overflow:visible`).
+        const shim = pr.width === 0 && pr.height === 0
+        if (!shim && pcs.overflow !== 'hidden' && pcs.overflowX !== 'hidden' && (r.right > pr.right + 2 || r.left < pr.left - 2)) {
           out.push({ path: path(el), kind: 'spills-parent', by: Math.max(r.right - pr.right, pr.left - r.left), text: (el.textContent || '').trim().slice(0, 60) })
         }
       }
