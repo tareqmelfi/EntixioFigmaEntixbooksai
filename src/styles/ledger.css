@@ -32,6 +32,11 @@
 }
 .ledger-figure-value small,
 .ledger-figure-value .fraction { font-size: 0.5em; color: var(--content-secondary); }
+/* Compact strip (list pages · 3–4 figures beside a split panel): the numeral scales with the
+   viewport so a 13-digit money figure never spills its column (overflow audit 2026-09-08). */
+.ledger-figures.compact > .ledger-figure { padding-block: 12px; }
+@media (min-width: 640px) { .ledger-figures.compact > .ledger-figure { padding-block: 16px; } }
+.ledger-figures.compact .ledger-figure-value { font-size: clamp(1.25rem, 1.4vw, 1.875rem); }
 
 /* --- tables: rows on paper, no boxed card, ink rule under the header --- */
 /* Fixed-layout guard (CEO 2026-09-07): a cell may never paint over its neighbour.

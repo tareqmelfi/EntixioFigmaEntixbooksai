@@ -139,7 +139,7 @@ export function InvoicePreviewPane({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <span className="ledger-eyebrow">{docTypeLabel || t("فاتورة ضريبية", "Tax invoice")}</span>
-            <span dir="ltr" className="font-display text-[26px] leading-none text-foreground">{doc.number}</span>
+            <span dir="ltr" className="min-w-0 truncate font-display text-[26px] leading-none text-foreground" title={doc.number}>{doc.number}</span>
           </div>
           <EntixWordmark size={13} className="shrink-0" />
         </div>

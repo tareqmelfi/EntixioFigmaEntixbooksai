@@ -5,11 +5,16 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  * UX pattern: FullPageForm + ItemsTable + SearchableCombobox · مطابق Wafeq
  */
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer } from "lucide-react";
+import { useSearchParams, useParams, Link } from "react-router";
+import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye } from "lucide-react";
 import { useNavigate } from "react-router";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
+import { BidiText } from "../components/bidi-text";
+import { InvoicePreviewPane } from "../components/invoice-preview-pane";
+import { useWideViewport } from "../lib/use-wide-viewport";
+import { getOrgId } from "../lib/api";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
@@ -39,15 +44,18 @@ const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" }, SENT: { ar: "مرسل", en: "Sent" }, VIEWED: { ar: "مُشاهَد", en: "Viewed" }, ACCEPTED: { ar: "مقبول", en: "Accepted" },
   REJECTED: { ar: "مرفوض", en: "Rejected" }, CONVERTED: { ar: "محوّل لفاتورة", en: "Converted to invoice" }, EXPIRED: { ar: "منتهي", en: "Expired" },
 };
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-surface-hover text-foreground",
-  SENT: "bg-warning-subtle text-warning",
-  VIEWED: "bg-info-subtle text-info",
-  ACCEPTED: "bg-success-subtle text-success",
-  REJECTED: "bg-danger-subtle text-danger",
-  CONVERTED: "bg-info-subtle text-info",
-  EXPIRED: "bg-surface-hover text-muted-foreground",
+/* Ledger status tone · accepted/converted = blue (success) · sent/viewed = copper (waiting) ·
+   rejected = brick (a lost quote is a loss) · draft/expired = muted with a hollow dot */
+const STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "critical"> = {
+  DRAFT: "neutral",
+  SENT: "warning",
+  VIEWED: "warning",
+  ACCEPTED: "success",
+  REJECTED: "critical",
+  CONVERTED: "success",
+  EXPIRED: "neutral",
 };
+const money2 = (n: number | string) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const EMPTY_FORM = {
   contactId: "",
@@ -62,7 +70,7 @@ const EMPTY_FORM = {
 };
 
 export function Quotes() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
@@ -100,6 +108,45 @@ export function Quotes() {
   const [rejectReason, setRejectReason] = useState("");
   const navigate = useNavigate();
   const { toasts, push, dismiss } = useToasts();
+
+  // Document view · /app/quotes/:id opens THAT quote (brief rule 8: every row opens its document).
+  // On wide desktops the list keeps a split-view paper preview beside it (read-only, never a dialog).
+  const params = useParams();
+  const detailId = params.id && params.id !== "new" && params.id !== "import" ? params.id : null;
+  const [detail, setDetail] = useState<Quote | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const wideViewport = useWideViewport();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedFull, setSelectedFull] = useState<Quote | null>(null);
+  const [selectedLoading, setSelectedLoading] = useState(false);
+  const [seller, setSeller] = useState<{ name: string; vatNumber?: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!detailId) { setDetail(null); return; }
+    let alive = true;
+    setDetailLoading(true);
+    api.quotes.get(detailId)
+      .then((q) => { if (alive) setDetail(q); })
+      .catch((e: any) => {
+        if (!alive) return;
+        push("error", e instanceof ApiError ? e.message : t("تعذر تحميل العرض", "Could not load the quote"));
+        navigate("/app/quotes", { replace: true });
+      })
+      .finally(() => { if (alive) setDetailLoading(false); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailId]);
+
+  // Split view · "من" block of the paper document = the active organisation
+  useEffect(() => {
+    let alive = true;
+    api.orgs.list().then((orgs: any[]) => {
+      if (!alive) return;
+      const active = orgs.find((o) => o.id === getOrgId()) || orgs[0];
+      if (active) setSeller({ name: active.legalName || active.name, vatNumber: active.vatNumber });
+    }).catch(() => { /* preview simply shows no seller block */ });
+    return () => { alive = false; };
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -140,6 +187,37 @@ export function Quotes() {
   const total = items.reduce((s, q) => s + Number(q.total), 0);
   const accepted = items.filter(q => q.status === "ACCEPTED").length;
   const pending = items.filter(q => q.status === "SENT" || q.status === "VIEWED").length;
+  // Currency-honest total: one currency → label it · mixed → per-currency figures
+  const totalByCur = Object.entries(items.reduce<Record<string, number>>((acc, q) => { acc[q.currency] = (acc[q.currency] || 0) + Number(q.total); return acc; }, {}))
+    .filter(([, v]) => v !== 0);
+  const figureCurrency = totalByCur.length === 1 ? totalByCur[0][0] : (orgCurrency || "SAR");
+
+  // Split view · keep a row selected while the list is wide enough for the panel
+  const filteredKey = filtered.map((q) => q.id).join(",");
+  useEffect(() => {
+    if (!wideViewport || detailId) { setSelectedId(null); return; }
+    setSelectedId((prev) => (prev && filtered.some((q) => q.id === prev) ? prev : filtered[0]?.id ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wideViewport, filteredKey, detailId]);
+
+  // Split view · list rows carry no lines → fetch the selected quote once (read-only)
+  useEffect(() => {
+    if (!selectedId) { setSelectedFull(null); return; }
+    const row = items.find((q) => q.id === selectedId) || null;
+    setSelectedFull(row);
+    if (row?.lines && (row.lines as any[]).length) return;
+    let alive = true;
+    setSelectedLoading(true);
+    api.quotes.get(selectedId)
+      .then((full) => { if (alive) setSelectedFull(full); })
+      .catch(() => { /* keep the row-level summary */ })
+      .finally(() => { if (alive) setSelectedLoading(false); });
+    return () => { alive = false; };
+  }, [selectedId, items]);
+
+  // The opened document follows list-side status changes (award · decline · convert)
+  const detailRow = detail ? items.find((q) => q.id === detail.id) : undefined;
+  const detailView: Quote | null = detail ? { ...detail, ...(detailRow || {}), lines: (detailRow?.lines as any[])?.length ? detailRow!.lines : detail.lines } : null;
 
   const openCreate = () => {
     const prefillContact = searchParams.get("contactId") || "";
@@ -512,131 +590,313 @@ export function Quotes() {
     );
   }
 
+  const statusWord = (q: Quote) => (STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status);
+  const statusPill = (q: Quote) => (
+    <StatusBadge
+      tone={STATUS_TONE[q.status] || "neutral"}
+      icon={q.status === "DRAFT" || q.status === "EXPIRED" ? <span className="ledger-dot hollow" aria-hidden="true" /> : undefined}
+      title={q.status === "REJECTED" && q.rejectReason ? t(`السبب: ${q.rejectReason}`, `Reason: ${q.rejectReason}`) : undefined}
+    >
+      {statusWord(q)}
+    </StatusBadge>
+  );
+
+  // Workflow actions for one quote · quiet pills (list rows keep open · print · delete only)
+  const workflowActions = (q: Quote) => (
+    <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:border-border-strong" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
+        <Printer className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("العرض", "Proposal")}
+      </a>
+      {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
+        <button onClick={() => handleSendLink(q)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إنشاء رابط اعتماد عام + إرساله للعميل", "Create a public accept link + email it")}>
+          <Link2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("رابط القبول", "Accept link")}
+        </button>
+      )}
+      {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
+        pendingAccept === q.id ? (
+          <InlineConfirm onConfirm={() => handleManualAccept(q)} onCancel={() => setPendingAccept(null)} label={t("تسجيل موافقة العميل وإنشاء المشروع؟", "Record approval + create project?")} />
+        ) : (
+          <button onClick={() => setPendingAccept(q.id)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-success hover:border-border-strong" title={t("موافقة يدوية (حوالة/هاتف) → مشروع تلقائي", "Manual approval → auto project")}>
+            <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("ترسية", "Award")}
+          </button>
+        )
+      )}
+      {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
+        rejectFor === q.id ? (
+          <span className="inline-flex flex-wrap items-center gap-1">
+            <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب الخسارة (إلزامي)...", "Loss reason (required)...")} className="h-7 w-44 border-danger-border text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
+            <button onClick={() => handleReject(q)} className="rounded-full bg-danger px-2.5 py-1 text-xs text-primary-foreground">{t("تأكيد", "OK")}</button>
+            <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="rounded-full px-2.5 py-1 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
+          </span>
+        ) : (
+          <button onClick={() => { setRejectFor(q.id); setRejectReason(""); }} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-danger hover:border-border-strong" title={t("اعتذار/خسارة مع تسجيل السبب", "Decline with a reason")}>
+            <XCircle className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("رفض", "Decline")}
+          </button>
+        )
+      )}
+      {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
+        <button onClick={() => openSign(q)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إرسال للتوقيع", "Send for signing")}>
+          <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}
+        </button>
+      )}
+      {q.status !== "CONVERTED" && (
+        pendingConvert === q.id ? (
+          <InlineConfirm onConfirm={() => handleConvert(q)} onCancel={() => setPendingConvert(null)} label={t("تحويل لفاتورة؟", "Convert to invoice?")} />
+        ) : (
+          <button onClick={() => setPendingConvert(q.id)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-success hover:border-border-strong" title={t("تحويل لفاتورة", "Convert to invoice")}>
+            <ArrowLeftRight className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تحويل", "Convert")}
+          </button>
+        )
+      )}
+      {q.status === "CONVERTED" && q.convertedInvoiceId && (
+        <Link to={`/app/invoices/${q.convertedInvoiceId}`} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong">
+          <FileText className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("فتح الفاتورة", "Open invoice")}
+        </Link>
+      )}
+      {pendingDelete === q.id ? (
+        <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
+      ) : (
+        <button onClick={() => setPendingDelete(q.id)} className="ms-auto rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+      )}
+    </div>
+  );
+
+  const previewDoc = (q: Quote) => ({
+    id: q.id,
+    number: q.quoteNumber,
+    status: q.status,
+    issueDate: q.issueDate,
+    dueDate: q.validUntil,
+    currency: q.currency,
+    subtotal: q.subtotal,
+    taxTotal: q.taxTotal,
+    total: q.total,
+    lines: (q.lines as any[])?.map((l: any) => ({ id: l.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, total: l.total })),
+  });
+
+  // Document view · /app/quotes/:id
+  if (detailId) {
+    const q = detailView;
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+          eyebrow={<span className="text-[13px]">{t("المبيعات", "Sales")} · <Link to="/app/quotes" className="hover:underline">{t("عروض الأسعار", "Quotes")}</Link></span>}
+          title={q ? <span dir="ltr" className="font-code">{q.quoteNumber}</span> : t("عرض سعر", "Quote")}
+          description={q ? <><BidiText>{q.contact?.displayName || "—"}</BidiText>{q.title ? <> · <BidiText>{q.title}</BidiText></> : null}</> : undefined}
+          actions={
+            <Button variant="outline" className="h-10 px-[18px] text-sm" onClick={() => navigate("/app/quotes")}>
+              <ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />{t("عروض الأسعار", "Quotes")}
+            </Button>
+          }
+        />
+        {detailLoading || !q ? (
+          <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+        ) : (
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,34%)]">
+            <div className="min-w-0 rounded-lg bg-surface-subtle p-4">
+              <InvoicePreviewPane
+                doc={previewDoc(q)}
+                seller={seller}
+                customer={q.contact ? { name: q.contact.displayName, vatNumber: (q.contact as any).taxId } : null}
+                docTypeLabel={t("عرض سعر", "Quotation")}
+                statusLabel={statusWord(q)}
+                statusMeta={[String(q.issueDate || "").slice(0, 10), q.validUntil ? `→ ${String(q.validUntil).slice(0, 10)}` : ""].filter(Boolean).join(" ")}
+                onSend={q.status !== "CONVERTED" && q.status !== "REJECTED" ? () => openSign(q) : undefined}
+                onPdf={() => window.open(`/print/proposal/${q.id}`, "_blank", "noopener")}
+              />
+            </div>
+            <aside className="min-w-0 space-y-4">
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-section font-semibold text-foreground">{t("الحالة", "Status")}</h2>
+                  {statusPill(q)}
+                </div>
+                <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-content-secondary">{t("العميل", "Customer")}</dt>
+                  <dd className="min-w-0 truncate text-foreground">
+                    {q.contactId ? <Link to={`/app/contacts/${q.contactId}`} className="hover:underline underline-offset-4"><BidiText>{q.contact?.displayName || "—"}</BidiText></Link> : <BidiText>{q.contact?.displayName || "—"}</BidiText>}
+                  </dd>
+                  <dt className="text-content-secondary">{t("تاريخ العرض", "Quote date")}</dt>
+                  <dd><span dir="ltr" className="font-english tabular-nums text-foreground">{q.issueDate?.slice(0, 10)}</span></dd>
+                  <dt className="text-content-secondary">{t("صالح حتى", "Valid until")}</dt>
+                  <dd><span dir="ltr" className="font-english tabular-nums text-foreground">{q.validUntil?.slice(0, 10) || "—"}</span></dd>
+                  <dt className="text-content-secondary">{t("الإجمالي", "Total")}</dt>
+                  <dd><span dir="ltr" className="font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(q.total)} <span className="font-english text-xs text-muted-foreground">{q.currency}</span></span></dd>
+                  {q.rejectReason && <>
+                    <dt className="text-content-secondary">{t("سبب الرفض", "Decline reason")}</dt>
+                    <dd className="min-w-0 break-words text-foreground">{q.rejectReason}</dd>
+                  </>}
+                  {q.notes && <>
+                    <dt className="text-content-secondary">{t("شروط ومدة التنفيذ", "Terms and delivery period")}</dt>
+                    <dd className="min-w-0 whitespace-pre-wrap break-words text-foreground">{q.notes}</dd>
+                  </>}
+                </dl>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-5">
+                <h2 className="mb-3 text-section font-semibold text-foreground">{t("إجراءات", "Actions")}</h2>
+                {workflowActions(q)}
+              </div>
+            </aside>
+          </div>
+        )}
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+      </div>
+    );
+  }
+
+  const selected = selectedFull;
+  const compactList = wideViewport;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("عروض الأسعار", "Quotes")}</h1>
-          <p className="text-muted-foreground mt-1">{t("إدارة عروض الأسعار للعملاء", "Manage customer quotes")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/5" onClick={() => navigate("/app/quotes/import")}>
-            <FileSpreadsheet className="me-2 h-4 w-4" />{t("استيراد BOQ", "Import BOQ")}
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90" onClick={openCreate}><Plus className="me-2 h-4 w-4" />{t("عرض سعر جديد", "New quote")}</Button>
-        </div>
-      </div>
+      <div className={wideViewport ? "grid grid-cols-[minmax(0,1fr)_minmax(380px,30%)] items-start gap-8" : ""}>
+        <div className="min-w-0 space-y-6">
+      <PageHeader
+        className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
+        eyebrow={<span className="text-[13px]">{t("المبيعات", "Sales")}</span>}
+        title={t("عروض الأسعار", "Quotes")}
+        description={t("إدارة عروض الأسعار للعملاء", "Manage customer quotes")}
+        actions={
+          <>
+            <Button variant="outline" className="h-10 px-[18px] text-sm" onClick={() => navigate("/app/quotes/import")}>
+              <FileSpreadsheet className="me-2 h-4 w-4" strokeWidth={1.75} />{t("استيراد BOQ", "Import BOQ")}
+            </Button>
+            <Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("عرض سعر جديد", "New quote")}</Button>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("إجمالي العروض", "Total quotes")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{items.length}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("معلقة (في انتظار الرد)", "Pending (awaiting response)")}</div>
-          <div className="font-english text-warning" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{pending}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("مقبولة", "Accepted")}</div>
-          <div className="font-english text-success" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{accepted}</div>
-        </CardContent></Card>
-        <Card className="border-border"><CardContent className="p-5">
-          <div className="text-muted-foreground text-sm mb-1">{t("القيمة الإجمالية", "Total value")}</div>
-          <div className="font-english text-foreground" style={{ fontSize: "1.15rem", fontWeight: 700 }}>{total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</div>
-        </CardContent></Card>
-      </div>
+      {/* Ledger figures · ink rules, serif numerals, currency stated once */}
+      <MetricStrip className="compact">
+        <Metric label={t("إجمالي العروض", "Total quotes")} value={items.length} hint={t("عرض", "quotes")} />
+        <Metric label={t("معلقة (في انتظار الرد)", "Pending (awaiting response)")} value={<span className="text-warning">{pending}</span>} hint={t("مرسلة أو مُشاهَدة", "Sent or viewed")} />
+        <Metric label={t("مقبولة", "Accepted")} value={<span className="text-success">{accepted}</span>} hint={t("ترسية", "Awarded")} />
+        <Metric
+          label={t("القيمة الإجمالية", "Total value")}
+          value={totalByCur.length > 1
+            ? <span className="flex flex-col gap-1">{totalByCur.map(([cur, v]) => <span key={cur}><LedgerFigure value={v} currency={cur} /></span>)}</span>
+            : <LedgerFigure value={total} currency={figureCurrency} />}
+        />
+      </MetricStrip>
 
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground">{t("قائمة العروض", "Quote list")}</CardTitle>
-            <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" /><Input placeholder={t("بحث...", "Search...")} className="w-64 ps-10 border-border" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
-           filtered.length === 0 ? (
-            <div className="py-12 text-center"><FileText className="h-12 w-12 mx-auto text-muted-foreground/60 mb-3" /><p className="text-sm text-muted-foreground">{t("لا توجد عروض أسعار بعد", "No quotes yet")}</p></div>
-          ) : (
-            <table className="w-full">
-              <thead><tr className="border-b border-border bg-muted text-xs text-muted-foreground">
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("رقم العرض", "Quote no.")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("العميل", "Customer")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("التاريخ", "Date")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("صالح حتى", "Valid until")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("الحالة", "Status")}</th>
-                <th className="py-3 px-4 text-start" style={{ fontWeight: 600 }}>{t("إجراءات", "Actions")}</th>
-              </tr></thead>
-              <tbody>
-                {filtered.map(q => (
-                  <tr key={q.id} className="border-b border-border/50 hover:bg-primary/5">
-                    <td className="py-3 px-4 font-english text-sm text-primary" style={{ fontWeight: 600 }}>{q.quoteNumber}</td>
-                    <td className="py-3 px-4 text-sm text-foreground/80 max-w-[220px] truncate" title={q.contact?.displayName || ""}><bdi dir="auto">{q.contact?.displayName || "—"}</bdi></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{q.issueDate?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{q.validUntil?.slice(0, 10)}</span></td>
-                    <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english text-sm text-foreground inline-flex items-baseline gap-1 whitespace-nowrap" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><span>{Number(q.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span><span className="text-[10px] text-muted-foreground/60">{q.currency}</span></span></td>
-                    <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[q.status]}`} title={q.status === "REJECTED" && q.rejectReason ? t(`السبب: ${q.rejectReason}`, `Reason: ${q.rejectReason}`) : undefined}>{STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status}</span></td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="rounded-md px-2 py-1 text-xs text-foreground/70 hover:bg-muted flex items-center gap-1" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
-                          <Printer className="h-3.5 w-3.5" /> {t("العرض", "Proposal")}
-                        </a>
-                        {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
-                          <button onClick={() => handleSendLink(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-info-subtle flex items-center gap-1" title={t("إنشاء رابط اعتماد عام + إرساله للعميل", "Create a public accept link + email it")}>
-                            <Link2 className="h-3.5 w-3.5" /> {t("رابط القبول", "Accept link")}
-                          </button>
-                        )}
-                        {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
-                          pendingAccept === q.id ? (
-                            <InlineConfirm onConfirm={() => handleManualAccept(q)} onCancel={() => setPendingAccept(null)} label={t("تسجيل موافقة العميل وإنشاء المشروع؟", "Record approval + create project?")} />
-                          ) : (
-                            <button onClick={() => setPendingAccept(q.id)} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success-subtle flex items-center gap-1" title={t("موافقة يدوية (حوالة/هاتف) → مشروع تلقائي", "Manual approval → auto project")}>
-                              <CheckCircle2 className="h-3.5 w-3.5" /> {t("ترسية", "Award")}
-                            </button>
-                          )
-                        )}
-                        {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
-                          rejectFor === q.id ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب الخسارة (إلزامي)...", "Loss reason (required)...")} className="h-7 w-44 border-danger-border text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
-                              <button onClick={() => handleReject(q)} className="rounded-md px-2 py-1 text-xs bg-danger text-primary-foreground">{t("تأكيد", "OK")}</button>
-                              <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
-                            </span>
-                          ) : (
-                            <button onClick={() => { setRejectFor(q.id); setRejectReason(""); }} className="rounded-md px-2 py-1 text-xs text-danger hover:bg-danger-subtle flex items-center gap-1" title={t("اعتذار/خسارة مع تسجيل السبب", "Decline with a reason")}>
-                              <XCircle className="h-3.5 w-3.5" /> {t("رفض", "Decline")}
-                            </button>
-                          )
-                        )}
-                        {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
-                          <button onClick={() => openSign(q)} className="rounded-md px-2 py-1 text-xs text-primary hover:bg-info-subtle flex items-center gap-1" title={t("إرسال للتوقيع", "Send for signing")}>
-                            <FileSignature className="h-3.5 w-3.5" /> {t("توقيع", "Sign")}
-                          </button>
-                        )}
-                        {q.status !== "CONVERTED" && (
-                          pendingConvert === q.id ? (
-                            <InlineConfirm onConfirm={() => handleConvert(q)} onCancel={() => setPendingConvert(null)} label={t("تحويل لفاتورة؟", "Convert to invoice?")} />
-                          ) : (
-                            <button onClick={() => setPendingConvert(q.id)} className="rounded-md px-2 py-1 text-xs text-success hover:bg-success-subtle flex items-center gap-1" title={t("تحويل لفاتورة", "Convert to invoice")}>
-                              <ArrowLeftRight className="h-3.5 w-3.5" /> {t("تحويل", "Convert")}
-                            </button>
-                          )
-                        )}
-                        {pendingDelete === q.id ? (
-                          <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
-                        ) : (
-                          <button onClick={() => setPendingDelete(q.id)} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle"><Trash2 className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+      <PageToolbar aria-label={t("مرشحات العروض", "Quote filters")} className="justify-between">
+        <h2 className="text-section font-semibold text-foreground">{t("قائمة العروض", "Quote list")}</h2>
+        <div className="relative w-full sm:w-[260px]">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder={t("بحث...", "Search...")} className="h-9 w-full ps-8 text-[13px]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+      </PageToolbar>
+
+      {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
+       filtered.length === 0 ? (
+        <EmptyState icon={<FileText className="h-8 w-8" strokeWidth={1.75} />} title={t("لا توجد عروض أسعار بعد", "No quotes yet")} />
+      ) : (
+        <>
+        {/* Compact stacked list on phones · the wide ledger table from md up */}
+        <ul className="md:hidden">
+          {filtered.map((q) => (
+            <li key={q.id}>
+              <button type="button" onClick={() => navigate(`/app/quotes/${q.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح العرض", "Open quote")}>
+                <span className="flex min-w-0 flex-col gap-[3px]">
+                  <span className="truncate text-sm font-semibold text-foreground"><BidiText>{q.contact?.displayName || "—"}</BidiText></span>
+                  <span dir="ltr" className="font-code text-xs text-muted-foreground">{q.quoteNumber} · {q.issueDate?.slice(0, 10)}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-[3px]">
+                  <span dir="ltr" className="font-display text-[18px] leading-5 text-foreground tabular-nums">{money2(q.total)}</span>
+                  {statusPill(q)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
+        <Table className={`table-fixed ${compactList ? "min-w-[820px]" : "min-w-[980px]"}`}>
+          <colgroup>
+            <col style={{ width: "200px" }} />{/* رقم العرض · mono */}
+            <col style={{ minWidth: "110px" }} />{/* العميل · flexible */}
+            <col style={{ width: "110px" }} />{/* التاريخ */}
+            <col style={{ width: "110px" }} />{/* صالح حتى */}
+            <col style={{ width: "130px" }} />{/* الإجمالي */}
+            <col style={{ width: "140px" }} />{/* الحالة */}
+            {!compactList && <col style={{ width: "150px" }} />}{/* إجراءات · in split view the panel action bar takes over */}
+          </colgroup>
+          <TableHeader><TableRow className="hover:bg-transparent">
+            <TableHead>{t("رقم العرض", "Quote no.")}</TableHead>
+            <TableHead>{t("العميل", "Customer")}</TableHead>
+            <TableHead>{t("التاريخ", "Date")}</TableHead>
+            <TableHead>{t("صالح حتى", "Valid until")}</TableHead>
+            <TableHead className="text-end">{t("الإجمالي", "Total")}</TableHead>
+            <TableHead>{t("الحالة", "Status")}</TableHead>
+            {!compactList && <TableHead>{t("إجراءات", "Actions")}</TableHead>}
+          </TableRow></TableHeader>
+          <TableBody>
+            {filtered.map(q => (
+              <TableRow
+                key={q.id}
+                onClick={() => (wideViewport ? setSelectedId(q.id) : navigate(`/app/quotes/${q.id}`))}
+                onDoubleClick={() => navigate(`/app/quotes/${q.id}`)}
+                data-state={wideViewport && selectedId === q.id ? "selected" : undefined}
+                className="h-12 cursor-pointer data-[state=selected]:border-b-transparent data-[state=selected]:[&>td:first-child]:rounded-s-lg data-[state=selected]:[&>td:last-child]:rounded-e-lg"
+                title={wideViewport ? t("عرض في اللوحة · نقرتان للفتح", "Show in the panel · double-click to open") : t("فتح العرض", "Open quote")}
+              >
+                <TableCell className="text-start overflow-hidden">
+                  {/* LTR code inside an RTL cell: ellipsis at the code's end, aligned to the page start */}
+                  <Link to={`/app/quotes/${q.id}`} onClick={(e) => e.stopPropagation()} title={q.quoteNumber} className="block max-w-full hover:underline underline-offset-4">
+                    <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{q.quoteNumber}</span>
+                  </Link>
+                </TableCell>
+                <TableCell className="overflow-hidden text-sm text-foreground" title={q.contact?.displayName || ""}>
+                  <span className="block overflow-hidden text-ellipsis whitespace-nowrap leading-5"><bdi dir="auto">{q.contact?.displayName || "—"}</bdi></span>
+                </TableCell>
+                <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{q.issueDate?.slice(0, 10)}</span></TableCell>
+                <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{q.validUntil?.slice(0, 10)}</span></TableCell>
+                <TableCell className="text-end">
+                  <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(q.total)}{q.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {q.currency}</span>}</span>
+                </TableCell>
+                <TableCell className="align-middle">{statusPill(q)}</TableCell>
+                {!compactList && (
+                <TableCell className="align-middle" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1 whitespace-nowrap">
+                    <button onClick={() => navigate(`/app/quotes/${q.id}`)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("فتح العرض", "Open quote")}><Eye className="h-4 w-4" strokeWidth={1.75} /></button>
+                    <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="rounded-full p-1.5 text-content-secondary hover:bg-surface-hover" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}><Printer className="h-4 w-4" strokeWidth={1.75} /></a>
+                    {pendingDelete === q.id ? (
+                      <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
+                    ) : (
+                      <button onClick={() => setPendingDelete(q.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                    )}
+                  </div>
+                </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        </div>
+        </>
+      )}
+        </div>
+
+        {/* Split view · the selected quote as a paper document (desktop ≥1536px) */}
+        {wideViewport && selected && (
+          <aside className="sticky top-4 rounded-lg bg-surface-subtle p-4" aria-label={t("معاينة العرض", "Quote preview")}>
+            <InvoicePreviewPane
+              doc={previewDoc(selected)}
+              seller={seller}
+              customer={selected.contact ? { name: selected.contact.displayName, vatNumber: (selected.contact as any).taxId } : null}
+              docTypeLabel={t("عرض سعر", "Quotation")}
+              statusLabel={statusWord(selected)}
+              statusMeta={[String(selected.issueDate || "").slice(0, 10), selected.validUntil ? `→ ${String(selected.validUntil).slice(0, 10)}` : ""].filter(Boolean).join(" ")}
+              loading={selectedLoading}
+              onSend={selected.status !== "CONVERTED" && selected.status !== "REJECTED" ? () => openSign(selected) : undefined}
+              onPdf={() => window.open(`/print/proposal/${selected.id}`, "_blank", "noopener")}
+              onEdit={() => navigate(`/app/quotes/${selected.id}`)}
+              editLabel={t("فتح", "Open")}
+            />
+            <div className="mt-3">{workflowActions(selected)}</div>
+          </aside>
+        )}
+      </div>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
