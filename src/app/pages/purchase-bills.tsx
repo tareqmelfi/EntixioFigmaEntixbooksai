@@ -18,7 +18,7 @@ import { useFormDraft } from "../lib/form-draft";
 import { ContactSearchInput } from "../components/contact-search-input";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import type { ContactInput } from "../lib/api";
-import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
+import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals, normalizeTaxRate, lineTaxRate } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
@@ -107,6 +107,9 @@ export function PurchaseBills() {
   const draft = useFormDraft({ key: editingId ? `bill:${editingId}` : "bill:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  // Account law: lines without an account on approve are highlighted + explained inline
+  const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
+  const [lineError, setLineError] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
@@ -229,8 +232,31 @@ export function PurchaseBills() {
       branchId: b.branchId ?? null,
       projectId: b.projectId ?? null,
     } as any);
-    const linesData = (b.lines || []).map((l: any) => ({ description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice), accountId: l.accountId || "", productId: l.productId || "" }));
+    // Stored lines carry a NET unit price (the API computes tax on top) and their tax
+    // rate relation · legacy rows without a relation derive the rate from subtotal/net.
+    // Every line needs an id + numeric taxRate + taxInclusive, otherwise the grid shows NaN.
+    const linesData: InvoiceLine[] = (b.lines || []).map((l: any, i: number) => {
+      const qty = Number(l.quantity) || 0;
+      const price = Number(l.unitPrice) || 0;
+      const net = qty * price;
+      const stored = Number(l.subtotal);
+      const derived = net > 0 && Number.isFinite(stored) && stored > net ? Math.round(((stored / net) - 1) * 100) / 100 : 0;
+      const parsed = normalizeTaxRate(l.taxRate, derived);
+      return {
+        id: l.id || `${Date.now()}-${i}`,
+        description: l.description || "",
+        quantity: String(l.quantity ?? ""),
+        unitPrice: String(l.unitPrice ?? ""),
+        accountId: l.accountId || l.assetAccountId || l.product?.expenseAccountId || "",
+        productId: l.productId || "",
+        taxRate: parsed.rate,
+        taxInclusive: false,
+        isAsset: l.isAsset === true,
+      };
+    });
     setLines(linesData.length > 0 ? linesData : [newLine()]);
+    setInvalidLineIds(new Set());
+    setLineError(null);
     const storedSplits: PaymentSplit[] = Array.isArray(b.paymentSplits) ? b.paymentSplits.map((s: any, i: number) => ({
       id: s.id || `split-${i}-${Date.now()}`,
       method: s.method || "BANK_TRANSFER",
@@ -275,9 +301,23 @@ export function PurchaseBills() {
 
   const handleSubmit = async (action: "draft" | "approve" = "draft") => {
     setCreateError(null);
+    setLineError(null);
+    setInvalidLineIds(new Set());
     if (!form.contactId) { setCreateError(t("اختر المورد", "Select supplier")); return; }
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
     if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل (وصف + سعر)", "Add at least one line (description + price)")); return; }
+    // Account law (2026-09-08): a bill is never approved with an account-less line ·
+    // drafts save freely. line.accountId → product.expenseAccountId is the same rule the API applies.
+    if (action !== "draft") {
+      const missing = validLines.filter((l) => !l.accountId && !products.find((p: any) => p.id === l.productId)?.expenseAccountId);
+      if (missing.length) {
+        const msg = t("لا يمكن اعتماد الفاتورة: لم تُسجَّل بنودها بالشكل الصحيح — اختر حسابًا لكل بند.", "Cannot approve: the lines were not recorded correctly — choose an account for every line.");
+        setInvalidLineIds(new Set(missing.map((l) => l.id)));
+        setLineError(msg);
+        setCreateError(msg);
+        return;
+      }
+    }
     setBusy(true);
     try {
       const totals = computeTotals(lines);
@@ -312,8 +352,15 @@ export function PurchaseBills() {
           productId: l.productId || null,
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
-          unitPrice: (() => { const v = Number(normalizeDigits(l.unitPrice)); return isNaN(v) ? 0 : v; })(),
-          taxRate: l.taxRate ?? 0,
+          // «شامل»: the grid price is GROSS · the API always adds tax on top of unitPrice,
+          // so send the NET price (gross ÷ (1 + rate)) — totals then match the grid exactly.
+          unitPrice: (() => {
+            const v = Number(normalizeDigits(l.unitPrice));
+            if (isNaN(v)) return 0;
+            const rate = lineTaxRate(l);
+            return l.taxInclusive && rate > 0 ? Math.round((v / (1 + rate)) * 10000) / 10000 : v;
+          })(),
+          taxRate: lineTaxRate(l),
           taxRateId: (l as any).taxRateId || null,
           accountId: (l as any).accountId || null,
           // خط الأصل: يُسجَّل تلقائياً في الأصول الثابتة مربوطاً بحساب السطر
@@ -357,7 +404,15 @@ export function PurchaseBills() {
       }
       finalizeSavedBill(b, action);
     } catch (e: any) {
-      setCreateError(humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
+      const msg = humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" });
+      setCreateError(msg);
+      // Server-side approval law: mirror the red highlight on the lines it named.
+      if (e?.code === "line_account_required") {
+        setLineError(msg);
+        const named: number[] = Array.isArray(e?.details?.lines) ? e.details.lines : [];
+        const ids = named.length ? named.map((n) => validLines[n - 1]?.id).filter(Boolean) as string[] : validLines.filter((l) => !l.accountId).map((l) => l.id);
+        setInvalidLineIds(new Set(ids));
+      }
     } finally { setBusy(false); }
   };
 
@@ -409,6 +464,17 @@ export function PurchaseBills() {
       push("success", t(`تم اعتماد ${b.billNumber || b.id}`, `Approved ${b.billNumber || b.id}`));
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" }));
+      // Account law: open the bill so the user can pick the missing accounts (lines highlighted).
+      if (e?.code === "line_account_required") {
+        try {
+          const full = await api.bills.get(b.id);
+          openEdit(full);
+          const msg = humanizeError(e, language, { ar: "فشل الاعتماد", en: "Approve failed" });
+          setCreateError(msg);
+          setLineError(msg);
+          setInvalidLineIds(new Set((full.lines || []).filter((l: any) => !l.accountId && !l.assetAccountId && !l.product?.expenseAccountId).map((l: any) => l.id)));
+        } catch { /* stay on the list */ }
+      }
     }
   };
 
@@ -551,9 +617,12 @@ export function PurchaseBills() {
               currency={form.currency}
               direction="purchases"
               minRows={10}
+              contactId={form.contactId || null}
+              invalidIds={invalidLineIds}
+              errorMessage={lineError}
               products={products.map((p: any) => ({
                 id: p.id, code: p.code, name: p.name, unitPrice: Number(p.unitPrice || 0),
-                taxRate: p.taxRate ? Number(p.taxRate) : 0.15, taxInclusive: !!p.taxInclusive,
+                taxRate: normalizeTaxRate(p.taxRate, 0.15).rate, taxInclusive: !!p.taxInclusive,
                 accountId: p.expenseAccountId || p.revenueAccountId,
               }))}
               accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.name, type: a.type, subtype: a.subtype }))}
@@ -716,15 +785,22 @@ export function PurchaseBills() {
                   push("error", t("لم يتم استخراج بنود من المستند", "No lines were extracted from the document"));
                   return;
                 }
-                const newLines: InvoiceLine[] = data.lines.map((l: any) => ({
-                  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                  description: l.description || "",
-                  quantity: String(l.quantity || 1),
-                  unitPrice: String(l.unitPrice || 0),
-                  taxRate: l.taxRate ?? 0.15,
-                  taxInclusive: l.taxInclusive ?? false,
-                }));
+                // OCR may send the rate as 0.15 · 15 · "15%" · "15% شامل" — never let NaN reach the grid.
+                const newLines: InvoiceLine[] = data.lines.map((l: any) => {
+                  const parsed = normalizeTaxRate(l.taxRate, 0.15);
+                  return {
+                    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                    description: l.description || "",
+                    quantity: String(Number(l.quantity) || 1),
+                    unitPrice: String(Number(l.unitPrice) || 0),
+                    taxRate: parsed.rate,
+                    taxInclusive: typeof l.taxInclusive === "boolean" ? l.taxInclusive : (parsed.inclusive ?? false),
+                  };
+                });
                 setLines(newLines);
+                setInvalidLineIds(new Set());
+                setLineError(null);
+                if (newLines.some((l) => l.taxInclusive)) setTaxMode(newLines.every((l) => l.taxInclusive) ? "all-inclusive" : "custom");
                 if (data.documentNumber) setForm((f) => ({ ...f, reference: data.documentNumber || f.reference }));
                 if (data.dueDate) setForm((f) => ({ ...f, dueDate: data.dueDate || f.dueDate }));
                 setSourceFile(data.sourceFile || null);

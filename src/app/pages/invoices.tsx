@@ -437,7 +437,8 @@ export function Invoices() {
       const missing = activeLines.filter(l => !l.accountId && !products.find(p => p.id === l.productId)?.incomeAccountId);
       if (missing.length) {
         setInvalidLineIds(new Set(missing.map(l => l.id)));
-        setCreateError(t("اختر حساب الإيراد لكل بند قبل الاعتماد، أو اربط الحساب بالمنتج المختار.", "Select a revenue account for every line before approval, or configure the selected product's income account."));
+        // Account law (CEO 2026-09-08): the approve/send message names the real cause.
+        setCreateError(t("لا يمكن اعتماد الفاتورة: لم تُسجَّل بنودها بالشكل الصحيح — اختر حسابًا لكل بند.", "Cannot approve: the lines were not recorded correctly — choose an account for every line."));
         return;
       }
     }
@@ -903,6 +904,8 @@ export function Invoices() {
               currency={form.currency}
               direction="sales"
               invalidIds={invalidLineIds}
+              contactId={form.contactId || null}
+              errorMessage={invalidLineIds.size > 0 && createError && /حساب|account/i.test(createError) ? createError : null}
               products={products.map((p: any) => ({
                 id: p.id,
                 name: displayName(p),
