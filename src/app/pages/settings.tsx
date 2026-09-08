@@ -21,6 +21,7 @@ import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types"
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 import { NumberPreferences } from "../components/number-preferences";
+import { NUMBERING_DEFAULTS, previewNumber } from "../lib/numbering-pattern";
 import { ApiKeysTab } from "../components/api-keys-tab";
 import { VatRegistrationPanel } from "../components/vat-registration-panel";
 import { LedgerMappingTab } from "../components/ledger-mapping-tab";
@@ -1093,9 +1094,11 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
-  type NumberingKindUi = "contact" | "invoice" | "quote" | "bill" | "receipt" | "payment";
+  type NumberingKindUi = "contact" | "invoice" | "quote" | "bill" | "receipt" | "payment" | "estimate" | "project";
   const kinds: Array<[NumberingKindUi, string]> = [
     ["contact", t("العملاء/الموردين", "Customers/Suppliers")],
+    ["project", t("المشاريع", "Projects")],
+    ["estimate", t("دراسات التكلفة/الميزانيات", "Cost studies / budgets")],
     ["invoice", t("فواتير المبيعات", "Sales invoices")],
     ["quote", t("عروض الأسعار", "Price quotes")],
     ["bill", t("فواتير المشتريات", "Purchase invoices")],
@@ -1109,6 +1112,8 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
     bill: "{VENDOR}",
     receipt: "{CLIENT}",
     payment: "{VENDOR}",
+    estimate: "{CLIENT}",
+    project: "{CLIENT}",
   };
 
   const normalizeLegacyPrefix = (prefix: string, kind: NumberingKindUi) => {
@@ -1130,6 +1135,8 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
       .then((raw) => setConfig(normalizeLoadedConfig(raw)))
       .catch(() => setConfig({
         contact: { prefix: "EN-CON-{CLIENT}-", padding: 4 },
+        project: { prefix: "PRJ-", padding: 4 },
+        estimate: { prefix: "EST-{YYYY}{MM}-", padding: 4 },
         invoice: { prefix: "EN-INV-{YYYY}{MM}-", padding: 4 },
         quote: { prefix: "EN-QTE-{YYYY}{MM}-", padding: 4 },
         bill: { prefix: "EN-BIL-{VENDOR}-{YYYY}{MM}-", padding: 4 },
@@ -1139,28 +1146,20 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
       .finally(() => setLoading(false));
   }, [orgId]);
 
-  const expand = (s: string) => {
-    const now = new Date();
-    return s
-      .replace(/\{ENTITY\}/g, String(config?.entityCode || "EN"))
-      .replace(/\{CLIENT\}/g, "CLNT")
-      .replace(/\{VENDOR\}/g, "VNDR")
-      .replace(/\{PROJECT\}/g, "PRJ1")
-      .replace(/\{DOC\}/g, "DOC")
-      .replace(/\{YYYY\}/g, String(now.getFullYear()))
-      .replace(/\{YY\}/g, String(now.getFullYear()).slice(-2))
-      .replace(/\{MM\}/g, String(now.getMonth() + 1).padStart(2, "0"))
-      .replace(/\{DD\}/g, String(now.getDate()).padStart(2, "0"));
-  };
-
+  // PL2 · preview runs through the SAME composer the API generates with
+  // (src/app/lib/numbering-pattern.ts mirrors the server), so the number shown
+  // here is the number that will actually be issued.
   const preview = (kind: NumberingKindUi) => {
     const k = config?.[kind];
-    if (!k) return "—";
-    const prefix = String(k.prefix || "");
-    const padded = "1".padStart(Math.max(Number(k.padding) || 4, 1), "0");
-    const base = expand(prefix);
-    return prefix.includes("{SEQ}") ? base.replace(/\{SEQ\}/g, padded) : `${base}${padded}`;
+    if (!k) return previewNumber(kind, {}, { entityCode: config?.entityCode, clientCode: "EDG" });
+    return previewNumber(kind, k, { entityCode: config?.entityCode, clientCode: "EDG", vendorCode: "VNDR" });
   };
+
+  const setKind = (kind: NumberingKindUi, patch: Record<string, unknown>) =>
+    setConfig((prev: any) => ({ ...prev, [kind]: { ...(prev?.[kind] || {}), ...patch } }));
+
+  const toggleClass = (on: boolean) =>
+    `rounded-full border px-3 py-1 text-xs transition-colors ${on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-content-secondary hover:border-primary/50"}`;
 
   const normalizeConfigForSave = (current: any) => {
     const next = { ...(current || {}) };
@@ -1217,42 +1216,93 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground font-medium border-b pb-2">
-          <div className="col-span-3">{t("النوع", "Type")}</div>
-          <div className="col-span-5">{t("البادئة", "Prefix")}</div>
-          <div className="col-span-2 text-center">{t("عدد الأرقام", "Digits")}</div>
-          <div className="col-span-2">{t("معاينة", "Preview")}</div>
-        </div>
         {kinds.map(([k, label]) => (
-          <div key={k} className="grid grid-cols-12 gap-2 items-center">
-            <div className="col-span-3 text-sm text-foreground">{label}</div>
-            <div className="col-span-5 space-y-1">
-              <Input
-                className="font-english"
-                dir="ltr"
-                value={config?.[k]?.prefix || ""}
-                onChange={(e) => setConfig({ ...config, [k]: { ...config[k], prefix: e.target.value } })}
-                onBlur={(e) => {
-                  const normalized = normalizeLegacyPrefix(e.target.value, k);
-                  if (normalized === e.target.value) return;
-                  setConfig((prev: any) => ({ ...prev, [k]: { ...prev[k], prefix: normalized } }));
-                  push("success", t(`تم تحويل XXXX تلقائياً إلى ${tokenHintByKind[k]}`, `Automatically converted XXXX to ${tokenHintByKind[k]}`));
-                }}
-              />
-              <p className="text-[11px] text-muted-foreground font-english" dir="ltr">
-                Tip: use {tokenHintByKind[k]} instead of XXXX
-              </p>
+          <div key={k} data-testid={`numbering-kind-${k}`} className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div className="min-w-0 text-sm text-foreground" style={{ fontWeight: 600 }}>{label}</div>
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="text-xs text-content-secondary">{t("معاينة", "Preview")}</span>
+                <span data-testid={`numbering-preview-${k}`} className="font-code truncate text-sm text-primary" dir="ltr">{preview(k)}</span>
+              </div>
             </div>
-            <Input
-              className="col-span-2 font-english text-center"
-              type="number"
-              min="1"
-              max="10"
-              dir="ltr"
-              value={config?.[k]?.padding || 4}
-              onChange={(e) => setConfig({ ...config, [k]: { ...config[k], padding: Number(e.target.value) } })}
-            />
-            <div className="col-span-2 font-english text-xs text-primary" dir="ltr">{preview(k)}</div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="min-w-0 space-y-1">
+                <Label className="text-xs text-content-secondary">{t("البادئة", "Prefix")}</Label>
+                <Input
+                  data-testid={`numbering-prefix-${k}`}
+                  className="font-english"
+                  dir="ltr"
+                  value={config?.[k]?.prefix ?? ""}
+                  placeholder={NUMBERING_DEFAULTS[k].prefix}
+                  onChange={(e) => setKind(k, { prefix: e.target.value })}
+                  onBlur={(e) => {
+                    const normalized = normalizeLegacyPrefix(e.target.value, k);
+                    if (normalized === e.target.value) return;
+                    setKind(k, { prefix: normalized });
+                    push("success", t(`تم تحويل XXXX تلقائياً إلى ${tokenHintByKind[k]}`, `Automatically converted XXXX to ${tokenHintByKind[k]}`));
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground font-english" dir="ltr">
+                  Tip: use {tokenHintByKind[k]} instead of XXXX
+                </p>
+              </div>
+
+              <div className="min-w-0 space-y-1">
+                <Label className="text-xs text-content-secondary">{t("عدد الأرقام", "Digits")}</Label>
+                <Input
+                  className="font-english"
+                  type="number" min="1" max="10" dir="ltr"
+                  value={config?.[k]?.padding ?? NUMBERING_DEFAULTS[k].padding}
+                  onChange={(e) => setKind(k, { padding: Number(e.target.value) })}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-1">
+                <Label className="text-xs text-content-secondary">{t("الرقم التالي", "Next number")}</Label>
+                <Input
+                  data-testid={`numbering-start-${k}`}
+                  className="font-english"
+                  type="number" min="1" dir="ltr"
+                  value={config?.[k]?.start ?? NUMBERING_DEFAULTS[k].start}
+                  onChange={(e) => setKind(k, { start: Number(e.target.value) })}
+                />
+              </div>
+
+              <div className="min-w-0 space-y-1">
+                <Label className="text-xs text-content-secondary">{t("نمط حر (اختياري)", "Free pattern (optional)")}</Label>
+                <Input
+                  data-testid={`numbering-pattern-${k}`}
+                  className="font-english"
+                  dir="ltr"
+                  placeholder="{clientCode}-{prefix}{YYYY}-{seq}"
+                  value={config?.[k]?.pattern ?? ""}
+                  onChange={(e) => setKind(k, { pattern: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                data-testid={`numbering-client-code-${k}`}
+                aria-pressed={config?.[k]?.includeClientCode === true}
+                onClick={() => setKind(k, { includeClientCode: !(config?.[k]?.includeClientCode === true) })}
+                className={toggleClass(config?.[k]?.includeClientCode === true)}
+              >{t("أدرج رمز العميل", "Include client code")}</button>
+              <button
+                type="button"
+                aria-pressed={config?.[k]?.includeYear === true}
+                onClick={() => setKind(k, { includeYear: !(config?.[k]?.includeYear === true) })}
+                className={toggleClass(config?.[k]?.includeYear === true)}
+              >{t("أدرج السنة", "Include year")}</button>
+              <button
+                type="button"
+                aria-pressed={config?.[k]?.includeMonth === true}
+                onClick={() => setKind(k, { includeMonth: !(config?.[k]?.includeMonth === true) })}
+                className={toggleClass(config?.[k]?.includeMonth === true)}
+              >{t("أدرج الشهر", "Include month")}</button>
+            </div>
           </div>
         ))}
         <Button onClick={handleSave} disabled={busy} className="bg-primary hover:bg-primary/90 mt-3">
