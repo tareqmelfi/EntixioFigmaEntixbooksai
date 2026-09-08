@@ -496,6 +496,80 @@ export interface AdminSupportWorkspace {
   attachments: AdminDetailSection<null>
 }
 
+
+// ── Smart import (2026-09-08) ────────────────────────────────────────────────
+// One deterministic engine behind /api/<entity>/import/analyze | /commit.
+// The old path shipped .xlsx bytes to an LLM as UTF-8 text and silently
+// returned zero rows — see api commit d4eb886.
+export type ImportMsg = { ar: string; en: string }
+export type ImportRowStatus = 'new' | 'update' | 'conflict' | 'skipped'
+export interface ImportFieldMatch {
+  field: string
+  label: ImportMsg
+  column: number | null
+  header: string | null
+  confidence: number
+  alternatives: Array<{ column: number; header: string; confidence: number }>
+}
+export interface ImportAnalysis {
+  ok: boolean
+  entity: 'accounts' | 'contacts' | 'products'
+  format: string
+  fileName: string | null
+  sheets: Array<{ name: string; score: number; headerRow: number; rowCount: number }>
+  sheet: string
+  headerRow: number
+  headers: string[]
+  mapping: Record<string, number>
+  fields: ImportFieldMatch[]
+  rows: any[]
+  counts: Record<string, number>
+  warnings: ImportMsg[]
+  openingBalances?: {
+    sheet: string
+    headerRow: number
+    lines: Array<{ row: number; code: string; debit: number; credit: number }>
+    totalDebit: number
+    totalCredit: number
+    difference: number
+    warnings: ImportMsg[]
+  } | null
+  source?: 'vision'
+  model?: string
+  error?: string
+  message?: ImportMsg
+}
+export interface ImportReport {
+  ok: boolean
+  created: number
+  updated: number
+  skipped: number
+  warnings: ImportMsg[]
+  message: ImportMsg
+  openingEntry?: { id: string; entryNumber: string; lines: number; difference: number } | null
+  rejected?: Array<{ index: number; reason: string }>
+  error?: string
+}
+export interface SmartImportAnalyzeInput {
+  fileBase64?: string
+  text?: string
+  fileName?: string
+  mimeType?: string
+  /** re-analyse with the user's picks */
+  sheet?: string
+  headerRow?: number
+  mapping?: Record<string, number>
+}
+function smartImportClient(entity: 'accounts' | 'contacts' | 'products') {
+  return {
+    fields: () => request<{ entity: string; fields: Array<{ key: string; label: ImportMsg; synonyms: string[] }> }>(`/api/${entity}/import/fields`),
+    analyze: (data: SmartImportAnalyzeInput) =>
+      request<ImportAnalysis>(`/api/${entity}/import/analyze`, { method: 'POST', body: data }),
+    commit: (data: { rows: any[]; updateExisting?: boolean; openingBalances?: { lines: Array<{ code: string; debit: number; credit: number }>; date?: string | null } | null }) =>
+      request<ImportReport>(`/api/${entity}/import/commit`, { method: 'POST', body: data }),
+  }
+}
+
 // ── Resource clients ──────────────────────────────────────────────────────────
 export const api = {
   // Identity
@@ -570,6 +644,7 @@ export const api = {
 
   // Contacts
   contacts: {
+    smartImport: smartImportClient('contacts'),
     list: (params?: {
       type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
       role?: 'customer' | 'supplier' | 'employee' | 'shareholder' | 'freelancer'
@@ -662,6 +737,8 @@ export const api = {
       request<{ ok: true; created: number; skipped: number; linked: number; errors: any[]; message: string }>('/api/accounts/import', { method: 'POST', body: { rows, skipExisting } }),
     analyzeImport: (data: { fileBase64: string; fileName?: string; mimeType: string }) =>
       request<{ ok: true; rows: Array<{ code: string; name: string; nameAr?: string; type?: string | null; parentCode?: string | null; description?: string | null; confidence?: number | null }>; warnings?: string[]; model?: string }>('/api/accounts/import/analyze', { method: 'POST', body: data }),
+    /** Smart import (2026-09-08) · deterministic xlsx/csv/tsv/json parsing · see smartImport below */
+    smartImport: smartImportClient('accounts'),
     transactions: (id: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions`),
     translate: (input: string, hint?: string) =>
       request<{ name: string; nameAr: string; type: 'ASSET'|'LIABILITY'|'EQUITY'|'REVENUE'|'EXPENSE'; category?: string; reasoning?: string; suggestedCode?: string }>(
@@ -953,6 +1030,7 @@ export const api = {
 
   // Products
   products: {
+    smartImport: smartImportClient('products'),
     list: (params?: { type?: string; category?: string }) =>
       request<{ items: any[]; total: number; categories: Array<{ category: string; count: number }> }>('/api/products', { query: params }),
     categories: () =>

@@ -15,7 +15,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   Users, Plus, Trash2, Edit2, Loader2, User,
-  Building2, Mail, Phone, ExternalLink, Filter,
+  Building2, Mail, Phone, ExternalLink, Filter, Upload,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -23,6 +23,7 @@ import { Metric, MetricStrip, PageHeader, SearchField, SectionHeader, StatusBadg
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Contact } from "../lib/api";
 import { ContactWizard, ROLES, RoleKey } from "../components/contact-wizard";
+import { SmartImportWizard } from "../components/smart-import-wizard";
 import { useLanguage } from "../components/LanguageContext";
 import { BidiText } from "../components/bidi-text";
 
@@ -40,7 +41,7 @@ const ROLE_LABEL_EN: Record<RoleKey, string> = {
 
 // ── Main page ────────────────────────────────────────────────────────────────
 export function Contacts() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [items, setItems] = useState<Contact[]>([]);
   const { toasts, push, dismiss } = useToasts();
@@ -140,6 +141,8 @@ export function Contacts() {
 
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  // Smart import (2026-09-08) · the same wizard the chart of accounts uses
+  const [importOpen, setImportOpen] = useState(false);
   const handleDelete = async (id: string) => {
     try {
       await api.contacts.remove(id);
@@ -149,6 +152,30 @@ export function Contacts() {
       push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Failed to delete"));
     } finally { setPendingDelete(null); }
   };
+
+  if (importOpen) {
+    return (
+      <>
+        <ToastStack toasts={toasts} onDismiss={dismiss} />
+        <SmartImportWizard
+          entity="contacts"
+          onClose={() => setImportOpen(false)}
+          onImported={(report) => { push(report.ok ? "success" : "error", language === "ar" ? report.message.ar : report.message.en); refresh(); }}
+          templateFileName="entix-contacts-template.xls"
+          templateSheetName={t("جهات الاتصال", "Contacts")}
+          templateRows={[
+            ["الاسم", "الكود", "البريد الإلكتروني", "رقم الجوال", "الرقم الضريبي", "السجل التجاري", "النوع", "المدينة", "الدولة", "العنوان"],
+            ...items.map((c) => [
+              c.displayName, c.customCode || "", c.email || "", c.phone || "",
+              c.taxId || c.vatNumber || "", c.crNumber || "",
+              c.isCustomer && c.isSupplier ? "عميل ومورد" : c.isSupplier ? "مورد" : "عميل",
+              c.city || "", c.country || "", c.addressLine1 || "",
+            ] as Array<string | number>),
+          ]}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -160,9 +187,14 @@ export function Contacts() {
         title={t("جهات الاتصال", "Contacts")}
         description={t("إدارة جميع الأطراف ذات العلاقة · عميل · مورد · موظف · مساهم · فري لانسر", "Manage all related parties · Customer · Supplier · Employee · Shareholder · Freelancer")}
         actions={(
-          <Button onClick={openCreate}>
-            <Plus className="me-2 h-4 w-4" /> {t("إضافة جهة", "Add contact")}
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="contacts-import">
+              <Upload className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("استيراد ذكي", "Smart Import")}
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="me-2 h-4 w-4" /> {t("إضافة جهة", "Add contact")}
+            </Button>
+          </>
         )}
       />
 
