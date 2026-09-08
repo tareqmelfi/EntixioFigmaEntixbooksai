@@ -852,18 +852,21 @@ export function renderDocument(input: RenderInput): RenderOutput {
   };
 
   const signatoryBlock = (): Block | null => {
-    if (!tpl.signatoryName && !stamp) return null;
     // Pen-style signature (CEO 2026-09-08): a real uploaded signature image wins when
     // present · otherwise the signatory's own name is set in the script face — never a
     // hardcoded person. Arabic names have no glyphs in this Latin script face, so they
     // keep the bold sans instead of falling back to tofu.
     const sigImg = safeUrl(tpl.signatureUrl) || safeUrl(org.signatureUrl);
+    if (!tpl.signatoryName && !stamp && !sigImg) return null;
     const nameIsLatin = tpl.signatoryName ? !hasArabic(tpl.signatoryName) : false;
-    const nameHtml = !tpl.signatoryName
-      ? `<div class="n">—</div>`
-      : sigImg
-        ? `<div class="n img"><img src="${esc(sigImg)}" alt="${esc(tpl.signatoryName)}"></div>`
-        : `<div class="n${nameIsLatin ? " pen" : ""}">${bdi(tpl.signatoryName)}</div>`;
+    // The uploaded signature image always wins once it exists — even when no
+    // signatory name was ever typed in — never fall through to a bare dash
+    // when a real signature is on file (CEO 2026-09-08 · «التوقيع مو واضح»).
+    const nameHtml = sigImg
+      ? `<div class="n img"><img src="${esc(sigImg)}" alt="${esc(tpl.signatoryName || orgName)}"></div>`
+      : tpl.signatoryName
+        ? `<div class="n${nameIsLatin ? " pen" : ""}">${bdi(tpl.signatoryName)}</div>`
+        : `<div class="n">—</div>`;
     // frameless by instruction · no .card wrapper on either block
     const sig = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${nameHtml}${tpl.signatoryTitle ? `<div class="o">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
     const st = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;

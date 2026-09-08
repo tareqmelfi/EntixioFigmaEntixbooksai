@@ -50,8 +50,20 @@ export function BrandDocument({ input, scaleToFit, onRendered }: {
   scaleToFit?: boolean;
   onRendered?: (out: RenderOutput) => void;
 }) {
-  const out = useMemo(() => renderDocument({ qr: qrSvg, ...input }), [input]);
-  useEffect(() => { onRendered?.(out); }, [out, onRendered]);
+  // Never let one malformed field (a bad date, a non-numeric total) turn the whole
+  // preview into a blank white box with no explanation (CEO 2026-09-08 · «الفاتورة
+  // ليش مايبين؟») — a thrown renderDocument() used to unmount to nothing here since
+  // this component sits inside an embed iframe / designer pane, not a routed page,
+  // so the router's <ErrorBoundary errorElement> never gets a chance to catch it.
+  let out: RenderOutput | null = null;
+  let renderError: string | null = null;
+  try {
+    out = useMemo(() => renderDocument({ qr: qrSvg, ...input }), [input]);
+  } catch (e) {
+    renderError = e instanceof Error ? e.message : String(e);
+    console.error("[brand-document] renderDocument failed", e);
+  }
+  useEffect(() => { if (out) onRendered?.(out); }, [out, onRendered]);
   const [scale, setScale] = useState(1);
   useEffect(() => {
     if (!scaleToFit) { setScale(1); return; }
@@ -66,6 +78,17 @@ export function BrandDocument({ input, scaleToFit, onRendered }: {
   }, [scaleToFit]);
   const sheetH = 1123 + 14; // 297mm + gap (px at 96dpi)
   const scaled = !!scaleToFit && scale < 1;
+  if (!out) {
+    return (
+      <div id="brand-document-host" data-testid="brand-document" data-sheets={0} data-render-error={renderError || "1"}
+        style={{ width: "100%", minHeight: 220, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center", color: "#8A93A6", fontFamily: "'IBM Plex Sans Arabic','IBM Plex Sans', ui-sans-serif, system-ui, sans-serif", fontSize: 13, lineHeight: 1.6 }}>
+        <div>
+          تعذّر عرض المستند — بيانات غير مكتملة أو غير صالحة.<br />
+          Could not render this document — some data is missing or invalid.
+        </div>
+      </div>
+    );
+  }
   return (
     <div id="brand-document-host" data-testid="brand-document" data-sheets={out.sheetCount}
       style={scaled ? { position: "relative", width: "100%", height: out.sheetCount * sheetH * scale, overflow: "hidden" } : { width: "100%" }}>

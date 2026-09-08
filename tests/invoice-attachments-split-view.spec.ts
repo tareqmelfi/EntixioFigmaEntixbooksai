@@ -52,8 +52,23 @@ for (const lang of ['ar', 'en'] as const) {
     await prepareVisualApp(page, lang)
     await mocks(page)
     await page.goto(`/app/invoices/${invoice.id}`)
-    await expect(page.locator('iframe[title]').first()).toBeVisible({ timeout: 15000 })
+    const iframeEl = page.locator('iframe[title]').first()
+    await expect(iframeEl).toBeVisible({ timeout: 15000 })
     await page.waitForTimeout(1500)
+
+    // REGRESSION (CEO 2026-09-08 · «مستند الفاتورة ليش مايبين؟»): the preview iframe
+    // was visible-but-blank in production — an outer element with zero rendered
+    // content still passes a plain `.toBeVisible()` check. Assert the document
+    // engine actually painted real invoice content inside the frame, not just that
+    // the <iframe> tag itself occupies space.
+    const frame = page.frameLocator('iframe[title]').first()
+    const host = frame.locator('[data-testid="brand-document"]')
+    await expect(host).toBeVisible({ timeout: 15000 })
+    await expect(host).not.toHaveAttribute('data-render-error', /.+/)
+    const sheetCount = await host.getAttribute('data-sheets')
+    expect(Number(sheetCount), 'brand-document must report at least one rendered A4 sheet').toBeGreaterThan(0)
+    await expect(frame.locator('body')).toContainText(invoice.invoiceNumber)
+    await expect(frame.locator('body')).toContainText('2,487,489.62')
 
     for (const width of AUDIT_WIDTHS) {
       await page.setViewportSize({ width, height: 1000 })

@@ -121,6 +121,38 @@ test('quote print · en', async ({ page }) => {
   await sheetShots(page, 'quote-print-en')
 })
 
+// REGRESSION (CEO 2026-09-08 · «انا اضفت توقيعي الان … مو واضح»): an uploaded
+// signature image must render even when the document template never had a
+// signatory NAME typed in — the old code only checked the image inside the
+// `tpl.signatoryName` branch, so a name-less template always fell through to a
+// bare "—" and silently dropped the uploaded signature.
+test('signature image renders without a signatory name on file', async ({ page }) => {
+  const sigDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+  const noNameTemplate = { ...template, signatoryName: '', signatoryTitle: '', signatureUrl: sigDataUrl, stampUrl: null }
+  // No templateId on the invoice itself → the print view resolves straight to the
+  // org's default template for INVOICE, skipping the by-id lookup entirely.
+  const invoiceNoTpl = { ...invoice, templateId: null }
+  await prepareVisualApp(page, 'ar')
+  await page.route('https://api.entix.io/**', route => {
+    const { pathname } = new URL(route.request().url())
+    if (pathname === '/orgs') return route.fulfill({ json: [org] })
+    if (pathname === `/orgs/${visualOrgId}`) return route.fulfill({ json: org })
+    if (pathname === '/api/document-templates/defaults') return route.fulfill({ json: { QUOTE: null, INVOICE: noNameTemplate } })
+    if (pathname === '/api/bank-accounts') return route.fulfill({ json: { items: [bank], total: 1, totalBalance: 0 } })
+    if (pathname === '/api/invoices/i1') return route.fulfill({ json: invoiceNoTpl })
+    if (pathname === '/api/contacts/c1') return route.fulfill({ json: contact })
+    return route.abort()
+  })
+  await page.setViewportSize({ width: 1440, height: 1200 })
+  await page.goto('/print/invoice/i1?noprint=1')
+  await sheetShots(page, 'invoice-signature-no-name')
+  const sigImg = page.locator('.edoc .sig img')
+  await expect(sigImg).toBeVisible()
+  await expect(sigImg).toHaveAttribute('src', sigDataUrl)
+  // the bare-dash fallback must never appear when a real signature image is on file
+  await expect(page.locator('.edoc .sig .n')).not.toHaveText('—')
+})
+
 for (const lang of ['ar', 'en'] as const) {
   test(`designer · ${lang} · 1440 + overflow audit`, async ({ page }) => {
     await mocks(page, lang)
