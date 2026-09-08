@@ -7,7 +7,7 @@ import {
   Calculator as CalculatorIcon, FolderOpen, Wallet,
   Building2, Map, Layers, Warehouse, Search,
   Landmark, Target, FolderKanban, GitBranch, CalendarDays,
-  HelpCircle,
+  HelpCircle, LayoutTemplate,
   Users2, Inbox, Camera, HardHat, TrendingUp, Crown,
   Pin, MousePointer, EyeOff,
   PanelRightClose,
@@ -692,6 +692,13 @@ function SidebarContent({
               <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/settings") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
                 <Settings className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/settings") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate text-start">{tr("الإعدادات")}</span>
+              </button>
+            </Link>
+            {/* Brand document templates (quote / invoice designer) · sits with the settings entries (2026-09-08) */}
+            <Link to="/app/templates" onClick={onClose} data-testid="sidebar-templates">
+              <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/templates") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
+                <LayoutTemplate className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/templates") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+                <span className="min-w-0 flex-1 truncate text-start">{tr("القوالب")}</span>
               </button>
             </Link>
 
