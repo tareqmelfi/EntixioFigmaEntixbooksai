@@ -50,6 +50,9 @@ export function SharedNavbar() {
   }, []);
 
   const navItems: NavItem[] = [
+    // «الأسعار» leads the navigation (CEO 2026-09-08: «خليها سهلة الوصول من
+    // الرئيسية لأن الكل مو عارف كيف يشترك»).
+    { label: "الأسعار", labelEn: "Pricing", href: "/pricing" },
     {
       label: "المنتج",
       labelEn: "Product",
@@ -79,7 +82,6 @@ export function SharedNavbar() {
         { label: "برنامج الإحالة", labelEn: "Referral Program", desc: "اكسب عمولة 50% مع كل إحالة", descEn: "Earn 50% commission per referral", href: "/referrals" },
       ]
     },
-    { label: "الأسعار", labelEn: "Pricing", href: "/pricing" },
   ];
 
   const handleNavigate = (path: string) => {
@@ -154,8 +156,9 @@ export function SharedNavbar() {
               ) : (
                 <Link
                   to={publicHref(item.href!)}
+                  data-testid={item.href === "/pricing" ? "nav-pricing" : undefined}
                   className="block text-foreground hover:text-primary transition-colors cursor-pointer"
-                  style={{ fontSize: "15px", fontWeight: 500 }}
+                  style={{ fontSize: "15px", fontWeight: 600 }}
                 >
                   {t(item.label, item.labelEn)}
                 </Link>
@@ -174,12 +177,16 @@ export function SharedNavbar() {
           >
             {t("تسجيل الدخول", "Sign in")}
           </button>
+          {/* ONE primary, and it leads to the plans — not to registration.
+              Sending buyers to /register first was the biggest drop-off
+              (CEO 2026-09-08). The free path stays available on /pricing. */}
           <button
-            onClick={() => navigate(publicHref("/register"))}
+            onClick={() => navigate(publicHref("/pricing"))}
+            data-testid="nav-subscribe"
             className="inline-flex h-10 items-center rounded-full bg-foreground px-5 text-background transition-colors hover:bg-primary cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
-            {t("ابدأ مجاناً", "Start free")}
+            {t("اشترك الآن", "Subscribe now")}
           </button>
         </div>
 
@@ -189,11 +196,12 @@ export function SharedNavbar() {
               one tap from the first paint (CEO 2026-09-08). */}
           <PublicLanguageToggle />
           <button
-            onClick={() => navigate(publicHref("/register"))}
+            onClick={() => navigate(publicHref("/pricing"))}
+            data-testid="nav-subscribe-mobile"
             className="inline-flex h-10 items-center rounded-full bg-foreground px-3.5 text-background transition-colors hover:bg-primary cursor-pointer"
             style={{ fontSize: "13px", fontWeight: 600 }}
           >
-            {t("ابدأ مجاناً", "Start free")}
+            {t("اشترك", "Subscribe")}
           </button>
         <button
           onClick={() => setMobileNav(!mobileNav)}
@@ -239,8 +247,9 @@ export function SharedNavbar() {
                   ) : (
                     <button
                       onClick={() => handleNavigate(item.href!)}
-                      className="w-full text-start px-3 py-2.5 text-content-secondary hover:bg-surface-hover hover:text-foreground rounded-md transition-colors cursor-pointer"
-                      style={{ fontSize: "14px", fontWeight: 500 }}
+                      data-testid={item.href === "/pricing" ? "nav-pricing-mobile" : undefined}
+                      className="w-full text-start px-3 py-2.5 text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
+                      style={{ fontSize: "15px", fontWeight: 700 }}
                     >
                       {t(item.label, item.labelEn)}
                     </button>
@@ -257,11 +266,20 @@ export function SharedNavbar() {
                 {t("تسجيل الدخول", "Sign in")}
               </button>
               <button
-                onClick={() => handleNavigate("/register")}
+                onClick={() => handleNavigate("/pricing")}
+                data-testid="nav-menu-subscribe"
                 className="w-full bg-foreground text-background py-3 rounded-full cursor-pointer hover:bg-primary transition-colors"
                 style={{ fontSize: "15px", fontWeight: 600 }}
               >
-                {t("ابدأ مجاناً", "Start free")}
+                {t("اشترك الآن — ادفع مباشرة", "Subscribe now — pay directly")}
+              </button>
+              <button
+                onClick={() => handleNavigate("/register")}
+                data-testid="nav-menu-start-free"
+                className="w-full border border-border text-content-secondary py-3 rounded-full cursor-pointer hover:bg-surface-hover hover:text-foreground transition-colors mt-2"
+                style={{ fontSize: "15px", fontWeight: 600 }}
+              >
+                {t("ابدأ مجانًا", "Start free")}
               </button>
             </div>
           </motion.div>
@@ -272,13 +290,25 @@ export function SharedNavbar() {
     {/* Mobile fixed-bottom CTA · outside fixed nav so it stays anchored to viewport bottom */}
     {!mobileNav && (
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border px-4 py-3 safe-area-inset-bottom">
-        <button
-          onClick={() => navigate(publicHref("/register"))}
-          className="w-full bg-foreground text-background py-3 rounded-full hover:bg-primary transition-colors cursor-pointer"
-          style={{ fontSize: "15px", fontWeight: 600 }}
-        >
-          {t("ابدأ مجاناً", "Start free")}
-        </button>
+        {/* Both paths, paid first — the phone bar is where most visitors decide. */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(publicHref("/pricing"))}
+            data-testid="sticky-subscribe"
+            className="flex-[3] bg-foreground text-background py-3 rounded-full hover:bg-primary transition-colors cursor-pointer"
+            style={{ fontSize: "15px", fontWeight: 600 }}
+          >
+            {t("اشترك", "Subscribe")}
+          </button>
+          <button
+            onClick={() => navigate(publicHref("/register"))}
+            data-testid="sticky-start-free"
+            className="flex-[2] border border-border text-content-secondary py-3 rounded-full hover:bg-surface-hover hover:text-foreground transition-colors cursor-pointer"
+            style={{ fontSize: "14px", fontWeight: 600 }}
+          >
+            {t("ابدأ مجانًا", "Start free")}
+          </button>
+        </div>
       </div>
     )}
     </>
