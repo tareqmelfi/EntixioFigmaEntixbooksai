@@ -360,16 +360,19 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .ftr .f-right{direction:${lang === "ar" ? "rtl" : "ltr"};text-align:right;white-space:nowrap}
 .edoc .dark .ftr{border-top-color:rgba(255,255,255,.16)}
 /* cover */
-/* cover rhythm follows the reference sheets: eyebrow → big title → rule → intro →
-   three-column meta anchored so its baseline sits at ≈73% of the sheet height */
-.edoc .cover-body{display:flex;flex-direction:column;justify-content:flex-end;height:100%;padding:0 0 58mm}
+/* cover rhythm follows the reference sheets (SpecPros / ENSIDEX cover PDFs, measured
+   2026-09-08): the block starts a fixed distance below the running header — NOT
+   bottom-anchored — so the eyebrow sits at ≈25% of the sheet height, the title
+   lands mid-page, and the three-column meta closes out around ≈80-85%, leaving a
+   modest, deliberate margin above the footer rather than one huge dead band. */
+.edoc .cover-body{display:flex;flex-direction:column;height:100%;padding:54mm 0 0}
 .edoc .eyebrow{font-family:var(--font-mono);font-size:7.5pt;letter-spacing:.14em;color:var(--brand);text-transform:uppercase}
 .edoc .cover-title{font-size:32pt;font-weight:800;line-height:1.25;margin:5mm 0 7mm;letter-spacing:-.015em}
 .edoc .cover-title .accent{color:var(--brand)}
 .edoc .cover-rule{height:.5pt;background:var(--rule);margin:0 0 7mm}
 .edoc .cover-intro{font-size:11.5pt;line-height:1.9;max-width:150mm;color:var(--ink)}
 .edoc .cover-intro strong{font-weight:700;color:var(--brand)}
-.edoc .cover-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;margin-top:16mm;padding-top:8mm;border-top:.5pt solid var(--rule)}
+.edoc .cover-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;margin-top:24mm;padding-top:8mm;border-top:.5pt solid var(--rule)}
 .edoc .cover-meta .k{font-size:8pt;font-weight:700;color:var(--brand);margin-bottom:1.5mm}
 .edoc .cover-meta .v{font-size:11pt;font-weight:700}
 .edoc .cover-meta .s{font-size:8.5pt;color:var(--muted);margin-top:1mm}
@@ -692,11 +695,20 @@ export function renderDocument(input: RenderInput): RenderOutput {
       rows.push(`<div class="r"><span class="lbl">${t("المسدَّد", "Paid")}</span><span class="amt">${cur} ${money(paid)}</span></div>`);
       rows.push(`<div class="r due"><span class="lbl">${t("المتبقي", "Balance due")}</span><span class="amt">${cur} ${money(due)}</span></div>`);
     }
-    const qr = !isQuote && doc.qrPayload ? qrSvg(doc.qrPayload) : "";
-    const side = qr
-      ? `<div class="qr-side"><div class="qr">${qr}</div><div>${t("رمز الفاتورة الضريبية — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Tax invoice QR — seller · VAT no. · date · total · tax.")}</div></div>`
-      : (doc.notes ? `<div class="notes">${bdi(doc.notes)}</div>` : "");
-    const h = 10 + rows.length * 9.2 + 8;
+    // ── QR / verification code — ALWAYS present (CEO 2026-09-08: «وين الباركود
+    // هذه اشياء بديهية لازم دايم تكون موجودة»). Priority: real ZATCA Phase-1 TLV
+    // QR on a tax invoice → the document number as plain text. The payment-link
+    // QR (when a pay link exists) is drawn once, in the "pay online" card below —
+    // it is intentionally not repeated here to avoid printing the same QR twice.
+    const zatcaQr = !isQuote && doc.qrPayload;
+    const qrText = zatcaQr ? doc.qrPayload! : (doc.number || "");
+    const qr = qrText ? qrSvg(qrText) : "";
+    const qrCaption = zatcaQr
+      ? t("رمز الفاتورة الضريبية — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Tax invoice QR — seller · VAT no. · date · total · tax.")
+      : t("رمز التحقق من رقم المستند.", "Document verification code.");
+    const notesHtml = doc.notes ? `<div class="notes">${bdi(doc.notes)}</div>` : "";
+    const side = (qr ? `<div class="qr-side"><div class="qr">${qr}</div><div>${qrCaption}</div></div>` : "") + notesHtml;
+    const h = Math.max(10 + rows.length * 9.2 + 8, qr ? 40 : 0) + (doc.notes ? 14 : 0);
     return { kind: "html", h, html: `<div class="totals-row"><div>${side}</div><div class="totals">${rows.join("")}</div></div>` };
   };
 
