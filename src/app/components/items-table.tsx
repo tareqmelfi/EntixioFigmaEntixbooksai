@@ -28,6 +28,7 @@ import { SearchableCombobox } from "./searchable-combobox";
 import { BarcodeScannerButton } from "./barcode-scanner";
 import { normalizeDigits } from "../lib/digits";
 import { useLanguage } from "./LanguageContext";
+import { api } from "../lib/api";
 
 export interface InvoiceLine {
   id: string;
@@ -46,6 +47,19 @@ export interface InvoiceLine {
   deferredRevenueAccountId?: string;    // LIABILITY account; server resolves when null
   /** Purchases only · auto-register this line as a fixed asset on bill save */
   isAsset?: boolean;
+  /** Account was filled by the suggestion engine (not yet confirmed by the user) · shows the «مقترح» chip */
+  accountSuggested?: boolean;
+  /** How the suggestion engine picked the account (product · history · keyword · category · mapping · first) */
+  accountVia?: string;
+}
+
+/** Result of the account suggestion endpoint (POST /api/accounts/suggest) */
+export interface AccountSuggestion {
+  accountId: string | null;
+  code?: string | null;
+  name?: string | null;
+  via?: string;
+  confidence?: number;
 }
 
 export type TaxMode = "all-inclusive" | "all-exclusive" | "custom";
@@ -93,6 +107,18 @@ interface Props {
   formKey?: string;
   /** Line ids that failed validation · rendered red so the user can spot & fix fast */
   invalidIds?: Set<string>;
+  /** Inline error shown under the grid (e.g. the approval law message) · pairs with invalidIds */
+  errorMessage?: string | null;
+  /** Contact on the document · lets the suggestion engine use history with the same customer/supplier */
+  contactId?: string | null;
+  /**
+   * Account suggestion source · defaults to `api.accounts.suggest`.
+   * A line that gets a description / product / price with an empty account is filled
+   * automatically (debounced · cached per line text) and marked «مقترح» until the user changes it.
+   */
+  suggestAccount?: (input: { kind: "sales" | "purchase"; text: string; productId?: string | null; contactId?: string | null }) => Promise<AccountSuggestion | null>;
+  /** Disable auto-suggestion (tests · read-only grids) */
+  autoSuggest?: boolean;
 }
 
 export function newLine(taxRate = 0.15, taxInclusive = false): InvoiceLine {
@@ -106,6 +132,39 @@ export function newLine(taxRate = 0.15, taxInclusive = false): InvoiceLine {
   };
 }
 
+/**
+ * Tax-rate parsing that never yields NaN (OCR/API may send 0.15 · 15 · "15%" · "15% شامل" · null).
+ * Returns the fraction and, when the text says so, whether the price is tax-inclusive.
+ */
+export function normalizeTaxRate(value: unknown, fallback = 0): { rate: number; inclusive?: boolean } {
+  if (value == null || value === "") return { rate: fallback };
+  if (typeof value === "object") {
+    const rel = value as { rate?: unknown };
+    return normalizeTaxRate(rel.rate, fallback);
+  }
+  let inclusive: boolean | undefined;
+  let raw = value;
+  if (typeof value === "string") {
+    const text = normalizeDigits(value);
+    if (/غير\s*شامل|exclusive|excl/i.test(text)) inclusive = false;
+    else if (/شامل|inclusive|incl/i.test(text)) inclusive = true;
+    const m = text.match(/-?\d+(?:\.\d+)?/);
+    if (!m) return { rate: fallback, inclusive };
+    raw = m[0];
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return { rate: fallback, inclusive };
+  // 15 → 0.15 (percent) · 0.15 stays · 100 → 1 is not a VAT rate so treat >1 as percent
+  const rate = n > 1 ? n / 100 : n;
+  return { rate: Math.round(rate * 10000) / 10000, inclusive };
+}
+
+/** Safe fraction for a line (guards undefined / NaN rates from legacy rows) */
+export function lineTaxRate(l: Pick<InvoiceLine, "taxRate">): number {
+  const r = Number(l.taxRate);
+  return Number.isFinite(r) && r >= 0 ? r : 0;
+}
+
 export function computeTotals(lines: InvoiceLine[]) {
   let subtotal = 0;
   let tax = 0;
@@ -114,13 +173,14 @@ export function computeTotals(lines: InvoiceLine[]) {
     const qty = Number(normalizeDigits(l.quantity)) || 0;
     const price = Number(normalizeDigits(l.unitPrice)) || 0;
     const lineGross = qty * price;
+    const rate = lineTaxRate(l);
     if (l.taxInclusive) {
-      const net = lineGross / (1 + l.taxRate);
+      const net = lineGross / (1 + rate);
       const lineTax = lineGross - net;
       subtotal += net;
       tax += lineTax;
     } else {
-      const lineTax = lineGross * l.taxRate;
+      const lineTax = lineGross * rate;
       subtotal += lineGross;
       tax += lineTax;
     }
@@ -129,8 +189,18 @@ export function computeTotals(lines: InvoiceLine[]) {
 }
 
 // ض.ق.م + الاعتراف are off by default so the grid matches the approved 7-column anatomy;
-// both stay one click away in the "الأعمدة" menu.
+// both stay one click away in the "الأعمدة" menu. The account column is ALWAYS visible
+// (account law 2026-09-08 · every line must carry an account) so it has no toggle.
 const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: true, recognition: true };
+
+/** Debounce before asking the suggestion engine for a line whose account is still empty */
+const SUGGEST_DEBOUNCE_MS = 450;
+/** Client-side cache of suggestions · key = kind|productId|text · shared across grids */
+const suggestionCache = new Map<string, AccountSuggestion | null>();
+
+async function defaultSuggestAccount(input: { kind: "sales" | "purchase"; text: string; productId?: string | null; contactId?: string | null }): Promise<AccountSuggestion | null> {
+  return api.accounts.suggest(input);
+}
 
 const ROW_BORDER_CLASS = "border-border/30";
 
@@ -221,10 +291,19 @@ export function ItemsTable({
   direction = "sales",
   formKey,
   invalidIds,
+  errorMessage,
+  contactId,
+  suggestAccount,
+  autoSuggest = true,
 }: Props) {
   const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN_COLS);
+  const [suggestingIds, setSuggestingIds] = useState<Set<string>>(new Set());
+  const suggestTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const suggestInFlightRef = useRef<Set<string>>(new Set());
+  const linesRef = useRef(lines);
+  linesRef.current = lines;
   const [colsOpen, setColsOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -279,6 +358,52 @@ export function ItemsTable({
     document.addEventListener("keydown", handler as any);
     return () => document.removeEventListener("keydown", handler as any);
   }, []);
+
+  // ── Auto-suggest the account for lines that have content but no account ──────
+  // «ذكاء يحط أقرب حساب للبند · ما يترك الحسابات فاضية أبدًا»
+  const suggestKind: "sales" | "purchase" = direction === "sales" ? "sales" : "purchase";
+  const canSuggest = autoSuggest && (accounts.length > 0 || !!suggestAccount);
+  useEffect(() => {
+    if (!canSuggest) return;
+    const timers = suggestTimersRef.current;
+    const liveIds = new Set(lines.map((l) => l.id));
+    for (const [id, timer] of timers) if (!liveIds.has(id)) { clearTimeout(timer); timers.delete(id); }
+    for (const line of lines) {
+      if (line.accountId) { const tm = timers.get(line.id); if (tm) { clearTimeout(tm); timers.delete(line.id); } continue; }
+      const text = (line.description || "").trim();
+      const price = Number(normalizeDigits(line.unitPrice)) || 0;
+      const hasContent = text.length >= 3 || !!line.productId || price > 0;
+      if (!hasContent) continue;
+      if (suggestInFlightRef.current.has(line.id)) continue;
+      const productName = line.productId ? products.find((p) => p.id === line.productId)?.name : "";
+      const key = `${suggestKind}|${line.productId || ""}|${(text || productName || "").toLowerCase()}`;
+      const existing = timers.get(line.id);
+      if (existing) clearTimeout(existing);
+      timers.set(line.id, setTimeout(async () => {
+        timers.delete(line.id);
+        const current = linesRef.current.find((l) => l.id === line.id);
+        if (!current || current.accountId) return;
+        suggestInFlightRef.current.add(line.id);
+        setSuggestingIds((prev) => new Set(prev).add(line.id));
+        try {
+          let hit = suggestionCache.get(key);
+          if (hit === undefined) {
+            hit = await (suggestAccount || defaultSuggestAccount)({ kind: suggestKind, text: text || productName || "", productId: line.productId || null, contactId: contactId || null }).catch(() => null);
+            suggestionCache.set(key, hit ?? null);
+          }
+          const accountId = hit?.accountId && accountItems.some((a) => a.id === hit!.accountId) ? hit.accountId : hit?.accountId && accounts.length === 0 ? hit.accountId : null;
+          if (accountId) {
+            setLines((prev: InvoiceLine[]) => prev.map((l) => (l.id === line.id && !l.accountId ? { ...l, accountId, accountSuggested: true, accountVia: hit?.via } : l)));
+          }
+        } finally {
+          suggestInFlightRef.current.delete(line.id);
+          setSuggestingIds((prev) => { const next = new Set(prev); next.delete(line.id); return next; });
+        }
+      }, SUGGEST_DEBOUNCE_MS));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, canSuggest, suggestKind, contactId]);
+  useEffect(() => () => { for (const tm of suggestTimersRef.current.values()) clearTimeout(tm); }, []);
 
   const toggleSelect = (id: string) => {
     const next = new Set(selected);
@@ -346,6 +471,7 @@ export function ItemsTable({
       description: combined,
       unitPrice: String(product.unitPrice ?? 0),
       accountId: product.accountId || existing?.accountId,
+      accountSuggested: product.accountId ? false : existing?.accountSuggested,
       taxRate: product.taxRate ?? existing?.taxRate ?? defaultTaxRate,
     });
   };
@@ -461,7 +587,8 @@ export function ItemsTable({
   const totals = computeTotals(lines);
   void totals;
 
-  const showAccount = !hidden.account && (accounts.length > 0 || !!onCreateAccount);
+  // Account column is always visible once the chart is loaded (never a hidden toggle).
+  const showAccount = accounts.length > 0 || !!onCreateAccount;
   const showTax = !hidden.tax;
   const showTaxAmount = !hidden.taxAmount;
   const showRecognition = !hidden.recognition;
@@ -472,13 +599,14 @@ export function ItemsTable({
       .filter((a) => a.type === "ASSET" && /fixed|intangible/i.test(a.subtype || ""))
       .map((a) => a.id),
   );
-  const hiddenCount = Number(hidden.account) + Number(hidden.tax) + Number(hidden.taxAmount) + Number(hidden.recognition);
+  const hiddenCount = Number(hidden.tax) + Number(hidden.taxAmount) + Number(hidden.recognition);
 
   // Backend uses REVENUE not INCOME · accept both for compatibility
+  // Purchases accept EXPENSE + ASSET (fixed-asset lines) — same set the API validates.
   const accountItems = accounts
     .filter((a) => direction === "sales"
       ? (a.type === "REVENUE" || a.type === "INCOME")
-      : a.type === "EXPENSE")
+      : (a.type === "EXPENSE" || a.type === "ASSET"))
     .map((a) => ({ id: a.id, label: a.name, sublabel: a.code }));
 
   // Ledger dense grid · column track list mirrors the approved reference
@@ -489,7 +617,7 @@ export function ItemsTable({
     "minmax(0, 1fr)",
     "70px",
     "100px",
-    showAccount ? "170px" : null,
+    showAccount ? "200px" : null,
     showTax ? "96px" : null,
     "110px",
     showTaxAmount ? "110px" : null,
@@ -499,7 +627,7 @@ export function ItemsTable({
     "32px",
   ].filter(Boolean).join(" ");
   const gridMinWidth =
-    36 + 150 + 200 + 70 + 100 + (showAccount ? 170 : 0) + (showTax ? 96 : 0) + 110 +
+    36 + 150 + 200 + 70 + 100 + (showAccount ? 200 : 0) + (showTax ? 96 : 0) + 110 +
     (showTaxAmount ? 110 : 0) + 130 + (showRecognition ? 150 : 0) + (showAssetCol ? 44 : 0) + 32;
 
   return (
@@ -557,11 +685,13 @@ export function ItemsTable({
               const qty = Number(normalizeDigits(line.quantity)) || 0;
               const price = Number(normalizeDigits(line.unitPrice)) || 0;
               const gross = qty * price;
-              const lineTax = line.taxInclusive ? gross - gross / (1 + line.taxRate) : gross * line.taxRate;
-              const lineNet = line.taxInclusive ? gross / (1 + line.taxRate) : gross;
+              const rate = lineTaxRate(line);
+              const lineTax = line.taxInclusive ? gross - gross / (1 + rate) : gross * rate;
+              const lineNet = line.taxInclusive ? gross / (1 + rate) : gross;
               const lineTotal = line.taxInclusive ? gross : gross + lineTax;
               const isReal = i < realLineCount;
               const isInvalid = isReal && !!invalidIds?.has(line.id);
+              const isSuggesting = isReal && suggestingIds.has(line.id);
               const isSelected = isReal && selected.has(line.id);
 
               return (
@@ -651,29 +781,43 @@ export function ItemsTable({
                     />
                   </span>
                   {showAccount && (
-                    <span className="cell !px-1">
-                      <SearchableCombobox
-                        value={line.accountId || ""}
-                        onChange={(id) => updateLine(i, { accountId: id })}
-                        items={accountItems}
-                        placeholder={t("حساب…", "Account…")}
-                        borderless
-                        buttonClassName="min-h-8 h-auto py-1 px-2 text-[13px] rounded-md"
-                        menuMinWidth={520}
-                        wrap
-                        onCreate={onCreateAccount ? async (name) => {
-                          const a = await onCreateAccount(name);
-                          updateLine(i, { accountId: a.id });
-                          return a.id;
-                        } : undefined}
-                        createLabel={(q) => t("+ إنشاء حساب جديد", "+ Create account") + ` "${q}"`}
-                      />
+                    <span className={`cell !px-1 ${isInvalid && !line.accountId ? "!bg-danger-subtle" : ""}`} data-testid={`line-account-${i}`} data-account-suggested={line.accountSuggested ? "true" : undefined}>
+                      <div className="flex w-full min-w-0 items-center gap-1">
+                        <div className="min-w-0 flex-1">
+                          <SearchableCombobox
+                            value={line.accountId || ""}
+                            onChange={(id) => updateLine(i, { accountId: id, accountSuggested: false, accountVia: undefined })}
+                            items={accountItems}
+                            placeholder={isSuggesting ? t("جارٍ الاقتراح…", "Suggesting…") : t("حساب…", "Account…")}
+                            borderless
+                            buttonClassName={`min-h-8 h-auto py-1 px-2 text-[13px] rounded-md ${line.accountSuggested ? "text-content-secondary" : ""}`}
+                            menuMinWidth={520}
+                            wrap
+                            onCreate={onCreateAccount ? async (name) => {
+                              const a = await onCreateAccount(name);
+                              updateLine(i, { accountId: a.id, accountSuggested: false, accountVia: undefined });
+                              return a.id;
+                            } : undefined}
+                            createLabel={(q) => t("+ إنشاء حساب جديد", "+ Create account") + ` "${q}"`}
+                          />
+                        </div>
+                        {line.accountSuggested && line.accountId && (
+                          <button
+                            type="button"
+                            onClick={() => updateLine(i, { accountSuggested: false })}
+                            className="shrink-0 rounded-full border border-border bg-surface-subtle px-1.5 py-0.5 text-[10px] font-semibold leading-none text-content-secondary hover:text-foreground"
+                            title={t("حساب مقترح تلقائياً · اضغط للتأكيد أو اختر حساباً آخر", "Suggested automatically · click to confirm or pick another account")}
+                          >
+                            {t("مقترح", "Suggested")}
+                          </button>
+                        )}
+                      </div>
                     </span>
                   )}
                   {showTax && (
                     <span className="cell n !px-1">
                       <select
-                        value={`${line.taxRate}-${line.taxInclusive ? "in" : "ex"}`}
+                        value={`${lineTaxRate(line)}-${line.taxInclusive ? "in" : "ex"}`}
                         onChange={(e) => {
                           const [rate, inc] = e.target.value.split("-");
                           updateLine(i, { taxRate: Number(rate), taxInclusive: inc === "in" });
@@ -771,6 +915,12 @@ export function ItemsTable({
             })}
           </div>
         </div>
+
+        {errorMessage && (
+          <p role="alert" data-testid="items-table-error" className="border-t border-danger/40 bg-danger-subtle px-3 py-2 text-xs font-semibold text-danger">
+            {errorMessage}
+          </p>
+        )}
 
         {/* Footer · quiet "+ سطر" pill + cashier input + barcode + columns toggle */}
         <div className="flex flex-wrap items-center justify-between gap-2 bg-surface-subtle px-3 py-2 text-xs">
@@ -884,7 +1034,6 @@ export function ItemsTable({
             {colsOpen && (
               <div className="absolute end-0 top-full mt-1 w-44 rounded-md border border-border bg-card shadow-lg p-2 z-10">
                 {[
-                  { key: "account" as const, label: t("الحساب", "Account") },
                   { key: "tax" as const, label: t("الضريبة", "Tax") },
                   { key: "taxAmount" as const, label: t("مبلغ الضريبة", "Tax amount") },
                   { key: "recognition" as const, label: t("الاعتراف بالإيرادات", "Revenue recognition") },
