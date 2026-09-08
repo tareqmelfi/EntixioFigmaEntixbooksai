@@ -9,15 +9,16 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowRight, Banknote, Clock3, Edit2, ExternalLink, FolderKanban, Loader2, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, Banknote, CheckCircle2, Clock3, Edit2, ExternalLink, FolderKanban, Loader2, Plus, Save, ShoppingCart, Sparkles, Trash2, X } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Button } from "../components/ui/button";
 import { InlineAlert } from "../components/product";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
-import { api, ApiError, type LinkedDocument, type ProjectLink, type ProjectLinkKind } from "../lib/api";
+import { api, ApiError, type LinkedDocument, type ProjectBudget, type ProjectLink, type ProjectLinkKind, type PurchaseOrder } from "../lib/api";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ContactSearchInput } from "../components/contact-search-input";
 import { useLanguage } from "../components/LanguageContext";
@@ -77,6 +78,13 @@ export function ProjectDetail() {
   const [pendingLinks, setPendingLinks] = useState<Array<{ kind: ProjectLinkKind; document: LinkedDocument }>>([]);
   const [linkOptions, setLinkOptions] = useState<Partial<Record<ProjectLinkKind, LinkedDocument[]>>>({});
   const [pendingUnlink, setPendingUnlink] = useState<string | null>(null);
+  // SPEC-05 L3 · after the award: the COST-ONLY budget, the instalment plan and
+  // the purchase orders issued from budget lines. None of these carry a sale
+  // price or a margin — the API does not send one.
+  const [budget, setBudget] = useState<ProjectBudget | null>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [l3Busy, setL3Busy] = useState<string | null>(null);
 
   const applyProject = useCallback((p: any) => {
     setProject(p);
@@ -121,6 +129,55 @@ export function ProjectDetail() {
     try { setLinks((await api.projects.links(id!)).items || []); } catch { setLinks([]); }
   }, [id, isNew]);
   useEffect(() => { loadLinks(); }, [loadLinks]);
+
+  const loadLifecycle = useCallback(async () => {
+    if (isNew) return;
+    api.projects.budget(id!).then(setBudget).catch(() => setBudget(null));
+    api.paymentPlans.list({ projectId: id! }).then((d: any) => setPlans(d.items || [])).catch(() => setPlans([]));
+    api.purchaseOrders.list({ projectId: id! }).then((d) => setOrders(d.items || [])).catch(() => setOrders([]));
+  }, [id, isNew]);
+  useEffect(() => { loadLifecycle(); }, [loadLifecycle]);
+
+  const l3Error = (e: any, fallback: string) => {
+    // The API answers with a reason; show it rather than a generic failure.
+    const code = e instanceof ApiError ? e.message : "";
+    if (code === "accountant_approval_required") return t("هذا الإجراء يتطلب صلاحية المحاسب", "This action requires the accountant role");
+    if (code === "budget_not_approved") return t("اعتمد ميزانية التكلفة أولاً", "Approve the cost budget first");
+    if (code === "budget_already_approved") return t("الميزانية معتمدة · لا يمكن إعادة بنائها", "The budget is approved · it cannot be rebuilt");
+    if (code === "estimate_not_found") return t("لا توجد دراسة تكلفة مرتبطة بهذا المشروع", "No cost study is linked to this project");
+    if (code === "already_invoiced") return t("هذه الدفعة مفوترة مسبقاً", "This instalment is already invoiced");
+    return fallback;
+  };
+
+  const runL3 = async (key: string, action: () => Promise<void>, okMessage: string, failMessage: string) => {
+    setL3Busy(key);
+    try { await action(); push("success", okMessage); }
+    catch (e: any) { push("error", l3Error(e, failMessage)); }
+    finally { setL3Busy(null); }
+  };
+
+  const buildBudget = () => runL3("build", async () => {
+    setBudget(await api.projects.buildBudget(id!));
+  }, t("تم إنشاء ميزانية التكلفة من الدراسة", "Cost budget built from the cost study"), t("تعذر إنشاء الميزانية", "Could not build the budget"));
+
+  const approveBudget = () => runL3("approve", async () => {
+    setBudget(await api.projects.approveBudget(id!));
+  }, t("اعتُمدت ميزانية التكلفة · صارت سقف الصرف", "Cost budget approved · it is now the spending ceiling"), t("تعذر الاعتماد", "Could not approve"));
+
+  const invoiceInstalment = (itemId: string) => runL3(`inv-${itemId}`, async () => {
+    const res = await api.paymentPlanItems.invoice(itemId);
+    await loadLifecycle();
+    push("success", t(`صدرت الفاتورة ${res.invoice.invoiceNumber}`, `Invoice ${res.invoice.invoiceNumber} issued`));
+  }, t("تم إصدار الفاتورة", "Invoice issued"), t("تعذر إصدار الفاتورة", "Could not issue the invoice"));
+
+  const issuePurchaseOrder = () => runL3("po", async () => {
+    if (!budget?.lines?.length) return;
+    await api.purchaseOrders.fromBudget({
+      projectId: id!,
+      lines: budget.lines.map((l) => ({ budgetLineId: l.id })),
+    });
+    await loadLifecycle();
+  }, t("صدر أمر الشراء للمشتريات", "Purchase order issued to purchasing"), t("تعذر إصدار أمر الشراء", "Could not issue the purchase order"));
 
   // PL2 · prefill the code from numberingSettings.project · re-runs when the client
   // changes so «أدرج رمز العميل» takes effect immediately (EDG-PRJ-0007).
@@ -345,6 +402,158 @@ export function ProjectDetail() {
     </Card>
   );
 
+  const qty = (v: any) => Number(v || 0).toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 });
+
+  /**
+   * SPEC-05 L3 · the post-award working surface: the cost budget the accountant
+   * approves, the instalments that become invoices only on that approval, and the
+   * purchase orders drawn from the budget's cost lines.
+   *
+   * Nothing here shows a sale price or a margin — the API does not send one, so
+   * this section is safe for anyone who can open the project.
+   */
+  const lifecycleSection = project && (
+    <div className="space-y-5" data-testid="project-lifecycle">
+      <Card className="border-border" data-testid="project-cost-budget">
+        <CardContent className="space-y-4 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("ميزانية التكلفة", "Cost budget")}</div>
+              <p className="mt-0.5 text-xs text-content-secondary">
+                {t("نسخة التكلفة من دراسة المشروع · بلا سعر بيع أو نسبة ربح", "The cost copy of the cost study · no sale price, no margin")}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {budget && (
+                <span className={`rounded-full px-3 py-1 text-xs ${budget.status === "APPROVED" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"}`}>
+                  {budget.status === "APPROVED" ? t("معتمدة · سقف الصرف", "Approved · spending ceiling") : t("مسودة · بانتظار اعتماد المحاسب", "Draft · awaiting accountant approval")}
+                </span>
+              )}
+              {!budget && (
+                <Button type="button" size="sm" onClick={buildBudget} disabled={l3Busy === "build"} data-testid="build-budget">
+                  {l3Busy === "build" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="me-1.5 h-3.5 w-3.5" />{t("أنشئ من الدراسة", "Build from the cost study")}</>}
+                </Button>
+              )}
+              {budget?.status === "DRAFT" && (
+                <Button type="button" size="sm" onClick={approveBudget} disabled={l3Busy === "approve"} data-testid="approve-budget">
+                  {l3Busy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><CheckCircle2 className="me-1.5 h-3.5 w-3.5" />{t("اعتماد المحاسب", "Accountant approval")}</>}
+                </Button>
+              )}
+              {budget?.status === "APPROVED" && (
+                <Button type="button" size="sm" variant="outline" onClick={issuePurchaseOrder} disabled={l3Busy === "po"} data-testid="issue-po">
+                  {l3Busy === "po" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><ShoppingCart className="me-1.5 h-3.5 w-3.5" />{t("أمر شراء للمشتريات", "Purchase order")}</>}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {!budget ? (
+            <p className="text-xs text-muted-foreground">{t("لا توجد ميزانية بعد · تُبنى من دراسة التكلفة المرتبطة بالمشروع.", "No budget yet · it is built from the cost study linked to this project.")}</p>
+          ) : (
+            <>
+              <div className="ledger-table overflow-x-auto">
+                <Table className="table-fixed min-w-[620px]">
+                  <colgroup>
+                    <col style={{ width: "90px" }} />{/* رقم البند · mono */}
+                    <col style={{ minWidth: "180px" }} />{/* الوصف */}
+                    <col style={{ width: "110px" }} />{/* الكمية */}
+                    <col style={{ width: "120px" }} />{/* تكلفة الوحدة */}
+                    <col style={{ width: "150px" }} />{/* التكلفة المخططة */}
+                  </colgroup>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-start">{t("رقم", "No.")}</TableHead>
+                      <TableHead className="text-start">{t("البند", "Item")}</TableHead>
+                      <TableHead className="text-end">{t("الكمية", "Qty")}</TableHead>
+                      <TableHead className="text-end">{t("تكلفة الوحدة", "Unit cost")}</TableHead>
+                      <TableHead className="text-end">{t("التكلفة المخططة", "Planned cost")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {budget.lines.map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="truncate font-code text-xs text-content-secondary" dir="ltr">{l.itemNo || "—"}</TableCell>
+                        <TableCell className="truncate"><bdi dir="auto">{l.description}</bdi></TableCell>
+                        <TableCell className="text-end font-english" dir="ltr">{qty(l.quantity)}{l.unit ? ` ${l.unit}` : ""}</TableCell>
+                        <TableCell className="text-end font-english" dir="ltr">{money(l.unitCost)}</TableCell>
+                        <TableCell className="text-end font-english text-foreground" dir="ltr" style={{ fontWeight: 600 }}>{money(l.plannedCost)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3">
+                <span className="text-xs text-content-secondary">{t("إجمالي التكلفة المخططة", "Total planned cost")}</span>
+                <span data-testid="budget-cost-total" className="font-english text-foreground" dir="ltr" style={{ fontWeight: 700 }}>{money(budget.costTotal)} SAR</span>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {plans.length > 0 && (
+        <Card className="border-border" data-testid="project-payment-plan">
+          <CardContent className="space-y-3 p-5">
+            <div className="min-w-0">
+              <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("خطة الدفعات", "Payment plan")}</div>
+              <p className="mt-0.5 text-xs text-content-secondary">
+                {t("لا تصدر فاتورة الدفعة إلا باعتماد المحاسب", "An instalment becomes an invoice only on accountant approval")}
+              </p>
+            </div>
+            <div className="divide-y divide-border/60 rounded-lg border border-border">
+              {plans.flatMap((plan: any) => (plan.items || []).map((item: any) => (
+                <div key={item.id} className="flex flex-wrap items-center gap-2 p-3 text-sm" data-testid={`plan-item-${item.id}`}>
+                  <span className="min-w-0 truncate"><bdi dir="auto">{item.label}</bdi></span>
+                  <span className="ms-auto flex shrink-0 items-center gap-3 font-english text-xs" dir="ltr">
+                    <span className="text-content-secondary">{qty(item.percent)}%</span>
+                    <span className="text-foreground">{money(item.amount)} SAR</span>
+                  </span>
+                  {item.invoiceId ? (
+                    <span className="shrink-0 rounded-full bg-success-subtle px-2 py-0.5 text-[11px] text-success">{t("مفوترة", "Invoiced")}</span>
+                  ) : (
+                    <Button
+                      type="button" size="sm" variant="outline"
+                      data-testid={`invoice-item-${item.id}`}
+                      onClick={() => invoiceInstalment(item.id)}
+                      disabled={l3Busy === `inv-${item.id}`}
+                    >
+                      {l3Busy === `inv-${item.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("اعتماد وإصدار فاتورة", "Approve & invoice")}
+                    </Button>
+                  )}
+                </div>
+              )))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {orders.length > 0 && (
+        <Card className="border-border" data-testid="project-purchase-orders">
+          <CardContent className="space-y-3 p-5">
+            <div className="min-w-0">
+              <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("أوامر الشراء", "Purchase orders")}</div>
+              <p className="mt-0.5 text-xs text-content-secondary">
+                {t("تصل المشتريات ببنود التكلفة فقط · لا عرض ولا فاتورة عميل", "Purchasing receives cost lines only · no proposal, no client invoice")}
+              </p>
+            </div>
+            <div className="divide-y divide-border/60 rounded-lg border border-border">
+              {orders.map((po) => (
+                <div key={po.id} className="flex flex-wrap items-center gap-2 p-3 text-sm">
+                  <span className="shrink-0 font-code text-primary" dir="ltr">{po.number}</span>
+                  <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] text-content-secondary">{po.status}</span>
+                  <span className="ms-auto flex shrink-0 items-center gap-3 font-english text-xs" dir="ltr">
+                    <span className="text-content-secondary">{po.issueDate?.slice(0, 10)}</span>
+                    <span className="text-foreground">{money(po.total)} {po.currency}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
@@ -459,6 +668,8 @@ export function ProjectDetail() {
       </div>
 
       {linkPickers}
+
+      {lifecycleSection}
 
       {/* Performance — تقارير أداء المشروع */}
       {perf && (

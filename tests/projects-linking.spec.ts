@@ -206,6 +206,91 @@ test.describe('automatic numbering settings', () => {
   })
 })
 
+
+// ── SPEC-05 L3 · post-award surface on a saved project ──────────────────────
+
+const PROJECT = {
+  id: 'prj_7HmQ2xNvKdLpR8sTwYbZ', code: 'EDG-PRJ-0007',
+  name: 'توسعة مبنى العمليات — أعمال الكهرباء والتيار الخفيف / Operations Building Expansion',
+  status: 'ACTIVE', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-12-31T00:00:00.000Z',
+  clientContactId: EDG.id, budget: '1850000.00', contractValue: '2163034.45',
+  retentionPct: '10.00', percentComplete: '34.00',
+}
+const BUDGET_DRAFT = {
+  id: 'bud_1', projectId: PROJECT.id, estimateId: 'est_1', status: 'DRAFT', costTotal: '84000.00',
+  lines: [
+    { id: 'bl_1', sortOrder: 0, itemNo: '1.1', description: 'كابل نحاس 4×16مم — مسار رئيسي من لوحة التوزيع حتى غرفة المعدات', unit: 'م', quantity: '1200.0000', unitCost: '50.0000', plannedCost: '60000.00' },
+    { id: 'bl_2', sortOrder: 1, itemNo: '1.2', description: 'لوحة توزيع رئيسية', unit: 'عدد', quantity: '3.0000', unitCost: '8000.0000', plannedCost: '24000.00' },
+  ],
+}
+const PLAN = {
+  id: 'plan_1', name: '10 / 75 / 15', isTemplate: false, quoteId: 'qte_1',
+  items: [
+    { id: 'ppi_1', sortOrder: 0, label: 'دفعة أولى عند التوقيع', percent: '10.0000', amount: '216303.45', status: 'DUE', invoiceId: null },
+    { id: 'ppi_2', sortOrder: 1, label: 'مستخلصات مرحلية حسب المنجز', percent: '75.0000', amount: '1622275.84', status: 'PENDING', invoiceId: null },
+    { id: 'ppi_3', sortOrder: 2, label: 'الدفعة الأخيرة عند التسليم', percent: '15.0000', amount: '324455.16', status: 'PENDING', invoiceId: 'inv_paid' },
+  ],
+}
+
+/** Mocks for a SAVED project: links, cost budget, payment plan, purchase orders. */
+async function mockSavedProject(page: Page, opts: { budget?: any; orders?: any[] } = {}) {
+  await mockProjectApi(page)
+  await page.route(`https://api.entix.io/api/projects/${PROJECT.id}`, (r) => r.fulfill({ json: PROJECT }))
+  await page.route(`https://api.entix.io/api/projects/${PROJECT.id}/links`, (r) => r.fulfill({
+    json: { items: [{ id: 'lnk_1', kind: 'QUOTE', documentId: 'qte_1', document: EDG_QUOTES[0] }], total: 1 },
+  }))
+  await page.route(`https://api.entix.io/api/projects/${PROJECT.id}/budget`, (r) =>
+    r.fulfill({ json: opts.budget === undefined ? BUDGET_DRAFT : opts.budget }))
+  await page.route('https://api.entix.io/api/payment-plans**', (r) => r.fulfill({ json: { items: [PLAN], total: 1 } }))
+  await page.route('https://api.entix.io/api/purchase-orders**', (r) => r.fulfill({ json: { items: opts.orders || [], total: (opts.orders || []).length } }))
+  await page.route('https://api.entix.io/api/contractors**', (r) => r.fulfill({ json: { items: [], total: 0 } }))
+}
+
+test.describe('SPEC-05 L3 · after the award', () => {
+  test('the cost budget shows cost only — no sale price, no margin', async ({ page }) => {
+    await prepareVisualApp(page, 'ar')
+    await mockSavedProject(page)
+    await page.goto(`/app/projects/${PROJECT.id}`)
+
+    const card = page.getByTestId('project-cost-budget')
+    await expect(card).toBeVisible()
+    await expect(card).toContainText('بلا سعر بيع أو نسبة ربح')
+    await expect(page.getByTestId('budget-cost-total')).toHaveText('84,000.00 SAR')
+    // the estimate's sale figures (unitPrice 62.50 · lineTotal 75,000) must not appear
+    await expect(card).not.toContainText('75,000.00')
+    await expect(card).not.toContainText('62.50')
+    // a DRAFT budget offers approval, not a purchase order
+    await expect(page.getByTestId('approve-budget')).toBeVisible()
+    await expect(page.getByTestId('issue-po')).toHaveCount(0)
+  })
+
+  test('an approved budget is the ceiling and unlocks the purchase order', async ({ page }) => {
+    await prepareVisualApp(page, 'ar')
+    await mockSavedProject(page, { budget: { ...BUDGET_DRAFT, status: 'APPROVED' }, orders: [
+      { id: 'po_1', number: 'PO-0004', status: 'ISSUED', currency: 'SAR', issueDate: '2026-09-08T00:00:00.000Z', total: '20000.00', lines: [] },
+    ] })
+    await page.goto(`/app/projects/${PROJECT.id}`)
+
+    await expect(page.getByTestId('project-cost-budget')).toContainText('معتمدة · سقف الصرف')
+    await expect(page.getByTestId('issue-po')).toBeVisible()
+    await expect(page.getByTestId('approve-budget')).toHaveCount(0)
+    await expect(page.getByTestId('project-purchase-orders')).toContainText('PO-0004')
+  })
+
+  test('an instalment offers accountant approval until it is invoiced', async ({ page }) => {
+    await prepareVisualApp(page, 'ar')
+    await mockSavedProject(page)
+    await page.goto(`/app/projects/${PROJECT.id}`)
+
+    const plan = page.getByTestId('project-payment-plan')
+    await expect(plan).toContainText('لا تصدر فاتورة الدفعة إلا باعتماد المحاسب')
+    await expect(page.getByTestId('invoice-item-ppi_1')).toBeVisible()
+    // the already-invoiced instalment shows its state instead of the action
+    await expect(page.getByTestId('invoice-item-ppi_3')).toHaveCount(0)
+    await expect(page.getByTestId('plan-item-ppi_3')).toContainText('مفوترة')
+  })
+})
+
 test.describe('overflow audit', () => {
   for (const locale of ['ar', 'en'] as const) {
     test(`project form · new · ${locale}`, async ({ page }) => {
@@ -216,6 +301,21 @@ test.describe('overflow audit', () => {
       await page.getByText(EDG.displayName, { exact: false }).first().click()
       await page.getByTestId('project-link-picker-QUOTE').getByRole('button').first().click()
       await page.getByText('EN-QTE-202609-0004').first().click()
+      for (const width of AUDIT_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 })
+        await page.waitForTimeout(250)
+        const hits = await auditOverflow(page)
+        expect(hits, `${locale} @ ${width}: ${JSON.stringify(hits, null, 2)}`).toEqual([])
+      }
+    })
+
+    test(`project page · saved · ${locale}`, async ({ page }) => {
+      await prepareVisualApp(page, locale)
+      await mockSavedProject(page, { budget: { ...BUDGET_DRAFT, status: 'APPROVED' }, orders: [
+        { id: 'po_1', number: 'PO-0004', status: 'ISSUED', currency: 'SAR', issueDate: '2026-09-08T00:00:00.000Z', total: '20000.00', lines: [] },
+      ] })
+      await page.goto(`/app/projects/${PROJECT.id}`)
+      await page.getByTestId('project-cost-budget').waitFor()
       for (const width of AUDIT_WIDTHS) {
         await page.setViewportSize({ width, height: 900 })
         await page.waitForTimeout(250)

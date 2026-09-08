@@ -877,7 +877,7 @@ export const api = {
 
   // SPEC-05 L2 · Payment plans (خطة الدفعات) · templates + standalone plans
   paymentPlans: {
-    list: (params?: { template?: '1'; quoteId?: string }) =>
+    list: (params?: { template?: '1'; quoteId?: string; projectId?: string }) =>
       request<{ items: PaymentPlan[]; total: number }>('/api/payment-plans', { query: params }),
     templates: () => request<{ items: PaymentPlan[]; total: number }>('/api/payment-plans/templates'),
     get: (id: string) => request<PaymentPlan>(`/api/payment-plans/${id}`),
@@ -975,6 +975,26 @@ export const api = {
       request<ProjectLink>(`/api/projects/${id}/links`, { method: 'POST', body: data }),
     unlink: (id: string, linkId: string) =>
       request<void>(`/api/projects/${id}/links/${linkId}`, { method: 'DELETE' }),
+    // SPEC-05 L3 · the project's COST-ONLY budget (no sale price · no margin)
+    budget: (id: string) => request<ProjectBudget | null>(`/api/projects/${id}/budget`),
+    buildBudget: (id: string, data: { estimateId?: string | null } = {}) =>
+      request<ProjectBudget>(`/api/projects/${id}/budget`, { method: 'POST', body: data }),
+    approveBudget: (id: string) =>
+      request<ProjectBudget>(`/api/projects/${id}/budget/approve`, { method: 'POST', body: {} }),
+  },
+
+  // SPEC-05 L3 · purchase orders issued from budget cost lines
+  purchaseOrders: {
+    list: (params?: { projectId?: string }) =>
+      request<{ items: PurchaseOrder[]; total: number }>('/api/purchase-orders', { query: params }),
+    fromBudget: (data: { projectId: string; supplierId?: string | null; lines: Array<{ budgetLineId: string; quantity?: number }>; notes?: string | null }) =>
+      request<PurchaseOrder>('/api/purchase-orders/from-budget', { method: 'POST', body: data }),
+  },
+
+  // SPEC-05 L3 · an instalment becomes an invoice only on accountant approval
+  paymentPlanItems: {
+    invoice: (itemId: string, data: { dueInDays?: number } = {}) =>
+      request<{ invoice: { id: string; invoiceNumber: string } }>(`/api/payment-plan-items/${itemId}/invoice`, { method: 'POST', body: data }),
   },
 
   // Fixed Assets
@@ -2289,6 +2309,51 @@ export interface LinkedDocument {
   contactId: string | null
   title?: string | null
 }
+/** SPEC-05 L3 · cost-only budget · deliberately has no sale/margin field. */
+export interface ProjectBudgetLine {
+  id: string
+  sortOrder: number
+  itemNo?: string | null
+  section?: string | null
+  description: string
+  unit?: string | null
+  quantity: string
+  unitCost: string
+  plannedCost: string
+  durationDays?: number | null
+  estimateLineId?: string | null
+}
+export interface ProjectBudget {
+  id: string
+  projectId: string
+  estimateId?: string | null
+  status: 'DRAFT' | 'APPROVED'
+  costTotal: string
+  approvedAt?: string | null
+  notes?: string | null
+  lines: ProjectBudgetLine[]
+}
+export interface PurchaseOrderLine {
+  id: string
+  description: string
+  unit?: string | null
+  quantity: string
+  unitCost: string
+  lineTotal: string
+  budgetLineId?: string | null
+}
+export interface PurchaseOrder {
+  id: string
+  number: string
+  projectId?: string | null
+  supplierId?: string | null
+  status: 'DRAFT' | 'ISSUED' | 'RECEIVED' | 'CANCELLED'
+  currency: string
+  issueDate: string
+  total: string
+  lines: PurchaseOrderLine[]
+}
+
 export interface ProjectLink {
   id: string
   kind: ProjectLinkKind
