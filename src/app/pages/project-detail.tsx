@@ -161,7 +161,7 @@ export function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-muted/50 py-3 -mx-1 px-1">
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/projects") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
         <Button type="submit" disabled={busy} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("إنشاء المشروع", "Create project") : t("حفظ التغييرات", "Save changes")}</>}

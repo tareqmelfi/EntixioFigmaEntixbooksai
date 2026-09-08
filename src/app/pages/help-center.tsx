@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { PageHeader } from "../components/product";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -99,14 +100,15 @@ export function HelpCenter() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("مركز الدعم", "Support center")}</h1>
-        <p className="text-muted-foreground mt-1">{t("الوكيل يحل أغلب الأسئلة فورًا — وإلا صعّد لنا مباشرة", "The agent solves most questions instantly — otherwise escalate to us directly")}</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={t("مركز المساعدة", "Help center")}
+        title={t("مركز الدعم", "Support center")}
+        description={t("الوكيل يحل أغلب الأسئلة فورًا — وإلا صعّد لنا مباشرة", "The agent solves most questions instantly — otherwise escalate to us directly")}
+      />
 
       {/* escalation — direct line first (product requirement: يرتبط فيني مباشرة) */}
-      <div className="rounded-xl border border-success-border bg-success-subtle/60 p-5">
+      <div className="rounded-lg border border-border border-s-[3px] border-s-success bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-foreground" style={{ fontWeight: 700 }}>{t("تحتاج إنسانًا؟ كلمنا مباشرة", "Need a human? Talk to us directly")}</div>
@@ -148,10 +150,10 @@ export function HelpCenter() {
           )}
           {msgs.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"}`}>{m.content}</div>
+              <div className={`max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"}`}>{m.content}</div>
             </div>
           ))}
-          {busy && <div className="flex justify-start"><div className="rounded-2xl bg-muted/60 px-3.5 py-2.5 text-sm text-muted-foreground">…</div></div>}
+          {busy && <div className="flex justify-start"><div className="rounded-lg bg-muted/60 px-3.5 py-2.5 text-sm text-muted-foreground">…</div></div>}
           {chatErr && <div className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2.5 text-xs text-warning">{chatErr}</div>}
         </div>
         <div className="border-t border-border p-4">

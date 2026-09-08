@@ -10,6 +10,7 @@ import {
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { PageHeader } from "../components/product";
 import { useOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "../components/LanguageContext";
 import { api } from "../lib/api";
@@ -74,19 +75,19 @@ export function Integrations() {
   const stripeConnected = !!oauth?.stripe?.connected;
   const moyasarConnected = !!oauth?.moyasar?.connected;
   const integrations: Integration[] = [
-    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "ZATCA Phase 2 — قيد التحقق · غير مفعّل للاعتماد الإنتاجي", en: "ZATCA Phase 2 — Under validation · not enabled for production reliance" }, category: "government", icon: Shield, iconColor: "#1A1E48", iconBg: "#ECEEF5", status: "coming", action: { kind: "route", to: "/app/settings?tab=zatca" } },
-    { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "#1A1E48", iconBg: "#ECEEF5", status: "coming" },
-    { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "#5875DB", iconBg: "#EFF6FF", status: "available", action: { kind: "route", to: "/app/integrations/plaid" } },
-    { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "#5875DB", iconBg: "#EFF6FF", status: "coming" },
-    { id: "stripe", name: "Stripe", nameAr: "بوابة الدفع", description: { ar: "قبول المدفوعات عبر الإنترنت", en: "Accept online payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: stripeConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
-    { id: "moyasar", name: "Moyasar", nameAr: "ميسّر", description: { ar: "بوابة دفع سعودية (مدى + فيزا)", en: "Saudi payment gateway (mada + Visa)" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: moyasarConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
-    { id: "paypal", name: "PayPal", nameAr: "باي بال", description: { ar: "قبول المدفوعات الدولية", en: "Accept international payments" }, category: "payments", icon: Zap, iconColor: "#7C3AED", iconBg: "#F3E8FF", status: "coming" },
-    { id: "salla", name: "Salla", nameAr: "سلة", description: { ar: "ربط مع متجر سلة الإلكتروني", en: "Connect your Salla online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
-    { id: "zid", name: "Zid", nameAr: "زد", description: { ar: "ربط مع متجر زد الإلكتروني", en: "Connect your Zid online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
-    { id: "shopify", name: "Shopify", nameAr: "شوبيفاي", description: { ar: "ربط مع متجر Shopify", en: "Connect your Shopify store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "#349FC4", iconBg: "#E4F4F9", status: "coming" },
-    { id: "whatsapp", name: "WhatsApp Business", nameAr: "واتساب أعمال", description: { ar: "إرسال الفواتير والتنبيهات عبر واتساب", en: "Send invoices and alerts via WhatsApp" }, category: "communication", icon: MessageSquare, iconColor: "#166534", iconBg: "#DCFCE7", status: "coming" },
-    { id: "webhook", name: "Webhooks", nameAr: "ويب هوكس", description: { ar: "ربط مخصص مع أي نظام خارجي", en: "Custom integration with any external system" }, category: "developer", icon: Webhook, iconColor: "#374151", iconBg: "#F3F4F6", status: "coming" },
-    { id: "api", name: "REST API", nameAr: "واجهة برمجية", description: { ar: "API كامل للتكامل مع أنظمتك", en: "Full API to integrate with your systems" }, category: "developer", icon: Globe, iconColor: "#374151", iconBg: "#F3F4F6", status: "connected", action: { kind: "external", to: "https://api.entix.io/health" } },
+    { id: "zatca", name: "ZATCA (FATOORA)", nameAr: "هيئة الزكاة والضريبة", description: { ar: "ZATCA Phase 2 — قيد التحقق · غير مفعّل للاعتماد الإنتاجي", en: "ZATCA Phase 2 — Under validation · not enabled for production reliance" }, category: "government", icon: Shield, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming", action: { kind: "route", to: "/app/settings?tab=zatca" } },
+    { id: "gosi", name: "GOSI", nameAr: "التأمينات الاجتماعية", description: { ar: "ربط تلقائي مع نظام التأمينات", en: "Automatic sync with the social insurance system" }, category: "government", icon: Building2, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "plaid", name: "Plaid", nameAr: "الربط البنكي (US)", description: { ar: "ربط الحسابات البنكية الأمريكية تلقائياً", en: "Connect US bank accounts automatically" }, category: "banking", icon: CreditCard, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "available", action: { kind: "route", to: "/app/integrations/plaid" } },
+    { id: "lean", name: "Lean Technologies", nameAr: "الربط البنكي (GCC)", description: { ar: "Open Banking للبنوك الخليجية", en: "Open Banking for GCC banks" }, category: "banking", icon: CreditCard, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "stripe", name: "Stripe", nameAr: "بوابة الدفع", description: { ar: "قبول المدفوعات عبر الإنترنت", en: "Accept online payments" }, category: "payments", icon: Zap, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: stripeConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
+    { id: "moyasar", name: "Moyasar", nameAr: "ميسّر", description: { ar: "بوابة دفع سعودية (مدى + فيزا)", en: "Saudi payment gateway (mada + Visa)" }, category: "payments", icon: Zap, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: moyasarConnected ? "connected" : "available", action: { kind: "route", to: "/app/settings?tab=payments" } },
+    { id: "paypal", name: "PayPal", nameAr: "باي بال", description: { ar: "قبول المدفوعات الدولية", en: "Accept international payments" }, category: "payments", icon: Zap, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "salla", name: "Salla", nameAr: "سلة", description: { ar: "ربط مع متجر سلة الإلكتروني", en: "Connect your Salla online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "zid", name: "Zid", nameAr: "زد", description: { ar: "ربط مع متجر زد الإلكتروني", en: "Connect your Zid online store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "shopify", name: "Shopify", nameAr: "شوبيفاي", description: { ar: "ربط مع متجر Shopify", en: "Connect your Shopify store" }, category: "ecommerce", icon: ShoppingCart, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "whatsapp", name: "WhatsApp Business", nameAr: "واتساب أعمال", description: { ar: "إرسال الفواتير والتنبيهات عبر واتساب", en: "Send invoices and alerts via WhatsApp" }, category: "communication", icon: MessageSquare, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "webhook", name: "Webhooks", nameAr: "ويب هوكس", description: { ar: "ربط مخصص مع أي نظام خارجي", en: "Custom integration with any external system" }, category: "developer", icon: Webhook, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "coming" },
+    { id: "api", name: "REST API", nameAr: "واجهة برمجية", description: { ar: "API كامل للتكامل مع أنظمتك", en: "Full API to integrate with your systems" }, category: "developer", icon: Globe, iconColor: "var(--content-secondary)", iconBg: "var(--surface-subtle)", status: "connected", action: { kind: "external", to: "https://api.entix.io/health" } },
   ];
 
   const categories = [...new Set(integrations.map(i => i.category))];
@@ -105,18 +106,17 @@ export function Integrations() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("التكاملات", "Integrations")}</h1>
-          <p className="text-muted-foreground mt-1">{t("اربط ENTIX.IO مع خدماتك المفضلة", "Connect ENTIX.IO with your favorite services")}</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("الإعدادات", "Settings")}
+        title={t("التكاملات", "Integrations")}
+        description={t("اربط ENTIX.IO مع خدماتك المفضلة", "Connect ENTIX.IO with your favorite services")}
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-border">
           <CardContent className="pt-5 pb-4 px-5 text-center">
             <div className="flex justify-center mb-3"><div className="rounded-xl bg-muted p-2.5"><CheckCircle2 className="h-5 w-5 text-foreground" /></div></div>
-            <div className="text-foreground font-english" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{integrations.filter(i => i.status === "connected").length}</div>
+            <div className="font-display text-[1.75rem] leading-none tabular-nums text-foreground">{integrations.filter(i => i.status === "connected").length}</div>
             <p className="text-xs text-muted-foreground mt-1">{t("متصل", "Connected")}</p>
           </CardContent>
         </Card>
@@ -149,7 +149,7 @@ export function Integrations() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((integration) => {
           const regionLocked = integration.id === "zatca" && !isSA;
           const cfg = regionLocked
@@ -157,19 +157,19 @@ export function Integrations() {
             : statusConfig[integration.status];
           const Icon = integration.icon;
           return (
-            <Card key={integration.id} className={`border-border transition-all ${regionLocked ? "opacity-60" : "hover:shadow-md hover:border-primary/30 cursor-pointer"}`}>
+            <Card key={integration.id} className={`min-w-0 border-border transition-all ${regionLocked ? "opacity-60" : "ledger-hoverable cursor-pointer"}`}>
               <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl p-2.5" style={{ backgroundColor: integration.iconBg }}>
-                      <Icon className="h-5 w-5" style={{ color: integration.iconColor }} />
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="shrink-0 rounded-lg border border-border p-2.5" style={{ backgroundColor: integration.iconBg }}>
+                      <Icon className="h-5 w-5" style={{ color: integration.iconColor }} strokeWidth={1.75} />
                     </div>
-                    <div>
-                      <div className="font-english text-foreground" style={{ fontWeight: 600 }}>{integration.name}</div>
-                      {isAr && <div className="text-xs text-muted-foreground">{integration.nameAr}</div>}
+                    <div className="min-w-0">
+                      <div className="truncate font-english text-foreground" style={{ fontWeight: 600 }}>{integration.name}</div>
+                      {isAr && <div className="truncate text-xs text-muted-foreground">{integration.nameAr}</div>}
                     </div>
                   </div>
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 600 }}>{isAr ? cfg.label.ar : cfg.label.en}</span>
+                  <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 600 }}>{isAr ? cfg.label.ar : cfg.label.en}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{isAr ? integration.description.ar : integration.description.en}</p>
                 {integration.status === "connected" && (

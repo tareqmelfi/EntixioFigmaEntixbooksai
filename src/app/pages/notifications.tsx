@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { Bell, CheckCheck, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { PageHeader } from "../components/product";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError, NotificationItem } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
@@ -95,21 +96,24 @@ export function Notifications() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الإشعارات", "Notifications")}</h1>
-          <p className="text-muted-foreground mt-1">{items.length} {t("إشعار", "notifications")} · {unreadCount} {t("غير مقروء", "unread")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setFilter(filter === "ALL" ? "UNREAD" : "ALL")} className="border-border">
-            {filter === "ALL" ? t("غير المقروءة فقط", "Unread only") : t("كل الإشعارات", "All notifications")}
-          </Button>
-          {unreadCount > 0 && (
-            <Button onClick={handleMarkAll} className="bg-primary hover:bg-primary/90">
-              <CheckCheck className="me-2 h-4 w-4" /> {t("تحديد الكل كمقروء", "Mark all as read")}
+      <PageHeader
+        eyebrow={t("الإشعارات", "Notifications")}
+        title={t("الإشعارات", "Notifications")}
+        description={<><span className="font-english tabular-nums">{items.length}</span> {t("إشعار", "notifications")} · <span className="font-english tabular-nums">{unreadCount}</span> {t("غير مقروء", "unread")}</>}
+        actions={(
+          <>
+            <Button variant="outline" onClick={() => setFilter(filter === "ALL" ? "UNREAD" : "ALL")}>
+              {filter === "ALL" ? t("غير المقروءة فقط", "Unread only") : t("كل الإشعارات", "All notifications")}
             </Button>
-          )}
-        </div>
+            {unreadCount > 0 && (
+              <Button onClick={handleMarkAll}>
+                <CheckCheck className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("تحديد الكل كمقروء", "Mark all as read")}
+              </Button>
+            )}
+          </>
+        )}
+      />
+      <div className="hidden">
       </div>
 
       {error && <div className="rounded-xl border border-danger-border bg-danger-subtle px-4 py-3 text-sm text-danger">{error}</div>}

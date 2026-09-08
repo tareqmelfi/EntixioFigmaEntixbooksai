@@ -23,11 +23,13 @@ type HeaderProps = {
 export function PageHeader({ title, description, eyebrow, leading, actions, className }: HeaderProps) {
   return (
     <header className={cn("flex flex-wrap items-start justify-between gap-4", className)}>
-      <div className="flex min-w-0 flex-1 items-start gap-3">
+      {/* The title block keeps a 20rem basis so a long action row wraps under
+          the title instead of squeezing the h1 below its longest word. */}
+      <div className="flex min-w-0 flex-[1_1_20rem] items-start gap-3">
         {leading && <div className="mt-1 shrink-0">{leading}</div>}
         <div className="min-w-0 flex-1">
         {eyebrow && <div className="mb-1 text-xs text-content-secondary">{eyebrow}</div>}
-        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground">{title}</h1>
+        <h1 className="text-[clamp(1.75rem,1.5rem+0.8vw,2.25rem)] font-bold leading-tight tracking-[-0.01em] text-foreground [overflow-wrap:anywhere]">{title}</h1>
         {description && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>}
         </div>
       </div>

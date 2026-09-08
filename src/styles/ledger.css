@@ -9,6 +9,10 @@
 .ledger-figures > .ledger-figure {
   padding: 18px 20px;
   border-inline-start: 1px solid var(--border);
+  /* The figure is an inline-size container so its numeral scales with the
+     column it sits in (14-char amounts at 4-up 1280px used to spill). */
+  container-type: inline-size;
+  min-width: 0;
 }
 .ledger-figures > .ledger-figure:first-child { border-inline-start: 0; padding-inline-start: 0; }
 .ledger-figures > .ledger-figure:last-child { padding-inline-end: 0; }
@@ -22,7 +26,9 @@
 }
 .ledger-figure-value {
   font-family: var(--entix-font-display);
-  font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.5rem);
+  font-size: clamp(1.25rem, 10.5cqw, 2.5rem);
+  max-width: 100%;
+  white-space: nowrap;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   direction: ltr;

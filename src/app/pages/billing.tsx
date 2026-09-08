@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { InlineAlert, PageHeader } from "../components/product";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
@@ -119,14 +120,15 @@ export function Billing() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("الاشتراك والفوترة", "Subscription & Billing")}</h1>
-        <p className="text-muted-foreground mt-1">{t("حالة اشتراكك · إدارة الدفع · الترقية بين الباقات", "Your subscription status · payment management · plan upgrades")}</p>
-      </div>
+      <PageHeader
+        eyebrow={t("الإعدادات", "Settings")}
+        title={t("الاشتراك والفوترة", "Subscription & Billing")}
+        description={t("حالة اشتراكك · إدارة الدفع · الترقية بين الباقات", "Your subscription status · payment management · plan upgrades")}
+      />
 
-      {error && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {/* Current status */}
       <Card className="border-border">

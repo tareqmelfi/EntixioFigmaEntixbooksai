@@ -11,6 +11,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { api } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
+import { Metric, MetricStrip, PageHeader } from "../components/product";
 
 // ── Types ──
 type FeatureStatus = "live" | "partial" | "planned" | "phase2" | "phase3";
@@ -40,7 +41,7 @@ const statusConfig: Record<FeatureStatus, { label: string; labelEn: string; colo
   partial: { label: "جزئي", labelEn: "Partial", color: "text-warning", bg: "bg-warning-subtle", icon: AlertCircle },
   planned: { label: "مخطط", labelEn: "Planned", color: "text-primary", bg: "bg-info-subtle", icon: Clock },
   phase2: { label: "المرحلة 2", labelEn: "Phase 2", color: "text-primary", bg: "bg-primary/5", icon: Target },
-  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-destructive", bg: "bg-danger-subtle", icon: Sparkles },
+  phase3: { label: "المرحلة 3", labelEn: "Phase 3", color: "text-danger", bg: "bg-danger-subtle", icon: Sparkles },
 };
 
 // ── Feature Modules ──
@@ -299,54 +300,48 @@ export function FeatureRoadmap() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-foreground" style={{ fontSize: "1.75rem", fontWeight: 700 }}>{t("خارطة المزايا", "Feature Roadmap")}</h1>
-        <p className="text-muted-foreground mt-1">{t("مراجعة شاملة لجميع مزايا المنصة وحالة التنفيذ", "Comprehensive review of all platform features and implementation status")}</p>
-      </div>
+      <PageHeader
+        eyebrow={t("الإعدادات", "Settings")}
+        title={t("خارطة المزايا", "Feature Roadmap")}
+        description={t("مراجعة شاملة لجميع مزايا المنصة وحالة التنفيذ", "Comprehensive review of all platform features and implementation status")}
+      />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-        <button onClick={() => setFilterStatus(filterStatus === "all" ? "all" : "all")} className="text-start">
-          <Card className={`border-border hover:shadow-md transition-all ${filterStatus === "all" ? "ring-2 ring-ring/20" : ""}`}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("الإجمالي", "Total")}</p>
-              <p className="font-english text-foreground mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.total}</p>
-              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
-                <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${completionRate}%` }} />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 font-english">{completionRate}% {t("مكتمل", "complete")}</p>
-            </CardContent>
-          </Card>
-        </button>
+      {/* Summary figures · the ledger strip (click a figure to filter) */}
+      <MetricStrip className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 [&_.ledger-figure-value]:text-[22px] sm:[&_.ledger-figure-value]:text-[26px]">
+        <Metric
+          role="button" tabIndex={0} aria-pressed={filterStatus === "all"} onClick={() => setFilterStatus("all")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFilterStatus("all"); } }}
+          className={`cursor-pointer ${filterStatus === "all" ? "bg-surface-subtle" : ""}`}
+          label={t("الإجمالي", "Total")} value={String(stats.total)}
+          hint={(
+            <>
+              <span className="block h-1.5 w-full overflow-hidden rounded-full bg-surface-subtle"><span className="block h-1.5 rounded-full bg-primary transition-all" style={{ width: `${completionRate}%` }} /></span>
+              <span className="mt-1 block font-english tabular-nums">{completionRate}% {t("مكتمل", "complete")}</span>
+            </>
+          )}
+        />
         {(["live", "partial", "planned", "phase2", "phase3"] as FeatureStatus[]).map(status => {
           const cfg = statusConfig[status];
           const count = stats[status];
           return (
-            <button key={status} onClick={() => setFilterStatus(filterStatus === status ? "all" : status)} className="text-start">
-              <Card className={`border-border hover:shadow-md transition-all ${filterStatus === status ? "ring-2 ring-ring/20" : ""}`}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t(cfg.label, cfg.labelEn)}</p>
-                  <p className={`font-english mt-1 ${cfg.color}`} style={{ fontSize: "1.5rem", fontWeight: 700 }}>{count}</p>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 ${cfg.bg} ${cfg.color}`} style={{ fontWeight: 500 }}>
-                    <cfg.icon className="h-3 w-3" />{t(cfg.label, cfg.labelEn)}
-                  </span>
-                </CardContent>
-              </Card>
-            </button>
+            <Metric
+              key={status}
+              role="button" tabIndex={0} aria-pressed={filterStatus === status} onClick={() => setFilterStatus(filterStatus === status ? "all" : status)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFilterStatus(filterStatus === status ? "all" : status); } }}
+              className={`cursor-pointer ${filterStatus === status ? "bg-surface-subtle" : ""}`}
+              label={t(cfg.label, cfg.labelEn)} value={String(count)}
+              hint={<span className={`inline-flex items-center gap-1 ${cfg.color}`}><cfg.icon className="h-3 w-3" strokeWidth={1.75} />{t(cfg.label, cfg.labelEn)}</span>}
+            />
           );
         })}
-        <button onClick={() => setFilterStatus("all")} className="text-start">
-          <Card className="border-warning-border bg-warning-subtle/20 hover:shadow-md transition-all">
-            <CardContent className="p-4">
-              <p className="text-xs text-warning" style={{ fontWeight: 600 }}>{t("حرجة", "Critical")}</p>
-              <p className="font-english text-warning mt-1" style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.criticalDone}/{stats.critical}</p>
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs mt-2 bg-warning-subtle text-warning" style={{ fontWeight: 500 }}>
-                <Star className="h-3 w-3" />{t("أساسية", "Essential")}
-              </span>
-            </CardContent>
-          </Card>
-        </button>
-      </div>
+        <Metric
+          role="button" tabIndex={0} onClick={() => setFilterStatus("all")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFilterStatus("all"); } }}
+          className="cursor-pointer" tone="warning"
+          label={t("حرجة", "Critical")} value={`${stats.criticalDone}/${stats.critical}`}
+          hint={<span className="inline-flex items-center gap-1 text-warning"><Star className="h-3 w-3" strokeWidth={1.75} />{t("أساسية", "Essential")}</span>}
+        />
+      </MetricStrip>
 
       {/* Modules */}
       <div className="space-y-3">

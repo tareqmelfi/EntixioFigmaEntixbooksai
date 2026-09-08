@@ -30,6 +30,7 @@ import { buildDuplicateDecision, getSimilarityReview, type DuplicateDecision, ty
 import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
+import { PageHeader } from "../components/product";
 import { humanizeError } from "../lib/error-messages";
 
 type StatusFilter = "ALL" | "RECEIVED" | "EXTRACTED" | "APPROVED" | "REJECTED";
@@ -225,19 +226,15 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
         />
       )}
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-            <InboxIcon className="h-6 w-6 text-primary" /> {t("البريد الوارد", "Inbox")}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t("مرّر الفواتير من المورّدين إلى عنوانك المخصّص · والذكاء يستخرجها كمسودات جاهزة للاعتماد", "Forward invoices from your suppliers to your dedicated address · AI extracts them as drafts ready for approval")}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={t("صندوق الوارد", "Inbox")}
+        leading={<InboxIcon className="h-6 w-6 text-content-secondary" strokeWidth={1.75} />}
+        title={t("البريد الوارد", "Inbox")}
+        description={t("مرّر الفواتير من المورّدين إلى عنوانك المخصّص · والذكاء يستخرجها كمسودات جاهزة للاعتماد", "Forward invoices from your suppliers to your dedicated address · AI extracts them as drafts ready for approval")}
+      />
 
       {/* Forwarding address banner */}
-      <Card className={mailboxStatus?.configured ? "border-info-border bg-gradient-to-l from-primary/5 to-card" : "border-warning-border bg-warning-subtle"}>
+      <Card className={mailboxStatus?.configured ? "border-s-[3px] border-s-primary" : "border-s-[3px] border-s-warning"}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Mail className="h-5 w-5 text-primary shrink-0" />
@@ -314,7 +311,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
                       key={m.id}
                       onClick={() => loadDetail(m.id)}
                       className={`px-4 py-3 cursor-pointer border-b border-border/50 last:border-0 transition ${
-                        active ? "bg-primary/5 border-l-4 border-l-[#5875DB]" : "hover:bg-muted/40"
+                        active ? "bg-surface-subtle border-s-[3px] border-s-primary" : "hover:bg-surface-hover"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -400,7 +397,7 @@ function DetailPane({
   }, [detail.id, detail.status]);
 
   return (
-    <div className="divide-y divide-[#F3F4F6]">
+    <div className="divide-y divide-border">
       {/* Email header */}
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
