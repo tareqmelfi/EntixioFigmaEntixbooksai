@@ -669,7 +669,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       <div class="v">${isQuote ? t("رقم العرض", "Quote no.") : t("رقم الفاتورة", "Invoice no.")} ${num(doc.number)}</div>
       <div class="s">${t("تاريخ الإصدار", "Issue date")} ${num(issue)}</div>
       ${end ? `<div class="s">${esc(endLabel)} ${num(end)}</div>` : ""}</div>
-    <div><div class="k">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : (orgTaxRegistered ? t("المستحق شامل الضريبة", "Total due incl. tax") : t("المستحق", "Total due"))}</div>
+    <div><div class="k">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : (orgTaxRegistered ? t("إجمالي الفاتورة شامل الضريبة", "Invoice total incl. tax") : t("إجمالي الفاتورة", "Invoice total"))}</div>
       <div class="big">${cur} ${money(doc.total)}</div>
       ${orgTaxRegistered ? `<div class="s">${num(money(taxable))} + ${taxLabel} ${num(money(doc.taxTotal))}</div>` : ""}
       ${doc.title && title !== doc.title ? `<div class="s">${esc(doc.title)}</div>` : ""}</div>
@@ -756,7 +756,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
       if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
     }
-    rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("الإجمالي المستحق", "Total due")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
+    rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("إجمالي الفاتورة", "Invoice total")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
     if (!isQuote && paid > 0) {
       rows.push(`<div class="r"><span class="lbl">${t("المسدَّد", "Paid")}</span><span class="amt">${cur} ${money(paid)}</span></div>`);
       rows.push(`<div class="r due"><span class="lbl">${t("المتبقي", "Balance due")}</span><span class="amt">${cur} ${money(due)}</span></div>`);
@@ -785,10 +785,13 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (!items.length && !link) return null;
     const termsCard = items.length ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div><ul>${items.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
     const payAmount = `${cur} ${money(isQuote ? doc.total : Math.max(due, 0))}`;
-    const payNote = orgTaxRegistered
+    const settled = !isQuote && due <= 0;
+    const payNote = settled
+      ? t("هذه الفاتورة مسددة بالكامل. افتح الرابط لمراجعة المستند الأصلي وإثبات السداد.", "This invoice is fully paid. Open the link to review the original invoice and payment confirmation.")
+      : orgTaxRegistered
       ? t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — المبلغ شامل الضريبة، بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — tax included, no extra fees.`)
       : t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — no extra fees.`);
-    const payCard = link ? `<div class="card"><div class="t">${t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${payNote}</p><a href="${esc(link)}">${esc(link)}</a><div class="chips"><span class="chip">Apple Pay ✓</span><span class="chip">${t("بطاقة ائتمانية / مدى", "Credit card / mada")} ✓</span><span class="chip">${t("بوابة دفع مؤمَّنة", "Secure gateway")} 🔒</span></div></div></div></div>` : "";
+    const payCard = link ? `<div class="card"><div class="t">${settled ? t("الفاتورة الأصلية وإثبات السداد", "Original invoice and payment confirmation") : t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${payNote}</p><a href="${esc(link)}">${esc(link)}</a>${settled ? "" : `<div class="chips"><span class="chip">Apple Pay ✓</span><span class="chip">${t("بطاقة ائتمانية / مدى", "Credit card / mada")} ✓</span><span class="chip">${t("بوابة دفع مؤمَّنة", "Secure gateway")} 🔒</span></div>`}</div></div></div>` : "";
     const h = 20 + Math.max(items.reduce((s, i) => s + textHeight(i, 70, 5.2, 1.7), 0), link ? 42 : 0);
     const html = termsCard && payCard ? `<div class="cards">${termsCard}${payCard}</div>` : `<div class="cards" style="grid-template-columns:1fr">${termsCard || payCard}</div>`;
     return { kind: "html", h, html };

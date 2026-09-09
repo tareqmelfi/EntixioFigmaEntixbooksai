@@ -1,4 +1,5 @@
 import { displayLocale } from "../lib/number-display";
+import { correctionLineAmounts } from "../lib/invoice-correction";
 /**
  * Credit Notes (الإشعارات الدائنة) · UI-first build · backend wired via /api/credit-notes (when ready)
  * Falls back to filtered invoices with status=CANCELLED until dedicated API ships.
@@ -8,8 +9,8 @@ import { displayLocale } from "../lib/number-display";
  * Pattern: same FullPageForm + ItemsTable + SearchableCombobox as invoices/quotes/bills.
  * Difference: links to original invoice (optional) · negative impact on receivables.
  */
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import { Plus, Search, Trash2, Loader2, ScrollText, FileText, ScanLine, Mail } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
@@ -57,6 +58,8 @@ const EMPTY_FORM = {
   issueDate: new Date().toISOString().slice(0, 10),
   reason: "RETURN",
   notes: "",
+  currency: "SAR",
+  exchangeRate: 1,
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
 };
@@ -80,6 +83,9 @@ export function CreditNotes() {
   const { currency: orgCurrency } = useOrgRegion();
   const params = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const correctInvoice = searchParams.get("correctInvoice");
+  const correctionLoaded = useRef<string | null>(null);
   const editId = params.id;
   const isEditing = Boolean(editId);
 
@@ -145,16 +151,18 @@ export function CreditNotes() {
           issueDate: (cn.issueDate || "").slice(0, 10),
           reason: cn.reason || "RETURN",
           notes: cn.notes || "",
+          currency: cn.currency || "SAR",
+          exchangeRate: Number((cn as any).exchangeRate || 1),
           branchId: cn.branchId ?? null,
         });
         const mapped = (cn.lines || []).map((line: any) => ({
-          ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0.15, false),
+          ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0, false),
           originalInvoiceLineId: line.originalInvoiceLineId || undefined,
           productId: line.productId || undefined,
           description: line.description,
           quantity: String(line.quantity || "1"),
           unitPrice: String(line.unitPrice || "0"),
-          taxRate: line.taxRate ? Number(line.taxRate.rate) : 0.15,
+          taxRate: line.taxRate ? Number(line.taxRate.rate) : 0,
           taxRateId: line.taxRateId || null,
         }));
         setLines(mapped.length > 0 ? mapped : [newLine()]);
@@ -181,7 +189,7 @@ export function CreditNotes() {
   const figureCurrency = totalByCur.length === 1 ? totalByCur[0][0] : (orgCurrency || "SAR");
 
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, currency: orgCurrency || "SAR" });
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
@@ -202,31 +210,44 @@ export function CreditNotes() {
     setCreateError(null);
     try {
       const invoice = await api.invoices.get(invoiceId);
+      if (invoice.status === "DRAFT" || invoice.status === "CANCELLED" || (invoice as any).paymentLinkProvider === "stripe-subscription") throw new Error(t("هذه الفاتورة غير متاحة للتصحيح بهذا المسار.", "This invoice cannot be corrected through this flow."));
       setForm((prev) => ({
         ...prev,
         contactId: invoice.contactId,
         originalInvoiceId: invoice.id,
+        currency: invoice.currency,
+        exchangeRate: Number(invoice.exchangeRate || 1),
       }));
       const mapped = (invoice.lines || []).map((line: any) => ({
-        ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0.15, false),
+        ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0, false),
         originalInvoiceLineId: line.id,
         productId: line.productId || undefined,
         description: line.description,
-        quantity: String(line.quantity || "1"),
-        unitPrice: String(line.unitPrice || "0"),
-        taxRate: line.taxRate ? Number(line.taxRate.rate) : 0.15,
+        ...correctionLineAmounts(line),
         taxRateId: line.taxRateId || null,
       }));
       setLines(mapped.length > 0 ? mapped : [newLine()]);
       push("success", t(`تم تحميل ${mapped.length} بند من الفاتورة ${invoice.invoiceNumber}`, `Loaded ${mapped.length} line(s) from invoice ${invoice.invoiceNumber}`));
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : t("تعذر تحميل بنود الفاتورة", "Could not load invoice lines"));
+      setForm((prev) => ({ ...prev, originalInvoiceId: "", contactId: "" }));
+      setLines([]);
+      setCreateError(e instanceof Error ? e.message : t("تعذر تحميل بنود الفاتورة", "Could not load invoice lines"));
     } finally {
       setSourceLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!correctInvoice || editId || correctionLoaded.current === correctInvoice) return;
+    correctionLoaded.current = correctInvoice;
+    setCreateOpen(true);
+    setForm({ ...EMPTY_FORM, reason: "PRICING_ERROR", currency: orgCurrency || "SAR" });
+    setLines([]);
+    void loadInvoiceLines(correctInvoice);
+  }, [correctInvoice, editId]);
+
   const handleSubmit = async () => {
+    if (sourceLoading) return;
     setCreateError(null);
     if (!form.contactId) { setCreateError(t("اختر العميل", "Select a customer")); return; }
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
@@ -235,6 +256,8 @@ export function CreditNotes() {
     try {
       const payload = {
         contactId: form.contactId,
+        currency: form.currency,
+        exchangeRate: form.exchangeRate,
         originalInvoiceId: form.originalInvoiceId || null,
         issueDate: form.issueDate,
         reason: form.reason,
@@ -249,6 +272,8 @@ export function CreditNotes() {
             ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
             : Number(normalizeDigits(l.unitPrice)),
           taxRateId: (l as any).taxRateId || null,
+          taxRate: l.taxRate,
+          taxInclusive: false,
         })),
       };
       if (isEditing && editId) {
@@ -325,7 +350,7 @@ export function CreditNotes() {
                   <Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إرسال", "Send")}
                 </Button>
               )}
-              <Button type="button" disabled={busy} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
+              <Button type="button" disabled={busy || sourceLoading} onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
               </Button>
             </div>
@@ -423,7 +448,7 @@ export function CreditNotes() {
                 mode={taxMode}
                 onModeChange={setTaxMode}
                 defaultTaxRate={0.15}
-                currency="SAR"
+                currency={form.currency}
                 products={products.map((p: any) => ({
                   id: p.id,
                   name: p.nameAr || p.name,

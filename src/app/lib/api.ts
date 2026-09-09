@@ -78,12 +78,12 @@ if (typeof localStorage !== 'undefined') {
  * iframes with a fresh JS context): explicitly adopt the stored org id.
  * Safe because the API's requireOrg middleware verifies membership on every
  * org-scoped call — a stale id can never leak another user's data, it just
- * 403s/404s. Callers should still retry across memberships on failure (the
- * stored org may not be the document's org).
+ * 403s/404s. Print contexts must never persist their temporary organization
+ * selection: same-origin preview frames share sessionStorage with their parent.
  */
 export function bootstrapOrgIdFromStorage(): string | null {
   const stored = readTabOrgId()
-  if (stored) setOrgId(stored)
+  if (stored) setOrgId(stored, false)
   return stored
 }
 
