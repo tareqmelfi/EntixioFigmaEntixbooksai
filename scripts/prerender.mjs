@@ -2,12 +2,14 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import puppeteer from 'puppeteer'
+import { preserveAppShell } from './app-shell.mjs'
 import {
   PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, SITE_ORIGIN,
   canonicalUrl, localeDirection, localizedPath, ogLocale,
 } from '../src/app/public-site-manifest.ts'
 
 const DIST = path.resolve('dist')
+preserveAppShell(DIST)
 const REQUESTED_PORT = Number(process.env.PRERENDER_PORT || 0)
 const SOLUTION_ROUTES = new Set([
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',

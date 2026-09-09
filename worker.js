@@ -17,7 +17,7 @@ const API_PATHS = (p) =>
 
 // SPA shell prefixes (app + auth + portal + print) and public marketing routes.
 // Must stay in sync with src/app/routes.tsx public paths.
-const SHELL_PREFIXES = ['/app', '/admin', '/portal', '/print', '/q']
+const SHELL_PREFIXES = ['/app', '/admin', '/portal', '/print', '/invite', '/verify-email', '/welcome', '/buy', '/claim', '/q']
 const LOCALIZED_ROUTES = new Set(['/sa/ar', '/sa/en', '/us/ar', '/us/en'])
 const LOCALIZED_PREFIX = /^\/(?:sa|us)\/(?:ar|en)(?:\/|$)/
 const MARKETING_ROUTES = new Set([
@@ -136,7 +136,7 @@ export default {
     //    → serve it directly (REND-01: content without executing JS).
     //    html_handling:"none" means directories don't auto-resolve, so we
     //    address the file explicitly.
-    // 2) app shells (/app /portal /print) → SPA index.html fallback (ARC-04)
+    // 2) app shells → unrendered app-shell.html (never the public chooser)
     // 3) anything else → honest 404 (REND-07)
     if (LOCALIZED_ROUTES.has(pathname) || MARKETING_ROUTES.has(pathname)) {
       const target = pathname === '/' ? '/index.html' : `${pathname}/index.html`
@@ -148,7 +148,7 @@ export default {
 
     if (isShellPath(pathname)) {
       const isPrint = pathname.startsWith('/print')
-      const shell = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request))
+      const shell = await env.ASSETS.fetch(new Request(new URL('/app-shell.html', url), request))
       return withSecurityHeaders(shell, { isHtml: true, allowFraming: isPrint })
     }
     return withSecurityHeaders(notFound())

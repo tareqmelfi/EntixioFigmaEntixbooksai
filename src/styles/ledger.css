@@ -55,6 +55,13 @@
    tokens are allowed to wrap. Menus/popovers are portalled, so clipping is safe. */
 table.table-fixed > tbody > tr > td,
 table.table-fixed > thead > tr > th { overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; min-width: 0; }
+/* Action strips must wrap inside a fixed column. A max-content strip painted
+   beyond the 150px invoice Actions column, where the cell guard clipped it. */
+table.table-fixed > tbody > tr > td > .flex.w-max.min-w-full {
+  width: 100%;
+  flex-wrap: wrap;
+}
+table.table-fixed > tbody > tr > td > .flex.w-max.min-w-full > * { flex-shrink: 0; }
 .ledger-table > table thead th { background: transparent; }
 .ledger-table > table tbody tr:last-child { border-bottom: 1px solid var(--border); }
 
