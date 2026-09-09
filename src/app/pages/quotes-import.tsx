@@ -16,8 +16,13 @@ import { FullPageForm } from "../components/full-page-form";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
-import { api, ApiError, BoqPreview, Contact } from "../lib/api";
+import { api, ApiError, BoqPreview, Contact, getOrgId } from "../lib/api";
 import { useEffect } from "react";
+
+const pricedLine = (l: BoqPreview['sheets'][number]['lines'][number]) =>
+  !l.isHeading && l.qty != null && Number.isFinite(l.qty) && l.qty > 0
+    && ((l.unitPrice != null && Number.isFinite(l.unitPrice) && l.unitPrice >= 0)
+      || (l.subtotal != null && Number.isFinite(l.subtotal) && l.subtotal >= 0));
 
 type LineState = { included: boolean; isOptional: boolean };
 
@@ -26,6 +31,8 @@ export function QuotesImport() {
   const navigate = useNavigate();
   const { toasts, push, dismiss } = useToasts();
 
+  const [importOrgId] = useState(() => getOrgId());
+  const [importOrgName, setImportOrgName] = useState("");
   const [preview, setPreview] = useState<BoqPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -42,20 +49,24 @@ export function QuotesImport() {
   });
 
   useEffect(() => {
+    if (importOrgId) api.orgs.get(importOrgId).then(o => setImportOrgName(o.name)).catch(() => {});
     api.contacts.list({ limit: 200 }).then((r) => setCustomers(r.items.filter((c) => c.type === "CUSTOMER" || c.type === "BOTH"))).catch(() => {});
   }, []);
 
   const upload = async (f: File) => {
-    setBusy(true); setErr(null);
+    if (!/\.(xlsx|xls|csv)$/i.test(f.name)) {
+      setErr(t("هذا المسار يقبل Excel وCSV فقط؛ PDF والصور غير مدعومة هنا.", "This importer accepts Excel and CSV only; PDF and images are not supported here.")); return;
+    }
+    setBusy(true); setErr(null); setPreview(null);
     try {
       const p = await api.quotes.importBoq(f);
       setPreview(p);
       setActiveSheet(0);
       const init: Record<string, LineState> = {};
-      p.sheets.forEach((s, si) => s.lines.forEach((l, li) => { if (!l.isHeading) init[`${si}:${li}`] = { included: true, isOptional: false }; }));
+      p.sheets.forEach((s, si) => s.lines.forEach((l, li) => { if (!l.isHeading) init[`${si}:${li}`] = { included: pricedLine(l), isOptional: false }; }));
       setLineState(init);
       if (!form.title) setForm((fm) => ({ ...fm, title: f.name.replace(/\.(xlsx|xls|csv)$/i, "") }));
-      if (p.warnings.length) p.warnings.forEach((w) => push("info", w));
+      // Keep import warnings beside the preview until the user reviews them.
     } catch (e: any) {
       setErr(e instanceof ApiError ? e.message : t("فشل قراءة الملف", "Failed to read the file"));
     } finally { setBusy(false); }
@@ -65,9 +76,9 @@ export function QuotesImport() {
     if (!preview) return { count: 0, total: 0, optional: 0 };
     let count = 0, total = 0, optional = 0;
     preview.sheets.forEach((s, si) => s.lines.forEach((l, li) => {
-      if (l.isHeading) return;
+      if (!pricedLine(l)) return;
       const st = lineState[`${si}:${li}`];
-      const amount = l.subtotal ?? (l.qty ?? 0) * (l.unitPrice ?? 0);
+      const amount = l.unitPrice != null && l.qty != null ? l.qty * l.unitPrice : l.subtotal ?? 0;
       if (st?.included) { count++; total += amount; } else if (st?.isOptional) optional++;
     }));
     return { count, total, optional };
@@ -75,20 +86,21 @@ export function QuotesImport() {
 
   const createQuote = async () => {
     if (!preview) return;
+    if (!importOrgId || getOrgId() !== importOrgId) { setErr(t("تغيّرت المنشأة. افتح الاستيراد مجددًا في المنشأة المطلوبة.", "The company changed. Reopen the importer in the intended company.")); return; }
     if (!form.contactId) { setErr(t("اختر العميل (الجهة المرسلة للـ BOQ)", "Select the customer")); return; }
     const lines: any[] = [];
     let sort = 0;
     preview.sheets.forEach((s, si) => s.lines.forEach((l, li) => {
-      if (l.isHeading) return;
+      if (!pricedLine(l)) return;
       const st = lineState[`${si}:${li}`];
       if (!st) return;
       if (!st.included && !st.isOptional) return; // dropped entirely
-      const qty = l.qty ?? 1;
+      const qty = l.qty!;
       const unitPrice = l.unitPrice ?? (l.subtotal != null && qty ? l.subtotal / qty : 0);
-      if (!l.description.trim() || (!unitPrice && !l.subtotal)) return;
+      if (!l.description.trim()) return;
       lines.push({
         description: l.description,
-        quantity: qty || 1,
+        quantity: qty,
         unitPrice,
         sectionLabel: s.name,
         unit: l.unit,
@@ -133,7 +145,7 @@ export function QuotesImport() {
               </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" className="border-border" onClick={() => setPreview(null)}>{t("ملف آخر", "Another file")}</Button>
-                <Button type="button" disabled={busy} onClick={createQuote} className="bg-primary hover:bg-primary/90">
+                <Button type="button" disabled={busy || stats.count + stats.optional === 0} onClick={createQuote} className="bg-primary hover:bg-primary/90">
                   {busy ? "..." : t("إنشاء عرض السعر", "Create quote")}
                 </Button>
               </div>
@@ -142,19 +154,22 @@ export function QuotesImport() {
         }
       >
         <div className="w-full max-w-none mx-auto space-y-4">
+          {importOrgName && <p className="text-sm text-foreground">{t("سيُحفظ العرض في:", "Quote will be saved under:")} <strong>{importOrgName}</strong></p>}
           {err && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{err}</div>}
 
           {!preview && (
             <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 py-16 cursor-pointer hover:bg-primary/10 transition-colors">
               {busy ? <Loader2 className="h-10 w-10 animate-spin text-primary" /> : <UploadCloud className="h-10 w-10 text-primary" />}
               <div className="text-foreground" style={{ fontWeight: 700 }}>{t("اسحب ملف الـ BOQ هنا أو اضغط للاختيار", "Drop the BOQ file here or click to choose")}</div>
-              <div className="text-xs text-muted-foreground">{t("Excel (.xlsx / .xls) · حتى 10MB · يدعم العناوين العربية والإنجليزية والأرقام العربية 123", "Excel (.xlsx / .xls) · up to 10MB · Arabic & English headers")}</div>
+              <div className="text-xs text-muted-foreground">{t("Excel / CSV (.xlsx / .xls / .csv) · PDF غير مدعوم هنا · حتى 10MB · يدعم العناوين العربية والإنجليزية والأرقام العربية 123", "Excel / CSV (.xlsx / .xls / .csv) · PDF not supported here · up to 10MB · Arabic & English headers")}</div>
               <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.currentTarget.value = ""; }} />
             </label>
           )}
 
           {preview && (
             <>
+              {!!preview.warnings.length && <div role="status" className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm space-y-1">{preview.warnings.map((w, i) => <p key={i}>{w}</p>)}</div>}
+              {stats.count + stats.optional === 0 && <p role="alert" className="text-sm text-warning">{t("لا توجد بنود بكمية وسعر صالحين. أكمل جدول الكميات الأصلي ثم أعد استيراده؛ لن ننشئ أسعارًا أو كميات افتراضية.", "No lines have a valid quantity and price. Complete the source BOQ and import again; quantities and prices will not be invented.")}</p>}
               {/* Quote header fields */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-1.5">
@@ -224,14 +239,14 @@ export function QuotesImport() {
                         );
                         const key = `${activeSheet}:${li}`;
                         const st = lineState[key] || { included: true, isOptional: false };
-                        const amount = l.subtotal ?? (l.qty ?? 0) * (l.unitPrice ?? 0);
+                        const amount = l.unitPrice != null && l.qty != null ? l.qty * l.unitPrice : l.subtotal ?? 0;
                         return (
                           <tr key={li} className={`border-b border-border/40 ${!st.included && !st.isOptional ? "opacity-40" : ""}`}>
                             <td className="py-1.5 px-3">
-                              <input type="checkbox" checked={st.included} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked, isOptional: e.target.checked ? false : s[key]?.isOptional || false } }))} className="h-4 w-4 accent-[#5875DB]" />
+                              <input type="checkbox" disabled={!pricedLine(l)} checked={st.included} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked, isOptional: e.target.checked ? false : s[key]?.isOptional || false } }))} className="h-4 w-4 accent-[#5875DB]" />
                             </td>
                             <td className="py-1.5 px-3">
-                              <input type="checkbox" checked={st.isOptional} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked ? false : s[key]?.included ?? true, isOptional: e.target.checked } }))} className="h-4 w-4 accent-[#8FA3F0]" title={t("يظهر في العرض كبند اختياري غير مشمول في الإجمالي", "Shown as optional · excluded from the total")} />
+                              <input type="checkbox" disabled={!pricedLine(l)} checked={st.isOptional} onChange={(e) => setLineState((s) => ({ ...s, [key]: { included: e.target.checked ? false : s[key]?.included ?? true, isOptional: e.target.checked } }))} className="h-4 w-4 accent-[#8FA3F0]" title={t("يظهر في العرض كبند اختياري غير مشمول في الإجمالي", "Shown as optional · excluded from the total")} />
                             </td>
                             <td className="py-1.5 px-3 text-foreground/90">{l.no && <span className="font-english text-muted-foreground me-1">{l.no}</span>}{l.description}</td>
                             <td className="py-1.5 px-3 text-xs text-muted-foreground">{l.unit || "—"}</td>

@@ -75,5 +75,17 @@ assert.equal(sent.at(-1)?.orgId, 'us-company')
 Object.assign(globalThis, { sessionStorage: tabA }); await authStore.refresh()
 assert.equal(getOrgId(), 'sa-company')
 setOrgId(null, false); assert.equal(bootstrapOrgIdFromStorage(), 'sa-company', 'Print bootstrap follows this tab')
+// Reproduce a print frame probing a different membership after a 404/503.
+setOrgId('us-company', false)
+assert.equal(readTabOrgId('fixture-user'), 'sa-company', 'Print lookup must not change the parent tab choice')
+await authStore.refresh()
+assert.equal(getOrgId(), 'sa-company', 'Parent refresh retains its company after a preview lookup')
 setOrgId(null); assert.equal(readTabOrgId(), null, 'Sign-out clears the tab selection')
 console.log('Company context regressions passed: delayed reload, independent tabs, request headers, account ownership, membership removal, outage recovery, print and sign-out. No live requests.')
+
+const fs = await import('node:fs/promises')
+for (const name of ['invoice-print-view', 'quote-proposal-print', 'voucher-print-view']) {
+ const source = await fs.readFile(new URL(`../src/app/pages/${name}.tsx`, import.meta.url), 'utf8')
+ assert.match(source, /setOrgId\(m\.org\.id, false\)/, name + ' must use temporary lookup context')
+ assert.doesNotMatch(source, /setOrgId\(m\.org\.id\)/, name + ' must not persist lookup')
+}
