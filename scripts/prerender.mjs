@@ -185,12 +185,12 @@ async function renderNeutralRoot() {
     await loadRoute(page, '/')
     let html = cleanPublicSeo(await page.content())
     html = setHtmlLanguage(html, 'en', 'ltr')
-    html = replaceTitle(html, 'ENTIX.IO | Choose your market and language')
-    html = replaceMeta(html, 'name', 'description', 'Choose your ENTIX.IO market and language.')
-    html = replaceMeta(html, 'property', 'og:title', 'ENTIX.IO')
-    html = replaceMeta(html, 'property', 'og:description', 'Choose your ENTIX.IO market and language.')
-    html = replaceMeta(html, 'name', 'twitter:title', 'ENTIX.IO')
-    html = replaceMeta(html, 'name', 'twitter:description', 'Choose your ENTIX.IO market and language.')
+    html = replaceTitle(html, 'Entix Books · Arabic-first cloud accounting | ENTIX.IO')
+    html = replaceMeta(html, 'name', 'description', 'Arabic-first cloud accounting for businesses in Saudi Arabia and the United States — quotes, invoices, receipts, automatic journal entries, POS, inventory and projects. Start free, no card.')
+    html = replaceMeta(html, 'property', 'og:title', 'Entix Books · Arabic-first cloud accounting')
+    html = replaceMeta(html, 'property', 'og:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
+    html = replaceMeta(html, 'name', 'twitter:title', 'Entix Books · Arabic-first cloud accounting')
+    html = replaceMeta(html, 'name', 'twitter:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
     html = insertHead(html, [
       `<link rel="canonical" href="${SITE_ORIGIN}/">`,
       `<link rel="alternate" hreflang="x-default" href="${SITE_ORIGIN}/">`,
