@@ -10,6 +10,7 @@
  */
 import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
+import type { DocPage } from './document-render'
 
 export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
 
@@ -3118,6 +3119,8 @@ export interface Quote {
   total: string
   notes?: string | null
   termsConditions?: string | null
+  /** Free-form pages (CEO 2026-09-13) · DocPage[] · printed before the T&C page */
+  pages?: DocPage[] | null
   /** Internal / customer reference · own column (never inside termsConditions) */
   reference?: string | null
   /** Brand document template · null → org default for QUOTE */
@@ -3330,6 +3333,8 @@ export interface QuoteInput {
   exchangeRate?: number
   notes?: string | null
   termsConditions?: string | null
+  /** Free-form pages (CEO 2026-09-13) */
+  pages?: DocPage[] | null
   reference?: string | null
   templateId?: string | null
   /** SPEC-04 */
@@ -3413,6 +3418,8 @@ export interface Invoice {
   amountPaid: string
   notes?: string | null
   termsConditions?: string | null
+  /** Free-form pages (CEO 2026-09-13) · DocPage[] · printed before the T&C page */
+  pages?: DocPage[] | null
   /** Customer PO / external reference · own column (never inside termsConditions) */
   reference?: string | null
   /** Brand document template · null → org default for INVOICE */
@@ -3451,6 +3458,8 @@ export interface InvoiceInput {
   exchangeRate?: number
   notes?: string
   termsConditions?: string
+  /** Free-form pages (CEO 2026-09-13) */
+  pages?: DocPage[] | null
   reference?: string | null
   templateId?: string | null
   lines: InvoiceLine[]

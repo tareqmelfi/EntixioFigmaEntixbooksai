@@ -34,6 +34,8 @@ import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 import { useOrgRegion } from "../lib/use-org-region";
 import { IssuedInvoiceRecord } from "../components/issued-invoice-record";
+import { DocumentPagesEditor } from "../components/document-pages-editor";
+import { normalizePages, type DocPage } from "../lib/document-render";
 import { InvoicePreviewPane } from "../components/invoice-preview-pane";
 import { BidiText } from "../components/bidi-text";
 
@@ -93,6 +95,8 @@ const EMPTY_FORM = {
   templateId: "",
   // Terms & conditions · per-document override · prefilled from the template on create
   termsConditions: "",
+  // Free-form pages (CEO 2026-09-13) · printed before the T&C page
+  pages: [] as DocPage[],
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
   // Project / job-costing dimension (C2)
@@ -508,6 +512,7 @@ export function Invoices() {
         reference: form.reference || null,
         termsConditions: form.termsConditions || null,
         templateId: form.templateId || null,
+        pages: normalizePages(form.pages),
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
           accountId: l.accountId || null, // only an intentional product mapping can supply a missing account
@@ -675,6 +680,7 @@ export function Invoices() {
       reference: (inv as any).reference || (String(inv.termsConditions || "").match(/^Ref:\s*(.+)$/)?.[1] ?? ""),
       termsConditions: /^Ref:\s*\S+$/.test(String(inv.termsConditions || "").trim()) ? "" : (inv.termsConditions || ""),
       templateId: (inv as any).templateId || "",
+      pages: normalizePages((inv as any).pages),
       branchId: (inv as any).branchId ?? null,
       projectId: (inv as any).projectId ?? null,
     } as any);
@@ -1070,6 +1076,11 @@ export function Invoices() {
                     className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
                     data-testid="invoice-terms"
                   />
+                </div>
+                {/* CEO 2026-09-13 · free-form pages (scope · requirements · photos) · printed before the T&C page */}
+                <div className="space-y-1.5">
+                  <Label className="text-content-secondary text-xs">{t("صفحات إضافية · تُطبع بعد البنود وقبل صفحة الشروط والأحكام", "Additional pages · printed after the items and before the terms & conditions page")}</Label>
+                  <DocumentPagesEditor value={form.pages} disabled={busy} onChange={(pages) => setForm({ ...form, pages })} />
                 </div>
               </div>
               <div className="space-y-1.5">

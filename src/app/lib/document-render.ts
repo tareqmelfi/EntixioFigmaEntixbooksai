@@ -76,6 +76,73 @@ export function normalizeSections(raw: unknown): SectionSetting[] {
   return out;
 }
 
+// ─── free-form pages (CEO 2026-09-13 · «إمكانية إضافة صفحات · مثل Gamma») ──────
+// Extra pages written INSIDE the platform (scope · requirements · method · photos) and
+// printed by this same engine, in the document's own identity. Stored as JSON blocks —
+// never HTML — so the renderer stays the only thing that produces markup.
+
+export type PageBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "bullets"; items: string[] }
+  | { type: "numbered"; items: string[] }
+  | { type: "table"; header: string[]; rows: string[][] }
+  | { type: "note"; text: string }
+  | { type: "image"; url: string; caption?: string | null };
+
+export interface DocPage { title: string; blocks: PageBlock[] }
+
+export const PAGE_LIMITS = { pages: 20, blocks: 60, items: 40, cols: 6, rows: 60, text: 4000 } as const;
+export const PAGE_BLOCK_TYPES: PageBlock["type"][] = ["heading", "paragraph", "bullets", "numbered", "table", "note", "image"];
+
+const clipText = (v: unknown, max: number = PAGE_LIMITS.text): string => String(v ?? "").replace(/\r\n?/g, "\n").slice(0, max);
+const clipList = (v: unknown, max: number = PAGE_LIMITS.items): string[] =>
+  (Array.isArray(v) ? v : []).map((x) => clipText(x, 600).trim()).filter(Boolean).slice(0, max);
+
+/** Normalise whatever is stored/posted (null · partial · unknown block types) into a safe DocPage[].
+ *  Unknown types and empty blocks are dropped; sizes are clipped to PAGE_LIMITS. */
+export function normalizePages(raw: unknown): DocPage[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DocPage[] = [];
+  for (const p of raw.slice(0, PAGE_LIMITS.pages)) {
+    if (!p || typeof p !== "object") continue;
+    const blocks: PageBlock[] = [];
+    for (const b of (Array.isArray((p as any).blocks) ? (p as any).blocks : []).slice(0, PAGE_LIMITS.blocks)) {
+      if (!b || typeof b !== "object") continue;
+      switch ((b as any).type) {
+        case "heading": case "paragraph": case "note": {
+          const text = clipText((b as any).text).trim();
+          if (text) blocks.push({ type: (b as any).type, text });
+          break;
+        }
+        case "bullets": case "numbered": {
+          const items = clipList((b as any).items);
+          if (items.length) blocks.push({ type: (b as any).type, items });
+          break;
+        }
+        case "table": {
+          const header = clipList((b as any).header, PAGE_LIMITS.cols);
+          const rows = (Array.isArray((b as any).rows) ? (b as any).rows : [])
+            .map((r: unknown) => (Array.isArray(r) ? r : []).map((c) => clipText(c, 600).trim()).slice(0, PAGE_LIMITS.cols))
+            .filter((r: string[]) => r.some(Boolean))
+            .slice(0, PAGE_LIMITS.rows);
+          if (header.length || rows.length) blocks.push({ type: "table", header, rows });
+          break;
+        }
+        case "image": {
+          const url = clipText((b as any).url, 2_000_000).trim();
+          if (url) blocks.push({ type: "image", url, caption: clipText((b as any).caption, 300).trim() || null });
+          break;
+        }
+        default: break;
+      }
+    }
+    const title = clipText((p as any).title, 200).trim();
+    if (title || blocks.length) out.push({ title, blocks });
+  }
+  return out;
+}
+
 export interface TemplateSpec {
   kind?: string | null;
   coverStyle?: string | null;
@@ -198,6 +265,8 @@ export interface DocSpec {
   taxRateLabel?: string | null;
   /** Per-document print language override · "ar" | "en" · null → caller/org default */
   language?: DocLang | null;
+  /** Free-form pages written in the platform · printed after the main flow, before the T&C page */
+  pages?: DocPage[] | null;
 }
 
 export interface RenderInput {
@@ -501,6 +570,17 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .bank dt{color:var(--muted)}
 .edoc .bank dd{margin:0;overflow-wrap:anywhere}
 .edoc .notes{background:var(--soft);border-radius:2mm;padding:3mm 4mm;font-size:8.5pt;white-space:pre-wrap;margin:0 0 6mm;line-height:1.65}
+/* free-form pages (CEO 2026-09-13) · same type scale as the rest of the sheet */
+.edoc .pg-title{margin-bottom:5mm}
+.edoc .pg-h{font-size:11pt;font-weight:700;margin:2mm 0 1.5mm;line-height:1.4}
+.edoc .pg-p{font-size:9.5pt;line-height:1.7;margin:0 0 3mm;white-space:pre-wrap;overflow-wrap:break-word}
+.edoc .pg-note{background:var(--soft);border-inline-start:1.2mm solid var(--brand);border-radius:2mm;padding:3mm 4mm;font-size:9pt;line-height:1.65;margin:0 0 4mm;white-space:pre-wrap}
+.edoc .pg-list{margin:0 0 3mm;padding-inline-start:6mm;font-size:9.5pt;line-height:1.7}
+.edoc .pg-list li{margin:0 0 1mm;padding-inline-start:1mm}
+.edoc table.pg-table td{font-size:8.6pt}
+.edoc .pg-fig{margin:0 0 5mm;break-inside:avoid}
+.edoc .pg-fig img{display:block;max-width:100%;max-height:62mm;object-fit:contain;border-radius:2mm}
+.edoc .pg-fig figcaption{font-size:8pt;color:var(--muted);margin-top:1.5mm}
 .edoc .actions{position:fixed;top:12px;${lang === "ar" ? "left" : "right"}:12px;z-index:50;display:flex;gap:8px}
 .edoc .actions button{padding:8px 16px;border-radius:8px;border:1px solid #CDD3DC;background:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#111827}
 .edoc .actions button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
@@ -920,6 +1000,58 @@ export function renderDocument(input: RenderInput): RenderOutput {
   }
   if (!on("header") && doc.notes && !on("totals")) blocks.push({ kind: "html", h: 20, html: `<div class="notes">${bdi(doc.notes)}</div>` });
 
+  // ── free-form pages (CEO 2026-09-13) ──
+  // Each page STARTS a fresh sheet (forceBreak) and flows through the same paginator, so a
+  // long page spills onto the next sheet with tables split under a repeated head — never
+  // clipped. Everything is escaped by the renderer; image URLs pass safeUrl().
+  const pages = normalizePages(doc.pages);
+  if (pages.length) {
+    const COL = 182; // usable mm across the sheet (210 − 14 − 14)
+    const li = (items: string[]) => items.map((it) => `<li>${bdi(it)}</li>`).join("");
+    pages.forEach((pg, pi) => {
+      const titleText = pg.title || t(`ملحق ${pi + 1}`, `Appendix ${pi + 1}`);
+      blocks.push({ kind: "html", h: 16, forceBreak: true, keepWithNext: true, html: `<div class="h2 pg-title">${bdi(titleText)}</div>` });
+      for (const b of pg.blocks) {
+        switch (b.type) {
+          case "heading":
+            blocks.push({ kind: "html", h: 4 + textHeight(b.text, COL, 6, 2.2), keepWithNext: true, html: `<div class="pg-h">${bdi(b.text)}</div>` });
+            break;
+          case "paragraph":
+            blocks.push({ kind: "html", h: 3 + textHeight(b.text, COL, 5.2, 1.75), html: `<p class="pg-p">${bdi(b.text)}</p>` });
+            break;
+          case "note":
+            blocks.push({ kind: "html", h: 9 + textHeight(b.text, COL - 12, 5, 1.75), html: `<div class="pg-note">${bdi(b.text)}</div>` });
+            break;
+          case "bullets":
+          case "numbered": {
+            const h = 3 + b.items.reduce((acc, it) => acc + textHeight(it, COL - 10, 5.2, 1.75), 0);
+            blocks.push({ kind: "html", h, html: `<${b.type === "numbered" ? "ol" : "ul"} class="pg-list">${li(b.items)}</${b.type === "numbered" ? "ol" : "ul"}>` });
+            break;
+          }
+          case "table": {
+            const cols = Math.max(b.header.length, ...b.rows.map((r) => r.length), 1);
+            const colMm = COL / cols;
+            const head = b.header.length
+              ? `<thead><tr>${Array.from({ length: cols }, (_, i) => `<th>${bdi(b.header[i] || "")}</th>`).join("")}</tr></thead>`
+              : "";
+            const rows = b.rows.map((r) => ({
+              h: 3.5 + Math.max(...Array.from({ length: cols }, (_, i) => textHeight(r[i] || "", colMm - 4, 4.6, 1.55))),
+              html: `<tr>${Array.from({ length: cols }, (_, i) => `<td>${bdi(r[i] || "")}</td>`).join("")}</tr>`,
+            }));
+            blocks.push({ kind: "table", open: `<table class="tc pg-table">`, head, headH: head ? 9 : 0, rows, close: `</table>` });
+            break;
+          }
+          case "image": {
+            const src = safeUrl(b.url);
+            if (!src) break;
+            blocks.push({ kind: "html", h: 78, html: `<figure class="pg-fig"><img src="${src}" alt="">${b.caption ? `<figcaption>${bdi(b.caption)}</figcaption>` : ""}</figure>` });
+            break;
+          }
+        }
+      }
+    });
+  }
+
   // ── closing page (terms & conditions) ──
   // Appended to the SAME block list — one single paginate() pass — rather than paginated
   // on its own. The closing intro carries forceBreak, so it always STARTS a fresh sheet
@@ -1075,6 +1207,7 @@ export function docFromQuote(q: any): DocSpec {
     paymentLinkUrl: q.paymentLinkUrl || null,
     paymentPlan: planRows(q.paymentPlan, n(q.taxTotal), n(q.total)),
     language: q.language === "en" || q.language === "ar" ? q.language : null,
+    pages: normalizePages(q.pages),
   };
 }
 
@@ -1100,6 +1233,7 @@ export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
     paymentPlan: planRows(inv.paymentPlan, n(inv.taxTotal), n(inv.total)),
     qrPayload: qrPayload ?? inv.zatcaQr ?? null,
     language: inv.language === "en" || inv.language === "ar" ? inv.language : null,
+    pages: normalizePages(inv.pages),
   };
 }
 

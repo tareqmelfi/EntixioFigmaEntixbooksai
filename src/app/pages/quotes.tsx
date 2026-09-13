@@ -25,6 +25,8 @@ import { useOrgRegion } from "../lib/use-org-region";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
+import { DocumentPagesEditor, DocumentPagesSection } from "../components/document-pages-editor";
+import { normalizePages, type DocPage } from "../lib/document-render";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Quote, Contact, DocumentSendRecord, type PaymentPlan, type PaymentPlanItemInput, type PaymentCondition, type PaymentBillingMethod } from "../lib/api";
@@ -110,6 +112,8 @@ const EMPTY_FORM = {
   templateId: "",
   // Terms & conditions · per-document override · prefilled from the template on create
   termsConditions: "",
+  // Free-form pages (CEO 2026-09-13) · printed before the T&C page
+  pages: [] as DocPage[],
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
 };
@@ -446,6 +450,7 @@ export function Quotes() {
         reference: form.reference || null,
         termsConditions: form.termsConditions || null,
         templateId: form.templateId || null,
+        pages: normalizePages(form.pages),
         // The tax the user picked travels WITH the line. Sending only price and
         // quantity is what made every quote save taxTotal = 0 and quote a client
         // 400 on a 400 subtotal instead of 460 (CEO screenshot 2026-09-08).
@@ -826,6 +831,9 @@ export function Quotes() {
                   className="w-full rounded-md border border-border px-3 py-2 text-sm"
                   data-testid="quote-terms"
                 />
+                {/* CEO 2026-09-13 · free-form pages (scope · requirements · timeline) · printed before the T&C page */}
+                <Label className="text-foreground/80 text-xs">{t("صفحات إضافية · تُطبع بعد البنود وقبل صفحة الشروط والأحكام", "Additional pages · printed after the items and before the terms & conditions page")}</Label>
+                <DocumentPagesEditor value={form.pages} onChange={(pages) => setForm({ ...form, pages })} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("الإجمالي", "Total")}</Label>
@@ -1095,6 +1103,24 @@ export function Quotes() {
                     )}
                   </span>
                 }
+              />
+            </div>
+            {/* CEO 2026-09-13 · free-form pages (scope · requirements · timeline) · printed before the T&C page */}
+            <div className="lg:col-span-2">
+              <DocumentPagesSection
+                pages={q.pages}
+                disabled={q.status === "CONVERTED"}
+                printHref={`/print/proposal/${q.id}`}
+                onSave={async (pages) => {
+                  try {
+                    const updated = await api.quotes.update(q.id, { pages });
+                    setDetail((prev) => (prev && prev.id === q.id ? { ...prev, pages: updated.pages ?? pages } : prev));
+                    push("success", t("تم حفظ الصفحات", "Pages saved"));
+                  } catch (e: any) {
+                    push("error", e?.message || t("تعذّر حفظ الصفحات", "Could not save pages"));
+                    throw e;
+                  }
+                }}
               />
             </div>
             <div className="lg:col-span-2">
