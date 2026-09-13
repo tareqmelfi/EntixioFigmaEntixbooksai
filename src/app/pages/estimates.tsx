@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   Calculator, Plus, Search, Trash2, Loader2, FileSpreadsheet, Lock, Unlock,
-  ArrowRight, Copy, Send, CheckCircle2, ArrowLeftRight,
+  ArrowRight, Copy, Send, CheckCircle2, ArrowLeftRight, Eye, Users,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -25,16 +25,22 @@ import { EmptyState, InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader,
 import { FullPageForm } from "../components/full-page-form";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { ContactSearchInput } from "../components/contact-search-input";
+import { EstimateIntakeZone, ESTIMATE_INTAKE_ACCEPT } from "../components/estimate-intake-zone";
+import { EstimatePreviewPane, useMinWidth, type EstimatePreviewLine, type EstimatePreviewTab } from "../components/estimate-preview-pane";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
 import { normalizeDigits } from "../lib/digits";
 import { formatDraftTime } from "../lib/form-draft";
 import { displayLocale } from "../lib/number-display";
-import { api, ApiError, type Contact, type Estimate, type EstimateLineInput } from "../lib/api";
+import { api, ApiError, type Contact, type Estimate, type EstimateImportFileResult, type EstimateLineInput } from "../lib/api";
 import { taxRateLabel, useTaxRates } from "../lib/use-tax-rates";
 
 const CURRENCIES = ["SAR", "USD", "EUR", "AED"];
+/** «إخفاء المعاينة» is remembered per browser (side layout ≥ 1280px only) */
+const PREVIEW_COLLAPSED_KEY = "entix.estimates.previewCollapsed";
+/** File-first intake · the default title when the user saves before naming the study */
+const defaultTitle = (ar: boolean) => `${ar ? "دراسة جديدة" : "New estimate"} · ${new Date().toISOString().slice(0, 10)}`;
 
 const STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   DRAFT: { ar: "مسودة", en: "Draft" },
@@ -169,6 +175,23 @@ export function Estimates() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
+  // ── file-first intake (CEO 2026-09-13) ─────────────────────────────────────
+  const [intakeBusy, setIntakeBusy] = useState(false);
+  const [intakeError, setIntakeError] = useState<string | null>(null);
+  /** Client named in the file but not matched to a contact → inline chooser (never a dialog) */
+  const [clientSuggestion, setClientSuggestion] = useState<{ name: string; vatNumber?: string | null; candidates: Array<{ id: string; name: string }> } | null>(null);
+  const [clientBusy, setClientBusy] = useState(false);
+
+  // ── preview pane (side ≥ 1280px · stacked below) ───────────────────────────
+  const wide = useMinWidth(1280);
+  const [previewCollapsed, setPreviewCollapsed] = useState<boolean>(() => { try { return localStorage.getItem(PREVIEW_COLLAPSED_KEY) === "1"; } catch { return false; } });
+  const [previewTab, setPreviewTab] = useState<EstimatePreviewTab>("client");
+  const [stackView, setStackView] = useState<"form" | EstimatePreviewTab>("form");
+  const togglePreview = (collapsed: boolean) => {
+    setPreviewCollapsed(collapsed);
+    try { localStorage.setItem(PREVIEW_COLLAPSED_KEY, collapsed ? "1" : "0"); } catch { /* ignore */ }
+  };
+
   const canSeeCost = current ? current.confidentialHidden !== true : !listHidden;
   const frozen = current?.status === "CONVERTED" || current?.status === "ARCHIVED";
 
@@ -190,7 +213,7 @@ export function Estimates() {
 
   // Load the estimate under edit
   useEffect(() => {
-    if (!editId) { if (isNew) { setCurrent(null); setForm(EMPTY_FORM); setRows([newRow()]); } return; }
+    if (!editId) { if (isNew) { setCurrent(null); setForm(EMPTY_FORM); setRows([newRow()]); setClientSuggestion(null); setIntakeError(null); } return; }
     let alive = true;
     setEditorLoading(true);
     api.estimates.get(editId)
@@ -249,6 +272,17 @@ export function Estimates() {
       marginPct: s.sale > 0 ? ((s.sale - s.cost) / s.sale) * 100 : 0,
     }));
   }, [rows, computed]);
+
+  /** The pane sees exactly what the grid computes · sale + cost sides (the pane keeps cost out of the client doc). */
+  const previewLines = useMemo<EstimatePreviewLine[]>(() => rows.map((r, i) => {
+    const c = computed[i];
+    return {
+      itemNo: r.itemNo, section: r.section, description: r.description, spec: r.spec, unit: r.unit,
+      quantity: c.quantity, unitPrice: c.unitPrice, lineTotal: c.lineTotal, taxRate: c.taxRate,
+      unitCost: c.unitCost, cost: c.cost, unitPriceLocked: r.unitPriceLocked,
+    };
+  }), [rows, computed]);
+  const previewContact = useMemo(() => contacts.find((c) => c.id === form.contactId) || null, [contacts, form.contactId]);
 
   // ── list figures (cost/margin only when the API sent them) ─────────────────
   const listTotals = useMemo(() => {
@@ -313,13 +347,15 @@ export function Estimates() {
 
   const save = async (opts?: { silent?: boolean }): Promise<Estimate | null> => {
     setEditorError(null);
-    if (!form.title.trim()) { setEditorError(t("عنوان الدراسة مطلوب", "A title is required")); return null; }
+    // File-first law (CEO 2026-09-13): a missing title never blocks — default it and let the user rename later.
+    let title = form.title.trim();
+    if (!title) { title = defaultTitle(language === "ar"); setForm((f) => ({ ...f, title })); }
     const lines = linePayload();
     if (!lines.length) { setEditorError(t("أضف بنداً واحداً على الأقل (وصف البند)", "Add at least one line (a description)")); return null; }
     setBusy(true);
     try {
       const body = {
-        title: form.title.trim(),
+        title,
         contactId: form.contactId || null,
         currency: form.currency,
         defaultMarginPct: num(form.defaultMarginPct),
@@ -419,6 +455,77 @@ export function Estimates() {
     });
   };
 
+  /** Apply a server-created DRAFT (import-file) to the editor · fills title / client / currency from the estimate. */
+  const applyImported = (r: EstimateImportFileResult) => {
+    const est = r.estimate;
+    setCurrent(est);
+    setRows(rowsFromEstimate(est));
+    setForm((f) => ({
+      ...f,
+      title: est.title || f.title,
+      contactId: est.contactId || "",
+      contactName: est.contact?.displayName || (est.contactId ? f.contactName : ""),
+      currency: est.currency || f.currency,
+      defaultMarginPct: est.defaultMarginPct === undefined ? f.defaultMarginPct : String(Number(est.defaultMarginPct)),
+      taxRate: est.taxRate === undefined ? f.taxRate : String(Number(est.taxRate)),
+      notes: est.notes || f.notes,
+    }));
+    setItems((prev) => (prev.some((x) => x.id === est.id) ? prev.map((x) => (x.id === est.id ? est : x)) : [est, ...prev]));
+    const sc = r.suggestions?.client;
+    setClientSuggestion(sc && !sc.matchedContactId && sc.name ? { name: sc.name, vatNumber: sc.vatNumber, candidates: sc.candidates || [] } : null);
+    push("success", t(`أُنشئت المسودة ${est.number} من ${r.fileName} · ${r.imported} بنداً — راجع العنوان والعميل`,
+                      `Draft ${est.number} created from ${r.fileName} · ${r.imported} line(s) — review the title and client`), 6000);
+    if (r.warnings?.length) push("info", r.warnings.join(" · "), 8000);
+    navigate(`/app/estimates/${est.id}`, { replace: true });
+  };
+
+  /** No estimate yet → the server creates the DRAFT from the file (no title needed). */
+  const handleImportNew = async (file: File) => {
+    setIntakeError(null);
+    setIntakeBusy(true);
+    setBusy(true);
+    try {
+      const r = await api.estimates.importFile(file, {
+        title: form.title.trim() || undefined,
+        contactId: form.contactId || undefined,
+        currency: form.currency || undefined,
+      });
+      applyImported(r);
+    } catch (e: any) {
+      // unsupported_format / no_boq_found / ai_disabled … → InlineAlert (the server message is Arabic)
+      if (e instanceof ApiError) {
+        const warnings: string[] = Array.isArray((e.body as any)?.warnings) ? (e.body as any).warnings : [];
+        setIntakeError([e.messageAr || e.message, ...warnings].filter(Boolean).join(" · "));
+      } else {
+        setIntakeError(t("تعذر قراءة الملف — جرّب ملفًا آخر", "Could not read the file — try another one"));
+      }
+    } finally { setIntakeBusy(false); setBusy(false); }
+  };
+
+  /** One entry for the drop zone AND the «استيراد BOQ» button: create from file, or append to the open estimate. */
+  const handleIntakeFile = async (file: File) => {
+    setIntakeBusy(true);
+    try { if (current) await handleImportFile(file); else await handleImportNew(file); }
+    finally { setIntakeBusy(false); }
+  };
+
+  const pickSuggestedContact = (c: Contact) => {
+    setForm((f) => ({ ...f, contactId: c.id, contactName: c.displayName }));
+    setClientSuggestion(null);
+  };
+  const createSuggestedContact = async () => {
+    if (!clientSuggestion) return;
+    setClientBusy(true);
+    try {
+      const c = await api.contacts.create({ displayName: clientSuggestion.name, type: "CUSTOMER", vatNumber: clientSuggestion.vatNumber || null });
+      setContacts((prev) => [c, ...prev]);
+      pickSuggestedContact(c);
+      push("success", t(`تم إنشاء ${c.displayName}`, `Created ${c.displayName}`));
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("تعذر إنشاء العميل", "Could not create the customer"));
+    } finally { setClientBusy(false); }
+  };
+
   const handleDelete = async (id: string) => {
     setPendingDelete(null);
     try {
@@ -493,7 +600,7 @@ export function Estimates() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" className="border-border" onClick={() => navigate("/app/estimates")}>{t("إغلاق", "Close")}</Button>
                 <Button type="button" variant="outline" className="border-border" disabled={busy || frozen} onClick={() => fileRef.current?.click()} data-testid="estimate-import-boq">
-                  <FileSpreadsheet className="me-2 h-4 w-4" strokeWidth={1.75} />{t("استيراد BOQ", "Import BOQ")}
+                  <FileSpreadsheet className="me-2 h-4 w-4" strokeWidth={1.75} />{t("استيراد BOQ / PDF", "Import BOQ / PDF")}
                 </Button>
                 <Button type="button" variant="outline" className="border-border" disabled={busy || !current} onClick={handleNewVersion} data-testid="estimate-new-version">
                   <Copy className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إصدار جديد V02", "New version V02")}
@@ -521,13 +628,57 @@ export function Estimates() {
           <input
             ref={fileRef}
             type="file"
-            accept=".xlsx,.xls"
+            accept={ESTIMATE_INTAKE_ACCEPT}
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleImportFile(f); }}
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) handleIntakeFile(f); }}
             data-testid="estimate-boq-file"
           />
-          <div className="w-full space-y-4">
+          {/* Narrow screens: the pane stacks behind a segmented control («النموذج | معاينة العميل | لوحة الدراسة») */}
+          {!wide && (
+            <div className="mb-4 flex gap-1 rounded-lg bg-muted/50 p-1" role="tablist" aria-label={t("عرض المحرر", "Editor view")} data-testid="estimate-stack-switch">
+              {([["form", t("النموذج", "Form")], ["client", t("معاينة العميل", "Client preview")], ["board", t("لوحة الدراسة", "Study board")]] as const).map(([k, label]) => (
+                <button key={k} type="button" role="tab" aria-selected={stackView === k} onClick={() => setStackView(k)}
+                  className={`flex-1 rounded-md px-2.5 py-1.5 text-xs transition-colors ${stackView === k ? "bg-card text-primary shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* ≥ 1280px: form on the start side · sticky client/board pane on the end side */}
+          <div className={wide && !previewCollapsed ? "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]" : "w-full"}>
+          <div className={`min-w-0 w-full space-y-4 ${!wide && stackView !== "form" ? "hidden" : ""}`}>
             {editorError && <InlineAlert tone="critical">{editorError}</InlineAlert>}
+            {intakeError && (
+              <InlineAlert tone="critical" title={t("تعذر إنشاء الدراسة من الملف", "Could not create the study from the file")} data-testid="estimate-intake-error">
+                {intakeError}
+              </InlineAlert>
+            )}
+            {clientSuggestion && (
+              <InlineAlert tone="info" icon={<Users className="h-4 w-4 text-primary" strokeWidth={1.75} />} data-testid="estimate-client-suggestion">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>{t("العميل في الملف:", "Client named in the file:")} <strong className="text-foreground"><bdi dir="auto">{clientSuggestion.name}</bdi></strong></span>
+                  {clientSuggestion.candidates.length > 0 && (
+                    <span className="flex flex-wrap items-center gap-1">
+                      {clientSuggestion.candidates.map((cand) => (
+                        <button key={cand.id} type="button" disabled={clientBusy}
+                          onClick={() => { const c = contacts.find((x) => x.id === cand.id); pickSuggestedContact(c || ({ id: cand.id, displayName: cand.name } as Contact)); }}
+                          className="rounded-full border border-border bg-card px-2.5 py-0.5 text-xs text-foreground hover:border-primary hover:text-primary"
+                          data-testid="estimate-client-candidate">
+                          <bdi dir="auto">{cand.name}</bdi>
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                  <Button type="button" size="sm" variant="outline" className="h-7 border-border text-xs" disabled={clientBusy}
+                    onClick={() => { setClientSuggestion(null); window.setTimeout(() => document.querySelector<HTMLInputElement>('[data-testid="estimate-contact-field"] input')?.focus(), 0); }}>
+                    {t("اختر من جهات الاتصال", "Pick from contacts")}
+                  </Button>
+                  <Button type="button" size="sm" className="h-7 text-xs" disabled={clientBusy} onClick={createSuggestedContact} data-testid="estimate-client-create">
+                    {clientBusy ? "…" : t("إنشاء جهة جديدة", "Create a new contact")}
+                  </Button>
+                </div>
+              </InlineAlert>
+            )}
 
             {frozen && (
               <InlineAlert tone="warning" title={t("دراسة محوّلة إلى عرض سعر", "Converted to a quote")} data-testid="estimate-frozen-notice">
@@ -556,7 +707,7 @@ export function Estimates() {
               <>
                 {/* Header fields */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                  <div className="space-y-1.5 xl:col-span-2">
+                  <div className="space-y-1.5 xl:col-span-2" data-testid="estimate-contact-field">
                     <Label className="text-xs text-foreground/80">{t("العميل", "Customer")}</Label>
                     <ContactSearchInput
                       value={form.contactName}
@@ -787,9 +938,50 @@ export function Estimates() {
                     )}
                   </div>
                 </div>
+
+                {/* Permanent intake zone (CEO 2026-09-13): PDF or Excel, always · new study → creates the DRAFT · open study → appends */}
+                {!frozen && (
+                  <EstimateIntakeZone
+                    onFile={handleIntakeFile}
+                    onReject={(m) => setIntakeError(m)}
+                    busy={intakeBusy}
+                    disabled={busy && !intakeBusy}
+                    title={current ? t("أسقط ملفًا لإضافة بنوده إلى هذه الدراسة", "Drop a file to append its lines to this study") : undefined}
+                    hint={current
+                      ? t("Excel (BOQ) أو PDF أو صورة · تُضاف البنود إلى الجدول أعلاه (سعر العميل يُقفل · التكلفة تُستكمل)",
+                          "Excel (BOQ), PDF or image · lines are appended to the grid above (client price locked · cost to be filled)")
+                      : undefined}
+                  />
+                )}
               </>
             )}
           </div>
+          {(wide ? !previewCollapsed : stackView !== "form") && (
+            <EstimatePreviewPane
+              className={wide ? "sticky top-4 max-h-[calc(100vh-7.5rem)] overflow-y-auto" : ""}
+              title={form.title}
+              number={current?.number || null}
+              currency={form.currency}
+              contact={previewContact}
+              contactName={form.contactName}
+              lines={previewLines}
+              totals={totals}
+              sections={sectionSummary}
+              defaultMarginPct={defaults.marginPct}
+              canSeeCost={canSeeCost}
+              tab={wide ? previewTab : (stackView === "board" ? "board" : "client")}
+              onTabChange={(tab) => { if (wide) setPreviewTab(tab); else setStackView(tab); }}
+              onCollapse={wide ? () => togglePreview(true) : undefined}
+            />
+          )}
+          </div>
+          {wide && previewCollapsed && (
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={() => togglePreview(false)} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline" data-testid="estimate-preview-show">
+                <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />{t("إظهار المعاينة", "Show preview")}
+              </button>
+            </div>
+          )}
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
       </>
@@ -836,6 +1028,24 @@ export function Estimates() {
       {loading ? (
         <div className="py-12 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
+        items.length === 0 ? (
+          /* File-first empty state (CEO 2026-09-13): the drop zone IS the primary action */
+          <div className="space-y-4" data-testid="estimate-empty-intake">
+            {intakeError && (
+              <InlineAlert tone="critical" title={t("تعذر إنشاء الدراسة من الملف", "Could not create the study from the file")} data-testid="estimate-intake-error">
+                {intakeError}
+              </InlineAlert>
+            )}
+            <EstimateIntakeZone size="hero" onFile={handleImportNew} onReject={(m) => setIntakeError(m)} busy={intakeBusy} />
+            <EmptyState
+              icon={<Calculator className="h-8 w-8" strokeWidth={1.75} />}
+              title={t("أو ابدأ دراسة يدويًا", "Or start a study by hand")}
+              description={t("ابدأ دراسة التكلفة والهامش، ثم حوّلها إلى عرض سعر بضغطة واحدة.",
+                             "Start a cost study, then convert it into a client quote in one click.")}
+              action={<Button variant="outline" className="border-border" onClick={() => navigate("/app/estimates/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("دراسة جديدة", "New estimate")}</Button>}
+            />
+          </div>
+        ) : (
         <EmptyState
           icon={<Calculator className="h-8 w-8" strokeWidth={1.75} />}
           title={t("لا توجد دراسات بعد", "No estimates yet")}
@@ -843,6 +1053,7 @@ export function Estimates() {
                          "Start a cost study, then convert it into a client quote in one click.")}
           action={<Button onClick={() => navigate("/app/estimates/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("دراسة جديدة", "New estimate")}</Button>}
         />
+        )
       ) : (
         <>
           {/* Phones: stacked rows · md and up: the ledger table */}

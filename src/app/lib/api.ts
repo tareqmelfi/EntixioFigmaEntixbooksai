@@ -911,6 +911,28 @@ export const api = {
       if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'import_failed', undefined, { body: data })
       return data as { estimate: Estimate; imported: number; fileName: string; warnings: string[] }
     },
+    /** File-first intake (CEO 2026-09-13) · multipart · the server CREATES a DRAFT from a BOQ Excel /
+     *  quotation PDF / image (title · client · lines inferred) — no saved estimate or title needed first.
+     *  Errors (ApiError.message is user-readable Arabic): file_required · file_too_large ·
+     *  unsupported_format (415) · invalid_file · no_boq_found (422 · carries warnings) · ai_disabled / no_key (503). */
+    importFile: async (file: File, opts?: { title?: string; contactId?: string; currency?: string }) => {
+      const form = new FormData()
+      form.append('file', file)
+      if (opts?.title) form.append('title', opts.title)
+      if (opts?.contactId) form.append('contactId', opts.contactId)
+      if (opts?.currency) form.append('currency', opts.currency)
+      const headers: Record<string, string> = {}
+      const oid = getOrgId()
+      if (oid) headers['X-Org-Id'] = oid
+      try {
+        const raw = localStorage.getItem('entix_act_as')
+        if (raw) { const v = JSON.parse(raw); if (v?.orgId === getOrgId() && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+      } catch { /* ignore */ }
+      const res = await fetch(`${API_BASE}/api/estimates/import-file`, { method: 'POST', headers, body: form, credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'import_failed', undefined, { code: (data as any)?.error || (data as any)?.code, body: data })
+      return data as EstimateImportFileResult
+    },
     /** clone as V(n+1) DRAFT — the only way to change a converted estimate */
     newVersion: (id: string) => request<Estimate>(`/api/estimates/${id}/new-version`, { method: 'POST' }),
   },
@@ -3238,6 +3260,31 @@ export interface EstimateLine {
 }
 
 export interface EstimateSectionMargin { section: string; cost: number; sale: number; marginPct: number }
+
+/** POST /api/estimates/import-file · 201 */
+export interface EstimateImportFileResult {
+  estimate: Estimate
+  imported: number
+  fileName: string
+  warnings: string[]
+  extracted: {
+    title?: string | null
+    clientName?: string | null
+    reference?: string | null
+    quoteNo?: string | null
+    date?: string | null
+    scope?: string | null
+    source: 'excel' | 'vision'
+  }
+  suggestions: {
+    client: {
+      name: string
+      vatNumber?: string | null
+      matchedContactId?: string | null
+      candidates: Array<{ id: string; name: string }>
+    } | null
+  }
+}
 
 export interface Estimate {
   id: string
