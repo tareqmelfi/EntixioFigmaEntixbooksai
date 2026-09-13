@@ -224,12 +224,15 @@ export function PricingPage() {
         `${window.location.origin}/app/billing?success=true`,
         `${window.location.origin}/pricing?canceled=true`,
       );
+      // An org that already pays gets Stripe's "confirm plan change" flow here
+      // (server decides) — same button, no dead end (CEO 2026-09-13).
       window.location.href = url;
     } catch (e: any) {
       // Surface the failure in place — a silent redirect into the app reads
-      // like "the button did nothing".
+      // like "the button did nothing". Prefer the server's human message over a code.
       setCheckoutBusy(null);
-      setCheckoutError(e?.message || "checkout_failed");
+      const human = isAr ? (e?.messageAr || e?.body?.messageAr) : (e?.body?.message || e?.detail);
+      setCheckoutError(human || e?.message || "checkout_failed");
     }
   };
 
