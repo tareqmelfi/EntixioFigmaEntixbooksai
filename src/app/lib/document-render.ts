@@ -322,7 +322,11 @@ function paginate(blocks: Block[], capacity: number): string[] {
 function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, embed: boolean): string {
   const fb = fontBase.replace(/\/$/, "");
   const arabic = "'Entix Doc Arabic','Noto Sans Arabic','IBM Plex Sans Arabic',system-ui,sans-serif";
-  const latin = "'Entix Doc Latin','Plus Jakarta Sans','IBM Plex Sans',system-ui,sans-serif";
+  // FONT LAW (CEO 2026-09-13): Arabic glyphs always render in the document's Arabic
+  // face, whatever the document language. Plus Jakarta Sans has no Arabic block, so an
+  // English document must fall through to 'Entix Doc Arabic' (Noto Sans Arabic) instead
+  // of the OS Arabic face — otherwise Arabic names/notes change shape between AR and EN.
+  const latin = "'Entix Doc Latin','Plus Jakarta Sans','Entix Doc Arabic','Noto Sans Arabic','IBM Plex Sans Arabic','IBM Plex Sans',system-ui,sans-serif";
   const mono = "'Entix Doc Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace";
   const body = lang === "ar" ? arabic : latin;
   return `
