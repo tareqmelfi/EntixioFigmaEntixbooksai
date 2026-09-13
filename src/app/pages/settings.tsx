@@ -31,8 +31,18 @@ import { ZatcaStatusBadge, ZatcaStatusRow } from "../components/zatca-status-bad
 import { ZatcaDeviceProof } from "../components/zatca-device-proof";
 import { FATOORA_DEVICE_PORTAL } from "../lib/zatca-proof-document";
 
-type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "plans" | "tools" | "api-keys" | "control-accounts";
-const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "plans", "tools", "api-keys", "control-accounts"];
+type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "us-banking" | "plans" | "tools" | "api-keys" | "control-accounts";
+const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "us-banking", "plans", "tools", "api-keys", "control-accounts"];
+// Region law (UX-176): ZATCA is Saudi-only · US companies get the bank-feeds (Plaid) surface instead.
+// A tab that does not belong to the company's region is not reachable — not by chip, not by ?tab= URL.
+const REGION_ONLY_TABS: Partial<Record<SettingsTab, "SA" | "US">> = { zatca: "SA", "us-banking": "US" };
+function tabAllowed(tab: SettingsTab, country?: string | null): boolean {
+  const only = REGION_ONLY_TABS[tab];
+  if (!only) return true;
+  const c = (country || "").toUpperCase();
+  if (!c) return only === "SA"; // unknown region · legacy default is SA
+  return only === "US" ? c === "US" : c !== "US";
+}
 
 function initialSettingsTab(): SettingsTab {
   if (typeof window === "undefined") return "company";
@@ -83,6 +93,18 @@ export function Settings() {
       setTab(requested as SettingsTab);
     }
   }, [searchParams]);
+
+  // Region redirect · a US company landing on ?tab=zatca (old link · bookmark) is sent to its own
+  // banking tab; a Saudi company on ?tab=us-banking goes to ZATCA. Replace, so Back does not loop.
+  useEffect(() => {
+    if (!org) return;
+    if (tabAllowed(tab, org.country)) return;
+    const fallback: SettingsTab = (org.country || "").toUpperCase() === "US" ? "us-banking" : "zatca";
+    setTab(fallback);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", fallback);
+    setSearchParams(next, { replace: true });
+  }, [org, tab, searchParams, setSearchParams]);
 
   const selectTab = (nextTab: SettingsTab) => {
     setTab(nextTab);
@@ -237,8 +259,10 @@ export function Settings() {
           ["company", "بيانات الشركة", "Company"],
           ["data", "البيانات", "Data"],
           ["numbering", "الترقيم", "Numbering"],
-          // ZATCA tab is KSA-only · hide when country=US (UX-176)
-          ...(org?.country === "US" ? [] : [["zatca", "ZATCA · الفوترة الإلكترونية", "ZATCA e-invoicing"]]),
+          // Region slot (UX-176): ZATCA for Saudi companies · bank feeds (Plaid) for US companies
+          ...(org?.country === "US"
+            ? [["us-banking", "الربط البنكي · Plaid", "Bank feeds · Plaid"]]
+            : [["zatca", "ZATCA · الفوترة الإلكترونية", "ZATCA e-invoicing"]]),
           ["payments", "بوابات الدفع", "Payment gateways"],
           ["catalog", "كتالوج المنتجات", "Product catalog"],
           ["members", "الفريق", "Team"],
@@ -671,7 +695,8 @@ export function Settings() {
       {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
       {tab === "catalog" && org && <CatalogTab push={push} />}
       {/* The device link is what the tab is about; VAT registration follows it as the longer-form task. */}
-      {tab === "zatca" && org && <div className="space-y-8"><ZatcaTab key={org.id} org={org} push={push} />{org.country === "SA" && (org.role === "OWNER" || org.role === "ADMIN") && <VatRegistrationPanel key={`vat-${org.id}`} orgId={org.id} />}</div>}
+      {tab === "us-banking" && org && tabAllowed("us-banking", org.country) && <UsBankingTab org={org} />}
+      {tab === "zatca" && org && tabAllowed("zatca", org.country) && <div className="space-y-8"><ZatcaTab key={org.id} org={org} push={push} />{org.country === "SA" && (org.role === "OWNER" || org.role === "ADMIN") && <VatRegistrationPanel key={`vat-${org.id}`} orgId={org.id} />}</div>}
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
 
@@ -1852,6 +1877,63 @@ function MembersTab({ orgId, initialMembers, setMembers, push }: { orgId: string
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+// ── US BANKING TAB (UX-176 · US companies · Plaid / Mercury · no ZATCA) ─────────────────────────
+function UsBankingTab({ org }: { org: Org }) {
+  const { t } = useLanguage();
+  const [plaid, setPlaid] = useState<"loading" | "ready" | "not_configured" | "error">("loading");
+  useEffect(() => {
+    let active = true;
+    api.plaid.linkToken()
+      .then(() => { if (active) setPlaid("ready"); })
+      .catch((e: any) => {
+        if (!active) return;
+        const code = e instanceof ApiError ? (e as any).code || e.message : String(e?.message || "");
+        setPlaid(/not_configured|503/i.test(code) ? "not_configured" : "error");
+      });
+    return () => { active = false; };
+  }, [org.id]);
+  const plaidLabel = plaid === "ready" ? t("جاهز للربط", "Ready to link")
+    : plaid === "not_configured" ? t("قيد التفعيل · بانتظار مفاتيح الإنتاج", "Being enabled · awaiting production keys")
+    : plaid === "loading" ? t("جارٍ التحقق…", "Checking…") : t("غير متاح حاليًا", "Unavailable right now");
+  const plaidTone = plaid === "ready" ? "text-success" : plaid === "not_configured" ? "text-warning" : "text-muted-foreground";
+  return (
+    <div className="space-y-6">
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle>{t("🇺🇸 شركة أمريكية · الربط البنكي والامتثال", "🇺🇸 US company · bank feeds & compliance")}</CardTitle>
+          <CardDescription>
+            {t("لا تحتاج هذه الشركة إلى ZATCA أو الفوترة الإلكترونية السعودية. الحسابات البنكية الأمريكية تُربط عبر Plaid (كل البنوك) أو Mercury (مباشرة)، والضرائب تُدار على أساس 1099/Sales Tax.",
+               "This company does not need ZATCA or Saudi e-invoicing. US bank accounts connect through Plaid (all banks) or Mercury (direct), and taxes follow 1099 / sales-tax rules.")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-border p-4">
+              <div className="text-[13px] text-muted-foreground">{t("Plaid · كل البنوك الأمريكية", "Plaid · all US banks")}</div>
+              <div className={`mt-1 text-[14px] font-semibold ${plaidTone}`}>{plaidLabel}</div>
+              <Button asChild size="sm" variant="outline" className="mt-3"><Link to="/app/integrations/plaid">{t("فتح صفحة Plaid", "Open Plaid page")}</Link></Button>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <div className="text-[13px] text-muted-foreground">{t("Mercury · مباشر", "Mercury · direct")}</div>
+              <div className="mt-1 text-[14px] font-semibold text-foreground">{t("متاح", "Available")}</div>
+              <Button asChild size="sm" variant="outline" className="mt-3"><Link to="/app/bank-accounts">{t("الحسابات البنكية", "Bank accounts")}</Link></Button>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <div className="text-[13px] text-muted-foreground">{t("Stripe · التحصيل", "Stripe · collections")}</div>
+              <div className="mt-1 text-[14px] font-semibold text-foreground">{t("عبر بوابات الدفع", "Via payment gateways")}</div>
+              <Button asChild size="sm" variant="outline" className="mt-3"><Link to="/app/settings?tab=payments">{t("بوابات الدفع", "Payment gateways")}</Link></Button>
+            </div>
+          </div>
+          <p className="text-[13px] text-muted-foreground">
+            {t("ZATCA وضريبة القيمة المضافة السعودية مغلقتان لهذه الشركة على مستوى الخادم (403 region_not_supported) وليس مجرد إخفاء في الواجهة.",
+               "ZATCA and Saudi VAT are closed for this company at the server level (403 region_not_supported), not merely hidden in the UI.")}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
