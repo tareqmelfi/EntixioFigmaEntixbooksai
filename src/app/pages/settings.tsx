@@ -23,6 +23,8 @@ import { useLanguage } from "../components/LanguageContext";
 import { NumberPreferences } from "../components/number-preferences";
 import { NUMBERING_DEFAULTS, previewNumber } from "../lib/numbering-pattern";
 import { ApiKeysTab } from "../components/api-keys-tab";
+import { ExternalSourcesTab } from "../components/external-sources-tab";
+import { BrandThemeCard } from "../components/brand-theme-card";
 import { VatRegistrationPanel } from "../components/vat-registration-panel";
 import { LedgerMappingTab } from "../components/ledger-mapping-tab";
 import { DeletedCompanies } from "../components/deleted-companies";
@@ -31,8 +33,8 @@ import { ZatcaStatusBadge, ZatcaStatusRow } from "../components/zatca-status-bad
 import { ZatcaDeviceProof } from "../components/zatca-device-proof";
 import { FATOORA_DEVICE_PORTAL } from "../lib/zatca-proof-document";
 
-type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "us-banking" | "plans" | "tools" | "api-keys" | "control-accounts";
-const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "us-banking", "plans", "tools", "api-keys", "control-accounts"];
+type SettingsTab = "company" | "data" | "members" | "account" | "branding" | "ai" | "numbering" | "payments" | "catalog" | "zatca" | "us-banking" | "plans" | "tools" | "api-keys" | "external-sources" | "control-accounts";
+const SETTINGS_TABS: SettingsTab[] = ["company", "data", "members", "account", "branding", "ai", "numbering", "payments", "catalog", "zatca", "us-banking", "plans", "tools", "api-keys", "external-sources", "control-accounts"];
 // Region law (UX-176): ZATCA is Saudi-only · US companies get the bank-feeds (Plaid) surface instead.
 // A tab that does not belong to the company's region is not reachable — not by chip, not by ?tab= URL.
 const REGION_ONLY_TABS: Partial<Record<SettingsTab, "SA" | "US">> = { zatca: "SA", "us-banking": "US" };
@@ -271,6 +273,7 @@ export function Settings() {
           ["plans", "الباقات", "Plans"],
           ["tools", "الأدوات", "Tools"],
           ["api-keys", "مفاتيح API", "API keys"],
+          ["external-sources", "المصادر الخارجية", "External sources"],
           ["control-accounts", "الحسابات الرقابية", "Control accounts"],
           ["account", "حسابي", "Account"],
         ] as const) as Array<readonly [string, string, string]>).map(([k, label, labelEn]) => (
@@ -698,6 +701,8 @@ export function Settings() {
       {tab === "us-banking" && org && tabAllowed("us-banking", org.country) && <UsBankingTab org={org} />}
       {tab === "zatca" && org && tabAllowed("zatca", org.country) && <div className="space-y-8"><ZatcaTab key={org.id} org={org} push={push} />{org.country === "SA" && (org.role === "OWNER" || org.role === "ADMIN") && <VatRegistrationPanel key={`vat-${org.id}`} orgId={org.id} />}</div>}
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
+      {/* SPEC-06 §8 · identity for shared outputs (/b/:token + print) · additive · never applied inside /app/* */}
+      {tab === "branding" && org && <BrandThemeCard org={org} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
 
       {/* الأدوات — account-level utilities live here, not in the main sidebar
@@ -724,6 +729,10 @@ export function Settings() {
 
       {tab === "api-keys" && org && (
         <ApiKeysTab canManage={(org as any).role === "OWNER" || (org as any).role === "ADMIN" || (org as any).role == null} push={push} />
+      )}
+
+      {tab === "external-sources" && org && (
+        <ExternalSourcesTab canManage={(org as any).role === "OWNER" || (org as any).role === "ADMIN" || (org as any).role == null} push={push} />
       )}
 
       {tab === "control-accounts" && org && (

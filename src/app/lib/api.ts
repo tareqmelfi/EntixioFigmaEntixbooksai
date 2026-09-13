@@ -1893,6 +1893,52 @@ export const api = {
         '/api/plaid/exchange', { method: 'POST', body: data },
       ),
   },
+
+  // ── External sheet sources + pipeline boards (SPEC-06 · M1) ────────────────
+  // Google Sheets → normalized rows → boards (/app/boards/:id) + branded public
+  // page (/b/:token). All org-scoped under /api/ext-sources · public read under
+  // /api/public/boards · brand theme lives next to the org (/orgs/:id/brand-theme).
+  extSources: {
+    list: () => request<{ sources: ExtSource[] }>('/api/ext-sources'),
+    templates: () => request<{ templates: ExtTemplate[]; serviceAccountEmail: string | null }>('/api/ext-sources/templates'),
+    validate: (spreadsheetUrlOrId: string) =>
+      request<ExtValidateResult>('/api/ext-sources/validate', { method: 'POST', body: { spreadsheetUrlOrId } }),
+    preview: (data: { spreadsheetId: string; sheetTitle: string; headerRow?: number; templateCode: string; mapping?: ExtMapping }) =>
+      request<ExtPreviewResult>('/api/ext-sources/preview', { method: 'POST', body: data }),
+    create: (data: { name: string; spreadsheetId: string; sheetTitle: string; headerRow?: number; range?: string; templateCode: string; mapping: ExtMapping; pollIntervalMin?: number }) =>
+      request<{ source: ExtSource; run: ExtSourceRun | null }>('/api/ext-sources', { method: 'POST', body: data }),
+    update: (id: string, data: { name?: string; range?: string | null; headerRow?: number; mapping?: ExtMapping; pollIntervalMin?: number; status?: 'ACTIVE' | 'PAUSED' }) =>
+      request<{ source: ExtSource }>(`/api/ext-sources/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<{ ok: true }>(`/api/ext-sources/${id}`, { method: 'DELETE' }),
+    sync: (id: string) => request<{ run: ExtSourceRun }>(`/api/ext-sources/${id}/sync`, { method: 'POST' }),
+    webhookSecret: (id: string) =>
+      request<{ secret: string; webhookUrl: string; appsScript: string }>(`/api/ext-sources/${id}/webhook-secret`, { method: 'POST' }),
+    disableWebhook: (id: string) => request<{ ok: true }>(`/api/ext-sources/${id}/webhook-secret`, { method: 'DELETE' }),
+    rows: (id: string, query?: { status?: string; from?: string; to?: string; q?: string; page?: number; pageSize?: number }) =>
+      request<ExtRowsResponse>(`/api/ext-sources/${id}/rows`, { query }),
+    runs: (id: string) => request<{ runs: ExtSourceRun[] }>(`/api/ext-sources/${id}/runs`),
+    exportCsvUrl: (id: string) => `${API_BASE}/api/ext-sources/${id}/export.csv`,
+    /** CSV needs the X-Org-Id header → fetched as a blob (same pattern as the admin audit export) */
+    exportCsv: async (id: string): Promise<Blob> => {
+      const headers: Record<string, string> = {}
+      const oid = getOrgId()
+      if (oid) headers['X-Org-Id'] = oid
+      const res = await fetch(`${API_BASE}/api/ext-sources/${id}/export.csv`, { credentials: 'include', headers })
+      if (!res.ok) throw new ApiError(res.status, 'export_failed', undefined, { code: 'export_failed' })
+      return res.blob()
+    },
+    shares: (id: string) => request<{ shares: ExtShare[] }>(`/api/ext-sources/${id}/shares`),
+    createShare: (id: string, data: { label?: string; expiresAt?: string | null }) =>
+      request<{ share: ExtShare; token: string; url: string }>(`/api/ext-sources/${id}/shares`, { method: 'POST', body: data }),
+    revokeShare: (id: string, shareId: string) =>
+      request<{ ok: true }>(`/api/ext-sources/${id}/shares/${shareId}`, { method: 'DELETE' }),
+    /** Public board · token only · no session · 404 when revoked/expired */
+    publicBoard: (token: string) => request<PublicBoardPayload>(`/api/public/boards/${token}`, { skipOrg: true }),
+    brandTheme: (orgId: string) => request<{ brandTheme: BrandTheme | null }>(`/orgs/${orgId}/brand-theme`, { skipOrg: true }),
+    updateBrandTheme: (orgId: string, theme: BrandTheme | null) =>
+      request<{ brandTheme: BrandTheme | null }>(`/orgs/${orgId}/brand-theme`, { method: 'PATCH', body: theme, skipOrg: true }),
+  },
+
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -3612,3 +3658,85 @@ export interface AdminTeamMember { id: string; email: string; name: string | nul
 export interface AdminTeamInvite { id: string; email: string; role: { id: string; key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; createdAt: string }
 export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null }
 export interface AdminTicketDetail extends AdminTicketRow { messages: Array<{ id: string; authorType: string; authorEmail: string | null; body: string; createdAt: string }> }
+
+// ── External sheet sources (SPEC-06) ─────────────────────────────────────────
+export type ExtFieldType = 'text' | 'number' | 'money' | 'date' | 'enum'
+export type ExtStatusColor = 'good' | 'attention' | 'blocking' | 'neutral'
+export type ExtMapping = Record<string, string | null>
+export interface ExtTemplateField { key: string; labelAr: string; labelEn: string; type: ExtFieldType; required: boolean; enum?: string[] }
+export interface ExtTemplate {
+  code: string
+  nameAr: string
+  nameEn: string
+  keyField: string
+  kanbanField: string | null
+  fields: ExtTemplateField[]
+  statusColors: Record<string, ExtStatusColor>
+}
+export type ExtSourceStatus = 'ACTIVE' | 'PAUSED' | 'ERROR'
+export type ExtRunStatus = 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | string
+export interface ExtSourceRun {
+  id: string
+  trigger: string
+  startedAt: string
+  finishedAt: string | null
+  status: ExtRunStatus
+  rowsSeen: number
+  rowsUpserted: number
+  rowsRemoved: number
+  rowsInvalid: number
+  error: string | null
+}
+export interface ExtSource {
+  id: string
+  name: string
+  provider: string
+  spreadsheetId: string
+  sheetTitle: string
+  range: string | null
+  headerRow: number
+  templateCode: string
+  templateNameAr: string
+  templateNameEn: string
+  mapping: ExtMapping
+  status: ExtSourceStatus
+  pollIntervalMin: number
+  webhookEnabled: boolean
+  lastSyncAt: string | null
+  lastSuccessAt: string | null
+  lastError: string | null
+  rowCount: number
+  lastRun: { status: ExtRunStatus; finishedAt: string | null; rowsUpserted: number; rowsInvalid: number } | null
+  createdAt: string
+}
+export interface ExtValidateResult { spreadsheetId: string; title: string; sheets: Array<{ title: string; rowCount: number }>; serviceAccountEmail: string }
+export interface ExtPreviewRow { rowIndex: number; rowKey: string | null; data: Record<string, string>; normalized: Record<string, unknown>; valid: boolean; errors: string[] }
+export interface ExtPreviewResult { headers: string[]; mapping: ExtMapping; missingRequired: string[]; rows: ExtPreviewRow[]; totalRows: number }
+export interface ExtRow { id: string; rowKey: string; rowIndex: number; data: Record<string, string>; normalized: Record<string, unknown>; valid: boolean; errors: string[]; syncedAt: string }
+export interface ExtKpi { key: string; labelAr: string; labelEn: string; value: number; format: 'count' | 'money' | 'percent'; count?: number }
+export interface ExtStatusOption { value: string; labelAr: string; labelEn: string; color: ExtStatusColor }
+export interface ExtRowsResponse {
+  template: ExtTemplate
+  rows: ExtRow[]
+  total: number
+  page: number
+  pageSize: number
+  kpis: ExtKpi[]
+  statusOptions: ExtStatusOption[]
+  lastSyncAt: string | null
+  lastSuccessAt: string | null
+  lastError: string | null
+  invalidCount: number
+  status: ExtSourceStatus
+}
+export interface ExtShare { id: string; label: string | null; expiresAt: string | null; revokedAt: string | null; viewCount: number; lastViewedAt: string | null; createdAt: string }
+/** Company identity applied ONLY on shared outputs (/b/:token + print) · never inside /app/* */
+export interface BrandTheme { primary: string; secondary: string; fill: string; ink: string; logoUrl?: string | null }
+export interface PublicBoardPayload {
+  org: { name: string; logoUrl: string | null; brandTheme: BrandTheme | null; defaultInvoiceLanguage: 'ar' | 'en' | null; baseCurrency?: string | null }
+  source: { name: string; templateCode: string; lastSuccessAt: string | null }
+  template: ExtTemplate
+  rows: Array<Pick<ExtRow, 'id' | 'rowKey' | 'rowIndex' | 'normalized' | 'valid' | 'syncedAt'>>
+  kpis: ExtKpi[]
+  statusOptions: ExtStatusOption[]
+}
