@@ -2115,6 +2115,8 @@ export interface DocumentTemplate extends DocumentTemplateIdentity {
   signatoryName?: string | null
   signatoryTitle?: string | null
   signatoryTitleAr?: string | null
+  wordmarkText?: string | null
+  useWordmark?: boolean | null
   signatoryEmail?: string | null
   signatoryPhone?: string | null
   stampUrl?: string | null

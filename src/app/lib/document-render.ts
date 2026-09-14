@@ -204,6 +204,10 @@ export interface TemplateSpec {
   /** Trailing substring of the company wordmark drawn in the brand colour ("X" for ENSIDEX,
    *  "PROS" for SPECPROS). Null → the engine accents a trailing "X" on an all-Latin name (§14). */
   wordmarkAccent?: string | null;
+  /** Printed wordmark text · overrides the org name (e.g. "ENTIX.IO" on a product invoice, "ENSIDEX" without the LLC). */
+  wordmarkText?: string | null;
+  /** Draw the wordmark in the document's own embedded type instead of any uploaded logo image. */
+  useWordmark?: boolean | null;
   footerText?: string | null;
   classification?: string | null;
   classificationEn?: string | null;
@@ -1219,8 +1223,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // sheet only the reverse (light) variant may be drawn; a company that has no reverse
   // variant gets a LIGHT cover instead, so the mark always sits on its own ground.
   const logoOn = tpl.showLogo !== false;
-  const logoPaper = logoOn ? (safeUrl(tpl.logoUrl) || safeUrl(org.logoUrl)) : "";           // dark mark · light ground
-  const logoReverse = logoOn ? (safeUrl(tpl.logoLightUrl) || safeUrl(org.logoLightUrl)) : "";    // light mark · dark ground
+  const preferWordmark = tpl.useWordmark === true;
+  const logoPaper = logoOn && !preferWordmark ? (safeUrl(tpl.logoUrl) || safeUrl(org.logoUrl)) : "";           // dark mark · light ground
+  const logoReverse = logoOn && !preferWordmark ? (safeUrl(tpl.logoLightUrl) || safeUrl(org.logoLightUrl)) : "";    // light mark · dark ground
   if (coverStyle === "DARK" && logoPaper && !logoReverse && !coverImage) coverStyle = "LIGHT";
   const stamp = safeUrl(tpl.stampUrl) || safeUrl(org.stampUrl);
   const orgName = ar ? org.name : (org.nameEn || org.legalName || org.name);
@@ -1250,6 +1255,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // letters themselves, at wordmark size, with the trailing accent in the brand colour
   // (ENSIDE·X · SPEC·PROS). Never an icon, never inside a box.
   const wordmarkText = (() => {
+    const explicit = String(tpl.wordmarkText || "").trim();
+    if (explicit) return explicit;
     const latin = [org.nameEn, org.legalName, org.name].find((v) => v && !hasArabic(v));
     return String(latin || orgName || "").trim();
   })();
