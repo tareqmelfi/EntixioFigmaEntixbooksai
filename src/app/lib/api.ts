@@ -1122,6 +1122,11 @@ export const api = {
     setDefault: (id: string) => request<any>(`/api/document-templates/${id}/set-default`, { method: 'POST' }),
     duplicate: (id: string) => request<any>(`/api/document-templates/${id}/duplicate`, { method: 'POST' }),
     remove: (id: string) => request<void>(`/api/document-templates/${id}`, { method: 'DELETE' }),
+    /** Preview which template a draft would use — explicit override → auto-routed match → org default */
+    resolve: (kind: 'QUOTE' | 'INVOICE', lines: Array<{ description?: string | null; productId?: string | null }>, templateId?: string | null) =>
+      request<{ templateId: string | null; templateName: string | null; reason: 'explicit' | 'auto' | 'default' | 'none' }>(
+        '/api/document-templates/resolve', { method: 'POST', body: { kind, lines, templateId } },
+      ),
   },
 
   fixedAssets: {
@@ -2117,9 +2122,22 @@ export interface DocumentTemplate extends DocumentTemplateIdentity {
   classification?: string | null
   classificationEn?: string | null
   wordmarkAccent?: string | null
+  autoRule?: DocumentTemplateAutoRule | null
+  autoPriority?: number | null
   createdAt?: string
   updatedAt?: string
   [key: string]: any
+}
+/** Automatic template routing (2026-09-14) · a template with a non-empty rule may be picked
+ *  automatically for a document with no explicit template, ahead of the org default · see
+ *  the API's lib/template-routing.ts for matching semantics. */
+export interface DocumentTemplateAutoRule {
+  productTypes?: string[]
+  skuPrefixes?: string[]
+  categories?: string[]
+  descriptionContains?: string[]
+  mode?: 'any' | 'all'
+  minLines?: number
 }
 export type DocumentTemplatePayload = Partial<Omit<DocumentTemplate, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>> & { name: string }
 

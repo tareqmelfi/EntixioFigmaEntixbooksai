@@ -22,6 +22,7 @@ import { BrandDocument } from "../components/brand-document";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { downscaleDataUrl } from "../lib/print-image";
 import { TemplateIdentitySection, EMPTY_IDENTITY, identityFromTemplate, identityPayload, type IdentityValues } from "../components/template-identity-section";
+import { TemplateAutoRuleSection, EMPTY_AUTO_RULE, autoRuleFromTemplate, autoRulePayload, type AutoRuleValues } from "../components/template-auto-rule";
 import {
   sampleInput, partyFromOrg, normalizeSections, SECTION_META,
   DEFAULT_BRAND_COLOR, DEFAULT_COVER_COLOR, LEGACY_PRIMARY_COLOR, LEGACY_ACCENT_COLOR,
@@ -104,9 +105,11 @@ export function TemplateDetail() {
   const [sheetCount, setSheetCount] = useState(0);
   // ── document identity (2026-09-14) · separate state so the legacy form stays untouched ──
   const [identity, setIdentity] = useState<IdentityValues>(EMPTY_IDENTITY);
+  const [autoRule, setAutoRule] = useState<AutoRuleValues>(EMPTY_AUTO_RULE);
   const [identityTier, setIdentityTier] = useState<IdentityTier>("full");
   const [planError, setPlanError] = useState<string | null>(null);
   const patchIdentity = useCallback((patch: Partial<IdentityValues>) => setIdentity((v) => ({ ...v, ...patch })), []);
+  const patchAutoRule = useCallback((patch: Partial<AutoRuleValues>) => setAutoRule((v) => ({ ...v, ...patch })), []);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -130,6 +133,7 @@ export function TemplateDetail() {
         stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "", wordmarkAccent: (tpl as any).wordmarkAccent || "",
       });
       setIdentity(identityFromTemplate(tpl));
+      setAutoRule(autoRuleFromTemplate(tpl));
       if (tpl.kind === "INVOICE") setPreviewKind("INVOICE");
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل تحميل القالب", "Failed to load template"));
@@ -167,6 +171,7 @@ export function TemplateDetail() {
         classification: form.classification || null, classificationEn: form.classificationEn || null,
         wordmarkAccent: form.wordmarkAccent || null,
         ...identityPayload(identity),
+        ...autoRulePayload(autoRule),
       };
       setPlanError(null);
       const saved = isNew ? await api.documentTemplates.create(payload) : await api.documentTemplates.update(id!, payload);
@@ -325,6 +330,8 @@ export function TemplateDetail() {
           </Section>
 
           <TemplateIdentitySection value={identity} onChange={patchIdentity} tier={identityTier} planError={planError} push={push} />
+
+          <TemplateAutoRuleSection value={autoRule} onChange={patchAutoRule} isAr={isAr} t={t} />
 
           <Section title={t("الغلاف", "Cover")}>
             <div className="flex gap-1 flex-wrap rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("نمط الغلاف", "Cover style")}>
