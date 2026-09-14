@@ -15,6 +15,7 @@ import { Input } from "../components/ui/input";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
+import { AdminSupportInbox } from "../components/admin-support-inbox";
 import { AdminOverview } from "./admin-overview";
 
 type Tab = "overview" | "orgs" | "users" | "support" | "ai" | "email" | "backups" | "agent";
@@ -420,9 +421,12 @@ function SupportTab({ guard, push, t }: any) {
     try { setThread(await api.admin.supportThread(id)); } catch (e) { guard(e); }
   };
   return (
+    <div className="space-y-4">
+    {/* 2026-09-14 · WhatsApp + website chat arrive as tickets and are answered here */}
+    <AdminSupportInbox guard={guard} push={push} />
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card className="border-border">
-        <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base text-foreground">{t("محادثات العملاء مع الوكيل", "Customer conversations")}</CardTitle><Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button></CardHeader>
+        <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base text-foreground">{t("محادثات الوكيل داخل المنصة", "In-app agent conversations")}</CardTitle><Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button></CardHeader>
         <CardContent className="p-0 max-h-[520px] overflow-y-auto">
           {loading ? <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto my-10" /> : threads.length === 0 ? <div className="text-center text-muted-foreground text-sm py-10">{t("لا محادثات بعد", "No conversations yet")}</div> : threads.map((th) => (
             <button key={th.id} onClick={() => openThread(th.id)} className={`w-full text-start px-4 py-3 border-b border-border/60 hover:bg-muted/40 transition ${openId === th.id ? "bg-primary/5" : ""}`}>
@@ -464,6 +468,7 @@ function SupportTab({ guard, push, t }: any) {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }

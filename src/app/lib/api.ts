@@ -1856,11 +1856,14 @@ export const api = {
     inviteInfo: (token: string) => request<{ email: string; role: { key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; accepted: boolean; expired: boolean }>(`/api/admin/invites/${token}`, { skipOrg: true }),
     acceptInvite: (token: string) => request<{ ok: true; role: { key: string; nameAr: string; nameEn: string } }>(`/api/admin/invites/${token}/accept`, { method: 'POST', body: {}, skipOrg: true }),
     // tickets (existing API · W37) — used by the company inbox
-    tickets: (params?: { status?: string; orgId?: string }) => request<{ tickets: AdminTicketRow[] }>('/api/admin/tickets', { query: params, skipOrg: true }),
+    tickets: (params?: { status?: string; orgId?: string; channel?: string; category?: string; needsHuman?: string }) => request<{ tickets: AdminTicketRow[] }>('/api/admin/tickets', { query: params, skipOrg: true }),
     ticket: (id: string) => request<{ ticket: AdminTicketDetail }>(`/api/admin/tickets/${id}`, { skipOrg: true }),
     createTicket: (body: { orgId?: string; subject: string; priority?: string; message?: string }) => request<AdminTicketRow>('/api/admin/tickets', { method: 'POST', body, skipOrg: true }),
     updateTicket: (id: string, body: { status?: string; priority?: string; assignedAgentEmail?: string | null }) => request<AdminTicketRow>(`/api/admin/tickets/${id}`, { method: 'PATCH', body, skipOrg: true }),
-    replyTicket: (id: string, body: string) => request<{ ok: true }>(`/api/admin/tickets/${id}/messages`, { method: 'POST', body: { body }, skipOrg: true }),
+    // 2026-09-14 · the response carries `delivery` so the console can say whether
+    // the WhatsApp push actually left (a saved-but-undelivered reply is a bug the
+    // CEO must see, not a silent success).
+    replyTicket: (id: string, body: string) => request<{ message: { id: string }; delivery: { sent: boolean; reason?: string } }>(`/api/admin/tickets/${id}/messages`, { method: 'POST', body: { body }, skipOrg: true }),
     updateOrg: (orgId: string, data: { name?: string; legalName?: string | null; country?: string; baseCurrency?: string; industry?: string | null; suspended?: boolean; reason?: string | null }) =>
       request<AdminOrgRecord>(`/api/admin/orgs/${orgId}`, { method: 'PATCH', body: data, skipOrg: true }),
     deleteOrg: (orgId: string, reason: string) => request<{ ok: true; deletedAt: string; restoreUntil: string; graceDays: number }>(`/api/admin/orgs/${orgId}`, { method: 'DELETE', body: { reason }, skipOrg: true }),
@@ -3786,7 +3789,9 @@ export interface AdminMe { isInternal: boolean; internalRole: string; roleName?:
 export interface AdminRoleRecord { id: string; key: string; nameAr: string; nameEn: string; permissions: string[]; scopeAssigned: boolean; isSystem: boolean; members?: number; pendingInvites?: number; createdAt: string }
 export interface AdminTeamMember { id: string; email: string; name: string | null; disabledAt: string | null; createdAt: string; bootstrap: boolean; role: { id: string | null; key: string; nameAr: string; nameEn: string; scopeAssigned: boolean } | null; assignments: Array<{ orgId: string; orgName: string }> }
 export interface AdminTeamInvite { id: string; email: string; role: { id: string; key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; createdAt: string }
-export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null }
+export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null;
+  // omni-channel support (2026-09-14) · WhatsApp + website chat land here too
+  channel?: string; category?: string; needsHuman?: boolean; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; summary?: string | null; lastCustomerAt?: string | null }
 export interface AdminTicketDetail extends AdminTicketRow { messages: Array<{ id: string; authorType: string; authorEmail: string | null; body: string; createdAt: string }> }
 
 // ── External sheet sources (SPEC-06) ─────────────────────────────────────────
