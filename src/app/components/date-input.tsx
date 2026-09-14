@@ -72,11 +72,14 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
   const [touched, setTouched] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
   const focused = useRef(false);
+  // Mirrors `invalid` for the resync effect below: clearing a stale date fires that effect,
+  // and without this it would immediately wipe the error the user still needs to see.
+  const invalidRef = useRef(false);
 
   // External value changes (form reset · invoice load) → resync display.
   // Never while the field has focus: that would rewrite what the user is mid-way through typing.
   useEffect(() => {
-    if (focused.current) return;
+    if (focused.current || invalidRef.current) return;
     setText(isoToDisplay(value));
     setInvalid(false);
     setTouched(false);
@@ -85,15 +88,18 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
   const commit = (raw: string) => {
     setText(raw);
     if (!raw.trim()) {
+      invalidRef.current = false;
       setInvalid(false);
       onChange("");
       return;
     }
     const iso = parseDisplay(raw);
     if (iso) {
+      invalidRef.current = false;
       setInvalid(false);
       onChange(iso);
     } else {
+      invalidRef.current = true;
       setInvalid(true); // keep typing · don't commit
     }
   };
@@ -104,12 +110,14 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
     if (!text.trim()) return;
     const iso = parseDisplay(text);
     if (iso) {
+      invalidRef.current = false;
       setText(isoToDisplay(iso));
       setInvalid(false);
       return;
     }
     // Unparseable on leaving the field: drop the stale committed date rather than keep a
     // value the user believes they replaced. The form's required check then blocks the save.
+    invalidRef.current = true;
     setInvalid(true);
     if (value) onChange("");
   };
@@ -157,6 +165,7 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         onChange={(e) => {
           const iso = e.target.value;
           if (iso) {
+            invalidRef.current = false;
             setInvalid(false);
             setText(isoToDisplay(iso));
             onChange(iso);
