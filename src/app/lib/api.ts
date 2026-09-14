@@ -8,6 +8,7 @@
  *  - JSON serialization
  *  - Error envelope normalization
  */
+import { humanizeZodIssues } from './validation-message'
 import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
 import type { DocPage, DocTheme, ThemePreset, HeaderStyle, PaymentPlanStyle, ClosingFact } from './document-render'
@@ -232,8 +233,13 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
         message = 'تعذّر الوصول إلى الخدمة المطلوبة — تحقق أن النظام محدّث.'
       }
       // Zod validation: { success: false, error: { issues: [{path, message}, ...] } }
+      // Humanised (CEO 2026-09-14): the raw `lines.8.unitPrice Number must be greater than or
+      // equal to 0` told the person filling the form nothing — it now names the row the way the
+      // screen numbers it and the field the way the screen labels it, in both languages.
       if (Array.isArray(d?.error?.issues)) {
-        message = d.error.issues.map((i: any) => `${(i.path || []).join('.')} ${i.message}`).join(' · ')
+        const human = humanizeZodIssues(d.error.issues)
+        message = human.en
+        messageAr = human.ar
         code = 'validation_failed'
       }
       if (typeof d.messageAr === 'string') messageAr = d.messageAr

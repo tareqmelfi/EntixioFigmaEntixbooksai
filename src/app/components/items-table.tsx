@@ -172,27 +172,48 @@ export function lineTaxRate(l: Pick<InvoiceLine, "taxRate">): number {
   return Number.isFinite(r) && r >= 0 ? r : 0;
 }
 
-export function computeTotals(lines: InvoiceLine[]) {
+/** DOCUMENT-LEVEL DISCOUNT · mirrors the server maths in api `lib/doc-discount.ts` exactly. */
+export type DocDiscount = { discountType?: "PERCENT" | "FIXED" | null; discountValue?: number | string | null };
+
+const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+export function computeTotals(lines: InvoiceLine[], discount?: DocDiscount) {
+  const rows = lines.filter((l) => l.description.trim() || l.unitPrice);
+  const gross = rows.map((l) => (Number(normalizeDigits(l.quantity)) || 0) * (Number(normalizeDigits(l.unitPrice)) || 0));
+  const base = gross.reduce((a, b) => a + b, 0);
+
+  // Applied to the lines' gross BEFORE tax and split pro-rata, so the tax shown here is the
+  // tax that will actually be stored — the summary never disagrees with the saved document.
+  const value = Math.max(0, Number(discount?.discountValue || 0));
+  let discountTotal = 0;
+  if (discount?.discountType && value > 0 && base > 0) {
+    discountTotal = discount.discountType === "PERCENT" ? r2((base * Math.min(value, 100)) / 100) : Math.min(r2(value), r2(base));
+  }
+  const alloc = gross.map(() => 0);
+  if (discountTotal > 0 && base > 0) {
+    let acc = 0;
+    gross.forEach((g, i) => {
+      const v = i === gross.length - 1 ? r2(discountTotal - acc) : r2((g / base) * discountTotal);
+      alloc[i] = v;
+      acc = r2(acc + v);
+    });
+  }
+
   let subtotal = 0;
   let tax = 0;
-  for (const l of lines) {
-    if (!l.description.trim() && !l.unitPrice) continue;
-    const qty = Number(normalizeDigits(l.quantity)) || 0;
-    const price = Number(normalizeDigits(l.unitPrice)) || 0;
-    const lineGross = qty * price;
+  rows.forEach((l, i) => {
+    const lineGross = gross[i] - alloc[i];
     const rate = lineTaxRate(l);
     if (l.taxInclusive) {
       const net = lineGross / (1 + rate);
-      const lineTax = lineGross - net;
       subtotal += net;
-      tax += lineTax;
+      tax += lineGross - net;
     } else {
-      const lineTax = lineGross * rate;
       subtotal += lineGross;
-      tax += lineTax;
+      tax += lineGross * rate;
     }
-  }
-  return { subtotal, tax, total: subtotal + tax };
+  });
+  return { subtotal, tax, total: subtotal + tax, discount: discountTotal, listPrice: base };
 }
 
 // ض.ق.م + الاعتراف are off by default so the grid matches the approved 7-column anatomy;

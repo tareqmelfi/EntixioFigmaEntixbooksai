@@ -126,6 +126,13 @@ export function humanizeError(
 ): string {
   const fb = fallback ?? GENERIC
   if (err instanceof ApiError) {
+    // A validation failure carries the ONE thing the person needs — which row, which field,
+    // what is wrong with it. The generic «تحقّق من الحقول المدخلة» would throw that away,
+    // so a real server message always beats the code map here (CEO 2026-09-14).
+    if (err.code === 'validation_failed') {
+      const detailed = lang === 'ar' ? (err.messageAr || err.message) : err.message
+      if (detailed && !looksLikeCode(detailed)) return detailed
+    }
     if (err.code && MAP[err.code]) {
       const base = MAP[err.code][lang]
       return err.requestId ? `${base} · ${lang === 'ar' ? 'الرقم المرجعي' : 'Ref'}: ${err.requestId}` : base
