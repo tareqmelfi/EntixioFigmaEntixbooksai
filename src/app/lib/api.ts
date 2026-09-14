@@ -2065,6 +2065,13 @@ export interface DocumentTemplateIdentity {
   hideProviderBranding?: boolean | null
   closingFacts?: ClosingFact[] | null
   amountInWords?: boolean | null
+  // round 2 (2026-09-14) · identity quote pages
+  deliveryFacts?: ClosingFact[] | null
+  deliveryNote?: string | null
+  approvalText?: string | null
+  approvalNote?: string | null
+  closingText?: string | null
+  reference2Label?: string | null
 }
 
 /** Brand document template (quotes / invoices · designer at /app/templates/:id). Loosely typed on the

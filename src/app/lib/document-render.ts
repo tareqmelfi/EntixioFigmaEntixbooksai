@@ -151,6 +151,8 @@ export function normalizePages(raw: unknown): DocPage[] {
 export interface DocTheme {
   ink: string; navy: string; deep: string; steel: string; rule: string; chip: string; fill: string;
   slate: string; serial: string; wash: string; line: string; muted: string; paper: string;
+  /** corner radius of cards / tables / boxes in identity mode · "2px" (ink-white) · "6px" (ledger · unused by the Ledger sheet) */
+  radius?: string | null;
   /** embedded face keys · see DOC_FONT_OPTIONS (no CDN fonts — ever) */
   fontArabic?: DocFontArabic | null;
   fontLatin?: DocFontLatin | null;
@@ -206,6 +208,8 @@ export interface TemplateSpec {
   showLogo?: boolean | null;
   showTaxBreakdown?: boolean | null;
   showTerms?: boolean | null;
+  /** Template note (the stored record's `notes`) · identity quote: the tax note under the QR card */
+  notes?: string | null;
   // ── identity (all optional · null = Ledger behaviour) ──
   theme?: DocTheme | null;
   themePreset?: ThemePreset | string | null;
@@ -226,6 +230,19 @@ export interface TemplateSpec {
   closingFacts?: ClosingFact[] | null;
   /** default true (identity templates) · the tafqit strip under the totals */
   amountInWords?: boolean | null;
+  // ── round 2 (2026-09-14 · reference EDG-Q-2026-0010) · identity QUOTE pages ──
+  /** Delivery & bank page · key/value rows (مدة التسليم · موقع التنفيذ · الضمان · مدة سداد المستخلصات) */
+  deliveryFacts?: ClosingFact[] | null;
+  /** Delivery & bank page · boxed note under the facts */
+  deliveryNote?: string | null;
+  /** Approval page · one-paragraph statement */
+  approvalText?: string | null;
+  /** Approval page · bottom boxed note («اعتماد العرض: يكفي الرد كتابيًا …») */
+  approvalNote?: string | null;
+  /** Closing page · one muted sentence under the project title */
+  closingText?: string | null;
+  /** Meta-strip caption for doc.reference2 (default "REFERENCE") */
+  reference2Label?: string | null;
 }
 
 export interface PartySpec {
@@ -322,6 +339,10 @@ export interface DocSpec {
   pages?: DocPage[] | null;
   /** Per-document «خارج نطاق هذا العرض» · overrides the template default */
   outOfScope?: string | null;
+  /** Scope of work paragraph (identity quote page 2) · quote.scope → coverIntro → intro · falls back to the template coverIntro */
+  scope?: string | null;
+  /** Second reference («EDG / 26 / 010») · meta-strip cell omitted when absent */
+  reference2?: string | null;
 }
 
 export interface RenderInput {
@@ -387,11 +408,11 @@ export const DOC_THEME_PRESETS: Record<"ledger" | "ink-white", DocTheme> = {
   ledger: {
     ink: DOC_INK, navy: DEFAULT_COVER_COLOR, deep: DEFAULT_COVER_COLOR, steel: DEFAULT_BRAND_COLOR, rule: DOC_INK,
     chip: LEGACY_ACCENT_COLOR, fill: DOC_PAPER_SOFT, slate: DOC_MUTED, serial: DOC_INK, wash: DOC_PAPER_SOFT,
-    line: DOC_RULE, muted: DOC_MUTED, paper: DOC_PAPER, fontArabic: "noto", fontLatin: "plus-jakarta", fontMono: "jetbrains",
+    line: DOC_RULE, muted: DOC_MUTED, paper: DOC_PAPER, radius: "6px", fontArabic: "noto", fontLatin: "plus-jakarta", fontMono: "jetbrains",
   },
   "ink-white": {
     ink: "#231F20", navy: "#1B2A41", deep: "#212B4F", steel: "#4675AD", rule: "#537197", chip: "#A7D1EA", fill: "#DCEFF6",
-    slate: "#333F4B", serial: "#ED1D24", wash: "#F7F9FB", line: "#DFE4EA", muted: "#5B6577", paper: "#FFFFFF",
+    slate: "#333F4B", serial: "#ED1D24", wash: "#F7F9FB", line: "#DFE4EA", muted: "#5B6577", paper: "#FFFFFF", radius: "2px",
     fontArabic: "tajawal", fontLatin: "plus-jakarta", fontMono: "jetbrains",
   },
 };
@@ -408,6 +429,7 @@ export function resolveTheme(tpl: TemplateSpec | null | undefined): DocTheme {
   out.fontArabic = DOC_FONT_OPTIONS.arabic.some((f) => f.id === raw.fontArabic) ? raw.fontArabic : base.fontArabic;
   out.fontLatin = DOC_FONT_OPTIONS.latin.some((f) => f.id === raw.fontLatin) ? raw.fontLatin : base.fontLatin;
   out.fontMono = "jetbrains";
+  out.radius = typeof raw.radius === "string" && /^\d{1,2}(\.\d)?(px|mm)$/.test(raw.radius) ? raw.radius : base.radius;
   // Ledger templates keep their two legacy colour fields as the accent / cover pair
   if (preset === "ledger" && !t.theme) { out.steel = safeColor(t.brandColor, out.steel); out.navy = safeColor(t.coverColor, out.navy); out.deep = out.navy; }
   return out;
@@ -421,7 +443,8 @@ export function hasIdentity(tpl: TemplateSpec | null | undefined): boolean {
   return set(tpl.headerStyle && tpl.headerStyle !== "bar") || set(tpl.logoUrl) || set(tpl.logoLightUrl) || set(tpl.watermarkUrl)
     || set(tpl.coverImageUrl) || set(tpl.closingImageUrl) || set(tpl.bankLogoUrl) || set(tpl.outOfScope) || set(tpl.outOfScopeEn)
     || set(tpl.paymentPlanStyle && tpl.paymentPlanStyle !== "table") || set(tpl.paymentPlanNote) || tpl.showQr === true
-    || tpl.hideProviderBranding === true || (Array.isArray(tpl.closingFacts) && tpl.closingFacts.length > 0) || tpl.amountInWords === true;
+    || tpl.hideProviderBranding === true || (Array.isArray(tpl.closingFacts) && tpl.closingFacts.length > 0) || tpl.amountInWords === true
+    || (Array.isArray(tpl.deliveryFacts) && tpl.deliveryFacts.length > 0) || set(tpl.deliveryNote) || set(tpl.approvalText) || set(tpl.approvalNote) || set(tpl.closingText);
 }
 /** Theme tokens drive the CSS only for a themed template (preset ink-white / custom, or a saved theme object). */
 function isThemed(tpl: TemplateSpec | null | undefined): boolean {
@@ -556,15 +579,25 @@ function textHeight(text: string, colMm: number, lineMm = 5.2, charMm = 1.75): n
 // ─── paginator ──────────────────────────────────────────────────────────────
 
 type Block =
-  | { kind: "html"; h: number; html: string; keepWithNext?: boolean; forceBreak?: boolean }
-  | { kind: "table"; open: string; head: string; headH: number; rows: Array<{ h: number; html: string }>; close: string };
+  /** `bottom` (identity · 2026-09-14): budgeted like any block but rendered in the sheet's bottom slot
+   *  (a note «near the footer») · never overlaps the footer band because it is part of the budget. */
+  | { kind: "html"; h: number; html: string; keepWithNext?: boolean; forceBreak?: boolean; bottom?: boolean; optional?: boolean }
+  /** `cont` · continuation caption («يتبع») printed under a table that splits to the next sheet · budgeted 6mm */
+  | { kind: "table"; open: string; head: string; headH: number; rows: Array<{ h: number; html: string }>; close: string; cont?: string };
 
-/** Flow blocks into sheets of `capacity` mm. Tables split across sheets with a repeated head. */
-function paginate(blocks: Block[], capacity: number): string[] {
-  const sheets: string[] = [];
+interface Sheet { flow: string; bottom: string; used: number }
+
+/** Flow blocks into sheets of `capacity` mm. Tables split across sheets with a repeated head.
+ *  Word-like law: a block that does not fit moves WHOLE to the next sheet (never clipped, never
+ *  under the footer); a sheet is flushed only when the next block would not fit — so no
+ *  half-empty page is emitted when the next block would have fit. Budgeting is by the known
+ *  block heights (line-count estimates) — nothing is measured at runtime. */
+function paginate(blocks: Block[], capacity: number): Sheet[] {
+  const sheets: Sheet[] = [];
   let cur: string[] = [];
+  let bot: string[] = [];
   let used = 0;
-  const flush = () => { if (cur.length) { sheets.push(cur.join("")); cur = []; used = 0; } };
+  const flush = () => { if (cur.length || bot.length) { sheets.push({ flow: cur.join(""), bottom: bot.join(""), used }); cur = []; bot = []; used = 0; } };
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     if (b.kind === "html") {
@@ -577,18 +610,24 @@ function paginate(blocks: Block[], capacity: number): string[] {
         const n = blocks[i + 1];
         need += n.kind === "html" ? n.h : n.headH + (n.rows[0]?.h || 0);
       }
+      // optional (a decorative stamp in the free area): dropped rather than stranded alone on a fresh sheet
+      if (b.optional && used > 0 && used + need > capacity) continue;
       if (used > 0 && used + need > capacity) flush();
-      cur.push(b.html); used += b.h;
+      if (b.bottom) bot.push(b.html); else cur.push(b.html);
+      used += b.h;
       continue;
     }
     // table
     let open = false;
+    const contH = b.cont ? 6 : 0;
     const openTable = () => { cur.push(b.open + b.head); used += b.headH; open = true; };
     const closeTable = () => { if (open) { cur.push(b.close); open = false; } };
     if (used > 0 && used + b.headH + (b.rows[0]?.h || 0) > capacity) flush();
     openTable();
-    for (const r of b.rows) {
-      if (used + r.h > capacity && used > b.headH) { closeTable(); flush(); openTable(); }
+    for (let ri = 0; ri < b.rows.length; ri++) {
+      const r = b.rows[ri];
+      const more = ri < b.rows.length - 1;
+      if (used + r.h + (more ? contH : 0) > capacity && used > b.headH) { closeTable(); if (b.cont) { cur.push(b.cont); used += contH; } flush(); openTable(); }
       cur.push(r.html); used += r.h;
     }
     closeTable();
@@ -603,7 +642,107 @@ function paginate(blocks: Block[], capacity: number): string[] {
 function identityCss(idn: CssIdentity, lang: DocLang): string {
   const T = idn.extras;
   return `
-.edoc.idn{--navy:${T.navy};--deep:${T.deep};--steel:${T.steel};--rule2:${T.rule};--chip:${T.chip};--fill:${T.fill};--slate:${T.slate};--serial:${T.serial};--wash:${T.wash};--line:${T.line}}
+.edoc.idn{--navy:${T.navy};--deep:${T.deep};--steel:${T.steel};--rule2:${T.rule};--chip:${T.chip};--fill:${T.fill};--slate:${T.slate};--serial:${T.serial};--wash:${T.wash};--line:${T.line};--radius:${T.radius || "6px"}}
+/* corners · one token for every box in identity mode (ink-white = 2px) · chips stay pills */
+.edoc.idn .card,.edoc.idn .totals,.edoc.idn .nb,.edoc.idn .flag,.edoc.idn .qr-side .qr,.edoc.idn .epay .qr,.edoc.idn .notes,.edoc.idn .expl,.edoc.idn .meta-strip .tile,.edoc.idn .tile2,.edoc.idn .note,.edoc.idn .pg-note,.edoc.idn .pg-fig img{border-radius:var(--radius)}
+/* Word-like sheet: a flex column so bottom-slot blocks sit above the footer band, inside the budget */
+.edoc.idn .pgflow{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+.edoc.idn .pgbottom{margin-top:auto;padding-top:4mm}
+.edoc.idn .cont{font-size:7.5pt;color:var(--muted);text-align:end;padding:1.5mm 0 0;font-style:italic}
+/* section heading · Arabic bold + Latin caption · start-aligned */
+.edoc.idn .sh{margin:1mm 0 1.5mm}
+.edoc.idn .sh .a{font-size:13pt;font-weight:800;line-height:1.3;color:var(--ink)}
+.edoc.idn .sh .e{font-family:var(--font-latin);font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--slate);margin-top:0;line-height:1.4}
+.edoc.idn .sh .e .sub{letter-spacing:0;text-transform:none;font-family:inherit;font-size:8pt;color:var(--muted)}
+.edoc.idn .scope-t{font-weight:700;font-size:10.5pt;margin:0 0 1mm}
+.edoc.idn .scope{font-size:10pt;line-height:1.75;margin:0 0 2mm;white-space:pre-wrap;overflow-wrap:break-word;color:var(--ink)}
+/* quotation meta strip · Latin captions · number in serial */
+.edoc.idn .meta-strip.idm.q{display:grid;margin:0 0 3mm;padding:1.4mm 0}
+.edoc.idn .meta-strip.idm.q .cell{padding:.4mm 4mm;border-inline-end:1px solid var(--line);text-align:start}
+.edoc.idn .meta-strip.idm.q .cell:last-child{border-inline-end:0}
+.edoc.idn .meta-strip.idm.q .k{font-family:var(--font-latin);font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--slate);margin-bottom:.8mm}
+.edoc.idn .meta-strip.idm.q .v{font-family:var(--font-mono);font-size:10.5pt;font-weight:700;direction:ltr;unicode-bidi:isolate;text-align:start}
+.edoc.idn .meta-strip.idm.q .serial .v{color:var(--serial)}
+/* BOQ · square corners · 1px line grid · navy head */
+.edoc.idn table.items.boq{border:1px solid var(--line);border-radius:0;margin:0 0 4mm}
+.edoc.idn table.items.boq th{border-radius:0;border-inline-end:1px solid rgba(255,255,255,.18);padding:3mm 2.5mm;text-align:start}
+.edoc.idn table.items.boq th.n{text-align:end}
+.edoc.idn table.items.boq td{border-bottom:1px solid var(--line);border-inline-end:1px solid var(--line);padding:1.4mm 2.5mm}
+.edoc.idn table.items.boq td:last-child,.edoc.idn table.items.boq th:last-child{border-inline-end:0}
+.edoc.idn table.items.boq td.idx{font-family:var(--font-mono);font-weight:700;color:var(--ink);text-align:center}
+.edoc.idn table.items.boq td .u{font-size:7.5pt;color:var(--muted);font-family:var(--font-arabic)}
+.edoc.idn table.items.boq td .code{font-size:7pt;color:var(--slate);font-family:var(--font-mono);margin-top:1mm}
+/* totals at the inline end · no card border · light rules · grand + tafqit on fill */
+.edoc.idn .tot2{display:flex;flex-direction:column;align-items:flex-end;margin:0 0 4mm}
+.edoc.idn .tot2 .totals,.edoc.idn .tot2 .tafqit{width:46%;min-width:88mm}
+.edoc.idn .tot2 .totals{border:0;border-radius:0}
+.edoc.idn .tot2 .totals .r{padding:1.1mm 3mm;border-bottom:1px solid var(--line);line-height:1.35}
+.edoc.idn .tot2 .totals .r .lbl{font-weight:400;color:var(--muted)}
+.edoc.idn .tot2 .totals .r.grand{border:0;border-top:1.6px solid var(--ink);border-radius:var(--radius);margin-top:1mm;padding:2.2mm 3mm}
+.edoc.idn .tot2 .totals .r.grand .lbl{font-weight:700;color:var(--ink)}
+.edoc.idn .tot2 .tafqit{border-radius:var(--radius);margin-top:1.5mm;font-size:9pt;padding:1.8mm 3mm;line-height:1.5}
+/* QR card · full width · text at the start · code at the end */
+.edoc.idn .qrc{display:grid;grid-template-columns:1fr 22mm;gap:5mm;align-items:center;border:1px solid var(--line);border-radius:var(--radius);background:var(--wash);padding:2mm 4.5mm;margin:0 0 3mm;break-inside:avoid}
+.edoc.idn .qrc .t{font-weight:700;font-size:10pt;margin-bottom:.5mm}
+.edoc.idn .qrc p{margin:0 0 1.5mm;font-size:8pt;line-height:1.6;color:var(--muted)}
+.edoc.idn .qrc .qr{width:22mm;height:22mm;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:1.5mm}
+.edoc.idn .qrc .qr svg{width:100%;height:100%;display:block}
+.edoc.idn .qrc .qr-data{grid-template-columns:auto 1fr;gap:.3mm 4mm;font-size:8pt;line-height:1.5}
+.edoc.idn .qrc .qr-data dd{font-family:var(--font-mono);font-weight:700}
+/* key / value tables (delivery facts · beneficiary · approval summary) */
+.edoc.idn table.kv{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:var(--radius);table-layout:fixed;margin:0 0 5mm;font-size:9pt}
+.edoc.idn table.kv td{padding:2.6mm 4mm;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:break-word}
+.edoc.idn table.kv tr:last-child td{border-bottom:0}
+.edoc.idn table.kv td.k{color:var(--muted);background:var(--wash);border-inline-end:1px solid var(--line)}
+.edoc.idn table.kv td.v{font-weight:700}
+.edoc.idn table.kv.sum td.v .num{font-size:9.5pt}
+/* bank card · logo at the start · IBAN mono grouped */
+.edoc.idn .bankc2{display:grid;grid-template-columns:62px 1fr;gap:6mm;align-items:center;border:1px solid var(--line);border-radius:var(--radius);background:var(--wash);padding:4mm 5mm;margin:0 0 4mm;break-inside:avoid}
+.edoc.idn .bankc2 img{width:62px;height:62px;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
+.edoc.idn .bankc2 .bd{text-align:center}
+.edoc.idn .bankc2 .bn{font-weight:700;font-size:12pt;line-height:1.3}
+.edoc.idn .bankc2 .be{font-family:var(--font-latin);font-size:8pt;color:var(--slate);letter-spacing:.12em;direction:ltr}
+.edoc.idn .bankc2 .iban{font-family:var(--font-mono);font-size:15.5px;font-weight:700;direction:ltr;unicode-bidi:isolate;letter-spacing:.06em;margin:2mm 0 1mm}
+.edoc.idn .bankc2 .sw{font-family:var(--font-latin);font-size:7.5pt;color:var(--muted);direction:ltr}
+.edoc.idn .bankc2 .sw b{font-family:var(--font-mono);color:var(--ink)}
+/* stamp · free area bottom-start (delivery page) · under the issuer column (approval page) */
+/* rotated stamps are clipped by their own wrapper so the rotation never adds scrollable overflow (QA gate) */
+.edoc.idn .stamp-free{display:flex;justify-content:flex-end;padding:4mm 8mm;overflow:hidden}
+.edoc.idn .stamp-free img,.edoc.idn .stamp-under img{max-height:34mm;max-width:56mm;object-fit:contain;opacity:.86;mix-blend-mode:multiply;filter:saturate(.88) contrast(1.12);transform:rotate(-8deg);transform-origin:center;background:none;border:0;padding:0;border-radius:0;display:block}
+.edoc.idn .stamp-under{margin-top:3mm;display:flex;justify-content:center;padding:4mm 8mm;overflow:hidden}
+/* terms · two columns per row · numbered · never split */
+.edoc.idn .terms2g{display:grid;grid-template-columns:1fr 1fr;gap:4mm 10mm;margin:0 0 3mm;break-inside:avoid}
+.edoc.idn .terms2g .ti{font-size:8.8pt;line-height:1.7}
+.edoc.idn .terms2g .ti b{display:block;font-weight:700;color:var(--ink);margin-bottom:.5mm}
+.edoc.idn .terms2g .ti b .no{font-family:var(--font-latin);color:var(--steel)}
+.edoc.idn .terms2g .ti span{color:var(--muted)}
+/* approval · two signature columns */
+.edoc.idn .sigcols{display:grid;grid-template-columns:1fr 1fr;gap:16mm;margin:2mm 0 6mm;align-items:start}
+.edoc.idn .sigcols .sc{text-align:center}
+.edoc.idn .sigcols .sarea{height:16mm;display:flex;align-items:flex-end;justify-content:center}
+.edoc.idn .sigcols .sarea img{max-height:16mm;max-width:60mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
+.edoc.idn .sigcols .sarea .n.pen{font-family:'${idn.fam} Signature',var(--font-latin);font-size:22pt;line-height:1.1;direction:ltr}
+.edoc.idn .sigcols .srule{height:1px;background:var(--ink);position:relative;margin:1.5mm 0 2mm}
+.edoc.idn .sigcols .srule::before{content:"";position:absolute;inset-inline-start:0;top:-1px;width:12mm;height:3px;background:var(--navy)}
+.edoc.idn .sigcols .nm{font-size:11pt;font-weight:800}
+.edoc.idn .sigcols .role{font-family:var(--font-latin);font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin-top:.5mm}
+.edoc.idn .sigcols .co{font-size:8pt;color:var(--muted);margin-top:.8mm;line-height:1.5}
+/* explainer title */
+.edoc.idn .expl .t{font-weight:700;margin-bottom:1mm}
+.edoc.idn .expl ol li{margin:0 0 .6mm}
+/* outlined cards · cover strip + closing facts */
+.edoc.idn .cards3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;border-top:0;padding-top:0}
+.edoc.idn .cards3 .cd{border:1px solid rgba(255,255,255,.35);border-radius:var(--radius);padding:3.5mm 4mm;min-width:0}
+.edoc.idn .cards3 .cd .k{font-family:var(--font-latin);font-size:7.5px;letter-spacing:.12em;color:rgba(255,255,255,.72);margin-bottom:1.2mm;text-transform:none}
+.edoc.idn .cards3 .cd .v{font-size:10pt;font-weight:700;color:#fff;line-height:1.45;overflow-wrap:anywhere}
+.edoc.idn .cards3 .cd .s{font-size:8pt;color:rgba(255,255,255,.78);margin-top:.8mm;overflow-wrap:anywhere}
+.edoc.idn .ic .strip.cards3{margin-bottom:6mm;border-top:0;padding-top:0}
+.edoc.idn .cl .sub{font-size:16px;color:rgba(255,255,255,.88);margin:-2mm 0 4mm;line-height:1.5}
+.edoc.idn .cl .facts.cards3{display:grid;border-top:0;padding-top:0;margin-top:10mm;width:100%;max-width:none;gap:4mm}
+.edoc.idn .cl .facts.cards3 .cd{text-align:start}
+.edoc.idn .cl .facts.cards3 .cd .k{color:var(--chip);font-size:7.5px;letter-spacing:.12em;text-transform:none}
+.edoc.idn .cl .facts.cards3 .cd .v{font-size:10pt;margin-top:0}
+.edoc.idn .cl .facts.cards3 .cd .v .num{font-family:var(--font-latin)}
 .edoc.idn .sheet{isolation:isolate}
 /* faint bottom-anchored watermark · interior pages only · never on the cover or closing sheet */
 .edoc.idn .wm{position:absolute;left:0;right:0;bottom:0;height:74%;display:flex;align-items:flex-end;justify-content:center;opacity:.05;transform:translateY(9%);pointer-events:none;z-index:-1}
@@ -639,8 +778,8 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 .edoc.idn .ic .strip .v{font-size:11pt;font-weight:700;color:#fff;line-height:1.4}
 .edoc.idn .ic .strip .s{font-size:8.5pt;color:rgba(255,255,255,.75);margin-top:1mm}
 /* quotation page · centered section title + English caption */
-.edoc.idn .st{text-align:center;margin:0 0 5mm}
-.edoc.idn .st .a{font-size:26px;font-weight:800;line-height:1.3;color:var(--ink)}
+.edoc.idn .st{text-align:center;margin:0 0 3mm}
+.edoc.idn .st .a{font-size:25px;font-weight:800;line-height:1.25;color:var(--ink)}
 .edoc.idn .st .e{font-family:var(--font-latin);font-size:10.4px;letter-spacing:.34em;text-transform:uppercase;color:var(--slate);margin-top:1mm}
 .edoc.idn .doc-head.two{grid-template-columns:1fr 1fr;border-bottom-color:var(--line)}
 .edoc.idn .meta-strip.idm{border-top:1.4px solid var(--ink);border-bottom:1.4px solid var(--ink);padding:2.5mm 0;gap:0}
@@ -667,7 +806,7 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 .edoc.idn .qr-data dt{color:var(--muted)}
 .edoc.idn .qr-data dd{margin:0;color:var(--ink);font-weight:700;overflow-wrap:anywhere}
 /* note box · flag (unconfirmed / warning) · placeholder span */
-.edoc.idn .nb{border:1px solid var(--line);border-inline-start:3px solid var(--steel);background:var(--wash);padding:3mm 4mm;font-size:8.5pt;line-height:1.7;margin:0 0 4mm;break-inside:avoid;color:var(--ink)}
+.edoc.idn .nb{border:1px solid var(--line);border-inline-start:3px solid var(--steel);background:var(--wash);padding:2.5mm 4mm;font-size:8.5pt;line-height:1.7;margin:0 0 4mm;break-inside:avoid;color:var(--ink)}
 .edoc.idn .nb .t{font-weight:700;margin-bottom:1mm}
 .edoc.idn .nb ul{margin:0;padding-inline-start:5mm;list-style:disc}
 .edoc.idn .nb li{padding-inline-start:0;margin:0 0 .8mm;font-size:8.5pt;line-height:1.65}
@@ -685,7 +824,7 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 .edoc.idn .stations .stn .r{height:1px;background:var(--line);margin:2.5mm 8mm}
 .edoc.idn .stations .stn .pc{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--steel);line-height:1.1}
 .edoc.idn .stations .stn .lb{font-weight:700;font-size:9.5pt;margin-top:1.5mm;line-height:1.4}
-.edoc.idn .stations .stn .am{font-family:var(--font-mono);font-size:8pt;color:var(--muted);margin-top:1mm}
+.edoc.idn .stations .stn .am{font-size:8pt;color:var(--muted);margin-top:1mm;line-height:1.55}
 .edoc.idn .stations .chev{display:flex;align-items:center;justify-content:center;flex:0 0 8mm}
 .edoc.idn .stations .chev svg{width:6mm;height:12mm;stroke:var(--steel);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transform:${lang === "ar" ? "scaleX(-1)" : "none"}}
 .edoc.idn .expl{background:var(--fill);padding:3mm 4mm;font-size:8.5pt;line-height:1.7;margin:0 0 4mm;break-inside:avoid}
@@ -717,13 +856,13 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 /* closing page · image or solid navy · white logo · THANK YOU · facts strip */
 .edoc.idn .sheet.closing{background:var(--navy);color:#fff;--ink:#fff;--muted:rgba(255,255,255,.7);--rule:rgba(255,255,255,.2);border-top:0}
 .edoc.idn .sheet.closing .hdr{display:none}
-.edoc.idn .cl{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;padding:0 10mm}
+.edoc.idn .cl{display:flex;flex-direction:column;align-items:stretch;justify-content:center;text-align:start;height:100%;padding:0 6mm}
 .edoc.idn .cl .mark{margin-bottom:10mm;display:flex;justify-content:center}
 .edoc.idn .cl .mark img{height:70px;max-width:120mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
 .edoc.idn .cl .mark .hdr-word{color:#fff;font-size:30pt}
 .edoc.idn .cl .eyebrow{font-family:var(--font-latin);font-size:9.6px;letter-spacing:.34em;color:var(--chip)}
 .edoc.idn .cl .h1{font-size:26px;font-weight:800;margin:4mm 0 4mm;color:#fff;line-height:1.4}
-.edoc.idn .cl .lead{color:rgba(255,255,255,.8);max-width:130mm;margin:0}
+.edoc.idn .cl .lead{color:rgba(255,255,255,.8);max-width:150mm;margin:0}
 .edoc.idn .cl .facts{display:flex;flex-wrap:wrap;justify-content:center;gap:6mm 12mm;margin-top:10mm;padding-top:6mm;border-top:1px solid rgba(255,255,255,.28);max-width:160mm}
 .edoc.idn .cl .facts .k{font-size:7.5pt;letter-spacing:.2em;text-transform:uppercase;color:var(--chip);font-family:var(--font-latin)}
 .edoc.idn .cl .facts .v{font-size:11pt;font-weight:700;color:#fff;margin-top:1mm}
@@ -1095,21 +1234,23 @@ export function renderDocument(input: RenderInput): RenderOutput {
 </div>`;
   // Centered style · fixed 3-line legal footer: 1 legal name + registrations (ink) · 2 address ·
   // 3 channels (slate). Page number top-end of the footer · none on the cover / closing sheet.
+  // Reference footer (EDG-Q-2026-0010): 1 address (bold) · 2 Phone · VAT · C.R. · 3 Website · E-mail
   const legalLines = (): string[] => {
-    const l1 = tpl.footerText ? esc(tpl.footerText) : [bdi(org.legalName || org.name), org.crNumber ? `${t("س.ت", "CR")} ${esc(org.crNumber)}` : "", org.vatNumber ? `${regLabel(org)} ${esc(org.vatNumber)}` : ""].filter(Boolean).join(" · ");
-    const l2 = [org.address, org.city && !(org.address || "").includes(org.city) ? org.city : ""].filter(Boolean).map(bdi).join(" · ");
-    const l3 = [org.phone, org.email, org.website].filter(Boolean).map(esc).join(" · ");
+    const where = [org.address, org.city && !(org.address || "").includes(org.city) ? org.city : ""].filter(Boolean).map(bdi).join(" · ");
+    const l1 = tpl.footerText ? esc(tpl.footerText) : (where || bdi(org.legalName || org.name));
+    const l2 = [org.phone ? `Phone: ${esc(org.phone)}` : "", org.vatNumber ? `${isVatRegistered(org) ? "VAT" : "Reg."}: ${esc(org.vatNumber)}` : "", org.crNumber ? `C.R. ${esc(org.crNumber)}` : ""].filter(Boolean).join(" | ");
+    const l3 = [org.website ? `Website: ${esc(org.website)}` : "", org.email ? `E-mail: ${esc(org.email)}` : ""].filter(Boolean).join(" | ");
     return [l1, l2, l3];
   };
   const footer = (n: number, total: number, cover = false) => hs
-    ? (cover ? "" : `<div class="ftr"><span class="pn">${n} / ${total}</span>${legalLines().map((l, i) => l ? `<span class="fl${i === 0 ? " f1" : ""}">${l}</span>` : "").join("")}</div>`)
+    ? (cover ? "" : `<div class="ftr"><span class="pn">${String(n).padStart(2, "0")}</span>${legalLines().map((l, i) => l ? `<span class="fl${i === 0 ? " f1" : ""}">${l}</span>` : "").join("")}</div>`)
     : `<div class="ftr">
   <span class="f-left">${footerLeft}</span>
   <span class="f-mid">${cover ? `${esc(issue)} · ${esc(fileId)}` : `${n} / ${total}`}</span>
   <span class="f-right">${esc(docType)} · ${esc(classification)}</span>
 </div>`;
 
-  const sheets: Array<{ cls: string; body: string; cover?: boolean; style?: string; closing?: boolean }> = [];
+  const sheets: Array<{ cls: string; body: string; cover?: boolean; style?: string; closing?: boolean; used?: number }> = [];
 
   // ── cover ──
   if (on("cover") && coverStyle !== "NONE") {
@@ -1141,15 +1282,20 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (themed || coverImage) {
       // identity cover · full-bleed image (or solid navy) · white mark · eyebrow QUOTATION · number ·
       // H1 + sub-line · chip rule · intro · bottom strip Client / Issuer / Date + validity
-      const strip = `<div class="strip">
-    <div><div class="k">${t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.code ? esc(contact.code) : "", contact?.city ? bdi(contact.city) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
-    <div><div class="k">${isQuote ? t("مقدِّم العرض", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.crNumber ? `${t("س.ت", "CR")} ${esc(org.crNumber)}` : "", org.city ? bdi(org.city) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
-    <div><div class="k">${t("التاريخ", "Date")}</div><div class="v">${num(issue)}</div><div class="s">${end ? `${esc(endLabel)} ${num(end)}` : "&nbsp;"}</div></div>
+      // bottom strip · 3 outlined cards (reference cover): owner/client · contractor (site · C.R.) · date + validity
+      const validDays = issue && end ? Math.round((Date.parse(end) - Date.parse(issue)) / 86_400_000) : 0;
+      const strip = `<div class="strip cards3">
+    <div class="cd"><div class="k">${isQuote ? t("الجهة المالكة / العميل", "Owner / Client") : t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.city ? bdi(contact.city) : "", contact?.code ? esc(contact.code) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div class="cd"><div class="k">${isQuote ? t("المقاول", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.website ? num(org.website) : "", org.crNumber ? `C.R. ${num(org.crNumber)}` : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div class="cd"><div class="k">${t("التاريخ", "Date")}</div><div class="v">${num(issue)}</div><div class="s">${validDays > 0 ? (isQuote ? t(`صلاحية العرض ${validDays} يومًا`, `Valid for ${validDays} days`) : `${esc(endLabel)} ${num(end)}`) : (end ? `${esc(endLabel)} ${num(end)}` : "&nbsp;")}</div></div>
   </div>`;
+      const ownTitle = ((ar ? tpl.coverTitle : (tpl.coverTitleEn || tpl.coverTitle)) || "").trim();
+      const h1 = ownTitle ? titleParts[0] : docType;
+      const subLine = ownTitle ? titleParts.slice(1).join(" ") : (doc.title || "").split(/\r?\n/).filter(Boolean).join(" · ");
       const body = `<div class="ic">
-  <div class="eyebrow">${docEyebrow} · ${esc(doc.number)}</div>
-  <div class="h1">${esc(titleParts[0] || title)}</div>
-  ${titleParts.length > 1 ? `<div class="sub">${esc(titleParts.slice(1).join(" "))}</div>` : ""}
+  <div class="eyebrow">${docEyebrow} · ${esc(doc.number)}${doc.reference ? ` · ${esc(doc.reference)}` : ""}</div>
+  <div class="h1">${esc(h1)}</div>
+  ${subLine ? `<div class="sub">${esc(subLine)}</div>` : ""}
   <div class="crule"></div>
   <div class="intro">${fill(intro)}</div>
   ${strip}
@@ -1462,6 +1608,214 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const closingLines = closingLinesRaw.length ? closingLinesRaw : (ar ? DEFAULT_CLOSING_AR : DEFAULT_CLOSING_EN);
   const hasClosing = on("closing");
 
+  // ── identity QUOTE composer (round 2 · 2026-09-14 · reference EDG-Q-2026-0010, page by page) ──
+  // Page law: every page starts a fresh sheet (forceBreak on its title · keepWithNext so a title never
+  // strands alone); content that overflows continues on the next sheet under the same header /
+  // watermark / footer; "near the footer" notes are `bottom` blocks (budgeted, never overlapping).
+  const identityQuote = identity && isQuote;
+  const COLW = 182; // usable mm across the sheet
+  const sar = (v: number) => `${money(v)} ${cur === "SAR" ? t("ر.س", "SAR") : cur}`;
+  const pageTitle = (a: string, e: string): Block => ({ kind: "html", h: 16.8, forceBreak: true, keepWithNext: true, html: `<div class="st"><div class="a">${esc(a)}</div><div class="e">${esc(e)}</div></div>` });
+  const sectionHead = (a: string, e: string, sub = ""): Block => ({ kind: "html", h: sub ? 12.8 : 11.8, keepWithNext: true, html: `<div class="sh"><div class="a">${esc(a)}</div><div class="e">${esc(e)}${sub ? ` <span class="sub">· ${bdi(sub)}</span>` : ""}</div></div>` });
+  const noteBox = (html: string, text: string, bottom = false, cls = "nb"): Block => ({ kind: "html", h: 10 + textHeight(text, COLW - 14, 5.0, 2.05), bottom, html: `<div class="${cls}">${html}</div>` });
+  const kvTable = (rows: Array<[string, string]>, cls = "kv"): Block => ({ kind: "table", open: `<table class="${cls}"><colgroup><col style="width:46mm"><col></colgroup>`, head: "", headH: 0, rows: rows.map(([k, v]) => ({ h: 7.2 + Math.max(5.6, textHeight(v.replace(/<[^>]+>/g, ""), 118, 5, 1.85), textHeight(k, 40, 5, 2.0)), html: `<tr><td class="k">${bdi(k)}</td><td class="v">${v}</td></tr>` })), close: `</table>`, cont: `<div class="cont">${t("يتبع", "continued")} …</div>` });
+  const ordinalAr = ["الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة"];
+  const ordinalEn = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
+
+  /** Quotation & cost page · meta strip · scope · BOQ · totals + tafqit · QR card · tax note */
+  const identityQuotationPage = () => {
+    blocks.push(pageTitle(t("عـرض سـعـر", "Quotation"), "QUOTATION"));
+    const cells: string[] = [];
+    cells.push(`<div class="cell serial"><div class="k">QUOTATION NO</div><div class="v">${num(doc.number)}</div></div>`);
+    if (doc.reference) cells.push(`<div class="cell"><div class="k">${esc(ar ? "OPPORTUNITY NO" : "OPPORTUNITY NO")}</div><div class="v">${num(doc.reference)}</div></div>`);
+    if (doc.reference2) cells.push(`<div class="cell"><div class="k">${esc((tpl.reference2Label || "REFERENCE").toUpperCase())}</div><div class="v">${num(doc.reference2)}</div></div>`);
+    cells.push(`<div class="cell"><div class="k">DATE</div><div class="v">${num(issue)}</div></div>`);
+    blocks.push({ kind: "html", h: 17, keepWithNext: true, html: `<div class="meta-strip idm q" style="grid-template-columns:repeat(${cells.length},1fr)">${cells.join("")}</div>` });
+    // scope of work · doc.scope → template coverIntro (filled) · doc.title as the bold sub-line
+    const scopeText = String(doc.scope || "").trim() || ((ar ? tpl.coverIntro : (tpl.coverIntroEn || tpl.coverIntro)) || "").trim();
+    if (scopeText || doc.title) {
+      blocks.push(sectionHead(t("نطاق الأعمال", "Scope of work"), "SCOPE OF WORK"));
+      const fillTxt = (x: string) => esc(x).replace(/\{company\}/g, bdi(orgName)).replace(/\{client\}/g, bdi(clientName)).replace(/\{number\}/g, num(doc.number)).replace(/\{date\}/g, num(issue)).replace(/\{total\}/g, num(`${cur} ${money(doc.total)}`)).replace(/\{reference\}/g, num(doc.reference || "—")).replace(/\{title\}/g, bdi(doc.title || ""));
+      const titleLine = doc.title ? doc.title.split(/\r?\n/).filter(Boolean).join(" · ") : "";
+      blocks.push({ kind: "html", h: (titleLine ? 6.8 : 0) + (scopeText ? 2 + textHeight(scopeText, COLW, 5.6, 2.0) : 0) + 2, html: `${titleLine ? `<div class="scope-t">${bdi(titleLine)}</div>` : ""}${scopeText ? `<p class="scope">${fillTxt(scopeText)}</p>` : ""}` });
+    }
+    // pricing · BOQ (# · description · qty+unit · unit price · total)
+    blocks.push(sectionHead(t("البند والتكلفة", "Pricing"), "PRICING"));
+    const rows: Array<{ h: number; html: string }> = [];
+    let lastSec: string | null = null;
+    const multi = new Set(included.map((l) => l.sectionLabel || "")).size > 1;
+    const boqRow = (l: LineSpec, i: number) => {
+      const parts = String(l.description || "").split(/\r?\n/);
+      const headTxt = parts[0] || "";
+      const rest = parts.slice(1).join("\n").trim();
+      const h = 6 + Math.max(9, textHeight(headTxt, 88, 5, 2.05)) + (rest ? textHeight(rest, 88, 4.4, 1.7) : 0) + (l.code ? 3 : 0);
+      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}</td><td class="n">${num(money(l.subtotal))}</td></tr>` };
+    };
+    included.forEach((l, i) => {
+      const sec = l.sectionLabel || "";
+      if (multi && sec !== lastSec) { rows.push({ h: 8, html: `<tr class="sec"><td colspan="5">${bdi(sec || t("بنود عامة", "General items"))}</td></tr>` }); lastSec = sec; }
+      rows.push(boqRow(l, i));
+    });
+    if (optional.length) {
+      rows.push({ h: 8, html: `<tr class="sec"><td colspan="5">${t("بنود اختيارية — غير مشمولة في الإجمالي", "Optional items — not included in the total")}</td></tr>` });
+      optional.forEach((l, i) => rows.push(boqRow(l, included.length + i)));
+    }
+    blocks.push({ kind: "table", open: `<table class="items boq"><colgroup><col style="width:12mm"><col><col style="width:20mm"><col style="width:30mm"><col style="width:32mm"></colgroup>`,
+      head: `<thead><tr><th class="n">${t("البند", "#")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")}</th><th class="n">${t("السعر الإجمالي", "Total")}</th></tr></thead>`,
+      headH: 11, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع في الصفحة التالية", "continued on the next page")} …</div>` });
+    // totals + tafqit (one unit) · then the QR card · then the tax note — the unit never splits
+    const tr: string[] = [];
+    tr.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${num(`${cur} ${money(discount > 0.005 ? listPrice : taxable)}`)}</span></div>`);
+    if (discount > 0.005) {
+      tr.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">${num(`- ${cur} ${money(discount)}`)}</span></div>`);
+      tr.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${num(`${cur} ${money(taxable)}`)}</span></div>`);
+    }
+    if (orgTaxRegistered && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${num(`${cur} ${money(doc.taxTotal)}`)}</span></div>`);
+    tr.push(`<div class="r grand"><span class="lbl">${orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total")}</span><span class="amt">${num(`${cur} ${money(doc.total)}`)}</span></div>`);
+    const words = showWords && cur === "SAR" ? `<div class="tafqit">${esc(tafqitSar(doc.total, lang))}</div>` : "";
+    blocks.push({ kind: "html", h: (tr.length - 1) * 7.6 + 11 + (words ? 9.8 : 0) + 4.5, html: `<div class="tot2"><div class="totals">${tr.join("")}</div>${words}</div>` });
+    const zatca = orgTaxRegistered && !!doc.qrPayload;
+    const qrText = zatca ? doc.qrPayload! : (doc.number || "");
+    const qr = qrText ? qrSvg(qrText) : "";
+    if (qr) {
+      const qrRows = zatca
+        ? [[t("اسم البائع", "Seller"), bdi(org.legalName || org.name)], [t("الرقم الضريبي", "VAT no."), num(org.vatNumber || "")], [t("الإجمالي شامل الضريبة", "Total incl. VAT"), num(`${money(doc.total)} ${cur}`)], [t("مقدار الضريبة", "VAT amount"), num(`${money(doc.taxTotal)} ${cur}`)]]
+        : [[t("رقم المستند", "Document no."), num(doc.number)], [t("التاريخ", "Date"), num(issue)], [t("الإجمالي", "Total"), num(`${money(doc.total)} ${cur}`)]];
+      const qrLead = zatca
+        ? t("يحمل بيانات المنشأة والمبلغ بصيغة TLV المعتمدة من هيئة الزكاة والضريبة والجمارك، ويُقرأ بتطبيق التحقق من الفواتير.", "Carries the issuer and amount data in the ZATCA-approved TLV format and reads with the invoice verification app.")
+        : t("رمز التحقق من رقم المستند.", "Document verification code.");
+      blocks.push({ kind: "html", h: 37.5, html: `<div class="qrc"><div class="qrc-body"><div class="t">${t("رمز الاستجابة السريعة (QR)", "QR code")}</div><p>${qrLead}</p><dl class="qr-data">${qrRows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div><div class="qr">${qr}</div></div>` });
+    }
+    const taxNote = String(doc.notes || tpl.notes || "").trim() || (orgTaxRegistered
+      ? t("الأسعار بالريال السعودي وغير شاملة ضريبة القيمة المضافة 15% المبيَّنة أعلاه. وتُصدَر الفاتورة الضريبية النظامية عند اعتماد العرض وتنفيذ الأعمال.", "Prices are in Saudi Riyals and exclude the 15% VAT shown above. The statutory tax invoice is issued on approval of this offer and execution of the works.")
+      : t("الأسعار بالعملة المبيَّنة أعلاه، وتُصدَر الفاتورة عند اعتماد العرض وتنفيذ الأعمال.", "Prices are in the currency shown above; the invoice is issued on approval of this offer and execution of the works."));
+    blocks.push(noteBox(bdi(taxNote), taxNote));
+  };
+
+  /** Payment plan page · stations · «كيف تُحتسب الدفعات» · bottom note */
+  const identityPlanPage = () => {
+    let plan = doc.paymentPlan && doc.paymentPlan.length ? doc.paymentPlan.slice(0, 8) : null;
+    if (!plan && stations) {
+      // default 30 / 60 / 10 stations · the last one absorbs rounding
+      const r2 = (v: number) => Math.round(v * 100) / 100;
+      const a = r2(doc.total * 0.3), b = r2(doc.total * 0.6);
+      plan = [
+        { label: t("دفعة مقدّمة", "Advance payment"), note: t("عند الاعتماد الكتابي وقبل بدء التنفيذ", "On written approval, before work starts"), percent: 30, net: 0, tax: 0, total: a },
+        { label: t("عند التوريد والتركيب", "On supply and installation"), note: t("بعد إتمام التوريد والتركيب في الموقع", "After supply and installation on site"), percent: 60, net: 0, tax: 0, total: b },
+        { label: t("عند التسليم النهائي", "On final handover"), note: t("بعد الفحص النهائي وتوقيع محضر التسليم", "After the final inspection and the handover report"), percent: 10, net: 0, tax: 0, total: r2(doc.total - a - b) },
+      ];
+    }
+    if (!plan || !plan.length) return;
+    blocks.push(pageTitle(t("خطة الدفع", "Payment plan"), "PAYMENT PLAN"));
+    const pct = (p: PaymentPlanRow) => p.percent ? qty(p.percent) : (doc.total > 0 ? qty(Math.round((p.total / doc.total) * 1000) / 10) : "");
+    const noteOf = (p: PaymentPlanRow) => planNoteOf(p) || "";
+    if (stations && plan.length <= 4) {
+      const chevron = `<div class="chev"><svg viewBox="0 0 12 24" aria-hidden="true"><path d="M2 2l8 10-8 10"/></svg></div>`;
+      const cols = plan.map((p, i) => `<div class="stn"><div class="no">${i + 1}</div><div class="r"></div>${pct(p) ? `<div class="pc">${num(`${pct(p)}%`)}</div>` : ""}<div class="lb">${bdi(p.label)}</div><div class="am">${noteOf(p) ? `${bdi(noteOf(p))} — ` : ""}${bdi(t("بقيمة", "amount"))} ${num(sar(p.total))}</div></div>`).join(chevron);
+      blocks.push({ kind: "html", h: 57, html: `<div class="stations">${cols}</div>` });
+    } else {
+      const rows = plan.map((p, i) => ({ h: 9, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td>${bdi(p.label)}${noteOf(p) ? `<div class="rest">${bdi(noteOf(p))}</div>` : ""}</td><td class="n">${pct(p) ? num(`${pct(p)}%`) : ""}</td><td class="n"><strong>${num(money(p.total))}</strong></td></tr>` }));
+      blocks.push({ kind: "table", open: `<table class="items boq plan2"><colgroup><col style="width:12mm"><col><col style="width:22mm"><col style="width:34mm"></colgroup>`, head: `<thead><tr><th class="n">#</th><th>${t("الدفعة", "Instalment")}</th><th class="n">%</th><th class="n">${t("الإجمالي", "Total")} (${esc(cur)})</th></tr></thead>`, headH: 12, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع", "continued")} …</div>` });
+    }
+    // explainer · auto-generated from the rows
+    const items = plan.map((p, i) => ar
+      ? `الدفعة ${ordinalAr[i] || String(i + 1)} (${qty(Number(pct(p)) || 0)}% – ${money(p.total)} ر.س) تُستحق ${noteOf(p) || p.label}.`
+      : `The ${ordinalEn[i] || String(i + 1)} instalment (${pct(p)}% – ${money(p.total)} ${cur}) falls due ${noteOf(p) || p.label}.`);
+    items.push(t("التحويل باسم المنشأة على الحساب المذكور في هذا العرض — لا تُقبل التحويلات إلى حسابات أفراد.", "Transfers in the company's name to the account stated in this offer — transfers to personal accounts are not accepted."));
+    if (orgTaxRegistered) items.push(t("تُصدَر فاتورة ضريبية نظامية عن كل دفعة عند استحقاقها.", "A statutory tax invoice is issued for every instalment when it falls due."));
+    blocks.push({ kind: "html", h: 15 + items.reduce((a, it) => a + textHeight(it, COLW - 16, 5.2, 2.05), 0), html: `<div class="expl"><div class="t">${t("كيف تُحتسب الدفعات", "How the instalments are computed")}</div><ol>${items.map((it) => `<li>${bdi(it)}</li>`).join("")}</ol></div>` });
+    const pn = String(tpl.paymentPlanNote || "").trim() || t(`القيم أعلاه محسوبة من الإجمالي شامل الضريبة (${money(doc.total)} ر.س). خطة الدفع مقترحة وقابلة للتعديل بالاتفاق الكتابي.`, `The amounts above are computed from the total incl. VAT (${money(doc.total)} ${cur}). The plan is a proposal and can be adjusted in writing.`);
+    blocks.push(noteBox(bdi(pn), pn, true));
+  };
+  const planNoteOf = (p: PaymentPlanRow): string | null => {
+    if (p.note) return p.note;
+    const v = p.conditionValue || "";
+    const cond = p.condition === "SIGNATURE" ? t("عند التوقيع", "on signature")
+      : p.condition === "PROGRESS" ? (v ? t(`عند إنجاز ${v}%`, `at ${v}% progress`) : t("حسب نسبة الإنجاز", "by progress"))
+      : p.condition === "DELIVERY" ? t("عند التسليم", "on delivery")
+      : p.condition === "DATE" ? (v ? t(`في ${v}`, `on ${v}`) : "")
+      : p.condition === "MILESTONE" ? (v ? t(`عند: ${v}`, `at: ${v}`) : "")
+      : "";
+    return cond || null;
+  };
+
+  /** Delivery & bank page · facts table · note · bank card · beneficiary rows · stamp bottom-start */
+  const identityDeliveryPage = () => {
+    const facts = (Array.isArray(tpl.deliveryFacts) ? tpl.deliveryFacts : []).filter((f) => f && (f.label || f.value)).slice(0, 10);
+    const b = on("bank") ? input.bank : null;
+    const hasBank = !!(b && (b.iban || b.accountNumber));
+    const dn = String(tpl.deliveryNote || "").trim();
+    if (!facts.length && !hasBank && !dn) return;
+    blocks.push(pageTitle(t("مدة التنفيذ والحساب البنكي", "Delivery & bank details"), "DELIVERY & BANK DETAILS"));
+    if (facts.length) blocks.push(kvTable(facts.map((f) => [f.label, bdi(f.value)])));
+    if (dn) blocks.push(noteBox(bdi(dn), dn));
+    if (hasBank && b) {
+      blocks.push(sectionHead(t("الحساب البنكي", "Bank details"), "BANK DETAILS", t("التحويل باسم المنشأة فقط", "transfers in the company's name only")));
+      const bankLogo = safeUrl(tpl.bankLogoUrl);
+      const sub = [b.swiftCode ? `SWIFT / BIC · <b>${esc(b.swiftCode)}</b>` : "", b.currency ? `${t("العملة", "Currency")} · <b>${esc(b.currency)}</b>` : ""].filter(Boolean).join(" &nbsp;&nbsp; ");
+      blocks.push({ kind: "html", h: 38, keepWithNext: true, html: `<div class="bankc2">${bankLogo ? `<img src="${esc(bankLogo)}" alt="">` : ""}<div class="bd">${b.bankName ? `<div class="bn">${bdi(b.bankName)}</div>` : ""}${b.name && b.name !== b.bankName ? `<div class="be">${esc(b.name)}</div>` : ""}${b.iban ? `<div class="iban">${esc(ibanGroups(b.iban))}</div>` : b.accountNumber ? `<div class="iban">${esc(b.accountNumber)}</div>` : ""}${sub ? `<div class="sw">${sub}</div>` : ""}</div></div>` });
+      const ben: Array<[string, string]> = [[t("اسم المستفيد", "Beneficiary"), `<b>${bdi(b.holder || org.legalName || org.name)}</b>`]];
+      if (b.iban && b.accountNumber) ben.push([t("رقم الحساب", "Account no."), num(b.accountNumber)]);
+      if (org.crNumber) ben.push([t("رقم السجل التجاري", "Commercial registration"), num(org.crNumber)]);
+      if (org.vatNumber) ben.push([regLabel(org), num(org.vatNumber)]);
+      blocks.push(kvTable(ben, "kv ben"));
+    }
+    if (stamp) blocks.push({ kind: "html", h: 42, bottom: true, optional: true, html: `<div class="stamp-free"><img src="${esc(stamp)}" alt=""></div>` });
+  };
+
+  /** Terms page · two-column numbered terms (never split) · bottom «خارج نطاق هذا العرض» */
+  const identityTermsPage = () => {
+    const raw = ar ? (doc.termsConditions || tpl.terms || "") : (doc.termsConditions || tpl.termsEn || tpl.terms || "");
+    const paras = String(raw).replace(/\r\n?/g, "\n").split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+    const strip = (x: string) => x.replace(/^\s*(?:[-•·*]|\d+[.)])\s*/, "").trim();
+    let items: Array<{ title: string; body: string }> = [];
+    if (paras.length > 1) items = paras.map((pg) => { const ls = pg.split("\n").map(strip).filter(Boolean); const c = clause(ls[0] || ""); return ls.length > 1 ? { title: c.title || ls[0], body: (c.title ? [c.text, ...ls.slice(1)] : ls.slice(1)).join(" ") } : { title: c.title, body: c.text }; });
+    else items = lines(raw).map((l) => { const c = clause(l); return { title: c.title, body: c.text }; });
+    if (tpl.showTerms === false) items = [];
+    const oosRaw = String(doc.outOfScope || (ar ? tpl.outOfScope : (tpl.outOfScopeEn || tpl.outOfScope)) || "");
+    const oos = lines(oosRaw);
+    if (!items.length && !oos.length) return;
+    blocks.push(pageTitle(t("الشروط والأحكام", "Terms & conditions"), "TERMS & CONDITIONS"));
+    // column order like the reference (1-4 start column · 5-8 end column) · each grid row is one
+    // paginator block, so a term never splits across a column or a page
+    const cell = (it: { title: string; body: string } | undefined, i: number) => it ? `<div class="ti"><b><span class="no">${i + 1}.</span> ${it.title ? bdi(it.title) : ""}</b><span>${bdi(it.body)}</span></div>` : `<div class="ti"></div>`;
+    const half = Math.ceil(items.length / 2);
+    for (let i = 0; i < half; i++) {
+      const a = items[i], b2 = items[i + half];
+      const h = 9 + Math.max(textHeight(a.body, 84, 5, 2.05), b2 ? textHeight(b2.body, 84, 5, 2.05) : 0);
+      blocks.push({ kind: "html", h, html: `<div class="terms2g">${cell(a, i)}${cell(b2, i + half)}</div>` });
+    }
+    if (oos.length) {
+      const lead = t("خارج نطاق هذا العرض:", "Outside the scope of this offer:");
+      const body = oos.length === 1 ? `<b>${lead}</b> ${bdi(oos[0])}` : `<b>${lead}</b><ul>${oos.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul>`;
+      blocks.push(noteBox(body, `${lead} ${oos.join(" ")}`, true));
+    }
+  };
+
+  /** Approval & signature page · statement · summary table · two signature columns · stamp · bottom note */
+  const identityApprovalPage = () => {
+    if (!on("signatory")) return;
+    blocks.push(pageTitle(t("الاعتماد والتوقيع", "Approval & signature"), "APPROVAL & SIGNATURE"));
+    const st = String(tpl.approvalText || "").trim() || t("باعتماد هذا العرض تصبح بنوده وأسعار الوحدة الواردة فيه مرجعًا للتنفيذ والمستخلصات، ولا يُعتد بأي تعديل شفهي عليها.", "On approval of this offer, its items and unit prices become the reference for execution and progress claims; no verbal amendment is recognised.");
+    blocks.push({ kind: "html", h: 4 + textHeight(st, COLW, 5.8, 2.05), keepWithNext: true, html: `<p class="scope">${bdi(st)}</p>` });
+    const sum: Array<[string, string]> = [[t("رقم العرض", "Quotation no."), `<b>${num([doc.number, doc.reference2].filter(Boolean).join(" · "))}</b>`]];
+    if (doc.reference) sum.push([t("رقم الفرصة / المرجع", "Opportunity / reference"), `<b>${num(doc.reference)}</b>`]);
+    if (doc.title) sum.push([t("المشروع", "Project"), `<b>${bdi(doc.title.split(/\r?\n/).filter(Boolean).join(" · "))}</b>`]);
+    sum.push([orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), `<b>${num(`${money(doc.total)} ${cur}`)}</b>`]);
+    if (end) sum.push([t("صلاحية العرض", "Validity"), `<b>${t("حتى", "Until")} ${num(end)}</b>`]);
+    blocks.push(kvTable(sum, "kv sum"));
+    const sigImg = safeUrl(tpl.signatureUrl) || safeUrl(org.signatureUrl);
+    const nameIsLatin = tpl.signatoryName ? !hasArabic(tpl.signatoryName) : false;
+    const issuerCol = `<div class="sc"><div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div><div class="srule"></div><div class="nm">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="role">${bdi(tpl.signatoryTitle)}</div>` : ""}<div class="co">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div>${stamp ? `<div class="stamp-under"><img src="${esc(stamp)}" alt=""></div>` : ""}</div>`;
+    const clientCol = `<div class="sc"><div class="sarea"></div><div class="srule"></div><div class="nm">${t("عن الجهة المالكة", "For the owner")}</div><div class="role">Owner</div><div class="co">${bdi(clientName)}</div><div class="co">${t("الاسم والصفة · التوقيع والختم · التاريخ", "Name & title · signature & stamp · date")}</div></div>`;
+    blocks.push({ kind: "html", h: 50 + (stamp ? 42 : 0), html: `<div class="sigcols">${clientCol}${issuerCol}</div>` });
+    const an = String(tpl.approvalNote || "").trim() || t(`اعتماد العرض: يكفي الرد كتابيًا بالاعتماد على هذا العرض برقمه ${doc.number}، أو إعادته موقَّعًا ومختومًا${tpl.signatoryEmail || org.email ? ` إلى ${tpl.signatoryEmail || org.email}` : ""}${tpl.signatoryPhone || org.phone ? ` أو عبر واتساب ${tpl.signatoryPhone || org.phone}` : ""}.`, `Approval: a written reply approving this offer by its number ${doc.number} is sufficient, or return it signed and stamped${tpl.signatoryEmail || org.email ? ` to ${tpl.signatoryEmail || org.email}` : ""}${tpl.signatoryPhone || org.phone ? ` or via WhatsApp ${tpl.signatoryPhone || org.phone}` : ""}.`);
+    blocks.push(noteBox(`<b>${t("اعتماد العرض:", "Approval:")}</b> ${bdi(an.replace(/^(اعتماد العرض:|Approval:)\s*/, ""))}`, an, true));
+  };
+
+  if (identityQuote) {
+    identityQuotationPage();
+  } else {
   for (const id of order) {
     if (!on(id)) continue;
     let b: Block | null = null;
@@ -1472,13 +1826,14 @@ export function renderDocument(input: RenderInput): RenderOutput {
       case "terms": b = termsBlock(); break;
       case "paymentPlan": b = planBlock(); break;
       case "bank": b = bankBlock(); break;
-      case "company": b = hasClosing ? null : companyBlock(); break;
+      case "company": b = hasClosing || identity ? null : companyBlock(); break;
       case "signatory": b = hasClosing ? null : signatoryBlock(); break;
       default: b = null;
     }
     if (b) blocks.push(b);
   }
   if (!on("header") && doc.notes && !on("totals")) blocks.push({ kind: "html", h: 20, html: `<div class="notes">${bdi(doc.notes)}</div>` });
+  }
 
   // ── free-form pages (CEO 2026-09-13) ──
   // Each page STARTS a fresh sheet (forceBreak) and flows through the same paginator, so a
@@ -1539,7 +1894,12 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // left (e.g. a lone terms/bank card) still packs onto the previous sheet instead of
   // being stranded alone on a nearly-empty page (CEO 2026-09-08 · «مافي فراغات كذا مالها
   // داعي أو انه يتوسع» — no sheet is ever emitted mostly empty).
-  if (hasClosing) {
+  if (identityQuote) {
+    if (on("paymentPlan")) identityPlanPage();
+    identityDeliveryPage();
+    if (on("terms") || on("closing")) identityTermsPage();
+    identityApprovalPage();
+  } else if (hasClosing) {
     const clauses = closingLines.map(clause);
     const rows = clauses.map((c, i) => ({
       h: 4 + textHeight(c.text, 118, 4.5, 1.42),
@@ -1551,25 +1911,41 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const table: Block = { kind: "table", open: `<table class="tc"><colgroup><col style="width:9mm"><col style="width:34mm"><col></colgroup>`, head: `<thead><tr><th>#</th><th>${t("البند", "Clause")}</th><th>${t("الشرط", "Terms")}</th></tr></thead>`, headH: 9, rows, close: `</table>` };
     blocks.push(intro, table);
     if (on("signatory")) { const s = signatoryBlock(); if (s) blocks.push(s); }
-    if (on("company")) blocks.push(companyBlock());
+    if (on("company") && !identity) blocks.push(companyBlock());
   }
 
-  for (const page of paginate(blocks, CAP)) sheets.push({ cls: "light", body: page });
+  for (const page of paginate(blocks, CAP)) {
+    // identity sheets: a flex column so `bottom` blocks sit above the footer band · budget stamped for QA
+    const body = identity ? `<div class="pgflow">${page.flow}${page.bottom ? `<div class="pgbottom">${page.bottom}</div>` : ""}</div>` : page.flow;
+    sheets.push({ cls: "light", body, used: page.used });
+  }
 
   // ── closing page (identity · themed templates) · image or solid navy · white mark · THANK YOU · facts strip ──
   if (themed) {
-    const facts = (Array.isArray(tpl.closingFacts) ? tpl.closingFacts : []).filter((f) => f && (f.label || f.value)).slice(0, 8);
+    // 3 outlined cards (reference closing): number · total incl. VAT · contact — then any template closingFacts
+    const auto: Array<{ label: string; value: string }> = [
+      { label: isQuote ? t("رقم العرض", "Quotation no.") : t("رقم الفاتورة", "Invoice no."), value: doc.number },
+      { label: orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), value: `${money(doc.total)} ${cur}` },
+      { label: t("التواصل", "Contact"), value: [tpl.signatoryEmail || org.email, tpl.signatoryPhone || org.phone].filter(Boolean).join("\n") },
+    ].filter((f) => f.value);
+    const facts = [...auto, ...(Array.isArray(tpl.closingFacts) ? tpl.closingFacts : []).filter((f) => f && (f.label || f.value))].slice(0, 6);
     const mark = logoReverse ? `<img src="${esc(logoReverse)}" alt="${esc(orgName)}">` : wordmark();
-    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div><p class="lead">${isQuote
+    const subLine = doc.title ? doc.title.split(/\r?\n/).filter(Boolean).join(" · ") : "";
+    const closingText = String(tpl.closingText || "").trim() || (isQuote
       ? t("يسعدنا الإجابة عن أي استفسار حول هذا العرض، ونتطلع إلى العمل معكم.", "We are glad to answer any question about this offer and look forward to working with you.")
-      : t("نشكركم على تعاملكم معنا، ونبقى في خدمتكم لأي استفسار حول هذه الفاتورة.", "Thank you for your business — we remain at your service for any question about this invoice.")}</p>${facts.length ? `<div class="facts">${facts.map((f) => `<div><div class="k">${bdi(f.label)}</div><div class="v">${bdi(f.value)}</div></div>`).join("")}</div>` : ""}</div>`;
+      : t("نشكركم على تعاملكم معنا، ونبقى في خدمتكم لأي استفسار حول هذه الفاتورة.", "Thank you for your business — we remain at your service for any question about this invoice."));
+    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div>${subLine ? `<div class="sub">${bdi(subLine)}</div>` : ""}<p class="lead">${bdi(closingText)}</p>${facts.length ? `<div class="facts cards3">${facts.map((f) => `<div class="cd"><div class="k">${bdi(f.label)}</div><div class="v">${String(f.value).split("\n").map((v) => `<div>${num(v)}</div>`).join("")}</div></div>`).join("")}</div>` : ""}</div>`;
     sheets.push({ cls: closingImage ? "dark closing cover-img" : "dark closing", body, closing: true, style: closingImage ? `background-image:url('${esc(closingImage)}')` : undefined });
   }
 
   // ── assemble ──
   const total = sheets.length;
   const wmHtml = watermark ? `<div class="wm"><img src="${esc(watermark)}" alt=""></div>` : "";
-  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${footer(i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
+  // data-doc-page-check (identity): "flow:<budgeted mm>/<capacity mm>" · a QA gate verifies, per sheet,
+  // sheet.querySelector(".pgflow").scrollHeight <= .clientHeight (the sheet itself carries the
+  // bottom-anchored watermark, so the flow element is the thing to measure). Cover/closing: "fixed".
+  const coverCount = sheets.filter((s) => s.cover).length;
+  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
   const actions = input.actions ? `<div class="actions no-print"><button class="primary" type="button" onclick="window.print()">${t("طباعة / حفظ PDF", "Print / save PDF")}</button><button type="button" onclick="window.close()">${t("إغلاق", "Close")}</button></div>` : "";
   const rawCss = buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null);
   // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
@@ -1705,6 +2081,8 @@ export function docFromQuote(q: any, qrPayload?: string | null): DocSpec {
     language: q.language === "en" || q.language === "ar" ? q.language : null,
     pages: normalizePages(q.pages),
     outOfScope: q.outOfScope || null,
+    scope: q.scope || q.coverIntro || q.intro || null,
+    reference2: q.reference2 || null,
   };
 }
 

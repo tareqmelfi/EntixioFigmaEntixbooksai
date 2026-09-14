@@ -42,6 +42,13 @@ export interface IdentityValues {
   amountInWords: boolean | null;
   hideProviderBranding: boolean | null;
   closingFacts: ClosingFact[];
+  // round 2 · identity quote pages
+  deliveryFacts: ClosingFact[];
+  deliveryNote: string;
+  approvalText: string;
+  approvalNote: string;
+  closingText: string;
+  reference2Label: string;
 }
 
 export const EMPTY_IDENTITY: IdentityValues = {
@@ -49,6 +56,7 @@ export const EMPTY_IDENTITY: IdentityValues = {
   logoUrl: "", logoLightUrl: "", watermarkUrl: "", coverImageUrl: "", closingImageUrl: "", bankLogoUrl: "", signatureUrl: "",
   outOfScope: "", outOfScopeEn: "", paymentPlanStyle: "table", paymentPlanNote: "",
   showQr: null, amountInWords: null, hideProviderBranding: null, closingFacts: [],
+  deliveryFacts: [], deliveryNote: "", approvalText: "", approvalNote: "", closingText: "", reference2Label: "",
 };
 
 /** Stored record → designer values (unknown / bad values fall back to the Ledger defaults). */
@@ -65,9 +73,12 @@ export function identityFromTemplate(tpl: any): IdentityValues {
     showQr: typeof t.showQr === "boolean" ? t.showQr : null,
     amountInWords: typeof t.amountInWords === "boolean" ? t.amountInWords : null,
     hideProviderBranding: typeof t.hideProviderBranding === "boolean" ? t.hideProviderBranding : null,
-    closingFacts: Array.isArray(t.closingFacts) ? t.closingFacts.filter((f: any) => f && typeof f === "object").map((f: any) => ({ label: String(f.label || ""), value: String(f.value || "") })) : [],
+    closingFacts: facts(t.closingFacts),
+    deliveryFacts: facts(t.deliveryFacts),
+    deliveryNote: t.deliveryNote || "", approvalText: t.approvalText || "", approvalNote: t.approvalNote || "", closingText: t.closingText || "", reference2Label: t.reference2Label || "",
   };
 }
+const facts = (v: unknown): ClosingFact[] => Array.isArray(v) ? v.filter((f: any) => f && typeof f === "object").map((f: any) => ({ label: String(f.label || ""), value: String(f.value || "") })) : [];
 
 /** Designer values → PATCH payload · empty strings become null · a Ledger template with nothing set sends nulls only. */
 export function identityPayload(v: IdentityValues) {
@@ -82,11 +93,13 @@ export function identityPayload(v: IdentityValues) {
     paymentPlanStyle: v.paymentPlanStyle === "table" ? null : v.paymentPlanStyle, paymentPlanNote: s(v.paymentPlanNote),
     showQr: v.showQr, amountInWords: v.amountInWords, hideProviderBranding: v.hideProviderBranding,
     closingFacts: v.closingFacts.filter((f) => f.label.trim() || f.value.trim()).length ? v.closingFacts.filter((f) => f.label.trim() || f.value.trim()) : null,
+    deliveryFacts: v.deliveryFacts.filter((f) => f.label.trim() || f.value.trim()).length ? v.deliveryFacts.filter((f) => f.label.trim() || f.value.trim()) : null,
+    deliveryNote: s(v.deliveryNote), approvalText: s(v.approvalText), approvalNote: s(v.approvalNote), closingText: s(v.closingText), reference2Label: s(v.reference2Label),
   };
 }
 
 /** Premium (full-plan) fields · anything else is available on the basic plan. */
-export const PREMIUM_IDENTITY_KEYS: Array<keyof IdentityValues> = ["theme", "themePreset", "headerStyle", "logoLightUrl", "watermarkUrl", "coverImageUrl", "closingImageUrl", "hideProviderBranding", "paymentPlanStyle", "closingFacts"];
+export const PREMIUM_IDENTITY_KEYS: Array<keyof IdentityValues> = ["theme", "themePreset", "headerStyle", "logoLightUrl", "watermarkUrl", "coverImageUrl", "closingImageUrl", "hideProviderBranding", "paymentPlanStyle", "closingFacts", "closingText"];
 
 export const MAX_ASSET_BYTES = 1.5 * 1024 * 1024;
 const MAX_EDGE = 1600;
@@ -135,7 +148,7 @@ function contrast(a: string, b: string): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-type TokenKey = Exclude<keyof DocTheme, "fontArabic" | "fontLatin" | "fontMono">;
+type TokenKey = Exclude<keyof DocTheme, "fontArabic" | "fontLatin" | "fontMono" | "radius">;
 const TOKENS: Array<{ k: TokenKey; ar: string; en: string; hintAr: string; hintEn: string }> = [
   { k: "ink", ar: "الحبر", en: "Ink", hintAr: "نص المستند", hintEn: "Body text" },
   { k: "navy", ar: "الكحلي", en: "Navy", hintAr: "رأس الجدول · الغلاف · صفحة الختام", hintEn: "Table head · cover · closing page" },
@@ -184,6 +197,22 @@ function AssetRow({ label, hint, value, onChange, locked, testId, upload }: { la
           </label>
         </div>
       </div>
+    </div>
+  );
+}
+
+function FactsEditor({ rows, locked, max, onChange, labelPh, valuePh, addLabel, testId }: { rows: ClosingFact[]; locked: boolean; max: number; onChange: (rows: ClosingFact[]) => void; labelPh: string; valuePh: string; addLabel: string; testId: string }) {
+  const { t } = useLanguage();
+  return (
+    <div className="space-y-2">
+      {rows.map((f, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <Input value={f.label} disabled={locked} onChange={(e) => onChange(rows.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder={labelPh} className="flex-1" />
+          <Input value={f.value} disabled={locked} onChange={(e) => onChange(rows.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder={valuePh} className="flex-[2]" />
+          <button type="button" disabled={locked} onClick={() => onChange(rows.filter((_, j) => j !== i))} className="rounded p-1 text-muted-foreground hover:text-danger disabled:opacity-40" aria-label={t("حذف", "Remove")}><X className="h-3.5 w-3.5" /></button>
+        </div>
+      ))}
+      <button type="button" disabled={locked || rows.length >= max} onClick={() => onChange([...rows, { label: "", value: "" }])} className="inline-flex items-center gap-1 text-xs text-primary disabled:opacity-40" data-testid={testId}><Plus className="h-3.5 w-3.5" />{addLabel}</button>
     </div>
   );
 }
@@ -335,17 +364,25 @@ export function TemplateIdentitySection({ value, onChange, tier, planError, push
         <Input value={value.paymentPlanNote} onChange={(e) => onChange({ paymentPlanNote: e.target.value })} placeholder={t("خطة الدفع مقترحة وقابلة للتعديل.", "The payment plan is a proposal and can be adjusted.")} data-testid="identity-plan-note" />
       </div>
 
-      {/* closing facts */}
+      {/* quote pages (round 2) · delivery facts + note · approval text + note · closing text */}
+      <div className="space-y-2">
+        <Label>{t("صفحة مدة التنفيذ والحساب البنكي", "Delivery & bank page")}</Label>
+        <FactsEditor rows={value.deliveryFacts} locked={false} max={10} onChange={(rows) => onChange({ deliveryFacts: rows })} labelPh={t("مدة التسليم", "Delivery time")} valuePh={t("يومان (2) عمل من تاريخ صدور خطاب التعميد", "Two (2) working days from the award letter")} addLabel={t("إضافة بند تنفيذ", "Add delivery row")} testId="identity-add-delivery" />
+        <textarea rows={2} value={value.deliveryNote} onChange={(e) => onChange({ deliveryNote: e.target.value })} className={field} placeholder={t("ملاحظة سداد الدفعات (تظهر تحت جدول التنفيذ)", "Payment note (printed under the delivery table)")} data-testid="identity-delivery-note" />
+      </div>
+      <div className="space-y-2">
+        <Label>{t("صفحة الاعتماد والتوقيع", "Approval & signature page")}</Label>
+        <textarea rows={2} value={value.approvalText} onChange={(e) => onChange({ approvalText: e.target.value })} className={field} placeholder={t("باعتماد هذا العرض تصبح بنوده وأسعار الوحدة الواردة فيه مرجعًا للتنفيذ والمستخلصات…", "On approval of this offer, its items and unit prices become the reference…")} data-testid="identity-approval-text" />
+        <textarea rows={2} value={value.approvalNote} onChange={(e) => onChange({ approvalNote: e.target.value })} className={field} placeholder={t("اعتماد العرض: يكفي الرد كتابيًا بالاعتماد على هذا العرض برقمه… (تلقائي عند تركه فارغًا)", "Approval: a written reply is sufficient… (automatic when empty)")} data-testid="identity-approval-note" />
+        <Input value={value.reference2Label} onChange={(e) => onChange({ reference2Label: e.target.value })} dir="ltr" className="font-english" placeholder="REFERENCE" aria-label={t("عنوان المرجع الثاني", "Second reference caption")} data-testid="identity-ref2-label" />
+      </div>
+
+      {/* closing page */}
       <div className={`space-y-2 ${basic ? "opacity-60" : ""}`}>
-        <div className="flex items-center justify-between gap-2"><Label>{t("حقائق صفحة الختام", "Closing page facts")}</Label>{basic && <LockPill />}</div>
-        {value.closingFacts.map((f, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <Input value={f.label} disabled={basic} onChange={(e) => onChange({ closingFacts: value.closingFacts.map((x, j) => j === i ? { ...x, label: e.target.value } : x) })} placeholder={t("العنوان", "Label")} className="flex-1" />
-            <Input value={f.value} disabled={basic} onChange={(e) => onChange({ closingFacts: value.closingFacts.map((x, j) => j === i ? { ...x, value: e.target.value } : x) })} placeholder={t("القيمة", "Value")} className="flex-1" />
-            <button type="button" disabled={basic} onClick={() => onChange({ closingFacts: value.closingFacts.filter((_, j) => j !== i) })} className="rounded p-1 text-muted-foreground hover:text-danger disabled:opacity-40" aria-label={t("حذف", "Remove")}><X className="h-3.5 w-3.5" /></button>
-          </div>
-        ))}
-        <button type="button" disabled={basic || value.closingFacts.length >= 8} onClick={() => onChange({ closingFacts: [...value.closingFacts, { label: "", value: "" }] })} className="inline-flex items-center gap-1 text-xs text-primary disabled:opacity-40" data-testid="identity-add-fact"><Plus className="h-3.5 w-3.5" />{t("إضافة حقيقة", "Add fact")}</button>
+        <div className="flex items-center justify-between gap-2"><Label>{t("صفحة الختام", "Closing page")}</Label>{basic && <LockPill />}</div>
+        <Input value={value.closingText} disabled={basic} onChange={(e) => onChange({ closingText: e.target.value })} placeholder={t("جملة واحدة تحت عنوان المشروع", "One sentence under the project title")} data-testid="identity-closing-text" />
+        <p className="text-[11px] text-muted-foreground">{t("تُطبع ثلاث بطاقات تلقائيًا: رقم العرض · الإجمالي شامل الضريبة · التواصل. البطاقات أدناه تُضاف بعدها.", "Three cards print automatically: number · total incl. VAT · contact. The rows below are added after them.")}</p>
+        <FactsEditor rows={value.closingFacts} locked={basic} max={3} onChange={(rows) => onChange({ closingFacts: rows })} labelPh={t("العنوان", "Label")} valuePh={t("القيمة", "Value")} addLabel={t("إضافة بطاقة", "Add card")} testId="identity-add-fact" />
       </div>
 
       {/* toggles */}
