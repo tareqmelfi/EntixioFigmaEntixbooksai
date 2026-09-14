@@ -51,7 +51,7 @@ const EMPTY_FORM = {
   brandColor: DEFAULT_BRAND_COLOR, coverColor: DEFAULT_COVER_COLOR,
   sections: normalizeSections(null) as SectionSetting[],
   termsEn: "", closingTerms: "", closingTermsEn: "",
-  bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryEmail: "", signatoryPhone: "",
+  bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryTitleAr: "", signatoryEmail: "", signatoryPhone: "",
   stampUrl: "", footerText: "", classification: "", classificationEn: "", wordmarkAccent: "",
 };
 
@@ -125,7 +125,7 @@ export function TemplateDetail() {
         brandColor: tpl.brandColor || tpl.accentColor || DEFAULT_BRAND_COLOR, coverColor: tpl.coverColor || tpl.primaryColor || DEFAULT_COVER_COLOR,
         sections: normalizeSections(tpl.sections),
         termsEn: tpl.termsEn || "", closingTerms: tpl.closingTerms || "", closingTermsEn: tpl.closingTermsEn || "",
-        bankAccountId: tpl.bankAccountId || "", signatoryName: tpl.signatoryName || "", signatoryTitle: tpl.signatoryTitle || "",
+        bankAccountId: tpl.bankAccountId || "", signatoryName: tpl.signatoryName || "", signatoryTitle: tpl.signatoryTitle || "", signatoryTitleAr: (tpl as any).signatoryTitleAr || "",
         signatoryEmail: tpl.signatoryEmail || "", signatoryPhone: tpl.signatoryPhone || "",
         stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "", wordmarkAccent: (tpl as any).wordmarkAccent || "",
       });
@@ -161,7 +161,7 @@ export function TemplateDetail() {
         brandColor: form.brandColor, coverColor: form.coverColor, sections: form.sections,
         termsEn: form.termsEn || null, closingTerms: form.closingTerms || null, closingTermsEn: form.closingTermsEn || null,
         bankAccountId: form.bankAccountId || null,
-        signatoryName: form.signatoryName || null, signatoryTitle: form.signatoryTitle || null,
+        signatoryName: form.signatoryName || null, signatoryTitle: form.signatoryTitle || null, signatoryTitleAr: form.signatoryTitleAr || null,
         signatoryEmail: form.signatoryEmail || null, signatoryPhone: form.signatoryPhone || null,
         stampUrl: form.stampUrl || null, footerText: form.footerText || null,
         classification: form.classification || null, classificationEn: form.classificationEn || null,
@@ -401,6 +401,7 @@ export function TemplateDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("الاسم", "Name")}</Label><Input value={form.signatoryName} onChange={(e) => set("signatoryName", e.target.value)} data-testid="signatory-name" /></div>
               <div className="space-y-2"><Label>{t("المسمى", "Title")}</Label><Input value={form.signatoryTitle} onChange={(e) => set("signatoryTitle", e.target.value)} /></div>
+              <div className="space-y-2"><Label>{t("المسمى بالعربية", "Title (Arabic)")}</Label><Input value={form.signatoryTitleAr} onChange={(e) => set("signatoryTitleAr", e.target.value)} placeholder={t("يظهر سطرًا ثانيًا تحت المسمى الإنجليزي", "Printed as a second role line")} /></div>
               <div className="space-y-2"><Label>{t("البريد", "Email")}</Label><Input value={form.signatoryEmail} onChange={(e) => set("signatoryEmail", e.target.value)} dir="ltr" className="font-english" type="email" /></div>
               <div className="space-y-2"><Label>{t("الجوال", "Phone")}</Label><Input value={form.signatoryPhone} onChange={(e) => set("signatoryPhone", e.target.value)} dir="ltr" className="font-english" /></div>
             </div>

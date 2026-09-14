@@ -2106,6 +2106,7 @@ export interface DocumentTemplate extends DocumentTemplateIdentity {
   bankAccountId?: string | null
   signatoryName?: string | null
   signatoryTitle?: string | null
+  signatoryTitleAr?: string | null
   signatoryEmail?: string | null
   signatoryPhone?: string | null
   stampUrl?: string | null

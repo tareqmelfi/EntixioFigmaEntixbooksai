@@ -194,6 +194,8 @@ export interface TemplateSpec {
   closingTermsEn?: string | null;
   signatoryName?: string | null;
   signatoryTitle?: string | null;
+  /** Second (Arabic) role line printed under signatoryTitle · identity mode only (reference EDG). */
+  signatoryTitleAr?: string | null;
   signatoryEmail?: string | null;
   signatoryPhone?: string | null;
   /** Real signature image (uploaded) · preferred over the pen-style name rendering when present. */
@@ -1236,6 +1238,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // 3 channels (slate). Page number top-end of the footer · none on the cover / closing sheet.
   // Reference footer (EDG-Q-2026-0010): 1 address (bold) · 2 Phone · VAT · C.R. · 3 Website · E-mail
   const legalLines = (): string[] => {
+    // A footerText written as 2-3 lines is the whole footer — the org's own registration/contact
+    // lines are NOT appended under it (they were duplicating the same VAT/C.R./website · CEO 2026-09-14).
+    const authored = String(tpl.footerText || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+    if (authored.length > 1) return authored.slice(0, 3).map(esc);
     const where = [org.address, org.city && !(org.address || "").includes(org.city) ? org.city : ""].filter(Boolean).map(bdi).join(" · ");
     const l1 = tpl.footerText ? esc(tpl.footerText) : (where || bdi(org.legalName || org.name));
     const l2 = [org.phone ? `Phone: ${esc(org.phone)}` : "", org.vatNumber ? `${isVatRegistered(org) ? "VAT" : "Reg."}: ${esc(org.vatNumber)}` : "", org.crNumber ? `C.R. ${esc(org.crNumber)}` : ""].filter(Boolean).join(" | ");
@@ -1576,7 +1582,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       // identity signature block · 15mm reserved area · rule with navy chip · bold name · uppercase role ·
       // small print · stamp on the issuer side (rotated −8° · multiply · .86 · inside the card flow — never over text)
       const area = `<div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="${esc(tpl.signatoryName || orgName)}">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div>`;
-      const sigI = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${area}<div class="srule"></div><div class="n bold">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="o role">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o small">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
+      const sigI = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${area}<div class="srule"></div><div class="n bold">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="o role">${bdi(tpl.signatoryTitle)}</div>` : ""}${identity && tpl.signatoryTitleAr ? `<div class="o small">${bdi(tpl.signatoryTitleAr)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o small">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
       const stI = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;
       return { kind: "html", h: 52, html: `<div class="sig-cards">${ar ? stI + sigI : sigI + stI}</div>` };
     }
@@ -1626,9 +1632,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const identityQuotationPage = () => {
     blocks.push(pageTitle(t("عـرض سـعـر", "Quotation"), "QUOTATION"));
     const cells: string[] = [];
+    const norm = (x?: string | null) => String(x || "").replace(/\s+/g, "").toUpperCase();
     cells.push(`<div class="cell serial"><div class="k">QUOTATION NO</div><div class="v">${num(doc.number)}</div></div>`);
     if (doc.reference) cells.push(`<div class="cell"><div class="k">${esc(ar ? "OPPORTUNITY NO" : "OPPORTUNITY NO")}</div><div class="v">${num(doc.reference)}</div></div>`);
-    if (doc.reference2) cells.push(`<div class="cell"><div class="k">${esc((tpl.reference2Label || "REFERENCE").toUpperCase())}</div><div class="v">${num(doc.reference2)}</div></div>`);
+    if (doc.reference2 && norm(doc.reference2) !== norm(doc.reference)) cells.push(`<div class="cell"><div class="k">${esc((tpl.reference2Label || "REFERENCE").toUpperCase())}</div><div class="v">${num(doc.reference2)}</div></div>`);
     cells.push(`<div class="cell"><div class="k">DATE</div><div class="v">${num(issue)}</div></div>`);
     blocks.push({ kind: "html", h: 17, keepWithNext: true, html: `<div class="meta-strip idm q" style="grid-template-columns:repeat(${cells.length},1fr)">${cells.join("")}</div>` });
     // scope of work · doc.scope → template coverIntro (filled) · doc.title as the bold sub-line
@@ -1648,8 +1655,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const parts = String(l.description || "").split(/\r?\n/);
       const headTxt = parts[0] || "";
       const rest = parts.slice(1).join("\n").trim();
-      const h = 6 + Math.max(9, textHeight(headTxt, 88, 5, 2.05)) + (rest ? textHeight(rest, 88, 4.4, 1.7) : 0) + (l.code ? 3 : 0);
-      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}</td><td class="n">${num(money(l.subtotal))}</td></tr>` };
+      const h = 6 + Math.max(9, textHeight(headTxt, 88, 5, 2.05)) + (rest ? textHeight(rest, 88, 4.4, 1.7) : 0) + (l.code && !identity ? 3 : 0);
+      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}</td><td class="n">${num(money(l.subtotal))}</td></tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
@@ -1798,7 +1805,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
     blocks.push(pageTitle(t("الاعتماد والتوقيع", "Approval & signature"), "APPROVAL & SIGNATURE"));
     const st = String(tpl.approvalText || "").trim() || t("باعتماد هذا العرض تصبح بنوده وأسعار الوحدة الواردة فيه مرجعًا للتنفيذ والمستخلصات، ولا يُعتد بأي تعديل شفهي عليها.", "On approval of this offer, its items and unit prices become the reference for execution and progress claims; no verbal amendment is recognised.");
     blocks.push({ kind: "html", h: 4 + textHeight(st, COLW, 5.8, 2.05), keepWithNext: true, html: `<p class="scope">${bdi(st)}</p>` });
-    const sum: Array<[string, string]> = [[t("رقم العرض", "Quotation no."), `<b>${num([doc.number, doc.reference2].filter(Boolean).join(" · "))}</b>`]];
+    const same = (a?: string | null, b?: string | null) => String(a || "").replace(/\s+/g, "").toUpperCase() === String(b || "").replace(/\s+/g, "").toUpperCase();
+    const sum: Array<[string, string]> = [[t("رقم العرض", "Quotation no."), `<b>${num([doc.number, same(doc.reference2, doc.reference) ? "" : doc.reference2].filter(Boolean).join(" · "))}</b>`]];
     if (doc.reference) sum.push([t("رقم الفرصة / المرجع", "Opportunity / reference"), `<b>${num(doc.reference)}</b>`]);
     if (doc.title) sum.push([t("المشروع", "Project"), `<b>${bdi(doc.title.split(/\r?\n/).filter(Boolean).join(" · "))}</b>`]);
     sum.push([orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), `<b>${num(`${money(doc.total)} ${cur}`)}</b>`]);
@@ -1806,7 +1814,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     blocks.push(kvTable(sum, "kv sum"));
     const sigImg = safeUrl(tpl.signatureUrl) || safeUrl(org.signatureUrl);
     const nameIsLatin = tpl.signatoryName ? !hasArabic(tpl.signatoryName) : false;
-    const issuerCol = `<div class="sc"><div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div><div class="srule"></div><div class="nm">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="role">${bdi(tpl.signatoryTitle)}</div>` : ""}<div class="co">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div>${stamp ? `<div class="stamp-under"><img src="${esc(stamp)}" alt=""></div>` : ""}</div>`;
+    const issuerCol = `<div class="sc"><div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div><div class="srule"></div><div class="nm">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="role">${bdi(tpl.signatoryTitle)}</div>` : ""}${tpl.signatoryTitleAr ? `<div class="co">${bdi(tpl.signatoryTitleAr)}</div>` : ""}<div class="co">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div>${stamp ? `<div class="stamp-under"><img src="${esc(stamp)}" alt=""></div>` : ""}</div>`;
     const clientCol = `<div class="sc"><div class="sarea"></div><div class="srule"></div><div class="nm">${t("عن الجهة المالكة", "For the owner")}</div><div class="role">Owner</div><div class="co">${bdi(clientName)}</div><div class="co">${t("الاسم والصفة · التوقيع والختم · التاريخ", "Name & title · signature & stamp · date")}</div></div>`;
     blocks.push({ kind: "html", h: 50 + (stamp ? 42 : 0), html: `<div class="sigcols">${clientCol}${issuerCol}</div>` });
     const an = String(tpl.approvalNote || "").trim() || t(`اعتماد العرض: يكفي الرد كتابيًا بالاعتماد على هذا العرض برقمه ${doc.number}، أو إعادته موقَّعًا ومختومًا${tpl.signatoryEmail || org.email ? ` إلى ${tpl.signatoryEmail || org.email}` : ""}${tpl.signatoryPhone || org.phone ? ` أو عبر واتساب ${tpl.signatoryPhone || org.phone}` : ""}.`, `Approval: a written reply approving this offer by its number ${doc.number} is sufficient, or return it signed and stamped${tpl.signatoryEmail || org.email ? ` to ${tpl.signatoryEmail || org.email}` : ""}${tpl.signatoryPhone || org.phone ? ` or via WhatsApp ${tpl.signatoryPhone || org.phone}` : ""}.`);
