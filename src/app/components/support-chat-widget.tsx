@@ -22,7 +22,17 @@ type Author = "you" | "agent" | "team";
 type Msg = { id: string; author: Author; body: string; createdAt?: string };
 
 const SESSION_KEY = "entix-support-session";
-const HIDDEN_PREFIXES = ["/login", "/register", "/forgot-password", "/reset-password", "/print", "/q/", "/portal"];
+/**
+ * Public marketing surface only. Signed-in users already have the in-app AI
+ * assistant and the help centre, and a floating button inside /app would also
+ * sit on top of every visual-regression snapshot. Anything under these prefixes
+ * never renders the widget.
+ */
+const HIDDEN_PREFIXES = [
+  "/app", "/admin", "/welcome", "/onboarding",
+  "/login", "/register", "/forgot-password", "/reset-password", "/invite", "/claim",
+  "/print", "/q/", "/b/", "/portal",
+];
 const POLL_MS = 12_000;
 
 function readSession(): string | null {
@@ -53,6 +63,7 @@ export function SupportChatWidget() {
   const sessionRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  const hidden = HIDDEN_PREFIXES.some((p) => path.startsWith(p));
 
   useEffect(() => {
     sessionRef.current = readSession();
@@ -60,6 +71,7 @@ export function SupportChatWidget() {
 
   // Boot payload: greeting + the live WhatsApp number, both owned by the API.
   useEffect(() => {
+    if (hidden) return;
     let alive = true;
     fetch(`${API_BASE_URL}/api/public/support/health?lang=${language}`)
       .then((r) => r.json())
@@ -70,7 +82,7 @@ export function SupportChatWidget() {
       })
       .catch(() => { /* widget still works — greeting falls back below */ });
     return () => { alive = false; };
-  }, [language]);
+  }, [language, hidden]);
 
   const poll = useCallback(async () => {
     const sid = sessionRef.current;
@@ -94,11 +106,11 @@ export function SupportChatWidget() {
   // Poll only while there is a thread: a human reply from /admin/support has to
   // reach the visitor without a refresh.
   useEffect(() => {
-    if (!sessionRef.current) return;
+    if (hidden || !sessionRef.current) return;
     void poll();
     const id = setInterval(poll, POLL_MS);
     return () => clearInterval(id);
-  }, [poll]);
+  }, [poll, hidden]);
 
   useEffect(() => {
     if (open) {
@@ -107,7 +119,7 @@ export function SupportChatWidget() {
     }
   }, [open, msgs.length]);
 
-  if (HIDDEN_PREFIXES.some((p) => path.startsWith(p))) return null;
+  if (hidden) return null;
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
