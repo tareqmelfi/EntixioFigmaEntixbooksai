@@ -143,6 +143,39 @@ export function normalizePages(raw: unknown): DocPage[] {
   return out;
 }
 
+// ─── document identity (2026-09-14 · «هوية المستند» · per-org quotes/invoices) ──────
+// Every token below is DATA saved with the template — chosen by the client in the designer,
+// never a UI token. When none of these fields is set the engine renders EXACTLY the
+// Ledger document of 2026-09-08 (regression-locked · see hasIdentity()).
+
+export interface DocTheme {
+  ink: string; navy: string; deep: string; steel: string; rule: string; chip: string; fill: string;
+  slate: string; serial: string; wash: string; line: string; muted: string; paper: string;
+  /** embedded face keys · see DOC_FONT_OPTIONS (no CDN fonts — ever) */
+  fontArabic?: DocFontArabic | null;
+  fontLatin?: DocFontLatin | null;
+  fontMono?: DocFontMono | null;
+}
+export type ThemePreset = "ledger" | "ink-white" | "custom";
+export type HeaderStyle = "bar" | "centered";
+export type PaymentPlanStyle = "table" | "stations";
+export interface ClosingFact { label: string; value: string }
+export type DocFontArabic = "noto" | "tajawal" | "ibm-plex-arabic";
+export type DocFontLatin = "plus-jakarta" | "ibm-plex";
+export type DocFontMono = "jetbrains";
+export const DOC_FONT_OPTIONS = {
+  arabic: [
+    { id: "noto", label: "Noto Sans Arabic" },
+    { id: "tajawal", label: "Tajawal" },
+    { id: "ibm-plex-arabic", label: "IBM Plex Sans Arabic" },
+  ] as Array<{ id: DocFontArabic; label: string }>,
+  latin: [
+    { id: "plus-jakarta", label: "Plus Jakarta Sans" },
+    { id: "ibm-plex", label: "IBM Plex Sans" },
+  ] as Array<{ id: DocFontLatin; label: string }>,
+  mono: [{ id: "jetbrains", label: "JetBrains Mono" }] as Array<{ id: DocFontMono; label: string }>,
+} as const;
+
 export interface TemplateSpec {
   kind?: string | null;
   coverStyle?: string | null;
@@ -173,6 +206,26 @@ export interface TemplateSpec {
   showLogo?: boolean | null;
   showTaxBreakdown?: boolean | null;
   showTerms?: boolean | null;
+  // ── identity (all optional · null = Ledger behaviour) ──
+  theme?: DocTheme | null;
+  themePreset?: ThemePreset | string | null;
+  headerStyle?: HeaderStyle | string | null;
+  /** Template-level marks · override the org's print logo when set */
+  logoUrl?: string | null;
+  logoLightUrl?: string | null;
+  watermarkUrl?: string | null;
+  coverImageUrl?: string | null;
+  closingImageUrl?: string | null;
+  bankLogoUrl?: string | null;
+  outOfScope?: string | null;
+  outOfScopeEn?: string | null;
+  paymentPlanStyle?: PaymentPlanStyle | string | null;
+  paymentPlanNote?: string | null;
+  showQr?: boolean | null;
+  hideProviderBranding?: boolean | null;
+  closingFacts?: ClosingFact[] | null;
+  /** default true (identity templates) · the tafqit strip under the totals */
+  amountInWords?: boolean | null;
 }
 
 export interface PartySpec {
@@ -267,6 +320,8 @@ export interface DocSpec {
   language?: DocLang | null;
   /** Free-form pages written in the platform · printed after the main flow, before the T&C page */
   pages?: DocPage[] | null;
+  /** Per-document «خارج نطاق هذا العرض» · overrides the template default */
+  outOfScope?: string | null;
 }
 
 export interface RenderInput {
@@ -324,6 +379,162 @@ function lift(hex: string, amount: number): string {
     .map((c) => Math.round(c + (255 - c) * Math.max(0, Math.min(1, amount))));
   return "#" + ch.map((c) => c.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
+
+// ─── identity helpers ───────────────────────────────────────────────────────
+
+/** Ledger = today's document exactly · ink-white = the EDG reference (2026-09-14). */
+export const DOC_THEME_PRESETS: Record<"ledger" | "ink-white", DocTheme> = {
+  ledger: {
+    ink: DOC_INK, navy: DEFAULT_COVER_COLOR, deep: DEFAULT_COVER_COLOR, steel: DEFAULT_BRAND_COLOR, rule: DOC_INK,
+    chip: LEGACY_ACCENT_COLOR, fill: DOC_PAPER_SOFT, slate: DOC_MUTED, serial: DOC_INK, wash: DOC_PAPER_SOFT,
+    line: DOC_RULE, muted: DOC_MUTED, paper: DOC_PAPER, fontArabic: "noto", fontLatin: "plus-jakarta", fontMono: "jetbrains",
+  },
+  "ink-white": {
+    ink: "#231F20", navy: "#1B2A41", deep: "#212B4F", steel: "#4675AD", rule: "#537197", chip: "#A7D1EA", fill: "#DCEFF6",
+    slate: "#333F4B", serial: "#ED1D24", wash: "#F7F9FB", line: "#DFE4EA", muted: "#5B6577", paper: "#FFFFFF",
+    fontArabic: "tajawal", fontLatin: "plus-jakarta", fontMono: "jetbrains",
+  },
+};
+const THEME_KEYS: Array<keyof DocTheme> = ["ink", "navy", "deep", "steel", "rule", "chip", "fill", "slate", "serial", "wash", "line", "muted", "paper"];
+
+/** Preset + saved overrides → a complete, validated token set (bad hex → preset value). */
+export function resolveTheme(tpl: TemplateSpec | null | undefined): DocTheme {
+  const t = tpl || {};
+  const preset = t.themePreset === "ink-white" ? "ink-white" : "ledger";
+  const base = DOC_THEME_PRESETS[preset];
+  const raw: any = t.theme && typeof t.theme === "object" ? t.theme : {};
+  const out: DocTheme = { ...base };
+  for (const k of THEME_KEYS) (out as any)[k] = safeColor(raw[k], base[k] as string);
+  out.fontArabic = DOC_FONT_OPTIONS.arabic.some((f) => f.id === raw.fontArabic) ? raw.fontArabic : base.fontArabic;
+  out.fontLatin = DOC_FONT_OPTIONS.latin.some((f) => f.id === raw.fontLatin) ? raw.fontLatin : base.fontLatin;
+  out.fontMono = "jetbrains";
+  // Ledger templates keep their two legacy colour fields as the accent / cover pair
+  if (preset === "ledger" && !t.theme) { out.steel = safeColor(t.brandColor, out.steel); out.navy = safeColor(t.coverColor, out.navy); out.deep = out.navy; }
+  return out;
+}
+
+/** True when the template carries its own identity (theme · preset ≠ ledger · any identity field). */
+export function hasIdentity(tpl: TemplateSpec | null | undefined): boolean {
+  if (!tpl) return false;
+  if (isThemed(tpl)) return true;
+  const set = (v: unknown) => v !== null && v !== undefined && v !== "" && v !== false;
+  return set(tpl.headerStyle && tpl.headerStyle !== "bar") || set(tpl.logoUrl) || set(tpl.logoLightUrl) || set(tpl.watermarkUrl)
+    || set(tpl.coverImageUrl) || set(tpl.closingImageUrl) || set(tpl.bankLogoUrl) || set(tpl.outOfScope) || set(tpl.outOfScopeEn)
+    || set(tpl.paymentPlanStyle && tpl.paymentPlanStyle !== "table") || set(tpl.paymentPlanNote) || tpl.showQr === true
+    || tpl.hideProviderBranding === true || (Array.isArray(tpl.closingFacts) && tpl.closingFacts.length > 0) || tpl.amountInWords === true;
+}
+/** Theme tokens drive the CSS only for a themed template (preset ink-white / custom, or a saved theme object). */
+function isThemed(tpl: TemplateSpec | null | undefined): boolean {
+  if (!tpl) return false;
+  if (tpl.themePreset === "ink-white" || tpl.themePreset === "custom") return true;
+  return !!(tpl.theme && typeof tpl.theme === "object" && tpl.themePreset !== "ledger");
+}
+
+// ─── tafqit · amount in words (SAR) ──────────────────────────────────────────
+const AR_ONES = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة", "عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+const AR_TENS = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+const AR_HUNDREDS = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+function arBelow1000(n: number): string {
+  const h = Math.floor(n / 100), r = n % 100;
+  const parts: string[] = [];
+  if (h) parts.push(AR_HUNDREDS[h]);
+  if (r) {
+    if (r < 20) parts.push(AR_ONES[r]);
+    else { const o = r % 10, tn = Math.floor(r / 10); parts.push(o ? `${AR_ONES[o]} و${AR_TENS[tn]}` : AR_TENS[tn]); }
+  }
+  return parts.join(" و");
+}
+/** n × unit with Arabic counted-noun agreement · (one, two, 3-10 plural, 11+ accusative singular) */
+function arScale(n: number, forms: { one: string; two: string; plural: string; acc: string }): string {
+  if (n === 1) return forms.one;
+  if (n === 2) return forms.two;
+  const r = n % 100;
+  if (n >= 3 && n <= 10) return `${arBelow1000(n)} ${forms.plural}`;
+  if (r === 0) return `${arNumber(n)} ${forms.one}`;
+  if (r === 1) return `${arNumber(n - 1)} و${forms.one}`;
+  if (r === 2) return `${arNumber(n - 2)} و${forms.two}`;
+  if (r >= 3 && r <= 10) return `${arNumber(n)} ${forms.plural}`;
+  return `${arNumber(n)} ${forms.acc}`;
+}
+function arNumber(n: number): string {
+  if (n === 0) return "صفر";
+  const parts: string[] = [];
+  const millions = Math.floor(n / 1_000_000), thousands = Math.floor((n % 1_000_000) / 1000), rest = n % 1000;
+  if (millions) parts.push(arScale(millions, { one: "مليون", two: "مليونان", plural: "ملايين", acc: "مليونًا" }));
+  if (thousands) parts.push(arScale(thousands, { one: "ألف", two: "ألفان", plural: "آلاف", acc: "ألفًا" }));
+  if (rest) parts.push(arBelow1000(rest));
+  return parts.join(" و");
+}
+const EN_ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const EN_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+function enNumber(n: number): string {
+  if (n === 0) return "zero";
+  const below1000 = (x: number): string => {
+    const h = Math.floor(x / 100), r = x % 100;
+    const p: string[] = [];
+    if (h) p.push(`${EN_ONES[h]} hundred`);
+    if (r) p.push(r < 20 ? EN_ONES[r] : `${EN_TENS[Math.floor(r / 10)]}${r % 10 ? "-" + EN_ONES[r % 10] : ""}`);
+    return p.join(" ");
+  };
+  const parts: string[] = [];
+  const m = Math.floor(n / 1_000_000), k = Math.floor((n % 1_000_000) / 1000), r = n % 1000;
+  if (m) parts.push(`${below1000(m)} million`);
+  if (k) parts.push(`${below1000(k)} thousand`);
+  if (r) parts.push(below1000(r));
+  return parts.join(" ");
+}
+/** «فقط ستة آلاف وسبعة وثلاثون ريالاً وخمسون هللة سعوديًا لا غير» · "Only … Saudi Riyals" */
+export function tafqitSar(amount: number, lang: DocLang): string {
+  const total = Math.round((Number.isFinite(amount) ? Math.abs(amount) : 0) * 100);
+  const riyals = Math.floor(total / 100), halalas = total % 100;
+  if (lang === "en") {
+    const r = `${enNumber(riyals)} Saudi Riyal${riyals === 1 ? "" : "s"}`;
+    const h = halalas ? ` and ${enNumber(halalas)} halala${halalas === 1 ? "" : "s"}` : "";
+    const words = r + h;
+    return `Only ${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+  }
+  const rr = riyals % 100;
+  // round hundreds / thousands / millions take the singular in construct («ألفا ريال» · «مائة ريال»)
+  const riyalWord = riyals === 0 ? "" : riyals === 1 ? "ريال واحد" : riyals === 2 ? "ريالان"
+    : rr === 0 ? `${arNumber(riyals).replace(/(ألفان|مليونان|مائتان)$/, (m) => m.slice(0, -1))} ريال`
+    : `${arNumber(riyals)} ${(riyals <= 10 || (rr >= 3 && rr <= 10)) ? "ريالات" : "ريالاً"}`;
+  const hr = halalas % 100;
+  const halalaWord = halalas === 0 ? "" : halalas === 1 ? "هللة واحدة" : halalas === 2 ? "هللتان"
+    : `${arNumber(halalas)} ${(hr >= 3 && hr <= 10) ? "هللات" : "هللة"}`;
+  const words = [riyalWord, halalaWord].filter(Boolean).join(" و") || "صفر ريال";
+  return `فقط ${words} سعوديًا لا غير`;
+}
+
+// ─── ZATCA phase-1 TLV QR (quotes carry it only when the template asks · showQr) ──
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function utf8Bytes(s: string): number[] {
+  const out: number[] = [];
+  for (const ch of s) {
+    const c = ch.codePointAt(0)!;
+    if (c < 0x80) out.push(c);
+    else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+    else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+  }
+  return out;
+}
+function base64(bytes: number[]): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i], b = bytes[i + 1], c = bytes[i + 2];
+    const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0);
+    out += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + (b === undefined ? "=" : B64[(n >> 6) & 63]) + (c === undefined ? "=" : B64[n & 63]);
+  }
+  return out;
+}
+export function zatcaTlvBase64(f: { sellerName: string; vatNumber: string; timestampIso: string; total: number; vat: number }): string {
+  const fields: Array<[number, string]> = [[1, f.sellerName], [2, f.vatNumber], [3, f.timestampIso], [4, (Number(f.total) || 0).toFixed(2)], [5, (Number(f.vat) || 0).toFixed(2)]];
+  const bytes: number[] = [];
+  for (const [tag, value] of fields) { const v = utf8Bytes(value); bytes.push(tag, v.length & 255, ...v); }
+  return base64(bytes);
+}
+/** "SA0380000000608010167519" → "SA03 8000 0000 6080 1016 7519" */
+const ibanGroups = (v: string): string => String(v || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
 
 const lines = (s: unknown): string[] => String(s ?? "").split(/\r?\n/).map((l) => l.replace(/^\s*(?:[-•·*]|\d+[.)])\s*/, "").trim()).filter(Boolean);
 
@@ -388,29 +599,188 @@ function paginate(blocks: Block[], capacity: number): string[] {
 
 // ─── css ────────────────────────────────────────────────────────────────────
 
-function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, embed: boolean): string {
+/** Extras for identity templates (scoped on .edoc.idn / .edoc.hs · appended after the Ledger rules). */
+function identityCss(idn: CssIdentity, lang: DocLang): string {
+  const T = idn.extras;
+  return `
+.edoc.idn{--navy:${T.navy};--deep:${T.deep};--steel:${T.steel};--rule2:${T.rule};--chip:${T.chip};--fill:${T.fill};--slate:${T.slate};--serial:${T.serial};--wash:${T.wash};--line:${T.line}}
+.edoc.idn .sheet{isolation:isolate}
+/* faint bottom-anchored watermark · interior pages only · never on the cover or closing sheet */
+.edoc.idn .wm{position:absolute;left:0;right:0;bottom:0;height:74%;display:flex;align-items:flex-end;justify-content:center;opacity:.05;transform:translateY(9%);pointer-events:none;z-index:-1}
+.edoc.idn .wm img{height:100%;width:auto;max-width:100%;object-fit:contain;display:block}
+/* centered header · no coloured bar · 3-line legal footer · page number top-end of the footer */
+.edoc.hs .sheet.light,.edoc.hs .sheet.dark{border-top:0}
+.edoc.hs .sheet{padding-bottom:27mm}
+.edoc.hs .hdr{justify-content:center}
+.edoc.hs .hdr-logo{height:14mm;max-width:110mm;justify-content:center}
+.edoc.hs .hdr-logo img{max-height:14mm;max-width:76mm;object-position:center center}
+.edoc.hs .ftr{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0;border-top:1px solid var(--slate);padding-top:2mm;font-family:var(--font-latin);font-size:7.4px;line-height:1.55;direction:ltr;position:absolute}
+.edoc.hs .ftr .fl{display:block;color:var(--slate);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.edoc.hs .ftr .fl bdi{font-family:var(--font-arabic)}
+.edoc.hs .ftr .fl.f1{color:var(--ink);font-weight:700}
+.edoc.hs .ftr .pn{position:absolute;top:1.5mm;right:0;font-family:var(--font-mono);font-size:7pt;color:var(--slate)}
+.edoc.hs .dark .ftr{border-top-color:rgba(255,255,255,.28)}
+.edoc.hs .dark .ftr .fl,.edoc.hs .dark .ftr .fl.f1,.edoc.hs .dark .ftr .pn{color:#fff}
+/* document number · the serial colour is used HERE and nowhere else */
+.edoc.idn .serial .v{color:var(--serial)}
+/* identity cover · full-bleed image or solid navy · white marks */
+.edoc.idn .sheet.dark{background:var(--navy)}
+.edoc.idn .sheet.cover-img{background-size:cover;background-position:center;background-repeat:no-repeat}
+.edoc.idn .sheet.cover-img::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),rgba(0,0,0,.58));z-index:-1}
+.edoc.idn .ic{display:flex;flex-direction:column;height:100%;padding:36mm 0 0}
+.edoc.idn .ic .eyebrow{font-family:var(--font-latin);font-size:9.6px;letter-spacing:.34em;color:var(--chip);text-transform:uppercase}
+.edoc.idn .ic .h1{font-size:29px;font-weight:800;line-height:1.35;margin:5mm 0 1.5mm;color:#fff;letter-spacing:0}
+.edoc.idn .ic .sub{font-size:19px;font-weight:400;color:rgba(255,255,255,.84);line-height:1.45}
+.edoc.idn .ic .crule{width:74px;height:2px;background:var(--chip);margin:7mm 0}
+.edoc.idn .ic .intro{font-size:11pt;line-height:1.9;max-width:150mm;color:rgba(255,255,255,.88)}
+.edoc.idn .ic .intro strong{color:#fff}
+.edoc.idn .ic .strip{margin-top:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;padding-top:6mm;border-top:1px solid rgba(255,255,255,.28);margin-bottom:4mm}
+.edoc.idn .ic .strip .k{font-family:var(--font-latin);font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--chip);margin-bottom:1.5mm}
+.edoc.idn .ic .strip .v{font-size:11pt;font-weight:700;color:#fff;line-height:1.4}
+.edoc.idn .ic .strip .s{font-size:8.5pt;color:rgba(255,255,255,.75);margin-top:1mm}
+/* quotation page · centered section title + English caption */
+.edoc.idn .st{text-align:center;margin:0 0 5mm}
+.edoc.idn .st .a{font-size:26px;font-weight:800;line-height:1.3;color:var(--ink)}
+.edoc.idn .st .e{font-family:var(--font-latin);font-size:10.4px;letter-spacing:.34em;text-transform:uppercase;color:var(--slate);margin-top:1mm}
+.edoc.idn .doc-head.two{grid-template-columns:1fr 1fr;border-bottom-color:var(--line)}
+.edoc.idn .meta-strip.idm{border-top:1.4px solid var(--ink);border-bottom:1.4px solid var(--ink);padding:2.5mm 0;gap:0}
+.edoc.idn .meta-strip.idm .tile{background:none;border-radius:0;padding:1mm 4mm;border-inline-end:1px solid var(--line)}
+.edoc.idn .meta-strip.idm .tile:last-child{border-inline-end:0}
+.edoc.idn .meta-strip.idm .k{color:var(--slate)}
+/* BOQ table · navy head · white text · hairline rows · mono numbers */
+.edoc.idn table.items th{background:var(--navy);color:#fff;border-bottom:0;padding:3mm 2.5mm;font-size:8.5pt}
+.edoc.idn table.items td{border-bottom:1px solid var(--line)}
+.edoc.idn table.items .code{color:var(--slate)}
+.edoc.idn table.items .sec td{background:var(--wash)}
+/* totals card · right-aligned · ~56% */
+.edoc.idn .totals-row{grid-template-columns:1fr 56%}
+.edoc.idn .totals{border-color:var(--line);border-radius:0}
+.edoc.idn .totals .r{border-bottom-color:var(--line)}
+.edoc.idn .totals .r.disc .lbl,.edoc.idn .totals .r.disc .amt{color:var(--steel)}
+.edoc.idn .totals .r.grand{background:var(--fill);color:var(--ink);border-top:1.6px solid var(--ink);font-weight:700}
+.edoc.idn .totals .r.grand .amt{font-size:15px;font-weight:700}
+.edoc.idn .totals .r.due{background:var(--wash)}
+.edoc.idn .tafqit{background:var(--fill);text-align:center;font-weight:700;color:var(--navy);font-size:9.5pt;padding:3mm 4mm;line-height:1.7;margin-top:3mm;break-inside:avoid}
+.edoc.idn .qr-side{max-width:80mm}
+.edoc.idn .qr-side .qr{width:104px;height:104px;border-color:var(--line);border-radius:0}
+.edoc.idn .qr-data{display:grid;grid-template-columns:auto 1fr;gap:.6mm 3mm;margin:0;font-size:7.5pt}
+.edoc.idn .qr-data dt{color:var(--muted)}
+.edoc.idn .qr-data dd{margin:0;color:var(--ink);font-weight:700;overflow-wrap:anywhere}
+/* note box · flag (unconfirmed / warning) · placeholder span */
+.edoc.idn .nb{border:1px solid var(--line);border-inline-start:3px solid var(--steel);background:var(--wash);padding:3mm 4mm;font-size:8.5pt;line-height:1.7;margin:0 0 4mm;break-inside:avoid;color:var(--ink)}
+.edoc.idn .nb .t{font-weight:700;margin-bottom:1mm}
+.edoc.idn .nb ul{margin:0;padding-inline-start:5mm;list-style:disc}
+.edoc.idn .nb li{padding-inline-start:0;margin:0 0 .8mm;font-size:8.5pt;line-height:1.65}
+.edoc.idn .nb li::before{display:none}
+.edoc.idn .note{background:var(--wash);border-color:var(--line)}
+.edoc.idn .note .i{border-color:var(--steel);color:var(--steel)}
+.edoc.idn .card{border-color:var(--line)}
+.edoc.idn .chip{border-color:var(--steel);color:var(--steel)}
+.edoc.idn .flag{border:1px solid #EED9D7;border-inline-start:3px solid #B4443A;background:#FDF6F5;color:#7A2E27;padding:3mm 4mm;font-size:8.5pt;line-height:1.7;margin:0 0 4mm;break-inside:avoid}
+.edoc.idn .ph{border-bottom:1px dashed #B08A2E;background:#FFF8DC;color:#7A5A00;padding:0 1mm}
+/* payment plan · stations */
+.edoc.idn .stations{display:flex;align-items:stretch;gap:3mm;margin:0 0 4mm;break-inside:avoid}
+.edoc.idn .stations .stn{flex:1;text-align:center;padding:3mm 2mm;min-width:0}
+.edoc.idn .stations .stn .no{font-family:var(--font-mono);font-size:58px;font-weight:700;line-height:1;color:var(--navy)}
+.edoc.idn .stations .stn .r{height:1px;background:var(--line);margin:2.5mm 8mm}
+.edoc.idn .stations .stn .pc{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--steel);line-height:1.1}
+.edoc.idn .stations .stn .lb{font-weight:700;font-size:9.5pt;margin-top:1.5mm;line-height:1.4}
+.edoc.idn .stations .stn .am{font-family:var(--font-mono);font-size:8pt;color:var(--muted);margin-top:1mm}
+.edoc.idn .stations .chev{display:flex;align-items:center;justify-content:center;flex:0 0 8mm}
+.edoc.idn .stations .chev svg{width:6mm;height:12mm;stroke:var(--steel);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transform:${lang === "ar" ? "scaleX(-1)" : "none"}}
+.edoc.idn .expl{background:var(--fill);padding:3mm 4mm;font-size:8.5pt;line-height:1.7;margin:0 0 4mm;break-inside:avoid}
+.edoc.idn .expl ol{margin:0;padding-inline-start:5mm}
+/* terms · two columns · bold term + muted description */
+.edoc.idn .terms2{column-count:2;column-gap:8mm;margin:0 0 3mm}
+.edoc.idn .terms2 .ti{break-inside:avoid;margin:0 0 2.5mm;font-size:8.5pt;line-height:1.65}
+.edoc.idn .terms2 .ti b{font-weight:700;display:block;color:var(--ink)}
+.edoc.idn .terms2 .ti span{color:var(--muted)}
+/* bank card · logo 62px · IBAN grouped mono */
+.edoc.idn .bankc{display:grid;grid-template-columns:62px 1fr;gap:5mm;align-items:start}
+.edoc.idn .bankc img{width:62px;height:62px;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
+.edoc.idn .bankc .bn{font-weight:700;font-size:11pt;line-height:1.3}
+.edoc.idn .bankc .be{font-family:var(--font-latin);font-size:8pt;color:var(--slate);text-transform:uppercase;letter-spacing:.12em;direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
+.edoc.idn .bankc .iban{font-family:var(--font-mono);font-size:15.5px;font-weight:700;direction:ltr;unicode-bidi:isolate;letter-spacing:.04em;margin:2mm 0 1mm;text-align:${lang === "ar" ? "right" : "left"}}
+.edoc.idn .bankc .sw{font-family:var(--font-mono);font-size:8pt;color:var(--muted);direction:ltr;unicode-bidi:isolate;text-align:${lang === "ar" ? "right" : "left"}}
+.edoc.idn .bankc table{width:100%;border-collapse:collapse;margin-top:2mm;font-size:8.5pt}
+.edoc.idn .bankc td{padding:1.2mm 0;border-bottom:1px solid var(--line);vertical-align:top}
+.edoc.idn .bankc td:first-child{color:var(--muted);width:34mm}
+/* signature block · 15mm reserved · rule with navy chip · bold name · uppercase role */
+.edoc.idn .sig .sarea{height:15mm;display:flex;align-items:flex-end}
+.edoc.idn .sig .sarea img{max-height:15mm;max-width:56mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
+.edoc.idn .sig .srule{height:1px;background:var(--line);position:relative;margin:2mm 0 2mm}
+.edoc.idn .sig .srule::before{content:"";position:absolute;inset-inline-start:0;top:-1px;width:10mm;height:3px;background:var(--navy)}
+.edoc.idn .sig .n.bold{font-size:11pt;font-weight:800}
+.edoc.idn .sig .o.role{text-transform:uppercase;letter-spacing:.14em;font-family:var(--font-latin);font-size:7.5pt;color:var(--slate)}
+.edoc.idn .sig .o.small{font-size:7.5pt}
+.edoc.idn .stamp-box img{transform:rotate(-8deg)}
+/* closing page · image or solid navy · white logo · THANK YOU · facts strip */
+.edoc.idn .sheet.closing{background:var(--navy);color:#fff;--ink:#fff;--muted:rgba(255,255,255,.7);--rule:rgba(255,255,255,.2);border-top:0}
+.edoc.idn .sheet.closing .hdr{display:none}
+.edoc.idn .cl{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;padding:0 10mm}
+.edoc.idn .cl .mark{margin-bottom:10mm;display:flex;justify-content:center}
+.edoc.idn .cl .mark img{height:70px;max-width:120mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
+.edoc.idn .cl .mark .hdr-word{color:#fff;font-size:30pt}
+.edoc.idn .cl .eyebrow{font-family:var(--font-latin);font-size:9.6px;letter-spacing:.34em;color:var(--chip)}
+.edoc.idn .cl .h1{font-size:26px;font-weight:800;margin:4mm 0 4mm;color:#fff;line-height:1.4}
+.edoc.idn .cl .lead{color:rgba(255,255,255,.8);max-width:130mm;margin:0}
+.edoc.idn .cl .facts{display:flex;flex-wrap:wrap;justify-content:center;gap:6mm 12mm;margin-top:10mm;padding-top:6mm;border-top:1px solid rgba(255,255,255,.28);max-width:160mm}
+.edoc.idn .cl .facts .k{font-size:7.5pt;letter-spacing:.2em;text-transform:uppercase;color:var(--chip);font-family:var(--font-latin)}
+.edoc.idn .cl .facts .v{font-size:11pt;font-weight:700;color:#fff;margin-top:1mm}
+`;
+}
+
+/** Identity inputs for the stylesheet · null = the Ledger sheet of 2026-09-08, byte for byte. */
+interface CssIdentity {
+  /** resolved tokens when the template is themed · null keeps the Ledger palette */
+  theme: DocTheme | null;
+  /** any identity field set → the extras block (note boxes · stations · cover · closing …) is emitted */
+  extras: DocTheme;
+  /** centered header · no top bar · 3-line legal footer */
+  hs: boolean;
+  /** hideProviderBranding → the embedded faces are named without the provider */
+  fam: string;
+}
+
+function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, embed: boolean, idn: CssIdentity | null = null): string {
   const fb = fontBase.replace(/\/$/, "");
-  const arabic = "'Entix Doc Arabic','Noto Sans Arabic','IBM Plex Sans Arabic',system-ui,sans-serif";
+  const F = idn?.fam || "Entix Doc";
+  const th = idn?.theme || null;
+  const ink = th ? th.ink : DOC_INK, muted = th ? th.muted : DOC_MUTED, soft = th ? th.fill : DOC_PAPER_SOFT, rule = th ? th.line : DOC_RULE, paper = th ? th.paper : DOC_PAPER;
+  const faceAr = th?.fontArabic === "tajawal" ? `'${F} Tajawal','Tajawal',` : th?.fontArabic === "ibm-plex-arabic" ? `'${F} Plex Arabic','IBM Plex Sans Arabic',` : "";
+  const faceLat = th?.fontLatin === "ibm-plex" ? `'${F} Plex','IBM Plex Sans',` : "";
+  const arabic = `${faceAr}'${F} Arabic','Noto Sans Arabic','IBM Plex Sans Arabic',system-ui,sans-serif`;
   // FONT LAW (CEO 2026-09-13): Arabic glyphs always render in the document's Arabic
   // face, whatever the document language. Plus Jakarta Sans has no Arabic block, so an
   // English document must fall through to 'Entix Doc Arabic' (Noto Sans Arabic) instead
   // of the OS Arabic face — otherwise Arabic names/notes change shape between AR and EN.
-  const latin = "'Entix Doc Latin','Plus Jakarta Sans','Entix Doc Arabic','Noto Sans Arabic','IBM Plex Sans Arabic','IBM Plex Sans',system-ui,sans-serif";
-  const mono = "'Entix Doc Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace";
+  const latin = `${faceLat}'${F} Latin','Plus Jakarta Sans',${faceAr}'${F} Arabic','Noto Sans Arabic','IBM Plex Sans Arabic','IBM Plex Sans',system-ui,sans-serif`;
+  const mono = `'${F} Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace`;
   const body = lang === "ar" ? arabic : latin;
+  // Optional embedded faces (self-hosted woff2 in public/fonts · never a CDN). Emitted only when
+  // the theme selects them, so a Ledger document's stylesheet is unchanged.
+  const AR_RANGE = "unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF";
+  const extraFaces = (th?.fontArabic === "tajawal" ? [400, 500, 700].map((w) => `
+@font-face{font-family:'${F} Tajawal';src:url('${fb}/Tajawal-${w}-arabic.woff2') format('woff2');font-weight:${w === 700 ? "600 800" : w};font-style:normal;font-display:block;${AR_RANGE}}
+@font-face{font-family:'${F} Tajawal';src:url('${fb}/Tajawal-${w}-latin.woff2') format('woff2');font-weight:${w === 700 ? "600 800" : w};font-style:normal;font-display:block}`).join("") : "")
+    + (th?.fontArabic === "ibm-plex-arabic" ? [400, 500, 600, 700].map((w) => `
+@font-face{font-family:'${F} Plex Arabic';src:url('${fb}/IBMPlexSansArabic-${w}-arabic.woff2') format('woff2');font-weight:${w === 700 ? "700 800" : w};font-style:normal;font-display:block;${AR_RANGE}}
+@font-face{font-family:'${F} Plex Arabic';src:url('${fb}/IBMPlexSansArabic-${w}-latin.woff2') format('woff2');font-weight:${w === 700 ? "700 800" : w};font-style:normal;font-display:block}`).join("") : "")
+    + (th?.fontLatin === "ibm-plex" ? [400, 500, 600].map((w) => `
+@font-face{font-family:'${F} Plex';src:url('${fb}/IBMPlexSans-${w}-latin.woff2') format('woff2');font-weight:${w === 600 ? "600 800" : w};font-style:normal;font-display:block}`).join("") : "");
   return `
-@font-face{font-family:'Entix Doc Arabic';src:url('${fb}/NotoSansArabic-400-arabic.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
-@font-face{font-family:'Entix Doc Arabic';src:url('${fb}/NotoSansArabic-700-arabic.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
-@font-face{font-family:'Entix Doc Arabic';src:url('${fb}/NotoSansArabic-400-latin.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
-@font-face{font-family:'Entix Doc Arabic';src:url('${fb}/NotoSansArabic-700-latin.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block}
-@font-face{font-family:'Entix Doc Latin';src:url('${fb}/PlusJakartaSans-400-latin.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
-@font-face{font-family:'Entix Doc Latin';src:url('${fb}/PlusJakartaSans-700-latin.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block}
-@font-face{font-family:'Entix Doc Mono';src:url('${fb}/JetBrainsMono-400-latin.woff2') format('woff2');font-weight:400 700;font-style:normal;font-display:block}
+@font-face{font-family:'${F} Arabic';src:url('${fb}/NotoSansArabic-400-arabic.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'${F} Arabic';src:url('${fb}/NotoSansArabic-700-arabic.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'${F} Arabic';src:url('${fb}/NotoSansArabic-400-latin.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:'${F} Arabic';src:url('${fb}/NotoSansArabic-700-latin.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block}
+@font-face{font-family:'${F} Latin';src:url('${fb}/PlusJakartaSans-400-latin.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:'${F} Latin';src:url('${fb}/PlusJakartaSans-700-latin.woff2') format('woff2');font-weight:600 800;font-style:normal;font-display:block}
+@font-face{font-family:'${F} Mono';src:url('${fb}/JetBrainsMono-400-latin.woff2') format('woff2');font-weight:400 700;font-style:normal;font-display:block}${extraFaces}
 /* Pen-style signatory signature (CEO 2026-09-08) · TeX Gyre Chorus, self-hosted woff2 ·
    GUST Font License (see public/fonts/GUST-FONT-LICENSE-SignatureScript.txt) · no network
    fetch at print time. Latin names only — Arabic names fall back to the Arabic face. */
-@font-face{font-family:'Entix Doc Signature';src:url('${fb}/SignatureScript-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
-.edoc{--brand:${brand};--brand-lift:${lift(brand, 0.42)};--dark:${dark};--ink:${DOC_INK};--muted:${DOC_MUTED};--soft:${DOC_PAPER_SOFT};--rule:${DOC_RULE};--paper:${DOC_PAPER};
+@font-face{font-family:'${F} Signature';src:url('${fb}/SignatureScript-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+.edoc{--brand:${brand};--brand-lift:${lift(brand, 0.42)};--dark:${dark};--ink:${ink};--muted:${muted};--soft:${soft};--rule:${rule};--paper:${paper};
   --font-arabic:${arabic};--font-latin:${latin};--font-mono:${mono};
   font-family:${body};color:var(--ink);font-size:10.5pt;line-height:1.6;-webkit-font-smoothing:antialiased;
   ${embed ? "" : "background:#E9ECF1;padding:16px 0 32px;min-height:100vh;"}}
@@ -554,7 +924,7 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .sig .n{font-size:13pt;font-weight:800}
 /* pen-style rendering of the signatory's own name (CEO 2026-09-08) · Latin names only —
    an Arabic name has no matching script glyphs in this face and keeps the bold sans. */
-.edoc .sig .n.pen{font-family:'Entix Doc Signature',var(--font-latin);font-weight:400;font-style:normal;font-size:22pt;line-height:1.1;letter-spacing:.01em;color:var(--ink);direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
+.edoc .sig .n.pen{font-family:'${F} Signature',var(--font-latin);font-weight:400;font-style:normal;font-size:22pt;line-height:1.1;letter-spacing:.01em;color:var(--ink);direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
 .edoc .sig .n.img{margin:0 0 1mm}
 .edoc .sig .n.img img{max-height:16mm;max-width:56mm;object-fit:contain;display:block;background:none;border:0;padding:0;border-radius:0}
 .edoc .sig .c{font-family:var(--font-mono);font-size:8pt;color:var(--muted);direction:ltr;text-align:${lang === "ar" ? "right" : "left"};margin-top:1mm}
@@ -583,7 +953,7 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .pg-fig figcaption{font-size:8pt;color:var(--muted);margin-top:1.5mm}
 .edoc .actions{position:fixed;top:12px;${lang === "ar" ? "left" : "right"}:12px;z-index:50;display:flex;gap:8px}
 .edoc .actions button{padding:8px 16px;border-radius:8px;border:1px solid #CDD3DC;background:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#111827}
-.edoc .actions button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.edoc .actions button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}${idn ? identityCss(idn, lang) : ""}
 @media print{
   @page{size:A4;margin:0}
   html,body{margin:0!important;padding:0!important;background:#fff!important;width:auto!important;max-width:100%!important}
@@ -608,8 +978,20 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const org = input.org;
   const contact = input.contact || null;
   const isQuote = doc.kind === "QUOTE";
-  const brand = safeColor(tpl.brandColor, DEFAULT_BRAND_COLOR);
-  const dark = safeColor(tpl.coverColor, DEFAULT_COVER_COLOR);
+  // ── identity (2026-09-14) · themed = tokens drive the palette · identity = any identity
+  // field at all (extras stylesheet + boxes). Neither → the Ledger sheet, byte for byte.
+  const themed = isThemed(tpl);
+  const identity = hasIdentity(tpl);
+  const theme = resolveTheme(tpl);
+  const brand = themed ? theme.steel : safeColor(tpl.brandColor, DEFAULT_BRAND_COLOR);
+  const dark = themed ? theme.navy : safeColor(tpl.coverColor, DEFAULT_COVER_COLOR);
+  const hs = identity && tpl.headerStyle === "centered";
+  const hideBrand = identity && tpl.hideProviderBranding === true;
+  const coverImage = identity ? safeUrl(tpl.coverImageUrl) : "";
+  const closingImage = identity ? safeUrl(tpl.closingImageUrl) : "";
+  const watermark = identity ? safeUrl(tpl.watermarkUrl) : "";
+  const showWords = identity && tpl.amountInWords !== false;
+  const stations = identity && tpl.paymentPlanStyle === "stations";
   let coverStyle: CoverStyle = tpl.coverStyle === "LIGHT" ? "LIGHT" : tpl.coverStyle === "NONE" ? "NONE" : "DARK";
   const sections = normalizeSections(tpl.sections);
   const on = (id: SectionId) => sections.find((s) => s.id === id)?.enabled !== false;
@@ -653,9 +1035,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // sheet only the reverse (light) variant may be drawn; a company that has no reverse
   // variant gets a LIGHT cover instead, so the mark always sits on its own ground.
   const logoOn = tpl.showLogo !== false;
-  const logoPaper = logoOn ? safeUrl(org.logoUrl) : "";           // dark mark · light ground
-  const logoReverse = logoOn ? safeUrl(org.logoLightUrl) : "";    // light mark · dark ground
-  if (coverStyle === "DARK" && logoPaper && !logoReverse) coverStyle = "LIGHT";
+  const logoPaper = logoOn ? (safeUrl(tpl.logoUrl) || safeUrl(org.logoUrl)) : "";           // dark mark · light ground
+  const logoReverse = logoOn ? (safeUrl(tpl.logoLightUrl) || safeUrl(org.logoLightUrl)) : "";    // light mark · dark ground
+  if (coverStyle === "DARK" && logoPaper && !logoReverse && !coverImage) coverStyle = "LIGHT";
   const stamp = safeUrl(tpl.stampUrl) || safeUrl(org.stampUrl);
   const orgName = ar ? org.name : (org.nameEn || org.legalName || org.name);
   const orgAlt = ar ? (org.legalName && org.legalName !== org.name ? org.legalName : org.nameEn) : (org.name !== orgName ? org.name : "");
@@ -674,7 +1056,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const discount = Math.max(doc.discountTotal || 0, listPrice - doc.subtotal, 0);
   const taxable = doc.subtotal;
 
-  const CAP = 245; // usable mm per inner sheet (297 − 32 top − 20 bottom)
+  // usable mm per inner sheet (297 − 32 top − 20 bottom) · the 3-line legal footer of the
+  // centered header style needs a 27mm bottom band, so the flow capacity drops with it —
+  // content never enters the footer band.
+  const CAP = hs ? 238 : 245;
 
   // ── running header / footer ──
   // The mark is either the uploaded logo (drawn bare) or the company WORDMARK — the
@@ -704,17 +1089,27 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const src = onDark ? logoReverse : logoPaper;
     return src ? `<img src="${esc(src)}" alt="${esc(orgName)}">` : wordmark();
   };
-  const header = (onDark = false) => `<div class="hdr">
+  const header = (onDark = false) => hs ? `<div class="hdr"><div class="hdr-logo">${markFor(onDark)}</div></div>` : `<div class="hdr">
   <div class="hdr-logo">${markFor(onDark)}</div>
   <div class="hdr-meta"><div class="l1">${esc(docType)} · ${esc(classification)}</div><div class="l2">${esc(issue)} · ${esc(fileId)}</div></div>
 </div>`;
-  const footer = (n: number, total: number, cover = false) => `<div class="ftr">
+  // Centered style · fixed 3-line legal footer: 1 legal name + registrations (ink) · 2 address ·
+  // 3 channels (slate). Page number top-end of the footer · none on the cover / closing sheet.
+  const legalLines = (): string[] => {
+    const l1 = tpl.footerText ? esc(tpl.footerText) : [bdi(org.legalName || org.name), org.crNumber ? `${t("س.ت", "CR")} ${esc(org.crNumber)}` : "", org.vatNumber ? `${regLabel(org)} ${esc(org.vatNumber)}` : ""].filter(Boolean).join(" · ");
+    const l2 = [org.address, org.city && !(org.address || "").includes(org.city) ? org.city : ""].filter(Boolean).map(bdi).join(" · ");
+    const l3 = [org.phone, org.email, org.website].filter(Boolean).map(esc).join(" · ");
+    return [l1, l2, l3];
+  };
+  const footer = (n: number, total: number, cover = false) => hs
+    ? (cover ? "" : `<div class="ftr"><span class="pn">${n} / ${total}</span>${legalLines().map((l, i) => l ? `<span class="fl${i === 0 ? " f1" : ""}">${l}</span>` : "").join("")}</div>`)
+    : `<div class="ftr">
   <span class="f-left">${footerLeft}</span>
   <span class="f-mid">${cover ? `${esc(issue)} · ${esc(fileId)}` : `${n} / ${total}`}</span>
   <span class="f-right">${esc(docType)} · ${esc(classification)}</span>
 </div>`;
 
-  const sheets: Array<{ cls: string; body: string; cover?: boolean }> = [];
+  const sheets: Array<{ cls: string; body: string; cover?: boolean; style?: string; closing?: boolean }> = [];
 
   // ── cover ──
   if (on("cover") && coverStyle !== "NONE") {
@@ -743,6 +1138,24 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const titleHtml = titleParts.length > 1
       ? `${esc(titleParts[0])}<br><span class="accent">${esc(titleParts.slice(1).join(" "))}</span>`
       : esc(title);
+    if (themed || coverImage) {
+      // identity cover · full-bleed image (or solid navy) · white mark · eyebrow QUOTATION · number ·
+      // H1 + sub-line · chip rule · intro · bottom strip Client / Issuer / Date + validity
+      const strip = `<div class="strip">
+    <div><div class="k">${t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.code ? esc(contact.code) : "", contact?.city ? bdi(contact.city) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div><div class="k">${isQuote ? t("مقدِّم العرض", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.crNumber ? `${t("س.ت", "CR")} ${esc(org.crNumber)}` : "", org.city ? bdi(org.city) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div><div class="k">${t("التاريخ", "Date")}</div><div class="v">${num(issue)}</div><div class="s">${end ? `${esc(endLabel)} ${num(end)}` : "&nbsp;"}</div></div>
+  </div>`;
+      const body = `<div class="ic">
+  <div class="eyebrow">${docEyebrow} · ${esc(doc.number)}</div>
+  <div class="h1">${esc(titleParts[0] || title)}</div>
+  ${titleParts.length > 1 ? `<div class="sub">${esc(titleParts.slice(1).join(" "))}</div>` : ""}
+  <div class="crule"></div>
+  <div class="intro">${fill(intro)}</div>
+  ${strip}
+</div>`;
+      sheets.push({ cls: coverImage ? "dark cover-img" : "dark", body, cover: true, style: coverImage ? `background-image:url('${esc(coverImage)}')` : undefined });
+    } else {
     const body = `<div class="cover-body">
   <div class="eyebrow">${docEyebrow} · ${esc(issue)}</div>
   <div class="cover-title">${titleHtml}</div>
@@ -764,6 +1177,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   </div>
 </div>`;
     sheets.push({ cls: coverStyle === "DARK" ? "dark" : "light", body, cover: true });
+    }
   }
 
   // ── inner flow ──
@@ -782,7 +1196,18 @@ export function renderDocument(input: RenderInput): RenderOutput {
     return `<div class="party"><div class="k">${esc(label)}</div><div class="n">${bdi(name)}</div>${alt ? `<div class="n2">${esc(alt)}</div>` : ""}<div class="d">${d.join("<br>")}</div></div>`;
   };
 
-  const headerBlock = (): Block => ({
+  const headerBlock = (): Block => themed ? ({
+    kind: "html", h: 84, html: `<div class="st"><div class="a">${esc(docType)}</div><div class="e">${docEyebrow}</div></div>
+<div class="doc-head two">
+  ${partyHtml(isQuote ? t("المورد · الجهة المُقدِّمة", "Supplier · issued by") : t("المورد · الجهة المُصدِرة", "Supplier · issued by"), orgName, orgAlt, org, true)}
+  ${partyHtml(t("العميل", "Client"), clientName, clientAlt, contact, false)}
+</div>
+<div class="meta-strip idm">
+  <div class="tile serial"><div class="k">${isQuote ? t("رقم العرض", "Quote no.") : t("رقم الفاتورة", "Invoice no.")}</div><div class="v">${num(doc.number)}</div></div>
+  <div class="tile"><div class="k">${t("تاريخ الإصدار", "Issue date")}</div><div class="v">${num(issue)}</div></div>
+  <div class="tile"><div class="k">${esc(endLabel)}</div><div class="v">${num(end || "—")}</div></div>
+  <div class="tile"><div class="k">${doc.reference ? t("المرجع", "Reference") : t("العملة", "Currency")}</div><div class="v">${doc.reference ? num(doc.reference) : num(cur)}</div></div>
+</div>` }) : ({
     kind: "html", h: 76, html: `<div class="doc-head">
   <div><div class="eyebrow">${docEyebrow}</div><div class="title">${esc(docType)}</div></div>
   ${partyHtml(isQuote ? t("المورد · الجهة المُقدِّمة", "Supplier · issued by") : t("المورد · الجهة المُصدِرة", "Supplier · issued by"), orgName, orgAlt, org, true)}
@@ -801,8 +1226,12 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const itemsBlock = (): Block => {
     const span = hasPics ? 6 : 5;
-    const cols = `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:30mm"><col><col style="width:16mm"><col style="width:26mm"><col style="width:28mm"></colgroup>`;
-    const head = `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("الرمز", "Code")}</th><th>${t("البند", "Item")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("السعر", "Price")} (${esc(cur)})</th><th class="n">${t("المبلغ", "Amount")} (${esc(cur)})</th></tr></thead>`;
+    const cols = themed
+      ? `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:22mm"><col><col style="width:16mm"><col style="width:28mm"><col style="width:30mm"></colgroup>`
+      : `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:30mm"><col><col style="width:16mm"><col style="width:26mm"><col style="width:28mm"></colgroup>`;
+    const head = themed
+      ? `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("البند", "Item")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")} (${esc(cur)})</th><th class="n">${t("السعر الإجمالي", "Total")} (${esc(cur)})</th></tr></thead>`
+      : `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("الرمز", "Code")}</th><th>${t("البند", "Item")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("السعر", "Price")} (${esc(cur)})</th><th class="n">${t("المبلغ", "Amount")} (${esc(cur)})</th></tr></thead>`;
     const rows: Array<{ h: number; html: string }> = [];
     let lastSec: string | null = null;
     const multi = new Set(included.map((l) => l.sectionLabel || "")).size > 1;
@@ -832,6 +1261,15 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const totalsBlock = (): Block => {
     const rows: string[] = [];
+    if (themed) {
+      // subtotal → [discount] → [net] → VAT → grand (the EDG order)
+      rows.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${cur} ${money(discount > 0.005 ? listPrice : taxable)}</span></div>`);
+      if (discount > 0.005) {
+        rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${cur} ${money(discount)}</span></div>`);
+        rows.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
+      }
+      if (orgTaxRegistered && tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+    } else {
     if (discount > 0.005) {
       rows.push(`<div class="r"><span class="lbl">${isQuote ? t("سعر القائمة", "List price") : t("الإجمالي قبل الخصم", "Total before discount")}</span><span class="amt">${cur} ${money(listPrice)}</span></div>`);
       rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${cur} ${money(discount)}</span></div>`);
@@ -839,6 +1277,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (orgTaxRegistered) {
       rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
       if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+    }
     }
     rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("إجمالي الفاتورة", "Invoice total")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
     if (!isQuote && paid > 0) {
@@ -850,24 +1289,35 @@ export function renderDocument(input: RenderInput): RenderOutput {
     // QR on a tax invoice → the document number as plain text. The payment-link
     // QR (when a pay link exists) is drawn once, in the "pay online" card below —
     // it is intentionally not repeated here to avoid printing the same QR twice.
-    const zatcaQr = !isQuote && orgTaxRegistered && doc.qrPayload;
+    // Quotes carry a TLV payload only when the template asks for it (showQr · identity) — the
+    // caller builds it with zatcaTlvBase64(); an invoice's ZATCA payload is untouched.
+    const zatcaQr = (!isQuote || identity) && orgTaxRegistered && doc.qrPayload;
     const qrText = zatcaQr ? doc.qrPayload! : (doc.number || "");
     const qr = qrText ? qrSvg(qrText) : "";
     const qrCaption = zatcaQr
-      ? t("رمز الفاتورة الضريبية — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Tax invoice QR — seller · VAT no. · date · total · tax.")
+      ? (isQuote ? t("رمز التحقق — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Verification QR — seller · VAT no. · date · total · tax.") : t("رمز الفاتورة الضريبية — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Tax invoice QR — seller · VAT no. · date · total · tax."))
       : t("رمز التحقق من رقم المستند.", "Document verification code.");
+    const qrData = zatcaQr && identity ? `<dl class="qr-data"><dt>${t("البائع", "Seller")}</dt><dd>${bdi(org.legalName || org.name)}</dd><dt>${t("الرقم الضريبي", "VAT no.")}</dt><dd>${num(org.vatNumber || "")}</dd><dt>${t("الإجمالي شامل الضريبة", "Total incl. VAT")}</dt><dd>${num(`${cur} ${money(doc.total)}`)}</dd><dt>${t("مبلغ الضريبة", "VAT amount")}</dt><dd>${num(`${cur} ${money(doc.taxTotal)}`)}</dd></dl>` : "";
     const notesHtml = doc.notes ? `<div class="notes">${bdi(doc.notes)}</div>` : "";
-    const side = (qr ? `<div class="qr-side"><div class="qr">${qr}</div><div>${qrCaption}</div></div>` : "") + notesHtml;
-    const h = Math.max(10 + rows.length * 9.2 + 8, qr ? 40 : 0) + (doc.notes ? 14 : 0);
-    return { kind: "html", h, html: `<div class="totals-row"><div>${side}</div><div class="totals">${rows.join("")}</div></div>` };
+    const side = (qr ? `<div class="qr-side"><div class="qr">${qr}</div>${qrData || `<div>${qrCaption}</div>`}</div>` : "") + notesHtml;
+    // tafqit strip · «فقط … سعوديًا لا غير» under the totals (identity templates · amountInWords ≠ false)
+    const words = showWords && cur === "SAR" ? `<div class="tafqit">${esc(tafqitSar(doc.total, lang))}</div>` : "";
+    const h = Math.max(10 + rows.length * 9.2 + 8 + (words ? 14 : 0), qr ? (qrData ? 52 : 40) : 0) + (doc.notes ? 14 : 0);
+    return { kind: "html", h, html: `<div class="totals-row"><div>${side}</div>${words ? `<div><div class="totals">${rows.join("")}</div>${words}</div>` : `<div class="totals">${rows.join("")}</div>`}</div>` };
   };
 
   const termsBlock = (): Block | null => {
     const raw = ar ? (doc.termsConditions || tpl.terms || "") : (doc.termsConditions || tpl.termsEn || tpl.terms || "");
     const items = tpl.showTerms === false ? [] : lines(raw);
     const link = safeUrl(doc.paymentLinkUrl);
-    if (!items.length && !link) return null;
-    const termsCard = items.length ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div><ul>${items.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
+    // «خارج نطاق هذا العرض» · mandatory boxed block · document override → template default
+    const oosRaw = identity ? String(doc.outOfScope || (ar ? tpl.outOfScope : (tpl.outOfScopeEn || tpl.outOfScope)) || "") : "";
+    const oos = lines(oosRaw);
+    if (!items.length && !link && !oos.length) return null;
+    const oosBox = oos.length ? `<div class="nb oos"><div class="t">${isQuote ? t("خارج نطاق هذا العرض:", "Outside the scope of this offer:") : t("خارج نطاق هذا المستند:", "Outside the scope of this document:")}</div><ul>${oos.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
+    const termsCard = identity
+      ? ((items.length || oosBox) ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div>${items.length ? `<div class="terms2">${items.map((i) => { const c = clause(i); return `<div class="ti">${c.title ? `<b>${bdi(c.title)}</b>` : ""}<span>${bdi(c.text)}</span></div>`; }).join("")}</div>` : ""}${oosBox}</div>` : "")
+      : items.length ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div><ul>${items.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
     const payAmount = `${cur} ${money(isQuote ? doc.total : Math.max(due, 0))}`;
     const settled = !isQuote && due <= 0;
     const payNote = settled
@@ -876,7 +1326,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       ? t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — المبلغ شامل الضريبة، بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — tax included, no extra fees.`)
       : t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — no extra fees.`);
     const payCard = link ? `<div class="card"><div class="t">${settled ? t("الفاتورة الأصلية وإثبات السداد", "Original invoice and payment confirmation") : t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${payNote}</p><a href="${esc(link)}">${esc(link)}</a>${settled ? "" : `<div class="chips"><span class="chip">Apple Pay ✓</span><span class="chip">${t("بطاقة ائتمانية / مدى", "Credit card / mada")} ✓</span><span class="chip">${t("بوابة دفع مؤمَّنة", "Secure gateway")} 🔒</span></div>`}</div></div></div>` : "";
-    const h = 20 + Math.max(items.reduce((s, i) => s + textHeight(i, 70, 5.2, 1.7), 0), link ? 42 : 0);
+    const h = 20 + Math.max(items.reduce((s, i) => s + textHeight(i, 70, 5.2, 1.7), 0) / (identity && !payCard ? 2 : 1) + (oos.length ? 12 + oos.reduce((s, i) => s + textHeight(i, payCard ? 70 : 160, 5, 1.7), 0) : 0), link ? 42 : 0);
     const html = termsCard && payCard ? `<div class="cards">${termsCard}${payCard}</div>` : `<div class="cards" style="grid-template-columns:1fr">${termsCard || payCard}</div>`;
     return { kind: "html", h, html };
   };
@@ -905,9 +1355,20 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const method = p.billingMethod === "PROGRESS_CLAIM" ? t("مستخلص", "Progress claim") : "";
       return [pct, cond, method].filter(Boolean).join(" · ") || null;
     };
+    const noteHtml = identity && tpl.paymentPlanNote ? `<div class="flag">${bdi(tpl.paymentPlanNote)}</div>` : "";
+    if (stations && plan.length >= 2 && plan.length <= 4 && (doc.paymentPlan?.length || 0) > 0) {
+      // «المحطات» · 2-4 columns separated by a chevron · huge step number · % · label · SAR sub-line ·
+      // then a numbered explainer box (fill) and the optional flag line
+      const chevron = `<div class="chev"><svg viewBox="0 0 12 24" aria-hidden="true"><path d="M2 2l8 10-8 10"/></svg></div>`;
+      const pct = (p: PaymentPlanRow) => p.percent ? qty(p.percent) : (doc.total > 0 ? qty(Math.round((p.total / doc.total) * 1000) / 10) : "");
+      const cols = plan.map((p, i) => `<div class="stn"><div class="no">${String(i + 1).padStart(2, "0")}</div><div class="r"></div>${pct(p) ? `<div class="pc">${num(`${pct(p)}%`)}</div>` : ""}<div class="lb">${bdi(p.label)}</div><div class="am">${num(`${cur} ${money(p.total)}`)}</div></div>`).join(chevron);
+      const expl = `<div class="expl"><ol>${plan.map((p) => `<li><strong>${bdi(p.label)}</strong>${planNote(p) ? ` — ${bdi(planNote(p))}` : ""} · ${num(`${cur} ${money(p.total)}`)}</li>`).join("")}</ol></div>`;
+      const html = `<div class="h3">${t("خطة الدفع", "Payment plan")}</div><div class="stations">${cols}</div>${expl}${noteHtml}`;
+      return { kind: "html", h: 16 + 42 + 8 + plan.length * 6 + (noteHtml ? 12 : 0), html };
+    }
     const rows = plan.map((p, i) => `<tr><td class="idx">${String(i + 1).padStart(2, "0")}</td><td>${bdi(p.label)}${planNote(p) ? `<div class="rest" style="font-size:7.5pt;color:var(--muted)">${bdi(planNote(p))}</div>` : ""}</td>${hasNet ? `<td class="n">${num(money(p.net))}</td><td class="n">${num(money(p.tax))}</td>` : ""}<td class="n"><strong>${num(money(p.total))}</strong></td></tr>`).join("");
-    const html = `<div class="h3">${t("جدول السداد", "Payment schedule")}</div><table class="plan"><colgroup><col style="width:10mm"><col>${hasNet ? `<col style="width:30mm"><col style="width:26mm">` : ""}<col style="width:32mm"></colgroup><thead><tr><th>#</th><th>${t("الدفعة", "Instalment")}</th>${hasNet ? `<th class="n">${t("الخاضع", "Net")} (${esc(cur)})</th><th class="n">${t("الضريبة", "Tax")}</th>` : ""}<th class="n">${t("الإجمالي", "Total")}</th></tr></thead><tbody>${rows}${plan.length > 1 && (doc.paymentPlan?.length || 0) > 0 ? `<tr class="sum"><td></td><td>${t("الإجمالي", "Total")}</td>${hasNet ? `<td class="n">${num(money(sum.net))}</td><td class="n">${num(money(sum.tax))}</td>` : ""}<td class="n">${num(money(sum.total))}</td></tr>` : ""}</tbody></table>`;
-    return { kind: "html", h: 16 + (plan.length + 1) * 9, html };
+    const html = `<div class="h3">${t("جدول السداد", "Payment schedule")}</div><table class="plan"><colgroup><col style="width:10mm"><col>${hasNet ? `<col style="width:30mm"><col style="width:26mm">` : ""}<col style="width:32mm"></colgroup><thead><tr><th>#</th><th>${t("الدفعة", "Instalment")}</th>${hasNet ? `<th class="n">${t("الخاضع", "Net")} (${esc(cur)})</th><th class="n">${t("الضريبة", "Tax")}</th>` : ""}<th class="n">${t("الإجمالي", "Total")}</th></tr></thead><tbody>${rows}${plan.length > 1 && (doc.paymentPlan?.length || 0) > 0 ? `<tr class="sum"><td></td><td>${t("الإجمالي", "Total")}</td>${hasNet ? `<td class="n">${num(money(sum.net))}</td><td class="n">${num(money(sum.tax))}</td>` : ""}<td class="n">${num(money(sum.total))}</td></tr>` : ""}</tbody></table>${noteHtml}`;
+    return { kind: "html", h: 16 + (plan.length + 1) * 9 + (noteHtml ? 12 : 0), html };
   };
 
   const bankBlock = (): Block | null => {
@@ -921,6 +1382,17 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (b.swiftCode) dl.push(`<dt>SWIFT</dt><dd>${num(b.swiftCode)}</dd>`);
     if (b.routingNumber) dl.push(`<dt>Routing</dt><dd>${num(b.routingNumber)}</dd>`);
     if (b.currency) dl.push(`<dt>${t("العملة", "Currency")}</dt><dd>${num(b.currency)}</dd>`);
+    const bankLogo = identity ? safeUrl(tpl.bankLogoUrl) : "";
+    if (bankLogo) {
+      // identity bank card · logo 62px · bank name AR bold + EN caption · IBAN grouped by 4 · SWIFT + currency · beneficiary rows
+      const rows: string[] = [];
+      rows.push(`<tr><td>${t("اسم المستفيد", "Beneficiary")}</td><td>${bdi(b.holder || org.legalName || org.name)}</td></tr>`);
+      if (b.accountNumber) rows.push(`<tr><td>${t("رقم الحساب", "Account no.")}</td><td>${num(b.accountNumber)}</td></tr>`);
+      if (b.routingNumber) rows.push(`<tr><td>Routing</td><td>${num(b.routingNumber)}</td></tr>`);
+      const sub = [b.swiftCode ? `SWIFT ${b.swiftCode}` : "", b.currency ? String(b.currency) : ""].filter(Boolean).join(" · ");
+      const html = `<div class="cards" style="grid-template-columns:1fr"><div class="card bank"><div class="t">${t("التحويل البنكي", "Bank transfer")}</div><div class="bankc"><img src="${esc(bankLogo)}" alt=""><div>${b.bankName ? `<div class="bn">${bdi(b.bankName)}</div>` : ""}${b.name && b.name !== b.bankName ? `<div class="be">${esc(b.name)}</div>` : ""}${b.iban ? `<div class="iban">${esc(ibanGroups(b.iban))}</div>` : ""}${sub ? `<div class="sw">${esc(sub)}</div>` : ""}<table>${rows.join("")}</table></div></div></div></div>`;
+      return { kind: "html", h: 30 + rows.length * 6, html };
+    }
     return { kind: "html", h: 14 + dl.length * 5.5, html: `<div class="cards" style="grid-template-columns:1fr"><div class="card bank"><div class="t">${t("التحويل البنكي", "Bank transfer")}</div><dl>${dl.join("")}</dl></div></div>` };
   };
 
@@ -954,6 +1426,14 @@ export function renderDocument(input: RenderInput): RenderOutput {
       : tpl.signatoryName
         ? `<div class="n${nameIsLatin ? " pen" : ""}">${bdi(tpl.signatoryName)}</div>`
         : `<div class="n">—</div>`;
+    if (identity) {
+      // identity signature block · 15mm reserved area · rule with navy chip · bold name · uppercase role ·
+      // small print · stamp on the issuer side (rotated −8° · multiply · .86 · inside the card flow — never over text)
+      const area = `<div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="${esc(tpl.signatoryName || orgName)}">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div>`;
+      const sigI = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${area}<div class="srule"></div><div class="n bold">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="o role">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o small">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
+      const stI = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;
+      return { kind: "html", h: 52, html: `<div class="sig-cards">${ar ? stI + sigI : sigI + stI}</div>` };
+    }
     // frameless by instruction · no .card wrapper on either block
     const sig = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${nameHtml}${tpl.signatoryTitle ? `<div class="o">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
     const st = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;
@@ -1076,12 +1556,26 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   for (const page of paginate(blocks, CAP)) sheets.push({ cls: "light", body: page });
 
+  // ── closing page (identity · themed templates) · image or solid navy · white mark · THANK YOU · facts strip ──
+  if (themed) {
+    const facts = (Array.isArray(tpl.closingFacts) ? tpl.closingFacts : []).filter((f) => f && (f.label || f.value)).slice(0, 8);
+    const mark = logoReverse ? `<img src="${esc(logoReverse)}" alt="${esc(orgName)}">` : wordmark();
+    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div><p class="lead">${isQuote
+      ? t("يسعدنا الإجابة عن أي استفسار حول هذا العرض، ونتطلع إلى العمل معكم.", "We are glad to answer any question about this offer and look forward to working with you.")
+      : t("نشكركم على تعاملكم معنا، ونبقى في خدمتكم لأي استفسار حول هذه الفاتورة.", "Thank you for your business — we remain at your service for any question about this invoice.")}</p>${facts.length ? `<div class="facts">${facts.map((f) => `<div><div class="k">${bdi(f.label)}</div><div class="v">${bdi(f.value)}</div></div>`).join("")}</div>` : ""}</div>`;
+    sheets.push({ cls: closingImage ? "dark closing cover-img" : "dark closing", body, closing: true, style: closingImage ? `background-image:url('${esc(closingImage)}')` : undefined });
+  }
+
   // ── assemble ──
   const total = sheets.length;
-  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}">${header(s.cls === "dark")}${s.body}${footer(i + 1, total, !!s.cover)}</section>`).join("\n");
+  const wmHtml = watermark ? `<div class="wm"><img src="${esc(watermark)}" alt=""></div>` : "";
+  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${footer(i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
   const actions = input.actions ? `<div class="actions no-print"><button class="primary" type="button" onclick="window.print()">${t("طباعة / حفظ PDF", "Print / save PDF")}</button><button type="button" onclick="window.close()">${t("إغلاق", "Close")}</button></div>` : "";
-  const css = buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed);
-  const body = `<div class="edoc" dir="${ar ? "rtl" : "ltr"}" lang="${lang}" data-sheets="${total}">${actions}${bodyHtml}</div>`;
+  const rawCss = buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null);
+  // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
+  const css = hideBrand ? rawCss.replace(/\/\*[\s\S]*?\*\//g, "") : rawCss;
+  const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}`;
+  const body = `<div class="${rootCls}" dir="${ar ? "rtl" : "ltr"}" lang="${lang}" data-sheets="${total}">${actions}${bodyHtml}</div>`;
   const title = `${doc.number}${contact?.name ? " · " + contact.name : ""}`;
   const html = `<!DOCTYPE html>
 <html lang="${lang}" dir="${ar ? "rtl" : "ltr"}">
@@ -1187,7 +1681,8 @@ function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] 
   });
 }
 
-export function docFromQuote(q: any): DocSpec {
+/** `qrPayload` · a ZATCA TLV built by the caller with zatcaTlvBase64() when the template has showQr (quotes only). */
+export function docFromQuote(q: any, qrPayload?: string | null): DocSpec {
   return {
     kind: "QUOTE",
     number: q.quoteNumber || "",
@@ -1206,9 +1701,20 @@ export function docFromQuote(q: any): DocSpec {
     total: n(q.total),
     paymentLinkUrl: q.paymentLinkUrl || null,
     paymentPlan: planRows(q.paymentPlan, n(q.taxTotal), n(q.total)),
+    qrPayload: qrPayload || null,
     language: q.language === "en" || q.language === "ar" ? q.language : null,
     pages: normalizePages(q.pages),
+    outOfScope: q.outOfScope || null,
   };
+}
+
+/** Build the quote QR payload the way every web caller must: template showQr + a Saudi VAT-registered org. */
+export function quoteQrPayload(q: any, org: PartySpec | null | undefined, tpl: TemplateSpec | null | undefined): string | null {
+  if (!tpl?.showQr || !org?.vatNumber) return null;
+  const digits = String(org.vatNumber).replace(/\D/g, "");
+  if (String(org.country || "SA").toUpperCase() !== "SA" || digits.length !== 15) return null;
+  const day = isoDate(q?.issueDate) || new Date().toISOString().slice(0, 10);
+  return zatcaTlvBase64({ sellerName: org.legalName || org.name || "", vatNumber: digits, timestampIso: `${day}T00:00:00Z`, total: n(q?.total), vat: n(q?.taxTotal) });
 }
 
 export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
@@ -1255,8 +1761,10 @@ export function sampleInput(kind: DocKind, lang: DocLang, template: TemplateSpec
     address: ar ? "مبنى 6143 · طريق الملك عبدالعزيز بن عبدالرحمن سعود · حي العارض" : "Bldg 6143 · King Abdulaziz Road · Al Arid",
     city: ar ? "الرياض 13342" : "Riyadh 13342", phone: "+966 54 310 1464", email: "info@edg.sa",
   };
+  // hideProviderBranding · the sample lines name no provider either
+  const product = template?.hideProviderBranding ? (ar ? "النظام المحاسبي" : "Accounting suite") : "ENTIX Books";
   const lines: LineSpec[] = [
-    { code: "SP-ENT-ENTP-YR", description: ar ? "ENTIX Books · باقة المؤسسات · اشتراك سنوي · إعداد مقاولات\nالنظام المحاسبي الكامل بلا حدود على المستخدمين أو الفروع أو المشاريع · إعداد مخصص لنشاط المقاولات (مشاريع ومراكز تكلفة ودليل حسابات مقاولات) · ترحيل البيانات الحالية · قالب فواتير بهوية الشركة · دعم فني ذو أولوية طوال مدة الاشتراك · 12 شهرًا من تاريخ التفعيل" : "ENTIX Books · Enterprise plan · annual subscription · contracting setup\nFull cloud accounting with unlimited users, branches and projects · contracting-specific setup (projects, cost centres, chart of accounts) · data migration · branded invoice template · priority support for the whole term · 12 months from activation", quantity: 1, unitPrice: 2990, subtotal: 1200, taxRate: 0.15 },
+    { code: "SP-ENT-ENTP-YR", description: ar ? `${product} · باقة المؤسسات · اشتراك سنوي · إعداد مقاولات\nالنظام المحاسبي الكامل بلا حدود على المستخدمين أو الفروع أو المشاريع · إعداد مخصص لنشاط المقاولات (مشاريع ومراكز تكلفة ودليل حسابات مقاولات) · ترحيل البيانات الحالية · قالب فواتير بهوية الشركة · دعم فني ذو أولوية طوال مدة الاشتراك · 12 شهرًا من تاريخ التفعيل` : `${product} · Enterprise plan · annual subscription · contracting setup\nFull cloud accounting with unlimited users, branches and projects · contracting-specific setup (projects, cost centres, chart of accounts) · data migration · branded invoice template · priority support for the whole term · 12 months from activation`, quantity: 1, unitPrice: 2990, subtotal: 1200, taxRate: 0.15 },
     { code: "SP-SRV-ONB", description: ar ? "جلسة تعريفية وتسليم الحساب\nترحيل العملاء والموردين ودليل الحسابات · مراجعة الأرصدة الافتتاحية" : "Onboarding & hand-over session\nCustomers, suppliers and chart-of-accounts migration · opening balances review", quantity: 2, unitPrice: 750, subtotal: 1500, taxRate: 0.15 },
     { code: "SP-SRV-TRN", description: ar ? "تدريب فريق المحاسبة — 3 جلسات عن بُعد" : "Accounting team training — 3 remote sessions", quantity: 3, unitPrice: 400, subtotal: 1200, taxRate: 0.15 },
   ];
@@ -1282,5 +1790,7 @@ export function sampleInput(kind: DocKind, lang: DocLang, template: TemplateSpec
     paymentPlan: kind === "QUOTE" ? [1, 2, 3, 4, 5].map((y) => ({ label: y === 1 ? (ar ? "عند قبول العرض — تفعيل الحساب" : "On acceptance — account activation") : (ar ? `مقدّمًا قبل بداية سنة الاشتراك ${y}` : `In advance before subscription year ${y}`), net: 1200, tax: 180, total: 1380 })) : null,
     qrPayload: kind === "INVOICE" ? "AQ9TYW1wbGUgU2VsbGVyAg8zMTE2OTE3NzUyMDAwMDMDFDIwMjYtMDktMDdUMDA6MDA6MDBaBAc0NDg1LjAwBQY1ODUuMDA=" : null,
   };
+  // showQr (identity) · the designer preview carries the same TLV a real quote would
+  if (kind === "QUOTE" && template?.showQr) doc.qrPayload = quoteQrPayload(doc, orgSpec, template);
   return { lang, template, org: orgSpec, contact, doc, bank: bank || { bankName: ar ? "البنك الأهلي السعودي" : "Saudi National Bank", iban: "SA03 8000 0000 6080 1016 7519", swiftCode: "NCBKSAJE", currency: "SAR" }, embed: true };
 }

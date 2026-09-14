@@ -15,12 +15,13 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError, getOrgId, type Org, type BankAccount } from "../lib/api";
+import { api, ApiError, getOrgId, type Org, type BankAccount, type IdentityTier } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { TYPE_META, LAYOUT_META, type DocType, type Layout } from "../components/template-preview";
 import { BrandDocument } from "../components/brand-document";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { downscaleDataUrl } from "../lib/print-image";
+import { TemplateIdentitySection, EMPTY_IDENTITY, identityFromTemplate, identityPayload, type IdentityValues } from "../components/template-identity-section";
 import {
   sampleInput, partyFromOrg, normalizeSections, SECTION_META,
   DEFAULT_BRAND_COLOR, DEFAULT_COVER_COLOR, LEGACY_PRIMARY_COLOR, LEGACY_ACCENT_COLOR,
@@ -101,6 +102,11 @@ export function TemplateDetail() {
   const [previewKind, setPreviewKind] = useState<DocKind>(initialType === "INVOICE" ? "INVOICE" : "QUOTE");
   const [previewLang, setPreviewLang] = useState<DocLang>(isAr ? "ar" : "en");
   const [sheetCount, setSheetCount] = useState(0);
+  // ── document identity (2026-09-14) · separate state so the legacy form stays untouched ──
+  const [identity, setIdentity] = useState<IdentityValues>(EMPTY_IDENTITY);
+  const [identityTier, setIdentityTier] = useState<IdentityTier>("full");
+  const [planError, setPlanError] = useState<string | null>(null);
+  const patchIdentity = useCallback((patch: Partial<IdentityValues>) => setIdentity((v) => ({ ...v, ...patch })), []);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -110,7 +116,7 @@ export function TemplateDetail() {
     try {
       const tpl = await api.documentTemplates.get(id!);
       setForm({
-        name: tpl.name || "", nameEn: tpl.nameEn || "", type: tpl.type, layout: tpl.layout,
+        name: tpl.name || "", nameEn: tpl.nameEn || "", type: tpl.type as DocType, layout: tpl.layout as Layout,
         isDefault: tpl.isDefault, primaryColor: tpl.primaryColor, accentColor: tpl.accentColor,
         showLogo: tpl.showLogo, showTaxBreakdown: tpl.showTaxBreakdown, showTerms: tpl.showTerms,
         terms: tpl.terms || "", notes: tpl.notes || "",
@@ -123,6 +129,7 @@ export function TemplateDetail() {
         signatoryEmail: tpl.signatoryEmail || "", signatoryPhone: tpl.signatoryPhone || "",
         stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "", wordmarkAccent: (tpl as any).wordmarkAccent || "",
       });
+      setIdentity(identityFromTemplate(tpl));
       if (tpl.kind === "INVOICE") setPreviewKind("INVOICE");
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل تحميل القالب", "Failed to load template"));
@@ -135,6 +142,8 @@ export function TemplateDetail() {
     const orgId = getOrgId();
     if (orgId) api.orgs.get(orgId).then(setOrg).catch(() => setOrg(null));
     api.bankAccounts.list().then((r) => setBanks(r.items.filter((b) => b.isActive !== false))).catch(() => setBanks([]));
+    // plan gate for the premium identity controls · absent = not gated
+    api.documentTemplates.defaults().then((d) => { if (d?.identityTier === "basic") setIdentityTier("basic"); }).catch(() => {});
   }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -157,13 +166,20 @@ export function TemplateDetail() {
         stampUrl: form.stampUrl || null, footerText: form.footerText || null,
         classification: form.classification || null, classificationEn: form.classificationEn || null,
         wordmarkAccent: form.wordmarkAccent || null,
+        ...identityPayload(identity),
       };
+      setPlanError(null);
       const saved = isNew ? await api.documentTemplates.create(payload) : await api.documentTemplates.update(id!, payload);
       push("success", isNew ? t("تم إنشاء القالب", "Template created") : t("تم تحديث القالب", "Template updated"));
       navigate("/app/templates");
       return saved;
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
+      if (e instanceof ApiError && (e.code === "plan_required" || (e.status === 422 && /plan_required/.test(String(e.detail || e.message))))) {
+        setPlanError((isAr && e.messageAr) || e.message || t("هذه الميزة تتطلب باقة الأعمال", "This feature requires the Business plan"));
+        setError(t("لم يُحفظ القالب — بعض خيارات الهوية خارج باقتك", "Template not saved — some identity options are outside your plan"));
+      } else {
+        setError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
+      }
     } finally { setBusy(false); }
   };
 
@@ -196,8 +212,8 @@ export function TemplateDetail() {
   }, [banks, form.bankAccountId]);
   const previewInput = useMemo(() => {
     const party = org ? partyFromOrg(org) : null;
-    return sampleInput(previewKind, previewLang, form, party, bankSpec);
-  }, [form, org, bankSpec, previewKind, previewLang]);
+    return sampleInput(previewKind, previewLang, { ...form, ...identityPayload(identity) }, party, bankSpec);
+  }, [form, identity, org, bankSpec, previewKind, previewLang]);
   const onRendered = useCallback((out: RenderOutput) => setSheetCount(out.sheetCount), []);
 
   if (loading) {
@@ -307,6 +323,8 @@ export function TemplateDetail() {
             </div>
             <div className="space-y-2"><Label>{t("نص التذييل", "Footer text")}</Label><Input value={form.footerText} onChange={(e) => set("footerText", e.target.value)} placeholder={t("© السنة · اسم الشركة · المدينة (تلقائي)", "© year · company · city (automatic)")} /></div>
           </Section>
+
+          <TemplateIdentitySection value={identity} onChange={patchIdentity} tier={identityTier} planError={planError} push={push} />
 
           <Section title={t("الغلاف", "Cover")}>
             <div className="flex gap-1 flex-wrap rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("نمط الغلاف", "Cover style")}>

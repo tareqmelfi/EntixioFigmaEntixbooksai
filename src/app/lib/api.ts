@@ -10,7 +10,7 @@
  */
 import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
-import type { DocPage } from './document-render'
+import type { DocPage, DocTheme, ThemePreset, HeaderStyle, PaymentPlanStyle, ClosingFact } from './document-render'
 
 export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
 
@@ -1108,15 +1108,17 @@ export const api = {
   // Document templates (print layouts for invoices / quotes / vouchers / notes)
   documentTemplates: {
     list: (params?: { type?: string; kind?: 'QUOTE' | 'INVOICE' }) =>
-      request<{ items: any[]; total: number }>('/api/document-templates', { query: params }),
-    /** Org default template per document kind (BOTH-kind templates count for both) */
-    defaults: () => request<{ QUOTE: any | null; INVOICE: any | null }>('/api/document-templates/defaults'),
+      request<{ items: DocumentTemplate[]; total: number }>('/api/document-templates', { query: params }),
+    /** Org default template per document kind (BOTH-kind templates count for both) ·
+     *  `identityTier` (2026-09-14) gates the premium identity controls in the designer */
+    defaults: () => request<{ QUOTE: DocumentTemplate | null; INVOICE: DocumentTemplate | null; identityTier?: IdentityTier }>('/api/document-templates/defaults'),
     /** Server-rendered print HTML (same engine as the web print views) */
     render: (kind: 'QUOTE' | 'INVOICE', docId: string, params?: { templateId?: string | null; lang?: 'ar' | 'en'; actions?: 0 | 1 }) =>
       request<string>(`/api/document-templates/render/${kind}/${docId}`, { query: params as any }),
-    get: (id: string) => request<any>(`/api/document-templates/${id}`),
-    create: (data: any) => request<any>('/api/document-templates', { method: 'POST', body: data }),
-    update: (id: string, data: any) => request<any>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
+    get: (id: string) => request<DocumentTemplate>(`/api/document-templates/${id}`),
+    create: (data: DocumentTemplatePayload) => request<DocumentTemplate>('/api/document-templates', { method: 'POST', body: data }),
+    /** 422 `plan_required` → the org's plan does not include the premium identity fields sent */
+    update: (id: string, data: DocumentTemplatePayload) => request<DocumentTemplate>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
     setDefault: (id: string) => request<any>(`/api/document-templates/${id}/set-default`, { method: 'POST' }),
     duplicate: (id: string) => request<any>(`/api/document-templates/${id}/duplicate`, { method: 'POST' }),
     remove: (id: string) => request<void>(`/api/document-templates/${id}`, { method: 'DELETE' }),
@@ -2039,9 +2041,82 @@ export interface BranchInput {
   isHQ?: boolean;
 }
 
+/** Document identity plan gate (2026-09-14) · basic = logo/stamp/signature/bank logo/out-of-scope/QR/words ·
+ *  full = theme presets · fonts · header style · cover/closing imagery · watermark · stations · closing facts · no provider branding */
+export type IdentityTier = 'basic' | 'full'
+
+/** Identity fields shared by the template record and its create/update payload (field names fixed with the API). */
+export interface DocumentTemplateIdentity {
+  theme?: DocTheme | null
+  themePreset?: ThemePreset | null
+  headerStyle?: HeaderStyle | null
+  logoUrl?: string | null
+  logoLightUrl?: string | null
+  watermarkUrl?: string | null
+  coverImageUrl?: string | null
+  closingImageUrl?: string | null
+  bankLogoUrl?: string | null
+  signatureUrl?: string | null
+  outOfScope?: string | null
+  outOfScopeEn?: string | null
+  paymentPlanStyle?: PaymentPlanStyle | null
+  paymentPlanNote?: string | null
+  showQr?: boolean | null
+  hideProviderBranding?: boolean | null
+  closingFacts?: ClosingFact[] | null
+  amountInWords?: boolean | null
+}
+
+/** Brand document template (quotes / invoices · designer at /app/templates/:id). Loosely typed on the
+ *  legacy layout fields — the record carries whatever the API stores. */
+export interface DocumentTemplate extends DocumentTemplateIdentity {
+  id: string
+  orgId?: string
+  name: string
+  nameEn?: string | null
+  type: string
+  layout: string
+  kind?: 'QUOTE' | 'INVOICE' | 'BOTH' | string | null
+  isDefault: boolean
+  primaryColor: string
+  accentColor: string
+  brandColor?: string | null
+  coverColor?: string | null
+  coverStyle?: string | null
+  coverTitle?: string | null
+  coverIntro?: string | null
+  coverTitleEn?: string | null
+  coverIntroEn?: string | null
+  sections?: unknown
+  showLogo: boolean
+  showTaxBreakdown: boolean
+  showTerms: boolean
+  terms?: string | null
+  termsEn?: string | null
+  notes?: string | null
+  closingTerms?: string | null
+  closingTermsEn?: string | null
+  bankAccountId?: string | null
+  signatoryName?: string | null
+  signatoryTitle?: string | null
+  signatoryEmail?: string | null
+  signatoryPhone?: string | null
+  stampUrl?: string | null
+  footerText?: string | null
+  classification?: string | null
+  classificationEn?: string | null
+  wordmarkAccent?: string | null
+  createdAt?: string
+  updatedAt?: string
+  [key: string]: any
+}
+export type DocumentTemplatePayload = Partial<Omit<DocumentTemplate, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>> & { name: string }
+
 export interface OrgSubscriptionSummary {
   id: string
   status: string // TRIALING · ACTIVE · PAST_DUE · CANCELED · EXPIRED
+  /** document identity gate (2026-09-14) · mirrors GET /api/document-templates/defaults */
+  identityTier?: IdentityTier | null
   trialEndsAt?: string | null
   currentPeriodEnd?: string | null
   plan?: { name: string; tier?: string | null } | null

@@ -12,7 +12,7 @@ import { useParams, useSearchParams } from "react-router";
 import { Loader2, Printer, X } from "lucide-react";
 import { api, Quote, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import { BrandDocument, useBrandTemplate } from "../components/brand-document";
-import { partyFromOrg, partyFromContact, docFromQuote, type RenderInput } from "../lib/document-render";
+import { partyFromOrg, partyFromContact, docFromQuote, quoteQrPayload, type RenderInput } from "../lib/document-render";
 import { waitForPrintReady } from "../lib/print-image";
 
 export function QuoteProposalPrint() {
@@ -61,12 +61,14 @@ export function QuoteProposalPrint() {
 
   const input = useMemo<RenderInput | null>(() => {
     if (!quote || !ready) return null;
+    const orgParty = partyFromOrg(org);
     return {
       lang,
       template,
-      org: partyFromOrg(org),
+      org: orgParty,
       contact: partyFromContact(contact) || (quote.contact ? { name: quote.contact.displayName, email: quote.contact.email } : null),
-      doc: docFromQuote(quote),
+      // quote QR (identity · showQr) · ZATCA TLV built here, never by the engine
+      doc: docFromQuote(quote, quoteQrPayload(quote, orgParty, template)),
       bank,
       fontBase: "/fonts",
       embed: true,

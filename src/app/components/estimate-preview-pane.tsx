@@ -22,7 +22,7 @@ import { ChevronsLeft, ChevronsRight, Eye, LayoutDashboard, Loader2 } from "luci
 import { BrandDocument, useBrandTemplate } from "./brand-document";
 import { useLanguage } from "./LanguageContext";
 import { api, getOrgId, type Contact, type Org } from "../lib/api";
-import { partyFromContact, partyFromOrg, type DocSpec, type LineSpec, type PartySpec, type RenderInput } from "../lib/document-render";
+import { partyFromContact, partyFromOrg, quoteQrPayload, type DocSpec, type LineSpec, type PartySpec, type RenderInput } from "../lib/document-render";
 import { displayLocale } from "../lib/number-display";
 
 export type EstimatePreviewTab = "client" | "board";
@@ -146,12 +146,15 @@ export function EstimatePreviewPane({ title, number, currency, contact, contactN
   const live = useMemo<RenderInput>(() => {
     const orgParty: PartySpec = org ? partyFromOrg(org) : { name: "" };
     const contactParty: PartySpec | null = contact ? partyFromContact(contact) : (contactName?.trim() ? { name: contactName.trim() } : null);
+    const doc = docFromEstimateEditor({ title, number, currency, lines, totals, lang });
+    // quote QR (identity · showQr) · same TLV the printed quote will carry
+    doc.qrPayload = quoteQrPayload(doc, orgParty, template);
     return {
       lang,
       template,
       org: orgParty,
       contact: contactParty,
-      doc: docFromEstimateEditor({ title, number, currency, lines, totals, lang }),
+      doc,
       bank,
       embed: true,
     };
