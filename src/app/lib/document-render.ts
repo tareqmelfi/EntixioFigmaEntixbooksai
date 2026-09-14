@@ -508,6 +508,47 @@ function enNumber(n: number): string {
   if (r) parts.push(below1000(r));
   return parts.join(" ");
 }
+/** Currency wording for the amount-in-words strip · a USD document must never say "Saudi Riyals". */
+const MONEY_WORDS: Record<string, { ar: { one: string; two: string; plural: string; acc: string; sub1: string; sub2: string; subPlural: string; subAcc: string; tail: string }; en: { unit: string; sub: string } }> = {
+  SAR: { ar: { one: "ريال واحد", two: "ريالان", plural: "ريالات", acc: "ريالاً", sub1: "هللة واحدة", sub2: "هللتان", subPlural: "هللات", subAcc: "هللة", tail: " سعوديًا" }, en: { unit: "Saudi Riyal", sub: "halala" } },
+  USD: { ar: { one: "دولار واحد", two: "دولاران", plural: "دولارات", acc: "دولارًا", sub1: "سنت واحد", sub2: "سنتان", subPlural: "سنتات", subAcc: "سنتًا", tail: " أمريكيًا" }, en: { unit: "US Dollar", sub: "cent" } },
+  AED: { ar: { one: "درهم واحد", two: "درهمان", plural: "دراهم", acc: "درهمًا", sub1: "فلس واحد", sub2: "فلسان", subPlural: "فلوس", subAcc: "فلسًا", tail: " إماراتيًا" }, en: { unit: "UAE Dirham", sub: "fils" } },
+  EUR: { ar: { one: "يورو واحد", two: "يوروان", plural: "يوروات", acc: "يورو", sub1: "سنت واحد", sub2: "سنتان", subPlural: "سنتات", subAcc: "سنتًا", tail: "" }, en: { unit: "Euro", sub: "cent" } },
+  GBP: { ar: { one: "جنيه واحد", two: "جنيهان", plural: "جنيهات", acc: "جنيهًا", sub1: "بنس واحد", sub2: "بنسان", subPlural: "بنسات", subAcc: "بنسًا", tail: " إسترلينيًا" }, en: { unit: "Pound Sterling", sub: "penny" } },
+};
+
+/**
+ * Amount in words for the totals strip — currency-aware (CEO 2026-09-14: the US and the Saudi
+ * document must be completely separate; a USD invoice saying «ريالاً سعوديًا» is the exact defect).
+ * ar: «فقط ستة آلاف وسبعة وثلاثون ريالاً وخمسون هللة سعوديًا لا غير» · en: "Only … US Dollars and fifty cents".
+ */
+export function amountInWordsFor(amount: number, lang: DocLang, currency: string): string {
+  const code = String(currency || "SAR").toUpperCase();
+  const w = MONEY_WORDS[code];
+  const total = Math.round((Number.isFinite(amount) ? Math.abs(amount) : 0) * 100);
+  const units = Math.floor(total / 100), subs = total % 100;
+  if (lang === "en") {
+    const unit = w ? w.en.unit : code;
+    const u = `${enNumber(units)} ${unit}${w ? (units === 1 ? "" : "s") : ""}`;
+    const sub = w ? ` and ${enNumber(subs)} ${w.en.sub}${subs === 1 ? "" : (w.en.sub === "penny" ? "s".replace("s", "pence").slice(0) : "s")}` : "";
+    const words = u + (subs ? sub : "");
+    return `Only ${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+  }
+  if (!w) {
+    const body = units ? `${arNumber(units)} ${esc(code)}` : `صفر ${esc(code)}`;
+    return `فقط ${body}${subs ? ` و${arNumber(subs)}` : ""} لا غير`;
+  }
+  const ur = units % 100;
+  const unitWord = units === 0 ? "" : units === 1 ? w.ar.one : units === 2 ? w.ar.two
+    : ur === 0 ? `${arNumber(units).replace(/(ألفان|مليونان|مائتان)$/, (m) => m.slice(0, -1))} ${w.ar.acc.replace(/ً$/, "").replace(/ًا$/, "")}`
+    : `${arNumber(units)} ${(units <= 10 || (ur >= 3 && ur <= 10)) ? w.ar.plural : w.ar.acc}`;
+  const sr = subs % 100;
+  const subWord = subs === 0 ? "" : subs === 1 ? w.ar.sub1 : subs === 2 ? w.ar.sub2
+    : `${arNumber(subs)} ${(sr >= 3 && sr <= 10) ? w.ar.subPlural : w.ar.subAcc}`;
+  const words = [unitWord, subWord].filter(Boolean).join(" و") || `صفر ${w.ar.acc.replace(/ً$/, "")}`;
+  return `فقط ${words}${w.ar.tail} لا غير`;
+}
+
 /** «فقط ستة آلاف وسبعة وثلاثون ريالاً وخمسون هللة سعوديًا لا غير» · "Only … Saudi Riyals" */
 export function tafqitSar(amount: number, lang: DocLang): string {
   const total = Math.round((Number.isFinite(amount) ? Math.abs(amount) : 0) * 100);
@@ -1138,6 +1179,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const on = (id: SectionId) => sections.find((s) => s.id === id)?.enabled !== false;
   const order = sections.map((s) => s.id);
   const cur = doc.currency || "SAR";
+  // Words are printed only for a currency we can spell correctly — never a wrong-currency sentence.
+  const wordsCur = ["SAR", "USD", "AED", "EUR", "GBP"].includes(cur.toUpperCase());
   const year = (isoDate(doc.issueDate) || new Date().toISOString()).slice(0, 4);
   // ── TAX-INVOICE LAW (CEO · 2026-09-08 · «كيف شركة امريكية تصدر فاتورة ضريبية؟!») ──
   // A "tax invoice" and every VAT/ZATCA vocabulary item exist ONLY where a real Saudi
@@ -1244,7 +1287,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (authored.length > 1) return authored.slice(0, 3).map(esc);
     const where = [org.address, org.city && !(org.address || "").includes(org.city) ? org.city : ""].filter(Boolean).map(bdi).join(" · ");
     const l1 = tpl.footerText ? esc(tpl.footerText) : (where || bdi(org.legalName || org.name));
-    const l2 = [org.phone ? `Phone: ${esc(org.phone)}` : "", org.vatNumber ? `${isVatRegistered(org) ? "VAT" : "Reg."}: ${esc(org.vatNumber)}` : "", org.crNumber ? `C.R. ${esc(org.crNumber)}` : ""].filter(Boolean).join(" | ");
+    const l2 = [org.phone ? `Phone: ${esc(org.phone)}` : "", org.vatNumber ? `${isVatRegistered(org) ? "VAT" : "Reg."}: ${esc(org.vatNumber)}` : "", org.crNumber ? `${(org.country || "").toUpperCase() === "US" ? "Entity ID" : "C.R."} ${esc(org.crNumber)}` : ""].filter(Boolean).join(" | ");
     const l3 = [org.website ? `Website: ${esc(org.website)}` : "", org.email ? `E-mail: ${esc(org.email)}` : ""].filter(Boolean).join(" | ");
     return [l1, l2, l3];
   };
@@ -1453,7 +1496,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const notesHtml = doc.notes ? `<div class="notes">${bdi(doc.notes)}</div>` : "";
     const side = (qr ? `<div class="qr-side"><div class="qr">${qr}</div>${qrData || `<div>${qrCaption}</div>`}</div>` : "") + notesHtml;
     // tafqit strip · «فقط … سعوديًا لا غير» under the totals (identity templates · amountInWords ≠ false)
-    const words = showWords && cur === "SAR" ? `<div class="tafqit">${esc(tafqitSar(doc.total, lang))}</div>` : "";
+    const words = showWords && wordsCur ? `<div class="tafqit">${esc(amountInWordsFor(doc.total, lang, cur))}</div>` : "";
     const h = Math.max(10 + rows.length * 9.2 + 8 + (words ? 14 : 0), qr ? (qrData ? 52 : 40) : 0) + (doc.notes ? 14 : 0);
     return { kind: "html", h, html: `<div class="totals-row"><div>${side}</div>${words ? `<div><div class="totals">${rows.join("")}</div>${words}</div>` : `<div class="totals">${rows.join("")}</div>`}</div>` };
   };
@@ -1679,7 +1722,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     }
     if (orgTaxRegistered && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${num(`${cur} ${money(doc.taxTotal)}`)}</span></div>`);
     tr.push(`<div class="r grand"><span class="lbl">${orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total")}</span><span class="amt">${num(`${cur} ${money(doc.total)}`)}</span></div>`);
-    const words = showWords && cur === "SAR" ? `<div class="tafqit">${esc(tafqitSar(doc.total, lang))}</div>` : "";
+    const words = showWords && wordsCur ? `<div class="tafqit">${esc(amountInWordsFor(doc.total, lang, cur))}</div>` : "";
     blocks.push({ kind: "html", h: (tr.length - 1) * 7.6 + 11 + (words ? 9.8 : 0) + 4.5, html: `<div class="tot2"><div class="totals">${tr.join("")}</div>${words}</div>` });
     const zatca = orgTaxRegistered && !!doc.qrPayload;
     const qrText = zatca ? doc.qrPayload! : (doc.number || "");
