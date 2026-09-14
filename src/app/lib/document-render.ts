@@ -249,6 +249,10 @@ export interface TemplateSpec {
   closingText?: string | null;
   /** Meta-strip caption for doc.reference2 (default "REFERENCE") */
   reference2Label?: string | null;
+  /** LANGUAGE LOCK. "ar" | "en" pins every document rendered through this template to that
+   *  language — an ENSIDEX/Entix invoice never prints an Arabic word, a Saudi tax invoice
+   *  never prints an English-only one. null = follow the document / org default. */
+  docLang?: string | null;
 }
 
 export interface PartySpec {
@@ -1208,6 +1212,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (country === "US") return t("الرقم الفيدرالي الأمريكي (EIN)", "EIN");
     return t("رقم التسجيل الضريبي", "Registration no.");
   };
+  // US entities have no commercial register — the state filing number is an Entity ID.
+  // Same law shape as regLabel: driven by the PARTY's own country, never a name list.
+  const regIdLabel = (p: PartySpec | null | undefined): string =>
+    (p?.country || "SA").toUpperCase() === "US" ? t("معرّف المنشأة", "Entity ID") : t("س.ت", "CR");
   const orgTaxRegistered = isVatRegistered(org);
   const docType = isQuote ? t("عرض سعر", "Quotation") : (orgTaxRegistered ? t("فاتورة ضريبية", "Tax invoice") : t("فاتورة", "Invoice"));
   const docEyebrow = isQuote ? "QUOTATION" : (orgTaxRegistered ? "TAX INVOICE" : "INVOICE");
@@ -1342,7 +1350,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const validDays = issue && end ? Math.round((Date.parse(end) - Date.parse(issue)) / 86_400_000) : 0;
       const strip = `<div class="strip cards3">
     <div class="cd"><div class="k">${isQuote ? t("الجهة المالكة / العميل", "Owner / Client") : t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.city ? bdi(contact.city) : "", contact?.code ? esc(contact.code) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
-    <div class="cd"><div class="k">${isQuote ? t("المقاول", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.website ? num(org.website) : "", org.crNumber ? `C.R. ${num(org.crNumber)}` : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div class="cd"><div class="k">${isQuote ? t("المقاول", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.website ? num(org.website) : "", org.crNumber ? `${regIdLabel(org)} ${num(org.crNumber)}` : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
     <div class="cd"><div class="k">${t("التاريخ", "Date")}</div><div class="v">${num(issue)}</div><div class="s">${validDays > 0 ? (isQuote ? t(`صلاحية العرض ${validDays} يومًا`, `Valid for ${validDays} days`) : `${esc(endLabel)} ${num(end)}`) : (end ? `${esc(endLabel)} ${num(end)}` : "&nbsp;")}</div></div>
   </div>`;
       const ownTitle = ((ar ? tpl.coverTitle : (tpl.coverTitleEn || tpl.coverTitle)) || "").trim();
@@ -1375,7 +1383,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     <div class="col-client"><div class="k">${t("العميل", "Client")}</div>
       ${contact?.code ? `<div class="v lat" dir="ltr">${esc(contact.code)}</div>` : ""}
       <div class="v">${bdi(clientName)}</div>
-      <div class="s">${[contact?.crNumber ? `${t("س.ت", "CR")} ${contact.crNumber}` : "", contact?.city || ""].filter(Boolean).map(esc).join(" · ") || "&nbsp;"}</div></div>
+      <div class="s">${[contact?.crNumber ? `${regIdLabel(contact)} ${contact.crNumber}` : "", contact?.city || ""].filter(Boolean).map(esc).join(" · ") || "&nbsp;"}</div></div>
   </div>
 </div>`;
     sheets.push({ cls: coverStyle === "DARK" ? "dark" : "light", body, cover: true });
@@ -1387,7 +1395,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const partyHtml = (label: string, name: string, alt: string | null | undefined, p: PartySpec | null, showRep: boolean) => {
     const d: string[] = [];
-    if (p?.crNumber) d.push(`${t("س.ت", "CR")} ${num(p.crNumber)}`);
+    if (p?.crNumber) d.push(`${regIdLabel(p)} ${num(p.crNumber)}`);
     if (p?.vatNumber) d.push(`${regLabel(p)} ${num(p.vatNumber)}`);
     if (p?.address) d.push(bdi(p.address));
     if (p?.city && !(p.address || "").includes(p.city)) d.push(bdi(p.city));
@@ -1602,7 +1610,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const parts: string[] = [];
     parts.push(`<strong>${t("عن الجهة المُصدِرة:", "About the issuer:")}</strong> <strong>${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</strong>`);
     // identifiers stay LTR-isolated · an un-isolated "2026-001962138" reorders inside Arabic text
-    const ids = [org.crNumber ? `${t("س.ت", "CR")} ${num(org.crNumber)}` : "", org.vatNumber ? `${regLabel(org)} ${num(org.vatNumber)}` : ""].filter(Boolean);
+    const ids = [org.crNumber ? `${regIdLabel(org)} ${num(org.crNumber)}` : "", org.vatNumber ? `${regLabel(org)} ${num(org.vatNumber)}` : ""].filter(Boolean);
     if (ids.length) parts.push(`(${ids.join(" · ")})`);
     const where = [org.address, org.city].filter(Boolean).map(bdi).join(" · ");
     if (where) parts.push(`— ${where}`);
@@ -1813,7 +1821,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       blocks.push({ kind: "html", h: 38, keepWithNext: true, html: `<div class="bankc2">${bankLogo ? `<img src="${esc(bankLogo)}" alt="">` : ""}<div class="bd">${b.bankName ? `<div class="bn">${bdi(b.bankName)}</div>` : ""}${b.name && b.name !== b.bankName ? `<div class="be">${esc(b.name)}</div>` : ""}${b.iban ? `<div class="iban">${esc(ibanGroups(b.iban))}</div>` : b.accountNumber ? `<div class="iban">${esc(b.accountNumber)}</div>` : ""}${sub ? `<div class="sw">${sub}</div>` : ""}</div></div>` });
       const ben: Array<[string, string]> = [[t("اسم المستفيد", "Beneficiary"), `<b>${bdi(b.holder || org.legalName || org.name)}</b>`]];
       if (b.iban && b.accountNumber) ben.push([t("رقم الحساب", "Account no."), num(b.accountNumber)]);
-      if (org.crNumber) ben.push([t("رقم السجل التجاري", "Commercial registration"), num(org.crNumber)]);
+      if (org.crNumber) ben.push([(org.country || "SA").toUpperCase() === "US" ? t("معرّف المنشأة", "Entity ID") : t("رقم السجل التجاري", "Commercial registration"), num(org.crNumber)]);
       if (org.vatNumber) ben.push([regLabel(org), num(org.vatNumber)]);
       blocks.push(kvTable(ben, "kv ben"));
     }

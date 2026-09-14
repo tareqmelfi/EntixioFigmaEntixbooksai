@@ -107,6 +107,8 @@ export function TemplateDetail() {
   const [identity, setIdentity] = useState<IdentityValues>(EMPTY_IDENTITY);
   const [autoRule, setAutoRule] = useState<AutoRuleValues>(EMPTY_AUTO_RULE);
   const [identityTier, setIdentityTier] = useState<IdentityTier>("full");
+  // the template's language lock wins over the preview toggle — the preview must show what prints
+  const effLang: DocLang = identity.docLang === "ar" || identity.docLang === "en" ? identity.docLang : previewLang;
   const [planError, setPlanError] = useState<string | null>(null);
   const patchIdentity = useCallback((patch: Partial<IdentityValues>) => setIdentity((v) => ({ ...v, ...patch })), []);
   const patchAutoRule = useCallback((patch: Partial<AutoRuleValues>) => setAutoRule((v) => ({ ...v, ...patch })), []);
@@ -217,8 +219,8 @@ export function TemplateDetail() {
   }, [banks, form.bankAccountId]);
   const previewInput = useMemo(() => {
     const party = org ? partyFromOrg(org) : null;
-    return sampleInput(previewKind, previewLang, { ...form, ...identityPayload(identity) }, party, bankSpec);
-  }, [form, identity, org, bankSpec, previewKind, previewLang]);
+    return sampleInput(previewKind, effLang, { ...form, ...identityPayload(identity) }, party, bankSpec);
+  }, [form, identity, org, bankSpec, previewKind, effLang]);
   const onRendered = useCallback((out: RenderOutput) => setSheetCount(out.sheetCount), []);
 
   if (loading) {
@@ -442,7 +444,7 @@ export function TemplateDetail() {
               </div>
               <div className="flex gap-1 rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("لغة المعاينة", "Preview language")}>
                 {(["ar", "en"] as DocLang[]).map((l) => (
-                  <button key={l} type="button" role="radio" aria-checked={previewLang === l} data-testid={`preview-${l}`} onClick={() => setPreviewLang(l)} className={`${segBtn(previewLang === l)} font-english`}>{l.toUpperCase()}</button>
+                  <button key={l} type="button" role="radio" aria-checked={effLang === l} disabled={!!identity.docLang} data-testid={`preview-${l}`} onClick={() => setPreviewLang(l)} className={`${segBtn(effLang === l)} font-english disabled:opacity-40`}>{l.toUpperCase()}</button>
                 ))}
               </div>
             </div>

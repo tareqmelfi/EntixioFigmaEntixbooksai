@@ -49,6 +49,8 @@ export interface IdentityValues {
   approvalNote: string;
   closingText: string;
   reference2Label: string;
+  /** LANGUAGE LOCK · null = follow the document / company default */
+  docLang: "ar" | "en" | null;
 }
 
 export const EMPTY_IDENTITY: IdentityValues = {
@@ -56,7 +58,7 @@ export const EMPTY_IDENTITY: IdentityValues = {
   logoUrl: "", logoLightUrl: "", watermarkUrl: "", coverImageUrl: "", closingImageUrl: "", bankLogoUrl: "", signatureUrl: "",
   outOfScope: "", outOfScopeEn: "", paymentPlanStyle: "table", paymentPlanNote: "",
   showQr: null, amountInWords: null, hideProviderBranding: null, closingFacts: [],
-  deliveryFacts: [], deliveryNote: "", approvalText: "", approvalNote: "", closingText: "", reference2Label: "",
+  deliveryFacts: [], deliveryNote: "", approvalText: "", approvalNote: "", closingText: "", reference2Label: "", docLang: null,
 };
 
 /** Stored record → designer values (unknown / bad values fall back to the Ledger defaults). */
@@ -76,6 +78,7 @@ export function identityFromTemplate(tpl: any): IdentityValues {
     closingFacts: facts(t.closingFacts),
     deliveryFacts: facts(t.deliveryFacts),
     deliveryNote: t.deliveryNote || "", approvalText: t.approvalText || "", approvalNote: t.approvalNote || "", closingText: t.closingText || "", reference2Label: t.reference2Label || "",
+    docLang: t.docLang === "ar" || t.docLang === "en" ? t.docLang : null,
   };
 }
 const facts = (v: unknown): ClosingFact[] => Array.isArray(v) ? v.filter((f: any) => f && typeof f === "object").map((f: any) => ({ label: String(f.label || ""), value: String(f.value || "") })) : [];
@@ -95,6 +98,7 @@ export function identityPayload(v: IdentityValues) {
     closingFacts: v.closingFacts.filter((f) => f.label.trim() || f.value.trim()).length ? v.closingFacts.filter((f) => f.label.trim() || f.value.trim()) : null,
     deliveryFacts: v.deliveryFacts.filter((f) => f.label.trim() || f.value.trim()).length ? v.deliveryFacts.filter((f) => f.label.trim() || f.value.trim()) : null,
     deliveryNote: s(v.deliveryNote), approvalText: s(v.approvalText), approvalNote: s(v.approvalNote), closingText: s(v.closingText), reference2Label: s(v.reference2Label),
+    docLang: v.docLang,
   };
 }
 
@@ -387,6 +391,15 @@ export function TemplateIdentitySection({ value, onChange, tier, planError, push
 
       {/* toggles */}
       <div className="space-y-1">
+        <label className="flex items-center justify-between gap-3 py-1 text-sm">
+          <span><span style={{ fontWeight: 600 }}>{t("لغة المستند", "Document language")}</span>
+            <span className="block text-[11px] text-muted-foreground">{t("قفل اللغة على هذا القالب · «تلقائي» يتبع المستند ثم إعداد الشركة", "Locks every document on this template · “Auto” follows the document, then the company default")}</span></span>
+          <span className="flex gap-1 rounded-lg bg-muted/50 p-1">
+            {([[null, t("تلقائي", "Auto")], ["ar", "AR"], ["en", "EN"]] as Array<[("ar" | "en" | null), string]>).map(([id, lbl]) => (
+              <button key={String(id)} type="button" onClick={() => onChange({ docLang: id })} className={segBtn(value.docLang === id)} data-testid={`identity-doclang-${id ?? "auto"}`}>{lbl}</button>
+            ))}
+          </span>
+        </label>
         <Toggle value={value} onChange={onChange} k="showQr" label={t("رمز QR على عروض الأسعار", "QR on quotes")} hint={t("رمز ZATCA TLV · يتطلب رقمًا ضريبيًا سعوديًا", "ZATCA TLV code · needs a Saudi VAT number")} />
         <Toggle value={value} onChange={onChange} k="amountInWords" label={t("التفقيط تحت الإجماليات", "Amount in words under the totals")} hint={t("«فقط … سعوديًا لا غير»", "“Only … Saudi Riyals”")} />
         <Toggle value={value} onChange={onChange} k="hideProviderBranding" label={t("إخفاء علامة المنصة", "Hide platform branding")} hint={t("لا يظهر اسم المنصة في أي مكان بالمستند", "No platform name anywhere in the document")} locked={basic} />
