@@ -51,6 +51,10 @@ export interface IdentityValues {
   reference2Label: string;
   /** LANGUAGE LOCK · null = follow the document / company default */
   docLang: "ar" | "en" | null;
+  /** WORDMARK · draw the mark with embedded type instead of a raster logo */
+  useWordmark: boolean;
+  /** Overrides the printed lettering (e.g. "ENTIX.IO" on a product invoice) · "" = the company name */
+  wordmarkText: string;
 }
 
 export const EMPTY_IDENTITY: IdentityValues = {
@@ -59,6 +63,7 @@ export const EMPTY_IDENTITY: IdentityValues = {
   outOfScope: "", outOfScopeEn: "", paymentPlanStyle: "table", paymentPlanNote: "",
   showQr: null, amountInWords: null, hideProviderBranding: null, closingFacts: [],
   deliveryFacts: [], deliveryNote: "", approvalText: "", approvalNote: "", closingText: "", reference2Label: "", docLang: null,
+  useWordmark: false, wordmarkText: "",
 };
 
 /** Stored record → designer values (unknown / bad values fall back to the Ledger defaults). */
@@ -79,6 +84,8 @@ export function identityFromTemplate(tpl: any): IdentityValues {
     deliveryFacts: facts(t.deliveryFacts),
     deliveryNote: t.deliveryNote || "", approvalText: t.approvalText || "", approvalNote: t.approvalNote || "", closingText: t.closingText || "", reference2Label: t.reference2Label || "",
     docLang: t.docLang === "ar" || t.docLang === "en" ? t.docLang : null,
+    useWordmark: t.useWordmark === true,
+    wordmarkText: t.wordmarkText || "",
   };
 }
 const facts = (v: unknown): ClosingFact[] => Array.isArray(v) ? v.filter((f: any) => f && typeof f === "object").map((f: any) => ({ label: String(f.label || ""), value: String(f.value || "") })) : [];
@@ -99,6 +106,8 @@ export function identityPayload(v: IdentityValues) {
     deliveryFacts: v.deliveryFacts.filter((f) => f.label.trim() || f.value.trim()).length ? v.deliveryFacts.filter((f) => f.label.trim() || f.value.trim()) : null,
     deliveryNote: s(v.deliveryNote), approvalText: s(v.approvalText), approvalNote: s(v.approvalNote), closingText: s(v.closingText), reference2Label: s(v.reference2Label),
     docLang: v.docLang,
+    useWordmark: v.useWordmark,
+    wordmarkText: s(v.wordmarkText),
   };
 }
 
@@ -400,6 +409,20 @@ export function TemplateIdentitySection({ value, onChange, tier, planError, push
             ))}
           </span>
         </label>
+        {/* WORDMARK (CEO 2026-09-14) · a product invoice prints its own locked mark, not the company logo */}
+        <label className="flex items-center justify-between gap-3 py-1 text-sm cursor-pointer">
+          <span><span style={{ fontWeight: 600 }}>{t("علامة نصية بدل الشعار", "Text wordmark instead of the logo")}</span>
+            <span className="block text-[11px] text-muted-foreground">{t("تُرسم بالخط المضمّن — أحدّ من أي صورة في الطباعة", "Drawn with the embedded type — sharper than any raster in print")}</span></span>
+          <input type="checkbox" checked={value.useWordmark} onChange={(e) => onChange({ useWordmark: e.target.checked })} className="h-4 w-4 accent-primary" data-testid="identity-useWordmark" />
+        </label>
+        {value.useWordmark && (
+          <label className="flex items-center justify-between gap-3 py-1 text-sm">
+            <span><span style={{ fontWeight: 600 }}>{t("نص العلامة", "Wordmark text")}</span>
+              <span className="block text-[11px] text-muted-foreground">{t("فارغ = اسم الشركة · مثال ENTIX.IO", "Empty = the company name · e.g. ENTIX.IO")}</span></span>
+            <input type="text" dir="ltr" value={value.wordmarkText} onChange={(e) => onChange({ wordmarkText: e.target.value })} placeholder={t("اسم الشركة", "Company name")}
+              className="h-8 w-40 rounded-md border border-border bg-card px-2 font-english text-sm" data-testid="identity-wordmarkText" />
+          </label>
+        )}
         <Toggle value={value} onChange={onChange} k="showQr" label={t("رمز QR على عروض الأسعار", "QR on quotes")} hint={t("رمز ZATCA TLV · يتطلب رقمًا ضريبيًا سعوديًا", "ZATCA TLV code · needs a Saudi VAT number")} />
         <Toggle value={value} onChange={onChange} k="amountInWords" label={t("التفقيط تحت الإجماليات", "Amount in words under the totals")} hint={t("«فقط … سعوديًا لا غير»", "“Only … Saudi Riyals”")} />
         <Toggle value={value} onChange={onChange} k="hideProviderBranding" label={t("إخفاء علامة المنصة", "Hide platform branding")} hint={t("لا يظهر اسم المنصة في أي مكان بالمستند", "No platform name anywhere in the document")} locked={basic} />

@@ -101,6 +101,9 @@ const EMPTY_FORM = {
   branchId: undefined as string | null | undefined,
   // Project / job-costing dimension (C2)
   projectId: null as string | null,
+  // DOCUMENT-LEVEL DISCOUNT (CEO 2026-09-14) · "" = none · applied before tax, printed as its own row
+  discountType: "" as "" | "PERCENT" | "FIXED",
+  discountValue: "",
 };
 
 const PAYMENT_TERMS = [
@@ -513,6 +516,9 @@ export function Invoices() {
         termsConditions: form.termsConditions || null,
         templateId: form.templateId || null,
         pages: normalizePages(form.pages),
+        // A discount is the document's, never a doctored unit price (CEO 2026-09-14).
+        discountType: form.discountType || null,
+        discountValue: form.discountType ? Number(normalizeDigits(form.discountValue)) || 0 : 0,
         lines: linesToPersist.map((l) => ({
           productId: l.productId || null,
           accountId: l.accountId || null, // only an intentional product mapping can supply a missing account
@@ -683,6 +689,8 @@ export function Invoices() {
       pages: normalizePages((inv as any).pages),
       branchId: (inv as any).branchId ?? null,
       projectId: (inv as any).projectId ?? null,
+      discountType: ((inv as any).discountType === "PERCENT" || (inv as any).discountType === "FIXED") ? (inv as any).discountType : "",
+      discountValue: (inv as any).discountType ? String(Number((inv as any).discountValue || 0)) : "",
     } as any);
     setLines(((inv.lines as any[]) || []).map((l: any) => ({
       id: l.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1087,13 +1095,53 @@ export function Invoices() {
                 <Label className="text-content-secondary text-xs">{t("الإجمالي", "Total")}</Label>
                 <div className="rounded-lg border border-border bg-card p-5 space-y-2">
                   {(() => {
-                    const totals = computeTotals(lines);
+                    const totals = computeTotals(lines, { discountType: form.discountType || null, discountValue: Number(normalizeDigits(form.discountValue)) || 0 });
+                    const money = (n: number) => <span dir="ltr" className="font-english tabular-nums text-foreground text-end whitespace-nowrap shrink-0">{displayDigits(n.toFixed(2))} <span className="text-xs text-muted-foreground">{form.currency}</span></span>;
                     return (
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-content-secondary min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
-                          <span dir="ltr" className="font-english tabular-nums text-foreground text-end whitespace-nowrap shrink-0">{displayDigits(totals.subtotal.toFixed(2))} <span className="text-xs text-muted-foreground">{form.currency}</span></span>
+                          {money(totals.discount > 0 ? totals.listPrice : totals.subtotal)}
                         </div>
+                        {/* Discount · document level · before tax (CEO 2026-09-14) */}
+                        <div className="flex items-center justify-between gap-2 text-sm">
+                          <span className="text-content-secondary min-w-0 break-words">{t("الخصم", "Discount")}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            <div className="flex rounded-md bg-muted/50 p-0.5">
+                              {([["", t("بلا", "None")], ["PERCENT", "%"], ["FIXED", form.currency]] as Array<["" | "PERCENT" | "FIXED", string]>).map(([id, lbl]) => (
+                                <button
+                                  key={id || "none"}
+                                  type="button"
+                                  onClick={() => setForm({ ...form, discountType: id, discountValue: id ? form.discountValue : "" })}
+                                  className={`rounded px-2 py-1 text-[11px] transition-colors ${form.discountType === id ? "bg-card text-primary shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                                  data-testid={`invoice-discount-${id || "none"}`}
+                                >{lbl}</button>
+                              ))}
+                            </div>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              disabled={!form.discountType}
+                              value={form.discountValue}
+                              onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                              placeholder="0"
+                              className="h-8 w-20 rounded-md border border-border bg-card px-2 text-end font-english text-sm disabled:opacity-40"
+                              data-testid="invoice-discount-value"
+                            />
+                          </span>
+                        </div>
+                        {totals.discount > 0 && (
+                          <>
+                            <div className="flex items-center justify-between gap-3 text-sm text-danger">
+                              <span className="min-w-0 break-words">{t("قيمة الخصم", "Discount amount")}</span>
+                              <span dir="ltr" className="font-english tabular-nums text-danger text-end whitespace-nowrap shrink-0">- {displayDigits(totals.discount.toFixed(2))} <span className="text-xs">{form.currency}</span></span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                              <span className="text-content-secondary min-w-0 break-words">{t("الصافي", "Net")}</span>
+                              {money(totals.subtotal)}
+                            </div>
+                          </>
+                        )}
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-content-secondary min-w-0 break-words">{isUS ? t("ضريبة المبيعات", "Sales tax") : t("ضريبة القيمة المضافة (15%)", "VAT (15%)")}</span>
                           <span dir="ltr" className="font-english tabular-nums text-foreground text-end whitespace-nowrap shrink-0">{displayDigits(totals.tax.toFixed(2))} <span className="text-xs text-muted-foreground">{form.currency}</span></span>
