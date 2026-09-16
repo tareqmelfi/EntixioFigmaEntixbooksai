@@ -120,6 +120,7 @@ export function BankReconciliation() {
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [step, setStep] = useState<"upload" | "review" | "done">("upload");
+  const [excluded, setExcluded] = useState<{ failed: number; failedAmount: number; otherAccounts: number; foreignCurrency: number; accountsInFile: string[] } | null>(null);
   const [stats, setStats] = useState<{ matched: number; unmatched: number } | null>(null);
   const [parseSource, setParseSource] = useState<{ model?: string; source?: string } | null>(null);
   const [committing, setCommitting] = useState(false);
@@ -172,6 +173,8 @@ export function BankReconciliation() {
       let matched = 0;
       let unmatched = 0;
       const models = new Set<string>();
+      // What the importer deliberately kept OUT of the books (2026-09-16).
+      const excluded = { failed: 0, failedAmount: 0, otherAccounts: 0, foreignCurrency: 0, accountsInFile: new Set<string>() };
       for (const file of selectedFiles) {
         const isBinary = file.format === "pdf" || file.format === "xlsx" || file.format === "xls";
         const res = await api.bankImport.parse({
@@ -185,6 +188,14 @@ export function BankReconciliation() {
         });
         matched += res.matched || 0;
         unmatched += res.unmatched || 0;
+        const ex = (res as any).excluded;
+        if (ex) {
+          excluded.failed += ex.failed || 0;
+          excluded.failedAmount += ex.failedAmount || 0;
+          excluded.otherAccounts += ex.otherAccounts || 0;
+          excluded.foreignCurrency += ex.foreignCurrency || 0;
+          for (const a of ex.accountsInFile || []) excluded.accountsInFile.add(a);
+        }
         if (res.ai?.model) models.add(res.ai.model);
         parsed.push(...((res.rows || []).map((r: any) => ({
           ...r,
@@ -201,6 +212,7 @@ export function BankReconciliation() {
       }
       setRows(parsed);
       setStats({ matched, unmatched });
+      setExcluded({ ...excluded, accountsInFile: Array.from(excluded.accountsInFile) });
       setParseSource(models.size ? { model: Array.from(models).join(", "), source: "batch" } : null);
       setStep("review");
       const source = models.size ? ` · AI ${Array.from(models).join(", ")}` : "";
@@ -402,6 +414,41 @@ export function BankReconciliation() {
             <div className="rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-foreground">
               {t("تمت قراءة الكشف عبر AI", "Statement parsed via AI")} · <span className="font-english" dir="ltr">{parseSource.model}</span>
             </div>
+          )}
+
+          {excluded && (excluded.failed > 0 || excluded.otherAccounts > 0 || excluded.foreignCurrency > 0) && (
+            /* SETTLEMENT LAW (2026-09-16): what the bank refused never enters
+               the books, and the operator is told exactly what was held back. */
+            <Card className="border-warning-border bg-warning-subtle" data-testid="import-exclusions">
+              <CardContent className="space-y-2 p-4 text-sm">
+                <div className="font-semibold text-foreground">{t("استُبعدت من الاستيراد", "Kept out of the import")}</div>
+                {excluded.failed > 0 && (
+                  <div className="text-foreground/80">
+                    {t("حركات فاشلة لم يخرج فيها أي مبلغ", "Failed transactions — no money moved")}:{" "}
+                    <span className="font-english font-semibold" dir="ltr">{excluded.failed}</span>
+                    {" · "}
+                    <span className="font-english font-semibold" dir="ltr">
+                      {excluded.failedAmount.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+                {excluded.otherAccounts > 0 && (
+                  <div className="text-foreground/80">
+                    {t("حركات تخص حساباً آخر في نفس الملف", "Rows belonging to another account in the same file")}:{" "}
+                    <span className="font-english font-semibold" dir="ltr">{excluded.otherAccounts}</span>
+                    {excluded.accountsInFile.length > 1 && (
+                      <span className="ms-1 font-english text-xs text-muted-foreground" dir="ltr">({excluded.accountsInFile.join(" · ")})</span>
+                    )}
+                  </div>
+                )}
+                {excluded.foreignCurrency > 0 && (
+                  <div className="text-foreground/80">
+                    {t("حركات بعملة مختلفة عن عملة الحساب", "Rows in a currency other than the account's")}:{" "}
+                    <span className="font-english font-semibold" dir="ltr">{excluded.foreignCurrency}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           <Card className="border-border">
