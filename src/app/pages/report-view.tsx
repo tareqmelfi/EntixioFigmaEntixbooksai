@@ -131,7 +131,10 @@ export function ReportView() {
     return { ...report, sections: report.sections.filter((s) => !isDetailSection(s.id)) };
   }, [report, detailMode, hasDetailSections]);
 
-  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.
+  // Printing from inside it produced a blank page — `h-dvh` + `overflow:hidden`
+  // ancestors clipped the document before the print stylesheet ever ran.
+  const printHref = `/print/report/${id}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
 
   const exportCsv = () => {
     if (!report) return;
@@ -183,7 +186,7 @@ export function ReportView() {
           </Button>
           {/* One compact export control — formats live inside the menu (no
               PDF/CSV/Excel text cluttering the toolbar, user ask 2026-08-19). */}
-          <ExportMenu onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report} />
+          <ExportMenu onCsv={exportCsv} onPdf={() => window.open(printHref, "_blank", "noopener")} disabled={!report} />
           </>
         )}
       />
@@ -257,7 +260,7 @@ export function ReportView() {
                 )}
               </CardContent>
             </Card>
-            <Button variant="outline" className="w-full" onClick={() => navigate(printHref)}>
+            <Button variant="outline" className="w-full" onClick={() => window.open(printHref, "_blank", "noopener")}>
               <ArrowLeft className="me-2 h-4 w-4" />{t("فتح مصمم الطباعة", "Open print designer")}
             </Button>
           </aside>

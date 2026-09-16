@@ -72,7 +72,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
 
   const nameAr = report.org.name || report.org.legalName || "";
   const nameEn = (report.org as any).legalName && (report.org as any).legalName !== report.org.name ? (report.org as any).legalName : "";
-  const currencyLine = report.sections.some(s => s.columns.some(c => c.key === "currency")) ? t("(المبالغ حسب عملة كل صف · غير مدققة)", "(Amounts in each row’s currency · unaudited)") : t(`(المبالغ بـ ${report.currency} · غير مدققة)`, `(In ${report.currency} · unaudited)`);
+  const perRowCurrency = report.sections.some(s => s.columns.some(c => c.key === "currency"));
+  const currencyLine = perRowCurrency ? t("(المبالغ حسب عملة كل صف · غير مدققة)", "(Amounts in each row’s currency · unaudited)") : t(`(المبالغ بـ ${report.currency} · غير مدققة)`, `(In ${report.currency} · unaudited)`);
   const periodLine = `${report.period.allTime ? (isEn ? "All recorded periods" : "كل الفترات المسجلة") : report.period.from ?? "—"} → ${report.period.to}`;
   const taxLine = resolved.showTaxInfo ? [report.org.vatNumber ? `${t("الرقم الضريبي", "VAT")} ${report.org.vatNumber}` : null, report.org.crNumber ? `${t("س.ت", "CR")} ${report.org.crNumber}` : null].filter(Boolean).join(" · ") : "";
   const companyLine = resolved.showCompanyInfo ? [report.org.addressLine, report.org.city, report.org.phone, report.org.email].filter(Boolean).join(" · ") : "";
@@ -103,6 +104,16 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
           <h1 className="text-[17px] font-extrabold leading-tight" style={{ color: "var(--report-primary)" }} dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
         )}
         <div className="mt-1 text-[10.5px] text-muted-foreground"><NumericText>{periodLine}</NumericText> · {currencyLine}</div>
+        {/* CURRENCY LAW (2026-09-16): a printed statement must never leave the
+            reader guessing riyals or dollars. The unit comes from the company's
+            base currency — never from the reading language — and it is stated
+            once loudly here and again on every money column header below. */}
+        {perRowCurrency ? null : (
+          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold text-foreground" dir="ltr" data-testid="report-currency-badge">
+            <span className="font-english tracking-wide">{report.currency}</span>
+            <span className="text-muted-foreground">{t("عملة التقرير", "report currency")}</span>
+          </div>
+        )}
       </div>
 
       {/* ── body ── */}
@@ -124,6 +135,9 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                     {columns.map((column) => (
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
                         <Bi value={column.label} lang={lang} size="sm" both={bilingual} />
+                        {!perRowCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
+                          <span className="ms-1 font-english text-[9px] font-normal text-muted-foreground/80" dir="ltr">({report.currency})</span>
+                        ) : null}
                       </th>
                     ))}
                   </tr>

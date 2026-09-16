@@ -23,7 +23,13 @@ export const LAYOUT_META: Record<Layout, { ar: string; en: string; hintAr: strin
 };
 
 /** Live preview · renders a sample document with the template config */
+import { useOrgRegion } from "../lib/use-org-region";
+
 export function TemplatePreview({ tpl, language }: { tpl: any; language: string }) {
+  // CURRENCY LAW (2026-09-16): the unit comes from the ORGANISATION, never from
+  // the interface language. An Arabic UI on a US company must still read USD —
+  // this preview used to print «ر.س» for anyone reading in Arabic.
+  const { currency: orgCurrency } = useOrgRegion();
   const isAr = language === "ar";
   const meta = TYPE_META[tpl.type as DocType] || TYPE_META.INVOICE;
   const rows = [
@@ -96,7 +102,7 @@ export function TemplatePreview({ tpl, language }: { tpl: any; language: string 
               <div className="flex justify-between text-muted-foreground"><span>{isAr ? "ض.ق.م (15%)" : "VAT (15%)"}</span><span className="font-english">{money(tax)}</span></div>
             )}
             <div className="flex justify-between pt-1 border-t font-bold" style={{ color: tpl.primaryColor }}>
-              <span>{isAr ? "الإجمالي" : "Total"}</span><span className="font-english">{money(total)} {isAr ? "ر.س" : "SAR"}</span>
+              <span>{isAr ? "الإجمالي" : "Total"}</span><span className="font-english" dir="ltr">{money(total)} {orgCurrency}</span>
             </div>
           </div>
         </div>

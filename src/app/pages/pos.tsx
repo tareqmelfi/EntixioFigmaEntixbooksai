@@ -1,3 +1,4 @@
+import { useOrgRegion } from "../lib/use-org-region";
 import { displayLocale } from "../lib/number-display";
 /**
  * POS v2 · الكاشير (CEO 2026-08-25)
@@ -144,7 +145,10 @@ export function PosPage() {
   const items = catalog?.items ?? [];
   const orgVat = catalog?.orgVatRate ?? 0.15;
   const store = catalog?.store ?? null;
-  const currency = store?.baseCurrency || t("ر.س", "SAR");
+  const { currency: orgCurrency } = useOrgRegion();
+  // CURRENCY LAW (2026-09-16): never fall back to a language-chosen unit — an
+  // Arabic UI on a US store printed «ر.س» on a USD receipt.
+  const currency = store?.baseCurrency || orgCurrency;
   const branches = catalog?.branches ?? [];
   const branchName = branches.find((b) => b.id === settings.branchId)?.name ?? null;
 

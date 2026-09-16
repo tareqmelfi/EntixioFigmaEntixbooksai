@@ -371,6 +371,11 @@ export const router = createBrowserRouter([
   { path: "/b/:token", element: lazyElement(() => import("./pages/public-board"), "PublicBoard"), errorElement: <ErrorBoundary /> },
   { path: "/print/invoice/:id", element: lazyElement(() => import("./pages/invoice-print-view"), "InvoicePrintView"), errorElement: <ErrorBoundary /> },
   { path: "/print/voucher/:id", element: lazyElement(() => import("./pages/voucher-print-view"), "VoucherPrintView"), errorElement: <ErrorBoundary /> },
+  // PRINT LAW (2026-09-16): a statement prints from OUTSIDE the app shell.
+  // Inside it, the report sat under `h-dvh` + `overflow:hidden` ancestors, so
+  // the printed page came out blank — the visibility trick could not rescue
+  // content the shell had already clipped. This route renders the sheet alone.
+  { path: "/print/report/:id", element: lazyElement(() => import("./pages/report-print-view"), "ReportPrintView"), errorElement: <ErrorBoundary /> },
   // Error handling
   { path: "*", element: <NotFound /> },
 ]);
