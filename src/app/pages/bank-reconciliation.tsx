@@ -432,10 +432,15 @@ export function BankReconciliation() {
                     {rows.map((r, i) => (
                       <tr key={i} className="border-t border-border/50">
                         <td className="px-3 py-2 font-english text-foreground/80" dir="ltr">{r.date.slice(0, 10)}</td>
-                        <td className="px-3 py-2">
-                          <div className="text-foreground truncate">{r.description}</div>
-                          {r.reference && <div className="text-xs text-muted-foreground/60 font-english" dir="ltr">{r.reference}</div>}
-                          {r.sourceFile && <div className="text-[11px] text-muted-foreground/60 font-english truncate" dir="ltr">{r.sourceFile}</div>}
+                        <td className="px-3 py-2 text-start">
+                          {/* 2026-09-16: the merchant name is Latin, so in an RTL
+                              cell it hugged the opposite edge from the file name
+                              below it — the column read as if it belonged to the
+                              neighbouring header. Both lines are isolated and
+                              start-aligned so the cell sits under its own header. */}
+                          <div className="truncate text-start text-foreground"><bdi dir="auto">{r.description}</bdi></div>
+                          {r.reference && <div className="truncate text-start text-xs font-english text-muted-foreground/60"><bdi dir="ltr">{r.reference}</bdi></div>}
+                          {r.sourceFile && <div className="truncate text-start text-[11px] font-english text-muted-foreground/60"><bdi dir="ltr">{r.sourceFile}</bdi></div>}
                           {r.duplicate && (
                             <div className="mt-1 inline-flex items-center rounded-full bg-warning-subtle px-2 py-0.5 text-[11px] text-warning-foreground">
                               {t("مستوردة مسبقاً", "Already imported")}
@@ -443,7 +448,7 @@ export function BankReconciliation() {
                           )}
                         </td>
                         <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-success" : "text-danger"}`} dir="ltr">
-                          {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}
+                          {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-3 py-2">
                           {r.matchKind && r.matchKind !== "none" ? (
