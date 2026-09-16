@@ -51,7 +51,7 @@ function EquationStrip({ report, currency }: { report: ReportPayload; currency: 
   if (!summary) return null;
   const amount = (id: string) => {
     const row = summary.rows.find((r) => r.id === id);
-    return row ? Number(row.values.amount ?? 0) : null;
+    return row && row.values.amount !== null && row.values.amount !== undefined && row.values.amount !== "" ? Number(row.values.amount) : null;
   };
   const revenue = amount("revenue");
   const expenses = amount("expenses");
@@ -152,7 +152,7 @@ export function ReportDocument({
             </div>
             <div className="mt-1.5 text-xs leading-5 text-muted-foreground">
               <div>
-                {t("الفترة", "Date Range")}: <NumericText>{report.period.from}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
+                {t("الفترة", "Date Range")}: <NumericText>{report.period.allTime ? t("كل الفترات المسجلة", "All recorded periods") : report.period.from ?? "—"}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
                 {" · "}
                 <NumericText>{report.sections.some(s => s.columns.some(c => c.key === "currency")) ? t("حسب عملة كل صف", "In each row’s currency") : report.currency}</NumericText>
               </div>
@@ -253,7 +253,7 @@ export function ReportDocument({
           <span className="hidden sm:inline">
             {t("أُنشئ في", "Created on")} <NumericText>{new Date(report.generatedAt).toLocaleDateString(displayLocale(isEn ? "en-GB" : "ar-SA"))}</NumericText>
             {" · "}
-            {t("الفترة", "Date Range")}: <NumericText>{report.period.from}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
+            {t("الفترة", "Date Range")}: <NumericText>{report.period.allTime ? t("كل الفترات المسجلة", "All recorded periods") : report.period.from ?? "—"}</NumericText> {t("إلى", "to")} <NumericText>{report.period.to}</NumericText>
           </span>
           <span className="print-page-number">Page 1</span>
         </footer>

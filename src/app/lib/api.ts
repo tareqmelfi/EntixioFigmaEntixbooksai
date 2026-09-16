@@ -1,3 +1,4 @@
+import type { HistoricalStatements } from './historical-statements'
 /**
  * Entix Books · API client
  *
@@ -12,6 +13,12 @@ import { humanizeZodIssues } from './validation-message'
 import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
 import type { DocPage, DocTheme, ThemePreset, HeaderStyle, PaymentPlanStyle, ClosingFact } from './document-render'
+
+export interface HistoricalReportRecord {
+  id: string; scope: 'unconsolidated' | 'consolidated'; version: number;
+  periodStart: string; periodEnd: string; contentSha256: string; sourceSha256: string;
+  createdAt: string; supersedesId: string | null; payload: HistoricalStatements;
+}
 
 export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
 
@@ -797,7 +804,7 @@ export const api = {
       request<{ ok: true; rows: Array<{ code: string; name: string; nameAr?: string; type?: string | null; parentCode?: string | null; description?: string | null; confidence?: number | null }>; warnings?: string[]; model?: string }>('/api/accounts/import/analyze', { method: 'POST', body: data }),
     /** Smart import (2026-09-08) · deterministic xlsx/csv/tsv/json parsing · see smartImport below */
     smartImport: smartImportClient('accounts'),
-    transactions: (id: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions`),
+    transactions: (id: string, cursor?: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`),
     translate: (input: string, hint?: string) =>
       request<{ name: string; nameAr: string; type: 'ASSET'|'LIABILITY'|'EQUITY'|'REVENUE'|'EXPENSE'; category?: string; reasoning?: string; suggestedCode?: string }>(
         '/api/accounts/translate', { method: 'POST', body: { input, hint } },
@@ -957,7 +964,7 @@ export const api = {
 
   // Dashboard — real org-scoped numbers
   dashboard: {
-    summary: () => request<DashboardSummary>('/api/dashboard/summary'),
+    summary: (period: DashboardPeriodKey = 'fiscal_ytd') => request<DashboardSummary>(`/api/dashboard/summary?period=${encodeURIComponent(period)}`),
     sales: () => request<SalesDashboard>('/api/dashboard/sales'),
     purchases: () => request<PurchasesDashboard>('/api/dashboard/purchases'),
   },
@@ -976,9 +983,14 @@ export const api = {
     ) => request<{ ok: true; row: TaxReturnWithholdingRow }>(`/api/tax-return/withholding/${voucherId}`, { method: 'PATCH', body: data }),
   },
 
+  historicalReports: {
+    latest: (scope: 'unconsolidated' | 'consolidated' = 'unconsolidated') => request<{ report: HistoricalReportRecord | null }>('/api/historical-reports/latest', { query: { scope } }),
+    create: (payload: HistoricalStatements, supersedesId?: string) => request<{ report: HistoricalReportRecord; duplicate: boolean }>('/api/historical-reports', { method: 'POST', body: { payload, ...(supersedesId ? { supersedesId } : {}) } }),
+  },
+
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; bilingual?: 1 }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; allTime?: 1; bilingual?: 1 }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
@@ -2298,14 +2310,15 @@ export interface ReportSection {
 }
 
 export interface ReportPayload {
+  dataBasis?: {source:'ledger'|'documents'|'unavailable';status:'available'|'no_activity'|'unavailable';dateBasis:'period'|'as_of';from:string|null;to:string;postedEntriesOnly:boolean};
   id: string
   title: string
   englishTitle: string
   description: string
   category: string
-  status: 'live' | 'empty'
+  status: 'live' | 'empty' | 'unavailable'
   generatedAt: string
-  period: { from: string; to: string }
+  period: { from: string | null; to: string; allTime?: boolean }
   /** Prior-period window when ?compareTo= was passed (Apple-style compare) */
   comparePeriod?: { from: string; to: string } | null
   currency: string
@@ -2755,6 +2768,10 @@ export interface ProjectLink {
 }
 
 export interface AccountTransactions {
+  nextCursor?: string | null
+  returned?: number
+  openingBalance?: number
+  balanceScope?: "all_posted_dates"
   account: { id: string; code: string; name: string; nameAr: string | null; type: string }
   transactions: Array<{
     id: string
@@ -3020,9 +3037,41 @@ export interface BankAccountInput {
   balance?: number
 }
 
+export type DashboardPeriodKey = 'fiscal_ytd' | 'previous_fiscal_year' | 'month' | 'previous_month' | 'all_time';
+export interface DashboardPeriod {
+  key: DashboardPeriodKey; from: string | null; to: string; fromDate: string | null; toDate: string;
+  timeZone: string; fiscalYearStart: number; isPartial: boolean; source: 'ledger' | 'documents';
+}
+export interface DashboardOpenBalances {
+  currency: string; total: number; count: number;
+  overdue: number; dueToday: number; notDue: number; noDueDate: number;
+  byIssueYear: Array<{year:number;total:number;count:number;overdue:number;dueToday:number;notDue:number;noDueDate:number}>;
+  byCurrency: Array<{currency:string;total:number;count:number;overdue:number;dueToday:number;notDue:number;noDueDate:number}>;
+  unallocatedCredits: Array<{currency:string;amount:number;count:number}>;
+}
+export interface DashboardTrendPoint {
+  from?:string|null;to?:string;fromDate?:string|null;toDate?:string;source?:string;
+  dataAvailability?:{hasActivity:boolean};unavailableMetrics?:string[];
+}
+export interface DashboardComparisonPoint {
+  revenue:number; expenses:number; net:number;
+  from?:string|null;to?:string;fromDate?:string|null;toDate?:string;
+  dataAvailability?:{hasActivity:boolean};unavailableMetrics?:string[];
+}
 export interface DashboardSummary {
-  org: { id: string; name: string; baseCurrency: string; country: string }
+  period?: DashboardPeriod;
+  unavailableMetrics?: string[];
+  limitations?: Array<{code:string;messageAr:string;messageEn:string}>;
+  dataAvailability?: {source:'ledger'|'documents';postedPnlLineCount:number;postedDocsCount:number;sourceActivityCount:number;hasActivity:boolean;coverage:'unknown'};
+  currentTotalsScope?: {basis:'current_open_balances';asOf:string;asOfDate:string;timeZone:string;independentOfSelectedPeriod:true;issueYearBasis:'invoice_issue_date'};
+  receivables?: DashboardOpenBalances;
+  payables?: DashboardOpenBalances;
+  cash?: {baseCurrency:string;baseCurrencyTotal:number;byCurrency:Array<{currency:string;balance:number;count:number}>;asOf:string;scope:'all_active_current_bank_balances'};
+  comparison?: {basis:string;comparable:boolean;reason:string|null;lastMonthComparable?:boolean;yearAgoComparable?:boolean};
+  overdueBills?: DashboardSummary['overdueInvoices'];
+  org: { id: string; name: string; baseCurrency: string; country: string; crNumber?: string | null }
   kpi: {
+    netIncome?: number
     revenue: number
     purchases: number
     expenses: number
@@ -3042,10 +3091,10 @@ export interface DashboardSummary {
     expensesFromBills?: number
     expensesFromJournal?: number
   }
-  monthlyTrend: Array<{ month: string; revenue: number; expenses: number }>
-  yearlyTrend?: Array<{ year: number; revenue: number; expenses: number; net: number }>
-  cashFlowTrend: Array<{ month: string; in: number; out: number; net: number }>
-  profitLoss: Array<{ month: string; revenue: number; expenses: number; net: number }>
+  monthlyTrend: Array<DashboardTrendPoint & { month: string; revenue: number; expenses: number }>
+  yearlyTrend?: Array<DashboardTrendPoint & { year: number; revenue: number; expenses: number; net: number }>
+  cashFlowTrend: Array<DashboardTrendPoint & { month: string; in: number; out: number; net: number }>
+  profitLoss: Array<DashboardTrendPoint & { month: string; revenue: number; expenses: number; net: number }>
   expenseBreakdown: Array<{ category: string; total: number }>
   incomeBreakdown: Array<{ category: string; code: string; total: number }>
   overdueInvoices: Array<{
@@ -3056,6 +3105,7 @@ export interface DashboardSummary {
     remaining: number
     dueDate: string | null
     daysOverdue: number
+    currency?: string
   }>
   bankAccounts: Array<{
     id: string
@@ -3066,9 +3116,9 @@ export interface DashboardSummary {
     balance: number
   }>
   periodCompare: {
-    thisMonth: { revenue: number; expenses: number; net: number }
-    lastMonth: { revenue: number; expenses: number; net: number }
-    yearAgo?: { revenue: number; expenses: number; net: number }
+    thisMonth: DashboardComparisonPoint
+    lastMonth: DashboardComparisonPoint
+    yearAgo?: DashboardComparisonPoint
   }
 }
 

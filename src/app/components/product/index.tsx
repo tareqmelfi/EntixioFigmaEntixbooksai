@@ -1,3 +1,4 @@
+import { displayLocale } from "../../lib/number-display";
 import * as React from "react";
 import { Search } from "lucide-react";
 import { cn } from "../ui/utils";
@@ -136,7 +137,7 @@ export function Metric({ label, value, hint, tone = "neutral", icon, className, 
 /** Ledger figure: large integer part, small muted fraction. Digits/Latin only —
  *  never put Arabic text inside a figure value (it would render in the serif face). */
 export function LedgerFigure({ value, currency, locale }: { value: number; currency?: string; locale?: string }) {
-  const [int, frac] = Math.abs(value).toLocaleString(locale || "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split(".");
+  const [int, frac] = Math.abs(value).toLocaleString(displayLocale(locale || "en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split(".");
   return <>{value < 0 ? "-" : ""}{int}<small>.{frac}</small>{currency && <small className="ms-1 text-[0.45em] text-content-secondary">{currency}</small>}</>;
 }
 

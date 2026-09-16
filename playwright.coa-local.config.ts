@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test'
+export default defineConfig({ testDir: './tests', testMatch: ['coa-details.spec.ts', 'historical-statements.spec.ts', 'historical-save.spec.ts', 'dashboard-periods.spec.ts'], timeout: 60000, use: {baseURL: 'http://localhost:5376', viewport: {width:1440,height:1200}}, projects: [{name:'chromium',use:{browserName:'chromium'}}], webServer:{command:'./node_modules/.bin/vite --port 5376 --strictPort',url:'http://localhost:5376',reuseExistingServer:true}, reporter:'list' })
