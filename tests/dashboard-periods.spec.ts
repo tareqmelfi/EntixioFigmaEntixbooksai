@@ -128,11 +128,11 @@ test('optional private full dashboard previews are local and never post to produ
   await expect(page.getByTestId('historical-summary')).toContainText('2022');
   await page.evaluate(()=>{const banner=document.createElement('div');banner.textContent='معاينة محلية — القوائم القديمة من الملف؛ الدفاتر الحالية بلا بيانات متحققة — لم تُحفظ في الإنتاج';banner.style.cssText='padding:12px;background:#fff3cd;color:#664d03;text-align:center;position:relative;z-index:999';document.body.prepend(banner);});
   await expandPreviewForFullPage(page);
-  await page.screenshot({path:'/tmp/entix-five-colors-ui-20260916/historical-five-colors-dashboard-V04.png',fullPage:true});
+  await page.screenshot({path:'/tmp/entix-five-colors-ui-20260916/historical-five-colors-dashboard-V05.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await expect(page.getByTestId('flow-period')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
-  await page.screenshot({path:'/tmp/entix-five-colors-ui-20260916/historical-five-colors-dashboard-mobile-V04.png',fullPage:true});
+  await page.screenshot({path:'/tmp/entix-five-colors-ui-20260916/historical-five-colors-dashboard-mobile-V05.png',fullPage:true});
   await page.setViewportSize({width:1440,height:1200});
   await page.getByTestId('historical-summary').getByRole('button',{name:'توسيع الملخص'}).click();
   const latest=payload.periods.find((p:any)=>p.id==='2022');
@@ -141,7 +141,7 @@ test('optional private full dashboard previews are local and never post to produ
   await expect(page.getByText(payload.source.fileName,{exact:true})).toBeVisible();
   await expect(page.locator('body')).not.toContainText(/[\u0660-\u0669\u06f0-\u06f9]/);
   await expandPreviewForFullPage(page);
-  await page.screenshot({path:'/tmp/entix-five-colors-ui-20260916/historical-five-colors-saved-preview-V04.png',fullPage:true});
+  await page.screenshot({path:'/tmp/entix-five-colors-ui-20260916/historical-five-colors-saved-preview-V05.png',fullPage:true});
   expect(writes).toEqual([]);
 });
 
@@ -191,4 +191,59 @@ test('foreign in/out point aliases suppress cash chart values independently of c
   const cashCard=page.getByTestId('dashboard-charts-row').locator('[data-slot=card]').filter({has:page.getByRole('heading',{name:'التدفق النقدي',exact:true})});
   await expect(cashCard.locator('.recharts-wrapper')).toHaveCount(0);
   await expect(page.getByTestId('flow-kpis')).toContainText('900.00');
+});
+
+const noLedgerTrend=(data:ReturnType<typeof summary>)=>({...data,dataAvailability:{...availability,hasActivity:false},profitLoss:data.profitLoss.map(row=>({...row,dataAvailability:{...availability,hasActivity:false}})),yearlyTrend:data.yearlyTrend.map(row=>({...row,dataAvailability:{...availability,hasActivity:false}}))});
+
+test('saved historical periods appear directly without mixing with empty current books or splitting long periods',async({page})=>{
+  await setup(page,noLedgerTrend);
+  const source=structuredClone(historicalFixture);
+  source.periods[1].startDate='2020-09-06';source.periods[1].endDate='2021-12-31';
+  source.periods[1].metrics.revenue={value:110,pdfPage:5,printedPage:'2',status:'verified'};
+  source.periods[1].metrics.netProfit={value:15,pdfPage:5,printedPage:'2',status:'verified'};
+  const missing=structuredClone(source.periods[1]);missing.id='2023';missing.label='2023';missing.startDate='2023-01-01';missing.endDate='2023-12-31';
+  for(const metric of Object.values(missing.metrics)){metric.value=null;metric.status='unavailable';}
+  source.periods.push(missing);
+  await page.route('https://api.entix.io/api/historical-reports/latest**',route=>route.fulfill({json:{report:record(source)}}));
+  await page.reload();
+  const card=page.getByTestId('flow-profit-loss');
+  await expect(card.getByRole('button',{name:'القوائم السابقة',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(card.locator('.recharts-wrapper')).toHaveCount(1);
+  const values=page.getByTestId('historical-profit-values');
+  await expect(values).toContainText('2020-09-06');await expect(values).toContainText('2021-12-31');
+  await expect(values).toContainText('110.00');await expect(values).toContainText('15.00');
+  await expect(values).toContainText('25.00');await expect(values.locator('tbody tr')).toHaveCount(2);
+  await expect(card).toContainText('2023: غير متوفر');await expect(card).not.toContainText('%');
+  await expect(page.getByTestId('flow-kpis')).toContainText('لا توجد بيانات مسجلة للفترة');
+  await expect(page.getByTestId('flow-kpis')).not.toContainText('110.00');
+  await card.getByRole('button',{name:'سنوات ميلادية',exact:true}).click();
+  await expect(page.getByTestId('historical-profit-chart')).toHaveCount(0);
+  await card.getByRole('button',{name:'القوائم السابقة',exact:true}).click();
+  await card.getByRole('button',{name:'عرض القوائم ومصدر الأرقام',exact:true}).click();
+  await expect(page.getByText(source.source.fileName,{exact:true})).toBeVisible();
+});
+
+test('historical chart excludes unreviewed or null values and keeps missing years explicit',async({page})=>{
+  await setup(page,noLedgerTrend);
+  const source=structuredClone(historicalFixture);
+  source.periods[0].metrics.revenue.value=999;source.periods[0].metrics.revenue.status='needs_review';
+  source.periods[0].metrics.netProfit.value=null;source.periods[0].metrics.netProfit.status='unavailable';
+  await page.route('https://api.entix.io/api/historical-reports/latest**',route=>route.fulfill({json:{report:record(source)}}));
+  await page.reload();
+  await page.getByTestId('flow-profit-loss').getByRole('button',{name:'القوائم السابقة',exact:true}).click();
+  const chart=page.getByTestId('historical-profit-chart');
+  await expect(chart.locator('.recharts-wrapper')).toHaveCount(0);
+  await expect(chart).toContainText('2022: يحتاج مراجعة');
+  await expect(chart).not.toContainText('999');await expect(chart).not.toContainText('0.00');
+  await expect(chart).not.toContainText(/[\u0660-\u0669\u06f0-\u06f9]/);
+});
+
+test('historical mode has an honest empty state when no reference is saved',async({page})=>{
+  await setup(page,noLedgerTrend);
+  await page.route('https://api.entix.io/api/historical-reports/latest**',route=>route.fulfill({json:{report:null}}));
+  await page.reload();
+  const card=page.getByTestId('flow-profit-loss');
+  await card.getByRole('button',{name:'القوائم السابقة',exact:true}).click();
+  await expect(page.getByTestId('historical-profit-chart')).toContainText('لا توجد قوائم سابقة محفوظة');
+  await expect(card.locator('.recharts-wrapper')).toHaveCount(0);
 });

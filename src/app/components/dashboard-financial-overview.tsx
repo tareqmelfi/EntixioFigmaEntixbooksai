@@ -1,7 +1,8 @@
+import { HistoricalProfitChart, historicalProfitRows } from './historical-profit-chart';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import type { DashboardSummary, DashboardPeriodKey, DashboardOpenBalances } from '../lib/api';
+import type { DashboardSummary, DashboardPeriodKey, DashboardOpenBalances, HistoricalReportRecord } from '../lib/api';
 import { displayDigits, displayLocale } from '../lib/number-display';
 import { useLanguage } from './LanguageContext';
 import { Card } from './ui/card';
@@ -60,9 +61,12 @@ function OpenBalances({data,title,scope,href}: {data?:DashboardOpenBalances;titl
   </Panel>;
 }
 
-export function DashboardFinancialOverview({data,period,onPeriodChange}: {data:DashboardSummary;period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void}) {
+export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical}: {data:DashboardSummary;period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void}) {
   const {t,language}=useLanguage();
-  const [chartGrouping,setChartGrouping]=useState<'months'|'years'>('months');
+  const [requestedGrouping,setChartGrouping]=useState<'auto'|'months'|'years'|'history'>('auto');
+  const hasLedgerTrend=data.profitLoss.some(row=>row.dataAvailability?.hasActivity)||(data.yearlyTrend||[]).some(row=>row.dataAvailability?.hasActivity);
+  const hasHistoricalValues=historicalProfitRows(historicalRecord).some(row=>row.revenue!==null||row.net!==null);
+  const chartGrouping=requestedGrouping==='auto'?(hasHistoricalValues&&!hasLedgerTrend?'history':'months'):requestedGrouping;
   const cur=data.org.baseCurrency;
   const money=(value:number,currency=cur)=>`${number(value)} ${currency}`;
   const noData=t('لا توجد بيانات مسجلة للفترة','No recorded data for this period');
@@ -124,9 +128,9 @@ export function DashboardFinancialOverview({data,period,onPeriodChange}: {data:D
     <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
 
     <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3" data-testid="dashboard-primary-row">
-      <div className="min-w-0 lg:col-span-2"><Panel title={chartGrouping==='years'?t('الأرباح والخسائر · حسب السنة','Profit & Loss · by year'):t('الأرباح والخسائر · آخر 6 أشهر','Profit & Loss · last 6 months')} scope={chartDates(rawPl)} testId="flow-profit-loss">
-        <div className="flex flex-wrap gap-2 text-xs" role="group" aria-label={t('تجميع الرسم','Chart grouping')}><button className="rounded-full border border-border px-3 py-1" aria-pressed={chartGrouping==='months'} onClick={()=>setChartGrouping('months')}>{t('شهري','Monthly')}</button><button className="rounded-full border border-border px-3 py-1" aria-pressed={chartGrouping==='years'} onClick={()=>setChartGrouping('years')}>{t('سنوات ميلادية','Calendar years')}</button></div>
-        <div dir="ltr" className="h-[120px] md:h-[150px] xl:h-[190px]">{!usable(seriesRows,['revenue','net'])?trendEmpty:<ResponsiveContainer width="100%" height="100%"><BarChart data={seriesRows} margin={{top:4,right:0,left:0,bottom:0}} barGap={4} barCategoryGap="26%"><CartesianGrid stroke="var(--surface-hover)" vertical={false}/><XAxis dataKey="label" tick={{fontSize:11}} tickLine={false} axisLine={{stroke:'var(--border)'}}/><Tooltip {...tooltip}/><Bar dataKey="revenue" name={t('الإيرادات','Revenue')} fill="var(--chart-5)" radius={[4,4,0,0]} maxBarSize={42}/><Bar dataKey="net" name={t('الربح','Profit')} fill="var(--chart-1)" radius={[4,4,0,0]} maxBarSize={42}>{seriesRows.map((row,index)=><Cell key={index} fill={row.net!==null&&row.net<0?'var(--danger)':'var(--chart-1)'}/>)}</Bar></BarChart></ResponsiveContainer>}</div>
+      <div className="min-w-0 lg:col-span-2"><Panel title={chartGrouping==='history'?t('الأرباح والخسائر · القوائم السابقة','Profit & Loss · prior statements'):chartGrouping==='years'?t('الأرباح والخسائر · حسب السنة','Profit & Loss · by year'):t('الأرباح والخسائر · آخر 6 أشهر','Profit & Loss · last 6 months')} scope={chartGrouping==='history'?t('مرجع محفوظ مستقل عن دفاتر الفترة الحالية','Saved reference separate from current-period books'):chartDates(rawPl)} testId="flow-profit-loss">
+        <div className="flex flex-wrap gap-2 text-xs" role="group" aria-label={t('تجميع الرسم','Chart grouping')}><button className="rounded-full border border-border px-3 py-1" aria-pressed={chartGrouping==='months'} onClick={()=>setChartGrouping('months')}>{t('شهري','Monthly')}</button><button className="rounded-full border border-border px-3 py-1" aria-pressed={chartGrouping==='years'} onClick={()=>setChartGrouping('years')}>{t('سنوات ميلادية','Calendar years')}</button><button className="rounded-full border border-border px-3 py-1" aria-pressed={chartGrouping==='history'} onClick={()=>setChartGrouping('history')}>{t('القوائم السابقة','Prior statements')}</button></div>
+        {chartGrouping==='history'?<HistoricalProfitChart record={historicalRecord} loading={historicalLoading} error={historicalError} onOpen={onOpenHistorical}/>:<div dir="ltr" className="h-[120px] md:h-[150px] xl:h-[190px]">{!usable(seriesRows,['revenue','net'])?trendEmpty:<ResponsiveContainer width="100%" height="100%"><BarChart data={seriesRows} margin={{top:4,right:0,left:0,bottom:0}} barGap={4} barCategoryGap="26%"><CartesianGrid stroke="var(--surface-hover)" vertical={false}/><XAxis dataKey="label" tick={{fontSize:11}} tickLine={false} axisLine={{stroke:'var(--border)'}}/><Tooltip {...tooltip}/><Bar dataKey="revenue" name={t('الإيرادات','Revenue')} fill="var(--chart-5)" radius={[4,4,0,0]} maxBarSize={42}/><Bar dataKey="net" name={t('الربح','Profit')} fill="var(--chart-1)" radius={[4,4,0,0]} maxBarSize={42}>{seriesRows.map((row,index)=><Cell key={index} fill={row.net!==null&&row.net<0?'var(--danger)':'var(--chart-1)'}/>)}</Bar></BarChart></ResponsiveContainer>}</div>}
         <ChartLegend items={[{label:t('الإيرادات','Revenue'),color:'var(--chart-5)'},{label:t('الربح','Profit'),color:'var(--chart-1)'},{label:t('خسارة','Loss'),color:'var(--danger)'}]}/>
       </Panel></div>
       <Panel title={t('متابعة الحسابات','Account follow-up')} scope={`${t('حتى','As of')} ${date(data.currentTotalsScope?.asOfDate)}`} testId="current-followup">

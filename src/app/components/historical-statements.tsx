@@ -21,6 +21,8 @@ export function HistoricalStatements({ org, onClose, access }: { org: Historical
     periods: sourceFile.periods.map(period => ({ ...period, label: displayDigits(period.label), comparabilityNote: displayDigits(period.comparabilityNote), metrics: Object.fromEntries(HISTORICAL_METRICS.map(key => [key, { ...period.metrics[key], printedPage: period.metrics[key].printedPage === null ? null : displayDigits(period.metrics[key].printedPage!) }])) as typeof period.metrics })),
   } : null, [sourceFile]);
   const [periodId, setPeriodId] = useState('');
+  const [pastedData, setPastedData] = useState('');
+  const [pasteOpen, setPasteOpen] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState('');
@@ -32,7 +34,7 @@ export function HistoricalStatements({ org, onClose, access }: { org: Historical
     setFile(next); setPeriodId(latest.id);
   };
   const request = useRef(0);
-  useEffect(() => { request.current++; setFile(null); setPeriodId(''); setError(''); setSavedNotice(''); setSaving(false); localDraft.current = false; rawPayload.current = null; setDraft(false); return () => { request.current++; }; }, [org.id, org.crNumber, org.country, org.baseCurrency]);
+  useEffect(() => { request.current++; setFile(null); setPastedData(''); setPasteOpen(false); setPeriodId(''); setError(''); setSavedNotice(''); setSaving(false); localDraft.current = false; rawPayload.current = null; setDraft(false); return () => { request.current++; }; }, [org.id, org.crNumber, org.country, org.baseCurrency]);
   useEffect(() => {
     if (access?.record && !localDraft.current) {
       selectLatest(parseHistoricalStatements(JSON.stringify(access.record.payload), org));
@@ -95,6 +97,13 @@ export function HistoricalStatements({ org, onClose, access }: { org: Historical
         {!access.canSave && <p className="text-xs text-muted-foreground">{t('حفظ النسخ متاح للمالك أو المسؤول بصلاحية مؤكدة.', 'Saving versions requires a verified owner or administrator role.')}</p>}
       </>}
       <label className="block text-sm font-medium">{t('اختيار ملف القوائم التاريخية JSON', 'Choose historical statements JSON')}<input type="file" disabled={saving} accept=".json,application/json" className="mt-2 block max-w-full text-sm" onChange={e => { void loadFile(e.target.files?.[0]); e.target.value = ''; }} /></label>
+      <div className="text-sm">
+        <button type="button" aria-expanded={pasteOpen} className="cursor-pointer text-xs text-muted-foreground" onClick={() => setPasteOpen(open => !open)}>{t('لصق بيانات القوائم', 'Paste statement data')}</button>
+        {pasteOpen && <>
+        <label className="mt-3 block text-xs">{t('بيانات القوائم JSON', 'Statement JSON data')}<textarea aria-label={t('بيانات القوائم JSON', 'Statement JSON data')} value={pastedData} onChange={event => setPastedData(event.target.value)} disabled={saving} className="mt-2 block min-h-28 w-full rounded border border-border bg-background p-2 font-mono text-xs" dir="ltr" /></label>
+        <Button size="sm" variant="outline" className="mt-2" disabled={saving || !pastedData.trim()} onClick={() => { void loadFile(new File([pastedData], 'historical-statements.json', { type: 'application/json' })); }}>{t('معاينة البيانات الملصقة', 'Preview pasted data')}</Button>
+        </>}
+      </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {savedNotice && <p role="status" className="text-sm text-success">{savedNotice}</p>}
     </CardContent></Card>

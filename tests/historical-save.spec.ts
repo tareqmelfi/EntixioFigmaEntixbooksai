@@ -130,3 +130,23 @@ test('dashboard historical figures show known values and label unavailable or un
   await expect(card).toContainText('غير متوفر');
   await expect(card).not.toContainText(/[\u0660-\u0669\u06f0-\u06f9]/);
 });
+
+
+test('pasted history validates identity and requires explicit save without changing payload',async({page})=>{
+  const posted=await setup(page);
+  await page.getByRole('button',{name:'عرض القوائم التاريخية',exact:true}).click();
+  await page.getByText('لصق بيانات القوائم',{exact:true}).click();
+  const input=page.getByLabel('بيانات القوائم JSON',{exact:true});
+  const wrong=structuredClone(historicalFixture);wrong.entity.crNumber='WRONG-COMPANY';
+  await input.fill(JSON.stringify(wrong));
+  await page.getByRole('button',{name:'معاينة البيانات الملصقة',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('لا يطابق سجل الشركة');
+  await expect(page.getByRole('button',{name:'حفظ القوائم للشركة',exact:true})).toBeDisabled();
+  await input.fill(JSON.stringify(historicalFixture));
+  await page.getByRole('button',{name:'معاينة البيانات الملصقة',exact:true}).click();
+  await expect(page.getByText('synthetic-statements.pdf',{exact:true})).toBeVisible();
+  expect(posted).toEqual([]);
+  await page.getByRole('button',{name:'حفظ القوائم للشركة',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('حُفظت نسخة جديدة');
+  expect(posted).toEqual([{payload:historicalFixture,supersedesId:'r1'}]);
+});
