@@ -64,21 +64,23 @@ export function ReportView() {
   const { id = "income-statement" } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [from, setFrom] = useState(searchParams.get("from") || yearStartIso());
+  const [from, setFrom] = useState(searchParams.get("from") || (searchParams.get("allTime") === "1" ? "" : yearStartIso()));
   const [to, setTo] = useState(searchParams.get("to") || todayIso());
   // Comparative layout (user ask 2026-08-19 — Apple-style year-over-year):
   // toggle sends compareTo = the day before the current window starts.
+  const allTime = !from && searchParams.get("allTime") === "1";
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
   // B1 · branch scope ("" = all · "none" = unassigned · id)
   const [branchId, setBranchId] = useState(searchParams.get("branchId") || "");
   const [contactId] = useState(searchParams.get("contactId") || "");
   const [projectId, setProjectId] = useState(searchParams.get("projectId") || "");
   const compareTo = useMemo(() => {
-    if (!compare) return undefined;
+    if (!compare || allTime) return undefined;
     const start = new Date(from);
     if (Number.isNaN(start.getTime())) return undefined;
     return new Date(start.getTime() - 86400000).toISOString().slice(0, 10);
-  }, [compare, from]);
+  }, [compare, from, allTime]);
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [selectedRow, setSelectedRow] = useState<ReportRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,19 +89,15 @@ export function ReportView() {
   // user ask 2026-08-19: «Reports should load with all account categories
   // expanded by default for immediate visibility»). «ملخص» collapses the
   // per-account detail sections; the choice persists.
-  const [detailMode, setDetailMode] = useState<"summary" | "full">(() => {
-    if (typeof window === "undefined") return "full";
-    const stored = window.localStorage.getItem(VIEW_MODE_KEY);
-    return stored === "summary" ? "summary" : "full";
-  });
+  const [detailMode, setDetailMode] = useState<"summary" | "full">("full");
   const changeDetailMode = (mode: "summary" | "full") => {
     setDetailMode(mode);
     try { window.localStorage.setItem(VIEW_MODE_KEY, mode); } catch { /* private mode */ }
   };
 
   useEffect(() => {
-    setSearchParams({ from, to, ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
-  }, [from, to, branchId, projectId, contactId, setSearchParams]);
+    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
+  }, [from, to, allTime, branchId, projectId, contactId, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -108,7 +106,7 @@ export function ReportView() {
       setError(null);
       try {
         // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
-        const data = await api.reports.get(id, { from, to, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
+        const data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
         if (alive) {
           setReport(data);
           setSelectedRow(null);
@@ -122,7 +120,7 @@ export function ReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, compareTo, branchId, projectId, contactId]);
+  }, [id, from, to, allTime, compareTo, branchId, projectId, contactId, refreshVersion]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -133,7 +131,7 @@ export function ReportView() {
     return { ...report, sections: report.sections.filter((s) => !isDetailSection(s.id)) };
   }, [report, detailMode, hasDetailSections]);
 
-  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printHref = `/app/reports/${id}/print?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
 
   const exportCsv = () => {
     if (!report) return;
@@ -180,7 +178,7 @@ export function ReportView() {
               )}
             </Button>
           )}
-          <Button variant="outline" onClick={() => report && api.reports.get(id, { from, to, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined }).then(setReport)}>
+          <Button variant="outline" onClick={() => setRefreshVersion(value => value + 1)}>
             <RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}
           </Button>
           {/* One compact export control — formats live inside the menu (no
@@ -193,7 +191,7 @@ export function ReportView() {
       <Card className="border-border">
         <CardContent className="grid gap-3 p-4 sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto_auto] [&>*]:min-w-0">
           <label className="space-y-1 text-sm text-foreground/80">
-            <span className="font-semibold">{t("من تاريخ", "From date")}</span>
+            <span className="font-semibold">{allTime ? t("كل الفترات المسجلة", "All recorded periods") : t("من تاريخ", "From date")}</span>
             <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
           </label>
           <label className="space-y-1 text-sm text-foreground/80">
@@ -204,18 +202,20 @@ export function ReportView() {
           <ProjectFilter value={projectId} onChange={setProjectId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
           <button
             type="button"
+            disabled={allTime}
             onClick={() => setCompare((v) => !v)}
             className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${compare ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-foreground/80 hover:bg-muted"}`}
-            title={t("قارن بنفس الفترة من العام الماضي (مثل قوائم آبل)", "Compare to the same window last year (Apple-style)")}
+            title={t("قارن بالفترة السابقة وفق نطاق التقرير", "Compare against the preceding report period")}
           >
-            {t("مقارنة سنوية", "Compare YoY")}
+            {t("مقارنة بالفترة السابقة", "Compare previous period")}
           </button>
           <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
-            {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{report?.status === "live" ? t("مباشر", "Live") : t("فارغ", "Empty")}</span>
+            {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{loading ? t("جارٍ التحميل", "Loading") : report?.dataBasis?.status === "unavailable" ? t("غير متاح من البيانات المسجلة", "Unavailable from recorded data") : report?.dataBasis?.status === "no_activity" ? t("لا توجد بيانات مسجلة للفترة", "No recorded data for this period") : report?.dataBasis?.status === "available" ? t("بحسب البيانات المسجلة", "Based on recorded data") : report?.status === "live" ? t("بحسب البيانات المتاحة", "Based on available data") : t("فارغ", "Empty")}</span>
           </div>
         </CardContent>
       </Card>
 
+      {report?.comparePeriod && <p className="text-xs text-content-secondary">{t("فترة المقارنة:", "Comparison period:")} <bdi>{report.comparePeriod.from} — {report.comparePeriod.to}</bdi></p>}
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {loading ? (

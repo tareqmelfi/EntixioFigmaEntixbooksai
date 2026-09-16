@@ -73,7 +73,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const nameAr = report.org.name || report.org.legalName || "";
   const nameEn = (report.org as any).legalName && (report.org as any).legalName !== report.org.name ? (report.org as any).legalName : "";
   const currencyLine = report.sections.some(s => s.columns.some(c => c.key === "currency")) ? t("(المبالغ حسب عملة كل صف · غير مدققة)", "(Amounts in each row’s currency · unaudited)") : t(`(المبالغ بـ ${report.currency} · غير مدققة)`, `(In ${report.currency} · unaudited)`);
-  const periodLine = `${report.period.from} → ${report.period.to}`;
+  const periodLine = `${report.period.allTime ? (isEn ? "All recorded periods" : "كل الفترات المسجلة") : report.period.from ?? "—"} → ${report.period.to}`;
   const taxLine = resolved.showTaxInfo ? [report.org.vatNumber ? `${t("الرقم الضريبي", "VAT")} ${report.org.vatNumber}` : null, report.org.crNumber ? `${t("س.ت", "CR")} ${report.org.crNumber}` : null].filter(Boolean).join(" · ") : "";
   const companyLine = resolved.showCompanyInfo ? [report.org.addressLine, report.org.city, report.org.phone, report.org.email].filter(Boolean).join(" · ") : "";
   const year = new Date(report.generatedAt || Date.now()).getFullYear();

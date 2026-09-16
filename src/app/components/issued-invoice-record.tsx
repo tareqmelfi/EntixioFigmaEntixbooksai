@@ -1,6 +1,8 @@
 import { InvoiceDocuments } from './invoice-documents';
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { authStore } from './auth-store';
 import type { DocumentSendRecord, Invoice } from '../lib/api';
 import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
@@ -18,6 +20,8 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
   sendLogRefreshKey?: number;
 }) {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
+  const canCorrect = authStore.getState().user?.role === 'admin';
   const [refreshing, setRefreshing] = useState(false);
   const stripeManaged = (invoice as any).paymentLinkProvider === 'stripe-subscription';
   const delivery = invoice.zatcaDelivery;
@@ -33,6 +37,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
     subtitle={invoice.contact?.displayName || ''} onClose={onClose}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button variant="outline" onClick={onClose}>{t('رجوع', 'Back')}</Button>
+      {canCorrect && !stripeManaged && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={() => navigate(`/app/credit-notes?correctInvoice=${encodeURIComponent(invoice.id)}`)}>{t('تصحيح الفاتورة', 'Correct invoice')}</Button>}
       {!stripeManaged && remaining > 0 && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={onPayment}>{t('تسجيل تحصيل', 'Record receipt')}</Button>}
       <Button disabled={!canRelease} onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank', 'noopener,noreferrer')}>{t('طباعة / تنزيل', 'Print / download')}</Button>
       {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}

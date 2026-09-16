@@ -1,3 +1,4 @@
+import { displayLocale } from "../lib/number-display";
 /**
  * SendLogSection · «سجل الإرسال»
  *
@@ -59,7 +60,7 @@ export function SendLogSection({ entityType, entityId, refreshKey, onResend }: P
   const fmtDate = (iso: string | null) => {
     if (!iso) return "—";
     try {
-      return new Date(iso).toLocaleString(language === "ar" ? "ar-SA" : "en-US", { dateStyle: "medium", timeStyle: "short" });
+      return new Date(iso).toLocaleString(displayLocale(language === "ar" ? "ar-SA" : "en-US"), { dateStyle: "medium", timeStyle: "short" });
     } catch { return iso; }
   };
 

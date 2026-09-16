@@ -1,8 +1,7 @@
 /**
  * Digit normalization · Arabic-Indic ↔ Western
  *
- * Storage and API values always use 0-9. Display also defaults to 0-9;
- * users may explicitly opt into Arabic-Indic digits in language settings.
+ * Storage, API values, display and printing always use 0-9 in every language.
  *
  * Inputs from Mac/iOS Arabic keyboard often produce ٠١٢٣٤٥٦٧٨٩ instead of 0-9.
  * Eastern Arabic-Indic (used in Persian/Urdu): ۰۱۲۳۴۵۶۷۸۹ (also normalized).
@@ -28,17 +27,6 @@ export function normalizeDigits(input: string): string {
     const ea = EXTENDED_ARABIC.indexOf(ch);
     if (ea >= 0) { out += WESTERN[ea]; continue; }
     out += ch;
-  }
-  return out;
-}
-
-/** Western → Arabic-Indic · for display only when explicitly needed (e.g. legal docs). */
-export function toArabicDigits(input: string): string {
-  if (!input) return input;
-  let out = "";
-  for (const ch of input) {
-    const w = WESTERN.indexOf(ch);
-    out += w >= 0 ? ARABIC_INDIC[w] : ch;
   }
   return out;
 }

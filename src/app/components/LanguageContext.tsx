@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { parsePublicPath } from "../public-site-manifest";
 import { authStore } from "./auth-store";
-import { getNumberingSystem, setNumberingSystem, NUMBERING_EVENT, NUMBERING_STORAGE_KEY, type NumberingSystem } from "../lib/number-display";
+import { displayDigits, getNumberingSystem, setNumberingSystem, NUMBERING_EVENT, NUMBERING_STORAGE_KEY, type NumberingSystem } from "../lib/number-display";
 import {
   accountLocale,
   applyDocumentLocale,
@@ -88,8 +88,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [language, setLanguage]);
 
   const t = (ar: string, en?: string): string => {
-    if (language === "en") return en || "";
-    return ar || en || "";
+    if (language === "en") return displayDigits(en || "");
+    return displayDigits(ar || en || "");
   };
 
   return (
@@ -119,6 +119,6 @@ export function useLanguageSafe(): LanguageContextType {
     setNumberingSystem,
     setLanguage: () => {},
     toggleLanguage: () => {},
-    t: (_ar: string, en?: string) => en ?? _ar,
+    t: (_ar: string, en?: string) => displayDigits(en ?? _ar),
   };
 }

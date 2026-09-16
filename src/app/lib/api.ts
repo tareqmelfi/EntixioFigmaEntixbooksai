@@ -1,3 +1,4 @@
+import type { HistoricalStatements } from './historical-statements'
 /**
  * Entix Books · API client
  *
@@ -8,8 +9,16 @@
  *  - JSON serialization
  *  - Error envelope normalization
  */
+import { humanizeZodIssues } from './validation-message'
 import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
+import type { DocPage, DocTheme, ThemePreset, HeaderStyle, PaymentPlanStyle, ClosingFact } from './document-render'
+
+export interface HistoricalReportRecord {
+  id: string; scope: 'unconsolidated' | 'consolidated'; version: number;
+  periodStart: string; periodEnd: string; contentSha256: string; sourceSha256: string;
+  createdAt: string; supersedesId: string | null; payload: HistoricalStatements;
+}
 
 export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
 
@@ -78,12 +87,12 @@ if (typeof localStorage !== 'undefined') {
  * iframes with a fresh JS context): explicitly adopt the stored org id.
  * Safe because the API's requireOrg middleware verifies membership on every
  * org-scoped call — a stale id can never leak another user's data, it just
- * 403s/404s. Callers should still retry across memberships on failure (the
- * stored org may not be the document's org).
+ * 403s/404s. Print contexts must never persist their temporary organization
+ * selection: same-origin preview frames share sessionStorage with their parent.
  */
 export function bootstrapOrgIdFromStorage(): string | null {
   const stored = readTabOrgId()
-  if (stored) setOrgId(stored)
+  if (stored) setOrgId(stored, false)
   return stored
 }
 
@@ -231,8 +240,13 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
         message = 'تعذّر الوصول إلى الخدمة المطلوبة — تحقق أن النظام محدّث.'
       }
       // Zod validation: { success: false, error: { issues: [{path, message}, ...] } }
+      // Humanised (CEO 2026-09-14): the raw `lines.8.unitPrice Number must be greater than or
+      // equal to 0` told the person filling the form nothing — it now names the row the way the
+      // screen numbers it and the field the way the screen labels it, in both languages.
       if (Array.isArray(d?.error?.issues)) {
-        message = d.error.issues.map((i: any) => `${(i.path || []).join('.')} ${i.message}`).join(' · ')
+        const human = humanizeZodIssues(d.error.issues)
+        message = human.en
+        messageAr = human.ar
         code = 'validation_failed'
       }
       if (typeof d.messageAr === 'string') messageAr = d.messageAr
@@ -790,7 +804,7 @@ export const api = {
       request<{ ok: true; rows: Array<{ code: string; name: string; nameAr?: string; type?: string | null; parentCode?: string | null; description?: string | null; confidence?: number | null }>; warnings?: string[]; model?: string }>('/api/accounts/import/analyze', { method: 'POST', body: data }),
     /** Smart import (2026-09-08) · deterministic xlsx/csv/tsv/json parsing · see smartImport below */
     smartImport: smartImportClient('accounts'),
-    transactions: (id: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions`),
+    transactions: (id: string, cursor?: string) => request<AccountTransactions>(`/api/accounts/${id}/transactions${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`),
     translate: (input: string, hint?: string) =>
       request<{ name: string; nameAr: string; type: 'ASSET'|'LIABILITY'|'EQUITY'|'REVENUE'|'EXPENSE'; category?: string; reasoning?: string; suggestedCode?: string }>(
         '/api/accounts/translate', { method: 'POST', body: { input, hint } },
@@ -910,6 +924,28 @@ export const api = {
       if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'import_failed', undefined, { body: data })
       return data as { estimate: Estimate; imported: number; fileName: string; warnings: string[] }
     },
+    /** File-first intake (CEO 2026-09-13) · multipart · the server CREATES a DRAFT from a BOQ Excel /
+     *  quotation PDF / image (title · client · lines inferred) — no saved estimate or title needed first.
+     *  Errors (ApiError.message is user-readable Arabic): file_required · file_too_large ·
+     *  unsupported_format (415) · invalid_file · no_boq_found (422 · carries warnings) · ai_disabled / no_key (503). */
+    importFile: async (file: File, opts?: { title?: string; contactId?: string; currency?: string }) => {
+      const form = new FormData()
+      form.append('file', file)
+      if (opts?.title) form.append('title', opts.title)
+      if (opts?.contactId) form.append('contactId', opts.contactId)
+      if (opts?.currency) form.append('currency', opts.currency)
+      const headers: Record<string, string> = {}
+      const oid = getOrgId()
+      if (oid) headers['X-Org-Id'] = oid
+      try {
+        const raw = localStorage.getItem('entix_act_as')
+        if (raw) { const v = JSON.parse(raw); if (v?.orgId === getOrgId() && v.until > Date.now()) { headers['X-Org-Id'] = v.orgId; headers['X-Admin-Org-Id'] = v.orgId } }
+      } catch { /* ignore */ }
+      const res = await fetch(`${API_BASE}/api/estimates/import-file`, { method: 'POST', headers, body: form, credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new ApiError(res.status, (data as any)?.message || (data as any)?.error || 'import_failed', undefined, { code: (data as any)?.error || (data as any)?.code, body: data })
+      return data as EstimateImportFileResult
+    },
     /** clone as V(n+1) DRAFT — the only way to change a converted estimate */
     newVersion: (id: string) => request<Estimate>(`/api/estimates/${id}/new-version`, { method: 'POST' }),
   },
@@ -928,7 +964,7 @@ export const api = {
 
   // Dashboard — real org-scoped numbers
   dashboard: {
-    summary: () => request<DashboardSummary>('/api/dashboard/summary'),
+    summary: (period: DashboardPeriodKey = 'fiscal_ytd') => request<DashboardSummary>(`/api/dashboard/summary?period=${encodeURIComponent(period)}`),
     sales: () => request<SalesDashboard>('/api/dashboard/sales'),
     purchases: () => request<PurchasesDashboard>('/api/dashboard/purchases'),
   },
@@ -947,9 +983,14 @@ export const api = {
     ) => request<{ ok: true; row: TaxReturnWithholdingRow }>(`/api/tax-return/withholding/${voucherId}`, { method: 'PATCH', body: data }),
   },
 
+  historicalReports: {
+    latest: (scope: 'unconsolidated' | 'consolidated' = 'unconsolidated') => request<{ report: HistoricalReportRecord | null }>('/api/historical-reports/latest', { query: { scope } }),
+    create: (payload: HistoricalStatements, supersedesId?: string) => request<{ report: HistoricalReportRecord; duplicate: boolean }>('/api/historical-reports', { method: 'POST', body: { payload, ...(supersedesId ? { supersedesId } : {}) } }),
+  },
+
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; bilingual?: 1 }) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; allTime?: 1; bilingual?: 1 }) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params }),
   },
 
@@ -1085,18 +1126,25 @@ export const api = {
   // Document templates (print layouts for invoices / quotes / vouchers / notes)
   documentTemplates: {
     list: (params?: { type?: string; kind?: 'QUOTE' | 'INVOICE' }) =>
-      request<{ items: any[]; total: number }>('/api/document-templates', { query: params }),
-    /** Org default template per document kind (BOTH-kind templates count for both) */
-    defaults: () => request<{ QUOTE: any | null; INVOICE: any | null }>('/api/document-templates/defaults'),
+      request<{ items: DocumentTemplate[]; total: number }>('/api/document-templates', { query: params }),
+    /** Org default template per document kind (BOTH-kind templates count for both) ·
+     *  `identityTier` (2026-09-14) gates the premium identity controls in the designer */
+    defaults: () => request<{ QUOTE: DocumentTemplate | null; INVOICE: DocumentTemplate | null; identityTier?: IdentityTier }>('/api/document-templates/defaults'),
     /** Server-rendered print HTML (same engine as the web print views) */
     render: (kind: 'QUOTE' | 'INVOICE', docId: string, params?: { templateId?: string | null; lang?: 'ar' | 'en'; actions?: 0 | 1 }) =>
       request<string>(`/api/document-templates/render/${kind}/${docId}`, { query: params as any }),
-    get: (id: string) => request<any>(`/api/document-templates/${id}`),
-    create: (data: any) => request<any>('/api/document-templates', { method: 'POST', body: data }),
-    update: (id: string, data: any) => request<any>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
+    get: (id: string) => request<DocumentTemplate>(`/api/document-templates/${id}`),
+    create: (data: DocumentTemplatePayload) => request<DocumentTemplate>('/api/document-templates', { method: 'POST', body: data }),
+    /** 422 `plan_required` → the org's plan does not include the premium identity fields sent */
+    update: (id: string, data: DocumentTemplatePayload) => request<DocumentTemplate>(`/api/document-templates/${id}`, { method: 'PATCH', body: data }),
     setDefault: (id: string) => request<any>(`/api/document-templates/${id}/set-default`, { method: 'POST' }),
     duplicate: (id: string) => request<any>(`/api/document-templates/${id}/duplicate`, { method: 'POST' }),
     remove: (id: string) => request<void>(`/api/document-templates/${id}`, { method: 'DELETE' }),
+    /** Preview which template a draft would use — explicit override → auto-routed match → org default */
+    resolve: (kind: 'QUOTE' | 'INVOICE', lines: Array<{ description?: string | null; productId?: string | null }>, templateId?: string | null) =>
+      request<{ templateId: string | null; templateName: string | null; reason: 'explicit' | 'auto' | 'default' | 'none' }>(
+        '/api/document-templates/resolve', { method: 'POST', body: { kind, lines, templateId } },
+      ),
   },
 
   fixedAssets: {
@@ -1853,11 +1901,14 @@ export const api = {
     inviteInfo: (token: string) => request<{ email: string; role: { key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; accepted: boolean; expired: boolean }>(`/api/admin/invites/${token}`, { skipOrg: true }),
     acceptInvite: (token: string) => request<{ ok: true; role: { key: string; nameAr: string; nameEn: string } }>(`/api/admin/invites/${token}/accept`, { method: 'POST', body: {}, skipOrg: true }),
     // tickets (existing API · W37) — used by the company inbox
-    tickets: (params?: { status?: string; orgId?: string }) => request<{ tickets: AdminTicketRow[] }>('/api/admin/tickets', { query: params, skipOrg: true }),
+    tickets: (params?: { status?: string; orgId?: string; channel?: string; category?: string; needsHuman?: string }) => request<{ tickets: AdminTicketRow[] }>('/api/admin/tickets', { query: params, skipOrg: true }),
     ticket: (id: string) => request<{ ticket: AdminTicketDetail }>(`/api/admin/tickets/${id}`, { skipOrg: true }),
     createTicket: (body: { orgId?: string; subject: string; priority?: string; message?: string }) => request<AdminTicketRow>('/api/admin/tickets', { method: 'POST', body, skipOrg: true }),
     updateTicket: (id: string, body: { status?: string; priority?: string; assignedAgentEmail?: string | null }) => request<AdminTicketRow>(`/api/admin/tickets/${id}`, { method: 'PATCH', body, skipOrg: true }),
-    replyTicket: (id: string, body: string) => request<{ ok: true }>(`/api/admin/tickets/${id}/messages`, { method: 'POST', body: { body }, skipOrg: true }),
+    // 2026-09-14 · the response carries `delivery` so the console can say whether
+    // the WhatsApp push actually left (a saved-but-undelivered reply is a bug the
+    // CEO must see, not a silent success).
+    replyTicket: (id: string, body: string) => request<{ message: { id: string }; delivery: { sent: boolean; reason?: string } }>(`/api/admin/tickets/${id}/messages`, { method: 'POST', body: { body }, skipOrg: true }),
     updateOrg: (orgId: string, data: { name?: string; legalName?: string | null; country?: string; baseCurrency?: string; industry?: string | null; suspended?: boolean; reason?: string | null }) =>
       request<AdminOrgRecord>(`/api/admin/orgs/${orgId}`, { method: 'PATCH', body: data, skipOrg: true }),
     deleteOrg: (orgId: string, reason: string) => request<{ ok: true; deletedAt: string; restoreUntil: string; graceDays: number }>(`/api/admin/orgs/${orgId}`, { method: 'DELETE', body: { reason }, skipOrg: true }),
@@ -1914,6 +1965,52 @@ export const api = {
         '/api/plaid/exchange', { method: 'POST', body: data },
       ),
   },
+
+  // ── External sheet sources + pipeline boards (SPEC-06 · M1) ────────────────
+  // Google Sheets → normalized rows → boards (/app/boards/:id) + branded public
+  // page (/b/:token). All org-scoped under /api/ext-sources · public read under
+  // /api/public/boards · brand theme lives next to the org (/orgs/:id/brand-theme).
+  extSources: {
+    list: () => request<{ sources: ExtSource[] }>('/api/ext-sources'),
+    templates: () => request<{ templates: ExtTemplate[]; serviceAccountEmail: string | null }>('/api/ext-sources/templates'),
+    validate: (spreadsheetUrlOrId: string) =>
+      request<ExtValidateResult>('/api/ext-sources/validate', { method: 'POST', body: { spreadsheetUrlOrId } }),
+    preview: (data: { spreadsheetId: string; sheetTitle: string; headerRow?: number; templateCode: string; mapping?: ExtMapping }) =>
+      request<ExtPreviewResult>('/api/ext-sources/preview', { method: 'POST', body: data }),
+    create: (data: { name: string; spreadsheetId: string; sheetTitle: string; headerRow?: number; range?: string; templateCode: string; mapping: ExtMapping; pollIntervalMin?: number }) =>
+      request<{ source: ExtSource; run: ExtSourceRun | null }>('/api/ext-sources', { method: 'POST', body: data }),
+    update: (id: string, data: { name?: string; range?: string | null; headerRow?: number; mapping?: ExtMapping; pollIntervalMin?: number; status?: 'ACTIVE' | 'PAUSED' }) =>
+      request<{ source: ExtSource }>(`/api/ext-sources/${id}`, { method: 'PATCH', body: data }),
+    remove: (id: string) => request<{ ok: true }>(`/api/ext-sources/${id}`, { method: 'DELETE' }),
+    sync: (id: string) => request<{ run: ExtSourceRun }>(`/api/ext-sources/${id}/sync`, { method: 'POST' }),
+    webhookSecret: (id: string) =>
+      request<{ secret: string; webhookUrl: string; appsScript: string }>(`/api/ext-sources/${id}/webhook-secret`, { method: 'POST' }),
+    disableWebhook: (id: string) => request<{ ok: true }>(`/api/ext-sources/${id}/webhook-secret`, { method: 'DELETE' }),
+    rows: (id: string, query?: { status?: string; from?: string; to?: string; q?: string; page?: number; pageSize?: number }) =>
+      request<ExtRowsResponse>(`/api/ext-sources/${id}/rows`, { query }),
+    runs: (id: string) => request<{ runs: ExtSourceRun[] }>(`/api/ext-sources/${id}/runs`),
+    exportCsvUrl: (id: string) => `${API_BASE}/api/ext-sources/${id}/export.csv`,
+    /** CSV needs the X-Org-Id header → fetched as a blob (same pattern as the admin audit export) */
+    exportCsv: async (id: string): Promise<Blob> => {
+      const headers: Record<string, string> = {}
+      const oid = getOrgId()
+      if (oid) headers['X-Org-Id'] = oid
+      const res = await fetch(`${API_BASE}/api/ext-sources/${id}/export.csv`, { credentials: 'include', headers })
+      if (!res.ok) throw new ApiError(res.status, 'export_failed', undefined, { code: 'export_failed' })
+      return res.blob()
+    },
+    shares: (id: string) => request<{ shares: ExtShare[] }>(`/api/ext-sources/${id}/shares`),
+    createShare: (id: string, data: { label?: string; expiresAt?: string | null }) =>
+      request<{ share: ExtShare; token: string; url: string }>(`/api/ext-sources/${id}/shares`, { method: 'POST', body: data }),
+    revokeShare: (id: string, shareId: string) =>
+      request<{ ok: true }>(`/api/ext-sources/${id}/shares/${shareId}`, { method: 'DELETE' }),
+    /** Public board · token only · no session · 404 when revoked/expired */
+    publicBoard: (token: string) => request<PublicBoardPayload>(`/api/public/boards/${token}`, { skipOrg: true }),
+    brandTheme: (orgId: string) => request<{ brandTheme: BrandTheme | null }>(`/orgs/${orgId}/brand-theme`, { skipOrg: true }),
+    updateBrandTheme: (orgId: string, theme: BrandTheme | null) =>
+      request<{ brandTheme: BrandTheme | null }>(`/orgs/${orgId}/brand-theme`, { method: 'PATCH', body: theme, skipOrg: true }),
+  },
+
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1992,9 +2089,106 @@ export interface BranchInput {
   isHQ?: boolean;
 }
 
+/** Document identity plan gate (2026-09-14) · basic = logo/stamp/signature/bank logo/out-of-scope/QR/words ·
+ *  full = theme presets · fonts · header style · cover/closing imagery · watermark · stations · closing facts · no provider branding */
+export type IdentityTier = 'basic' | 'full'
+
+/** Identity fields shared by the template record and its create/update payload (field names fixed with the API). */
+export interface DocumentTemplateIdentity {
+  theme?: DocTheme | null
+  themePreset?: ThemePreset | null
+  headerStyle?: HeaderStyle | null
+  logoUrl?: string | null
+  logoLightUrl?: string | null
+  watermarkUrl?: string | null
+  coverImageUrl?: string | null
+  closingImageUrl?: string | null
+  bankLogoUrl?: string | null
+  signatureUrl?: string | null
+  outOfScope?: string | null
+  outOfScopeEn?: string | null
+  paymentPlanStyle?: PaymentPlanStyle | null
+  paymentPlanNote?: string | null
+  showQr?: boolean | null
+  hideProviderBranding?: boolean | null
+  closingFacts?: ClosingFact[] | null
+  amountInWords?: boolean | null
+  // round 2 (2026-09-14) · identity quote pages
+  deliveryFacts?: ClosingFact[] | null
+  deliveryNote?: string | null
+  approvalText?: string | null
+  approvalNote?: string | null
+  closingText?: string | null
+  reference2Label?: string | null
+}
+
+/** Brand document template (quotes / invoices · designer at /app/templates/:id). Loosely typed on the
+ *  legacy layout fields — the record carries whatever the API stores. */
+export interface DocumentTemplate extends DocumentTemplateIdentity {
+  id: string
+  orgId?: string
+  name: string
+  nameEn?: string | null
+  type: string
+  layout: string
+  kind?: 'QUOTE' | 'INVOICE' | 'BOTH' | string | null
+  isDefault: boolean
+  primaryColor: string
+  accentColor: string
+  brandColor?: string | null
+  coverColor?: string | null
+  coverStyle?: string | null
+  coverTitle?: string | null
+  coverIntro?: string | null
+  coverTitleEn?: string | null
+  coverIntroEn?: string | null
+  sections?: unknown
+  showLogo: boolean
+  showTaxBreakdown: boolean
+  showTerms: boolean
+  terms?: string | null
+  termsEn?: string | null
+  notes?: string | null
+  closingTerms?: string | null
+  closingTermsEn?: string | null
+  bankAccountId?: string | null
+  signatoryName?: string | null
+  signatoryTitle?: string | null
+  signatoryTitleAr?: string | null
+  wordmarkText?: string | null
+  useWordmark?: boolean | null
+  docLang?: 'ar' | 'en' | null
+  signatoryEmail?: string | null
+  signatoryPhone?: string | null
+  stampUrl?: string | null
+  footerText?: string | null
+  classification?: string | null
+  classificationEn?: string | null
+  wordmarkAccent?: string | null
+  autoRule?: DocumentTemplateAutoRule | null
+  autoPriority?: number | null
+  createdAt?: string
+  updatedAt?: string
+  [key: string]: any
+}
+/** Automatic template routing (2026-09-14) · a template with a non-empty rule may be picked
+ *  automatically for a document with no explicit template, ahead of the org default · see
+ *  the API's lib/template-routing.ts for matching semantics. */
+export interface DocumentTemplateAutoRule {
+  productTypes?: string[]
+  skuPrefixes?: string[]
+  categories?: string[]
+  descriptionContains?: string[]
+  mode?: 'any' | 'all'
+  minLines?: number
+}
+export type DocumentTemplatePayload = Partial<Omit<DocumentTemplate, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>> & { name: string }
+
 export interface OrgSubscriptionSummary {
   id: string
   status: string // TRIALING · ACTIVE · PAST_DUE · CANCELED · EXPIRED
+  /** document identity gate (2026-09-14) · mirrors GET /api/document-templates/defaults */
+  identityTier?: IdentityTier | null
   trialEndsAt?: string | null
   currentPeriodEnd?: string | null
   plan?: { name: string; tier?: string | null } | null
@@ -2138,14 +2332,15 @@ export interface ReportSection {
 }
 
 export interface ReportPayload {
+  dataBasis?: {source:'ledger'|'documents'|'unavailable';status:'available'|'no_activity'|'unavailable';dateBasis:'period'|'as_of';from:string|null;to:string;postedEntriesOnly:boolean};
   id: string
   title: string
   englishTitle: string
   description: string
   category: string
-  status: 'live' | 'empty'
+  status: 'live' | 'empty' | 'unavailable'
   generatedAt: string
-  period: { from: string; to: string }
+  period: { from: string | null; to: string; allTime?: boolean }
   /** Prior-period window when ?compareTo= was passed (Apple-style compare) */
   comparePeriod?: { from: string; to: string } | null
   currency: string
@@ -2595,6 +2790,10 @@ export interface ProjectLink {
 }
 
 export interface AccountTransactions {
+  nextCursor?: string | null
+  returned?: number
+  openingBalance?: number
+  balanceScope?: "all_posted_dates"
   account: { id: string; code: string; name: string; nameAr: string | null; type: string }
   transactions: Array<{
     id: string
@@ -2860,9 +3059,41 @@ export interface BankAccountInput {
   balance?: number
 }
 
+export type DashboardPeriodKey = 'fiscal_ytd' | 'previous_fiscal_year' | 'month' | 'previous_month' | 'all_time';
+export interface DashboardPeriod {
+  key: DashboardPeriodKey; from: string | null; to: string; fromDate: string | null; toDate: string;
+  timeZone: string; fiscalYearStart: number; isPartial: boolean; source: 'ledger' | 'documents';
+}
+export interface DashboardOpenBalances {
+  currency: string; total: number; count: number;
+  overdue: number; dueToday: number; notDue: number; noDueDate: number;
+  byIssueYear: Array<{year:number;total:number;count:number;overdue:number;dueToday:number;notDue:number;noDueDate:number}>;
+  byCurrency: Array<{currency:string;total:number;count:number;overdue:number;dueToday:number;notDue:number;noDueDate:number}>;
+  unallocatedCredits: Array<{currency:string;amount:number;count:number}>;
+}
+export interface DashboardTrendPoint {
+  from?:string|null;to?:string;fromDate?:string|null;toDate?:string;source?:string;
+  dataAvailability?:{hasActivity:boolean};unavailableMetrics?:string[];
+}
+export interface DashboardComparisonPoint {
+  revenue:number; expenses:number; net:number;
+  from?:string|null;to?:string;fromDate?:string|null;toDate?:string;
+  dataAvailability?:{hasActivity:boolean};unavailableMetrics?:string[];
+}
 export interface DashboardSummary {
-  org: { id: string; name: string; baseCurrency: string; country: string }
+  period?: DashboardPeriod;
+  unavailableMetrics?: string[];
+  limitations?: Array<{code:string;messageAr:string;messageEn:string}>;
+  dataAvailability?: {source:'ledger'|'documents';postedPnlLineCount:number;postedDocsCount:number;sourceActivityCount:number;hasActivity:boolean;coverage:'unknown'};
+  currentTotalsScope?: {basis:'current_open_balances';asOf:string;asOfDate:string;timeZone:string;independentOfSelectedPeriod:true;issueYearBasis:'invoice_issue_date'};
+  receivables?: DashboardOpenBalances;
+  payables?: DashboardOpenBalances;
+  cash?: {baseCurrency:string;baseCurrencyTotal:number;byCurrency:Array<{currency:string;balance:number;count:number}>;asOf:string;scope:'all_active_current_bank_balances'};
+  comparison?: {basis:string;comparable:boolean;reason:string|null;lastMonthComparable?:boolean;yearAgoComparable?:boolean};
+  overdueBills?: DashboardSummary['overdueInvoices'];
+  org: { id: string; name: string; baseCurrency: string; country: string; crNumber?: string | null }
   kpi: {
+    netIncome?: number
     revenue: number
     purchases: number
     expenses: number
@@ -2882,10 +3113,10 @@ export interface DashboardSummary {
     expensesFromBills?: number
     expensesFromJournal?: number
   }
-  monthlyTrend: Array<{ month: string; revenue: number; expenses: number }>
-  yearlyTrend?: Array<{ year: number; revenue: number; expenses: number; net: number }>
-  cashFlowTrend: Array<{ month: string; in: number; out: number; net: number }>
-  profitLoss: Array<{ month: string; revenue: number; expenses: number; net: number }>
+  monthlyTrend: Array<DashboardTrendPoint & { month: string; revenue: number; expenses: number }>
+  yearlyTrend?: Array<DashboardTrendPoint & { year: number; revenue: number; expenses: number; net: number }>
+  cashFlowTrend: Array<DashboardTrendPoint & { month: string; in: number; out: number; net: number }>
+  profitLoss: Array<DashboardTrendPoint & { month: string; revenue: number; expenses: number; net: number }>
   expenseBreakdown: Array<{ category: string; total: number }>
   incomeBreakdown: Array<{ category: string; code: string; total: number }>
   overdueInvoices: Array<{
@@ -2896,6 +3127,7 @@ export interface DashboardSummary {
     remaining: number
     dueDate: string | null
     daysOverdue: number
+    currency?: string
   }>
   bankAccounts: Array<{
     id: string
@@ -2906,9 +3138,9 @@ export interface DashboardSummary {
     balance: number
   }>
   periodCompare: {
-    thisMonth: { revenue: number; expenses: number; net: number }
-    lastMonth: { revenue: number; expenses: number; net: number }
-    yearAgo?: { revenue: number; expenses: number; net: number }
+    thisMonth: DashboardComparisonPoint
+    lastMonth: DashboardComparisonPoint
+    yearAgo?: DashboardComparisonPoint
   }
 }
 
@@ -3140,6 +3372,8 @@ export interface Quote {
   total: string
   notes?: string | null
   termsConditions?: string | null
+  /** Free-form pages (CEO 2026-09-13) · DocPage[] · printed before the T&C page */
+  pages?: DocPage[] | null
   /** Internal / customer reference · own column (never inside termsConditions) */
   reference?: string | null
   /** Brand document template · null → org default for QUOTE */
@@ -3211,6 +3445,31 @@ export interface EstimateLine {
 }
 
 export interface EstimateSectionMargin { section: string; cost: number; sale: number; marginPct: number }
+
+/** POST /api/estimates/import-file · 201 */
+export interface EstimateImportFileResult {
+  estimate: Estimate
+  imported: number
+  fileName: string
+  warnings: string[]
+  extracted: {
+    title?: string | null
+    clientName?: string | null
+    reference?: string | null
+    quoteNo?: string | null
+    date?: string | null
+    scope?: string | null
+    source: 'excel' | 'vision'
+  }
+  suggestions: {
+    client: {
+      name: string
+      vatNumber?: string | null
+      matchedContactId?: string | null
+      candidates: Array<{ id: string; name: string }>
+    } | null
+  }
+}
 
 export interface Estimate {
   id: string
@@ -3352,6 +3611,8 @@ export interface QuoteInput {
   exchangeRate?: number
   notes?: string | null
   termsConditions?: string | null
+  /** Free-form pages (CEO 2026-09-13) */
+  pages?: DocPage[] | null
   reference?: string | null
   templateId?: string | null
   /** SPEC-04 */
@@ -3435,6 +3696,8 @@ export interface Invoice {
   amountPaid: string
   notes?: string | null
   termsConditions?: string | null
+  /** Free-form pages (CEO 2026-09-13) · DocPage[] · printed before the T&C page */
+  pages?: DocPage[] | null
   /** Customer PO / external reference · own column (never inside termsConditions) */
   reference?: string | null
   /** Brand document template · null → org default for INVOICE */
@@ -3473,6 +3736,8 @@ export interface InvoiceInput {
   exchangeRate?: number
   notes?: string
   termsConditions?: string
+  /** Free-form pages (CEO 2026-09-13) */
+  pages?: DocPage[] | null
   reference?: string | null
   templateId?: string | null
   lines: InvoiceLine[]
@@ -3623,5 +3888,89 @@ export interface AdminMe { isInternal: boolean; internalRole: string; roleName?:
 export interface AdminRoleRecord { id: string; key: string; nameAr: string; nameEn: string; permissions: string[]; scopeAssigned: boolean; isSystem: boolean; members?: number; pendingInvites?: number; createdAt: string }
 export interface AdminTeamMember { id: string; email: string; name: string | null; disabledAt: string | null; createdAt: string; bootstrap: boolean; role: { id: string | null; key: string; nameAr: string; nameEn: string; scopeAssigned: boolean } | null; assignments: Array<{ orgId: string; orgName: string }> }
 export interface AdminTeamInvite { id: string; email: string; role: { id: string; key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; createdAt: string }
-export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null }
+export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null;
+  // omni-channel support (2026-09-14) · WhatsApp + website chat land here too
+  channel?: string; category?: string; needsHuman?: boolean; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; summary?: string | null; lastCustomerAt?: string | null }
 export interface AdminTicketDetail extends AdminTicketRow { messages: Array<{ id: string; authorType: string; authorEmail: string | null; body: string; createdAt: string }> }
+
+// ── External sheet sources (SPEC-06) ─────────────────────────────────────────
+export type ExtFieldType = 'text' | 'number' | 'money' | 'date' | 'enum'
+export type ExtStatusColor = 'good' | 'attention' | 'blocking' | 'neutral'
+export type ExtMapping = Record<string, string | null>
+export interface ExtTemplateField { key: string; labelAr: string; labelEn: string; type: ExtFieldType; required: boolean; enum?: string[] }
+export interface ExtTemplate {
+  code: string
+  nameAr: string
+  nameEn: string
+  keyField: string
+  kanbanField: string | null
+  fields: ExtTemplateField[]
+  statusColors: Record<string, ExtStatusColor>
+}
+export type ExtSourceStatus = 'ACTIVE' | 'PAUSED' | 'ERROR'
+export type ExtRunStatus = 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | string
+export interface ExtSourceRun {
+  id: string
+  trigger: string
+  startedAt: string
+  finishedAt: string | null
+  status: ExtRunStatus
+  rowsSeen: number
+  rowsUpserted: number
+  rowsRemoved: number
+  rowsInvalid: number
+  error: string | null
+}
+export interface ExtSource {
+  id: string
+  name: string
+  provider: string
+  spreadsheetId: string
+  sheetTitle: string
+  range: string | null
+  headerRow: number
+  templateCode: string
+  templateNameAr: string
+  templateNameEn: string
+  mapping: ExtMapping
+  status: ExtSourceStatus
+  pollIntervalMin: number
+  webhookEnabled: boolean
+  lastSyncAt: string | null
+  lastSuccessAt: string | null
+  lastError: string | null
+  rowCount: number
+  lastRun: { status: ExtRunStatus; finishedAt: string | null; rowsUpserted: number; rowsInvalid: number } | null
+  createdAt: string
+}
+export interface ExtValidateResult { spreadsheetId: string; title: string; sheets: Array<{ title: string; rowCount: number }>; serviceAccountEmail: string }
+export interface ExtPreviewRow { rowIndex: number; rowKey: string | null; data: Record<string, string>; normalized: Record<string, unknown>; valid: boolean; errors: string[] }
+export interface ExtPreviewResult { headers: string[]; mapping: ExtMapping; missingRequired: string[]; rows: ExtPreviewRow[]; totalRows: number }
+export interface ExtRow { id: string; rowKey: string; rowIndex: number; data: Record<string, string>; normalized: Record<string, unknown>; valid: boolean; errors: string[]; syncedAt: string }
+export interface ExtKpi { key: string; labelAr: string; labelEn: string; value: number; format: 'count' | 'money' | 'percent'; count?: number }
+export interface ExtStatusOption { value: string; labelAr: string; labelEn: string; color: ExtStatusColor }
+export interface ExtRowsResponse {
+  template: ExtTemplate
+  rows: ExtRow[]
+  total: number
+  page: number
+  pageSize: number
+  kpis: ExtKpi[]
+  statusOptions: ExtStatusOption[]
+  lastSyncAt: string | null
+  lastSuccessAt: string | null
+  lastError: string | null
+  invalidCount: number
+  status: ExtSourceStatus
+}
+export interface ExtShare { id: string; label: string | null; expiresAt: string | null; revokedAt: string | null; viewCount: number; lastViewedAt: string | null; createdAt: string }
+/** Company identity applied ONLY on shared outputs (/b/:token + print) · never inside /app/* */
+export interface BrandTheme { primary: string; secondary: string; fill: string; ink: string; logoUrl?: string | null }
+export interface PublicBoardPayload {
+  org: { name: string; logoUrl: string | null; brandTheme: BrandTheme | null; defaultInvoiceLanguage: 'ar' | 'en' | null; baseCurrency?: string | null }
+  source: { name: string; templateCode: string; lastSuccessAt: string | null }
+  template: ExtTemplate
+  rows: Array<Pick<ExtRow, 'id' | 'rowKey' | 'rowIndex' | 'normalized' | 'valid' | 'syncedAt'>>
+  kpis: ExtKpi[]
+  statusOptions: ExtStatusOption[]
+}

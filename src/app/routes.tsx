@@ -345,6 +345,10 @@ export const router = createBrowserRouter([
       { path: "reports/cash-flow", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "reports/profit-loss", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "settings", element: lazyElement(() => import("./pages/settings"), "Settings"), errorElement: <ErrorBoundary /> },
+      // SPEC-06 · External sheet sources + pipeline boards (M1)
+      { path: "settings/external-sources/new", element: lazyElement(() => import("./pages/external-source-new"), "ExternalSourceNew"), errorElement: <ErrorBoundary /> },
+      { path: "boards", element: lazyElement(() => import("./pages/boards"), "Boards"), errorElement: <ErrorBoundary /> },
+      { path: "boards/:sourceId", element: lazyElement(() => import("./pages/board-view"), "BoardView"), errorElement: <ErrorBoundary /> },
       { path: "help", element: lazyElement(() => import("./pages/help-center"), "HelpCenter"), errorElement: <ErrorBoundary /> },
       { path: "billing", element: lazyElement(() => import("./pages/billing"), "Billing"), errorElement: <ErrorBoundary /> },
       { path: "onboarding", element: lazyElement(() => import("./pages/onboarding-wizard"), "OnboardingWizard"), errorElement: <ErrorBoundary /> },
@@ -363,6 +367,8 @@ export const router = createBrowserRouter([
   { path: "/portal", element: lazyElement(() => import("./pages/portal-home"), "PortalHome"), errorElement: <ErrorBoundary /> },
   { path: "/print/proposal/:id", element: lazyElement(() => import("./pages/quote-proposal-print"), "QuoteProposalPrint"), errorElement: <ErrorBoundary /> },
   { path: "/q/:token", element: lazyElement(() => import("./pages/quote-public"), "QuotePublic"), errorElement: <ErrorBoundary /> },
+  // SPEC-06 · public pipeline board · token only · company brandTheme applied here ONLY
+  { path: "/b/:token", element: lazyElement(() => import("./pages/public-board"), "PublicBoard"), errorElement: <ErrorBoundary /> },
   { path: "/print/invoice/:id", element: lazyElement(() => import("./pages/invoice-print-view"), "InvoicePrintView"), errorElement: <ErrorBoundary /> },
   { path: "/print/voucher/:id", element: lazyElement(() => import("./pages/voucher-print-view"), "VoucherPrintView"), errorElement: <ErrorBoundary /> },
   // Error handling

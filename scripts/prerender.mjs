@@ -2,12 +2,14 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import puppeteer from 'puppeteer'
+import { preserveAppShell } from './app-shell.mjs'
 import {
   PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, SITE_ORIGIN,
   canonicalUrl, localeDirection, localizedPath, ogLocale,
 } from '../src/app/public-site-manifest.ts'
 
 const DIST = path.resolve('dist')
+preserveAppShell(DIST)
 const REQUESTED_PORT = Number(process.env.PRERENDER_PORT || 0)
 const SOLUTION_ROUTES = new Set([
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
@@ -183,12 +185,12 @@ async function renderNeutralRoot() {
     await loadRoute(page, '/')
     let html = cleanPublicSeo(await page.content())
     html = setHtmlLanguage(html, 'en', 'ltr')
-    html = replaceTitle(html, 'ENTIX.IO | Choose your market and language')
-    html = replaceMeta(html, 'name', 'description', 'Choose your ENTIX.IO market and language.')
-    html = replaceMeta(html, 'property', 'og:title', 'ENTIX.IO')
-    html = replaceMeta(html, 'property', 'og:description', 'Choose your ENTIX.IO market and language.')
-    html = replaceMeta(html, 'name', 'twitter:title', 'ENTIX.IO')
-    html = replaceMeta(html, 'name', 'twitter:description', 'Choose your ENTIX.IO market and language.')
+    html = replaceTitle(html, 'Entix Books · Arabic-first cloud accounting | ENTIX.IO')
+    html = replaceMeta(html, 'name', 'description', 'Arabic-first cloud accounting for businesses in Saudi Arabia and the United States — quotes, invoices, receipts, automatic journal entries, POS, inventory and projects. Start free, no card.')
+    html = replaceMeta(html, 'property', 'og:title', 'Entix Books · Arabic-first cloud accounting')
+    html = replaceMeta(html, 'property', 'og:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
+    html = replaceMeta(html, 'name', 'twitter:title', 'Entix Books · Arabic-first cloud accounting')
+    html = replaceMeta(html, 'name', 'twitter:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
     html = insertHead(html, [
       `<link rel="canonical" href="${SITE_ORIGIN}/">`,
       `<link rel="alternate" hreflang="x-default" href="${SITE_ORIGIN}/">`,

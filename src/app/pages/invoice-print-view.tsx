@@ -55,7 +55,8 @@ export function InvoicePrintView() {
           const me = meRes.ok ? await meRes.json() : null;
           for (const m of me?.memberships || []) {
             if (!m?.org?.id) continue;
-            setOrgId(m.org.id);
+            // Preview frames share storage with the parent tab; lookup is temporary.
+            setOrgId(m.org.id, false);
             try { inv = await api.invoices.get(id); if (inv) break; } catch { /* try next */ }
           }
         }

@@ -13,6 +13,7 @@ import { displayLocale } from "../lib/number-display";
  *
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
+import { useSearchParams } from "react-router";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
@@ -187,20 +188,26 @@ function buildTree(items: Account[]): TreeNode[] {
   return roots;
 }
 
-/** Flatten tree (post-order parent-first) honoring expand state */
-function flattenTree(roots: TreeNode[], expanded: Set<string>): TreeNode[] {
+/** Search keeps matching descendants and their ancestors visible, even in collapsed branches. */
+function flattenTree(roots: TreeNode[], expanded: Set<string>, query = ""): TreeNode[] {
+  const q = query.trim().toLowerCase();
+  const matches = (node: TreeNode): boolean =>
+    node.code.toLowerCase().includes(q) || node.name.toLowerCase().includes(q) || (node.nameAr || "").toLowerCase().includes(q);
   const out: TreeNode[] = [];
-  const walk = (node: TreeNode) => {
-    out.push(node);
-    if (expanded.has(node.id)) {
-      node.children.forEach(walk);
+  const walk = (node: TreeNode): TreeNode[] => {
+    if (q) {
+      const children = node.children.flatMap(walk);
+      return matches(node) || children.length ? [node, ...children] : [];
     }
+    return [node, ...(expanded.has(node.id) ? node.children.flatMap(walk) : [])];
   };
-  roots.forEach(walk);
+  roots.forEach(node => out.push(...walk(node)));
   return out;
 }
 
 export function ChartOfAccounts() {
+  const [searchParams] = useSearchParams();
+  const requestedAccount = searchParams.get("account");
   const { t, language } = useLanguage();
   const TYPE_LABELS = buildTypeLabels(t);
   const TYPE_LABELS_PLURAL = buildTypeLabelsPlural(t);
@@ -215,7 +222,13 @@ export function ChartOfAccounts() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // New accounts inherit the current display mode, including after import/refresh.
+  const [detailsVisible, setDetailsVisible] = useState(true);
+  const [expansionOverrides, setExpansionOverrides] = useState<Set<string>>(new Set());
+  const expanded = useMemo(() => new Set(items.filter(a =>
+    detailsVisible !== expansionOverrides.has(a.id)
+  ).map(a => a.id)), [items, detailsVisible, expansionOverrides]);
+  const allDetailsVisible = items.every(a => !a.parentId || expanded.has(a.parentId));
 
   const [form, setForm] = useState<AccountForm>(() => defaultForm("ASSET"));
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
@@ -228,7 +241,7 @@ export function ChartOfAccounts() {
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeBusy, setMergeBusy] = useState(false);
   // Transactions side panel
-  const [txPanel, setTxPanel] = useState<{ accountId: string; data: AccountTransactions | null; loading: boolean } | null>(null);
+  const [txPanel, setTxPanel] = useState<{ accountId: string; data: AccountTransactions | null; loading: boolean; loadingMore?: boolean } | null>(null);
   // AI translate state
   const [aiBusy, setAiBusy] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
@@ -267,10 +280,31 @@ export function ChartOfAccounts() {
     setTxPanel({ accountId, data: null, loading: true });
     try {
       const data = await api.accounts.transactions(accountId);
-      setTxPanel({ accountId, data, loading: false });
+      setTxPanel(current => current?.accountId === accountId ? { accountId, data, loading: false } : current);
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل تحميل العمليات", "Failed to load transactions"));
-      setTxPanel(null);
+      setTxPanel(current => current?.accountId === accountId ? null : current);
+    }
+  };
+
+  useEffect(() => {
+    if (requestedAccount) void openTransactions(requestedAccount);
+    // A report link selects the account once; closing the panel must not reopen it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedAccount]);
+
+  const loadOlderTransactions = async () => {
+    if (!txPanel?.data?.nextCursor || txPanel.loadingMore) return;
+    const { accountId, data } = txPanel;
+    setTxPanel(current => current?.accountId === accountId ? { ...current, loadingMore: true } : current);
+    try {
+      const next = await api.accounts.transactions(accountId, data.nextCursor!);
+      setTxPanel(current => current?.accountId === accountId && current.data ? {
+        ...current, loadingMore: false, data: { ...next, transactions: [...current.data.transactions, ...next.transactions.filter(row => !current.data!.transactions.some(existing => existing.id === row.id))] }
+      } : current);
+    } catch (error) {
+      push("error", error instanceof ApiError ? error.message : t("تعذر تحميل الحركات الأقدم", "Could not load older transactions"));
+      setTxPanel(current => current?.accountId === accountId ? { ...current, loadingMore: false } : current);
     }
   };
 
@@ -279,9 +313,6 @@ export function ChartOfAccounts() {
     try {
       const d = await api.accounts.list();
       setItems(d.items);
-      // expand all roots by default
-      const rootIds = d.items.filter(a => !a.parentId).map(a => a.id);
-      setExpanded(new Set(rootIds));
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
@@ -291,18 +322,10 @@ export function ChartOfAccounts() {
   // Build tree
   const tree = useMemo(() => buildTree(items), [items]);
 
-  // Filter view
-  const flatRows = useMemo(() => {
-    const flat = flattenTree(tree, expanded);
-    return flat.filter(n => {
-      if (filterType !== "ALL" && n.type !== filterType) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return n.code.includes(q) || n.name.toLowerCase().includes(q) || (n.nameAr || "").includes(q);
-      }
-      return true;
-    });
-  }, [tree, expanded, filterType, searchQuery]);
+  // The count and rendered sections use the same visible rows, including search ancestors.
+  const flatRows = useMemo(() => flattenTree(
+    tree.filter(n => filterType === "ALL" || n.type === filterType), expanded, searchQuery
+  ), [tree, expanded, filterType, searchQuery]);
 
   const parentOptions = useMemo(() => {
     return items.filter(a => a.type === form.type && a.id !== editingId).sort((a, b) => a.code.localeCompare(b.code));
@@ -385,8 +408,17 @@ export function ChartOfAccounts() {
         });
         setItems(prev => [...prev, a]);
         push("success", t("تم إنشاء الحساب ", "Account created ") + a.code);
-        // expand the parent so user sees the new child
-        if (a.parentId) setExpanded(prev => new Set([...prev, a.parentId!]));
+        // Reveal the full path to a newly created account in either display mode.
+        if (a.parentId) setExpansionOverrides(prev => {
+          const next = new Set(prev), visited = new Set<string>();
+          let parentId: string | null | undefined = a.parentId;
+          while (parentId && !visited.has(parentId)) {
+            visited.add(parentId);
+            detailsVisible ? next.delete(parentId) : next.add(parentId);
+            parentId = items.find(item => item.id === parentId)?.parentId;
+          }
+          return next;
+        });
       }
       setOpen(false);
       resetForm();
@@ -429,7 +461,7 @@ export function ChartOfAccounts() {
   };
 
   const toggleExpand = (id: string) => {
-    setExpanded(prev => {
+    setExpansionOverrides(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -550,8 +582,13 @@ export function ChartOfAccounts() {
       <div className="flex flex-wrap items-center gap-2">
         <SearchField containerClassName="min-w-[200px]" placeholder={t("بحث بالاسم أو الرمز...", "Search by name or code...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         <button onClick={() => setFilterType("ALL")} aria-pressed={filterType === "ALL"} className={`rounded-full px-3 py-1.5 text-xs transition ${filterType === "ALL" ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{t("الكل", "All")} ({items.length})</button>
-        <button onClick={() => setExpanded(new Set(items.map(a => a.id)))} className="text-xs text-primary hover:underline px-2">{t("+ توسيع", "+ Expand")}</button>
-        <button onClick={() => setExpanded(new Set())} className="text-xs text-muted-foreground hover:underline px-2">{t("طيّ", "Collapse")}</button>
+        <button
+          type="button"
+          onClick={() => { setDetailsVisible(!allDetailsVisible); setExpansionOverrides(new Set()); }}
+          aria-expanded={Boolean(searchQuery.trim()) || allDetailsVisible}
+          disabled={Boolean(searchQuery.trim())}
+          className="text-xs text-primary hover:underline px-2 disabled:opacity-50 disabled:no-underline"
+        >{allDetailsVisible || searchQuery.trim() ? t("إخفاء التفاصيل", "Hide details") : t("إظهار التفاصيل", "Show details")}</button>
         <span className="text-xs text-muted-foreground/60 ms-auto">{flatRows.length} {t("حساب معروض", "accounts shown")}</span>
       </div>
 
@@ -570,14 +607,7 @@ export function ChartOfAccounts() {
             const meta = TYPE_META[typeKey];
             const Icon = meta.icon;
             const sectionRoots = tree.filter(n => n.type === typeKey);
-            // Apply search filter on tree
-            const filterNode = (n: typeof sectionRoots[0]): boolean => {
-              if (!searchQuery) return true;
-              const q = searchQuery.toLowerCase();
-              if (n.code.includes(q) || n.name.toLowerCase().includes(q) || (n.nameAr || "").includes(q)) return true;
-              return n.children.some(filterNode);
-            };
-            const visibleRoots = sectionRoots.filter(filterNode);
+            const sectionRows = flatRows.filter(n => n.type === typeKey);
             const sectionTotal = items.filter(a => a.type === typeKey).reduce((s, a) => s + (a.balance ?? 0), 0);
 
             return (
@@ -599,30 +629,28 @@ export function ChartOfAccounts() {
                   </button>
                 </div>
                 <CardContent className="p-0">
-                  {visibleRoots.length === 0 ? (
+                  {sectionRows.length === 0 ? (
                     <div className="py-6 text-center text-xs text-muted-foreground/60">
                       {searchQuery ? t("لا نتائج مطابقة", "No matching results") : t("لا توجد حسابات في هذا التصنيف", "No accounts in this category")}
                     </div>
                   ) : (
                     <div className="divide-y divide-border">
-                      {(() => {
-                        // Flatten only the section's tree honoring expanded state
-                        const out: TreeNode[] = [];
-                        const walk = (n: TreeNode) => {
-                          if (!filterNode(n)) return;
-                          out.push(n);
-                          if (expanded.has(n.id)) n.children.forEach(walk);
-                        };
-                        visibleRoots.forEach(walk);
-                        return out.map(node => (
+                      {sectionRows.map(node => (
                           <div key={node.id} className="group flex items-center gap-2 px-3 py-2 hover:bg-muted transition" style={{ paddingInlineStart: `${0.75 + node.depth * 1.25}rem` }}>
                             {/* Indent + chevron */}
                             {node.depth > 0 && (
                               <span className="inline-block border-s border-border self-stretch -my-2 me-1" style={{ marginInlineStart: "-0.5rem" }} />
                             )}
                             {node.children.length > 0 ? (
-                              <button onClick={() => toggleExpand(node.id)} className="text-muted-foreground/60 hover:text-primary shrink-0">
-                                {expanded.has(node.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+                              <button
+                                type="button"
+                                onClick={() => toggleExpand(node.id)}
+                                aria-label={`${searchQuery.trim() || expanded.has(node.id) ? t("إخفاء التفاصيل", "Hide details") : t("إظهار التفاصيل", "Show details")} · ${node.code}`}
+                                aria-expanded={Boolean(searchQuery.trim()) || expanded.has(node.id)}
+                                disabled={Boolean(searchQuery.trim())}
+                                className="text-muted-foreground/60 hover:text-primary shrink-0 disabled:opacity-50"
+                              >
+                                {searchQuery.trim() || expanded.has(node.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
                               </button>
                             ) : <span className="inline-block w-4 h-4 shrink-0" />}
                             {/* Code chip */}
@@ -678,8 +706,7 @@ export function ChartOfAccounts() {
                               )}
                             </div>
                           </div>
-                        ));
-                      })()}
+                      ))}
                       {/* Inline add at bottom of section */}
                       <button
                         onClick={() => { setForm(defaultForm(typeKey)); setCodeManuallyEdited(false); setCashFlowManuallyEdited(false); setEditingId(null); setOpen(true); }}
@@ -708,7 +735,7 @@ export function ChartOfAccounts() {
                 </h2>
                 {txPanel.data && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {txPanel.data.total} {t("عملية", "transactions")}
+                    {txPanel.data.total} {t("عملية · كل القيود المرحلة", "transactions · all posted entries")}
                     <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-warning"}`}>
                       {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
@@ -728,7 +755,7 @@ export function ChartOfAccounts() {
                   <p className="text-xs text-muted-foreground/60 mt-1">{t("العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب", "Transactions will appear here when invoices and expenses are linked to this account")}</p>
                 </div>
               ) : (
-                <div className="rounded-lg border border-border overflow-hidden">
+                <div className="rounded-lg border border-border overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
                       <tr>
@@ -756,6 +783,7 @@ export function ChartOfAccounts() {
                       ))}
                     </tbody>
                   </table>
+                  {txPanel.data.nextCursor && <div className="p-3"><Button variant="outline" disabled={txPanel.loadingMore} onClick={loadOlderTransactions}>{txPanel.loadingMore ? t("جارٍ التحميل...", "Loading...") : t("تحميل الحركات الأقدم", "Load older transactions")}</Button><span className="ms-3 text-xs text-muted-foreground">{txPanel.data.transactions.length} / {txPanel.data.total}</span></div>}
                 </div>
               )}
             </div>

@@ -25,6 +25,8 @@ import { useOrgRegion } from "../lib/use-org-region";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
+import { DocumentPagesEditor, DocumentPagesSection } from "../components/document-pages-editor";
+import { normalizePages, type DocPage } from "../lib/document-render";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Quote, Contact, DocumentSendRecord, type PaymentPlan, type PaymentPlanItemInput, type PaymentCondition, type PaymentBillingMethod } from "../lib/api";
@@ -34,6 +36,7 @@ import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
 import { SendComposeForm } from "../components/send-compose-form";
 import { SendLogSection } from "../components/send-log-section";
+import { humanizeError } from "../lib/error-messages";
 
 const CURRENCIES = [
   { value: "SAR", label: { ar: "ريال سعودي · SAR", en: "Saudi Riyal · SAR" } },
@@ -110,8 +113,13 @@ const EMPTY_FORM = {
   templateId: "",
   // Terms & conditions · per-document override · prefilled from the template on create
   termsConditions: "",
+  // Free-form pages (CEO 2026-09-13) · printed before the T&C page
+  pages: [] as DocPage[],
   // Branch dimension (B1) · undefined = apply member default · null = none
   branchId: undefined as string | null | undefined,
+  // DOCUMENT-LEVEL DISCOUNT (CEO 2026-09-14) · "" = none · applied before tax, printed as its own row
+  discountType: "" as "" | "PERCENT" | "FIXED",
+  discountValue: "",
 };
 
 /** SPEC-05 L2 · the «خطة الدفعات» editor — used in the quote form and on the quote page. */
@@ -446,6 +454,11 @@ export function Quotes() {
         reference: form.reference || null,
         termsConditions: form.termsConditions || null,
         templateId: form.templateId || null,
+        pages: normalizePages(form.pages),
+        // A discount is the document's, never a doctored unit price: it prints as its own
+        // «الخصم» row and stays reportable (CEO 2026-09-14).
+        discountType: form.discountType || null,
+        discountValue: form.discountType ? Number(normalizeDigits(form.discountValue)) || 0 : 0,
         // The tax the user picked travels WITH the line. Sending only price and
         // quantity is what made every quote save taxTotal = 0 and quote a client
         // 400 on a 400 subtotal instead of 460 (CEO screenshot 2026-09-08).
@@ -480,7 +493,12 @@ export function Quotes() {
       if (!opts?.stayOpen) closeCreate();
       return q;
     } catch (e: any) {
-      setCreateError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
+      // The reason the save failed has to reach the person filling the form — inline AND as a
+      // toast, in their language, naming the row and field (CEO 2026-09-14 · «لا رسالة خطأ
+      // مفصَّلة تصل للمستخدم»). The console object was the only place it used to exist.
+      const msg = humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" });
+      setCreateError(msg);
+      push("error", msg);
       return null;
     } finally { setBusy(false); }
   };
@@ -826,18 +844,60 @@ export function Quotes() {
                   className="w-full rounded-md border border-border px-3 py-2 text-sm"
                   data-testid="quote-terms"
                 />
+                {/* CEO 2026-09-13 · free-form pages (scope · requirements · timeline) · printed before the T&C page */}
+                <Label className="text-foreground/80 text-xs">{t("صفحات إضافية · تُطبع بعد البنود وقبل صفحة الشروط والأحكام", "Additional pages · printed after the items and before the terms & conditions page")}</Label>
+                <DocumentPagesEditor value={form.pages} onChange={(pages) => setForm({ ...form, pages })} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("الإجمالي", "Total")}</Label>
                 <div className="rounded-lg border border-border bg-card p-4 space-y-2">
                   {(() => {
-                    const totals = computeTotals(lines);
+                    const totals = computeTotals(lines, { discountType: form.discountType || null, discountValue: Number(normalizeDigits(form.discountValue)) || 0 });
                     return (
                       <>
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("المجموع الفرعي", "Subtotal")}</span>
-                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
+                          <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits((totals.discount > 0 ? totals.listPrice : totals.subtotal).toFixed(2))}</span>
                         </div>
+                        {/* Discount · document level · before tax (CEO 2026-09-14) */}
+                        <div className="flex items-center justify-between gap-2 text-sm">
+                          <span className="text-muted-foreground min-w-0 break-words">{t("الخصم", "Discount")}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            <div className="flex rounded-md bg-muted/50 p-0.5">
+                              {([["", t("بلا", "None")], ["PERCENT", "%"], ["FIXED", form.currency]] as Array<["" | "PERCENT" | "FIXED", string]>).map(([id, lbl]) => (
+                                <button
+                                  key={id || "none"}
+                                  type="button"
+                                  onClick={() => setForm({ ...form, discountType: id, discountValue: id ? form.discountValue : "" })}
+                                  className={`rounded px-2 py-1 text-[11px] transition-colors ${form.discountType === id ? "bg-card text-primary shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                                  data-testid={`quote-discount-${id || "none"}`}
+                                >{lbl}</button>
+                              ))}
+                            </div>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              disabled={!form.discountType}
+                              value={form.discountValue}
+                              onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                              placeholder="0"
+                              className="h-8 w-20 rounded-md border border-border bg-card px-2 text-end font-english text-sm disabled:opacity-40"
+                              data-testid="quote-discount-value"
+                            />
+                          </span>
+                        </div>
+                        {totals.discount > 0 && (
+                          <>
+                            <div className="flex items-center justify-between gap-3 text-sm text-danger">
+                              <span className="min-w-0 break-words">{t("قيمة الخصم", "Discount amount")}</span>
+                              <span className="font-english text-end whitespace-nowrap shrink-0">- {form.currency} {displayDigits(totals.discount.toFixed(2))}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                              <span className="text-muted-foreground min-w-0 break-words">{t("الصافي", "Net")}</span>
+                              <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
+                            </div>
+                          </>
+                        )}
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="text-muted-foreground min-w-0 break-words">{t("الضريبة (15%)", "Tax (15%)")}</span>
                           <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.tax.toFixed(2))}</span>
@@ -1095,6 +1155,24 @@ export function Quotes() {
                     )}
                   </span>
                 }
+              />
+            </div>
+            {/* CEO 2026-09-13 · free-form pages (scope · requirements · timeline) · printed before the T&C page */}
+            <div className="lg:col-span-2">
+              <DocumentPagesSection
+                pages={q.pages}
+                disabled={q.status === "CONVERTED"}
+                printHref={`/print/proposal/${q.id}`}
+                onSave={async (pages) => {
+                  try {
+                    const updated = await api.quotes.update(q.id, { pages });
+                    setDetail((prev) => (prev && prev.id === q.id ? { ...prev, pages: updated.pages ?? pages } : prev));
+                    push("success", t("تم حفظ الصفحات", "Pages saved"));
+                  } catch (e: any) {
+                    push("error", e?.message || t("تعذّر حفظ الصفحات", "Could not save pages"));
+                    throw e;
+                  }
+                }}
               />
             </div>
             <div className="lg:col-span-2">

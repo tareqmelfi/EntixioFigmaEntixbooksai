@@ -29,6 +29,7 @@ const render = (value: any) => renderToStaticMarkup(createElement(MemoryRouter,{
 
 const { displayLocale, displayDigits, getNumberingSystem, setNumberingSystem, NUMBERING_STORAGE_KEY } = await import('../src/app/lib/number-display')
 const { normalizeDigits } = await import('../src/app/lib/digits')
+const { NumberPreferences } = await import('../src/app/components/number-preferences')
 const { receiptQrSvg } = await import('../src/app/lib/pos-receipt')
 const { ReportDocument } = await import('../src/app/components/report-document')
 const snapshot = JSON.stringify(invoice)
@@ -41,7 +42,7 @@ const stamp = new Date('2026-09-06T10:49:42Z')
 const date = (system: 'latn' | 'arab') => stamp.toLocaleString(displayLocale('ar-SA-u-ca-gregory', system), {timeZone:'Asia/Riyadh'})
 assert.doesNotMatch(date('latn'), /[\u0660-\u0669]/)
 assert.match(date('latn'), /2026/)
-assert.match(date('arab'), /٢٠٢٦/)
+assert.doesNotMatch(date('arab'), /[\u0660-\u0669\u06f0-\u06f9]/); assert.match(date('arab'), /2026/)
 const sale:any={occurredAt:'2026-09-06T10:49:42Z',totals:{grand:10,vat:1.3}}
 const store:any={name:'Synthetic store',vatNumber:'310000000000003',country:'SA'}
 const qrBefore=receiptQrSvg(sale,store)
@@ -51,24 +52,30 @@ for(const lang of ['ar','en']) {
  storage.set('entix-language',lang)
  for(const system of ['latn','arab'] as const) {
   assert.equal(setNumberingSystem(system),true)
-  assert.equal(getNumberingSystem(),system)
+  assert.equal(getNumberingSystem(),'latn')
+  assert.equal(storage.get(NUMBERING_STORAGE_KEY),'latn')
   const html=render(invoice)
-  if(system==='latn') {assert.doesNotMatch(html,/[\u0660-\u0669]/);assert.match(html,/10\.00/)}
-  else assert.match(html,/١٠/)
+  assert.doesNotMatch(html,/[\u0660-\u0669\u06f0-\u06f9]/);assert.match(html,/10\.00/)
   assert.match(html,/REVIEW-1/)
   assert.match(html,/42000/)
-  assert.doesNotMatch(html,/<input|<textarea/)
+  // Baseline already has a hidden file input for invoice attachments; financial fields remain read-only.
+  assert.doesNotMatch(html.replace(/<input\b[^>]*type="file"[^>]*>/g,''),/<input|<textarea/)
+  const preferences=renderToStaticMarkup(createElement(LanguageProvider,{},createElement(NumberPreferences)))
+  assert.doesNotMatch(preferences,/option value="arab"|[\u0660-\u0669\u06f0-\u06f9]/)
+  assert.match(preferences,/0123456789/)
   for(const template of ['classic','condensed']) {
    const doc=renderReport(template)
-   if(system==='latn') {assert.doesNotMatch(doc,/[\u0660-\u0669]/);assert.match(doc,/1,234\.50/)}
-   else assert.match(doc,/١/)
+   assert.doesNotMatch(doc,/[\u0660-\u0669\u06f0-\u06f9]/);assert.match(doc,/1,234\.50/)
   }
  }
 }
 assert.equal(receiptQrSvg(sale,store),qrBefore,'Changing visible digits must not change QR payload')
 assert.equal(JSON.stringify(invoice),snapshot,'Rendering never changes the financial record')
 assert.equal(normalizeDigits('١٠.٥۰'),'10.50')
-assert.equal(displayDigits('10.00','arab'),'١٠.٠٠')
+assert.equal(displayDigits('10.00','arab'),'10.00')
+storage.set(NUMBERING_STORAGE_KEY,'arab')
+assert.equal(getNumberingSystem(),'latn')
+assert.equal(storage.get(NUMBERING_STORAGE_KEY),'latn')
 assert.equal(displayDigits('١٠.٠٠','latn'),'10.00')
 storage.set(NUMBERING_STORAGE_KEY,'invalid')
 assert.equal(getNumberingSystem(),'latn')
@@ -76,4 +83,18 @@ const originalGet=localStorageShim.getItem
 localStorageShim.getItem=()=>{throw new Error('blocked')}
 assert.equal(getNumberingSystem(),'latn')
 localStorageShim.getItem=originalGet
-console.log('Number display: both languages and preferences, default/invalid/blocked storage, invoice, classic/condensed reports, Gregorian/timezone preservation, unchanged QR and financial payload passed.')
+console.log('Number display: Latin-only in both languages, retired legacy preferences, default/invalid/blocked storage, invoice, classic/condensed reports, Gregorian/timezone preservation, unchanged QR and financial payload passed.')
+
+// Empty all-time financial statements must retain unavailable amounts in both screen/print templates.
+report.id='income-statement';report.period={from:null,to:'2026-09-16',allTime:true};
+report.dataBasis={source:'unavailable',status:'no_activity',dateBasis:'period',from:null,to:'2026-09-16',postedEntriesOnly:true};
+report.sections=[{id:'income-summary',title:'Summary',columns:[{key:'amount',label:'Amount',kind:'money'}],rows:['revenue','expenses','net-income'].map(id=>({id,label:id,values:{amount:null}}))}];
+for(const lang of ['ar','en']) {
+ storage.set('entix-language',lang);
+ for(const template of ['classic','condensed']) {
+  const empty=renderReport(template);
+  assert.doesNotMatch(empty,/0\.00|1970|null|report-equation/);
+  assert.match(empty,/All recorded periods|كل الفترات المسجلة/);
+ }
+}
+console.log('Null all-time report values stay unavailable in classic and condensed print/screen output.');

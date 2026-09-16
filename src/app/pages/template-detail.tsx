@@ -15,12 +15,14 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { api, ApiError, getOrgId, type Org, type BankAccount } from "../lib/api";
+import { api, ApiError, getOrgId, type Org, type BankAccount, type IdentityTier } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { TYPE_META, LAYOUT_META, type DocType, type Layout } from "../components/template-preview";
 import { BrandDocument } from "../components/brand-document";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { downscaleDataUrl } from "../lib/print-image";
+import { TemplateIdentitySection, EMPTY_IDENTITY, identityFromTemplate, identityPayload, type IdentityValues } from "../components/template-identity-section";
+import { TemplateAutoRuleSection, EMPTY_AUTO_RULE, autoRuleFromTemplate, autoRulePayload, type AutoRuleValues } from "../components/template-auto-rule";
 import {
   sampleInput, partyFromOrg, normalizeSections, SECTION_META,
   DEFAULT_BRAND_COLOR, DEFAULT_COVER_COLOR, LEGACY_PRIMARY_COLOR, LEGACY_ACCENT_COLOR,
@@ -50,7 +52,7 @@ const EMPTY_FORM = {
   brandColor: DEFAULT_BRAND_COLOR, coverColor: DEFAULT_COVER_COLOR,
   sections: normalizeSections(null) as SectionSetting[],
   termsEn: "", closingTerms: "", closingTermsEn: "",
-  bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryEmail: "", signatoryPhone: "",
+  bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryTitleAr: "", signatoryEmail: "", signatoryPhone: "",
   stampUrl: "", footerText: "", classification: "", classificationEn: "", wordmarkAccent: "",
 };
 
@@ -101,6 +103,15 @@ export function TemplateDetail() {
   const [previewKind, setPreviewKind] = useState<DocKind>(initialType === "INVOICE" ? "INVOICE" : "QUOTE");
   const [previewLang, setPreviewLang] = useState<DocLang>(isAr ? "ar" : "en");
   const [sheetCount, setSheetCount] = useState(0);
+  // ── document identity (2026-09-14) · separate state so the legacy form stays untouched ──
+  const [identity, setIdentity] = useState<IdentityValues>(EMPTY_IDENTITY);
+  const [autoRule, setAutoRule] = useState<AutoRuleValues>(EMPTY_AUTO_RULE);
+  const [identityTier, setIdentityTier] = useState<IdentityTier>("full");
+  // the template's language lock wins over the preview toggle — the preview must show what prints
+  const effLang: DocLang = identity.docLang === "ar" || identity.docLang === "en" ? identity.docLang : previewLang;
+  const [planError, setPlanError] = useState<string | null>(null);
+  const patchIdentity = useCallback((patch: Partial<IdentityValues>) => setIdentity((v) => ({ ...v, ...patch })), []);
+  const patchAutoRule = useCallback((patch: Partial<AutoRuleValues>) => setAutoRule((v) => ({ ...v, ...patch })), []);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -110,7 +121,7 @@ export function TemplateDetail() {
     try {
       const tpl = await api.documentTemplates.get(id!);
       setForm({
-        name: tpl.name || "", nameEn: tpl.nameEn || "", type: tpl.type, layout: tpl.layout,
+        name: tpl.name || "", nameEn: tpl.nameEn || "", type: tpl.type as DocType, layout: tpl.layout as Layout,
         isDefault: tpl.isDefault, primaryColor: tpl.primaryColor, accentColor: tpl.accentColor,
         showLogo: tpl.showLogo, showTaxBreakdown: tpl.showTaxBreakdown, showTerms: tpl.showTerms,
         terms: tpl.terms || "", notes: tpl.notes || "",
@@ -119,10 +130,12 @@ export function TemplateDetail() {
         brandColor: tpl.brandColor || tpl.accentColor || DEFAULT_BRAND_COLOR, coverColor: tpl.coverColor || tpl.primaryColor || DEFAULT_COVER_COLOR,
         sections: normalizeSections(tpl.sections),
         termsEn: tpl.termsEn || "", closingTerms: tpl.closingTerms || "", closingTermsEn: tpl.closingTermsEn || "",
-        bankAccountId: tpl.bankAccountId || "", signatoryName: tpl.signatoryName || "", signatoryTitle: tpl.signatoryTitle || "",
+        bankAccountId: tpl.bankAccountId || "", signatoryName: tpl.signatoryName || "", signatoryTitle: tpl.signatoryTitle || "", signatoryTitleAr: (tpl as any).signatoryTitleAr || "",
         signatoryEmail: tpl.signatoryEmail || "", signatoryPhone: tpl.signatoryPhone || "",
         stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "", wordmarkAccent: (tpl as any).wordmarkAccent || "",
       });
+      setIdentity(identityFromTemplate(tpl));
+      setAutoRule(autoRuleFromTemplate(tpl));
       if (tpl.kind === "INVOICE") setPreviewKind("INVOICE");
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل تحميل القالب", "Failed to load template"));
@@ -135,6 +148,8 @@ export function TemplateDetail() {
     const orgId = getOrgId();
     if (orgId) api.orgs.get(orgId).then(setOrg).catch(() => setOrg(null));
     api.bankAccounts.list().then((r) => setBanks(r.items.filter((b) => b.isActive !== false))).catch(() => setBanks([]));
+    // plan gate for the premium identity controls · absent = not gated
+    api.documentTemplates.defaults().then((d) => { if (d?.identityTier === "basic") setIdentityTier("basic"); }).catch(() => {});
   }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -152,18 +167,26 @@ export function TemplateDetail() {
         brandColor: form.brandColor, coverColor: form.coverColor, sections: form.sections,
         termsEn: form.termsEn || null, closingTerms: form.closingTerms || null, closingTermsEn: form.closingTermsEn || null,
         bankAccountId: form.bankAccountId || null,
-        signatoryName: form.signatoryName || null, signatoryTitle: form.signatoryTitle || null,
+        signatoryName: form.signatoryName || null, signatoryTitle: form.signatoryTitle || null, signatoryTitleAr: form.signatoryTitleAr || null,
         signatoryEmail: form.signatoryEmail || null, signatoryPhone: form.signatoryPhone || null,
         stampUrl: form.stampUrl || null, footerText: form.footerText || null,
         classification: form.classification || null, classificationEn: form.classificationEn || null,
         wordmarkAccent: form.wordmarkAccent || null,
+        ...identityPayload(identity),
+        ...autoRulePayload(autoRule),
       };
+      setPlanError(null);
       const saved = isNew ? await api.documentTemplates.create(payload) : await api.documentTemplates.update(id!, payload);
       push("success", isNew ? t("تم إنشاء القالب", "Template created") : t("تم تحديث القالب", "Template updated"));
       navigate("/app/templates");
       return saved;
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
+      if (e instanceof ApiError && (e.code === "plan_required" || (e.status === 422 && /plan_required/.test(String(e.detail || e.message))))) {
+        setPlanError((isAr && e.messageAr) || e.message || t("هذه الميزة تتطلب باقة الأعمال", "This feature requires the Business plan"));
+        setError(t("لم يُحفظ القالب — بعض خيارات الهوية خارج باقتك", "Template not saved — some identity options are outside your plan"));
+      } else {
+        setError(e instanceof ApiError ? e.message : t("فشل الحفظ", "Save failed"));
+      }
     } finally { setBusy(false); }
   };
 
@@ -196,8 +219,8 @@ export function TemplateDetail() {
   }, [banks, form.bankAccountId]);
   const previewInput = useMemo(() => {
     const party = org ? partyFromOrg(org) : null;
-    return sampleInput(previewKind, previewLang, form, party, bankSpec);
-  }, [form, org, bankSpec, previewKind, previewLang]);
+    return sampleInput(previewKind, effLang, { ...form, ...identityPayload(identity) }, party, bankSpec);
+  }, [form, identity, org, bankSpec, previewKind, effLang]);
   const onRendered = useCallback((out: RenderOutput) => setSheetCount(out.sheetCount), []);
 
   if (loading) {
@@ -308,6 +331,10 @@ export function TemplateDetail() {
             <div className="space-y-2"><Label>{t("نص التذييل", "Footer text")}</Label><Input value={form.footerText} onChange={(e) => set("footerText", e.target.value)} placeholder={t("© السنة · اسم الشركة · المدينة (تلقائي)", "© year · company · city (automatic)")} /></div>
           </Section>
 
+          <TemplateIdentitySection value={identity} onChange={patchIdentity} tier={identityTier} planError={planError} push={push} />
+
+          <TemplateAutoRuleSection value={autoRule} onChange={patchAutoRule} isAr={isAr} t={t} />
+
           <Section title={t("الغلاف", "Cover")}>
             <div className="flex gap-1 flex-wrap rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("نمط الغلاف", "Cover style")}>
               {(Object.keys(COVER_META) as CoverStyle[]).map((k) => (
@@ -383,6 +410,7 @@ export function TemplateDetail() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("الاسم", "Name")}</Label><Input value={form.signatoryName} onChange={(e) => set("signatoryName", e.target.value)} data-testid="signatory-name" /></div>
               <div className="space-y-2"><Label>{t("المسمى", "Title")}</Label><Input value={form.signatoryTitle} onChange={(e) => set("signatoryTitle", e.target.value)} /></div>
+              <div className="space-y-2"><Label>{t("المسمى بالعربية", "Title (Arabic)")}</Label><Input value={form.signatoryTitleAr} onChange={(e) => set("signatoryTitleAr", e.target.value)} placeholder={t("يظهر سطرًا ثانيًا تحت المسمى الإنجليزي", "Printed as a second role line")} /></div>
               <div className="space-y-2"><Label>{t("البريد", "Email")}</Label><Input value={form.signatoryEmail} onChange={(e) => set("signatoryEmail", e.target.value)} dir="ltr" className="font-english" type="email" /></div>
               <div className="space-y-2"><Label>{t("الجوال", "Phone")}</Label><Input value={form.signatoryPhone} onChange={(e) => set("signatoryPhone", e.target.value)} dir="ltr" className="font-english" /></div>
             </div>
@@ -416,7 +444,7 @@ export function TemplateDetail() {
               </div>
               <div className="flex gap-1 rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("لغة المعاينة", "Preview language")}>
                 {(["ar", "en"] as DocLang[]).map((l) => (
-                  <button key={l} type="button" role="radio" aria-checked={previewLang === l} data-testid={`preview-${l}`} onClick={() => setPreviewLang(l)} className={`${segBtn(previewLang === l)} font-english`}>{l.toUpperCase()}</button>
+                  <button key={l} type="button" role="radio" aria-checked={effLang === l} disabled={!!identity.docLang} data-testid={`preview-${l}`} onClick={() => setPreviewLang(l)} className={`${segBtn(effLang === l)} font-english disabled:opacity-40`}>{l.toUpperCase()}</button>
                 ))}
               </div>
             </div>

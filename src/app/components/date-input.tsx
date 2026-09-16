@@ -9,7 +9,12 @@
  *  - Text field displays dd/mm/yyyy (Arabic-locale convention) and accepts
  *    typing/pasting: 10/01/2026 · 10-01-2026 · 10.01.26 · 2026-01-10 · 10012026
  *  - Parses on change + normalizes on blur; invalid input keeps the text and
- *    shows a subtle error ring (value is NOT committed until valid)
+ *    shows an error ring AND a message (value is NOT committed until valid)
+ *  - FOCUS SELECTS THE WHOLE VALUE (CEO 2026-09-14): typing over an existing date used to
+ *    append to it — "08/09/2026" + a retyped year became "08/09/202026", which parses as
+ *    nothing, so the field silently kept the OLD date while looking changed. The first
+ *    keystroke now replaces the value, and on blur an unparseable field clears the stale
+ *    date instead of hiding it, so the form's own required check catches it.
  *  - Calendar button opens the native picker (hidden input type="date")
  *  - External value stays ISO `yyyy-mm-dd` (what the API expects)
  */
@@ -64,37 +69,57 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
   const resolvedPlaceholder = placeholder ?? t("يوم/شهر/سنة", "day/month/year");
   const [text, setText] = useState(isoToDisplay(value));
   const [invalid, setInvalid] = useState(false);
+  const [touched, setTouched] = useState(false);
   const pickerRef = useRef<HTMLInputElement>(null);
+  const focused = useRef(false);
+  // Mirrors `invalid` for the resync effect below: clearing a stale date fires that effect,
+  // and without this it would immediately wipe the error the user still needs to see.
+  const invalidRef = useRef(false);
 
-  // External value changes (form reset · invoice load) → resync display
+  // External value changes (form reset · invoice load) → resync display.
+  // Never while the field has focus: that would rewrite what the user is mid-way through typing.
   useEffect(() => {
+    if (focused.current || invalidRef.current) return;
     setText(isoToDisplay(value));
     setInvalid(false);
+    setTouched(false);
   }, [value]);
 
   const commit = (raw: string) => {
     setText(raw);
     if (!raw.trim()) {
+      invalidRef.current = false;
       setInvalid(false);
       onChange("");
       return;
     }
     const iso = parseDisplay(raw);
     if (iso) {
+      invalidRef.current = false;
       setInvalid(false);
       onChange(iso);
     } else {
+      invalidRef.current = true;
       setInvalid(true); // keep typing · don't commit
     }
   };
 
   const onBlur = () => {
+    focused.current = false;
+    setTouched(true);
     if (!text.trim()) return;
     const iso = parseDisplay(text);
     if (iso) {
+      invalidRef.current = false;
       setText(isoToDisplay(iso));
       setInvalid(false);
+      return;
     }
+    // Unparseable on leaving the field: drop the stale committed date rather than keep a
+    // value the user believes they replaced. The form's required check then blocks the save.
+    invalidRef.current = true;
+    setInvalid(true);
+    if (value) onChange("");
   };
 
   const openPicker = () => {
@@ -112,7 +137,9 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         dir="ltr"
         value={text}
         onChange={(e) => commit(e.target.value)}
+        onFocus={(e) => { focused.current = true; e.currentTarget.select(); }}
         onBlur={onBlur}
+        aria-invalid={invalid && touched ? true : undefined}
         placeholder={resolvedPlaceholder}
         disabled={disabled}
         required={required}
@@ -138,6 +165,7 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         onChange={(e) => {
           const iso = e.target.value;
           if (iso) {
+            invalidRef.current = false;
             setInvalid(false);
             setText(isoToDisplay(iso));
             onChange(iso);
@@ -147,6 +175,11 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         tabIndex={-1}
         aria-hidden="true"
       />
+      {invalid && touched && (
+        <div className="mt-1 text-[11px] text-danger" data-testid="date-invalid">
+          {t("تاريخ غير صالح — اكتبه هكذا 31/12/2026", "Not a valid date — type it as 31/12/2026")}
+        </div>
+      )}
     </div>
   );
 }
