@@ -1,3 +1,4 @@
+import { UnmatchedBankTransactions } from "../components/unmatched-bank-transactions";
 import { displayLocale } from "../lib/number-display";
 /**
  * Bank Accounts · CRUD wired to /api/bank-accounts
@@ -125,6 +126,10 @@ export function BankAccounts() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {selectedAccount && (
+        <UnmatchedBankTransactions bankAccountId={selectedAccount.id} onChanged={refresh} />
       )}
 
       {selectedAccount && (

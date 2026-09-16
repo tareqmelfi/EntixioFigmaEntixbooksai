@@ -1436,6 +1436,28 @@ export const api = {
         '/api/bank-import/commit',
         { method: 'POST', body: data },
       ),
+
+    // Stage 2 · a statement line stays on the books after the import closes,
+    // so it can be matched to the invoice/bill that arrives later.
+    transactions: (params: { bankAccountId?: string; status?: string; limit?: number } = {}) =>
+      request<{
+        transactions: Array<{
+          id: string; date: string; description: string; amount: number; currency: string
+          reference: string | null; counterparty: string | null; status: string
+          voucherId: string | null; invoiceId: string | null; billId: string | null
+        }>
+        counts: Record<string, number>
+      }>('/api/bank-import/transactions', { query: params }),
+    suggestions: (id: string) =>
+      request<{
+        match: { type: string; id?: string; confidence: number; reason: string; suggestedContactName?: string; suggestedAccountName?: string }
+        options: Array<{ id: string; label: string; contactName?: string; outstanding: number; kind: 'invoice' | 'bill' }>
+      }>(`/api/bank-import/transactions/${id}/suggestions`),
+    match: (id: string, data: { action: 'link_invoice' | 'link_bill' | 'link_voucher' | 'ignore' | 'unmatch'; targetId?: string; contactId?: string; contactName?: string; accountId?: string; accountName?: string; learn?: boolean }) =>
+      request<{ ok: boolean; status: string }>(`/api/bank-import/transactions/${id}/match`, { method: 'POST', body: data }),
+    rules: () =>
+      request<{ rules: Array<{ id: string; pattern: string; direction: string; contactName: string | null; accountName: string | null; hits: number }> }>('/api/bank-import/rules'),
+    deleteRule: (id: string) => request<{ ok: true }>(`/api/bank-import/rules/${id}`, { method: 'DELETE' }),
   },
 
   // Portal · enable/disable per-contact + retrieve URL + public portal feed

@@ -32,6 +32,12 @@ type ParsedRow = {
   matchLabel?: string;
   decision?: "accept" | "create_voucher" | "skip";
   sourceFile?: string;
+  /** Already imported from an earlier statement · re-importing is a no-op. */
+  duplicate?: boolean;
+  /** What the books learned the last time this merchant was approved. */
+  learnedContactName?: string;
+  learnedAccountName?: string;
+  counterparty?: string;
 };
 
 type StatementFormat = "csv" | "mt940" | "ofx" | "qif" | "pdf" | "xlsx" | "xls";
@@ -187,7 +193,10 @@ export function BankReconciliation() {
           matchId: r.match?.id,
           matchScore: r.match?.confidence,
           matchLabel: r.match?.id ? `${r.match.type} · ${r.match.reason}` : r.match?.reason,
-          decision: r.match?.type && r.match.type !== "unknown" ? "accept" : "create_voucher",
+          learnedContactName: r.match?.suggestedContactName,
+          learnedAccountName: r.match?.suggestedAccountName,
+          duplicate: !!r.duplicate,
+          decision: r.duplicate ? "skip" : (r.match?.type && r.match.type !== "unknown" ? "accept" : "create_voucher"),
         })) as ParsedRow[]));
       }
       setRows(parsed);
@@ -203,7 +212,10 @@ export function BankReconciliation() {
 
   const handleCommit = async () => {
     if (!bankAccountId) return;
-    const toSend = rows.filter(r => r.decision !== "skip");
+    // Every row is sent, "skip" included. A skipped line is RECORDED as an
+    // unmatched bank transaction rather than thrown away — it stays on the
+    // account page until the invoice it belongs to shows up (2026-09-16).
+    const toSend = rows;
     if (toSend.length === 0) { push("error", t("لا توجد حركات لتأكيدها", "No transactions to confirm")); return; }
     const payloadRows = toSend.map((r) => {
       let action: "link_voucher" | "create_voucher" | "link_invoice" | "link_bill" | "skip" = "create_voucher";
@@ -216,8 +228,11 @@ export function BankReconciliation() {
         amount: r.amount,
         description: r.description,
         reference: r.reference || null,
+        counterparty: r.counterparty || null,
         action,
         targetId: r.decision === "accept" ? r.matchId : undefined,
+        contactName: r.learnedContactName,
+        accountName: r.learnedAccountName,
       };
     });
     setCommitting(true);
@@ -421,6 +436,11 @@ export function BankReconciliation() {
                           <div className="text-foreground truncate">{r.description}</div>
                           {r.reference && <div className="text-xs text-muted-foreground/60 font-english" dir="ltr">{r.reference}</div>}
                           {r.sourceFile && <div className="text-[11px] text-muted-foreground/60 font-english truncate" dir="ltr">{r.sourceFile}</div>}
+                          {r.duplicate && (
+                            <div className="mt-1 inline-flex items-center rounded-full bg-warning-subtle px-2 py-0.5 text-[11px] text-warning-foreground">
+                              {t("مستوردة مسبقاً", "Already imported")}
+                            </div>
+                          )}
                         </td>
                         <td className={`px-3 py-2 text-end font-english font-semibold ${r.amount >= 0 ? "text-success" : "text-danger"}`} dir="ltr">
                           {r.amount >= 0 ? "+" : ""}{r.amount.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}
@@ -434,6 +454,11 @@ export function BankReconciliation() {
                                 {r.matchScore && <div className="text-muted-foreground/60">{t("ثقة", "confidence")} <span className="font-english">{Math.round(r.matchScore * 100)}%</span></div>}
                               </div>
                             </div>
+                          ) : r.learnedContactName || r.learnedAccountName ? (
+                            <div className="text-xs">
+                              <div className="text-foreground">{r.learnedContactName || r.learnedAccountName}</div>
+                              <div className="text-muted-foreground/60">{t("تعلّمه النظام من اعتمادك السابق", "Learned from your previous approval")}</div>
+                            </div>
                           ) : (
                             <span className="text-xs text-muted-foreground/60">{t("— لا يوجد —", "— none —")}</span>
                           )}
@@ -444,7 +469,7 @@ export function BankReconciliation() {
                             <SelectContent>
                               {r.matchKind && r.matchKind !== "none" && <SelectItem value="accept">{t("قبول الربط", "Accept match")}</SelectItem>}
                               <SelectItem value="create_voucher">{t("سند جديد", "New voucher")}</SelectItem>
-                              <SelectItem value="skip">{t("تخطي", "Skip")}</SelectItem>
+                              <SelectItem value="skip">{t("تسجيل بدون مطابقة", "Record without matching")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </td>
@@ -460,7 +485,7 @@ export function BankReconciliation() {
             <Button variant="outline" onClick={reset} className="border-border">{t("رجوع", "Back")}</Button>
             <Button onClick={handleCommit} disabled={committing} className="bg-success hover:bg-success text-primary-foreground">
               {committing ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <CheckCircle2 className="h-4 w-4 me-2" />}
-              {t("تأكيد وترحيل", "Confirm & post")} {rows.filter(r => r.decision !== "skip").length} {t("حركة", "transactions")}
+              {t("تأكيد وترحيل", "Confirm & post")} {rows.length} {t("حركة", "transactions")}
             </Button>
           </div>
         </>
