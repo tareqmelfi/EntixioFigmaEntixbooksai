@@ -30,7 +30,8 @@ function sizeLabel(bytes: number): string {
  * each uploaded independently so one failure never blocks the others.
  * Delete goes through InlineConfirm (UX-1 · never a browser confirm/dialog).
  */
-export function InvoiceDocuments({ invoiceId }: { invoiceId: string }) {
+export function InvoiceDocuments({ invoiceId, kind = "invoice" }: { invoiceId: string; kind?: "invoice" | "quote" }) {
+  const attachmentApi = kind === "quote" ? { ...api.quotes.attachments, add: api.quotes.attachments.upload } : api.invoices.attachments;
   const { t } = useLanguage();
   const [files, setFiles] = useState<ExpenseAttachment[]>([]);
   const [selected, setSelected] = useState<ExpenseAttachment | null>(null);
@@ -41,10 +42,10 @@ export function InvoiceDocuments({ invoiceId }: { invoiceId: string }) {
 
   useEffect(() => {
     let current = true;
-    setSelected(null);
-    void api.invoices.attachments.list(invoiceId).then(r => { if (current) setFiles(r.items); }).catch(() => { if (current) setListError(t('تعذر تحميل المرفقات', 'Attachments could not be loaded')); });
+    setSelected(null); setFiles([]); setListError('');
+    void attachmentApi.list(invoiceId).then(r => { if (current) setFiles(r.items); }).catch(() => { if (current) setListError(t('تعذر تحميل المرفقات', 'Attachments could not be loaded')); });
     return () => { current = false; };
-  }, [invoiceId, t]);
+  }, [invoiceId, kind, t]);
 
   const uploadOne = async (file: File) => {
     const key = `${file.name}-${file.size}-${Date.now()}`;
@@ -55,7 +56,7 @@ export function InvoiceDocuments({ invoiceId }: { invoiceId: string }) {
     setUploading(prev => ({ ...prev, [key]: { name: file.name } }));
     try {
       const data = await fileToDataUrl(file);
-      const added = await api.invoices.attachments.add(invoiceId, { filename: file.name, contentType: file.type || 'application/octet-stream', sizeBytes: file.size, data });
+      const added = await attachmentApi.add(invoiceId, { filename: file.name, contentType: file.type || 'application/octet-stream', sizeBytes: file.size, data });
       setFiles(old => [...old, added]);
       setUploading(prev => { const next = { ...prev }; delete next[key]; return next; });
     } catch {
@@ -72,7 +73,7 @@ export function InvoiceDocuments({ invoiceId }: { invoiceId: string }) {
   const remove = async (id: string) => {
     setPendingDelete(null);
     try {
-      await api.invoices.attachments.remove(invoiceId, id);
+      await attachmentApi.remove(invoiceId, id);
       setFiles(old => old.filter(f => f.id !== id));
       if (selected?.id === id) setSelected(null);
     } catch {
@@ -85,7 +86,7 @@ export function InvoiceDocuments({ invoiceId }: { invoiceId: string }) {
 
   return <section className="rounded-lg border border-border bg-card p-4 space-y-3">
     <div className="flex items-center justify-between gap-3 flex-wrap">
-      <h2 className="font-semibold flex items-center gap-2"><Paperclip className="h-4 w-4" />{t('مستندات الفاتورة', 'Invoice documents')}</h2>
+      <h2 className="font-semibold flex items-center gap-2"><Paperclip className="h-4 w-4" />{kind === 'quote' ? t('مستندات عرض السعر', 'Quote documents') : t('مستندات الفاتورة', 'Invoice documents')}</h2>
       <Button size="sm" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
         <Upload className="h-4 w-4 me-2" />{busy ? t('جارٍ الرفع', 'Uploading') : t('إضافة مستندات', 'Add documents')}
       </Button>

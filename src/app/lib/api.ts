@@ -3583,6 +3583,7 @@ export interface PaymentPlanInput {
 
 /** SPEC-04 · BOQ import preview (parse only · nothing written) */
 export interface BoqPreviewLine {
+  taxRate?: number;
   no: string
   description: string
   unit: string | null
@@ -3592,12 +3593,14 @@ export interface BoqPreviewLine {
   isHeading: boolean
 }
 export interface BoqPreview {
+  currency?: string | null;
   fileName: string
   sheets: Array<{ name: string; lineCount: number; total: number; lines: BoqPreviewLine[] }>
   warnings: string[]
 }
 
 export interface QuoteInput {
+  sourceAttachments?: Array<{ name: string; contentType: string; base64: string }>;
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */

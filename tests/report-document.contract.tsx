@@ -4,8 +4,8 @@ import assert from 'node:assert/strict'
  * Report document chrome contract — user-approved reference: the Wave-style
  * Profit & Loss PDF (ENSIDEX LLC, 2026-08-15).
  *
- * Fixed physical layout (both languages):
- *   - client logo at the TOP RIGHT, title block at the TOP LEFT;
+ * Classic-template layout (the production default is condensed):
+ *   - title and client logo follow the document language;
  *   - NO accounting-software branding anywhere in the document writing
  *     (no ENTIX name/logo in header or footer);
  *   - compact row density so large charts of accounts fit on fewer pages;
@@ -91,7 +91,7 @@ function render(lang: 'ar' | 'en') {
   storage.clear()
   storage.set('entix-language', lang)
   return renderToStaticMarkup(
-    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: fixture, settings: null })),
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: fixture, settings: { template: "classic" } })),
   )
 }
 
@@ -101,13 +101,13 @@ for (const lang of ['ar', 'en'] as const) {
   // 1 · no accounting-software branding anywhere in the writing
   assert.ok(!html.includes('ENTIX'), `${lang}: document must not carry the ENTIX brand`)
 
-  // 2 · header is physically pinned: title block LEFT, client logo RIGHT
+  // 2 · classic header follows document direction; numeric spans isolate themselves.
   const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] || ''
   assert.ok(header, `${lang}: header exists`)
-  assert.ok(/dir="ltr"/.test(header), `${lang}: header row is physically LTR-pinned (title left, logo right) in both languages`)
+  assert.ok(!/dir="ltr"/.test(header.match(/<header[^>]*>/)?.[0] || ""), `${lang}: header inherits document direction`)
   const titleIdx = header.search(/<h1/)
   const logoIdx = header.search(/<img/)
-  assert.ok(titleIdx > -1 && logoIdx > -1 && titleIdx < logoIdx, `${lang}: title renders before (left of) the client logo`)
+  assert.ok(titleIdx > -1 && logoIdx > -1 && titleIdx < logoIdx, `${lang}: title precedes the client logo in document order`)
 
   // 3 · no decorative gradient and no "Live Report" chip
   assert.ok(!html.includes('linear-gradient'), `${lang}: no gradient header`)
@@ -155,7 +155,7 @@ for (const lang of ['ar', 'en'] as const) {
   storage.clear()
   storage.set('entix-language', 'ar')
   const html = renderToStaticMarkup(
-    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: noLogoFixture, settings: null })),
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: noLogoFixture, settings: { template: "classic" } })),
   )
   const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] || ''
   assert.ok(!/<img/.test(header), 'no <img> without a logo')
@@ -174,11 +174,11 @@ for (const lang of ['ar', 'en'] as const) {
   }
   storage.clear(); storage.set('entix-language', 'ar')
   const defaultHtml = renderToStaticMarkup(
-    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withNotes, settings: null })),
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withNotes, settings: { template: "classic" } })),
   )
   assert.ok(!defaultHtml.includes('ملاحظة طويلة'), 'note column hidden by default')
   const optedHtml = renderToStaticMarkup(
-    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withNotes, settings: { showNotes: true } })),
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withNotes, settings: { template: "classic", showNotes: true } })),
   )
   assert.ok(optedHtml.includes('ملاحظة طويلة'), 'note column renders when showNotes=true')
 }
@@ -188,7 +188,7 @@ for (const lang of ['ar', 'en'] as const) {
 {
   const html = render('ar')
   assert.ok(/whitespace-nowrap/.test(html), 'row labels are single-line (nowrap)')
-  assert.ok(/bg-slate-50/.test(html), 'zebra striping present')
+  assert.ok(/bg-surface-subtle\/70/.test(html), 'zebra striping present')
   assert.ok(!/rounded-xl/.test(html.match(/<article[^>]*>/)?.[0] || ''), 'paper uses minimal rounding')
 }
 
@@ -213,7 +213,7 @@ for (const lang of ['ar', 'en'] as const) {
   }
   storage.clear(); storage.set('entix-language', 'ar')
   const html = renderToStaticMarkup(
-    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withSummary, settings: null })),
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: withSummary, settings: { template: "classic" } })),
   )
   const headerEnd = html.indexOf('</header>')
   const detailStart = html.indexOf('تفصيل قائمة الدخل حسب الحساب')
@@ -240,7 +240,7 @@ for (const lang of ['ar', 'en'] as const) {
   }
   storage.clear(); storage.set('entix-language', 'ar')
   const html = renderToStaticMarkup(
-    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: tree, settings: null })),
+    createElement(LanguageProvider, null, createElement(ReportDocument as any, { report: tree, settings: { template: "classic" } })),
   )
   assert.ok(/padding-inline-start:\s*28px/.test(html), 'depth 1 indents 28px')
   assert.ok(/padding-inline-start:\s*46px/.test(html), 'depth 2 indents 46px')

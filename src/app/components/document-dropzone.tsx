@@ -137,8 +137,8 @@ export function DocumentDropZone({
     setSuccess(null);
     setError(null);
     try {
-      if (file.size > 100 * 1024 * 1024) {
-        throw new Error(t("الملف أكبر من 100MB · جرّب ملفاً أصغر أو قسّمه", "File exceeds 100MB · try a smaller file or split it"));
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error(t("الملف أكبر من 10MB · جرّب ملفاً أصغر أو قسّمه", "File exceeds 10MB · try a smaller file or split it"));
       }
       const base64 = await fileToBase64(file);
       const data: ExtractedDocument = await (api as any).agent.extractDocument({
@@ -334,7 +334,7 @@ export function DocumentDropZone({
               {t("اسحب أي مستند هنا أو اضغط للتصفح", "Drag any document here or click to browse")}
             </p>
             <p className="text-xs text-muted-foreground">
-              {t("PDF · صور · Excel · CSV · سيتم استخراج البنود تلقائياً بالذكاء الاصطناعي", "PDF · Images · Excel · CSV · line items are extracted automatically with AI")}
+              {t("PDF · صور · Excel · CSV · حتى 10MB · استخراج البنود بالذكاء الاصطناعي", "PDF · Images · Excel · CSV · up to 10MB · AI line extraction")}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
               {t("يمكنك حتى رفع عرض سعر · سنحوّله لفاتورة مبيعات بضغطة", "You can even upload a quotation · we convert it to a sales invoice in one click")}

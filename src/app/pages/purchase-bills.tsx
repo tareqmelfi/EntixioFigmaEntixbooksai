@@ -1,3 +1,4 @@
+import { readSourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
 /**
  * Purchase Bills · wired to /api/bills · org-scoped
@@ -124,6 +125,8 @@ export function PurchaseBills() {
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const { language, t } = useLanguage();
   // Source file captured by the dropzone · forwarded to the create so the bill carries its attachment
+  const [lockedBill, setLockedBill] = useState(false);
+  const [billAttachments, setBillAttachments] = useState<Array<{ id: string; fileName: string; fileUrl: string }>>([]);
   const [sourceFile, setSourceFile] = useState<{ name: string; contentType: string; base64: string } | null>(null);
   const [sourceFileHash, setSourceFileHash] = useState<string | null>(null);
   const [extractedDocNumber, setExtractedDocNumber] = useState<string | null>(null);
@@ -148,31 +151,7 @@ export function PurchaseBills() {
   }, [push, language]);
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Global drag-and-drop: drop anywhere on the page to upload as attachment
-  useEffect(() => {
-    if (!createOpen) return;
-    const handler = (e: DragEvent) => {
-      e.preventDefault();
-      const file = e.dataTransfer?.files?.[0];
-      if (file && (file.type.startsWith('image/') || file.type === 'application/pdf')) {
-        // Trigger the DocumentDropZone extraction flow
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-        if (input) {
-          input.files = dt.files;
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }
-    };
-    const prevent = (e: DragEvent) => e.preventDefault();
-    window.addEventListener('dragover', prevent);
-    window.addEventListener('drop', handler);
-    return () => {
-      window.removeEventListener('dragover', prevent);
-      window.removeEventListener('drop', handler);
-    };
-  }, [createOpen]);
+  // DocumentDropZone owns drag/drop; do not dispatch a second upload.
 
   const location = useLocation();
 
@@ -210,12 +189,14 @@ export function PurchaseBills() {
     (b.contact?.displayName || "").includes(searchQuery))
   );
 
-  const total = items.reduce((s, b) => s + Number(b.total), 0);
+  const postedItems = filtered.filter(b => !["DRAFT", "CANCELLED"].includes(b.status));
+  const total = postedItems.reduce((s, b) => s + Number(b.total), 0);
   // Currency-honest total: one currency → label it · mixed → per-currency figures
-  const totalByCur = Object.entries(items.reduce<Record<string, number>>((acc, b) => { const k = b.currency || orgCurrency || "SAR"; acc[k] = (acc[k] || 0) + Number(b.total); return acc; }, {})).filter(([, v]) => v !== 0);
+  const totalByCur = Object.entries(postedItems.reduce<Record<string, number>>((acc, b) => { const k = b.currency || orgCurrency || "SAR"; acc[k] = (acc[k] || 0) + Number(b.total); return acc; }, {})).filter(([, v]) => v !== 0);
   const figureCurrency = totalByCur.length === 1 ? totalByCur[0][0] : (orgCurrency || "SAR");
 
   const openCreate = () => {
+    setLockedBill(false); setBillAttachments([]);
     const prefillContact = searchParams.get("contactId") || "";
     currencyTouchedRef.current = false;
       setForm({ ...EMPTY_FORM, currency: orgCurrency, ...(prefillContact ? { contactId: prefillContact } : {}) });
@@ -229,6 +210,8 @@ export function PurchaseBills() {
   };
 
   const openEdit = (b: any) => {
+    setLockedBill(b.status !== "DRAFT"); setBillAttachments(b.attachments || []);
+    setSourceFile(null); setSourceFileHash(null); setExtractedDocNumber(null);
     setForm({
       contactId: b.contactId || "",
       billNumber: b.billNumber || "",
@@ -307,6 +290,7 @@ export function PurchaseBills() {
   };
 
   const handleSubmit = async (action: "draft" | "approve" = "draft") => {
+    if (lockedBill) return;
     setCreateError(null);
     setLineError(null);
     setInvalidLineIds(new Set());
@@ -493,7 +477,7 @@ export function PurchaseBills() {
           title={editingId
             ? `${t("فاتورة مشتريات", "Purchase invoice")} · ${form.billNumber || ""}`
             : t("فاتورة مشتريات جديدة", "New purchase invoice")}
-          subtitle={editingId
+          subtitle={lockedBill ? t("فاتورة معتمدة — التصحيح بإشعار مورد والدفعات بسند صرف", "Approved bill — correct with supplier credits; record payments with vouchers") : editingId
             ? t("فاتورة مسجلة — أي تعديل هنا يحدّث نفس الفاتورة", "A recorded bill — edits here update this same bill")
             : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic data · you can edit later")}
           onClose={closeCreate}
@@ -503,16 +487,28 @@ export function PurchaseBills() {
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
               <div className="flex items-center gap-2">
-                <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/90">
+                <Button type="button" disabled={busy || lockedBill} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/90">
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-primary/5" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                <Button type="button" disabled={busy || lockedBill} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-primary/5" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
                   {busy ? "..." : t("اعتماد", "Approve")}
                 </Button>
               </div>
             </div>
           }
         >
+          <div className="mb-4 space-y-2">
+            {lockedBill && <p role="status" className="rounded-lg bg-muted p-3 text-sm">{t("هذه الفاتورة معتمدة ومحمية للحفاظ على تطابق الحسابات. استخدم إشعار مورد للتصحيح.", "This approved bill is protected to keep the accounts consistent. Use a supplier credit to correct it.")} <a className="text-primary underline" href="/app/purchases/supplier-credits">{t("إشعارات الموردين", "Supplier credits")}</a></p>}
+            {billAttachments.map(a => <a key={a.id} className="block text-sm text-primary underline" href={a.fileUrl} download={a.fileName}>{a.fileName}</a>)}
+            {editingId && <label className="block text-sm">{t("إرفاق المستند الأصلي · حتى 10MB", "Attach source document · up to 10MB")}<input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" disabled={busy} onChange={async e => {
+              const file = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (!file) return;
+              setBusy(true);
+              try { const source = await readSourceFile(file); const saved = await api.bills.update(editingId, { attachments:[source] } as any); setBillAttachments((saved as any).attachments || []); push("success", t("تم حفظ المرفق", "Attachment saved")); }
+              catch (error: any) { push("error", error.message || t("تعذر حفظ المرفق", "Could not save attachment")); }
+              finally { setBusy(false); }
+            }} /></label>}
+          </div>
+          <fieldset disabled={lockedBill} className="min-w-0 border-0 p-0 m-0">
           <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{createError}</div>}
 
@@ -782,7 +778,7 @@ export function PurchaseBills() {
               )}
             </div>
 
-            <DocumentDropZone
+            {!lockedBill && <DocumentDropZone
               target="bill-lines"
               hint={t("استخرج بنود فاتورة المشتريات من فاتورة المورد", "Extract purchase bill lines from the supplier invoice")}
               defaultTaxRate={0.15}
@@ -816,7 +812,7 @@ export function PurchaseBills() {
                 push("success", t(`تم استخراج ${newLines.length} بنداً من فاتورة المورد`, `Extracted ${newLines.length} line(s) from the supplier invoice`));
               }}
               onError={(msg) => push("error", msg)}
-            />
+            />}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -857,6 +853,7 @@ export function PurchaseBills() {
               </div>
             </div>
           </div>
+          </fieldset>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
 
@@ -939,7 +936,8 @@ export function PurchaseBills() {
       {statusLabels(t)[status] || status}
     </StatusBadge>
   );
-  const overdueCount = items.filter(b => b.status === "OVERDUE").length;
+  const today = new Date().toLocaleDateString("en-CA");
+  const overdueCount = postedItems.filter(b => Number(b.total) - Number(b.amountPaid || 0) > 0.005 && b.dueDate?.slice(0,10) < today).length;
 
   return (
     <div className="space-y-6">
@@ -1034,17 +1032,17 @@ export function PurchaseBills() {
                   <TableCell className="align-middle">{statusPill(b.status)}</TableCell>
                   <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
                     <div className="flex flex-wrap items-center gap-1">
-                      <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("تعديل", "Edit")}><Edit2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                      <button onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={b.status === "DRAFT" ? t("تعديل", "Edit") : t("عرض الفاتورة والمرفقات", "View bill and attachments")}><Edit2 className="h-4 w-4" strokeWidth={1.75} /></button>
                       {b.status === "DRAFT" && (
                         <button onClick={() => handleApprove(b)} className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-xs text-success hover:border-border-strong" title={t("اعتماد الفاتورة", "Approve invoice")}>
                           {t("✓ اعتماد", "✓ Approve")}
                         </button>
                       )}
-                      {pendingDelete === b.id ? (
+                      {b.status === "DRAFT" && (pendingDelete === b.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(b.id)} onCancel={() => setPendingDelete(null)} />
                       ) : (
                         <button onClick={() => setPendingDelete(b.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
-                      )}
+                      ))}
                     </div>
                   </TableCell>
                 </TableRow>

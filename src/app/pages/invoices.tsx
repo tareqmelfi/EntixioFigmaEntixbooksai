@@ -1,3 +1,4 @@
+import type { SourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
 /**
  * Sales Invoices · wired to /api/invoices · org-scoped
@@ -394,7 +395,10 @@ export function Invoices() {
     return () => { alive = false; };
   }, [selectedId, items]);
 
+  const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
+
   const openCreate = () => {
+    setSourceFiles([]);
     const prefillContact = searchParams.get("contactId") || "";
     setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
     setLines([newLine(defaultTaxRate)]);
@@ -501,6 +505,7 @@ export function Invoices() {
       // draft → DRAFT · approve → APPROVED · send → APPROVED first (SENT only after email succeeds)
       const status = action === "draft" ? "DRAFT" : "APPROVED";
       const buildPayload = (num?: string) => ({
+        sourceAttachments: sourceFiles,
         contactId: form.contactId,
         ...(num !== undefined ? { invoiceNumber: num } : {}),
         issueDate: form.issueDate,
@@ -668,6 +673,7 @@ export function Invoices() {
   };
 
     const openEdit = async (inv: Invoice) => {
+      setSourceFiles([]);
     // List rows don't include lines · fetch the full invoice so edit never opens empty
     if (!inv.lines || !(inv.lines as any[]).length) {
       try { inv = await api.invoices.get(inv.id) as Invoice; } catch { /* fall back to row data */ }
@@ -1037,6 +1043,7 @@ export function Invoices() {
               defaultTaxRate={defaultTaxRate}
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
+                if (data.sourceFile) setSourceFiles([data.sourceFile]);
                 if (!data.lines || data.lines.length === 0) {
                   push("info", t("لم يتم استخراج بنود من المستند", "No line items were extracted from the document"));
                   return;
@@ -1060,6 +1067,7 @@ export function Invoices() {
               }}
               onError={(msg) => push("error", msg)}
             />
+            {sourceFiles.length > 0 && <p className="text-xs text-muted-foreground">{t("سيُحفظ الملف الأصلي مع المستند:", "Source file will be saved with this document:")} {sourceFiles.map(f => f.name).join(", ")}</p>}
 
             {/* Totals + payment terms + notes · 2-column footer */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

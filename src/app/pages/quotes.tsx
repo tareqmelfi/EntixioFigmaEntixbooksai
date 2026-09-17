@@ -1,3 +1,5 @@
+import { InvoiceDocuments } from "../components/invoice-documents";
+import type { SourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
 /**
  * Quotes (عروض الأسعار) · wired to /api/quotes · with convert-to-invoice + sign
@@ -409,7 +411,10 @@ export function Quotes() {
   const detailRow = detail ? items.find((q) => q.id === detail.id) : undefined;
   const detailView: Quote | null = detail ? { ...detail, ...(detailRow || {}), lines: (detailRow?.lines as any[])?.length ? detailRow!.lines : detail.lines } : null;
 
+  const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
+
   const openCreate = () => {
+    setSourceFiles([]);
     const prefillContact = searchParams.get("contactId") || "";
     setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
     setLines([newLine()]);
@@ -442,6 +447,7 @@ export function Quotes() {
     try {
       const status = action === "draft" ? "DRAFT" : "SENT";
       const q = await api.quotes.create({
+        sourceAttachments: sourceFiles,
         contactId: form.contactId,
         quoteNumber: form.quoteNumber || undefined,
         issueDate: form.issueDate,
@@ -806,6 +812,7 @@ export function Quotes() {
               defaultTaxRate={0.15}
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
+                if (data.sourceFile) setSourceFiles([data.sourceFile]);
                 if (!data.lines || data.lines.length === 0) {
                   push("info", t("لم يتم استخراج بنود من المستند", "No line items were extracted from the document"));
                   return;
@@ -824,6 +831,7 @@ export function Quotes() {
               }}
               onError={(msg) => push("error", msg)}
             />
+            {sourceFiles.length > 0 && <p className="text-xs text-muted-foreground">{t("سيُحفظ الملف الأصلي مع المستند:", "Source file will be saved with this document:")} {sourceFiles.map(f => f.name).join(", ")}</p>}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -1176,6 +1184,7 @@ export function Quotes() {
               />
             </div>
             <div className="lg:col-span-2">
+              <InvoiceDocuments invoiceId={q.id} kind="quote" />
               <SendLogSection
                 entityType="quote"
                 entityId={q.id}
