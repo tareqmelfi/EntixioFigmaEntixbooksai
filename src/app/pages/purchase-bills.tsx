@@ -837,7 +837,7 @@ export function PurchaseBills() {
                           <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.subtotal.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-muted-foreground min-w-0 break-words">{t("الضريبة (15%)", "Tax (15%)")}</span>
+                          <span className="text-muted-foreground min-w-0 break-words">{t("الضريبة", "Tax")}</span>
                           <span className="font-english text-end whitespace-nowrap shrink-0">{form.currency} {displayDigits(totals.tax.toFixed(2))}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
