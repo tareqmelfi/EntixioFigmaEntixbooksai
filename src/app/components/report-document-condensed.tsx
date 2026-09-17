@@ -43,7 +43,7 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { v
   return (
     <span className="report-bilingual inline-flex flex-wrap items-baseline gap-x-2">
       <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} dir={lang === "ar" ? "rtl" : "ltr"}>{main}</span>
-      {both && alt ? <span className={`${altCls} text-muted-foreground`} dir={lang === "ar" ? "ltr" : "rtl"}>{"\u00a0\u00a0"}{alt}</span> : null}
+      {both && alt ? <span className={`${altCls} text-muted-foreground`} dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</span> : null}
     </span>
   );
 }

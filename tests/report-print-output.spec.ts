@@ -65,6 +65,20 @@ test('designer prints from the same paginated content and applies document langu
   await expect(output).not.toContainText('عملة التقرير')
   await expect(page.getByTestId('report-download-pdf')).toBeEnabled()
 })
+test('bilingual print labels retain a gap between Arabic and English', async ({page}, testInfo) => {
+  await setup(page, {template:'condensed', language:'ar', bilingual:true}, 3)
+  await page.goto(`/print/report/income-statement?orgId=${visualOrgId}&detail=summary`)
+  const output = page.getByTestId('report-output-pages')
+  await expect(output).toHaveAttribute('data-ready','true')
+  const gap = await output.locator('thead .report-bilingual').first().evaluate(label => {
+    const [main, alternate] = Array.from(label.children).map(span => span.getBoundingClientRect())
+    return Math.max(main.left - alternate.right, alternate.left - main.right)
+  })
+  expect(gap).toBeGreaterThanOrEqual(5)
+  const download = page.waitForEvent('download')
+  await page.getByTestId('report-download-pdf').click()
+  await (await download).saveAs(testInfo.outputPath('bilingual.pdf'))
+})
 test('company mismatch fails closed without rendering or downloading another company', async ({page}) => {
   await setup(page, {}, 3)
   await page.route('https://api.entix.io/api/reports/income-statement*', route => route.fulfill({json: {...payload(3), org:{...org,id:'different-org'}}}))
