@@ -1,4 +1,4 @@
-import { displayLocale } from "../lib/number-display";
+import { displayDigits, displayLocale } from "../lib/number-display";
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
@@ -44,8 +44,7 @@ const fmt = (value: number, currency: string) =>
 
 /** Wave-style equation strip: revenue − expenses = net, straight under the
  * header so the arithmetic is visible before any table (user ask 2026-08-19). */
-function EquationStrip({ report, currency }: { report: ReportPayload; currency: string }) {
-  const { t } = useLanguage();
+function EquationStrip({ report, currency, t }: { report: ReportPayload; currency: string; t: (ar: string, en: string) => string }) {
   if (report.id !== "income-statement") return null;
   const summary = report.sections.find((s) => s.id === "income-summary");
   if (!summary) return null;
@@ -86,7 +85,7 @@ export function ReportDocument({
   mode?: "screen" | "print";
   onRowClick?: (row: ReportRow) => void;
 }) {
-  const { t, language: appLanguage } = useLanguage();
+  const { language: appLanguage } = useLanguage();
   // The document language follows the org's explicit print-setting when set;
   // otherwise it follows the APP UI language — an English app must render an
   // English report, never Arabic chrome (product rule: no language mixing).
@@ -98,6 +97,7 @@ export function ReportDocument({
   const explicitLanguage = storedLanguageChoice === "ar" && orgCountry !== "SA" ? undefined : storedLanguageChoice;
   const resolved = { ...normalizeReportSettings(settings), language: explicitLanguage || appLanguage };
   const isEn = resolved.language === "en";
+  const t = (ar: string, en: string) => displayDigits(isEn ? en : ar);
   const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 14 : resolved.fontScale === "compact" ? 11.5 : 12.5;
@@ -176,7 +176,7 @@ export function ReportDocument({
           </div>
         ) : null}
 
-        <EquationStrip report={report} currency={report.currency} />
+        <EquationStrip report={report} currency={report.currency} t={t} />
 
         {report.sections.map((section) => {
           // The note column is custom-print opt-in (showNotes); default reports
@@ -227,7 +227,7 @@ export function ReportDocument({
                           }}
                           title={column.key === "label" ? String(row.values[column.key] ?? row.label) : undefined}
                         >
-                          <CellValue value={row.values[column.key]} keyName={column.key} kind={column.kind} currency={String(row.values.currency || report.currency)} strong={totalRow} />
+                          <CellValue value={typeof row.values[column.key] === "string" ? one(String(row.values[column.key])) : row.values[column.key]} keyName={column.key} kind={column.kind} currency={String(row.values.currency || report.currency)} strong={totalRow} />
                         </td>
                         );
                       })}

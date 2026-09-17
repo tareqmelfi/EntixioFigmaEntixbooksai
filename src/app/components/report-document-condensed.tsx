@@ -41,9 +41,9 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { v
   const mainCls = size === "lg" ? "text-[15px] font-bold" : size === "sm" ? "text-[11px] font-medium" : "text-[12.5px] font-bold";
   const altCls = size === "lg" ? "text-[11px] font-semibold tracking-wide" : "text-[10px] font-medium";
   return (
-    <span className="inline-flex flex-wrap items-baseline gap-x-2">
+    <span className="report-bilingual inline-flex flex-wrap items-baseline gap-x-2">
       <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} dir={lang === "ar" ? "rtl" : "ltr"}>{main}</span>
-      {both && alt ? <span className={`${altCls} text-muted-foreground`} dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</span> : null}
+      {both && alt ? <span className={`${altCls} text-muted-foreground`} dir={lang === "ar" ? "ltr" : "rtl"}>{"\u00a0\u00a0"}{alt}</span> : null}
     </span>
   );
 }
@@ -123,6 +123,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
         ) : null}
         {report.sections.map((section) => {
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
+          const sectionHasCurrency = columns.some(c => c.key === "currency");
           return (
             <section key={section.id} className="document-keep-together break-inside-avoid">
               <div className="mb-1.5 text-center">
@@ -135,7 +136,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                     {columns.map((column) => (
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
                         <Bi value={column.label} lang={lang} size="sm" both={bilingual} />
-                        {!perRowCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
+                        {!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
                           <span className="ms-1 font-english text-[9px] font-normal text-muted-foreground/80" dir="ltr">({report.currency})</span>
                         ) : null}
                       </th>
