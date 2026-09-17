@@ -96,6 +96,17 @@ export function bootstrapOrgIdFromStorage(): string | null {
   return stored
 }
 
+/** Preserve a matching existing admin grant when a standalone report pins its company.
+ * The API still validates the session/grant; no grant is created by printing. */
+function reportScopeHeaders(id: string): Record<string, string> {
+  const headers: Record<string, string> = { 'X-Org-Id': id }
+  try {
+    const grant = JSON.parse(localStorage.getItem('entix_act_as') || 'null')
+    if (grant?.orgId === id && grant.until > Date.now()) headers['X-Admin-Org-Id'] = id
+  } catch { /* No matching grant: regular membership validation applies. */ }
+  return headers
+}
+
 // ── Error type ────────────────────────────────────────────────────────────────
 export class ApiError extends Error {
   status: number
@@ -990,8 +1001,8 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; allTime?: 1; bilingual?: 1 }) =>
-      request<ReportPayload>(`/api/reports/${id}`, { query: params }),
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; allTime?: 1; bilingual?: 1 }, printOrgId?: string) =>
+      request<ReportPayload>(`/api/reports/${id}`, { query: params, ...(printOrgId ? { skipOrg: true, headers: reportScopeHeaders(printOrgId) } : {}) }),
   },
 
   insights: {

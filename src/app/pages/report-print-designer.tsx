@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, Loader2, Palette, Printer, Save } from "lucide-react";
+import { ArrowRight, Loader2, Palette, Save } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { ReportDocument, normalizeReportSettings } from "../components/report-document";
+import { normalizeReportSettings } from "../components/report-document";
 import { api, ApiError, type Org, type ReportPayload, type ReportPrintSettings } from "../lib/api";
+import { ReportOutput } from "../components/report-output";
+import { readTabOrgId } from "../lib/tab-org-selection";
 import { useLanguage } from "../components/LanguageContext";
 
 const defaultColors = {
@@ -25,6 +27,9 @@ export function ReportPrintDesigner() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  const [fallbackOrgId] = useState(() => readTabOrgId());
+  const printOrgId = searchParams.get("orgId") || fallbackOrgId;
+  const summary = searchParams.get("detail") === "summary";
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
   const allTime = searchParams.get("allTime") === "1" ? 1 : undefined;
@@ -39,7 +44,9 @@ export function ReportPrintDesigner() {
       setLoading(true);
       setError(null);
       try {
-        const payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId });
+        if (!printOrgId) throw new ApiError(400, t("افتح التقرير من داخل الشركة ثم اختر الطباعة.", "Open the report from your company, then choose Print."));
+        const payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
+        if (payload.org.id !== printOrgId) throw new ApiError(409, t("تغيّرت الشركة. أعد فتح التقرير.", "Company mismatch. Reopen the report."));
         const fullOrg = await api.orgs.get(payload.org.id);
         const nextSettings = normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports);
         if (alive) {
@@ -56,8 +63,9 @@ export function ReportPrintDesigner() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, allTime, compareTo, branchId, projectId, contactId]);
+  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId]);
 
+  const visibleReport = useMemo(() => report && summary ? { ...report, sections: report.sections.filter(s => !/-detail$|-crosscheck$/.test(s.id)) } : report, [report, summary]);
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
   const selectClass = "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary";
 
@@ -82,59 +90,8 @@ export function ReportPrintDesigner() {
     }
   };
 
-  const printReport = () => {
-    window.print();
-  };
-
   return (
     <div className="report-designer-page space-y-4">
-      <style>{`
-        @media print {
-          @page {
-            size: ${resolved.paper} ${resolved.orientation};
-            margin: 12mm;
-          }
-          html, body {
-            background: #fff !important;
-            height: auto !important;
-            overflow: visible !important;
-          }
-          /* Hide every non-report ancestor's siblings instead of the whole
-             document — visibility:hidden + absolute inset:0 clipped RTL
-             content off the left edge of the paper (user report 2026-08-19). */
-          body *:not(.entix-print-zone):not(:has(.entix-print-zone)) {
-            visibility: hidden !important;
-          }
-          .entix-print-zone,
-          .entix-print-zone * {
-            visibility: visible !important;
-          }
-          .entix-print-zone {
-            position: static !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #fff !important;
-            overflow: visible !important;
-          }
-          .entix-report-paper {
-            width: 100% !important;
-            min-height: auto !important;
-            margin: 0 !important;
-            border: 0 !important;
-            box-shadow: none !important;
-          }
-          .report-designer-chrome {
-            display: none !important;
-          }
-          /* Print expands the full tree: no collapse controls, no scroll
-             clipping — every section prints in full (Wave-style print). */
-          .no-print, [data-no-print] {
-            display: none !important;
-          }
-        }
-      `}</style>
-
       <div className="report-designer-chrome flex flex-col gap-3 rounded-xl border border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <button onClick={() => navigate(`/app/reports/${id}${window.location.search}`)} className="mb-2 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -148,9 +105,7 @@ export function ReportPrintDesigner() {
             {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
             {t("حفظ كإعداد شركة", "Save as company default")}
           </Button>
-          <Button onClick={printReport} disabled={!report}>
-            <Printer className="me-2 h-4 w-4" />{t("طباعة / Save PDF", "Print / Save PDF")}
-          </Button>
+
         </div>
       </div>
 
@@ -246,7 +201,7 @@ export function ReportPrintDesigner() {
           </aside>
 
           <div className="entix-print-zone overflow-x-auto rounded-xl bg-muted p-5 print:overflow-visible print:bg-card print:p-0">
-            <ReportDocument report={report} settings={resolved} mode="print" />
+            <ReportOutput report={visibleReport!} settings={resolved} />
           </div>
         </div>
       ) : null}

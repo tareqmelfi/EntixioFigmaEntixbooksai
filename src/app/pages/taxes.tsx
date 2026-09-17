@@ -6,9 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { InlineAlert, LedgerFigure, Metric as LedgerMetric, MetricStrip, PageHeader } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Button } from "../components/ui/button";
-import { api, ApiError, type TaxReturnPayload, type TaxReturnWithholdingRow, type UsSalesTaxPayload, type VatSummaryPayload } from "../lib/api";
+import { api, ApiError, getOrgId, type ReportPayload, type TaxReturnPayload, type TaxReturnWithholdingRow, type UsSalesTaxPayload, type VatSummaryPayload } from "../lib/api";
 import { useOrgRegion } from "../lib/use-org-region";
 import { useLanguage } from "../components/LanguageContext";
+import { ReportOutput } from "../components/report-output";
+import { normalizeReportSettings } from "../components/report-document";
+import { taxReportDocument } from "../lib/tax-report-document";
 import { TaxRatesSection } from "../components/tax-rates-section";
 
 const money = (value: number, currency = "SAR") =>
@@ -20,7 +23,7 @@ function todayIso() {
 
 function monthStartIso() {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 // Saudi VAT is filed monthly or quarterly per the org's registration — the
@@ -207,15 +210,32 @@ export function Taxes() {
     URL.revokeObjectURL(url);
   };
 
-  // Print-friendly view (browser print-to-PDF, consistent with the rest of the app).
-  const printZatca = () => window.print();
+  const [printReport, setPrintReport] = useState<ReportPayload | null>(null);
+  const [preparingPrint, setPreparingPrint] = useState(false);
+  const printSettings = useMemo(() => normalizeReportSettings({ ...printReport?.org.paymentSettings?.reports, orientation: "landscape" }), [printReport]);
+  const printZatca = async () => {
+    const data = isUS ? usPayload : isSA ? payload : vatPayload;
+    const companyId = getOrgId();
+    if (!data || !companyId || loading || preparingPrint) return;
+    setPreparingPrint(true);
+    try {
+      const company = await api.orgs.get(companyId);
+      if (getOrgId() !== companyId) return;
+      setPrintReport(taxReportDocument(data, company));
+    } catch (e) { setError(e instanceof ApiError ? e.message : t("تعذر تجهيز الطباعة", "Could not prepare print preview")); }
+    finally { setPreparingPrint(false); }
+  };
+  if (printReport) return <div className="space-y-4">
+    <Button variant="outline" onClick={() => setPrintReport(null)}>{t("الرجوع للإقرار", "Back to tax return")}</Button>
+    <ReportOutput report={printReport} settings={printSettings} />
+  </div>;
 
   // ── W30 · country-routed views (US sales tax · generic VAT) ──
   if (isUS) {
     return (
       <UsTaxView
         payload={usPayload} loading={loading} error={error}
-        from={from} to={to} setFrom={setFrom} setTo={setTo} reload={load}
+        from={from} to={to} setFrom={setFrom} setTo={setTo} reload={load} printReport={printZatca} preparingPrint={preparingPrint}
       />
     );
   }
@@ -223,7 +243,7 @@ export function Taxes() {
     return (
       <GenericVatView
         payload={vatPayload} loading={loading} error={error} country={country}
-        from={from} to={to} setFrom={setFrom} setTo={setTo} reload={load}
+        from={from} to={to} setFrom={setFrom} setTo={setTo} reload={load} printReport={printZatca} preparingPrint={preparingPrint}
       />
     );
   }
@@ -249,7 +269,7 @@ export function Taxes() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={load}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
             <Button variant="outline" onClick={exportZatcaCsv} disabled={!payload}><Download className="me-2 h-4 w-4" />{t("تصدير ملخص الإقرار", "Export return summary")}</Button>
-            <Button variant="outline" onClick={printZatca} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
+            <Button variant="outline" onClick={printZatca} disabled={!payload || loading || preparingPrint}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 md:col-span-3">
             <span className="text-xs text-muted-foreground">{t("فترات جاهزة:", "Quick periods:")}</span>
@@ -540,9 +560,9 @@ function VatRow({ label, base, tax, currency, strong = false }: { label: string;
 
 
 // ═══ W30 · US Sales Tax Summary + IRS filing guide ═══
-function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }: {
+function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload, printReport, preparingPrint }: {
   payload: UsSalesTaxPayload | null; loading: boolean; error: string | null;
-  from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; reload: () => void;
+  from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; reload: () => void; printReport: () => void; preparingPrint: boolean;
 }) {
   const { t } = useLanguage();
   const cur = payload?.currency || "USD";
@@ -559,7 +579,7 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
           <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("إلى تاريخ", "To date")}</span><DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" /></label>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={reload}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
-            <Button variant="outline" onClick={() => window.print()} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
+            <Button variant="outline" onClick={printReport} disabled={!payload || loading || preparingPrint}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
           </div>
         </CardContent>
       </Card>
@@ -638,9 +658,9 @@ function UsTaxView({ payload, loading, error, from, to, setFrom, setTo, reload }
 }
 
 // ═══ W30 · Generic VAT return (AE/GCC/…) at the org's own rate ═══
-function GenericVatView({ payload, loading, error, country, from, to, setFrom, setTo, reload }: {
+function GenericVatView({ payload, loading, error, country, from, to, setFrom, setTo, reload, printReport, preparingPrint }: {
   payload: VatSummaryPayload | null; loading: boolean; error: string | null; country: string;
-  from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; reload: () => void;
+  from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; reload: () => void; printReport: () => void; preparingPrint: boolean;
 }) {
   const { t } = useLanguage();
   const cur = payload?.currency || "SAR";
@@ -665,7 +685,7 @@ function GenericVatView({ payload, loading, error, country, from, to, setFrom, s
           <label className="space-y-1 text-sm text-foreground/80"><span className="font-semibold">{t("إلى تاريخ", "To date")}</span><DateInput value={to} onChange={setTo} inputClassName="h-10 text-sm" /></label>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={reload}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
-            <Button variant="outline" onClick={() => window.print()} disabled={!payload}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
+            <Button variant="outline" onClick={printReport} disabled={!payload || loading || preparingPrint}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>
           </div>
         </CardContent>
       </Card>

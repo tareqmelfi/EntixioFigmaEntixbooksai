@@ -18,7 +18,7 @@ function todayIso() {
 
 function yearStartIso() {
   const now = new Date();
-  return new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+  return `${now.getFullYear()}-01-01`;
 }
 
 // Detail sections carry the per-account breakouts («*-detail» / «*-crosscheck»).
@@ -96,8 +96,8 @@ export function ReportView() {
   };
 
   useEffect(() => {
-    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
-  }, [from, to, allTime, branchId, projectId, contactId, setSearchParams]);
+    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
+  }, [from, to, allTime, compare, branchId, projectId, contactId, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -134,7 +134,8 @@ export function ReportView() {
   // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.
   // Printing from inside it produced a blank page — `h-dvh` + `overflow:hidden`
   // ancestors clipped the document before the print stylesheet ever ran.
-  const printHref = `/print/report/${id}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printHref = `/print/report/${id}?${printQuery}`;
 
   const exportCsv = () => {
     if (!report) return;
@@ -186,7 +187,7 @@ export function ReportView() {
           </Button>
           {/* One compact export control — formats live inside the menu (no
               PDF/CSV/Excel text cluttering the toolbar, user ask 2026-08-19). */}
-          <ExportMenu onCsv={exportCsv} onPdf={() => window.open(printHref, "_blank", "noopener")} disabled={!report} />
+          <ExportMenu onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report || loading || !!error} />
           </>
         )}
       />
@@ -260,7 +261,7 @@ export function ReportView() {
                 )}
               </CardContent>
             </Card>
-            <Button variant="outline" className="w-full" onClick={() => window.open(printHref, "_blank", "noopener")}>
+            <Button variant="outline" className="w-full" onClick={() => navigate(`/app/reports/${id}/print?${printQuery}`)}>
               <ArrowLeft className="me-2 h-4 w-4" />{t("فتح مصمم الطباعة", "Open print designer")}
             </Button>
           </aside>
