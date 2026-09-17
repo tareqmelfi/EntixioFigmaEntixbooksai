@@ -1,3 +1,4 @@
+import { readSourceFile, type SourceFile } from "../lib/source-file";
 import { displayLocale } from "../lib/number-display";
 /**
  * BOQ import wizard (SPEC-04) · /app/quotes/import
@@ -33,6 +34,8 @@ export function QuotesImport() {
 
   const [importOrgId] = useState(() => getOrgId());
   const [importOrgName, setImportOrgName] = useState("");
+  const [sourceFile, setSourceFile] = useState<SourceFile | null>(null);
+  const [orgCurrency, setOrgCurrency] = useState("SAR");
   const [preview, setPreview] = useState<BoqPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -49,26 +52,29 @@ export function QuotesImport() {
   });
 
   useEffect(() => {
-    if (importOrgId) api.orgs.get(importOrgId).then(o => setImportOrgName(o.name)).catch(() => {});
+    if (importOrgId) api.orgs.get(importOrgId).then(o => { setImportOrgName(o.name); setOrgCurrency(o.baseCurrency || "SAR"); }).catch(() => {});
     api.contacts.list({ limit: 200 }).then((r) => setCustomers(r.items.filter((c) => c.type === "CUSTOMER" || c.type === "BOTH"))).catch(() => {});
   }, []);
 
   const upload = async (f: File) => {
-    if (!/\.(xlsx|xls|csv)$/i.test(f.name)) {
-      setErr(t("هذا المسار يقبل Excel وCSV فقط؛ PDF والصور غير مدعومة هنا.", "This importer accepts Excel and CSV only; PDF and images are not supported here.")); return;
+    if (!/\.(xlsx|xls|csv|pdf|png|jpe?g|webp)$/i.test(f.name)) {
+      setErr(t("اختر ملف Excel أو CSV أو PDF أو صورة PNG / JPEG / WebP.", "Choose Excel, CSV, PDF, PNG, JPEG or WebP.")); return;
     }
-    setBusy(true); setErr(null); setPreview(null);
+    if (busy) return;
+    setBusy(true); setErr(null); setPreview(null); setSourceFile(null);
     try {
+      const source = await readSourceFile(f);
       const p = await api.quotes.importBoq(f);
+      setSourceFile(source);
       setPreview(p);
       setActiveSheet(0);
       const init: Record<string, LineState> = {};
       p.sheets.forEach((s, si) => s.lines.forEach((l, li) => { if (!l.isHeading) init[`${si}:${li}`] = { included: pricedLine(l), isOptional: false }; }));
       setLineState(init);
-      if (!form.title) setForm((fm) => ({ ...fm, title: f.name.replace(/\.(xlsx|xls|csv)$/i, "") }));
+      if (!form.title) setForm((fm) => ({ ...fm, title: f.name.replace(/\.(xlsx|xls|csv|pdf|png|jpe?g|webp)$/i, "") }));
       // Keep import warnings beside the preview until the user reviews them.
     } catch (e: any) {
-      setErr(e instanceof ApiError ? e.message : t("فشل قراءة الملف", "Failed to read the file"));
+      setErr(e instanceof Error ? e.message : t("فشل قراءة الملف", "Failed to read the file"));
     } finally { setBusy(false); }
   };
 
@@ -79,7 +85,7 @@ export function QuotesImport() {
       if (!pricedLine(l)) return;
       const st = lineState[`${si}:${li}`];
       const amount = l.unitPrice != null && l.qty != null ? l.qty * l.unitPrice : l.subtotal ?? 0;
-      if (st?.included) { count++; total += amount; } else if (st?.isOptional) optional++;
+      if (st?.included) { count++; total += amount * (1 + (l.taxRate || 0) / 100); } else if (st?.isOptional) optional++;
     }));
     return { count, total, optional };
   }, [preview, lineState]);
@@ -102,6 +108,7 @@ export function QuotesImport() {
         description: l.description,
         quantity: qty,
         unitPrice,
+        taxRate: l.taxRate ?? 0,
         sectionLabel: s.name,
         unit: l.unit,
         isOptional: st.isOptional,
@@ -118,6 +125,8 @@ export function QuotesImport() {
         validUntil: form.validUntil,
         title: form.title || null,
         sourceFileName: preview.fileName,
+        sourceAttachments: sourceFile ? [sourceFile] : [],
+        currency: preview.currency || orgCurrency,
         lines,
       } as any);
       push("success", t(`تم إنشاء عرض السعر ${q.quoteNumber} من الـ BOQ`, `Created quote ${q.quoteNumber} from the BOQ`));
@@ -133,14 +142,14 @@ export function QuotesImport() {
     <>
       <FullPageForm
         title={t("استيراد BOQ → عرض سعر", "Import BOQ → Quote")}
-        subtitle={t("ارفع جدول الكميات المسعّر (Excel) · كل صفحة تتحول إلى قسم في العرض", "Upload the priced BOQ workbook · every sheet becomes a proposal section")}
+        subtitle={t("ارفع جدول الكميات أو ملف PDF · راجع البنود والضريبة قبل إنشاء العرض", "Upload a BOQ workbook or PDF · review lines and tax before creating the quote")}
         onClose={() => navigate("/app/quotes")}
         disableEscape={busy}
         footer={
           preview ? (
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="text-sm text-muted-foreground">
-                {t(`${stats.count} بند مشمول`, `${stats.count} included`)} · <span className="font-english font-bold text-foreground">{stats.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span>
+                {t(`${stats.count} بند مشمول`, `${stats.count} included`)} · <span className="font-english font-bold text-foreground">{stats.total.toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}</span> {preview.currency || orgCurrency} · {t("شامل الضريبة", "including tax")}
                 {stats.optional > 0 && <> · {t(`${stats.optional} اختياري`, `${stats.optional} optional`)}</>}
               </div>
               <div className="flex items-center gap-2">
@@ -158,11 +167,11 @@ export function QuotesImport() {
           {err && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{err}</div>}
 
           {!preview && (
-            <label className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 py-16 cursor-pointer hover:bg-primary/10 transition-colors">
+            <label onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) void upload(file); }} className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 py-16 cursor-pointer hover:bg-primary/10 transition-colors">
               {busy ? <Loader2 className="h-10 w-10 animate-spin text-primary" /> : <UploadCloud className="h-10 w-10 text-primary" />}
               <div className="text-foreground" style={{ fontWeight: 700 }}>{t("اسحب ملف الـ BOQ هنا أو اضغط للاختيار", "Drop the BOQ file here or click to choose")}</div>
-              <div className="text-xs text-muted-foreground">{t("Excel / CSV (.xlsx / .xls / .csv) · PDF غير مدعوم هنا · حتى 10MB · يدعم العناوين العربية والإنجليزية والأرقام العربية 123", "Excel / CSV (.xlsx / .xls / .csv) · PDF not supported here · up to 10MB · Arabic & English headers")}</div>
-              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.currentTarget.value = ""; }} />
+              <div className="text-xs text-muted-foreground">{t("Excel / CSV / PDF / PNG / JPEG / WebP · حتى 10MB · تحتاج قراءة PDF إلى تفعيل الذكاء الاصطناعي", "Excel / CSV / PDF / PNG / JPEG / WebP · up to 10MB · PDF reading requires AI access")}</div>
+              <input type="file" accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.webp" disabled={busy} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.currentTarget.value = ""; }} />
             </label>
           )}
 
@@ -227,14 +236,15 @@ export function QuotesImport() {
                         <th className="py-2 px-3 text-start" style={{ fontWeight: 600 }}>{t("الوحدة", "Unit")}</th>
                         <th className="py-2 px-3 text-start" style={{ fontWeight: 600 }}>{t("الكمية", "Qty")}</th>
                         <th className="py-2 px-3 text-start" style={{ fontWeight: 600 }}>{t("السعر", "Price")}</th>
-                        <th className="py-2 px-3 text-start" style={{ fontWeight: 600 }}>{t("الإجمالي", "Amount")}</th>
+                        <th className="py-2 px-3 text-start" style={{ fontWeight: 600 }}>{t("قبل الضريبة", "Before tax")}</th>
+                        <th className="py-2 px-3 text-start">{t("الضريبة %", "Tax %")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sheet.lines.map((l, li) => {
                         if (l.isHeading) return (
                           <tr key={li} className="bg-primary/5">
-                            <td colSpan={7} className="py-1.5 px-3 text-xs text-primary" style={{ fontWeight: 700 }}>{l.description}</td>
+                            <td colSpan={8} className="py-1.5 px-3 text-xs text-primary" style={{ fontWeight: 700 }}>{l.description}</td>
                           </tr>
                         );
                         const key = `${activeSheet}:${li}`;
@@ -253,6 +263,10 @@ export function QuotesImport() {
                             <td className="py-1.5 px-3 font-english">{l.qty ?? "—"}</td>
                             <td className="py-1.5 px-3 font-english">{l.unitPrice?.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) ?? "—"}</td>
                             <td className="py-1.5 px-3 font-english" style={{ fontWeight: 600 }}>{amount ? amount.toLocaleString(displayLocale(), { maximumFractionDigits: 2 }) : "—"}</td>
+                            <td className="py-1.5 px-3"><Input aria-label={t("ضريبة البند", "Line tax")} type="number" min={0} max={100} className="w-20 h-8" value={l.taxRate ?? 0} onChange={e => {
+                              const rate = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                              setPreview(p => p ? { ...p, sheets:p.sheets.map((s, si) => si === activeSheet ? { ...s, lines:s.lines.map((line, index) => index === li ? { ...line, taxRate:rate } : line) } : s) } : p);
+                            }} /></td>
                           </tr>
                         );
                       })}
