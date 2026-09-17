@@ -108,7 +108,7 @@ export function QuotesImport() {
         description: l.description,
         quantity: qty,
         unitPrice,
-        taxRate: l.taxRate ?? 0,
+        taxRate: (l.taxRate ?? 0) / 100,
         sectionLabel: s.name,
         unit: l.unit,
         isOptional: st.isOptional,
