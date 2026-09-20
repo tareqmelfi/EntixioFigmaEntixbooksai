@@ -2195,6 +2195,10 @@ export interface DocumentTemplateAutoRule {
 }
 export type DocumentTemplatePayload = Partial<Omit<DocumentTemplate, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>> & { name: string }
 
+export const SOCIAL_PLATFORMS = ['instagram', 'x', 'linkedin', 'tiktok', 'facebook', 'youtube', 'snapchat', 'whatsapp', 'other'] as const
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]
+export type SocialLink = { platform: SocialPlatform; url: string; label?: string | null }
+
 export interface OrgSubscriptionSummary {
   id: string
   status: string // TRIALING · ACTIVE · PAST_DUE · CANCELED · EXPIRED
@@ -2236,6 +2240,8 @@ export interface Org {
   email?: string | null
   phone?: string | null
   website?: string | null
+  /** SOCIAL LINKS (CEO 2026-09-20) · public-facing branding · normalised server-side */
+  socialLinks?: SocialLink[] | null
   addressLine?: string | null
   city?: string | null
   region?: string | null
@@ -3981,7 +3987,7 @@ export interface ExtShare { id: string; label: string | null; expiresAt: string 
 /** Company identity applied ONLY on shared outputs (/b/:token + print) · never inside /app/* */
 export interface BrandTheme { primary: string; secondary: string; fill: string; ink: string; logoUrl?: string | null }
 export interface PublicBoardPayload {
-  org: { name: string; logoUrl: string | null; brandTheme: BrandTheme | null; defaultInvoiceLanguage: 'ar' | 'en' | null; baseCurrency?: string | null }
+  org: { name: string; logoUrl: string | null; brandTheme: BrandTheme | null; socialLinks?: SocialLink[] | null; defaultInvoiceLanguage: 'ar' | 'en' | null; baseCurrency?: string | null }
   source: { name: string; templateCode: string; lastSuccessAt: string | null }
   template: ExtTemplate
   rows: Array<Pick<ExtRow, 'id' | 'rowKey' | 'rowIndex' | 'normalized' | 'valid' | 'syncedAt'>>

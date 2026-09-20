@@ -25,6 +25,33 @@ import { NUMBERING_DEFAULTS, previewNumber } from "../lib/numbering-pattern";
 import { ApiKeysTab } from "../components/api-keys-tab";
 import { ExternalSourcesTab } from "../components/external-sources-tab";
 import { BrandThemeCard } from "../components/brand-theme-card";
+import { SocialLinksCard } from "../components/social-links-card";
+
+/**
+ * CONTACT-FIELD VALIDATION (CEO 2026-09-20 · readiness pass).
+ * The phone field accepted anything and saved it in silence — a garbled number then rode onto
+ * every invoice, contract and ZATCA XML the company issued. These mirror what the value has to
+ * be, and the save is blocked with a message at the field instead of succeeding quietly.
+ */
+const phoneOk = (raw: string): boolean => {
+  const t = String(raw || "").trim();
+  if (!t) return true; // optional
+  if (!/^\+?[0-9\s()-]+$/.test(t)) return false;
+  const digits = t.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15; // E.164 bounds
+};
+const emailOk = (raw: string): boolean => {
+  const t = String(raw || "").trim();
+  return !t || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+};
+const websiteOk = (raw: string): boolean => {
+  const t = String(raw || "").trim();
+  if (!t) return true;
+  try {
+    const u = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
+    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.includes(".");
+  } catch { return false; }
+};
 import { VatRegistrationPanel } from "../components/vat-registration-panel";
 import { LedgerMappingTab } from "../components/ledger-mapping-tab";
 import { DeletedCompanies } from "../components/deleted-companies";
@@ -156,6 +183,11 @@ export function Settings() {
   const handleSave = async () => {
     if (!org) return;
     setBusy(true); setError(null); setSaved(false);
+    // A contact field that is not what it claims to be never reaches the API: it would otherwise
+    // be printed on every document the company issues (CEO 2026-09-20).
+    if (!phoneOk(form.phone)) { setError(t("رقم هاتف غير صالح — اكتبه هكذا +966500000000", "Not a valid phone number — type it as +966500000000")); setBusy(false); return; }
+    if (!emailOk(form.email)) { setError(t("بريد إلكتروني غير صالح", "Not a valid email address")); setBusy(false); return; }
+    if (!websiteOk(form.website)) { setError(t("رابط موقع غير صالح — اكتبه هكذا company.com", "Not a valid website — type it as company.com")); setBusy(false); return; }
     try {
       // Auto-derive fiscalYearStart = (end mod 12) + 1 · per UX-134
       const yearStart = (form.fiscalYearEnd % 12) + 1;
@@ -449,11 +481,14 @@ export function Settings() {
               <h3 className="text-sm text-foreground mb-3" style={{ fontWeight: 600 }}>{t("بيانات التواصل", "Contact info")}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2"><Label className="text-xs">{t("البريد الإلكتروني", "Email")}</Label>
-                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" placeholder="info@company.com" className="border-border font-english" /></div>
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" placeholder="info@company.com" aria-invalid={!emailOk(form.email) || undefined} className={`font-english ${emailOk(form.email) ? "border-border" : "border-danger ring-1 ring-danger-border"}`} data-testid="org-email" />
+                  {!emailOk(form.email) && <div className="text-[11px] text-danger" data-testid="org-email-invalid">{t("بريد إلكتروني غير صالح", "Not a valid email address")}</div>}</div>
                 <div className="space-y-2"><Label className="text-xs">{t("الهاتف", "Phone")}</Label>
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" placeholder="+966500000000" className="border-border font-english" /></div>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" placeholder="+966500000000" aria-invalid={!phoneOk(form.phone) || undefined} className={`font-english ${phoneOk(form.phone) ? "border-border" : "border-danger ring-1 ring-danger-border"}`} data-testid="org-phone" />
+                  {!phoneOk(form.phone) && <div className="text-[11px] text-danger" data-testid="org-phone-invalid">{t("رقم هاتف غير صالح — اكتبه هكذا +966500000000", "Not a valid phone number — type it as +966500000000")}</div>}</div>
                 <div className="space-y-2"><Label className="text-xs">{t("الموقع", "Website")}</Label>
-                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} dir="ltr" placeholder="https://company.com" className="border-border font-english" /></div>
+                  <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} dir="ltr" placeholder="https://company.com" aria-invalid={!websiteOk(form.website) || undefined} className={`font-english ${websiteOk(form.website) ? "border-border" : "border-danger ring-1 ring-danger-border"}`} data-testid="org-website" />
+                  {!websiteOk(form.website) && <div className="text-[11px] text-danger" data-testid="org-website-invalid">{t("رابط غير صالح — اكتبه هكذا company.com", "Not a valid website — type it as company.com")}</div>}</div>
               </div>
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label className="text-xs">{t("الصناعة", "Industry")}</Label>
@@ -703,6 +738,8 @@ export function Settings() {
       {tab === "branding" && org && <BrandingTab org={org} setOrg={setOrg} push={push} />}
       {/* SPEC-06 §8 · identity for shared outputs (/b/:token + print) · additive · never applied inside /app/* */}
       {tab === "branding" && org && <BrandThemeCard org={org} push={push} />}
+      {/* Public profiles · asked for by several tenants (CEO 2026-09-20) · lives with the public-facing identity */}
+      {tab === "branding" && org && <SocialLinksCard org={org} setOrg={setOrg} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
 
       {/* الأدوات — account-level utilities live here, not in the main sidebar
