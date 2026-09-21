@@ -199,21 +199,40 @@ export function computeTotals(lines: InvoiceLine[], discount?: DocDiscount) {
     });
   }
 
+  /**
+   * ROUNDING LAW (2026-09-21) · the tax is settled ONCE per rate group, on that
+   * group's own total — not line by line. Six inclusive lines rounded
+   * individually turned an agreed 1,500.00 into 1,500.01. This mirrors
+   * reconcileDocumentTax() on the API exactly, so the summary the operator
+   * reads and the figures that get stored are the same numbers.
+   */
+  const groups = new Map<string, { rate: number; inclusive: boolean; gross: number }>();
+  rows.forEach((l, i) => {
+    const rate = lineTaxRate(l);
+    const inclusive = !!l.taxInclusive;
+    const key = `${rate}|${inclusive ? 1 : 0}`;
+    const g = groups.get(key) || { rate, inclusive, gross: 0 };
+    g.gross += gross[i] - alloc[i];
+    groups.set(key, g);
+  });
   let subtotal = 0;
   let tax = 0;
-  rows.forEach((l, i) => {
-    const lineGross = gross[i] - alloc[i];
-    const rate = lineTaxRate(l);
-    if (l.taxInclusive) {
-      const net = lineGross / (1 + rate);
-      subtotal += net;
-      tax += lineGross - net;
+  groups.forEach((g) => {
+    if (!g.rate) { subtotal += r2(g.gross); return; }
+    if (g.inclusive) {
+      const grossTotal = r2(g.gross);
+      const groupTax = r2(grossTotal - grossTotal / (1 + g.rate));
+      subtotal += r2(grossTotal - groupTax);
+      tax += groupTax;
     } else {
-      subtotal += lineGross;
-      tax += lineGross * rate;
+      const net = r2(g.gross);
+      subtotal += net;
+      tax += r2(net * g.rate);
     }
   });
-  return { subtotal, tax, total: subtotal + tax, discount: discountTotal, listPrice: base };
+  subtotal = r2(subtotal);
+  tax = r2(tax);
+  return { subtotal, tax, total: r2(subtotal + tax), discount: discountTotal, listPrice: base };
 }
 
 // ض.ق.م + الاعتراف are off by default so the grid matches the approved 7-column anatomy;

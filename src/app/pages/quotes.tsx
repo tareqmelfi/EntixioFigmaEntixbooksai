@@ -930,7 +930,9 @@ export function Quotes() {
               templates={planTemplates}
               templateId={planTemplateId}
               onTemplate={setPlanTemplateId}
-              total={computeTotals(lines).total}
+              // The plan splits the FINAL total — document discount applied.
+              // Omitting it billed 1,799.98 on a 1,500.00 quote (2026-09-21).
+              total={computeTotals(lines, { discountType: form.discountType as any, discountValue: Number(form.discountValue) || 0 }).total}
               currency={form.currency}
               disabled={busy}
             />
