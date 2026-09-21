@@ -418,6 +418,18 @@ export function AppSidebar({
     const [p, q] = path.split("?");
     return p === location.pathname && (q ? location.search === `?${q}` : !location.search.includes("role="));
   };
+  /**
+   * A LEAF OWNS ITS SUBTREE (CEO 2026-09-21 · «وانا فاتح العرض مو مبين يمين
+   * انه داخل عروض الاسعار»). `isActive` is an exact pathname match, so standing
+   * on /app/quotes/<id> lit nothing — the open document looked like it belonged
+   * to no section at all. «/app» stays exact, or it would own every route.
+   */
+  const isLeafActive = (path?: string) => {
+    if (!path) return false;
+    if (isActive(path)) return true;
+    const [p] = path.split("?");
+    return p !== "/app" && location.pathname.startsWith(p + "/");
+  };
   const hasActiveChild = (children?: SubItem[]) =>
     children?.some((c) => location.pathname === c.path || location.pathname.startsWith(c.path + "/")) ?? false;
   const isParentPathActive = (path?: string) =>
@@ -485,6 +497,7 @@ export function AppSidebar({
           openGroups={openGroups}
           toggleGroup={toggleGroup}
           isActive={isActive}
+          isLeafActive={isLeafActive}
           hasActiveChild={hasActiveChild}
           isParentPathActive={isParentPathActive}
           searchQuery={searchQuery}
@@ -524,6 +537,7 @@ export function AppSidebar({
         openGroups={openGroups}
         toggleGroup={toggleGroup}
         isActive={isActive}
+        isLeafActive={isLeafActive}
         hasActiveChild={hasActiveChild}
         isParentPathActive={isParentPathActive}
         searchQuery={searchQuery}
@@ -543,7 +557,7 @@ export function AppSidebar({
 /* ─── Shared sidebar content ─── */
 function SidebarContent({
   cycleMode, modeLabel, ModeIcon,
-  openMenus, toggleMenu, openGroups, toggleGroup, isActive, hasActiveChild, isParentPathActive,
+  openMenus, toggleMenu, openGroups, toggleGroup, isActive, isLeafActive, hasActiveChild, isParentPathActive,
   searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
   navigate, onClose, collapsed, setCollapsed, isPlatformAdmin,
 }: {
@@ -555,6 +569,7 @@ function SidebarContent({
   openGroups: Record<string, boolean>;
   toggleGroup: (label: string) => void;
   isActive: (p?: string) => boolean;
+  isLeafActive: (p?: string) => boolean;
   hasActiveChild: (c?: SubItem[]) => boolean;
   isParentPathActive: (p?: string) => boolean;
   searchQuery: string;
@@ -718,7 +733,7 @@ function SidebarContent({
                       );
                     }
                     return (
-                      <SidebarLink key={item.title} item={item} active={isActive(item.path)} onClick={onClose} collapsed={collapsed} />
+                      <SidebarLink key={item.title} item={item} active={isLeafActive(item.path)} onClick={onClose} collapsed={collapsed} />
                     );
                   })}
                 </div>

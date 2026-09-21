@@ -686,8 +686,22 @@ export function ItemsTable({
     if (!taxRates.length) return;
     const byId = new Set(taxRates.map((r) => r.id));
     let changed = false;
+    const byIdMap = new Map(taxRates.map((r) => [r.id, r]));
     const next = lines.map((l) => {
-      if (l.taxRateId && byId.has(l.taxRateId)) return l;
+      if (l.taxRateId && byId.has(l.taxRateId)) {
+        // THE PICKER AND THE MATHS MUST NEVER DISAGREE (2026-09-21).
+        // A line loaded from the API carries `taxRateId` but not always a
+        // numeric rate, so the cell read «شامل 15%» while computeTotals saw
+        // rate 0 — the editor showed «الضريبة 0.00» on a document the server
+        // had taxed correctly. When the id resolves, the catalogue's own rate
+        // and inclusive flag are copied onto the line.
+        const r = byIdMap.get(l.taxRateId)!;
+        const rate = Number(r.rate);
+        const inclusive = !!r.isInclusive;
+        if (lineTaxRate(l) === rate && !!l.taxInclusive === inclusive) return l;
+        changed = true;
+        return { ...l, taxRate: rate, taxInclusive: inclusive };
+      }
       const match = taxRates.find((r) => Number(r.rate) === lineTaxRate(l) && !!r.isInclusive === !!l.taxInclusive)
         || taxRates.find((r) => Number(r.rate) === lineTaxRate(l));
       if (!match || l.taxRateId === match.id) return l;

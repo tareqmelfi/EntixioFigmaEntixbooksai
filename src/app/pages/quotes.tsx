@@ -7,7 +7,7 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  * UX pattern: FullPageForm + ItemsTable + SearchableCombobox · مطابق Wafeq
  */
 import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
-import { useSearchParams, useParams, Link } from "react-router";
+import { useSearchParams, useParams, Link, useLocation } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye, Mail, Pencil } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
@@ -105,6 +105,13 @@ const planFromApi = (plan: PaymentPlan | null | undefined): PlanRow[] =>
 
 const EMPTY_FORM = {
   contactId: "",
+  /**
+   * PROJECT / DOCUMENT TITLE (CEO 2026-09-21 · «وين احط اسم المشروع؟»).
+   * `Quote.title` has always existed and the proposal cover prints it under
+   * «عرض سعر» — there was simply no field to type it into, so every cover
+   * came out untitled while the same quote written by hand carried a name.
+   */
+  title: "",
   quoteNumber: "",
   reference: "",
   issueDate: new Date().toISOString().slice(0, 10),
@@ -432,14 +439,32 @@ export function Quotes() {
 
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
 
+  /**
+   * THE EDITOR IS A ROUTE, NOT A MOOD (CEO 2026-09-21 · «لما اضغط على زر عروض
+   * الاسعار مايوديني»). The full-page editor is component state, so clicking
+   * «عروض الأسعار» while it was open navigated to a route this page was already
+   * on — nothing unmounted, the overlay stayed, and the sidebar looked broken.
+   * He had to detour through الفواتير to get back. A navigation to the bare
+   * list now closes the editor.
+   */
+  const location = useLocation();
+  useEffect(() => {
+    if (location.pathname === "/app/quotes" && !searchParams.get("new")) {
+      setCreateOpen(false);
+      setEditId(null);
+      setSignFor(null);
+      setSendComposeFor(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
   // CEO 2026-09-21 (verbatim): «خليه يطلع الملف يسار اي تعديل يكون لايف اشوفه» —
   // the finished document beside the editor, redrawn on every keystroke. No
   // save, no new tab, no download just to see what the client will read.
   const livePreviewDoc = useMemo(() => {
-    // Two passes: the document reads «قبل الخصم → الخصم → الضريبة → الإجمالي»,
-    // so the subtotal shown is the PRE-discount one and the discount keeps its
-    // own row (CEO 2026-09-21: «وين الخصم 300؟»).
-    const listed = computeTotals(lines);
+    // One call carries every figure the printed document prints, in its order:
+    // listPrice → discount → net(subtotal) → tax → total. Deriving them two
+    // different ways is what made the panel and the PDF disagree.
     const totals = computeTotals(lines, { discountType: form.discountType as any, discountValue: Number(form.discountValue) || 0 });
     return {
       id: editId || "draft",
@@ -448,8 +473,9 @@ export function Quotes() {
       issueDate: form.issueDate,
       dueDate: form.validUntil,
       currency: form.currency,
-      subtotal: listed.subtotal,
-      discountTotal: Math.round((listed.subtotal - totals.subtotal) * 100) / 100,
+      subtotal: totals.subtotal,
+      listPrice: totals.listPrice,
+      discountTotal: totals.discount,
       taxTotal: totals.tax,
       total: totals.total,
       lines: lines
@@ -473,6 +499,7 @@ export function Quotes() {
       setForm({
         ...EMPTY_FORM,
         contactId: full.contact?.id || (full as any).contactId || "",
+        title: (full as any).title || "",
         quoteNumber: full.quoteNumber || "",
         reference: (full as any).reference || "",
         issueDate: String(full.issueDate || "").slice(0, 10) || EMPTY_FORM.issueDate,
@@ -495,9 +522,16 @@ export function Quotes() {
         unitPrice: String(l.unitPrice ?? ""),
         discount: Number(l.discount || 0) ? String(l.discount) : "",
         accountId: l.accountId || undefined,
-        taxInclusive: !!l.taxInclusive,
-        taxRate: Number(l.taxRate ?? 0),
-        taxRateId: l.taxRateId || undefined,
+        // `QuoteLine.taxRate` is the TaxRate RELATION, not a number. Reading it
+        // as one gave NaN → rate 0, so the reopened quote showed «الضريبة 0.00»
+        // against a PDF the server had taxed correctly (CEO 2026-09-21).
+        // The line's OWN stored flag first — it is the one the saved totals were
+        // computed from. The rate row is only the fallback for rows written
+        // before that column existed.
+        taxInclusive: typeof l.taxInclusive === "boolean" ? l.taxInclusive
+          : (l.taxRate && typeof l.taxRate === "object" ? !!l.taxRate.isInclusive : false),
+        taxRate: l.taxRate && typeof l.taxRate === "object" ? Number(l.taxRate.rate) || 0 : Number(l.taxRate) || 0,
+        taxRateId: l.taxRateId || (l.taxRate && typeof l.taxRate === "object" ? l.taxRate.id : undefined) || undefined,
       })) as InvoiceLine[];
       setLines(ls.length ? ls : [newLine()]);
       setTaxMode(ls.length && ls.every((l) => l.taxInclusive) ? "all-inclusive" : "all-exclusive");
@@ -547,6 +581,7 @@ export function Quotes() {
       const payload = {
         sourceAttachments: sourceFiles,
         contactId: form.contactId,
+        title: form.title || null,
         quoteNumber: form.quoteNumber || undefined,
         issueDate: form.issueDate,
         validUntil: form.validUntil,
@@ -812,6 +847,17 @@ export function Quotes() {
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
           <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
+
+            <div className="space-y-1.5">
+              <Label className="text-foreground/80 text-xs">{t("اسم المشروع · عنوان العرض", "Project · quote title")}</Label>
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder={t("تعديلات معمارية وإعادة تصميم — فيلا حي النرجس", "Architectural modifications and redesign — Narjis villa")}
+                data-testid="quote-title"
+              />
+              <p className="text-[11px] text-content-secondary">{t("يُطبع على غلاف العرض تحت «عرض سعر» — اتركه فارغاً ولن يحمل المستند اسماً.", "Printed on the proposal cover under «Quotation» — leave it empty and the document carries no name.")}</p>
+            </div>
 
             {/* Top fields row */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -1177,7 +1223,9 @@ export function Quotes() {
       {pendingDelete === q.id ? (
         <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
       ) : (
-        <button onClick={() => setPendingDelete(q.id)} className="ms-auto rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+        <button onClick={() => setPendingDelete(q.id)} className="ms-auto inline-flex items-center gap-1 rounded-full border border-danger-border px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger-subtle" title={t("حذف العرض", "Delete quote")} data-testid="quote-delete">
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("حذف", "Delete")}
+        </button>
       )}
     </div>
   );
@@ -1189,7 +1237,10 @@ export function Quotes() {
     issueDate: q.issueDate,
     dueDate: q.validUntil,
     currency: q.currency,
-    subtotal: Number(q.subtotal || 0) + Number((q as any).discountTotal || 0),
+    subtotal: q.subtotal,
+    listPrice: ((q.lines as any[]) || [])
+      .filter((l: any) => l.included !== false)
+      .reduce((sum: number, l: any) => sum + Number(l.quantity || 0) * Number(l.unitPrice || 0), 0),
     discountTotal: (q as any).discountTotal,
     taxTotal: q.taxTotal,
     total: q.total,
@@ -1400,6 +1451,9 @@ export function Quotes() {
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-[3px]">
                   <span dir="ltr" className="font-display text-[18px] leading-5 text-foreground tabular-nums">{money2(q.total)}</span>
+                  {Number((q as any).discountTotal || 0) > 0.005 && (
+                    <span dir="ltr" className="block font-english text-[11px] leading-4 text-danger tabular-nums">{t("خصم", "Disc.")} -{money2((q as any).discountTotal)}</span>
+                  )}
                   {statusPill(q)}
                 </span>
               </button>
@@ -1449,6 +1503,11 @@ export function Quotes() {
                 <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{q.validUntil?.slice(0, 10)}</span></TableCell>
                 <TableCell className="text-end">
                   <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(q.total)}{q.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {q.currency}</span>}</span>
+                  {Number((q as any).discountTotal || 0) > 0.005 && (
+                    <span dir="ltr" className="block font-english text-[11px] leading-4 text-danger tabular-nums" title={t("هذا العرض يحمل خصماً", "This quote carries a discount")} data-testid="quote-row-discount">
+                      {t("خصم", "Disc.")} -{money2((q as any).discountTotal)}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="align-middle">{statusPill(q)}</TableCell>
                 {!compactList && (

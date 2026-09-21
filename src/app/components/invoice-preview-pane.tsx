@@ -45,6 +45,8 @@ export interface PreviewDoc {
    * the ledger stores (CEO 2026-09-21: «وين الخصم 300؟»).
    */
   discountTotal?: number | string | null;
+  /** Σ qty × unitPrice as typed — the figure the printed document calls «المجموع الفرعي». */
+  listPrice?: number | string | null;
   total: number | string;
   amountPaid?: number | string | null;
   /** ZATCA QR payload (base64 TLV) · rendered only when present */
@@ -102,6 +104,7 @@ export function InvoicePreviewPane({
   const taxTotal = num(doc.taxTotal);
   const discountTotal = num(doc.discountTotal);
   const subtotal = doc.subtotal != null ? num(doc.subtotal) : total - taxTotal;
+  const listPrice = doc.listPrice != null ? num(doc.listPrice) : subtotal + discountTotal;
   const currency = doc.currency || "SAR";
 
   const qrHtml = useMemo(() => {
@@ -192,15 +195,25 @@ export function InvoicePreviewPane({
 
         {/* Totals */}
         <div className="mt-[18px] flex flex-col gap-1.5 text-xs text-content-secondary">
+          {/* THE ORDER IS THE PRINTED DOCUMENT'S, ROW FOR ROW (2026-09-21).
+              The panel used to show a subtotal and a VAT line while the PDF showed
+              subtotal → discount → net → VAT, so the same quote read as two
+              different documents. This mirrors document-render.ts totalsBlock(). */}
           <div className="flex items-baseline justify-between gap-3">
-            <span>{t("الإجمالي قبل الضريبة", "Subtotal")}</span>
-            <span dir="ltr" className="font-display text-[15px] leading-none text-foreground tabular-nums">{money(subtotal)}</span>
+            <span>{t("المجموع الفرعي", "Subtotal")}</span>
+            <span dir="ltr" className="font-display text-[15px] leading-none text-foreground tabular-nums">{money(discountTotal > 0.005 ? listPrice : subtotal)}</span>
           </div>
-          {discountTotal > 0 && (
-            <div className="flex items-baseline justify-between gap-3" data-testid="preview-discount-row">
-              <span>{t("الخصم", "Discount")}</span>
-              <span dir="ltr" className="font-display text-[15px] leading-none text-danger tabular-nums">−{money(discountTotal)}</span>
-            </div>
+          {discountTotal > 0.005 && (
+            <>
+              <div className="flex items-baseline justify-between gap-3" data-testid="preview-discount-row">
+                <span>{t("الخصم", "Discount")}</span>
+                <span dir="ltr" className="font-display text-[15px] leading-none text-danger tabular-nums">- {money(discountTotal)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span>{t("الصافي", "Net")}</span>
+                <span dir="ltr" className="font-display text-[15px] leading-none text-foreground tabular-nums">{money(subtotal)}</span>
+              </div>
+            </>
           )}
           <div className="flex items-baseline justify-between gap-3">
             <span>{t("ضريبة القيمة المضافة", "VAT")}</span>

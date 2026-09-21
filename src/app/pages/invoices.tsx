@@ -189,6 +189,23 @@ export function Invoices() {
   // Send compose page (W-SEND · 2026-09-08) · never auto-fires an email — the
   // CEO must see + edit the message before it goes out.
   const [sendComposeFor, setSendComposeFor] = useState<{ invoice: Invoice; prefill?: DocumentSendRecord } | null>(null);
+
+  /**
+   * THE EDITOR IS A ROUTE, NOT A MOOD (CEO 2026-09-21 · «لما اضغط عليها وانا
+   * داخلها يفترض يرجعني للفاتورة بس الرئيسية مو يكون الزر فاضي»). The editor is
+   * component state, so clicking «الفواتير» from inside one navigated to a route
+   * this page was already on: nothing unmounted and the overlay stayed up, which
+   * reads as a dead sidebar button. A navigation to the bare list closes it.
+   */
+  useEffect(() => {
+    if (location.pathname === "/app/invoices" && !searchParams.get("new")) {
+      setCreateOpen(false);
+      setEditingInvoice(null);
+      setSignFor(null);
+      setSendComposeFor(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
   const [sendLogRefresh, setSendLogRefresh] = useState(0);
   // Locale-pure defaults (CEO 2026-08-25): a US company never opens on SAR / 15% VAT.
   // Applies only while the form still carries the untouched SAR default and no invoice is being edited.
