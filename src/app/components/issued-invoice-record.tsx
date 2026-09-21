@@ -9,11 +9,14 @@ import { Button } from './ui/button';
 import { FullPageForm } from './full-page-form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { SendLogSection } from './send-log-section';
+import { InvoiceReclassifyPanel } from './invoice-reclassify-panel';
 import { LockKeyhole, CheckCircle2, Clock3, Mail } from 'lucide-react';
 
 /** Issued document view: never mounts editable invoice controls. */
-export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey }: {
+export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey, accounts }: {
   invoice: Invoice; onClose: () => void; onRefresh: () => Promise<void>; onPayment: () => void;
+  /** Chart of accounts · enables the limited post-issue reclassification. */
+  accounts?: Array<{ id: string; code?: string | null; name: string; type?: string }>;
   /** «إرسال» — opens the compose page (never fires an email directly, UX-1).
    *  Pass a past DocumentSendRecord to prefill the page from «إعادة الإرسال». */
   onSend?: (prefill?: DocumentSendRecord) => void;
@@ -48,6 +51,11 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         <div><p className="font-semibold">{t('فاتورة صادرة ومقفلة', 'Issued invoice · locked')}</p>
           <p className="text-sm text-muted-foreground mt-1">{stripeManaged ? t('الفاتورة والدفعات متزامنة مع أصل Stripe. يمكنك إضافة المستندات الداعمة أدناه.', 'Invoice and payments are synced from Stripe. Supporting documents can be attached below.') : t('لا يمكن تعديلها أو حذفها أو إرجاعها لمسودة. التصحيح بإشعار دائن أو مدين مرتبط بالفاتورة الأصلية. يمكنك تسجيل التحصيل بشكل مستقل.', 'This invoice cannot be edited, deleted or returned to draft. Corrections require a credit/debit note linked to the original. Receipts can be recorded separately.')}</p></div>
       </div>
+      {/* An issued invoice is locked for its MONEY, not for its bookkeeping —
+          the account a line landed on can still be corrected (2026-09-21). */}
+      {!stripeManaged && invoice.status !== 'CANCELLED' && !!accounts?.length && (
+        <InvoiceReclassifyPanel invoice={invoice} accounts={accounts} onDone={onRefresh} />
+      )}
       {(delivery?.state || invoice.zatcaStatus) && <section className={`rounded-lg border p-4 space-y-3 ${accepted ? 'border-success-border bg-success-subtle/60' : 'border-warning-border bg-warning-subtle/60'}`}>
         <div className="flex justify-between items-center gap-3">
           <h2 className="font-semibold flex items-center gap-2">{accepted ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Clock3 className="h-5 w-5 text-warning" />}{accepted ? t('تم قبول الفاتورة لدى الهيئة', 'Invoice accepted by ZATCA') : t('متابعة إرسال الفاتورة للهيئة', 'ZATCA invoice delivery')}</h2>

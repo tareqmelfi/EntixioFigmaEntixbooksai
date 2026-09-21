@@ -57,10 +57,30 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
   }, [dirty, draft, t]);
   const requestClose = useCallback(() => { keepDraftToast(); onClose(); }, [keepDraftToast, onClose]);
 
-  // Esc closes the form
+  /**
+   * Esc closes the form — but only when it is the form Esc is aimed at.
+   *
+   * 2026-09-21: this listener sat on `document` and fired from ANY field, so
+   * one Esc while typing threw away the whole new quote, and the Esc that was
+   * meant to dismiss an open dropdown closed the form behind it too. Esc now
+   * steps back one layer at a time: a child that handled it wins, an open
+   * listbox or menu wins, a field being typed in wins (it yields focus first),
+   * and only a plain Esc with nothing in the way closes the form.
+   */
   useEffect(() => {
     if (disableEscape) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") requestClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      // An open combobox/select/menu owns this Esc.
+      if (document.querySelector('[role="listbox"], [role="menu"], [data-state="open"][role="dialog"]')) return;
+      const el = document.activeElement as HTMLElement | null;
+      const editing = !!el && (
+        el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable ||
+        el.getAttribute("role") === "combobox" || el.getAttribute("aria-expanded") === "true"
+      );
+      if (editing) { el?.blur(); return; }
+      requestClose();
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [requestClose, disableEscape]);

@@ -271,12 +271,26 @@ export function Quotes() {
     if (isUS) setLines((ls) => ls.map((l) => (l.taxRate === 0.15 && !l.productId && !l.description ? { ...l, taxRate: 0 } : l)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createOpen, orgCurrency, isUS]);
-  const draft = useFormDraft({ key: "quote:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
   // SPEC-05 L2 · payment plan (templates + the rows being edited)
   const [planTemplates, setPlanTemplates] = useState<PaymentPlan[]>([]);
   const [planRows, setPlanRows] = useState<PlanRow[]>([]);
   const [planTemplateId, setPlanTemplateId] = useState("");
+
+  // The payment plan is part of the quote, so it belongs in the draft. It used
+  // to live outside the snapshot: Esc kept the lines and the header and threw
+  // the plan away, and it had to be typed again from scratch (2026-09-21).
+  const draft = useFormDraft({
+    key: "quote:new",
+    open: createOpen,
+    snapshot: { form, lines, taxMode, planRows, planTemplateId },
+    restore: (s) => {
+      setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode);
+      if (Array.isArray(s.planRows)) setPlanRows(s.planRows);
+      if (s.planTemplateId !== undefined) setPlanTemplateId(s.planTemplateId);
+    },
+  });
+
   const [planBusy, setPlanBusy] = useState(false);
   useEffect(() => {
     let alive = true;

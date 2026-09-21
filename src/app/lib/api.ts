@@ -1822,6 +1822,19 @@ export const api = {
       request<Invoice>(`/api/invoices/${id}`, { method: 'PATCH', body: data }),
     remove: (id: string) =>
       request<void>(`/api/invoices/${id}`, { method: 'DELETE' }),
+    /**
+     * Limited post-issue edit (2026-09-21) · classification ONLY.
+     * The API rolls the whole change back if a single figure moves, and writes
+     * the before/after to the audit log. Amounts, tax, number, dates and the
+     * customer still move only through a credit note.
+     */
+    reclassify: (id: string, data: {
+      lines?: Array<{ lineId: string; accountId: string | null }>;
+      branchId?: string | null;
+      projectId?: string | null;
+      costCenterId?: string | null;
+      reason?: string;
+    }) => request<Invoice>(`/api/invoices/${id}/reclassify`, { method: 'POST', body: data }),
     printUrl: (id: string) => `/print/invoice/${id}`,
     email: (id: string, body?: { to?: string; subject?: string; message?: string }) =>
       request<{ ok: true; to: string }>(`/api/invoices/${id}/email`, { method: 'POST', body: body || {} }),

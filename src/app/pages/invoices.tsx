@@ -794,6 +794,7 @@ export function Invoices() {
       onPayment={() => openRecordPayment(editingInvoice)}
       onSend={(prefill) => setSendComposeFor({ invoice: editingInvoice, prefill })}
       sendLogRefreshKey={sendLogRefresh}
+      accounts={accounts}
       onRefresh={async () => { try { setEditingInvoice(await api.invoices.get(editingInvoice.id)); } catch (e) { push("error", humanizeError(e, language)); } }} />
       <ToastStack toasts={toasts} onDismiss={dismiss} /></>;
   }
