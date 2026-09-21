@@ -648,6 +648,10 @@ function SidebarContent({
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto px-[16px] pb-[8px]">
         {sections.map((section, si) => {
+          // Is the page the user is standing on inside THIS section? Drives the
+          // section header's own state, which is distinct from the open page's.
+          const sectionActive = (!!section.hub && isActive(section.hub))
+            || section.items.some((it) => isActive(it.path) || hasActiveChild(it.children) || isParentPathActive(it.path));
           // Labelled groups collapse; the rail (collapsed sidebar) has no
           // labels, so it always shows every icon.
           const groupOpen = !section.label || !!openGroups[section.label];
@@ -660,7 +664,7 @@ function SidebarContent({
                   onClick={() => toggleGroup(section.label!)}
                   aria-expanded={groupOpen}
                   aria-controls={`${uid}-group-${si}`}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[4px] pt-[10px] text-[10px] leading-[13px] tracking-[1px] text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[5px] pt-[12px] text-[11.5px] font-semibold leading-[15px] tracking-[0.4px] text-foreground/70 transition-colors hover:text-foreground"
                 >
                   <span className="min-w-0 truncate text-start">{tr(section.label)}</span>
                   <ChevronLeft
@@ -671,11 +675,14 @@ function SidebarContent({
               )}
               {/* Groups with a hub: the name opens the section dashboard, the chevron folds the list */}
               {!collapsed && section.label && section.hub && (
-                <div className={`flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[4px] pt-[10px] text-[10px] leading-[13px] tracking-[1px] transition-colors ${isActive(section.hub) ? "text-foreground" : "text-muted-foreground"}`}>
+                /* A section header that opens a dashboard must look like it
+                   does: 10px muted lettering read as a caption, and the CEO
+                   could not tell it was clickable (2026-09-21). */
+                <div className={`flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[5px] pt-[12px] text-[11.5px] font-semibold leading-[15px] tracking-[0.4px] transition-colors ${sectionActive ? "text-primary" : "text-foreground/70"}`}>
                   <Link
                     to={section.hub}
                     onClick={onClose}
-                    className="min-w-0 flex-1 truncate text-start hover:text-foreground"
+                    className="min-w-0 flex-1 truncate text-start underline-offset-4 hover:text-primary hover:underline"
                     title={tr("لوحة القسم")}
                   >
                     {tr(section.label)}
@@ -832,7 +839,7 @@ function CollapsibleMenu({
         <button
           onClick={handleMainClick}
           className={`flex w-full items-center justify-center rounded-lg px-2 py-2 text-[13px] transition-colors ${
-            isParentActive ? "bg-foreground text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
+            isParentActive ? "bg-primary/10 text-primary" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
           title={tr(item.title)}
         >
@@ -847,16 +854,22 @@ function CollapsibleMenu({
       <div className="flex">
         <button
           onClick={handleMainClick}
+          /* THREE STATES, THREE TREATMENTS (CEO 2026-09-21).
+             A parent that merely CONTAINS the current page used to wear the
+             same dark pill as the page itself, so «الدراسة والتسعير» and
+             «عروض الأسعار» both went dark navy and neither read as "you are
+             here". The dark fill now belongs to the open page alone; a parent
+             holding it gets a soft tint and a rail. */
           className={`flex flex-1 items-center gap-[10px] rounded-s-lg ps-[10px] pe-1 py-[7px] text-[13px] leading-[16px] transition-colors ${
             isParentActive
-              ? "bg-foreground font-semibold text-background"
+              ? "border-s-2 border-s-primary bg-primary/10 font-semibold text-primary"
               : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
           }`}
         >
-          <Icon className={`h-[16px] w-[16px] shrink-0 ${isParentActive ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
+          <Icon className={`h-[16px] w-[16px] shrink-0 ${isParentActive ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.75} />
           <span className="min-w-0 flex-1 whitespace-normal break-words text-start">{tr(item.title)}</span>
           {item.badge && (
-            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isParentActive ? "bg-background/15 text-background" : "bg-info-subtle text-info"}`}>{tr(item.badge)}</span>
+            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isParentActive ? "bg-primary/15 text-primary" : "bg-info-subtle text-info"}`}>{tr(item.badge)}</span>
           )}
         </button>
         <button

@@ -531,6 +531,25 @@ export function ItemsTable({
 
   void handleModeChange;
 
+  /**
+   * The document's tax basis owns EVERY row, not just the next one.
+   *
+   * 2026-09-21: `handleModeChange` above was written and then never wired —
+   * the header select called setTaxMode directly, so switching to «شاملة
+   * الضريبة» only affected rows added AFTERWARDS. The row already sitting
+   * there kept the old basis and quietly computed on it, which is how a
+   * document came out on two different bases at once. Switching the basis now
+   * re-bases every line; «مخصصة لكل بند» deliberately leaves them alone.
+   */
+  useEffect(() => {
+    if (mode !== "all-inclusive" && mode !== "all-exclusive") return;
+    const want = mode === "all-inclusive";
+    if (lines.every((l: InvoiceLine) => !!l.taxInclusive === want)) return;
+    setLines(lines.map((l: InvoiceLine) => ({ ...l, taxInclusive: want })));
+    // `lines` drives the guard above; re-running on every keystroke is harmless
+    // because the guard exits immediately once the rows already agree.
+  }, [mode, lines]);
+
   const _totals = computeTotals(lines);
   void _totals;
 
