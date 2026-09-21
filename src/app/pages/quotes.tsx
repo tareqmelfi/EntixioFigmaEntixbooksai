@@ -853,7 +853,9 @@ export function Quotes() {
               <Input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder={t("تعديلات معمارية وإعادة تصميم — فيلا حي النرجس", "Architectural modifications and redesign — Narjis villa")}
+                /* A placeholder is an example of the SHAPE, not of one client's work
+                   (CEO 2026-09-21 · «خليه عادي اي عميل»). */
+                placeholder={t("اسم المشروع أو نطاق العمل", "Project or scope name")}
                 data-testid="quote-title"
               />
               <p className="text-[11px] text-content-secondary">{t("يُطبع على غلاف العرض تحت «عرض سعر» — اتركه فارغاً ولن يحمل المستند اسماً.", "Printed on the proposal cover under «Quotation» — leave it empty and the document carries no name.")}</p>

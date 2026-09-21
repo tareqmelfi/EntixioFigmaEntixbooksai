@@ -1508,7 +1508,12 @@ export function Invoices() {
                         e.stopPropagation();
                         navigate(`/app/contacts/${i.contactId}`);
                       }}
-                      className="block w-full min-w-0 text-start hover:underline underline-offset-4"
+                      /* CEO 2026-09-21 · «لما اضغط على البانر مايفتح الفاتورة
+                         وداني لصفحة العميل». A `w-full` button filled the whole
+                         cell, so most of the row's width belonged to the customer
+                         link. Only the NAME leads to the customer; the rest of
+                         the row is the invoice's. */
+                      className="inline-block max-w-full min-w-0 text-start hover:underline underline-offset-4"
                       title={t("فتح ملف العميل", "Open contact profile")}
                     >
                       <BidiText mode="plaintext" className="invoice-customer-name block overflow-hidden text-ellipsis !whitespace-nowrap leading-5">

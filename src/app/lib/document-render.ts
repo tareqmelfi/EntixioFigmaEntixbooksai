@@ -1779,12 +1779,20 @@ export function renderDocument(input: RenderInput): RenderOutput {
       headH: 11, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع في الصفحة التالية", "continued on the next page")} …</div>` });
     // totals + tafqit (one unit) · then the QR card · then the tax note — the unit never splits
     const tr: string[] = [];
+    if (inclusiveDoc) {
+      // INCLUSIVE · see totalsBlock() — the identity sheet states it the same way:
+      // الإجمالي → قيمة الخصم → الضريبة (ضمن الإجمالي) → الإجمالي شامل الضريبة.
+      tr.push(`<div class="r"><span class="lbl">${t("الإجمالي", "Total")}</span><span class="amt">${num(`${cur} ${money(listPrice)}`)}</span></div>`);
+      if (discount > 0.005) tr.push(`<div class="r disc"><span class="lbl">${t("قيمة الخصم", "Discount")}</span><span class="amt">${num(`${cur} ${money(discount)}-`)}</span></div>`);
+      if (orgTaxRegistered && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel} ${t("(ضمن الإجمالي)", "(included)")}</span><span class="amt">${num(`${cur} ${money(doc.taxTotal)}`)}</span></div>`);
+    } else {
     tr.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${num(`${cur} ${money(discount > 0.005 ? listPrice : taxable)}`)}</span></div>`);
     if (discount > 0.005) {
       tr.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">${num(`- ${cur} ${money(discount)}`)}</span></div>`);
       tr.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${num(`${cur} ${money(taxable)}`)}</span></div>`);
     }
     if (orgTaxRegistered && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${num(`${cur} ${money(doc.taxTotal)}`)}</span></div>`);
+    }
     tr.push(`<div class="r grand"><span class="lbl">${orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total")}</span><span class="amt">${num(`${cur} ${money(doc.total)}`)}</span></div>`);
     const words = showWords && wordsCur ? `<div class="tafqit">${esc(amountInWordsFor(doc.total, lang, cur))}</div>` : "";
     blocks.push({ kind: "html", h: (tr.length - 1) * 7.6 + 11 + (words ? 9.8 : 0) + 4.5, html: `<div class="tot2"><div class="totals">${tr.join("")}</div>${words}</div>` });
