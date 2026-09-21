@@ -39,6 +39,12 @@ export interface PreviewDoc {
   currency?: string;
   subtotal?: number | string | null;
   taxTotal?: number | string | null;
+  /**
+   * Document-level discount. It is NEVER folded into the unit prices — it
+   * prints as its own «الخصم» row so the client reads the same three figures
+   * the ledger stores (CEO 2026-09-21: «وين الخصم 300؟»).
+   */
+  discountTotal?: number | string | null;
   total: number | string;
   amountPaid?: number | string | null;
   /** ZATCA QR payload (base64 TLV) · rendered only when present */
@@ -94,6 +100,7 @@ export function InvoicePreviewPane({
   const { t } = useLanguage();
   const total = num(doc.total);
   const taxTotal = num(doc.taxTotal);
+  const discountTotal = num(doc.discountTotal);
   const subtotal = doc.subtotal != null ? num(doc.subtotal) : total - taxTotal;
   const currency = doc.currency || "SAR";
 
@@ -189,6 +196,12 @@ export function InvoicePreviewPane({
             <span>{t("الإجمالي قبل الضريبة", "Subtotal")}</span>
             <span dir="ltr" className="font-display text-[15px] leading-none text-foreground tabular-nums">{money(subtotal)}</span>
           </div>
+          {discountTotal > 0 && (
+            <div className="flex items-baseline justify-between gap-3" data-testid="preview-discount-row">
+              <span>{t("الخصم", "Discount")}</span>
+              <span dir="ltr" className="font-display text-[15px] leading-none text-danger tabular-nums">−{money(discountTotal)}</span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between gap-3">
             <span>{t("ضريبة القيمة المضافة", "VAT")}</span>
             <span dir="ltr" className="font-display text-[15px] leading-none text-foreground tabular-nums">{money(taxTotal)}</span>

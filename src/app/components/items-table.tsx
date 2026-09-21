@@ -40,6 +40,13 @@ export interface InvoiceLine {
   /** GL account id · maps to revenue/expense in chart of accounts */
   accountId?: string;
   taxInclusive: boolean;
+  /**
+   * PER-LINE DISCOUNT (CEO 2026-09-21 · «يفترض فيه امكانية خصم على الاجمالي
+   * وخصم على البند»). An amount in the document currency, taken off THIS
+   * line's gross before tax. It is a discount, never a doctored unit price:
+   * the client still reads the price that was agreed.
+   */
+  discount?: string;
   taxRate: number;
   /**
    * The org's TaxRate row this line was priced with. The editors send it to the
@@ -179,7 +186,12 @@ const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export function computeTotals(lines: InvoiceLine[], discount?: DocDiscount) {
   const rows = lines.filter((l) => l.description.trim() || l.unitPrice);
-  const gross = rows.map((l) => (Number(normalizeDigits(l.quantity)) || 0) * (Number(normalizeDigits(l.unitPrice)) || 0));
+  // Line discounts come off first (mirrors calcTotals on the API), and the
+  // document discount is then allocated over what is left.
+  const lineDiscounts = rows.map((l) => Math.max(0, Number(normalizeDigits(l.discount || "")) || 0));
+  const listed = rows.map((l) => (Number(normalizeDigits(l.quantity)) || 0) * (Number(normalizeDigits(l.unitPrice)) || 0));
+  const gross = listed.map((g, i) => Math.max(0, r2(g - Math.min(lineDiscounts[i], g))));
+  const lineDiscountTotal = r2(listed.reduce((a, b, i) => a + Math.min(lineDiscounts[i], b), 0));
   const base = gross.reduce((a, b) => a + b, 0);
 
   // Applied to the lines' gross BEFORE tax and split pro-rata, so the tax shown here is the
@@ -232,13 +244,21 @@ export function computeTotals(lines: InvoiceLine[], discount?: DocDiscount) {
   });
   subtotal = r2(subtotal);
   tax = r2(tax);
-  return { subtotal, tax, total: r2(subtotal + tax), discount: discountTotal, listPrice: base };
+  // `discount` is everything taken off the listed prices — line and document
+  // alike — so the document can print one honest «الخصم» figure.
+  return {
+    subtotal, tax, total: r2(subtotal + tax),
+    discount: r2(discountTotal + lineDiscountTotal),
+    lineDiscount: lineDiscountTotal,
+    docDiscount: discountTotal,
+    listPrice: r2(base + lineDiscountTotal),
+  };
 }
 
 // ض.ق.م + الاعتراف are off by default so the grid matches the approved 7-column anatomy;
 // both stay one click away in the "الأعمدة" menu. The account column is ALWAYS visible
 // (account law 2026-09-08 · every line must carry an account) so it has no toggle.
-const DEFAULT_HIDDEN_COLS = { account: false, tax: false, taxAmount: true, recognition: true };
+const DEFAULT_HIDDEN_COLS = { account: false, discount: false, tax: false, taxAmount: true, recognition: true };
 
 /** Debounce before asking the suggestion engine for a line whose account is still empty */
 const SUGGEST_DEBOUNCE_MS = 450;
@@ -683,6 +703,7 @@ export function ItemsTable({
   // Account column is always visible once the chart is loaded (never a hidden toggle).
   const showAccount = accounts.length > 0 || !!onCreateAccount;
   const showTax = !hidden.tax;
+  const showDiscount = !hidden.discount;
 
   /**
    * Tax options come from the ORG's catalogue (`/api/tax-rates`), so the value the
@@ -753,7 +774,7 @@ export function ItemsTable({
       .filter((a) => a.type === "ASSET" && /fixed|intangible/i.test(a.subtype || ""))
       .map((a) => a.id),
   );
-  const hiddenCount = Number(hidden.tax) + Number(hidden.taxAmount) + Number(hidden.recognition);
+  const hiddenCount = Number(hidden.tax) + Number(hidden.discount) + Number(hidden.taxAmount) + Number(hidden.recognition);
 
   // Backend uses REVENUE not INCOME · accept both for compatibility
   // Purchases accept EXPENSE + ASSET (fixed-asset lines) — same set the API validates.
@@ -771,6 +792,7 @@ export function ItemsTable({
     "minmax(0, 1fr)",
     "70px",
     "100px",
+    showDiscount ? "96px" : null,
     showAccount ? "200px" : null,
     showTax ? "96px" : null,
     "110px",
@@ -781,7 +803,7 @@ export function ItemsTable({
     "32px",
   ].filter(Boolean).join(" ");
   const gridMinWidth =
-    36 + 150 + 200 + 70 + 100 + (showAccount ? 200 : 0) + (showTax ? 96 : 0) + 110 +
+    36 + 150 + 200 + 70 + 100 + (showDiscount ? 96 : 0) + (showAccount ? 200 : 0) + (showTax ? 96 : 0) + 110 +
     (showTaxAmount ? 110 : 0) + 130 + (showRecognition ? 150 : 0) + (showAssetCol ? 44 : 0) + 32;
 
   return (
@@ -815,6 +837,7 @@ export function ItemsTable({
               <span className="cell h">{t("الوصف", "Description")}</span>
               <span className="cell h n">{t("الكمية", "Qty")}</span>
               <span className="cell h n">{t("السعر", "Price")}</span>
+              {showDiscount && <span className="cell h n" title={t("خصم على هذا البند وحده · يُطرح قبل الضريبة", "A discount on this line alone · taken off before tax")}>{t("الخصم", "Discount")}</span>}
               {showAccount && <span className="cell h">{t("الحساب", "Account")}</span>}
               {showTax && <span className="cell h n">{t("الضريبة", "Tax")}</span>}
               <span className="cell h n">{t("المبلغ", "Amount")} ({currency})</span>
@@ -838,7 +861,10 @@ export function ItemsTable({
             {displayLines.map((line, i) => {
               const qty = Number(normalizeDigits(line.quantity)) || 0;
               const price = Number(normalizeDigits(line.unitPrice)) || 0;
-              const gross = qty * price;
+              const listedGross = qty * price;
+              // The row's own discount comes off before the row's tax, exactly
+              // as computeTotals and the API do it.
+              const gross = Math.max(0, listedGross - Math.min(Math.max(0, Number(normalizeDigits(line.discount || "")) || 0), listedGross));
               const rate = lineTaxRate(line);
               const lineTax = line.taxInclusive ? gross - gross / (1 + rate) : gross * rate;
               const lineNet = line.taxInclusive ? gross / (1 + rate) : gross;
@@ -934,6 +960,20 @@ export function ItemsTable({
                       className="font-english text-[13px] text-end"
                     />
                   </span>
+                  {showDiscount && (
+                    <span className="cell n" data-testid={`line-discount-${i}`}>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={isReal ? (line.discount || "") : ""}
+                        onChange={(e) => updateLine(i, { discount: normalizeDigits(e.target.value) })}
+                        onKeyDown={(e) => handleKeyDown(e, i, false)}
+                        placeholder="0.00"
+                        dir="ltr"
+                        className="font-english text-[13px] text-end"
+                      />
+                    </span>
+                  )}
                   {showAccount && (
                     <span className={`cell !px-1 ${isInvalid && !line.accountId ? "!bg-danger-subtle" : ""}`} data-testid={`line-account-${i}`} data-account-suggested={line.accountSuggested ? "true" : undefined}>
                       <div className="flex w-full min-w-0 items-center gap-1">
@@ -1186,6 +1226,7 @@ export function ItemsTable({
             {colsOpen && (
               <div className="absolute end-0 top-full mt-1 w-44 rounded-md border border-border bg-card shadow-lg p-2 z-10">
                 {[
+                  { key: "discount" as const, label: t("خصم البند", "Line discount") },
                   { key: "tax" as const, label: t("الضريبة", "Tax") },
                   { key: "taxAmount" as const, label: t("مبلغ الضريبة", "Tax amount") },
                   { key: "recognition" as const, label: t("الاعتراف بالإيرادات", "Revenue recognition") },

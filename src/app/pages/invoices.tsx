@@ -1572,12 +1572,20 @@ export function Invoices() {
                         <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}
                       </button>
                     )}
-                    {/* فتح/تعديل — always available; backend locks number + guards integrity */}
+                    {/* فتح/تعديل — CEO 2026-09-21: «لقيت صعوبة لما اضغطها وبرضو مافي
+                        اي شي مبين من ناحية التعديل». A bare pencil glyph read as
+                        decoration; on a wide screen a single click only SELECTED the
+                        row, so the document needed a double-click nobody guessed.
+                        The action now carries its word and opens on one click. */}
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
-                      className="rounded-full p-1.5 text-primary hover:bg-surface-hover"
+                      className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-primary hover:border-border-strong"
+                      data-testid="invoice-row-edit"
                       title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض الفاتورة ورد الهيئة", "View invoice and authority response")}
-                    >{i.status === "DRAFT" ? <Pencil className="h-4 w-4" strokeWidth={1.75} /> : <Eye className="h-4 w-4" strokeWidth={1.75} />}</button>
+                    >
+                      {i.status === "DRAFT" ? <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> : <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                      {i.status === "DRAFT" ? t("تعديل", "Edit") : t("فتح", "Open")}
+                    </button>
                     {/* طباعة — always available */}
                     <button
                       onClick={(e) => { e.stopPropagation(); window.open(`/print/invoice/${i.id}`, "_blank"); }}

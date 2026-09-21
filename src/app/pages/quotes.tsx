@@ -6,9 +6,9 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  * UX-1 compliant: NO Dialog · NO alert/confirm/prompt
  * UX pattern: FullPageForm + ItemsTable + SearchableCombobox · مطابق Wafeq
  */
-import { useEffect, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { useSearchParams, useParams, Link } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye, Mail } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye, Mail, Pencil } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
@@ -242,6 +242,10 @@ export function Quotes() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  // CEO 2026-09-21 (verbatim): «ولا شفت تعديل في العروض كلها نفس المشلكة» — the
+  // quote form only ever created. Opening a saved quote now fills the SAME form
+  // and PATCHes it, so a correction is an edit, never a second quote.
+  const [editId, setEditId] = useState<string | null>(null);
   // Brand document templates for the QUOTE kind (BOTH counts) · selector + terms prefill
   const [docTemplates, setDocTemplates] = useState<any[]>([]);
   useEffect(() => {
@@ -281,7 +285,7 @@ export function Quotes() {
   // to live outside the snapshot: Esc kept the lines and the header and threw
   // the plan away, and it had to be typed again from scratch (2026-09-21).
   const draft = useFormDraft({
-    key: "quote:new",
+    key: editId ? `quote:${editId}` : "quote:new",
     open: createOpen,
     snapshot: { form, lines, taxMode, planRows, planTemplateId },
     restore: (s) => {
@@ -380,6 +384,7 @@ export function Quotes() {
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
+      setEditId(null);
       setCreateOpen(true);
       setSearchParams({}, { replace: true });
     }
@@ -427,7 +432,85 @@ export function Quotes() {
 
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
 
+  // CEO 2026-09-21 (verbatim): «خليه يطلع الملف يسار اي تعديل يكون لايف اشوفه» —
+  // the finished document beside the editor, redrawn on every keystroke. No
+  // save, no new tab, no download just to see what the client will read.
+  const livePreviewDoc = useMemo(() => {
+    // Two passes: the document reads «قبل الخصم → الخصم → الضريبة → الإجمالي»,
+    // so the subtotal shown is the PRE-discount one and the discount keeps its
+    // own row (CEO 2026-09-21: «وين الخصم 300؟»).
+    const listed = computeTotals(lines);
+    const totals = computeTotals(lines, { discountType: form.discountType as any, discountValue: Number(form.discountValue) || 0 });
+    return {
+      id: editId || "draft",
+      number: form.quoteNumber || t("مسودة", "Draft"),
+      status: editId ? "DRAFT" : "DRAFT",
+      issueDate: form.issueDate,
+      dueDate: form.validUntil,
+      currency: form.currency,
+      subtotal: listed.subtotal,
+      discountTotal: Math.round((listed.subtotal - totals.subtotal) * 100) / 100,
+      taxTotal: totals.tax,
+      total: totals.total,
+      lines: lines
+        .filter((l) => l.description.trim() || l.unitPrice)
+        .map((l) => ({ id: l.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice })),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, form.quoteNumber, form.issueDate, form.validUntil, form.currency, form.discountType, form.discountValue, editId, language]);
+  const livePreviewCustomer = useMemo(() => {
+    const c = customers.find((x) => x.id === form.contactId);
+    return c ? { name: c.displayName, vatNumber: (c as any).taxId } : null;
+  }, [customers, form.contactId]);
+
+  /** Open the saved quote in the same editor (CEO 2026-09-21 · «احتاج زر التعديل»). */
+  const openEdit = async (q: Quote) => {
+    setSourceFiles([]);
+    setCreateError(null);
+    setBusy(true);
+    try {
+      const full = (q.lines as any[])?.length ? q : await api.quotes.get(q.id);
+      setForm({
+        ...EMPTY_FORM,
+        contactId: full.contact?.id || (full as any).contactId || "",
+        quoteNumber: full.quoteNumber || "",
+        reference: (full as any).reference || "",
+        issueDate: String(full.issueDate || "").slice(0, 10) || EMPTY_FORM.issueDate,
+        validUntil: String(full.validUntil || "").slice(0, 10) || EMPTY_FORM.validUntil,
+        currency: full.currency || EMPTY_FORM.currency,
+        notes: (full as any).notes || "",
+        templateId: (full as any).templateId || "",
+        termsConditions: (full as any).termsConditions || "",
+        pages: normalizePages((full as any).pages),
+        branchId: (full as any).branchId ?? undefined,
+        discountType: ((full as any).discountType || "") as "" | "PERCENT" | "FIXED",
+        discountValue: (full as any).discountValue ? String((full as any).discountValue) : "",
+      });
+      const ls = ((full.lines as any[]) || []).map((l: any) => ({
+        id: l.id || Math.random().toString(36).slice(2),
+        productId: l.productId || undefined,
+        description: l.description || "",
+        quantity: String(l.quantity ?? 1),
+        // The stored unitPrice is the net; `taxInclusive` says how the user typed it.
+        unitPrice: String(l.unitPrice ?? ""),
+        discount: Number(l.discount || 0) ? String(l.discount) : "",
+        accountId: l.accountId || undefined,
+        taxInclusive: !!l.taxInclusive,
+        taxRate: Number(l.taxRate ?? 0),
+        taxRateId: l.taxRateId || undefined,
+      })) as InvoiceLine[];
+      setLines(ls.length ? ls : [newLine()]);
+      setTaxMode(ls.length && ls.every((l) => l.taxInclusive) ? "all-inclusive" : "all-exclusive");
+      setPlanRows(planFromApi((full as any).paymentPlan)); setPlanTemplateId("");
+      setEditId(full.id);
+      setCreateOpen(true);
+    } catch (e: any) {
+      push("error", e instanceof ApiError ? e.message : t("تعذر فتح العرض للتعديل", "Could not open the quote for editing"));
+    } finally { setBusy(false); }
+  };
+
   const openCreate = () => {
+    setEditId(null);
     setSourceFiles([]);
     const prefillContact = searchParams.get("contactId") || "";
     setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
@@ -439,6 +522,7 @@ export function Quotes() {
   };
   const closeCreate = () => {
     setCreateOpen(false);
+    setEditId(null);
     setCreateError(null);
     goBackToSource();
   };
@@ -459,8 +543,8 @@ export function Quotes() {
     if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل (وصف + سعر)", "Add at least one line item (description + price)")); return null; }
     setBusy(true);
     try {
-      const status = action === "draft" ? "DRAFT" : "SENT";
-      const q = await api.quotes.create({
+      const status = action === "draft" ? (editId ? undefined : "DRAFT") : "SENT";
+      const payload = {
         sourceAttachments: sourceFiles,
         contactId: form.contactId,
         quoteNumber: form.quoteNumber || undefined,
@@ -489,19 +573,27 @@ export function Quotes() {
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
           unitPrice: Number(normalizeDigits(l.unitPrice)),
+          // Per-line discount · the API takes it off this line's gross before tax
+          discount: Number(normalizeDigits(l.discount || "")) || 0,
           taxRateId: l.taxRateId || null,
           taxRate: l.taxRate,
           taxInclusive: l.taxInclusive,
         })),
-      } as any);
-      setItems(prev => [q, ...prev]);
+      } as any;
+      // Editing keeps the quote's own status — saving a correction must never
+      // silently push a SENT quote back to DRAFT.
+      if (status === undefined) delete (payload as any).status;
+      const q = editId ? await api.quotes.update(editId, payload) : await api.quotes.create(payload);
+      setItems(prev => editId ? prev.map((x) => (x.id === q.id ? { ...x, ...q } : x)) : [q, ...prev]);
+      if (editId) setDetail((prev) => (prev && prev.id === q.id ? { ...prev, ...q } : prev));
       // SPEC-05 L2 · the schedule needs a saved quote · an unbalanced plan blocks
       // ONLY itself — the quote is already saved either way.
       if (planRows.length) {
         if (planRowsValid(planRows)) await applyPaymentPlan(q.id, { silent: true });
         else push("info", t("حُفظ العرض بدون خطة الدفعات — مجموع النسب ليس 100%", "Quote saved without the payment plan — the percentages do not add up to 100%"));
       }
-      const msg = action === "draft" ? t(`تم حفظ ${q.quoteNumber} كمسودة`, `Saved ${q.quoteNumber} as draft`) : t(`تم حفظ ${q.quoteNumber} · راجع الرسالة قبل الإرسال`, `Saved ${q.quoteNumber} · review the message before sending`);
+      const msg = editId ? t(`تم حفظ التعديلات على ${q.quoteNumber}`, `Saved your changes to ${q.quoteNumber}`)
+        : action === "draft" ? t(`تم حفظ ${q.quoteNumber} كمسودة`, `Saved ${q.quoteNumber} as draft`) : t(`تم حفظ ${q.quoteNumber} · راجع الرسالة قبل الإرسال`, `Saved ${q.quoteNumber} · review the message before sending`);
       push("success", msg);
       draft.clear();
       // «إرسال» never fires the email silently (CEO 2026-09-08) — it opens the
@@ -691,8 +783,10 @@ export function Quotes() {
     return (
       <>
         <FullPageForm
-          title={t("عرض سعر جديد", "New quote")}
-          subtitle={t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic details · you can edit later")}
+          title={editId ? t("تعديل عرض السعر", "Edit quote") : t("عرض سعر جديد", "New quote")}
+          subtitle={editId
+            ? t("تُحفظ التعديلات على العرض نفسه — لا يُنشأ عرض جديد", "Your changes are saved to this quote — no new quote is created")
+            : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic details · you can edit later")}
           onClose={closeCreate}
           disableEscape={busy}
           draft={draft}
@@ -706,7 +800,7 @@ export function Quotes() {
               </div>
               <div className="flex items-center gap-2">
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/80">
-                  {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
+                  {busy ? "..." : editId ? t("حفظ التعديلات", "Save changes") : t("حفظ كمسودة", "Save as draft")}
                 </Button>
                 <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} className="border-success text-success hover:bg-success-subtle" title={t("إرسال للعميل", "Send to customer")}>
                   {busy ? "..." : t("حفظ + إرسال", "Save + send")}
@@ -715,6 +809,7 @@ export function Quotes() {
             </div>
           }
         >
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
           <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
 
@@ -951,6 +1046,21 @@ export function Quotes() {
               disabled={busy}
             />
           </div>
+          <aside
+            className="sticky top-4 hidden max-h-[calc(100vh-11rem)] min-w-0 overflow-y-auto rounded-lg bg-surface-subtle p-4 xl:block"
+            aria-label={t("المستند النهائي", "Final document")}
+            data-testid="quote-live-preview"
+          >
+            <InvoicePreviewPane
+              doc={livePreviewDoc as any}
+              seller={seller}
+              customer={livePreviewCustomer}
+              docTypeLabel={t("عرض سعر", "Quotation")}
+              statusLabel={t("معاينة مباشرة", "Live preview")}
+              statusMeta={t("يتحدّث مع كل تعديل — لا حاجة للتحميل", "Updates as you type — no download needed")}
+            />
+          </aside>
+          </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
       </>
@@ -1005,8 +1115,16 @@ export function Quotes() {
   );
 
   // Workflow actions for one quote · quiet pills (list rows keep open · print · delete only)
+  /** A quote stops being editable once it has become an invoice or been refused. */
+  const quoteEditable = (q: Quote) => q.status !== "CONVERTED" && q.status !== "REJECTED";
+
   const workflowActions = (q: Quote) => (
     <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {quoteEditable(q) && (
+        <button onClick={() => openEdit(q)} disabled={busy} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-primary hover:border-border-strong" title={t("تعديل العرض", "Edit quote")} data-testid="quote-edit">
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تعديل", "Edit")}
+        </button>
+      )}
       <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:border-border-strong" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
         <Printer className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("العرض", "Proposal")}
       </a>
@@ -1071,7 +1189,8 @@ export function Quotes() {
     issueDate: q.issueDate,
     dueDate: q.validUntil,
     currency: q.currency,
-    subtotal: q.subtotal,
+    subtotal: Number(q.subtotal || 0) + Number((q as any).discountTotal || 0),
+    discountTotal: (q as any).discountTotal,
     taxTotal: q.taxTotal,
     total: q.total,
     lines: (q.lines as any[])?.map((l: any) => ({ id: l.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, total: l.total })),
@@ -1088,9 +1207,16 @@ export function Quotes() {
           title={q ? <span dir="ltr" className="font-code">{q.quoteNumber}</span> : t("عرض سعر", "Quote")}
           description={q ? <><BidiText>{q.contact?.displayName || "—"}</BidiText>{q.title ? <> · <BidiText>{q.title}</BidiText></> : null}</> : undefined}
           actions={
-            <Button variant="outline" className="h-10 px-[18px] text-sm" onClick={() => navigate("/app/quotes")}>
-              <ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />{t("عروض الأسعار", "Quotes")}
-            </Button>
+            <div className="flex items-center gap-2">
+              {q && quoteEditable(q) && (
+                <Button className="h-10 px-[18px] text-sm" disabled={busy} onClick={() => openEdit(q)} data-testid="quote-detail-edit">
+                  <Pencil className="me-2 h-4 w-4" strokeWidth={1.75} />{t("تعديل", "Edit")}
+                </Button>
+              )}
+              <Button variant="outline" className="h-10 px-[18px] text-sm" onClick={() => navigate("/app/quotes")}>
+                <ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />{t("عروض الأسعار", "Quotes")}
+              </Button>
+            </div>
           }
         />
         {detailLoading || !q ? (

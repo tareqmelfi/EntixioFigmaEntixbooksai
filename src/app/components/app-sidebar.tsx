@@ -181,14 +181,12 @@ const sections: MenuSection[] = [
       // The next step of the flow, «مشاريع», is the group immediately below
       // (kept as its own group — tests/project-tasks.spec.ts — rather than
       // duplicated here as a second «المشاريع» link).
-      {
-        title: "الدراسة والتسعير",
-        icon: Calculator,
-        path: "/app/estimates",
-        children: [
-          { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
-        ],
-      },
+      // CEO 2026-09-21 (verbatim): «وعروض الاسعار فوق الفواتير كخطوة غير عن
+      // خطوة الدراسة والتسعير» — the quote is a CLIENT-facing step of its own,
+      // not a sub-item of the internal cost study. Three flat rows in the
+      // order the work happens: study → quote → invoice.
+      { title: "الدراسة والتسعير", icon: Calculator, path: "/app/estimates" },
+      { title: "عروض الأسعار", icon: FileSpreadsheet, path: "/app/quotes" },
       { title: "الفواتير", icon: FileText, path: "/app/invoices" },
       { title: "سندات القبض", icon: Receipt, path: "/app/receipts" },
       { title: "الإشعارات الدائنة", icon: ScrollText, path: "/app/credit-notes" },
@@ -664,7 +662,7 @@ function SidebarContent({
                   onClick={() => toggleGroup(section.label!)}
                   aria-expanded={groupOpen}
                   aria-controls={`${uid}-group-${si}`}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[5px] pt-[12px] text-[11.5px] font-semibold leading-[15px] tracking-[0.4px] text-foreground/70 transition-colors hover:text-foreground"
+                  className="mb-[2px] mt-[10px] flex w-full items-center justify-between gap-2 rounded-lg px-[10px] py-[7px] text-[12.5px] font-bold leading-[16px] tracking-[0.2px] text-foreground/75 transition-colors hover:bg-surface-hover hover:text-foreground"
                 >
                   <span className="min-w-0 truncate text-start">{tr(section.label)}</span>
                   <ChevronLeft
@@ -678,11 +676,11 @@ function SidebarContent({
                 /* A section header that opens a dashboard must look like it
                    does: 10px muted lettering read as a caption, and the CEO
                    could not tell it was clickable (2026-09-21). */
-                <div className={`flex w-full items-center justify-between gap-2 rounded-lg px-[10px] pb-[5px] pt-[12px] text-[11.5px] font-semibold leading-[15px] tracking-[0.4px] transition-colors ${sectionActive ? "text-primary" : "text-foreground/70"}`}>
+                <div className={`mb-[2px] mt-[10px] flex w-full items-center justify-between gap-2 rounded-lg px-[10px] py-[7px] text-[12.5px] font-bold leading-[16px] tracking-[0.2px] transition-colors ${sectionActive ? "bg-primary/10 text-primary" : "text-foreground/75 hover:bg-surface-hover hover:text-foreground"}`} data-section-active={sectionActive ? "" : undefined}>
                   <Link
                     to={section.hub}
                     onClick={onClose}
-                    className="min-w-0 flex-1 truncate text-start underline-offset-4 hover:text-primary hover:underline"
+                    className="min-w-0 flex-1 truncate text-start"
                     title={tr("لوحة القسم")}
                   >
                     {tr(section.label)}

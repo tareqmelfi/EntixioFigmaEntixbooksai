@@ -16,6 +16,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   Calculator, Plus, Search, Trash2, Loader2, FileSpreadsheet, Lock, Unlock,
   ArrowRight, Copy, Send, CheckCircle2, ArrowLeftRight, Eye, Users,
+  Pencil,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -602,8 +603,11 @@ export function Estimates() {
     return (
       <>
         <FullPageForm
-          title={current ? t(`الدراسة ${current.number}`, `Estimate ${current.number}`) : t("دراسة جديدة", "New estimate")}
-          subtitle={t("دراسة داخلية · التكلفة والهامش لا تغادر الشركة", "Internal study · cost and margin never leave the company")}
+          title={current ? t(`تعديل الدراسة ${current.number}`, `Edit estimate ${current.number}`) : t("دراسة جديدة", "New estimate")}
+          subtitle={current
+            ? t("تُحفظ التعديلات على الدراسة نفسها — لا تُنشأ دراسة جديدة · التكلفة والهامش لا تغادر الشركة",
+                "Your changes are saved to this estimate — no new study is created · cost and margin never leave the company")
+            : t("دراسة داخلية · التكلفة والهامش لا تغادر الشركة", "Internal study · cost and margin never leave the company")}
           onClose={() => navigate("/app/estimates")}
           disableEscape={busy}
           toolbar={current && (
@@ -625,7 +629,7 @@ export function Estimates() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" disabled={busy || frozen} onClick={() => save()} data-testid="estimate-save-draft">
-                  {busy ? "…" : t("حفظ كمسودة", "Save as draft")}
+                  {busy ? "…" : current ? t("حفظ التعديلات", "Save changes") : t("حفظ كمسودة", "Save as draft")}
                 </Button>
                 <Button type="button" variant="outline" className="border-border" disabled={busy || frozen} onClick={handleSubmitForReview} data-testid="estimate-submit">
                   <Send className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إرسال للمراجعة", "Send for review")}
@@ -1154,13 +1158,21 @@ export function Estimates() {
                     <TableCell className="align-middle">{statusPill(e)}</TableCell>
                     <TableCell className="text-start"><span dir="ltr" className="font-english text-xs tabular-nums text-content-secondary">{String(e.createdAt || "").slice(0, 10)}</span></TableCell>
                     <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
-                      {pendingDelete === e.id ? (
-                        <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
-                      ) : (
-                        <button type="button" onClick={() => setPendingDelete(e.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")} aria-label={t("حذف", "Delete")}>
-                          <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                      <div className="flex items-center gap-1.5">
+                        {/* CEO 2026-09-21: «الدراسة والتسعير ماني شايف فيها تعديل ليش
+                            كل مرة دراسة جديدة» — the row already opened the editor, but
+                            nothing on screen said so. The affordance is now visible. */}
+                        <button type="button" onClick={() => navigate(`/app/estimates/${e.id}`)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-primary hover:border-border-strong" title={t("تعديل الدراسة", "Edit estimate")} data-testid="estimate-edit">
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تعديل", "Edit")}
                         </button>
-                      )}
+                        {pendingDelete === e.id ? (
+                          <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
+                        ) : (
+                          <button type="button" onClick={() => setPendingDelete(e.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")} aria-label={t("حذف", "Delete")}>
+                            <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                          </button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
